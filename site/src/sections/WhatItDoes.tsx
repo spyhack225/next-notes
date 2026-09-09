@@ -1,20 +1,31 @@
 import { motion } from "framer-motion";
+import Orb from "../components/Orb";
+import type { OrbState } from "../components/orbGeometry";
 import { fadeUp } from "../lib/motion";
 
-const features = [
+/**
+ * The orb over each card is the app's own binding, not decoration: dictation listens, a
+ * meeting braids two tracks into one, diarization is a clustering problem clicking into
+ * place, and the agent sweeps your mail and calendar.
+ */
+const features: { title: string; body: string; orb: OrbState }[] = [
   {
+    orb: "listening",
     title: "Talk anywhere",
     body: "Hold one key, say the thing, let go. It lands in the email, the terminal, the doc — wherever the cursor already was. It learns the names and jargon you actually use, so it stops mangling them.",
   },
   {
+    orb: "weaving",
     title: "Meetings record themselves",
     body: "Speechify sees what's on your calendar and quietly starts when the meeting does. It asks first, and one click skips any meeting you'd rather it stayed out of.",
   },
   {
+    orb: "solving",
     title: "Speakers told apart",
     body: "Your microphone and what comes out of your speakers are heard as two separate things, which is how the transcript knows who said what without anything joining the call.",
   },
   {
+    orb: "searching",
     title: "Follow-ups you approve",
     body: "It can offer to write the doc, put the follow-up on the calendar, or send the mail. Every one of those waits on a button you press, and shows you the message first.",
   },
@@ -64,9 +75,10 @@ export default function WhatItDoes() {
           </p>
         </motion.div>
 
-        <div id="meetings" className="grid md:grid-cols-4 gap-8 mt-24 scroll-mt-28">
+        <div id="meetings" className="grid md:grid-cols-4 gap-12 md:gap-8 mt-24 scroll-mt-28">
           {features.map((feature, i) => (
             <motion.div key={feature.title} {...fadeUp(0.08 * i)}>
+              <Orb state={feature.orb} size={64} className="-ml-1 mb-5" />
               <h3 className="font-semibold text-base">{feature.title}</h3>
               <p className="text-muted-foreground text-sm mt-3 leading-relaxed">
                 {feature.body}
