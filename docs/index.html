@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Speechify — talk instead of typing, and never take notes again</title>
+<meta name="description" content="Speak into any app and the words appear. Sit in any meeting and the notes write themselves. Everything runs on your Mac.">
+<meta property="og:title" content="Speechify">
+<meta property="og:description" content="Talk instead of typing. Never take notes again. Everything runs on your Mac.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="icon.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon.png">
+<style>
+  /* Two tones and nothing else. Sections alternate ground, which is the whole visual
+     system — no accent colour, no gradient, no shadow doing work a border can do. */
+  :root {
+    --black: #0d0d0f;
+    --white: #f7f6f3;
+    --measure: 34rem;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+  body {
+    margin: 0;
+    background: var(--black);
+    color: var(--white);
+    font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    letter-spacing: -0.011em;
+  }
+
+  .band { padding: 7rem 1.5rem; }
+  .band.light { background: var(--white); color: var(--black); }
+  .band.dark  { background: var(--black); color: var(--white); }
+  .inner { max-width: 60rem; margin: 0 auto; }
+
+  h1, h2, h3 { margin: 0 0 1rem; line-height: 1.05; letter-spacing: -0.035em; font-weight: 600; }
+  h1 { font-size: clamp(2.8rem, 7.5vw, 5rem); }
+  h2 { font-size: clamp(2rem, 4.6vw, 3.1rem); }
+  h3 { font-size: 1.1rem; letter-spacing: -0.015em; line-height: 1.3; }
+  p  { margin: 0 0 1.15rem; max-width: var(--measure); font-size: 1.075rem; opacity: 0.72; }
+  .lead { font-size: clamp(1.15rem, 2.1vw, 1.4rem); opacity: 0.82; line-height: 1.5; }
+  .eyebrow {
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.14em;
+    opacity: 0.5; margin-bottom: 1.25rem; font-weight: 500;
+  }
+
+  /* Hero */
+  .hero { display: flex; gap: 4rem; align-items: center; flex-wrap: wrap-reverse; }
+  .hero-copy { flex: 1 1 26rem; }
+  .hero-orb { flex: 0 0 auto; margin: 0 auto; }
+  canvas { display: block; }
+
+  .cta { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 2rem; align-items: center; }
+  .btn {
+    display: inline-block; padding: 0.85rem 1.6rem; border-radius: 999px;
+    font-size: 0.98rem; font-weight: 550; text-decoration: none; border: 1px solid;
+    transition: opacity 0.15s ease;
+  }
+  .btn:hover { opacity: 0.75; }
+  .dark  .btn-primary { background: var(--white); color: var(--black); border-color: var(--white); }
+  .light .btn-primary { background: var(--black); color: var(--white); border-color: var(--black); }
+  .dark  .btn-ghost { color: var(--white); border-color: rgba(247,246,243,0.28); }
+  .light .btn-ghost { color: var(--black); border-color: rgba(13,13,15,0.28); }
+  .note { font-size: 0.9rem; opacity: 0.5; margin: 0.9rem 0 0; }
+
+  /* Pillars */
+  .pillars { display: grid; gap: 3rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); margin-top: 4rem; }
+  .pillars p { font-size: 1rem; margin: 0; }
+  .rule { width: 2rem; height: 2px; background: currentColor; opacity: 0.35; margin-bottom: 1.25rem; }
+
+  /* Split rows */
+  .split { display: grid; gap: 3.5rem; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); align-items: start; }
+  .split + .split { margin-top: 4.5rem; }
+
+  /* Quote-ish transcript sample */
+  .sample {
+    border-left: 2px solid currentColor; padding-left: 1.25rem;
+    font-size: 1rem; line-height: 1.7; opacity: 0.85; max-width: var(--measure);
+  }
+  .sample .who { opacity: 0.45; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.1em; display: block; }
+  .sample .said { margin-bottom: 1rem; display: block; }
+
+  ul.checks { list-style: none; padding: 0; margin: 0; max-width: var(--measure); }
+  ul.checks li { padding: 0.85rem 0; border-top: 1px solid currentColor; opacity: 0.75; font-size: 1rem; }
+  ul.checks li:first-child { border-top: 0; }
+
+  pre {
+    background: rgba(247,246,243,0.06); border: 1px solid rgba(247,246,243,0.16);
+    border-radius: 10px; padding: 1.1rem 1.25rem; overflow-x: auto; max-width: var(--measure);
+  }
+  .light pre { background: rgba(13,13,15,0.05); border-color: rgba(13,13,15,0.14); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9rem; }
+
+  footer { padding: 3.5rem 1.5rem; background: var(--black); color: var(--white); }
+  footer .inner { display: flex; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
+  footer p { font-size: 0.9rem; opacity: 0.45; margin: 0; }
+  footer a { color: inherit; }
+
+  a { color: inherit; text-underline-offset: 3px; }
+
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="band dark">
+  <div class="inner hero">
+    <div class="hero-copy">
+      <h1>Stop typing.<br>Stop taking notes.</h1>
+      <p class="lead">Speak into any app and the words appear. Sit in any meeting and the notes write themselves. All of it happens on your Mac.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="#get">Get Speechify</a>
+        <a class="btn btn-ghost" href="https://github.com/spyhack225/speechify-site">View source</a>
+      </div>
+      <p class="note">macOS 26 · Apple silicon · free and open source</p>
+    </div>
+    <div class="hero-orb">
+      <canvas id="orb" width="220" height="220" aria-label="The Speechify mark, an animated dotted sphere"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Pillars -->
+<div class="band light">
+  <div class="inner">
+    <p class="eyebrow">Why people keep it running</p>
+    <h2>Your attention back,<br>twice a day.</h2>
+    <div class="pillars">
+      <div>
+        <div class="rule"></div>
+        <h3>Write at the speed you talk</h3>
+        <p>Hold one key, say the thing, let go. It lands in the email, the terminal, the doc — wherever the cursor already was.</p>
+      </div>
+      <div>
+        <div class="rule"></div>
+        <h3>Be in the meeting</h3>
+        <p>No bot joins your call and no one is asked to consent to a stranger in the room. You just talk, and the notes are waiting when you finish.</p>
+      </div>
+      <div>
+        <div class="rule"></div>
+        <h3>Nothing leaves your Mac</h3>
+        <p>Your voice is never uploaded. Not to us, not to anyone — because there is no server to upload it to.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dictation -->
+<div class="band dark">
+  <div class="inner">
+    <div class="split">
+      <div>
+        <p class="eyebrow">Dictation</p>
+        <h2>Talk into anything.</h2>
+        <p>Most of what you write in a day is short and unglamorous — a reply, a commit message, a note to yourself. Typing it is the slow part.</p>
+        <p>Hold a key and say it instead. The filler comes out, the punctuation goes in, and the finished sentence is inserted where you were already working. It learns the names and jargon you actually use, so it stops mangling them.</p>
+      </div>
+      <div>
+        <div class="sample">
+          <span class="who">You said</span>
+          <span class="said">um so i need to send the report by friday no wait make that thursday</span>
+          <span class="who">It wrote</span>
+          <span class="said">So I need to send the report by Thursday.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Meetings -->
+<div class="band light">
+  <div class="inner">
+    <div class="split">
+      <div>
+        <p class="eyebrow">Meetings</p>
+        <h2>Show up empty-handed.</h2>
+        <p>Speechify sees what's on your calendar and quietly starts when the meeting does. It asks first, and one click skips any meeting you'd rather it stayed out of.</p>
+        <p>It hears your microphone and what comes out of your speakers as two separate things, which is how the transcript knows who said what without anything joining the call.</p>
+        <p>When you stop, you get a summary, the decisions, and who owes what by when.</p>
+      </div>
+      <div>
+        <ul class="checks">
+          <li>Starts and stops on its own, or never — your choice, per meeting</li>
+          <li>Tells the people in the room apart</li>
+          <li>Summary, decisions, action items and open questions</li>
+          <li>Works with Zoom, Meet, Teams, or a conversation at a desk</li>
+          <li>Can offer to write the doc and send the follow-up, if you let it</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Privacy -->
+<div class="band dark">
+  <div class="inner">
+    <p class="eyebrow">The difference</p>
+    <h2>It runs on your machine.<br>That's the whole product.</h2>
+    <p class="lead">Every other tool in this category ships your voice to a server and asks you to trust what happens next. Speechify does the transcription and the writing on the Mac in front of you.</p>
+    <ul class="checks" style="margin-top:2.5rem">
+      <li>No account, no subscription, no cloud</li>
+      <li>Recordings are deleted once the notes are written, unless you ask to keep them</li>
+      <li>Your calendar is read, never written</li>
+      <li>It cannot send an email or create a document until you press the button</li>
+      <li>Open source, so none of the above has to be taken on faith</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Get it -->
+<div class="band light" id="get">
+  <div class="inner">
+    <p class="eyebrow">Get it</p>
+    <h2>Build it in two minutes.</h2>
+    <p>There's no signed release yet, so you build it yourself. If you have Xcode installed, that's two commands:</p>
+    <pre><code>git clone https://github.com/spyhack225/speechify-site.git
+cd speechify-site &amp;&amp; make install</code></pre>
+    <p>It compiles, installs to your Applications folder and launches. macOS will ask for the microphone and a couple of permissions on first run, and the app walks you through them.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/spyhack225/speechify-site">Open on GitHub</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="inner">
+    <p>Speechify — dictation and meeting notes that stay on your Mac.</p>
+    <p><a href="https://github.com/spyhack225/speechify-site">GitHub</a></p>
+  </div>
+</footer>
+
+<script>
+// The mark is the app's own `listening` orb — a waveform rolling through latitude rings —
+// generated here from the same geometry and the same tuned preset the Mac app animates,
+// so the sphere on this page and the sphere in the menu bar are the same object.
+(function () {
+  const canvas = document.getElementById('orb');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const size = canvas.width;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+  ctx.scale(dpr, dpr);
+
+  const P = { speed: 4.388, latRings: 9, lonDensity: 23, rBase: 0.6, rDepth: 1.7, rsPow: 0.6, rMin: 0.3 };
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function draw(t) {
+    const c = size / 2;
+    const radius = (size / 2) * 0.874;
+    const yaw = t * 0.18, tilt = 0.38;
+    const cy = Math.cos(yaw), sy = Math.sin(yaw), ct = Math.cos(tilt), st = Math.sin(tilt);
+    const rs = Math.pow(size / 300, P.rsPow);
+    const dots = [];
+
+    for (let ri = 0; ri <= P.latRings; ri++) {
+      const lat = -Math.PI / 2 + (ri / P.latRings) * Math.PI;
+      const cosLat = Math.cos(lat), sinLat = Math.sin(lat);
+      const w = 0.62 * Math.sin(t * 2.1 - ri * 0.52) + 0.38 * Math.sin(t * 1.27 + ri * 0.83);
+      const rr = radius * (0.88 + 0.105 * w);
+      const lon = Math.max(1, Math.round(Math.abs(cosLat) * P.lonDensity));
+      for (let lj = 0; lj < lon; lj++) {
+        const a = (lj / lon) * 2 * Math.PI;
+        const x = cosLat * Math.cos(a) * rr, y = sinLat * rr, z = cosLat * Math.sin(a) * rr;
+        const x1 = x * cy + z * sy, z1 = -x * sy + z * cy;
+        const y1 = y * ct - z1 * st, z2 = y * st + z1 * ct;
+        const depth = (z2 / radius + 1) / 2;
+        const crest = Math.max(0, w);
+        const r = Math.max(P.rMin, (P.rBase + P.rDepth * depth) * (1 + 0.4 * crest) * rs);
+        // Upstream's ink mirrors on a dark ground: one minus the value is the mark's weight.
+        const o = Math.min(1, Math.max(0, 1 - Math.min(1, Math.max(0, 0.66 - 0.56 * depth - 0.1 * crest))));
+        dots.push({ x: c + x1, y: c - y1, z: z2, r: r, o: o });
+      }
+    }
+    dots.sort((a, b) => a.z - b.z);
+
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = '#f7f6f3';
+    for (const d of dots) {
+      ctx.globalAlpha = d.o;
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  if (still) { draw(1.7 * P.speed); return; }
+  const start = performance.now();
+  (function loop(now) {
+    draw(((now - start) / 1000) * P.speed);
+    requestAnimationFrame(loop);
+  })(start);
+})();
+</script>
+</body>
+</html>
