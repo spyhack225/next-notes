@@ -11,30 +11,30 @@ import { fadeUp } from "../lib/motion";
 const features: { title: string; body: string; orb: OrbState }[] = [
   {
     orb: "listening",
-    title: "Talk anywhere",
-    body: "Hold one key, say the thing, let go. It lands in the email, the terminal, the doc — wherever the cursor already was. It learns the names and jargon you actually use, so it stops mangling them.",
+    title: "Talk, in context",
+    body: "Hold one key, say the thing, let go. The cleaned-up sentence lands in the email, the terminal, the doc — wherever the cursor already was, with no window to switch to. It learns the names and jargon you actually use, so it stops mangling them.",
   },
   {
     orb: "weaving",
     title: "Meetings record themselves",
-    body: "Speechify sees what's on your calendar and quietly starts when the meeting does. It asks first, and one click skips any meeting you'd rather it stayed out of.",
-  },
-  {
-    orb: "solving",
-    title: "Speakers told apart",
-    body: "Your microphone and what comes out of your speakers are heard as two separate things, which is how the transcript knows who said what without anything joining the call.",
+    body: "It reads your calendar and starts when the meeting does, asking first. Your microphone and what comes out of your speakers are heard as two separate tracks, which is how the transcript knows who said what without anything joining the call.",
   },
   {
     orb: "searching",
-    title: "Follow-ups you approve",
-    body: "It can offer to write the doc, put the follow-up on the calendar, or send the mail. Every one of those waits on a button you press, and shows you the message first.",
+    title: "Proposes while you talk",
+    body: "It can listen for the asks as they happen — send me the deck, let\u2019s meet Thursday — and have the follow-up ready before the call ends. Everything it offers waits on a button you press, and shows you the message in full first.",
+  },
+  {
+    orb: "connecting",
+    title: "Into your Google account",
+    body: "Once approved, it writes the doc to Drive, puts the event on Calendar and sends the mail from Gmail — running as you, through Google\u2019s own command-line tool, so the app never holds credentials of its own.",
   },
 ];
 
 export default function WhatItDoes() {
   return (
     <section
-      id="how-it-works"
+      id="features"
       className="py-32 md:py-44 border-t border-border/30 px-8 md:px-28"
     >
       <div className="max-w-6xl mx-auto">
@@ -49,8 +49,8 @@ export default function WhatItDoes() {
           {...fadeUp(0.1)}
           className="text-4xl md:text-6xl font-medium tracking-[-1.5px] text-center mt-6 leading-[1.05]"
         >
-          Two things, done{" "}
-          <span className="font-serif italic font-normal">properly.</span>
+          Talk. Meet. Then it{" "}
+          <span className="font-serif italic font-normal">follows through.</span>
         </motion.h2>
 
         {/* The whole of the dictation pitch, in the only form that proves it. */}

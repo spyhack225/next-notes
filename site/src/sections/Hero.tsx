@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import HeroStage from "../components/HeroStage";
 import Orb from "../components/Orb";
 import { fadeUp, REPO_URL } from "../lib/motion";
 
@@ -18,7 +19,8 @@ export default function Hero() {
           <Orb state="breathing" size={520} />
         </div>
       </div>
-      <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+      <HeroStage />
+      <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-background to-transparent pointer-events-none z-[1]" />
 
       <div className="relative z-10 flex flex-col items-center text-center max-w-4xl">
         <motion.h1
@@ -66,6 +68,8 @@ export default function Hero() {
         <motion.p {...fadeUp(0.45)} className="mt-6 text-muted-foreground text-sm">
           macOS 26 &middot; Apple silicon &middot; free and open source
         </motion.p>
+
+
       </div>
     </section>
   );
