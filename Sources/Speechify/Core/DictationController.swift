@@ -18,6 +18,61 @@ func engineForCurrentSetting() -> any TranscriptionEngine {
     }
 }
 
+/// Resumes its caller with whichever of two racers arrives first, and drops the other.
+///
+/// A one-shot latch rather than a task group, and the difference is the whole point: a
+/// group awaits every child before it returns, so the child that hung would still be
+/// awaited after the timeout fired.
+private actor RaceGate<T: Sendable> {
+    private var waiter: CheckedContinuation<T?, Never>?
+    private var settled = false
+    private var result: T?
+
+    func settle(_ value: T?) {
+        guard !settled else { return }
+        settled = true
+        result = value
+        if let waiter {
+            self.waiter = nil
+            waiter.resume(returning: value)
+        }
+    }
+
+    func value() async -> T? {
+        if settled { return result }
+        return await withCheckedContinuation { waiter = $0 }
+    }
+}
+
+/// Runs `work` with a deadline. Returns `nil` — and abandons the work — if it overruns.
+///
+/// Every await in the `endDictation` tail is behind this. Unbounded, any one of them
+/// (`finish()` waiting on a model load, a cleanup pass, a transcript stream nobody
+/// finished) leaves the controller in `.finishing` for as long as it takes, and
+/// `.finishing` is indistinguishable from recording in the HUD and the island. A
+/// dictation that fails loudly after N seconds and returns to `.idle` is strictly
+/// better than one that never comes back.
+///
+/// The losing task is cancelled, but cancellation is only a request: CoreML inference
+/// and a llama.cpp decode loop both run to completion regardless. That is accepted —
+/// what matters is that the *user's* wait is bounded, not that the CPU stops.
+func withBoundedWait<T: Sendable>(
+    _ limit: Duration,
+    _ work: @escaping @Sendable () async -> T
+) async -> T? {
+    let gate = RaceGate<T>()
+    let job = Task(priority: .userInitiated) { await gate.settle(await work()) }
+    let timer = Task {
+        try? await Task.sleep(for: limit)
+        await gate.settle(nil)
+    }
+
+    let result = await gate.value()
+    timer.cancel()
+    if result == nil { job.cancel() }
+    return result
+}
+
 @MainActor
 @Observable
 final class DictationController {
@@ -56,6 +111,13 @@ final class DictationController {
 
     /// Injected only by tests; production reads the setting per-utterance below.
     private let formatter: (any TextFormatter)?
+    /// Injected only by tests; production types into whatever had focus. A self-test that
+    /// used the real injector would type its fixture into the terminal that started it.
+    private let insert: @MainActor (String) -> Void
+    /// Injected only by tests; production files the run for the Dictation list. A self-test
+    /// that used the real log would write its fixtures into the user's own history — which
+    /// it did, until this seam existed.
+    private let record: @MainActor (DictationRun) -> Void
     private let commandProcessor: any TextCommandProcessor
 
     /// Chosen per-utterance so the menu toggle applies to the very next hold.
@@ -75,6 +137,47 @@ final class DictationController {
     /// Returns the ordered recording when compare mode is on, empty otherwise.
     private var feedTask: Task<[AudioChunk], Never>?
     private var audioContinuation: AsyncStream<AudioChunk>.Continuation?
+
+    /// Which hold the slots above belong to.
+    ///
+    /// `engine`, `consumeTask`, `feedTask` and `audioContinuation` are one slot each, and
+    /// starting a recording is *slow* — `engine.start()` loads Parakeet, which is eleven
+    /// seconds cold. So a hold that is released during start-up, followed by a second
+    /// hold, has two start-up tasks in flight against one set of slots. Left unguarded the
+    /// late one writes its engine over the live one's, and then `endDictation` calls
+    /// `finish()` on engine B while awaiting the transcript stream of engine A — a stream
+    /// nobody will ever finish. That await never returns and the controller stays in
+    /// `.finishing` forever.
+    ///
+    /// Every continuation that writes back into those slots re-checks this first, and a
+    /// start-up that finds it has been superseded tears down *its own* objects and touches
+    /// nothing else.
+    private var session = 0
+
+    /// Deadlines for the legs of a hold. Generous against measurements on this machine —
+    /// Parakeet runs at ~57× realtime once warm and S1-mini cleans a normal utterance in
+    /// about a second — so a run that trips one of these has gone wrong rather than merely
+    /// being long.
+    ///
+    /// Injectable so `--selftest-dictation` can prove the deadlines fire without taking
+    /// two minutes to do it. Production always uses `.standard`.
+    struct Limits: Sendable {
+        /// `engine.start()`. Loading Parakeet from disk takes ~11s; the first-ever run
+        /// downloads ~470 MB, which is what the message on timeout points at.
+        var startup = Duration.seconds(45)
+        /// Draining the buffers already captured into the engine.
+        var drain = Duration.seconds(10)
+        /// `finish()` plus the transcript stream: the actual transcription.
+        var transcribe = Duration.seconds(90)
+        /// Smart cleanup. On timeout the raw transcript is used — never dropped.
+        var cleanup = Duration.seconds(30)
+        /// Command Mode's model pass.
+        var command = Duration.seconds(60)
+
+        static let standard = Limits()
+    }
+
+    private let limits: Limits
 
     /// Timestamps for the dashboard: when the key went down, and when it came up.
     /// When the current hold began. Readable so a view that is built *during* a recording
@@ -113,11 +216,17 @@ final class DictationController {
     init(
         formatter: (any TextFormatter)? = nil,
         commandProcessor: any TextCommandProcessor = FoundationModelCommandProcessor(),
-        makeEngine: @escaping @MainActor @Sendable () -> any TranscriptionEngine = engineForCurrentSetting
+        makeEngine: @escaping @MainActor @Sendable () -> any TranscriptionEngine = engineForCurrentSetting,
+        limits: Limits = .standard,
+        insert: @escaping @MainActor (String) -> Void = { TextInjector.insert($0) },
+        record: @escaping @MainActor (DictationRun) -> Void = { RunLog.record($0) }
     ) {
         self.formatter = formatter
         self.commandProcessor = commandProcessor
         self.makeEngine = makeEngine
+        self.limits = limits
+        self.insert = insert
+        self.record = record
     }
 
     // MARK: - Lifecycle
@@ -212,6 +321,8 @@ final class DictationController {
 
     private func beginDictation(intent: RecordingIntent) {
         guard case .idle = state else { return }
+        session &+= 1
+        let session = self.session
         recordingIntent = intent
         state = .starting
         transcript = ""
@@ -232,14 +343,46 @@ final class DictationController {
         Task { @MainActor in
             do {
                 guard await Permissions.requestMicrophone() else {
+                    guard self.session == session else { return }
                     fail("Microphone access is off. Enable it in System Settings ▸ Privacy & Security ▸ Microphone.")
                     return
                 }
+                guard self.session == session else { return }
 
                 let engine = makeEngine()
                 self.engine = engine
 
-                let chunks = try await engine.start()
+                // Bounded, because this is where the model load lives. Without a deadline a
+                // first-run download sits behind a HUD that says "Listening…" for as long as
+                // the transfer takes, and the utterance is lost at the end of it anyway.
+                let outcome = await withBoundedWait(limits.startup) { () -> StartOutcome in
+                    do { return .started(try await engine.start()) }
+                    catch { return .failed(error.localizedDescription) }
+                }
+
+                // Superseded or released while the model was loading: this start-up owns
+                // nothing but its own engine, and must not touch the slots of whoever came
+                // after it.
+                guard self.session == session, case .starting = self.state else {
+                    await engine.finish()
+                    if self.session == session { self.engine = nil }
+                    return
+                }
+
+                let chunkStream: AsyncThrowingStream<TranscriptionChunk, Error>
+                switch outcome {
+                case .started(let stream):
+                    chunkStream = stream
+                case .failed(let reason):
+                    self.engine = nil
+                    fail(reason)
+                    return
+                case nil:
+                    self.engine = nil
+                    Task { await engine.finish() }
+                    fail("The speech model didn't finish loading in time. If it is still downloading, let Settings ▸ Models finish first.")
+                    return
+                }
 
                 // Compare mode captures in *Apple's* format, not a format of our choosing.
                 //
@@ -249,23 +392,30 @@ final class DictationController {
                 // int16/int32/float32), so the strict engine picks the format and the
                 // tolerant engine adapts. Both still replay the identical buffers.
                 let formatOwner: any TranscriptionEngine = isComparing ? AppleSpeechEngine() : engine
-                guard let format = await formatOwner.preferredInputFormat() else {
-                    throw TranscriptionError.noAudioFormat
+                let format = await formatOwner.preferredInputFormat()
+
+                // Last chance to notice a release or a newer hold: after this line the
+                // controller's slots and the microphone belong to this session, and every
+                // exit below has to unwind them.
+                guard self.session == session, case .starting = self.state else {
+                    await engine.finish()
+                    if self.session == session { self.engine = nil }
+                    return
                 }
+                guard let format else { throw TranscriptionError.noAudioFormat }
 
                 // Audio must reach the engine in capture order. A stream plus a single
                 // draining task guarantees that; spawning a Task per buffer would not.
                 let (audioStream, audioContinuation) = AsyncStream<AudioChunk>.makeStream(
                     bufferingPolicy: .bufferingNewest(64)
                 )
-                self.audioContinuation = audioContinuation
 
                 // The recording is accumulated *inside* the ordered drain, not by spawning
                 // a task per buffer. Unstructured tasks have no ordering guarantee, so
                 // collecting them separately could assemble the replay audio out of order
                 // and silently produce word-salad from the comparison.
                 let comparing = isComparing
-                self.feedTask = Task.detached(priority: .userInitiated) {
+                let feedTask = Task.detached(priority: .userInitiated) { () -> [AudioChunk] in
                     var recording: [AudioChunk] = []
                     for await chunk in audioStream {
                         if comparing { recording.append(chunk) }
@@ -274,38 +424,55 @@ final class DictationController {
                     return recording
                 }
 
-                try capture.start(
-                    outputFormat: format,
-                    onBuffer: { chunk in
-                        audioContinuation.yield(chunk)
-                    },
-                    onLevel: { [weak self] level in
-                        Task { @MainActor in self?.updateLevel(level) }
-                    }
-                )
-
-                // Bail out if the user already let go while we were spinning up.
-                guard case .starting = self.state else {
-                    await self.teardown()
+                // Capture starts *after* the guard above, not before it. Started first, a
+                // start-up that has already been superseded opens the microphone on behalf
+                // of a recording nobody asked for, and only closes it again a line later.
+                do {
+                    try capture.start(
+                        outputFormat: format,
+                        onBuffer: { chunk in
+                            audioContinuation.yield(chunk)
+                        },
+                        onLevel: { [weak self] level in
+                            Task { @MainActor in self?.updateLevel(level) }
+                        }
+                    )
+                } catch {
+                    audioContinuation.finish()
+                    feedTask.cancel()
+                    self.engine = nil
+                    await engine.finish()
+                    fail(error.localizedDescription)
                     return
                 }
 
+                self.audioContinuation = audioContinuation
+                self.feedTask = feedTask
                 self.state = .listening
                 if Settings.shared.soundEnabled { NSSound(named: "Tink")?.play() }
 
                 self.consumeTask = Task { @MainActor in
                     do {
-                        for try await chunk in chunks {
+                        for try await chunk in chunkStream {
+                            guard self.session == session else { return }
                             self.transcript = chunk.text
                         }
                     } catch {
+                        guard self.session == session else { return }
                         self.fail(error.localizedDescription)
                     }
                 }
             } catch {
+                guard self.session == session else { return }
                 self.fail(error.localizedDescription)
             }
         }
+    }
+
+    /// What `engine.start()` came back with, or didn't.
+    private enum StartOutcome: Sendable {
+        case started(AsyncThrowingStream<TranscriptionChunk, Error>)
+        case failed(String)
     }
 
     private func endDictation(expected: RecordingKind? = nil) {
@@ -315,23 +482,58 @@ final class DictationController {
         // inside `finish()`, and smart cleanup adds up to 4s on top.
         guard state.isActive, state != .finishing else { return }
         guard expected == nil || recordingIntent.kind == expected else { return }
+
+        // A release that lands before `capture.start()` ran has no audio behind it: the
+        // engine was still loading and the microphone was never opened. Going quietly back
+        // to `.idle` here is what "I held the key, spoke, and nothing arrived" actually
+        // looks like from the outside, so say it instead. Bumping the session tells the
+        // start-up still in flight to unwind itself rather than come up listening to a key
+        // that is no longer held.
+        if case .starting = state {
+            session &+= 1
+            fail("Speechify was still starting up, so that recording was lost. Hold the key again.")
+            return
+        }
+
         state = .finishing
         capture.stop()
         level = 0
         releasedAt = Date()
+        let session = self.session
 
         Task { @MainActor in
             // Drain every captured buffer into the engine before asking it to finalize,
             // or the tail of the utterance gets dropped.
-            audioContinuation?.finish()
-            audioContinuation = nil
-            recorded = await feedTask?.value ?? []
-            feedTask = nil
+            let audioContinuation = self.audioContinuation
+            let feedTask = self.feedTask
+            let engine = self.engine
+            let consumeTask = self.consumeTask
+            self.audioContinuation = nil
+            self.feedTask = nil
+            self.engine = nil
+            self.consumeTask = nil
 
-            await engine?.finish()
-            await consumeTask?.value
-            consumeTask = nil
-            engine = nil
+            let began = Date()
+            audioContinuation?.finish()
+            recorded = await withBoundedWait(limits.drain) {
+                await feedTask?.value ?? []
+            } ?? []
+            let drained = Date().timeIntervalSince(began)
+
+            // `finish()` and the transcript stream are one leg: with a batch engine the
+            // transcription happens inside `finish()` and the stream yields once at the
+            // end of it, so bounding them separately would only mean two ways to hang.
+            let transcribed = await withBoundedWait(limits.transcribe) { () -> Bool in
+                await engine?.finish()
+                await consumeTask?.value
+                return true
+            } ?? false
+            let transcribedAt = Date().timeIntervalSince(began)
+            if !transcribed {
+                Log.speech.error("transcription did not finish within \(String(describing: self.limits.transcribe), privacy: .public)")
+            }
+
+            guard self.session == session else { return }
 
             if isComparing {
                 await runComparison()
@@ -340,9 +542,13 @@ final class DictationController {
 
             let raw = transcript
             guard !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                state = .idle
-                transcript = ""
-                recordingIntent = .dictation
+                // A timed-out transcription leaves nothing to inject, and silence is the
+                // one thing the user must not be told it was.
+                if transcribed {
+                    finishIdle()
+                } else {
+                    fail("Transcription didn't finish in time; that recording was lost.")
+                }
                 return
             }
 
@@ -351,9 +557,30 @@ final class DictationController {
                 return
             }
 
-            let cleaned = Settings.shared.cleanupEnabled
-                ? await activeFormatter.format(raw)
-                : raw
+            // On a cleanup timeout the raw transcript is used rather than dropped: badly
+            // punctuated text in the right field beats nothing at all.
+            var cleaned = raw
+            if Settings.shared.cleanupEnabled {
+                let formatter = activeFormatter
+                if let formatted = await withBoundedWait(limits.cleanup, { await formatter.format(raw) }) {
+                    cleaned = formatted
+                } else {
+                    Log.speech.error("cleanup did not finish within \(String(describing: self.limits.cleanup), privacy: .public) — using the raw transcript")
+                }
+            }
+
+            // The split, every time, at info level. `runs.jsonl` records one number for the
+            // whole tail, and a run that took three minutes when it should have taken two
+            // seconds is not diagnosable from one number: draining, transcribing and
+            // cleaning up are three different machines and any of them can be the slow one.
+            let cleanedAt = Date().timeIntervalSince(began)
+            Log.speech.info("""
+                dictation tail · drain \(drained, format: .fixed(precision: 2))s · \
+                transcribe \(transcribedAt - drained, format: .fixed(precision: 2))s · \
+                cleanup \(cleanedAt - transcribedAt, format: .fixed(precision: 2))s
+                """)
+
+            guard self.session == session else { return }
 
             // The dictionary runs last, and runs regardless of the cleanup setting. Biasing
             // only raises the odds of the right word; this is the pass that guarantees it,
@@ -364,13 +591,20 @@ final class DictationController {
             }
 
             recordRun(text: output, corrections: corrections)
-            TextInjector.insert(output)
+            insert(output)
             if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
 
-            state = .idle
-            transcript = ""
-            recordingIntent = .dictation
+            finishIdle()
         }
+    }
+
+    /// The one way back to rest after a successful run.
+    private func finishIdle() {
+        capture.stop()
+        level = 0
+        state = .idle
+        transcript = ""
+        recordingIntent = .dictation
     }
 
     private func applyCommand(_ rawCommand: String, to selection: TextInjector.Selection) async {
@@ -379,24 +613,42 @@ final class DictationController {
         let (command, _) = DictionaryStore.shared.corrector.apply(to: rawCommand)
         transcript = "Editing selection…"
 
-        do {
-            let replacement = try await commandProcessor.apply(command: command, to: selection.text)
+        // Bounded like the dictation tail, and for the same reason: the model behind this
+        // is Apple's, it already has its own timeout, and if that timeout ever fails to
+        // fire the HUD would sit on "Editing selection…" indefinitely.
+        let processor = commandProcessor
+        // `Selection` holds an `AXUIElement` and is deliberately not `Sendable`; only its
+        // text crosses into the bounded closure.
+        let source = selection.text
+        let outcome = await withBoundedWait(limits.command) { () -> CommandOutcome in
+            do { return .replaced(try await processor.apply(command: command, to: source)) }
+            catch { return .failed(error.localizedDescription) }
+        }
+
+        switch outcome {
+        case .replaced(let replacement)?:
             guard TextInjector.replace(selection, with: replacement) else {
                 fail("The selection changed while Command Mode was processing; nothing was replaced.")
                 return
             }
-
             recordRun(text: replacement)
             if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
-            state = .idle
-            transcript = ""
-            recordingIntent = .dictation
-        } catch {
-            fail(error.localizedDescription)
+            finishIdle()
+        case .failed(let reason)?:
+            fail(reason)
+        case nil:
+            fail("Command Mode didn't finish in time; the selection was left alone.")
         }
     }
 
+    /// What the Command Mode model came back with, or didn't.
+    private enum CommandOutcome: Sendable {
+        case replaced(String)
+        case failed(String)
+    }
+
     private func cancelDictation() {
+        session &+= 1
         capture.stop()
         audioContinuation?.finish()
         audioContinuation = nil
@@ -415,26 +667,7 @@ final class DictationController {
         recordingIntent = .dictation
     }
 
-    private func teardown() async {
-        capture.stop()
-        audioContinuation?.finish()
-        audioContinuation = nil
-        _ = await feedTask?.value
-        feedTask = nil
-        await engine?.finish()
-        engine = nil
-        consumeTask?.cancel()
-        consumeTask = nil
-        state = .idle
-        recordingIntent = .dictation
-    }
-
     // MARK: - Helpers
-
-    private func retainForComparison(_ chunk: AudioChunk) {
-        guard isComparing else { return }
-        recorded.append(chunk)
-    }
 
     /// Replays the recording through every engine and files the results as one group.
     ///
@@ -458,7 +691,7 @@ final class DictationController {
         // Filed one at a time as each engine finishes, so the window fills in progressively
         // rather than snapping both rows into place at the end.
         let results = await EngineComparison.run(chunks: chunks) { result in
-            RunLog.record(
+            record(
                 DictationRun(
                     date: releasedAt,
                     engine: result.engine,
@@ -484,7 +717,7 @@ final class DictationController {
         if WisprReader.isInstalled {
             transcript = "Waiting for Wispr Flow…"
             if let wispr = await WisprReader.result(after: holdStarted, timeout: 8) {
-                RunLog.record(
+                record(
                     DictationRun(
                         date: releasedAt,
                         engine: wispr.engine,
@@ -520,7 +753,7 @@ final class DictationController {
     /// engine and a batch engine can be compared honestly.
     private func recordRun(text: String, corrections: [AppliedCorrection] = []) {
         guard let holdStarted, let releasedAt else { return }
-        RunLog.record(
+        record(
             DictationRun(
                 date: releasedAt,
                 engine: engineName,
@@ -539,19 +772,33 @@ final class DictationController {
         level += (new - level) * 0.35
     }
 
+    /// The one way back to rest after anything went wrong.
+    ///
+    /// Every exit from here leaves the microphone closed, the slots empty and the state
+    /// machine on its way to `.idle` — a dictation that says what went wrong and stops is
+    /// the whole point of bounding the waits above.
     private func fail(_ message: String) {
-        Log.app.error("\(message)")
+        Log.app.error("\(message, privacy: .public)")
+        // Anything still in flight for this hold is disowned rather than awaited: `fail` is
+        // reached *because* something did not come back.
+        session &+= 1
         capture.stop()
         audioContinuation?.finish()
         audioContinuation = nil
         feedTask?.cancel()
         feedTask = nil
-        engine = nil
+        let engine = self.engine
+        self.engine = nil
+        if let engine { Task { await engine.finish() } }
         consumeTask?.cancel()
         consumeTask = nil
         state = .error(message)
+        transcript = ""
         level = 0
+        isComparing = false
         recordingIntent = .dictation
+        holdStarted = nil
+        releasedAt = nil
 
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(3))
