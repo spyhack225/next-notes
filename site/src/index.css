@@ -34,6 +34,11 @@
     --ring: 0 0% 40%;
 
     --hero-subtitle: 210 17% 95%;
+
+    /* The width reserved for the hero's type. HeroStage derives its side lanes from
+       what is left over, so this is the one number that keeps the decoration and the
+       headline from ever meeting. Equal to Tailwind's max-w-4xl. */
+    --hero-col: 56rem;
   }
 
   * {
