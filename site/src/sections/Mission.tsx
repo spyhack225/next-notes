@@ -84,7 +84,8 @@ export default function Mission() {
         className="flex justify-center pointer-events-none select-none"
         aria-hidden="true"
       >
-        <Orb size={420} />
+        {/* The two halves of the app — dictation and meetings — braided into one. */}
+        <Orb state="weaving" size={420} />
       </div>
 
       <div className="max-w-5xl mx-auto text-center mt-4">

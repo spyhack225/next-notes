@@ -1,74 +1,51 @@
 import { useEffect, useRef } from "react";
+import { orbFrame, type OrbState } from "./orbGeometry";
 
 /**
- * The Speechify mark: the app's own `listening` orb, a waveform rolling through the
- * latitude rings of a dotted sphere. The geometry and the preset below are ported from
- * the Mac app's OrbGeometry, so the sphere on this page is the sphere in the menu bar.
+ * The Speechify mark: the app's own thinking orbs, all nine of them. The geometry lives in
+ * `orbGeometry.ts`, ported from the Mac app's `OrbGeometry.swift`, so a state on this page
+ * is the same state in the menu bar — same formulas, same tuned constants, same tempo.
  *
- * There is no stock imagery anywhere on this site. Every place a landing page would
- * normally put a background video, this component goes instead.
+ * This file is only the shell: a canvas sized for the display, a rAF clock, and the
+ * reduced-motion still. There is no stock imagery anywhere on this site; every place a
+ * landing page would normally put a background video, this component goes instead.
  */
-const P = {
-  speed: 4.388,
-  latRings: 9,
-  lonDensity: 23,
-  rBase: 0.6,
-  rDepth: 1.7,
-  rsPow: 0.6,
-  rMin: 0.3,
-};
 
-/** The frame the app freezes on when the system asks for less motion. */
-const STILL_T = 1.7 * P.speed;
+/**
+ * The instant the app freezes on when the system asks for less motion, in seconds. Chosen
+ * because it reads as a diagram of the state rather than motion caught mid-frame, and it
+ * does that for all nine — each state scales this by its own preset speed.
+ */
+const STILL_TIME = 1.7;
 
-type Dot = { x: number; y: number; z: number; r: number; o: number };
+/** The one ink. Depth is carried by radius and opacity alone. */
+const INK = "#ffffff";
 
-function drawOrb(ctx: CanvasRenderingContext2D, size: number, t: number) {
-  const c = size / 2;
-  const radius = (size / 2) * 0.874;
-  const yaw = t * 0.18;
-  const tilt = 0.38;
-  const cy = Math.cos(yaw);
-  const sy = Math.sin(yaw);
-  const ct = Math.cos(tilt);
-  const st = Math.sin(tilt);
-  const rs = Math.pow(size / 300, P.rsPow);
-  const dots: Dot[] = [];
+function paint(
+  ctx: CanvasRenderingContext2D,
+  size: number,
+  state: OrbState,
+  time: number,
+) {
+  const { dots, segments } = orbFrame(state, size, time);
 
-  for (let ri = 0; ri <= P.latRings; ri++) {
-    const lat = -Math.PI / 2 + (ri / P.latRings) * Math.PI;
-    const cosLat = Math.cos(lat);
-    const sinLat = Math.sin(lat);
-    const w =
-      0.62 * Math.sin(t * 2.1 - ri * 0.52) + 0.38 * Math.sin(t * 1.27 + ri * 0.83);
-    const rr = radius * (0.88 + 0.105 * w);
-    const lon = Math.max(1, Math.round(Math.abs(cosLat) * P.lonDensity));
+  ctx.clearRect(0, 0, size, size);
 
-    for (let lj = 0; lj < lon; lj++) {
-      const a = (lj / lon) * 2 * Math.PI;
-      const x = cosLat * Math.cos(a) * rr;
-      const y = sinLat * rr;
-      const z = cosLat * Math.sin(a) * rr;
-      const x1 = x * cy + z * sy;
-      const z1 = -x * sy + z * cy;
-      const y1 = y * ct - z1 * st;
-      const z2 = y * st + z1 * ct;
-      const depth = (z2 / radius + 1) / 2;
-      const crest = Math.max(0, w);
-      const r = Math.max(P.rMin, (P.rBase + P.rDepth * depth) * (1 + 0.4 * crest) * rs);
-      // Upstream's ink mirrors on a dark ground: one minus the value is the mark's weight.
-      const o = Math.min(
-        1,
-        Math.max(0, 1 - Math.min(1, Math.max(0, 0.66 - 0.56 * depth - 0.1 * crest))),
-      );
-      dots.push({ x: c + x1, y: c - y1, z: z2, r, o });
+  // Edges first, under every dot — `connecting` is the only state that has any.
+  if (segments.length > 0) {
+    ctx.strokeStyle = INK;
+    ctx.lineCap = "round";
+    for (const s of segments) {
+      ctx.globalAlpha = s.o;
+      ctx.lineWidth = s.w;
+      ctx.beginPath();
+      ctx.moveTo(s.x1, s.y1);
+      ctx.lineTo(s.x2, s.y2);
+      ctx.stroke();
     }
   }
 
-  dots.sort((a, b) => a.z - b.z);
-
-  ctx.clearRect(0, 0, size, size);
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = INK;
   for (const d of dots) {
     ctx.globalAlpha = d.o;
     ctx.beginPath();
@@ -79,13 +56,15 @@ function drawOrb(ctx: CanvasRenderingContext2D, size: number, t: number) {
 }
 
 export type OrbProps = {
+  /** Which of the app's nine states to draw. */
+  state?: OrbState;
   size: number;
   className?: string;
   /** Announced to screen readers; omit for the decorative background orbs. */
   label?: string;
 };
 
-export default function Orb({ size, className, label }: OrbProps) {
+export default function Orb({ state = "listening", size, className, label }: OrbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -107,12 +86,12 @@ export default function Orb({ size, className, label }: OrbProps) {
     const run = () => {
       cancelAnimationFrame(frame);
       if (query.matches) {
-        drawOrb(ctx, size, STILL_T);
+        paint(ctx, size, state, STILL_TIME);
         return;
       }
       const start = performance.now();
       const loop = (now: number) => {
-        drawOrb(ctx, size, ((now - start) / 1000) * P.speed);
+        paint(ctx, size, state, (now - start) / 1000);
         frame = requestAnimationFrame(loop);
       };
       frame = requestAnimationFrame(loop);
@@ -125,12 +104,13 @@ export default function Orb({ size, className, label }: OrbProps) {
       cancelAnimationFrame(frame);
       query.removeEventListener("change", run);
     };
-  }, [size]);
+  }, [size, state]);
 
   return (
     <canvas
       ref={canvasRef}
       className={className}
+      data-orb-state={state}
       role={label ? "img" : "presentation"}
       aria-label={label}
       aria-hidden={label ? undefined : true}

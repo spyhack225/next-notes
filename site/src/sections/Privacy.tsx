@@ -1,17 +1,25 @@
 import { motion } from "framer-motion";
 import Orb from "../components/Orb";
+import type { OrbState } from "../components/orbGeometry";
 import { fadeUp } from "../lib/motion";
 
-const places = [
+/**
+ * One orb per place, in the app's own vocabulary: the machine works to turn audio into
+ * words, writes the notes, then the shape settles into a folder on disk.
+ */
+const places: { title: string; body: string; orb: OrbState }[] = [
   {
+    orb: "working",
     title: "Transcribed here",
     body: "Apple's on-device speech recogniser, or Parakeet through CoreML. The audio is turned into words by the machine it was spoken to.",
   },
   {
+    orb: "composing",
     title: "Written here",
     body: "A local model reads the transcript and writes the summary, the decisions and who owes what. It is downloaded once and runs offline.",
   },
   {
+    orb: "shaping",
     title: "Stored here",
     body: "One folder per meeting in Application Support. Recordings are deleted once the notes are written, unless you ask to keep them.",
   },
@@ -45,7 +53,7 @@ export default function Privacy() {
               {...fadeUp(0.1 * i)}
               className="flex flex-col items-center text-center"
             >
-              <Orb size={120} />
+              <Orb state={place.orb} size={120} />
               <h3 className="font-semibold text-base mt-6">{place.title}</h3>
               <p className="text-muted-foreground text-sm mt-3 max-w-xs leading-relaxed">
                 {place.body}

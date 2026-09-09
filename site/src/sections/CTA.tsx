@@ -9,7 +9,7 @@ export default function CTA() {
         className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30"
         aria-hidden="true"
       >
-        <Orb size={560} />
+        <Orb state="connecting" size={560} />
       </div>
       <div className="absolute inset-0 bg-background/45 z-[1] pointer-events-none" />
 

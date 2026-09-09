@@ -8,13 +8,14 @@ export default function Hero() {
       id="top"
       className="relative min-h-screen flex flex-col items-center justify-center px-8 md:px-28 overflow-hidden"
     >
-      {/* No stock video here, or anywhere. The mark itself is the backdrop. */}
+      {/* No stock video here, or anywhere. The mark itself is the backdrop — the slow
+          face-on ring, so it sits behind the headline rather than competing with it. */}
       <div
         className="absolute inset-0 flex items-center justify-center pointer-events-none"
         aria-hidden="true"
       >
         <div className="opacity-50">
-          <Orb size={520} />
+          <Orb state="breathing" size={520} />
         </div>
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-background to-transparent pointer-events-none" />
