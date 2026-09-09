@@ -412,23 +412,37 @@ Both engines feed the same cleanup, dictionary, history, and injection pipeline.
 
 ## Landing page
 
-`docs/` is a self-contained landing page for GitHub Pages — one `index.html` with its CSS and
-JavaScript inline, the app icon beside it, and a `.nojekyll` marker so Pages serves the files
-as written rather than running them through Jekyll.
+The site source is `site/` — Vite, React, TypeScript, Tailwind and Framer Motion — and it
+builds into `docs/`, which is what GitHub Pages serves. It is live at
+<https://spyhack225.github.io/speechify-site/>.
 
-To publish it: **Settings ▸ Pages ▸ Source: Deploy from a branch**, branch `main`, folder
-`/docs` — already enabled on this repo. That is the whole setup — no workflow and no build step — and the site appears at
-`https://spyhack225.github.io/speechify-site/`. Editing `docs/index.html` and pushing
-redeploys it.
+```bash
+cd site && npm install     # once
+npm run build              # emits ../docs
+npm run dev                # local preview
+```
 
-The orb on the page is not a picture. Its `listening` geometry is ported from
-`OrbGeometry.swift`, using the same preset the app resolves at the large size, so the mark on
-the site is the mark in the app. It honours `prefers-reduced-motion` by freezing on the same
-frame the app does.
+**`docs/` is build output and is committed on purpose.** Editing it by hand works right up
+until the next build silently discards the change — edit `site/src/` instead. Publishing is
+therefore a commit, not a CI run: Pages is set to *Deploy from a branch*, `main`, `/docs`,
+which needs no workflow, spends no Actions minutes, and guarantees that whatever was
+previewed locally is byte-for-byte what ships.
 
-The page claims no download, because there is no signed release to download — it tells people
-to build from source, which is the truth. If a release ever ships, that section is the one to
-change.
+Two details in `site/vite.config.ts` that look like oversights and are not. `base` is
+`/speechify-site/` because the site is served from a repository subpath, not a domain root.
+And `emptyOutDir` is **false**: `docs/` also holds `PARAKEET-WINDOWS.md` and
+`S1-MINI-WINDOWS.md`, which are linked from this file, `AGENTS.md` and `windows/README.md`,
+so wiping the directory would delete them and break four links. The build script clears
+`docs/assets` instead, which is the only part that accumulates stale hashed bundles.
+
+The orb on the page is not a picture. `site/src/components/Orb.tsx` is the `listening`
+geometry ported from `OrbGeometry.swift` with the same preset resolved at the same size, so
+the sphere on the site and the sphere at the notch are the same object. It freezes on the
+same frame the app does when Reduce Motion is on. There is no stock photography or video
+anywhere on the page, and nothing is hotlinked.
+
+The page claims no download, because there is no signed release to download — it points at
+this repository instead. If a release ever ships, the call to action is the thing to change.
 
 ## Not built yet
 
