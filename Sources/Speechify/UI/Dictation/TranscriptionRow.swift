@@ -28,9 +28,14 @@ struct TranscriptionRow: View {
                     .opacity(isHovering ? 1 : 0)
             }
 
+            // Deliberately NOT `.textSelection(.enabled)`. In a selectable `List` the two
+            // compete for the same mouse-down: selectable text takes the click to place a
+            // caret, so clicking the body of a row would not select the row — and the body
+            // is most of the row's area. Selecting a fragment is the rarer want; Copy is on
+            // hover and in the context menu, for one row or for many. If free selection is
+            // ever wanted back, it belongs in a detail view, not in the list.
             Text(run.text)
                 .font(DS.Font.transcript)
-                .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
 

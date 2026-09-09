@@ -45,7 +45,8 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-transcribe <wav>                --selftest-calendar
 --selftest-notes <wav> [--diarize]         --selftest-llm-metal
 --selftest-island    --selftest-orb        --selftest-gws
---selftest-agent <meeting-dir>
+--selftest-agent <meeting-dir>             --selftest-cleanup [engine]
+--selftest-dictation
 ```
 
 A self-test must **fail** when the thing it names did not happen. `--selftest-systemaudio`
@@ -89,6 +90,19 @@ cp shared/dictionary-test-vectors.json Tests/SpeechifyDictionaryTests/
 
 ## Things that look like bugs and are not
 
+**Transcript text in the Dictation list cannot be selected with the mouse.** Deliberate. The
+list is a multi-select `List`, and selectable text competes with row selection for the same
+mouse-down: with `.textSelection(.enabled)` on the transcript, clicking the body of a row
+places a caret instead of selecting the row, and the body is most of the row. Copy is on the
+hover button and the context menu, for one row or for many. If free text selection is wanted
+back it belongs in a detail view, not in the list.
+
+**A self-test must never call `RunLog.record`.** `DictationController` takes a `record:` seam
+exactly like `insert:`, and `--selftest-dictation` passes `{ _ in }`. Without it the test files
+its fixtures into the user's own Dictation history — it did, silently, until 2026-09-09, and
+55 rows of "Self test transcript." had to be cleaned out of a real machine's `runs.jsonl`.
+If you add a self-test that drives the controller, pass both seams.
+
 **`dotnet build Speechify.sln` fails on macOS** with `NETSDK1073`. Expected —
 `Speechify.Platform.Windows` targets `net10.0-windows`. Use `Speechify.CrossPlatform.slnf`, which
 omits it; everything else, including the whole UI suite, builds and tests on macOS in about
@@ -131,6 +145,44 @@ checklist shows that row as unanswerable, and `--selftest-systemaudio` reports
 `SYSTEM_AUDIO_SILENT` rather than success when the peak is zero. Like Accessibility, the
 grant is keyed to the code signature, so it has to be re-granted after an ad-hoc rebuild —
 `tccutil reset AudioCapture ai.pivotstudio.speechify` resets that one row.
+
+**Every await in the dictation tail has a deadline, and the deadlines are the point.**
+`DictationController.endDictation` drains the audio, calls `engine.finish()`, awaits the
+transcript stream and then the cleanup pass. All four used to be unbounded, and the state
+machine sits in `.finishing` for the whole of it — a state the HUD and the island both used
+to draw as a live recording. So anything that did not come back (a model still loading, a
+transcript stream nobody finished, a cleanup pass on a machine that had started swapping)
+showed up to the user as "it looks stuck and it keeps recording in the background", with the
+next press refused because `.finishing` still counts as active. Every leg now goes through
+`withBoundedWait`, `DictationController.Limits` names each deadline, and every failure path
+stops capture and returns to `.idle`. `--selftest-dictation` is the guard: remove a bound
+and it reports `DICTATION_STUCK: still finishing`. `withBoundedWait` is a hand-rolled latch
+rather than a task group on purpose — a group awaits every child before it returns, which
+would re-introduce exactly the wait it exists to remove.
+
+**`DictationController.session` is not a counter, it is what keeps two holds apart.**
+`engine`, `consumeTask`, `feedTask` and `audioContinuation` are one slot each, and starting
+a recording is slow — Parakeet is eleven seconds cold. Release the key during that and hold
+again, and two start-up tasks are in flight against one set of slots. Unguarded, the late
+one writes its engine over the live one's, and `endDictation` then finishes engine B while
+awaiting engine A's stream — a stream nobody will ever close. Every continuation that writes
+back into those slots re-checks `session` first, and a superseded start-up finishes its own
+engine and touches nothing else. It is also why capture is started *after* that check rather
+than before it.
+
+**The dictation tail logs its own split.** `runs.jsonl` records one `processSeconds` for
+everything between key-up and injected text, and one number cannot say which of draining,
+transcribing and cleaning up was slow. Every run also writes
+`dictation tail · drain …s · transcribe …s · cleanup …s` at info level, which is the first
+thing to read when someone says dictation got slow:
+
+```bash
+/usr/bin/log show --predicate 'subsystem == "ai.pivotstudio.speechify"' --last 30m --info \
+  | grep "dictation tail"
+```
+
+Info-level entries age out of the unified log within minutes, so this is only useful
+promptly — a slow run reported an hour later has already lost its evidence.
 
 **A meeting reaches "Done" minutes after you press Stop.** Everything after the transcript is
 handed to `MeetingPipeline` — identify speakers, then write notes — rather than awaited inside
@@ -369,7 +421,8 @@ library ships two designs instead of one and a scale factor. Monochrome, because
 a gradient would advertise a design this app does not have.
 
 Red is still only ever recording — a recording island shows the same
-`RecordingIndicator` dot as everywhere else, not an orb.
+`RecordingIndicator` dot as everywhere else, with the `weaving` orb beside it saying what
+kind of recording it is, exactly as the HUD sets an orb beside the dot and the level bar.
 
 ## macOS specifics
 

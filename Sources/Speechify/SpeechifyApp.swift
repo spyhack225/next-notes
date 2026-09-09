@@ -194,6 +194,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runAgentSelfTest(directory: path)
             return true
         }
+        if arguments.contains("--selftest-cleanup") {
+            runCleanupSelfTest(engine: Self.value(after: "--selftest-cleanup") ?? "all")
+            return true
+        }
+        if arguments.contains("--selftest-dictation") {
+            runDictationSelfTest()
+            return true
+        }
         if arguments.contains("--selftest-parakeet") {
             Task { @MainActor in
                 do {
@@ -221,6 +229,188 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                       + "or is not a self-test this build knows.")
         NSApp.terminate(nil)
         return true
+    }
+
+    /// Runs `CleanupEvalCases` through one or more formatters and prints what each did,
+    /// with the latency of every single pass.
+    ///
+    /// This is the only honest way to compare them. `runs.jsonl` records `processSeconds`
+    /// from key release to injected text, which bundles transcription, cleanup and the
+    /// dictionary together — a number in which a Parakeet batch decode can hide a cleanup
+    /// pass entirely. This harness times the cleanup call and nothing else.
+    ///
+    /// `--selftest-cleanup rules|apple|apple-grammar|s1|qwen|all`. The first case a
+    /// model-backed formatter sees pays its cold start and is reported separately, because
+    /// on a machine where the model has idled out that is the latency a real dictation gets.
+    private func runCleanupSelfTest(engine: String) {
+        Task { @MainActor in
+            let preferences = CleanupPreferences(
+                tone: .balanced,
+                formatsLists: true,
+                context: .general
+            )
+            let requested: [String]
+            switch engine {
+            case "all": requested = ["guard", "rules", "apple", "apple-grammar", "s1", "qwen"]
+            default: requested = [engine]
+            }
+
+            if requested.contains("guard") {
+                var failures = 0
+                writeSelfTest("=== guard ===")
+                for vector in CleanupGuardVectors.all + CleanupGuardVectors.regressions {
+                    let reason = CleanupGuard.rejection(
+                        original: vector.original,
+                        cleaned: vector.cleaned,
+                        mode: vector.mode
+                    )
+                    let accepted = reason == nil
+                    if accepted != vector.accepted {
+                        failures += 1
+                        writeSelfTest("""
+                              GUARD_WRONG \(vector.name): expected \
+                            \(vector.accepted ? "accept" : "reject"), got \
+                            \(accepted ? "accept" : "reject: \(reason ?? "")")
+                              in  : \(vector.original)
+                              out : \(Self.oneLine(vector.cleaned))
+                            """)
+                    } else {
+                        writeSelfTest("  \(vector.name)\t\(vector.accepted ? "accept" : "reject")\t"
+                                      + (reason.map { "(\($0))" } ?? ""))
+                    }
+                }
+                if failures > 0 {
+                    writeSelfTest("CLEANUP_FAILED: \(failures) guard vector(s) wrong")
+                    NSApp.terminate(nil)
+                    return
+                }
+                writeSelfTest("  \(CleanupGuardVectors.all.count + CleanupGuardVectors.regressions.count) guard vectors correct")
+            }
+
+            for name in requested where name != "guard" {
+                let formatter: (any TextFormatter)?
+                let mode: CleanupGuard.Mode
+                switch name {
+                case "rules":
+                    formatter = RuleBasedFormatter()
+                    mode = .punctuationOnly
+                case "apple":
+                    formatter = FoundationModelFormatter(preferences: preferences, fixesGrammar: false)
+                    mode = .punctuationOnly
+                case "apple-grammar":
+                    formatter = FoundationModelFormatter(preferences: preferences, fixesGrammar: true)
+                    mode = .grammar
+                case "s1":
+                    formatter = S1MiniFormatter(preferences: preferences)
+                    mode = .punctuationOnly
+                case "qwen":
+                    formatter = QwenCleanupFormatter(preferences: preferences, fixesGrammar: true)
+                    mode = .grammar
+                default:
+                    formatter = nil
+                    mode = .punctuationOnly
+                }
+                guard let formatter else {
+                    writeSelfTest("CLEANUP_FAILED: unknown engine \(name)")
+                    continue
+                }
+
+                writeSelfTest("")
+                writeSelfTest("=== \(name) ===")
+                var timings: [Double] = []
+                var rejections = 0
+                for testCase in CleanupEvalCases.all {
+                    let began = Date()
+                    let output = await formatter.format(testCase.input)
+                    let seconds = Date().timeIntervalSince(began)
+                    timings.append(seconds)
+
+                    // The formatters fall back internally, so a rejected model answer looks
+                    // from out here exactly like a model that decided to change nothing.
+                    // Asking the model again *without* the guard is the only way to tell
+                    // those two apart, and the difference is the whole argument for or
+                    // against a prompt — so the harness pays for a second call that
+                    // production never makes.
+                    let raw = await Self.rawCleanup(
+                        name,
+                        testCase.input,
+                        preferences: preferences
+                    )
+                    var verdict = "ok"
+                    if let raw {
+                        if let reason = CleanupGuard.rejection(
+                            original: testCase.input,
+                            cleaned: raw,
+                            mode: mode
+                        ) {
+                            verdict = "REJECTED \(reason)"
+                            rejections += 1
+                        } else if raw != output {
+                            verdict = "drifted"
+                        }
+                    }
+
+                    writeSelfTest("""
+                        \(testCase.id)\t\(String(format: "%.3f", seconds))s\t\(verdict)
+                          want: \(testCase.expectation)
+                          in  : \(testCase.input)
+                          out : \(Self.oneLine(output))
+                        """)
+                    if let raw, raw != output {
+                        writeSelfTest("  raw : \(Self.oneLine(raw))")
+                    }
+                }
+                if rejections > 0 {
+                    writeSelfTest("  \(rejections) of \(CleanupEvalCases.all.count) model answers "
+                                  + "were rejected and replaced by rule-based output.")
+                }
+
+                let sorted = timings.sorted()
+                let cold = timings.first ?? 0
+                let warm = Array(timings.dropFirst()).sorted()
+                let median = sorted.isEmpty ? 0 : sorted[sorted.count / 2]
+                let warmMedian = warm.isEmpty ? 0 : warm[warm.count / 2]
+                let warmMax = warm.max() ?? 0
+                writeSelfTest("""
+                    CLEANUP_SUMMARY \(name): n=\(timings.count) \
+                    cold=\(String(format: "%.3f", cold))s \
+                    median=\(String(format: "%.3f", median))s \
+                    warm-median=\(String(format: "%.3f", warmMedian))s \
+                    warm-max=\(String(format: "%.3f", warmMax))s
+                    """)
+            }
+            writeSelfTest("CLEANUP_OK")
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// The model's answer with no guard in front of it. nil for engines that have no
+    /// separable model step. Harness only.
+    private static func rawCleanup(
+        _ engine: String,
+        _ text: String,
+        preferences: CleanupPreferences
+    ) async -> String? {
+        switch engine {
+        case "apple":
+            return try? await FoundationModelFormatter.clean(
+                text, preferences: preferences, fixesGrammar: false
+            )
+        case "apple-grammar":
+            return try? await FoundationModelFormatter.clean(
+                text, preferences: preferences, fixesGrammar: true
+            )
+        case "qwen":
+            return try? await QwenCleanupFormatter.generate(
+                text, preferences: preferences, fixesGrammar: true
+            )
+        default:
+            return nil
+        }
+    }
+
+    private static func oneLine(_ text: String) -> String {
+        text.replacingOccurrences(of: "\n", with: " \u{21B5} ")
     }
 
     /// Listens to the Mac's own output for three seconds and reports what it heard.
@@ -643,6 +833,185 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// never takes focus. The state half needs nothing at all: it pushes notices at a fresh
     /// `IslandState` and checks that a question outranks a readout, which is the one rule
     /// the island has.
+    /// Drives `DictationController` through the ways a hold can go wrong, and checks that
+    /// every one of them comes back to `.idle`.
+    ///
+    /// This is the self-test for the report that reads "the transcription does not arrive
+    /// in context, it looks like it's stuck, it keeps recording in the background". That is
+    /// what the controller looks like from outside when an await in the tail never returns:
+    /// the state machine parks in `.finishing`, which the HUD and the island both draw as a
+    /// live recording, and the next press is refused because the state is still active.
+    ///
+    /// The microphone is real — there is no seam for `AudioCapture` and inventing one would
+    /// test a fake. The engine, the formatter and the text injector are not: a self-test
+    /// that used the real injector would type its fixtures into the terminal that started
+    /// it, and one that used the real engine would be testing Parakeet.
+    private func runDictationSelfTest() {
+        Task { @MainActor in
+            var failures: [String] = []
+            // Short enough that a deadline can be observed to fire, in the same order of
+            // magnitude as the real ones.
+            let limits = DictationController.Limits(
+                startup: .seconds(3),
+                drain: .seconds(1),
+                transcribe: .seconds(2),
+                cleanup: .seconds(2),
+                command: .seconds(2)
+            )
+
+            /// Holds the key for `held`, lets go, and waits for the controller to come to
+            /// rest. Returns nil if it never does.
+            @MainActor
+            func hold(
+                _ controller: DictationController,
+                held: Duration,
+                settle: TimeInterval
+            ) async -> DictationController.State? {
+                controller.startButtonRecording()
+                try? await Task.sleep(for: held)
+                let heldState = controller.state
+                controller.stopButtonRecording()
+
+                let deadline = Date().addingTimeInterval(settle)
+                while Date() < deadline {
+                    if case .idle = controller.state { return heldState }
+                    try? await Task.sleep(for: .milliseconds(50))
+                }
+                writeSelfTest("  DICTATION_STUCK: still \(controller.state) after \(settle)s")
+                return nil
+            }
+
+            @MainActor
+            func makeController(
+                _ shape: SelfTestEngine.Shape,
+                inbox: SelfTestInbox
+            ) -> DictationController {
+                DictationController(
+                    formatter: RuleBasedFormatter(),
+                    makeEngine: { SelfTestEngine(shape: shape) },
+                    limits: limits,
+                    insert: { inbox.append($0) },
+                    // Discarded, not filed. These are fixtures, and the Dictation list is the
+                    // user's own history — a self-test has no business appearing in it.
+                    record: { _ in }
+                )
+            }
+
+            // 1. The ordinary hold. Establishes that the microphone and the state machine
+            //    work at all here — without it every other check below passes vacuously.
+            let plain = SelfTestInbox()
+            let controllerA = makeController(.prompt(delay: .zero), inbox: plain)
+            let heldState = await hold(controllerA, held: .milliseconds(600), settle: 6)
+            if heldState == nil {
+                failures.append("an ordinary hold never came back to idle")
+            } else if heldState != .listening {
+                failures.append("an ordinary hold was \(heldState!) rather than listening — "
+                                + "microphone access may be missing, so nothing below was really tested")
+            }
+            // Compared loosely on purpose: cleanup and the dictionary both run on the way
+            // out, so the text that lands is not the text the engine produced.
+            if plain.contents().count != 1 || plain.contents().first?.contains("transcript") != true {
+                failures.append("an ordinary hold injected \(plain.contents()) rather than the transcript")
+            }
+
+            // 2. `finish()` that never returns — the engine wedged on a model load, or on a
+            //    queue a meeting is holding. Bounded, this must give up and say so.
+            let hung = SelfTestInbox()
+            let controllerB = makeController(.hangsOnFinish, inbox: hung)
+            if await hold(controllerB, held: .milliseconds(400), settle: 8) == nil {
+                failures.append("a wedged finish() left the controller recording forever")
+            }
+            if !hung.contents().isEmpty {
+                failures.append("a wedged finish() injected \(hung.contents())")
+            }
+
+            // 3. A transcript stream nobody closes. This is the shape the single-slot
+            //    engine/consumeTask pair used to produce on its own, and the reason the
+            //    controller now carries a session number.
+            let open = SelfTestInbox()
+            let controllerC = makeController(.leavesStreamOpen, inbox: open)
+            if await hold(controllerC, held: .milliseconds(400), settle: 8) == nil {
+                failures.append("an unfinished transcript stream left the controller recording forever")
+            }
+
+            // 4. Released while the engine is still starting, then held again straight
+            //    away — two start-ups in flight against one set of slots. The first hold is
+            //    lost, and must say so rather than going quiet; the second must still work.
+            let raced = SelfTestInbox()
+            let controllerD = makeController(.prompt(delay: .seconds(2)), inbox: raced)
+            controllerD.startButtonRecording()
+            try? await Task.sleep(for: .milliseconds(200))
+            controllerD.stopButtonRecording()
+            if case .error = controllerD.state {} else {
+                failures.append("a hold released during start-up went quiet (\(controllerD.state)) "
+                                + "instead of saying the recording was lost")
+            }
+
+            let settled = Date().addingTimeInterval(10)
+            while Date() < settled, controllerD.state != .idle {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if controllerD.state != .idle {
+                failures.append("a hold released during start-up never came back to idle")
+            }
+            // The abandoned start-up is still in flight here; the second hold has to be
+            // unaffected by it.
+            if await hold(controllerD, held: .seconds(3), settle: 8) == nil {
+                failures.append("the hold after an abandoned start-up never came back to idle")
+            }
+            if raced.contents().count != 1 || raced.contents().first?.contains("transcript") != true {
+                failures.append("the hold after an abandoned start-up injected \(raced.contents())")
+            }
+
+            failures.append(contentsOf: Self.selectionPolicyFailures())
+
+            for failure in failures { writeSelfTest("  DICTATION_WRONG: \(failure)") }
+            writeSelfTest(failures.isEmpty
+                ? "DICTATION_OK: every hold came back to idle"
+                : "DICTATION_FAILED: \(failures.count) problem(s)")
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// Checks the rules behind selecting and deleting several transcriptions at once.
+    ///
+    /// The clicking itself cannot be tested — Speechify is blocked from UI automation on this
+    /// machine — so what is asserted here is every rule that behaviour rests on.
+    private static func selectionPolicyFailures() -> [String] {
+        var failures: [String] = []
+
+        let a = DictationRun(date: .now, engine: "e", audioSeconds: 1, processSeconds: 1, text: "first")
+        let b = DictationRun(date: .now, engine: "e", audioSeconds: 1, processSeconds: 1, text: "second")
+        let c = DictationRun(date: .now, engine: "e", audioSeconds: 1, processSeconds: 1, text: "third")
+        let runs = [a, b, c]
+
+        // One row is not worth a dialog; several are, because there is no undo.
+        if DictationSelectionPolicy.needsConfirmation([a.id]) {
+            failures.append("deleting one transcription asked for confirmation")
+        }
+        if !DictationSelectionPolicy.needsConfirmation([a.id, b.id]) {
+            failures.append("deleting two transcriptions did not ask for confirmation")
+        }
+
+        // A Set has no order, so a multi-row copy has to take the list's.
+        let copied = DictationSelectionPolicy.copyText(for: [c.id, a.id], from: runs)
+        if copied != "first\n\nthird" {
+            failures.append("copying two transcriptions gave \(copied.debugDescription), "
+                            + "not the two in list order")
+        }
+        if !DictationSelectionPolicy.copyText(for: [], from: runs).isEmpty {
+            failures.append("copying nothing produced text")
+        }
+
+        // A row can be deleted out from under the selection.
+        let pruned = DictationSelectionPolicy.pruned([a.id, b.id], existing: [a, c])
+        if pruned != [a.id] {
+            failures.append("a selection holding a deleted transcription was not pruned")
+        }
+
+        return failures
+    }
+
     private func runIslandSelfTest() {
         Task { @MainActor in
             for screen in NSScreen.screens {
@@ -764,17 +1133,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Readouts stay collapsed until the pointer arrives; questions do not wait for it.
         check("a readout stays collapsed", !IslandState.Kind.transcribing.demandsAttention)
         check("a recording readout stays collapsed", !IslandState.Kind.dictating(
-            transcript: "", level: 0
+            transcript: "", level: 0, isCapturing: true
         ).demandsAttention)
         check("a question opens itself", IslandState.Kind.notesReady(
             meetingID: meeting.id, title: ""
         ).demandsAttention)
 
-        // Recording is a red dot and nothing else; every other kind of work is an orb.
-        check("recording is not an orb", IslandState.Kind.meetingRecording(
+        // An orb never replaces the red dot, it sits beside it: a recording meeting draws
+        // both, the dot for "this is being recorded" and `weaving` for the two channels
+        // being braided into one transcript. Only half of that rule is visible from here —
+        // the dot is `IslandView.badge`'s, and it is drawn unconditionally for this state.
+        check("a recording meeting weaves", IslandState.Kind.meetingRecording(
             elapsed: 0, micLevel: 0, systemLevel: 0
-        ).orb == nil)
-        check("dictation listens", IslandState.Kind.dictating(transcript: "", level: 0).orb == .listening)
+        ).orb == .weaving)
+        check("dictation listens", IslandState.Kind.dictating(
+            transcript: "", level: 0, isCapturing: true
+        ).orb == .listening)
+        // A held key and a finished one must not look the same. This is the island half of
+        // the "it looks like it is still recording" report: while the engine works, the
+        // island says so instead of going on listening.
+        check("a finished hold stops listening", IslandState.Kind.dictating(
+            transcript: "", level: 0, isCapturing: false
+        ).orb == .working)
         check("transcribing works", IslandState.Kind.transcribing.orb == .working)
         check("summarizing composes", IslandState.Kind.summarizing(progress: nil).orb == .composing)
 
@@ -1353,4 +1733,75 @@ private actor SelfTestSegments {
     }
 
     func all() -> [TranscriptSegment] { segments }
+}
+
+/// Collects what a self-test's `DictationController` would have typed.
+///
+/// A class rather than a captured `var`: the injector closure is stored on the controller
+/// and called from inside its own task, so the self-test needs a reference to read
+/// afterwards.
+@MainActor
+final class SelfTestInbox {
+    private var texts: [String] = []
+    func append(_ text: String) { texts.append(text) }
+    func contents() -> [String] { texts }
+}
+
+/// A transcription engine that can be asked to misbehave in each of the ways a real one
+/// has been observed to.
+///
+/// Nothing here is a mock of Parakeet — it makes no attempt to transcribe. It exists to
+/// put the *controller* in the situations that used to wedge it: a slow start, a `finish()`
+/// that never returns, and a transcript stream nobody closes.
+actor SelfTestEngine: TranscriptionEngine {
+    static let transcript = "self test transcript"
+
+    enum Shape: Sendable {
+        /// Starts after `delay`, then yields the fixture and closes cleanly.
+        case prompt(delay: Duration)
+        /// `finish()` never returns — a model load, or a queue a meeting is holding.
+        case hangsOnFinish
+        /// Yields the fixture but never closes the stream, so anything awaiting the
+        /// consuming task waits forever.
+        case leavesStreamOpen
+    }
+
+    private let shape: Shape
+    private var continuation: AsyncThrowingStream<TranscriptionChunk, Error>.Continuation?
+
+    init(shape: Shape) { self.shape = shape }
+
+    func preferredInputFormat() async -> AVAudioFormat? {
+        AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)
+    }
+
+    func start() async throws -> AsyncThrowingStream<TranscriptionChunk, Error> {
+        let (stream, continuation) = AsyncThrowingStream<TranscriptionChunk, Error>.makeStream()
+        self.continuation = continuation
+        if case .prompt(let delay) = shape, delay > .zero {
+            try await Task.sleep(for: delay)
+        }
+        return stream
+    }
+
+    func feed(_ chunk: AudioChunk) async {}
+
+    func finish() async {
+        switch shape {
+        case .hangsOnFinish:
+            // Deliberately unbounded. `Task.sleep` throws on cancellation, and the point is
+            // to stay here even when the caller has given up, exactly as a CoreML inference
+            // or a llama.cpp decode would.
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(3_600))
+                if Task.isCancelled { break }
+            }
+        case .leavesStreamOpen:
+            continuation?.yield(TranscriptionChunk(text: Self.transcript, isFinal: true))
+        case .prompt:
+            continuation?.yield(TranscriptionChunk(text: Self.transcript, isFinal: true))
+            continuation?.finish()
+            continuation = nil
+        }
+    }
 }
