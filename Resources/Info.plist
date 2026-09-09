@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleName</key>
-	<string>Murmur YouTube</string>
+	<string>Speechify</string>
 	<key>CFBundleDisplayName</key>
-	<string>Murmur YouTube</string>
-	<!-- Deliberately space-free and distinct from the existing app's `murmur`, so that
+	<string>Speechify</string>
+	<!-- Deliberately space-free and distinct from the existing app's `Speechify`, so that
 	     `pkill`/`killall` on either app can never match the other. -->
 	<key>CFBundleExecutable</key>
-	<string>MurmurYouTube</string>
-	<!-- Separate from the existing Murmur's com.murmur.client: distinct TCC identity,
+	<string>Speechify</string>
+	<!-- Separate from the existing Speechify's com.Speechify.client: distinct TCC identity,
 	     distinct preferences domain, no shared state of any kind. -->
 	<key>CFBundleIdentifier</key>
-	<string>ai.pivotstudio.murmur-youtube</string>
+	<string>ai.pivotstudio.speechify</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,10 +28,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>ai.pivotstudio.murmur-youtube</string>
+			<string>ai.pivotstudio.speechify</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>murmuryt</string>
+				<string>speechify</string>
 			</array>
 		</dict>
 	</array>
@@ -44,8 +44,14 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Murmur YouTube listens while you hold the push-to-talk key so it can turn your speech into text.</string>
+	<string>Speechify listens while you hold the push-to-talk key so it can turn your speech into text.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Murmur YouTube transcribes your speech on-device to insert text where you're typing.</string>
+	<string>Speechify transcribes your speech on-device to insert text where you're typing.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Speechify records what you hear during a meeting so it can transcribe the other participants on-device. Audio never leaves this Mac.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Speechify reads your calendar to know when a meeting starts, so it can offer to take notes.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Speechify notifies you before a meeting recording starts and when notes are ready.</string>
 </dict>
 </plist>

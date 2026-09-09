@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <!-- Platform-NEUTRAL. CA1416 makes any Windows-only API call here a build error,
-         which is what keeps this layer testable from macOS. -->
-    <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>Murmur.Abstractions</RootNamespace>
-  </PropertyGroup>
-</Project>

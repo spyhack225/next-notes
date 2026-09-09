@@ -5,7 +5,7 @@
 
 # Built .app bundles, at the repo root ONLY.
 #
-# Anchored deliberately. An unanchored `*.app/` also matches `windows/src/Murmur.App/`,
+# Anchored deliberately. An unanchored `*.app/` also matches `windows/src/Speechify.App/`,
 # because macOS filesystems are case-insensitive — which silently kept the entire Avalonia
 # app out of the repo until a CI publish step failed to find the project file.
 /*.app/

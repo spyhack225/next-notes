@@ -1,0 +1,21 @@
+import SwiftUI
+
+/// The same checklist the app shows on first launch, kept somewhere permanent.
+///
+/// TCC keys every grant to the code signature, so a re-signed build silently loses them —
+/// which makes "where do I check this?" a question the app has to answer more than once.
+struct PermissionsSettingsTab: View {
+    var body: some View {
+        Form {
+            Section {
+                PermissionsChecklist()
+            } footer: {
+                Text("Grants are tied to this build's code signature. Reinstalling Speechify "
+                     + "can reset them.")
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}

@@ -1,6 +1,6 @@
-# Murmur for Windows
+# Speechify for Windows
 
-The Windows port of Murmur — push-to-talk dictation, on-device.
+The Windows port of Speechify — push-to-talk dictation, on-device.
 
 > **Status: feature-complete, never run on real hardware.** Every layer exists and CI
 > builds, tests and publishes a working single-file executable that starts and passes its
@@ -77,24 +77,24 @@ windows/
 ├─ Directory.Packages.props       central version pinning
 ├─ global.json                    SDK pin
 ├─ src/
-│  ├─ Murmur.Dictionary/          corrections + biasing          net10.0
-│  ├─ Murmur.Abstractions/        the four platform interfaces   net10.0
-│  ├─ Murmur.Core/                engine, segmenter, storage     net10.0
-│  ├─ Murmur.Speech/              Parakeet via sherpa-onnx       net10.0
-│  ├─ Murmur.Testing/             fakes for the interfaces       net10.0
-│  ├─ Murmur.App/                 Avalonia UI                    net10.0
-│  └─ Murmur.Platform.Windows/    the ONLY Win32 code            net10.0-windows
+│  ├─ Speechify.Dictionary/          corrections + biasing          net10.0
+│  ├─ Speechify.Abstractions/        the four platform interfaces   net10.0
+│  ├─ Speechify.Core/                engine, segmenter, storage     net10.0
+│  ├─ Speechify.Speech/              Parakeet via sherpa-onnx       net10.0
+│  ├─ Speechify.Testing/             fakes for the interfaces       net10.0
+│  ├─ Speechify.App/                 Avalonia UI                    net10.0
+│  └─ Speechify.Platform.Windows/    the ONLY Win32 code            net10.0-windows
 └─ tests/
-   ├─ Murmur.Dictionary.Tests/    the shared vectors             24 tests
-   ├─ Murmur.Core.Tests/          engine, chunking, storage      26 tests
-   └─ Murmur.App.Tests/           headless Avalonia UI           13 tests
+   ├─ Speechify.Dictionary.Tests/    the shared vectors             24 tests
+   ├─ Speechify.Core.Tests/          engine, chunking, storage      26 tests
+   └─ Speechify.App.Tests/           headless Avalonia UI           13 tests
 ```
 
 **Only one project targets `-windows`.** Everything else is platform-neutral, so `CA1416`
 turns an accidental Win32 call into a build error — and, more usefully, the whole app
 builds, runs and tests on macOS.
 
-`Murmur.App` loads the platform layer **by reflection** rather than referencing it. A direct
+`Speechify.App` loads the platform layer **by reflection** rather than referencing it. A direct
 reference would drag the UI onto `net10.0-windows` and destroy the local loop. The published
 self-test verifies that reflection works from inside the single-file bundle, because that is
 where the arrangement would otherwise fail — silently, at the moment the user first pressed
@@ -112,17 +112,17 @@ projects, behind an interface.
 
 ```bash
 cd windows
-dotnet build Murmur.sln --no-incremental -warnaserror
-dotnet test  Murmur.sln
+dotnet build Speechify.sln --no-incremental -warnaserror
+dotnet test  Speechify.sln
 ```
 
-**On macOS or Linux** — use the solution filter. `Murmur.Platform.Windows` targets
+**On macOS or Linux** — use the solution filter. `Speechify.Platform.Windows` targets
 `net10.0-windows` and cannot compile off Windows; the filter omits it and everything else
 builds and tests normally, including the full UI suite:
 
 ```bash
 cd windows
-dotnet test Murmur.CrossPlatform.slnf -c Release      # ~0.5s, 63 tests
+dotnet test Speechify.CrossPlatform.slnf -c Release      # ~0.5s, 63 tests
 ```
 
 `--no-incremental` is not optional in CI. Roslyn does not re-emit analyzer warnings on an

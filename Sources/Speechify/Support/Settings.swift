@@ -1,0 +1,455 @@
+import Foundation
+import Observation
+
+/// Which speech engine transcribes an utterance.
+enum SpeechEngineChoice: String, CaseIterable, Sendable {
+    case apple
+    case parakeet
+
+    var displayName: String {
+        switch self {
+        case .apple: "Apple (streaming)"
+        case .parakeet: "Parakeet (batch)"
+        }
+    }
+
+    /// Apple shows text while you talk; Parakeet only resolves on release.
+    var showsLiveText: Bool { self == .apple }
+}
+
+/// Which local model performs the semantic cleanup pass.
+enum CleanupEngineChoice: String, CaseIterable, Sendable {
+    case apple
+    case s1Mini
+
+    var displayName: String {
+        switch self {
+        case .apple: "Apple Foundation Model"
+        case .s1Mini: "S1-mini by Superwhisper"
+        }
+    }
+}
+
+/// User-facing tone names. S1-mini has four trained control values; `balanced` deliberately
+/// maps to its recommended `semi-formal` register rather than inventing an unsupported token.
+enum CleanupTone: String, CaseIterable, Sendable {
+    case casual
+    case semiCasual
+    case balanced
+    case semiFormal
+    case formal
+
+    var displayName: String {
+        switch self {
+        case .casual: "Casual"
+        case .semiCasual: "Semi-casual"
+        case .balanced: "Balanced"
+        case .semiFormal: "Semi-formal"
+        case .formal: "Formal"
+        }
+    }
+
+    var s1MiniValue: String {
+        switch self {
+        case .casual: "casual"
+        case .semiCasual: "semi-casual"
+        case .balanced, .semiFormal: "semi-formal"
+        case .formal: "formal"
+        }
+    }
+}
+
+/// Where the app shows what it is hearing while you dictate.
+enum HUDPlacement: String, CaseIterable, Sendable, Identifiable {
+    /// The island at the top of the screen — hugging the notch on a Mac that has one, and
+    /// a capsule under the menu bar on one that doesn't.
+    case notch
+    /// The floating capsule above the Dock, which is where the HUD has always been.
+    case bottom
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .notch: "At the top of the screen"
+        case .bottom: "Above the Dock"
+        }
+    }
+}
+
+enum CleanupContext: String, CaseIterable, Sendable {
+    case general
+    case email
+
+    var displayName: String { self == .general ? "General" : "Email" }
+}
+
+struct CleanupPreferences: Sendable {
+    let tone: CleanupTone
+    let formatsLists: Bool
+    let context: CleanupContext
+}
+
+@MainActor
+@Observable
+final class Settings {
+    static let shared = Settings()
+
+    var pushToTalkKey: PushToTalkKey {
+        didSet {
+            if commandModeEnabled, commandModeKey == pushToTalkKey {
+                commandModeEnabled = false
+            }
+            defaults.set(pushToTalkKey.rawValue, forKey: Keys.pushToTalkKey)
+        }
+    }
+
+    /// Opt-in because a second global modifier key must never be intercepted unexpectedly.
+    var commandModeEnabled: Bool {
+        didSet {
+            // Two event taps consuming the same modifier would start two recordings and make
+            // the key unusable. Refuse that persisted/configured state by switching the
+            // optional feature back off.
+            if commandModeEnabled, commandModeKey == pushToTalkKey {
+                commandModeEnabled = false
+            }
+            defaults.set(commandModeEnabled, forKey: Keys.commandModeEnabled)
+        }
+    }
+
+    /// Hold this key after selecting editable text, then speak an editing instruction.
+    var commandModeKey: PushToTalkKey {
+        didSet {
+            if commandModeEnabled, commandModeKey == pushToTalkKey {
+                commandModeEnabled = false
+            }
+            defaults.set(commandModeKey.rawValue, forKey: Keys.commandModeKey)
+        }
+    }
+
+    var engine: SpeechEngineChoice {
+        didSet { defaults.set(engine.rawValue, forKey: Keys.engine) }
+    }
+
+    /// Run every engine on each recording and show them side by side, instead of
+    /// transcribing with one. Nothing is typed into the focused app in this mode.
+    var compareMode: Bool {
+        didSet { defaults.set(compareMode, forKey: Keys.compareMode) }
+    }
+
+    /// Run the cleanup pass before injecting. Off = raw engine output.
+    var cleanupEnabled: Bool {
+        didSet { defaults.set(cleanupEnabled, forKey: Keys.cleanupEnabled) }
+    }
+
+    /// Choose between the two entirely local semantic cleanup engines.
+    var cleanupEngine: CleanupEngineChoice {
+        didSet { defaults.set(cleanupEngine.rawValue, forKey: Keys.cleanupEngine) }
+    }
+
+    var cleanupTone: CleanupTone {
+        didSet { defaults.set(cleanupTone.rawValue, forKey: Keys.cleanupTone) }
+    }
+
+    var cleanupFormatsLists: Bool {
+        didSet { defaults.set(cleanupFormatsLists, forKey: Keys.cleanupFormatsLists) }
+    }
+
+    var cleanupContext: CleanupContext {
+        didSet { defaults.set(cleanupContext.rawValue, forKey: Keys.cleanupContext) }
+    }
+
+    /// Where the dictation HUD appears.
+    ///
+    /// The default is decided by the hardware rather than fixed: on a Mac with a notch the
+    /// island grows out of a strip of screen that is already dead, and on one without it
+    /// the same capsule would sit over the top of whatever the user is typing into — so
+    /// that machine keeps the HUD above the Dock. Only dictation is placed by this; the
+    /// island still announces meetings and notes either way, because those are
+    /// notifications rather than a live readout of something being held down.
+    var hudPlacement: HUDPlacement {
+        didSet { defaults.set(hudPlacement.rawValue, forKey: Keys.hudPlacement) }
+    }
+
+    /// Play a short tick when capture starts and stops.
+    var soundEnabled: Bool {
+        didSet { defaults.set(soundEnabled, forKey: Keys.soundEnabled) }
+    }
+
+    /// Let llama.cpp use the GPU. The escape hatch for the Metal backend wedging
+    /// MTLCompilerService on some macOS 26 builds; takes effect at next launch because the
+    /// backend is initialized once per process.
+    var llmMetalEnabled: Bool {
+        didSet { defaults.set(llmMetalEnabled, forKey: Keys.llmMetalEnabled) }
+    }
+
+    /// Keep the recorded meeting audio next to the transcript.
+    ///
+    /// Off by default: an hour of two-channel 16 kHz audio is roughly 230 MB, and the
+    /// transcript — the thing the notes are actually written from — is a few kilobytes.
+    /// Turn it on to be able to listen back. Diarization does not need it: a meeting that
+    /// is going to have its speakers identified records audio either way and drops it again
+    /// afterwards.
+    var meetingsKeepAudio: Bool {
+        didSet { defaults.set(meetingsKeepAudio, forKey: Keys.meetingsKeepAudio) }
+    }
+
+    /// Tell the other participants apart on the system track once a meeting has finished.
+    ///
+    /// Off by default: it is a second model to download, it adds minutes to the end of a
+    /// long meeting, and a two-person call is already attributed correctly by the two
+    /// tracks alone. It earns its keep on a call with a room full of people.
+    var meetingsDiarize: Bool {
+        didSet { defaults.set(meetingsDiarize, forKey: Keys.meetingsDiarize) }
+    }
+
+    /// Throw the recording away once the notes have been written.
+    ///
+    /// For keeping the audio only as long as the things made from it need it — diarization
+    /// reads the system channel, and nothing after that does. Ignored when the audio isn't
+    /// being kept in the first place; a meeting recorded only so its speakers could be
+    /// identified always drops its audio afterwards.
+    var meetingsDeleteAudioAfterNotes: Bool {
+        didSet { defaults.set(meetingsDeleteAudioAfterNotes, forKey: Keys.meetingsDeleteAudioAfterNotes) }
+    }
+
+    /// Start recording by itself when a calendar meeting begins.
+    ///
+    /// On by default because a note-taker that has to be remembered is a note-taker that
+    /// misses the meeting you most wanted notes from. Every event is still individually
+    /// refusable through `meetingAutoRecordOverrides`, and the scheduler only ever claims
+    /// events that look like real meetings.
+    var meetingsAutoRecord: Bool {
+        didSet { defaults.set(meetingsAutoRecord, forKey: Keys.meetingsAutoRecord) }
+    }
+
+    /// How many minutes before the start time the meeting is armed and announced.
+    ///
+    /// One minute by default: long enough to press Skip on the notification, short enough
+    /// that the armed row isn't sitting there through the previous meeting.
+    var meetingLeadMinutes: Int {
+        didSet { defaults.set(meetingLeadMinutes, forKey: Keys.meetingLeadMinutes) }
+    }
+
+    /// Per-event answers to "record this one?", keyed by `MeetingEvent.overrideKey`.
+    ///
+    /// An explicit answer beats both the heuristic and the global switch, in either
+    /// direction: the one recurring stand-up you never want recorded, and the one-to-one
+    /// with no conference link that you do.
+    var meetingAutoRecordOverrides: [String: Bool] {
+        didSet { defaults.set(meetingAutoRecordOverrides, forKey: Keys.meetingAutoRecordOverrides) }
+    }
+
+    /// Read meetings from the Mac's own calendars through EventKit.
+    var calendarEventKitEnabled: Bool {
+        didSet { defaults.set(calendarEventKitEnabled, forKey: Keys.calendarEventKitEnabled) }
+    }
+
+    /// Read meetings from Google Calendar over its HTTP API.
+    ///
+    /// Off by default, and useless until `googleClientID` is filled in: Google has no
+    /// client credentials to give an unsigned desktop app, so the user brings their own
+    /// OAuth client from Google Cloud.
+    var calendarGoogleEnabled: Bool {
+        didSet { defaults.set(calendarGoogleEnabled, forKey: Keys.calendarGoogleEnabled) }
+    }
+
+    /// The user's own Google Cloud OAuth client ID, of type "Desktop app".
+    ///
+    /// Not a secret worth hiding — desktop clients are public by design, which is exactly
+    /// why the flow uses PKCE — so it lives in defaults beside the rest of the settings.
+    /// The refresh token it earns does not: that goes to the Keychain.
+    var googleClientID: String {
+        didSet { defaults.set(googleClientID, forKey: Keys.googleClientID) }
+    }
+
+    /// The secret printed beside that client ID.
+    ///
+    /// Google's token endpoint asks an installed client for it even though PKCE is what
+    /// actually protects the exchange — the "secret" is public by construction, since it
+    /// ships inside every copy of an app that has one, so it lives in defaults next to the
+    /// ID rather than in the Keychain. Left empty for a client type that doesn't need one.
+    var googleClientSecret: String {
+        didSet { defaults.set(googleClientSecret, forKey: Keys.googleClientSecret) }
+    }
+
+    /// Which Google calendars to read. Empty means "every calendar the account shows".
+    var googleCalendarIDs: [String] {
+        didSet { defaults.set(googleCalendarIDs, forKey: Keys.googleCalendarIDs) }
+    }
+
+    /// Write notes by themselves when a meeting finishes transcribing.
+    ///
+    /// On by default: the notes are the reason a meeting was recorded, and a summarisation
+    /// that has to be asked for is one that happens after the user has already moved on.
+    var notesAutoGenerate: Bool {
+        didSet { defaults.set(notesAutoGenerate, forKey: Keys.notesAutoGenerate) }
+    }
+
+    /// Which local model writes them.
+    ///
+    /// Qwen by default even before it is downloaded: the picker is where the download is
+    /// explained, and silently defaulting to Apple's 4K window would hide the fact that long
+    /// meetings are then summarised in pieces. `LLMProviders.resolve` falls back to whichever
+    /// provider can actually run, so the default never blocks notes.
+    var notesProvider: LLMProviderID {
+        didSet { defaults.set(notesProvider.rawValue, forKey: Keys.notesProvider) }
+    }
+
+    /// Let the meeting agent propose follow-up actions in Google Workspace.
+    ///
+    /// Off until the user has signed the Workspace CLI in, because an agent with no way to
+    /// perform anything is a switch that produces a list of things that can't happen. The
+    /// Workspace tab turns it on as part of finishing the sign-in.
+    var agentEnabled: Bool {
+        didSet { defaults.set(agentEnabled, forKey: Keys.agentEnabled) }
+    }
+
+    /// Let the agent run read-only tools by itself while it plans.
+    ///
+    /// On by default, and it is the one thing the agent does without being asked: searching
+    /// the user's own mail for the deck somebody promised changes nothing and is invisible
+    /// to everyone else. Every tool that creates or sends is a click whatever this says.
+    var agentAutoRunReadTools: Bool {
+        didSet { defaults.set(agentAutoRunReadTools, forKey: Keys.agentAutoRunReadTools) }
+    }
+
+    /// Look at the last couple of minutes of a running meeting and propose as it goes.
+    ///
+    /// Off by default: it spends model time during the call — the moment the machine is
+    /// busiest — to catch the requests that are made out loud and then forgotten. Worth
+    /// turning on for meetings that end in "can you send me…", and not otherwise.
+    var agentLiveDuringMeeting: Bool {
+        didSet { defaults.set(agentLiveDuringMeeting, forKey: Keys.agentLiveDuringMeeting) }
+    }
+
+    /// Whether the first-launch permissions checklist has been dismissed. The checklist
+    /// itself stays reachable from Settings, so this only decides whether it opens by
+    /// itself — not whether the app is usable.
+    var hasCompletedOnboarding: Bool {
+        didSet { defaults.set(hasCompletedOnboarding, forKey: Keys.hasCompletedOnboarding) }
+    }
+
+    /// The stored answer for one event, or nil when the heuristic decides.
+    func autoRecordOverride(forEvent key: String) -> Bool? {
+        meetingAutoRecordOverrides[key]
+    }
+
+    /// Records or clears one event's answer. `nil` hands the event back to the heuristic.
+    func setAutoRecordOverride(_ value: Bool?, forEvent key: String) {
+        var overrides = meetingAutoRecordOverrides
+        overrides[key] = value
+        meetingAutoRecordOverrides = overrides
+    }
+
+    private let defaults = UserDefaults.standard
+
+    private enum Keys {
+        static let pushToTalkKey = "pushToTalkKey"
+        static let commandModeEnabled = "commandModeEnabled"
+        static let commandModeKey = "commandModeKey"
+        static let cleanupEnabled = "cleanupEnabled"
+        static let soundEnabled = "soundEnabled"
+        static let engine = "engine"
+        static let cleanupEngine = "cleanupEngine"
+        static let cleanupTone = "cleanupTone"
+        static let cleanupFormatsLists = "cleanupFormatsLists"
+        static let cleanupContext = "cleanupContext"
+        static let legacySmartCleanup = "smartCleanup"
+        static let compareMode = "compareMode"
+        static let llmMetalEnabled = "llmMetalEnabled"
+        static let hudPlacement = "hudPlacement"
+        static let hasCompletedOnboarding = "hasCompletedOnboarding"
+        static let meetingsKeepAudio = "meetingsKeepAudio"
+        static let meetingsDiarize = "meetingsDiarize"
+        static let meetingsDeleteAudioAfterNotes = "meetingsDeleteAudioAfterNotes"
+        static let notesAutoGenerate = "notesAutoGenerate"
+        static let notesProvider = "notesProvider"
+        static let meetingsAutoRecord = "meetingsAutoRecord"
+        static let meetingLeadMinutes = "meetingLeadMinutes"
+        static let meetingAutoRecordOverrides = "meetingAutoRecordOverrides"
+        static let calendarEventKitEnabled = "calendarEventKitEnabled"
+        static let calendarGoogleEnabled = "calendarGoogleEnabled"
+        static let googleClientID = "googleClientID"
+        static let googleClientSecret = "googleClientSecret"
+        static let googleCalendarIDs = "googleCalendarIDs"
+        static let agentEnabled = "agentEnabled"
+        static let agentAutoRunReadTools = "agentAutoRunReadTools"
+        static let agentLiveDuringMeeting = "agentLiveDuringMeeting"
+    }
+
+    private init() {
+        let raw = defaults.string(forKey: Keys.pushToTalkKey) ?? PushToTalkKey.rightOption.rawValue
+        pushToTalkKey = PushToTalkKey(rawValue: raw) ?? .rightOption
+        commandModeEnabled = defaults.object(forKey: Keys.commandModeEnabled) as? Bool ?? false
+        let commandRaw = defaults.string(forKey: Keys.commandModeKey)
+            ?? PushToTalkKey.rightCommand.rawValue
+        commandModeKey = PushToTalkKey(rawValue: commandRaw) ?? .rightCommand
+        // Apple by default: no download, no dependency, live text while speaking.
+        engine = SpeechEngineChoice(rawValue: defaults.string(forKey: Keys.engine) ?? "") ?? .apple
+        cleanupEnabled = defaults.object(forKey: Keys.cleanupEnabled) as? Bool ?? true
+        if let rawCleanupEngine = defaults.string(forKey: Keys.cleanupEngine) {
+            cleanupEngine = CleanupEngineChoice(rawValue: rawCleanupEngine) ?? .apple
+        } else {
+            // The previous smart-cleanup switch only had one semantic provider: Apple.
+            // Preserve that intent, while making Apple the sensible default for new users.
+            cleanupEngine = .apple
+            if defaults.bool(forKey: Keys.legacySmartCleanup) {
+                defaults.set(CleanupEngineChoice.apple.rawValue, forKey: Keys.cleanupEngine)
+            }
+        }
+        cleanupTone = CleanupTone(
+            rawValue: defaults.string(forKey: Keys.cleanupTone) ?? ""
+        ) ?? .balanced
+        cleanupFormatsLists = defaults.object(forKey: Keys.cleanupFormatsLists) as? Bool ?? true
+        cleanupContext = CleanupContext(
+            rawValue: defaults.string(forKey: Keys.cleanupContext) ?? ""
+        ) ?? .general
+        compareMode = defaults.object(forKey: Keys.compareMode) as? Bool ?? false
+        soundEnabled = defaults.object(forKey: Keys.soundEnabled) as? Bool ?? true
+        llmMetalEnabled = defaults.object(forKey: Keys.llmMetalEnabled) as? Bool ?? true
+        hudPlacement = HUDPlacement(
+            rawValue: defaults.string(forKey: Keys.hudPlacement) ?? ""
+        ) ?? (IslandGeometry.hasNotch ? .notch : .bottom)
+        hasCompletedOnboarding = defaults.object(forKey: Keys.hasCompletedOnboarding) as? Bool ?? false
+        meetingsKeepAudio = defaults.object(forKey: Keys.meetingsKeepAudio) as? Bool ?? false
+        meetingsDiarize = defaults.object(forKey: Keys.meetingsDiarize) as? Bool ?? false
+        meetingsDeleteAudioAfterNotes = defaults.object(forKey: Keys.meetingsDeleteAudioAfterNotes)
+            as? Bool ?? false
+        notesAutoGenerate = defaults.object(forKey: Keys.notesAutoGenerate) as? Bool ?? true
+        notesProvider = LLMProviderID(
+            rawValue: defaults.string(forKey: Keys.notesProvider) ?? ""
+        ) ?? .qwen35_4b
+        meetingsAutoRecord = defaults.object(forKey: Keys.meetingsAutoRecord) as? Bool ?? true
+        // Clamped on read as well as on write: a hand-edited or corrupted default of 0 or
+        // 4000 would either arm at the start time or arm every meeting of the week.
+        let leadMinutes = defaults.object(forKey: Keys.meetingLeadMinutes) as? Int ?? 1
+        meetingLeadMinutes = min(max(leadMinutes, Self.leadMinutesRange.lowerBound), Self.leadMinutesRange.upperBound)
+        meetingAutoRecordOverrides = defaults.dictionary(forKey: Keys.meetingAutoRecordOverrides)
+            as? [String: Bool] ?? [:]
+        calendarEventKitEnabled = defaults.object(forKey: Keys.calendarEventKitEnabled) as? Bool ?? true
+        calendarGoogleEnabled = defaults.object(forKey: Keys.calendarGoogleEnabled) as? Bool ?? false
+        googleClientID = defaults.string(forKey: Keys.googleClientID) ?? ""
+        googleClientSecret = defaults.string(forKey: Keys.googleClientSecret) ?? ""
+        googleCalendarIDs = defaults.stringArray(forKey: Keys.googleCalendarIDs) ?? []
+        agentEnabled = defaults.object(forKey: Keys.agentEnabled) as? Bool ?? false
+        agentAutoRunReadTools = defaults.object(forKey: Keys.agentAutoRunReadTools) as? Bool ?? true
+        agentLiveDuringMeeting = defaults.object(forKey: Keys.agentLiveDuringMeeting) as? Bool ?? false
+
+        // Old/default values can be loaded without invoking property observers.
+        if commandModeEnabled, commandModeKey == pushToTalkKey {
+            commandModeEnabled = false
+        }
+    }
+
+    /// What the lead-time stepper offers, and what a stored value is clamped to.
+    static let leadMinutesRange = 0...15
+
+    var cleanupPreferences: CleanupPreferences {
+        CleanupPreferences(
+            tone: cleanupTone,
+            formatsLists: cleanupFormatsLists,
+            context: cleanupContext
+        )
+    }
+}

@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <!-- Platform-NEUTRAL on purpose. CA1416 turns any Windows-only API call in this
-         project into a build error, which is what guarantees the dictionary stays
-         portable and testable on macOS. -->
-    <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>Murmur.Dictionary</RootNamespace>
-  </PropertyGroup>
-</Project>

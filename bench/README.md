@@ -3,7 +3,7 @@
 Apple's macOS 26 `SpeechTranscriber` vs NVIDIA's **Parakeet TDT 0.6B** running on the
 Neural Engine, on the same audio, scored the same way.
 
-Self-contained — it doesn't build or touch the Murmur YouTube app.
+Self-contained — it doesn't build or touch the Speechify app.
 
 ```bash
 cd bench
