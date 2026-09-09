@@ -417,8 +417,8 @@ JavaScript inline, the app icon beside it, and a `.nojekyll` marker so Pages ser
 as written rather than running them through Jekyll.
 
 To publish it: **Settings ▸ Pages ▸ Source: Deploy from a branch**, branch `main`, folder
-`/docs`. That is the whole setup — no workflow and no build step — and the site appears at
-`https://per-simmons.github.io/murmur-youtube/`. Editing `docs/index.html` and pushing
+`/docs` — already enabled on this repo. That is the whole setup — no workflow and no build step — and the site appears at
+`https://spyhack225.github.io/speechify-site/`. Editing `docs/index.html` and pushing
 redeploys it.
 
 The orb on the page is not a picture. Its `listening` geometry is ported from
