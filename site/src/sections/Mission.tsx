@@ -85,7 +85,9 @@ export default function Mission() {
         aria-hidden="true"
       >
         {/* The two halves of the app — dictation and meetings — braided into one. */}
-        <Orb state="weaving" size={420} />
+        <div className="scale-[0.75] sm:scale-90 md:scale-100">
+          <Orb state="weaving" size={420} />
+        </div>
       </div>
 
       <div className="max-w-5xl mx-auto text-center mt-4">
