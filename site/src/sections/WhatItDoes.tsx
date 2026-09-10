@@ -12,7 +12,7 @@ const features: { title: string; body: string; orb: OrbState }[] = [
   {
     orb: "listening",
     title: "Talk, in context",
-    body: "Hold one key, say the thing, let go. The cleaned-up sentence lands in the email, the terminal, the doc — wherever the cursor already was, with no window to switch to. It learns the names and jargon you actually use, so it stops mangling them.",
+    body: "Hold one key, say the thing, let go. The cleaned-up sentence lands in the email, the terminal, the doc — wherever the cursor already was, even if you wandered off while it was thinking. It writes Markdown where Markdown renders and plain prose where it does not, and it learns the names and jargon you actually use, so it stops mangling them.",
   },
   {
     orb: "weaving",

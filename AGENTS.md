@@ -90,6 +90,32 @@ cp shared/dictionary-test-vectors.json Tests/NextNotesDictionaryTests/
 
 ## Things that look like bugs and are not
 
+**Where a dictation goes is decided at key-down, not at insertion.** `TextInjector.Origin` and
+`OutputProfileStore.captureTarget()` are both taken in `beginDictation`, and the reason is the
+same for both: the tail between releasing the key and having text is seconds long — drain, then
+transcribe, then up to four more for cleanup — and the user may switch apps inside it. Resolve
+the target at insertion time and the text lands wherever they ended up, which in practice means
+it vanishes: the AX write fails against the new app, the pasteboard fallback posts ⌘V at
+something that cannot take it, and the previous clipboard is restored over the top 500 ms later.
+That last step is why the symptom was "it disappeared" rather than "it went to the wrong place".
+
+**Returning to that app needs two mechanisms, not one.** `NSRunningApplication.activate()` is
+refused often enough to be useless alone, because macOS's cooperative activation resists a
+*background* app raising another — and Next Notes is always background during a dictation, by
+design, since the HUD is a non-activating panel so focus never leaves the user's field. The
+fallback is `kAXFrontmostAttribute`, which answers to the Accessibility grant the app already
+needs. Both are followed by polling: activation is asynchronous, and a ⌘V that arrives mid-raise
+lands somewhere else.
+
+**A finished feature with no call site looks exactly like a working one.** `OutputProfileStore`,
+`OutputProfile`, `OutputFormatInstructions` and the Formatting settings tab were all complete,
+tested by eye, and connected to nothing: `captureTarget()` had no callers, so `capturedTarget`
+was permanently nil, `capturedProfile` always resolved to plain, and every row in
+`formatting.txt` did exactly as much as an empty file. Nothing failed, nothing logged, and the
+settings UI wrote a file the pipeline never read. If you add a seam like
+`OutputFormatInstructions` — a pure function with a written integration note and no caller —
+grep for its callers before assuming the feature ships.
+
 **A new engine in `--selftest-cleanup` scores 28/28 until you give it a `rawCleanup` case.**
 The verdict compares the guarded pipeline output against an unguarded second call; with no
 case in `rawCleanup` that call returns nil, every verdict defaults to "ok", and a rejected
@@ -118,8 +144,20 @@ tap to provoke the prompt; nothing reads the answer back, because nothing can.
 **A self-test cannot fail by hanging.** It runs as a task inside a SwiftUI app; if it never
 finishes it never terminates, and the process falls through into the AppKit run loop looking
 exactly like a running app. `--selftest-cleanup qwen` sat that way for three hours on 2 seconds
-of CPU. There is now a watchdog — `SelfTest.timeout`, 300 s, `--selftest-timeout` to override —
-which prints `SELFTEST_TIMEOUT` and exits non-zero.
+of CPU. There is now a watchdog — `SelfTest.timeout`, `--selftest-timeout <seconds>` to override
+— which prints `SELFTEST_TIMEOUT` and exits non-zero.
+
+The default is 300 s for every test **except** `--selftest-cleanup`, which is sized from
+`CleanupEvalCases.all` instead: it runs every fixture through every requested engine, one
+model-backed fixture takes about a minute, and `all` is five model passes. A flat 300 s stopped
+it at the fourth fixture of twenty and reported it hung, for a run that was proceeding normally.
+Add a fixture and the budget moves with it.
+
+**A self-test flag is never a flag's argument.** `SelfTest.value(after:)` refuses a value
+beginning with `--`, and `SelfTest.requested` skips both harness flags by name. Without either,
+`--selftest-cleanup --selftest-timeout 2400` read `--selftest-timeout` as the engine name,
+printed `unknown engine`, ran nothing, and **exited 0** — a green result for a suite that never
+executed.
 
 **`LlamaBackend`'s cleanup gate is one-directional, and closing the cycle deadlocks it.**
 `NotesModelRuntime.loadIfNeeded` calls `awaitCleanupIdle()`, so notes wait for dictation
