@@ -53,6 +53,18 @@ struct DictationSettingsTab: View {
             }
 
             Section {
+                Picker("When you correct a transcript", selection: $settings.dictionaryLearning) {
+                    ForEach(DictionaryLearning.allCases) { choice in
+                        Text(choice.displayName).tag(choice)
+                    }
+                }
+            } header: {
+                Text("Learning from your corrections")
+            } footer: {
+                SettingsNote(text: learningNote)
+            }
+
+            Section {
                 Toggle("Clean up transcripts", isOn: $settings.cleanupEnabled)
 
                 if settings.cleanupEnabled {
@@ -120,6 +132,11 @@ struct DictationSettingsTab: View {
     private var switchAwayNote: String {
         "Transcribing takes a moment, and you are free to move on inside it. "
             + settings.switchAwayBehavior.explanation
+    }
+
+    private var learningNote: String {
+        "Any past dictation can be corrected in the list. "
+            + settings.dictionaryLearning.explanation
     }
 
     private var placementNote: String {

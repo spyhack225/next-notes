@@ -461,6 +461,25 @@ Both engines feed the same cleanup, dictionary, history, and injection pipeline.
   switch back and insert (the default), insert wherever you now are, or copy to the clipboard
   and disturb nothing. If the original app cannot be brought back — it quit — the text is left
   on the clipboard and the HUD says so, rather than vanishing.
+- **Learning from your corrections.** Any past dictation in the list can be corrected in
+  place. The diff between what the engine wrote and what you changed it to is read by
+  `CorrectionLearner` and proposed as dictionary rules — `Kajo` → `Kadjo`, `cloud code` →
+  `Claude Code`, `vercel` → `Vercel`. Settings ▸ Dictation chooses whether to ask, file them
+  silently, or learn nothing. The original transcript is kept beside the edit rather than
+  overwritten, because the pair is the evidence.
+
+  Most of what the diff finds is thrown away, and that is the point: a rule fires on every
+  future transcript, so learning "I think" → "we should" from someone rewriting a sentence is
+  worse than learning nothing. Pairs must be one to three words a side, must not be a very
+  common word, and must be similar enough to read as a mis-hearing rather than a rephrasing.
+  An edit that yields more than five candidates was a rewrite, and yields none.
+  `--selftest-learn` covers the rejections as well as the acceptances.
+
+  **This deliberately does not watch the app the text landed in.** That was the first design,
+  and `--selftest-axreadback` killed it: Cursor, Chrome, Terminal, Messages, ChatGPT and Claude
+  expose *zero* readable text elements, so it would have fired almost nowhere while reading the
+  user's text in every app. Reading a run back out of our own history works everywhere and
+  watches nothing.
 - **Command Mode** is opt-in. Select editable text, hold its independently configured second
   hotkey, and speak an instruction such as "make this more formal." Next Notes snapshots the
   AX selection, applies the instruction with Apple's on-device model, and replaces it only if

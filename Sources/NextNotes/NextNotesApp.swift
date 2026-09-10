@@ -290,6 +290,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runCleanupSelfTest(engine: SelfTest.value(after: "--selftest-cleanup") ?? "all")
             return true
         }
+        if arguments.contains("--selftest-learn") {
+            runLearnSelfTest()
+            return true
+        }
         if arguments.contains("--selftest-axreadback") {
             runAXReadbackSelfTest()
             return true
@@ -338,6 +342,94 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// `--selftest-cleanup rules|apple|apple-grammar|s1|chain|qwen|all`. The first case a
     /// model-backed formatter sees pays its cold start and is reported separately, because
     /// on a machine where the model has idled out that is the latency a real dictation gets.
+    /// Does correcting a transcript teach the right thing, and refuse the wrong thing?
+    ///
+    /// `CorrectionLearner` is a pure function of two strings, so this is the one part of the
+    /// learning pipeline that can be tested without a microphone, a grant, or another app.
+    /// The rejections matter more than the acceptances: a dictionary rule fires on every
+    /// future transcript, so learning "I think" -> "we should" from someone rewriting a
+    /// sentence is far worse than learning nothing at all.
+    private func runLearnSelfTest() {
+        Task { @MainActor in
+            struct Case {
+                let name: String
+                let before: String
+                let after: String
+                /// nil means "learn nothing from this".
+                let expect: (hear: String, write: String)?
+            }
+
+            let cases: [Case] = [
+                .init(name: "misheard-name",
+                      before: "I spoke to Kajo about the release.",
+                      after: "I spoke to Kadjo about the release.",
+                      expect: ("Kajo", "Kadjo")),
+                .init(name: "product-name",
+                      before: "let's ask cloud code to do it",
+                      after: "let's ask Claude Code to do it",
+                      expect: ("cloud code", "Claude Code")),
+                .init(name: "capitalisation",
+                      before: "we deployed to vercel last night",
+                      after: "we deployed to Vercel last night",
+                      expect: ("vercel", "Vercel")),
+                .init(name: "homophone",
+                      before: "put it over their",
+                      after: "put it over there",
+                      expect: ("their", "there")),
+                .init(name: "rewrite-is-not-a-correction",
+                      before: "I think we should ship it on Friday",
+                      after: "We are shipping Thursday morning instead",
+                      expect: nil),
+                .init(name: "pure-deletion-teaches-nothing",
+                      before: "so basically the build is green",
+                      after: "the build is green",
+                      expect: nil),
+                .init(name: "punctuation-only",
+                      before: "the build is green",
+                      after: "The build is green.",
+                      expect: nil),
+                .init(name: "common-word-never-learned",
+                      before: "send it to the team",
+                      after: "send it to a team",
+                      expect: nil),
+                .init(name: "identical",
+                      before: "nothing changed here",
+                      after: "nothing changed here",
+                      expect: nil),
+            ]
+
+            var failures: [String] = []
+            for test in cases {
+                let got = CorrectionLearner.candidates(from: test.before, to: test.after)
+                switch test.expect {
+                case .none:
+                    if !got.isEmpty {
+                        failures.append("\(test.name): expected nothing, learned "
+                                        + got.map { "\($0.hear)→\($0.write)" }.joined(separator: ", "))
+                    }
+                case .some(let want):
+                    guard let first = got.first else {
+                        failures.append("\(test.name): expected \(want.hear)→\(want.write), learned nothing")
+                        continue
+                    }
+                    if first.hear.lowercased() != want.hear.lowercased()
+                        || first.write.lowercased() != want.write.lowercased() {
+                        failures.append("\(test.name): expected \(want.hear)→\(want.write), "
+                                        + "got \(first.hear)→\(first.write)")
+                    }
+                }
+            }
+
+            if failures.isEmpty {
+                writeSelfTest("LEARN_OK: \(cases.count) case(s), corrections learned and rejections held")
+            } else {
+                for failure in failures { writeSelfTest("  \(failure)") }
+                writeSelfTest("LEARN_FAILED: \(failures.count) of \(cases.count)")
+            }
+            NSApp.terminate(nil)
+        }
+    }
+
     /// Can the text we just inserted be read back out of the app it landed in?
     ///
     /// This exists to answer one question before a feature is built on the assumption: to

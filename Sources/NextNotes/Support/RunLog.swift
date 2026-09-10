@@ -28,6 +28,21 @@ struct DictationRun: Codable, Sendable, Identifiable {
     /// decode with this nil rather than failing the whole line.
     var corrections: [AppliedCorrection]?
 
+    /// What the user changed this transcript to, if they have.
+    ///
+    /// Kept beside `text` rather than replacing it, because the pair *is* the training
+    /// signal: the diff between what was written and what it was corrected to is what
+    /// `CorrectionLearner` reads. Overwrite `text` and the evidence is gone.
+    ///
+    /// Optional for backwards compatibility, like `corrections` above: runs written before
+    /// editing existed decode with this nil rather than failing the whole line.
+    var editedText: String?
+
+    /// What to show, and what to copy: the correction if there is one.
+    var displayText: String { editedText ?? text }
+
+    var wasEdited: Bool { editedText != nil }
+
     var realtimeFactor: Double { audioSeconds / max(processSeconds, 0.0001) }
     var characters: Int { text.count }
 
@@ -39,8 +54,10 @@ struct DictationRun: Codable, Sendable, Identifiable {
         processSeconds: Double,
         text: String,
         group: String? = nil,
-        corrections: [AppliedCorrection]? = nil
+        corrections: [AppliedCorrection]? = nil,
+        editedText: String? = nil
     ) {
+        self.editedText = editedText
         self.id = id
         self.date = date
         self.engine = engine
@@ -61,6 +78,7 @@ struct DictationRun: Codable, Sendable, Identifiable {
         text = try container.decode(String.self, forKey: .text)
         group = try container.decodeIfPresent(String.self, forKey: .group)
         corrections = try container.decodeIfPresent([AppliedCorrection].self, forKey: .corrections)
+        editedText = try container.decodeIfPresent(String.self, forKey: .editedText)
     }
 }
 
@@ -122,6 +140,14 @@ enum RunLog {
 
     static func delete(ids: Set<UUID>) {
         rewrite(load().filter { !ids.contains($0.id) })
+    }
+
+    /// Persists an edit to one run.
+    ///
+    /// A rewrite rather than an append, for the same reason deleting is: the file is one
+    /// line per run and a correction changes a line in place.
+    static func update(_ run: DictationRun) {
+        rewrite(load().map { $0.id == run.id ? run : $0 })
     }
 
     static func clear() {

@@ -107,6 +107,15 @@ fallback is `kAXFrontmostAttribute`, which answers to the Accessibility grant th
 needs. Both are followed by polling: activation is asynchronous, and a ⌘V that arrives mid-raise
 lands somewhere else.
 
+**The dictionary learns from history, not from the app the text went to.** The obvious design
+— watch the field after inserting and diff it — is unbuildable here, and
+`--selftest-axreadback` is the measurement rather than the hunch: Cursor, Chrome, Terminal,
+Messages, ChatGPT, Claude and WhatsApp expose zero text elements to the accessibility tree.
+Only plain AppKit (Finder, System Settings) returns a readable value and range. Writing and
+reading are different attributes and Chromium builds its tree lazily, so this had to be
+measured before it could be relied on either way. Run that self-test before proposing any
+feature that reads text back out of another app.
+
 **A finished feature with no call site looks exactly like a working one.** `OutputProfileStore`,
 `OutputProfile`, `OutputFormatInstructions` and the Formatting settings tab were all complete,
 tested by eye, and connected to nothing: `captureTarget()` had no callers, so `capturedTarget`
