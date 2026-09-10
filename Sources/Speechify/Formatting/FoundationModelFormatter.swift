@@ -17,7 +17,14 @@ import FoundationModels
 ///   instruction.
 struct FoundationModelFormatter: TextFormatter {
     /// Deterministic fallback used on timeout, unavailability, or a rejected response.
-    private let fallback = RuleBasedFormatter()
+    /// What to return when the model is unavailable, times out, or its output is rejected.
+    ///
+    /// Injectable because the answer differs by position. Used alone, falling back to rule-based
+    /// cleanup is right — the raw transcript has had nothing done to it. Used as the second
+    /// stage of a chain, it is wrong: the input has already been cleaned by S1-mini, and running
+    /// the rule-based pass over it again would undo work rather than add any. There the fallback
+    /// is `KeepAsIsFormatter`.
+    private let fallback: any TextFormatter
 
     /// Past this, taking the raw text beats making the user wait.
     private let timeout: Duration = .seconds(4)
@@ -38,10 +45,12 @@ struct FoundationModelFormatter: TextFormatter {
             formatsLists: true,
             context: .general
         ),
-        fixesGrammar: Bool = false
+        fixesGrammar: Bool = false,
+        fallback: any TextFormatter = RuleBasedFormatter()
     ) {
         self.preferences = preferences
         self.fixesGrammar = fixesGrammar
+        self.fallback = fallback
     }
 
     static var isAvailable: Bool {

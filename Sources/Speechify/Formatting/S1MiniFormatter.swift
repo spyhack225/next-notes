@@ -10,6 +10,16 @@ struct S1MiniFormatter: TextFormatter {
     private let preferences: CleanupPreferences
     private let fallback = RuleBasedFormatter()
 
+    /// A ceiling on the model, not a target.
+    ///
+    /// It had none, and on a machine under memory pressure that showed: one eval case took
+    /// 39 s end to end while the grammar stage beside it was capped at 4 s, so essentially all
+    /// of it was this model crawling against 6 GB of swap. Warm median is 0.511 s, cold start
+    /// about 2.4 s, so eight seconds is far outside anything healthy and still an eternity
+    /// less than the 30 s bound `DictationController` would otherwise apply — and falling back
+    /// to rule-based cleanup beats falling back to the raw transcript.
+    static let timeout: Duration = .seconds(8)
+
     init(preferences: CleanupPreferences) {
         self.preferences = preferences
     }
@@ -23,10 +33,18 @@ struct S1MiniFormatter: TextFormatter {
         }
 
         do {
-            let result = try await S1MiniRuntime.shared.normalize(
-                trimmed,
-                preferences: preferences
-            )
+            let result = try await withThrowingTaskGroup(of: String.self) { group in
+                group.addTask {
+                    try await S1MiniRuntime.shared.normalize(trimmed, preferences: preferences)
+                }
+                group.addTask {
+                    try await Task.sleep(for: Self.timeout)
+                    throw S1MiniTimeout()
+                }
+                guard let first = try await group.next() else { throw S1MiniTimeout() }
+                group.cancelAll()
+                return first
+            }
             // Empty is a documented, valid result for filler-only/noise-only transcripts.
             if result.isEmpty, Self.hasSubstantiveContent(trimmed) {
                 Log.speech.info("S1-mini returned empty substantive text — using rule-based cleanup")
@@ -237,3 +255,8 @@ actor S1MiniRuntime {
         }
     }
 }
+
+/// Thrown when S1-mini outruns its ceiling. A distinct type rather than a shared one because
+/// the two model formatters carry their own private error enums, and widening either into
+/// shared API for one case would be the larger change.
+private struct S1MiniTimeout: Error {}

@@ -126,12 +126,28 @@ final class DictationController {
         let settings = Settings.shared
         switch settings.cleanupEngine {
         case .apple:
+            // One model, one pass. Apple's does restoration and grammar in the same call, so
+            // grammar is free here rather than a second trip.
             return FoundationModelFormatter(
                 preferences: settings.cleanupPreferences,
                 fixesGrammar: settings.cleanupFixesGrammar
             )
         case .s1Mini:
-            return S1MiniFormatter(preferences: settings.cleanupPreferences)
+            let punctuation = S1MiniFormatter(preferences: settings.cleanupPreferences)
+            guard settings.cleanupFixesGrammar else { return punctuation }
+            // S1-mini cannot repair grammar — it is a punctuation model, not an
+            // instruction-following one — so grammar is a second pass on its output rather
+            // than a setting it could honour. `KeepAsIsFormatter` because by this point the
+            // sentence is already punctuated: if the grammar stage cannot run, the right
+            // answer is what S1-mini produced, not a rule-based third opinion about it.
+            return ChainedFormatter(
+                first: punctuation,
+                second: FoundationModelFormatter(
+                    preferences: settings.cleanupPreferences,
+                    fixesGrammar: true,
+                    fallback: KeepAsIsFormatter()
+                )
+            )
         }
     }
 
