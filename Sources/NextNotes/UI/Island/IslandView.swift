@@ -31,6 +31,10 @@ struct IslandView: View {
                 value: state.kind.identity
             )
             .opacity(state.kind.isHidden ? 0 : 1)
+            // The panel is the notch's own safe area. Without this, SwiftUI pads the
+            // collapsed card by that inset and the badges land below the notch — or
+            // disappear, when the card is only as tall as the inset it was padded by.
+            .ignoresSafeArea()
     }
 
     private var size: CGSize {
@@ -157,35 +161,40 @@ struct IslandView: View {
 
     /// The one element that exists in both layouts, so it can travel between them.
     ///
-    /// A recording meeting wears both marks. They answer two different questions — the dot
-    /// says this is being recorded, `weaving` says the two channels are being braided into
-    /// one transcript — so the orb is drawn *beside* the red dot rather than in place of
-    /// it, the same way `HUDView` sets the orb beside the dot and the level bar. Red is
-    /// still only ever recording, and nothing else is ever allowed to say it.
+    /// A recording wears both marks. They answer two different questions — the dot says
+    /// this is being recorded, the orb says what *kind* of work is running — so the orb
+    /// is drawn *beside* the red dot rather than in place of it, the same way `HUDView`
+    /// sets the orb beside the dot and the level bar. Red is still only ever recording.
     private var badge: some View {
         HStack(spacing: DS.Space.xs) {
             mark
-            if case .meetingRecording = state.kind {
+            if isCapturing {
                 RecordingIndicator(compact: true, label: nil)
             }
         }
         .matchedGeometryEffect(id: Self.badgeID, in: namespace)
     }
 
+    /// Microphone open: a held dictation, or a meeting being recorded. Not the wait after
+    /// the key comes up — that is work, not recording, and the red dot would lie.
+    private var isCapturing: Bool {
+        switch state.kind {
+        case .dictating(_, _, let capturing): capturing
+        case .meetingRecording: true
+        default: false
+        }
+    }
+
     /// The orb for whatever work is running, or the glyph that stands in where none does.
     @ViewBuilder
     private var mark: some View {
         if let orb = state.kind.orb {
-            ThinkingOrb(state: orb, ink: ink)
-                // The breath is the badge's, not the orb's: the orb already moves, and
-                // this is what makes a collapsed badge read as alive at a glance.
-                .phaseAnimator([false, true]) { view, breathing in
-                    view
-                        .scaleEffect(breathing ? DS.Scale.orbBreath : 1)
-                        .opacity(breathing ? 1 : DS.Opacity.orbBreathLow)
-                } animation: { _ in
-                    .easeInOut(duration: DS.Motion.orbBreath)
-                }
+            // Identity is the orb's mode, not the microphone level sitting on `kind`.
+            // Without `Equatable`, a VU tick would rebuild this wrapper and tear down
+            // the `TimelineView` inside `ThinkingOrb` — a blank badge, several times a
+            // second, which is the "animation is missing" half of the island report.
+            IslandWorkMark(orb: orb, ink: ink)
+                .equatable()
         } else {
             switch state.kind {
             case .meetingArmed:
@@ -378,5 +387,20 @@ struct IslandView: View {
 
     private var secondaryInk: Color {
         ink.opacity(DS.Opacity.islandInkSecondary)
+    }
+}
+
+/// The island's working orb, isolated from microphone-level ticks.
+///
+/// `ThinkingOrb` must not be `scaleEffect`'d — the geometry is a function of size, and
+/// scaling it smears the lattice. It also must not remount on every VU buffer: its clock
+/// is a `TimelineView`, and tearing that down is a blank badge. `Equatable` plus
+/// `.equatable()` keeps the view in place while `kind`'s associated values move.
+private struct IslandWorkMark: View, Equatable {
+    let orb: OrbGeometry.State
+    let ink: Color
+
+    var body: some View {
+        ThinkingOrb(state: orb, ink: ink)
     }
 }

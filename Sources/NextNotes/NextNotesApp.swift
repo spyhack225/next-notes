@@ -1997,7 +1997,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let panel = IslandPanel(state: state)
             if panel.canBecomeKey { failures.append("the island panel can become key") }
             if panel.canBecomeMain { failures.append("the island panel can become main") }
-            if panel.level != .statusBar { failures.append("the island is not at status-bar level") }
+            if panel.level.rawValue <= NSWindow.Level.statusBar.rawValue {
+                failures.append("the island sits at or below the menu bar")
+            }
             if !panel.ignoresMouseEvents {
                 failures.append("a hidden island is taking mouse events")
             }
@@ -2008,6 +2010,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             state.announceNotesReady(Meeting(title: "Self-test", start: Date(), status: .done))
             try? await Task.sleep(for: .seconds(Self.islandSettle))
             if !panel.isVisible { failures.append("an island with something to say never appeared") }
+            if panel.alphaValue < 0.99 {
+                failures.append("a visible island never finished fading in")
+            }
             if panel.ignoresMouseEvents {
                 failures.append("an expanded island is ignoring the mouse it has buttons for")
             }
@@ -2063,8 +2068,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         state.announceArmed(event)
         check("an armed meeting shows", state.kind == .meetingArmed(event))
         check("an armed meeting opens the island by itself", state.isExpanded)
+        check("an armed meeting's card identity names it", state.cardIdentity == "armed:\(event.id)")
         state.clearArmed(event)
         check("answering an armed meeting takes it down", state.kind == .hidden)
+        check("answering an armed meeting hides the card", state.cardIdentity == "hidden")
 
         let meeting = Meeting(title: "Self-test", start: Date(), status: .done)
         state.announceNotesReady(meeting)
@@ -2075,6 +2082,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         check("finished notes open the island by itself", state.isExpanded)
         state.dismissNotice()
         check("dismissing finished notes takes them down", state.kind == .hidden)
+        check("dismissing finished notes hides the card", state.cardIdentity == "hidden")
 
         let proposal = IslandProposal(
             id: "selftest",
@@ -2094,11 +2102,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         check("a question opens itself", IslandState.Kind.notesReady(
             meetingID: meeting.id, title: ""
         ).demandsAttention)
+        // The panel keys off identity, not Equatable: a louder buffer must not look like
+        // a different card, or `present()` restarts the fade and the island blinks.
+        check("a louder dictation is still dictating", IslandState.Kind.dictating(
+            transcript: "a", level: 0.1, isCapturing: true
+        ).identity == IslandState.Kind.dictating(
+            transcript: "ab", level: 0.9, isCapturing: true
+        ).identity)
+        check("letting go is a different card", IslandState.Kind.dictating(
+            transcript: "", level: 0, isCapturing: true
+        ).identity != IslandState.Kind.dictating(
+            transcript: "", level: 0, isCapturing: false
+        ).identity)
 
-        // An orb never replaces the red dot, it sits beside it: a recording meeting draws
-        // both, the dot for "this is being recorded" and `weaving` for the two channels
-        // being braided into one transcript. Only half of that rule is visible from here —
-        // the dot is `IslandView.badge`'s, and it is drawn unconditionally for this state.
+        // An orb never replaces the red dot, it sits beside it: a recording — dictation
+        // or a meeting — draws both. Only the orb half is visible from here; the dot is
+        // `IslandView.badge`'s, and it is drawn while the microphone is open.
         check("a recording meeting weaves", IslandState.Kind.meetingRecording(
             elapsed: 0, micLevel: 0, systemLevel: 0
         ).orb == .weaving)
