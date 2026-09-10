@@ -449,9 +449,12 @@ The site source is `site/` — Vite, React, TypeScript, Tailwind and Framer Moti
 no `build/` or `dist/` folder.** Vite is pointed at `docs/` instead, and `docs/` is what gets
 served. Live at <https://next-notes.com>.
 
-**Production is DigitalOcean Apps, not GitHub Pages.** DigitalOcean watches `main` and
-redeploys `docs/` on push, which is why `npm run deploy` finishes by polling
-<https://next-notes.com> rather than a Pages URL. GitHub Pages is still switched on for this
+**Production is DigitalOcean Apps, not GitHub Pages.** The app is `nextnotes`, a static site
+whose `source_dir` is `docs`, with `deploy_on_push` on `main` and **no build command of its
+own** — it serves the committed `docs/` verbatim. That is why the build output has to be in
+version control: it is not a convenience, it is the deployed artifact. It is also why
+`npm run deploy` finishes by polling <https://next-notes.com> rather than a Pages URL.
+`doctl apps list-deployments e2366c03-b11d-4c56-8d07-fdea08b21cdc` shows what shipped. GitHub Pages is still switched on for this
 repository and still serves an old copy at `spyhack225.github.io/speechify-site/`; that URL is
 not production and can be ignored or turned off.
 
