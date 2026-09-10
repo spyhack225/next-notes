@@ -446,8 +446,14 @@ Both engines feed the same cleanup, dictionary, history, and injection pipeline.
 ## Landing page
 
 The site source is `site/` — Vite, React, TypeScript, Tailwind and Framer Motion. **There is
-no `build/` or `dist/` folder.** Vite is pointed at `docs/` instead, because that is what
-GitHub Pages serves. Live at <https://spyhack225.github.io/speechify-site/>.
+no `build/` or `dist/` folder.** Vite is pointed at `docs/` instead, and `docs/` is what gets
+served. Live at <https://next-notes.com>.
+
+**Production is DigitalOcean Apps, not GitHub Pages.** DigitalOcean watches `main` and
+redeploys `docs/` on push, which is why `npm run deploy` finishes by polling
+<https://next-notes.com> rather than a Pages URL. GitHub Pages is still switched on for this
+repository and still serves an old copy at `spyhack225.github.io/speechify-site/`; that URL is
+not production and can be ignored or turned off.
 
 ```bash
 cd site && npm install     # once
@@ -458,7 +464,7 @@ npm run deploy             # build, commit docs/, push, and confirm it went live
 `npm run deploy` is the whole sequence and the only one worth remembering. It takes an
 optional message — `npm run deploy -- "Rewrite the hero"` — and it:
 
-1. refuses unless you are on `main`, since that is the branch Pages serves;
+1. refuses unless you are on `main`, since that is the branch DigitalOcean watches;
 2. refuses if `origin` is the upstream repository this project was started from;
 3. builds;
 4. commits `docs/` **and only `docs/`**, so anything else half-staged in the tree is not
@@ -469,6 +475,12 @@ optional message — `npm run deploy -- "Rewrite the hero"` — and it:
 Step 6 is the point. A push is not a deployment: Pages rebuilds asynchronously and takes up
 to a minute, so the only honest confirmation is the live URL serving the new hash. The
 script exits non-zero if it never does.
+
+**Asset paths are relative (`base: "./"`), and must stay that way** unless you are certain
+the site will only ever be served from a domain root. An absolute `/` base 404s every asset
+when the same build is served from a subpath — which is exactly what happened to the Pages
+copy. `./` resolves against whatever URL the page was loaded from, so one build is correct in
+both places.
 
 **Where the build goes, and why it is committed.** `docs/` is build output, tracked on
 purpose. Editing it by hand works right up until the next build silently discards the change
