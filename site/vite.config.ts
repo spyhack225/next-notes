@@ -6,7 +6,11 @@ import react from "@vitejs/plugin-react";
 // only while this was a GitHub Pages *project* page, and carrying it here asks the browser
 // for every asset one directory too deep.
 export default defineConfig({
-  base: "/",
+  // Relative, deliberately. Production is next-notes.com on DigitalOcean, a domain root,
+  // where "/" would also work — but the same `docs/` is still published to GitHub Pages under
+  // the /speechify-site/ subpath, and an absolute base 404s every asset there. "./" resolves
+  // against whatever URL the page was loaded from, so one build is correct in both places.
+  base: "./",
   build: {
     // Built straight into the directory the App Platform static site serves (`docs/`), so
     // publishing is a commit rather than a CI run, and what was previewed locally is
