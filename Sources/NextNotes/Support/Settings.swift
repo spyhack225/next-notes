@@ -100,6 +100,40 @@ enum SwitchAwayBehavior: String, CaseIterable, Sendable, Identifiable {
     }
 }
 
+/// What to do with the corrections implied by editing a past transcript.
+enum DictionaryLearning: String, CaseIterable, Sendable, Identifiable {
+    /// Show what was learned and let the user pick. The default, because a dictionary rule
+    /// applies to every future transcript and a wrong one is quietly expensive.
+    case ask
+    /// Trust the edit and file it.
+    case automatic
+    /// Edit the transcript, learn nothing from it.
+    case off
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .ask: "Ask before adding it"
+        case .automatic: "Add it to the dictionary"
+        case .off: "Don't learn from edits"
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .ask:
+            "Correcting a past transcript proposes the change as a dictionary rule, and "
+                + "you choose which ones to keep."
+        case .automatic:
+            "Corrections are filed as you make them. Faster, but a rule you did not mean "
+                + "applies to every transcript after it — the Dictionary tab is where to undo one."
+        case .off:
+            "Transcripts stay editable; nothing is inferred from the edit."
+        }
+    }
+}
+
 enum HUDPlacement: String, CaseIterable, Sendable, Identifiable {
     /// The island at the top of the screen — hugging the notch on a Mac that has one, and
     /// a capsule under the menu bar on one that doesn't.
@@ -231,6 +265,11 @@ final class Settings {
     /// always did.
     var switchAwayBehavior: SwitchAwayBehavior {
         didSet { defaults.set(switchAwayBehavior.rawValue, forKey: Keys.switchAwayBehavior) }
+    }
+
+    /// Whether editing a past transcript teaches the dictionary.
+    var dictionaryLearning: DictionaryLearning {
+        didSet { defaults.set(dictionaryLearning.rawValue, forKey: Keys.dictionaryLearning) }
     }
 
     /// Play a short tick when capture starts and stops.
@@ -496,6 +535,7 @@ final class Settings {
         static let llmMetalEnabled = "llmMetalEnabled"
         static let hudPlacement = "hudPlacement"
         static let switchAwayBehavior = "switchAwayBehavior"
+        static let dictionaryLearning = "dictionaryLearning"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let meetingsKeepAudio = "meetingsKeepAudio"
         static let meetingsDiarize = "meetingsDiarize"
@@ -555,6 +595,9 @@ final class Settings {
         ) ?? (IslandGeometry.hasNotch ? .notch : .bottom)
         // Defaults to returning: the alternative was losing the text outright, which is
         // the bug this setting was added alongside.
+        dictionaryLearning = DictionaryLearning(
+            rawValue: defaults.string(forKey: Keys.dictionaryLearning) ?? ""
+        ) ?? .ask
         switchAwayBehavior = SwitchAwayBehavior(
             rawValue: defaults.string(forKey: Keys.switchAwayBehavior) ?? ""
         ) ?? .returnToApp

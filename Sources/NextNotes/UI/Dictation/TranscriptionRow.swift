@@ -16,6 +16,13 @@ struct TranscriptionRow: View {
     let run: DictationRun
 
     @State private var isHovering = false
+    @State private var isEditing = false
+    @State private var draft = ""
+    /// Corrections this edit implies, awaiting a yes. Empty when nothing was learned or the
+    /// user has asked for them to be filed without asking.
+    @State private var proposed: [LearnedCorrection] = []
+    @State private var chosen: Set<String> = []
+    @FocusState private var editorFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.xs) {
@@ -35,7 +42,27 @@ struct TranscriptionRow: View {
                     .font(DS.Font.timestamp)
                     .foregroundStyle(DS.Color.textTertiary)
                 Spacer()
-                CopyButton(text: run.text, title: "Copy")
+                if run.wasEdited {
+                    // Says the sentence below is yours, not the model's — and so explains
+                    // why it may not match what the engine actually produced.
+                    Image(systemName: "pencil")
+                        .font(DS.Font.caption2)
+                        .foregroundStyle(DS.Color.textTertiary)
+                        .help("You corrected this transcript")
+                }
+                Button {
+                    draft = run.displayText
+                    isEditing = true
+                    editorFocused = true
+                } label: {
+                    Label("Correct", systemImage: "pencil")
+                }
+                .buttonStyle(.borderless)
+                .labelStyle(.iconOnly)
+                .opacity(isHovering && !isEditing ? 1 : 0)
+                .help("Correct this transcript, and teach the dictionary")
+
+                CopyButton(text: run.displayText, title: "Copy")
                     .buttonStyle(.borderless)
                     .labelStyle(.iconOnly)
                     .opacity(isHovering ? 1 : 0)
@@ -53,10 +80,29 @@ struct TranscriptionRow: View {
             // window's width is an argument for a 1400pt one. The row itself still runs the
             // full width — the `Spacer()` above and `.contentShape` below see to that — so
             // clicking beside the text still selects the row.
-            Text(run.text)
-                .font(DS.Font.transcript)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
+            if isEditing {
+                // A plain `TextField` with `.vertical` axis rather than a `TextEditor`: the
+                // editor brings its own scroll view and background into a list row that
+                // already has both, and a transcript is a sentence or two.
+                TextField("Transcript", text: $draft, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .font(DS.Font.transcript)
+                    .focused($editorFocused)
+                    .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
+                    .onSubmit(commit)
+                HStack(spacing: DS.Space.s) {
+                    Button("Save", action: commit)
+                        .keyboardShortcut(.defaultAction)
+                    Button("Cancel") { isEditing = false }
+                        .keyboardShortcut(.cancelAction)
+                }
+                .font(DS.Font.caption)
+            } else {
+                Text(run.displayText)
+                    .font(DS.Font.transcript)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
+            }
 
             if let corrections = run.corrections, !corrections.isEmpty {
                 CorrectionBadges(corrections: corrections)
@@ -66,6 +112,103 @@ struct TranscriptionRow: View {
         .padding(.vertical, DS.Space.s)
         .contentShape(.rect)
         .onHover { isHovering = $0 }
+        .sheet(isPresented: Binding(get: { !proposed.isEmpty }, set: { if !$0 { proposed = [] } })) {
+            LearnedCorrectionsSheet(
+                corrections: proposed,
+                chosen: $chosen,
+                onAdd: {
+                    for correction in proposed where chosen.contains(correction.id) {
+                        DictionaryStore.shared.add(correction.entry)
+                    }
+                    proposed = []
+                },
+                onSkip: { proposed = [] }
+            )
+        }
+    }
+
+    /// Saves the edit, then reads the dictionary lesson out of it.
+    ///
+    /// The save happens first and unconditionally. Learning is the bonus; a correction the
+    /// user typed is worth keeping even when nothing general can be inferred from it.
+    private func commit() {
+        let edited = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        isEditing = false
+        guard !edited.isEmpty, edited != run.displayText else { return }
+
+        var updated = run
+        updated.editedText = edited
+        RunLog.update(updated)
+
+        // Diffed against the transcript as originally written, not against the previous
+        // edit: what the engine produced is the thing a dictionary rule has to fire on.
+        let candidates = CorrectionLearner.candidates(from: run.text, to: edited)
+        guard !candidates.isEmpty else { return }
+
+        switch Settings.shared.dictionaryLearning {
+        case .off:
+            break
+        case .automatic:
+            for candidate in candidates { DictionaryStore.shared.add(candidate.entry) }
+        case .ask:
+            chosen = Set(candidates.map(\.id))
+            proposed = candidates
+        }
+    }
+}
+
+/// What the edit taught, and a chance to disagree with it.
+///
+/// Every row is pre-ticked. The edit is evidence the user already produced deliberately, so
+/// the default is to believe it — this exists to catch the case where a rewrite happened to
+/// look like a correction, not to make the user re-approve their own typing.
+struct LearnedCorrectionsSheet: View {
+    let corrections: [LearnedCorrection]
+    @Binding var chosen: Set<String>
+    let onAdd: () -> Void
+    let onSkip: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.Space.m) {
+            VStack(alignment: .leading, spacing: DS.Space.xs) {
+                Text(corrections.count == 1 ? "Learn this correction?" : "Learn these corrections?")
+                    .font(DS.Font.title3)
+                Text("Next time it hears the words on the left, it will write the ones on "
+                     + "the right — in every app.")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            ForEach(corrections) { correction in
+                Toggle(isOn: Binding(
+                    get: { chosen.contains(correction.id) },
+                    set: { keep in
+                        if keep { chosen.insert(correction.id) } else { chosen.remove(correction.id) }
+                    }
+                )) {
+                    HStack(spacing: DS.Space.xs) {
+                        Text(correction.hear).foregroundStyle(DS.Color.textSecondary)
+                        Image(systemName: "arrow.right")
+                            .font(DS.Font.caption2)
+                            .foregroundStyle(DS.Color.textTertiary)
+                        Text(correction.write)
+                    }
+                    .font(DS.Font.body)
+                }
+            }
+
+            HStack {
+                Spacer()
+                Button("Not now", action: onSkip)
+                    .keyboardShortcut(.cancelAction)
+                Button("Add to Dictionary", action: onAdd)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(chosen.isEmpty)
+            }
+        }
+        .padding(DS.Space.l)
+        .frame(minWidth: 380)
     }
 }
 
