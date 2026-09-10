@@ -290,6 +290,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runCleanupSelfTest(engine: SelfTest.value(after: "--selftest-cleanup") ?? "all")
             return true
         }
+        if arguments.contains("--selftest-axreadback") {
+            runAXReadbackSelfTest()
+            return true
+        }
         if arguments.contains("--selftest-dictation") {
             runDictationSelfTest()
             return true
@@ -334,6 +338,89 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// `--selftest-cleanup rules|apple|apple-grammar|s1|chain|qwen|all`. The first case a
     /// model-backed formatter sees pays its cold start and is reported separately, because
     /// on a machine where the model has idled out that is the latency a real dictation gets.
+    /// Can the text we just inserted be read back out of the app it landed in?
+    ///
+    /// This exists to answer one question before a feature is built on the assumption: to
+    /// learn corrections from the edits a user makes after a dictation, the field has to be
+    /// *readable*, not merely writable. `TextInjector` already documents that Electron apps
+    /// and terminals accept an AX write and silently drop it — but writing and reading are
+    /// different attributes, and Chromium in particular only builds its accessibility tree
+    /// once something asks for it. Guessing either way would be guessing.
+    ///
+    /// Walks each running app's AX tree for text elements and reports whether their value and
+    /// selection range can actually be read. Bounded hard: a tree walk over a large Electron
+    /// app is unbounded in principle and this must not become the hang it is measuring.
+    private func runAXReadbackSelfTest() {
+        Task { @MainActor in
+            guard Permissions.hasAccessibility else {
+                writeSelfTest("AXREADBACK_FAILED: no Accessibility grant, so nothing is readable")
+                NSApp.terminate(nil)
+                return
+            }
+
+            let textRoles: Set<String> = ["AXTextArea", "AXTextField", "AXComboBox", "AXSearchField"]
+            var rows: [String] = []
+
+            for app in NSWorkspace.shared.runningApplications
+            where app.activationPolicy == .regular && app.bundleIdentifier != AppIdentity.bundleIdentifier {
+                let name = app.localizedName ?? app.bundleIdentifier ?? "?"
+                let root = AXUIElementCreateApplication(app.processIdentifier)
+
+                var found = 0, readableValue = 0, readableRange = 0
+                var queue: [(AXUIElement, Int)] = [(root, 0)]
+                var visited = 0
+
+                while let (element, depth) = queue.first {
+                    queue.removeFirst()
+                    visited += 1
+                    // 3000 nodes and 14 levels is enough to reach a text field in every app
+                    // tried, and shallow enough that a pathological tree cannot stall this.
+                    if visited > 3000 || depth > 14 { break }
+
+                    var roleRef: CFTypeRef?
+                    AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
+                    let role = (roleRef as? String) ?? ""
+
+                    if textRoles.contains(role) {
+                        found += 1
+                        var value: CFTypeRef?
+                        if AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &value) == .success,
+                           value as? String != nil {
+                            readableValue += 1
+                        }
+                        var range: CFTypeRef?
+                        if AXUIElementCopyAttributeValue(
+                            element, kAXSelectedTextRangeAttribute as CFString, &range
+                        ) == .success, range != nil {
+                            readableRange += 1
+                        }
+                    }
+
+                    var childrenRef: CFTypeRef?
+                    if AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &childrenRef) == .success,
+                       let children = childrenRef as? [AXUIElement] {
+                        for child in children.prefix(200) { queue.append((child, depth + 1)) }
+                    }
+                }
+
+                let verdict = found == 0
+                    ? "no text elements exposed"
+                    : (readableValue > 0 && readableRange > 0
+                        ? "READABLE — value and range"
+                        : (readableValue > 0 ? "value only, no range" : "elements but no readable value"))
+                rows.append(String(
+                    format: "  %-26s fields=%-3d value=%-3d range=%-3d  %@",
+                    (name as NSString).utf8String!, found, readableValue, readableRange, verdict
+                ))
+            }
+
+            writeSelfTest("=== AX readback by app ===")
+            for row in rows.sorted() { writeSelfTest(row) }
+            writeSelfTest("AXREADBACK_OK: \(rows.count) app(s) probed")
+            NSApp.terminate(nil)
+        }
+    }
+
     private func runCleanupSelfTest(engine: String) {
         Task { @MainActor in
             let preferences = CleanupPreferences(

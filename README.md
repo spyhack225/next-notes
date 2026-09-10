@@ -584,9 +584,10 @@ had the one real thing it needs:
 - **Per-app output profiles reaching the model.** Wired from `captureTarget()` through to the
   cleanup prompt and verified by reading each link, but never observed end to end for the same
   reason. `output target: <app>` in the log at key-down is the proof when it runs.
-- **Google Calendar.** The OAuth loopback flow, the token store and the provider are
-  written; no account has been connected. It needs your own Desktop-type OAuth client.
-- **Apple Calendar.** Compile-verified only — the Calendar grant has not been given here.
+- **Apple Calendar (EventKit).** `--selftest-calendar` reports `eventKit: Not connected`.
+  macOS prompts exactly once, so a dismissed prompt is permanent until
+  `tccutil reset Calendar ai.pivotstudio.nextnotes` puts it back to undecided.
+
 - **Workspace writes.** `gws` reports no credentials on this machine, so no proposal has
   ever been approved and no Doc, event or email has been created by the agent.
 
@@ -606,6 +607,10 @@ events) and confirmed via `/usr/bin/log show --predicate 'subsystem ==
   builds — no certificate at all — do require a fresh Accessibility grant every rebuild.
 - Qwen3.5-4B downloaded, SHA-256 pinned, and running on Metal with real weights alongside
   S1-mini on the CPU in one process.
+- Google Calendar connected through the OAuth loopback flow, with the refresh token in the
+  Keychain: `--selftest-calendar` reports `google: Connected` and returns real events.
+- The system-audio tap runs with its grant — `system audio started — tap 48000Hz → engine
+  16000Hz`. A recording containing an actual "Others" track is still unconfirmed.
 - Launches as a regular macOS app with its main window and menu bar item present.
 - Event tap arms on grant without a restart (the poller catches it).
 - Full state machine: `starting → listening → finishing → idle`, no errors.
