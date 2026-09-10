@@ -178,6 +178,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runMetalSelfTest()
             return true
         }
+        if arguments.contains("--selftest-calls") {
+            runCallsSelfTest()
+            return true
+        }
         if arguments.contains("--selftest-island") {
             runIslandSelfTest()
             return true
@@ -492,7 +496,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let service = CalendarService.shared
             await service.refresh()
 
-            for id in CalendarProviderID.allCases {
+            for id in CalendarProviderID.calendars {
                 let state = service.providerStates[id] ?? .needsAuthorization
                 let detail = state.detail.map { " — \($0)" } ?? ""
                 writeSelfTest("  \(id.rawValue): \(state.displayName)\(detail)")
@@ -1007,6 +1011,524 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let pruned = DictationSelectionPolicy.pruned([a.id, b.id], existing: [a, c])
         if pruned != [a.id] {
             failures.append("a selection holding a deleted transcription was not pruned")
+        }
+
+        return failures
+    }
+
+    /// `--selftest-calls` — what Core Audio says is holding the microphone and the speakers
+    /// right now, and every rule `CallPolicy` applies to it.
+    ///
+    /// The table is the half a person reads: start a Zoom call and it should show Zoom with
+    /// both flags; dictate and it should show Speechify with input only. The assertions are
+    /// the half a machine reads, and they are the reason `CallPolicy` is a separate file —
+    /// the Core Audio subscription needs a real call to exercise it, the rules do not.
+    ///
+    /// Reads only. Nothing here starts the detector, so no listener is installed, nothing is
+    /// armed and nothing is written.
+    private func runCallsSelfTest() {
+        Task { @MainActor in
+            let processes = CallDetector.audioProcesses()
+            let ownPID = getpid()
+
+            if processes.isEmpty {
+                writeSelfTest("  no process is holding input or output")
+            }
+            for process in processes.sorted(by: { $0.pid < $1.pid }) {
+                let flags = [
+                    process.isRunningInput ? "input" : nil,
+                    process.isRunningOutput ? "output" : nil,
+                ].compactMap { $0 }.joined(separator: "+")
+                let verdict = CallPolicy.isCall(process, ownPID: ownPID) ? "call" : "not a call"
+                // Whether it earns a row in the Meetings tab's app list, which is a
+                // different question: that list wants the microphone alone, and wants a
+                // bundle id to key the answer to.
+                let listed = CallPolicy.isMicrophoneApp(process, ownPID: ownPID)
+                    ? "listed in Settings" : "not listed"
+                writeSelfTest("""
+                      pid \(process.pid) \(flags) — \(process.name) \
+                    [\(process.bundleID ?? "no bundle id")] → \(verdict), \(listed)
+                    """)
+            }
+            if let candidate = CallPolicy.candidate(in: processes, ownPID: ownPID, preferring: nil) {
+                writeSelfTest("  live verdict: \(candidate.name) is on a call")
+            } else {
+                writeSelfTest("  live verdict: nobody is on a call")
+            }
+
+            // What the arming half would do with the machine as it stands. The microphone
+            // line covers your own half of a call. The far end rides on the system-audio
+            // tap, which has no query API of its own but is gated on "Screen & System Audio
+            // Recording" — so the screen-capture preflight answers for it. `--selftest-systemaudio`
+            // remains the ground truth, because a tap without the grant still delivers
+            // frames and simply zeroes every sample.
+            let readiness = CallPolicy.RecordingReadiness(hasMicrophone: Permissions.hasMicrophone)
+            writeSelfTest("""
+                  microphone grant: \(readiness.hasMicrophone ? "yes" : "no") — \
+                system audio grant: \(Permissions.hasSystemAudio ? "yes" : "no")
+                """)
+            writeSelfTest("""
+                  settings: detection \
+                \(Settings.shared.callDetectionEnabled ? "on" : "off"), \
+                auto-record \(Settings.shared.callDetectionAutoRecord ? "on" : "off"), \
+                \(Settings.shared.callAppAnswers.count) per-app answer(s), \
+                \(Settings.shared.callAppsSeen.count) app(s) seen using the microphone
+                """)
+            for (bundleID, name) in Settings.shared.callAppsSeen.sorted(by: { $0.value < $1.value }) {
+                let effective = CallPolicy.effectiveAnswer(
+                    forApp: bundleID,
+                    autoRecord: Settings.shared.callDetectionAutoRecord,
+                    stored: Settings.shared.callAnswer(forApp: bundleID)
+                )
+                writeSelfTest("  \(name) [\(bundleID)] → \(effective.displayName.lowercased())")
+            }
+            let live = CallPolicy.armDecision(
+                enabled: Settings.shared.callDetectionEnabled,
+                answer: nil,
+                readiness: readiness,
+                meetings: MeetingStore.shared.meetings.compactMap { meeting in
+                    guard !meeting.isDetectedCall,
+                          meeting.status == .armed || meeting.status.isActive else { return nil }
+                    return CallPolicy.MeetingWindow(
+                        isActive: meeting.status.isActive,
+                        start: meeting.start,
+                        end: meeting.end
+                    )
+                },
+                now: Date()
+            )
+            switch live {
+            case .arm: writeSelfTest("  a call detected right now would arm and ask")
+            case .attach: writeSelfTest("  a call detected right now would attach to a meeting already in hand")
+            case .decline(let reason): writeSelfTest("  a call detected right now would be declined — \(reason.explanation)")
+            }
+
+            let failures = Self.callPolicyFailures()
+            for failure in failures { writeSelfTest("  CALLS_WRONG: \(failure)") }
+            if failures.isEmpty {
+                writeSelfTest("""
+                    CALLS_OK: \(processes.count) process(es) holding audio, \
+                    own pid \(ownPID), rules behave
+                    """)
+            } else {
+                writeSelfTest("CALLS_FAILED: \(failures.count) rule(s) wrong")
+            }
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// Every `CallPolicy` rule stated as a case, with fabricated processes so the answers do
+    /// not depend on what happens to be running. Returns the ones that came out wrong.
+    private static func callPolicyFailures() -> [String] {
+        var failures: [String] = []
+        let ownPID: pid_t = 501
+
+        func process(
+            _ pid: pid_t,
+            _ bundleID: String?,
+            input: Bool,
+            output: Bool
+        ) -> CallPolicy.AudioProcess {
+            CallPolicy.AudioProcess(
+                pid: pid,
+                bundleID: bundleID,
+                name: bundleID ?? "pid \(pid)",
+                isRunningInput: input,
+                isRunningOutput: output
+            )
+        }
+
+        // The both-flags rule, which is the whole discriminator.
+        let zoom = process(900, "us.zoom.xos", input: true, output: true)
+        let dictating = process(901, "com.apple.TextEdit", input: true, output: false)
+        let watching = process(902, "com.apple.Safari", input: false, output: true)
+        if !CallPolicy.isCall(zoom, ownPID: ownPID) {
+            failures.append("a process holding both the microphone and the speakers is not a call")
+        }
+        if CallPolicy.isCall(dictating, ownPID: ownPID) {
+            failures.append("a microphone-only process counted as a call")
+        }
+        if CallPolicy.isCall(watching, ownPID: ownPID) {
+            failures.append("a speakers-only process counted as a call")
+        }
+
+        // Self-exclusion, by pid and by identifier.
+        let ourselves = process(ownPID, AppIdentity.bundleIdentifier, input: true, output: true)
+        if CallPolicy.isCall(ourselves, ownPID: ownPID) {
+            failures.append("Speechify's own process counted as a call")
+        }
+        let ourHelper = process(903, AppIdentity.bundleIdentifier, input: true, output: true)
+        if CallPolicy.isCall(ourHelper, ownPID: ownPID) {
+            failures.append("a second Speechify process counted as a call")
+        }
+
+        // The daemon denylist. `corespeechd` was measured holding the microphone with no
+        // call in progress, repeatedly.
+        let coreSpeech = process(904, "com.apple.CoreSpeech", input: true, output: true)
+        if CallPolicy.isCall(coreSpeech, ownPID: ownPID) {
+            failures.append("com.apple.CoreSpeech counted as a call")
+        }
+
+        // A process with no bundle id at all — `afplay` had none — must still be judged on
+        // its flags rather than dropped for being anonymous.
+        let anonymous = process(905, nil, input: true, output: true)
+        if !CallPolicy.isCall(anonymous, ownPID: ownPID) {
+            failures.append("a process with no bundle id was refused for having none")
+        }
+
+        // Picking one out of a crowd.
+        let crowd = [watching, coreSpeech, zoom, dictating, ourselves]
+        if CallPolicy.candidate(in: crowd, ownPID: ownPID, preferring: nil)?.pid != zoom.pid {
+            failures.append("the only real call in the list was not the one picked")
+        }
+        if CallPolicy.candidate(in: [watching, dictating], ownPID: ownPID, preferring: nil) != nil {
+            failures.append("a candidate was found where nothing holds both flags")
+        }
+        let second = process(800, "net.whatsapp.WhatsApp", input: true, output: true)
+        if CallPolicy.candidate(in: [second, zoom], ownPID: ownPID, preferring: zoom.pid)?.pid
+            != zoom.pid {
+            failures.append("a live call lost its place to another process that also qualified")
+        }
+        if CallPolicy.candidate(in: [second, zoom], ownPID: ownPID, preferring: nil)?.pid
+            != second.pid {
+            failures.append("the candidate with no incumbent was not the deterministic one")
+        }
+
+        // The debounce machine, driven through more than a minute of behaviour instantly.
+        let step = CallPolicy.onThreshold / 2
+        var state = CallPolicy.next(.quiet, observing: zoom, elapsed: step)
+        if state.call != nil {
+            failures.append("a call was announced the instant it was first seen")
+        }
+        state = CallPolicy.next(state, observing: zoom, elapsed: step / 2)
+        if state.call != nil {
+            failures.append("a call was announced before it held for onThreshold")
+        }
+        state = CallPolicy.next(state, observing: zoom, elapsed: CallPolicy.onThreshold)
+        guard case .live(let settled) = state, settled.pid == zoom.pid else {
+            failures.append("a call that held for onThreshold never settled")
+            return failures
+        }
+
+        // The measured flicker: gone for a sample, back the next one, and the call never
+        // stopped as far as the rest of the app is concerned.
+        var flicker = CallPolicy.next(state, observing: nil, elapsed: step)
+        if flicker.call?.pid != zoom.pid {
+            failures.append("a live call ended on the first sample that missed it")
+        }
+        flicker = CallPolicy.next(flicker, observing: zoom, elapsed: step)
+        if case .live = flicker {} else {
+            failures.append("a call that came back after a flicker had to earn its threshold again")
+        }
+
+        // The same flicker with somebody else in the same call. Fathom is deliberately not
+        // on the denylist and a browser tab beside a Zoom window behaves the same way, so
+        // two processes holding both flags at once is the ordinary case rather than the
+        // exotic one — and the sample where Zoom's input drops must not become a handover.
+        let fathom = process(400, "video.fathom.electron", input: true, output: true)
+        let zoomFlickering = process(zoom.pid, "us.zoom.xos", input: false, output: true)
+        if CallPolicy.candidate(
+            in: [fathom, zoomFlickering], ownPID: ownPID, preferring: zoom.pid
+        ) != nil {
+            failures.append("a live call whose flag flickered was answered with another process")
+        }
+        var crowded = CallPolicy.next(state, observing: fathom, elapsed: step)
+        if crowded.call?.pid != zoom.pid {
+            failures.append("a live call was dropped for another process that also qualified")
+        }
+        crowded = CallPolicy.next(crowded, observing: zoom, elapsed: step)
+        if crowded != .live(zoom) {
+            failures.append("a live call did not come back from a flicker beside a second call")
+        }
+
+        // The newcomer's turn still comes — after the call it was beside has really gone,
+        // which is the wait this costs and the only thing it costs.
+        var handover = CallPolicy.next(state, observing: fathom, elapsed: CallPolicy.offThreshold)
+        handover = CallPolicy.next(handover, observing: fathom, elapsed: CallPolicy.offThreshold)
+        if handover != .quiet {
+            failures.append("a live call never faded out while another process qualified")
+        }
+        handover = CallPolicy.next(handover, observing: fathom, elapsed: CallPolicy.onThreshold)
+        handover = CallPolicy.next(handover, observing: fathom, elapsed: CallPolicy.onThreshold)
+        if handover.call?.pid != fathom.pid {
+            failures.append("a second call never settled once the first had faded out")
+        }
+
+        // And a call that really is over.
+        var ending = CallPolicy.next(state, observing: nil, elapsed: CallPolicy.offThreshold)
+        if ending.call == nil {
+            failures.append("a call ended before it had been gone for offThreshold")
+        }
+        ending = CallPolicy.next(ending, observing: nil, elapsed: CallPolicy.offThreshold)
+        if ending.call != nil {
+            failures.append("a call that had been gone for offThreshold was still reported")
+        }
+
+        // A candidate that never settled leaves nothing to fade out.
+        let abandoned = CallPolicy.next(
+            CallPolicy.next(.quiet, observing: zoom, elapsed: step),
+            observing: nil,
+            elapsed: step
+        )
+        if abandoned != .quiet {
+            failures.append("a candidate that never settled was faded out instead of dropped")
+        }
+
+        failures.append(contentsOf: callArmingFailures())
+        return failures
+    }
+
+    /// Phase 2's rules: correlation with a meeting already in hand, the recording grant, and
+    /// ask-versus-record. Fabricated throughout, so the answers do not depend on what is on
+    /// the machine's calendar or which permissions it happens to hold.
+    private static func callArmingFailures() -> [String] {
+        var failures: [String] = []
+        let now = Date()
+        let granted = CallPolicy.RecordingReadiness(hasMicrophone: true)
+        let denied = CallPolicy.RecordingReadiness(hasMicrophone: false)
+
+        func decide(
+            enabled: Bool = true,
+            answer: CallPolicy.AppAnswer? = nil,
+            readiness: CallPolicy.RecordingReadiness = granted,
+            meetings: [CallPolicy.MeetingWindow] = []
+        ) -> CallPolicy.ArmDecision {
+            CallPolicy.armDecision(
+                enabled: enabled,
+                answer: answer,
+                readiness: readiness,
+                meetings: meetings,
+                now: now
+            )
+        }
+
+        // Nothing in hand and every switch on: the ordinary case.
+        if decide() != .arm {
+            failures.append("a detected call with nothing in its way did not arm")
+        }
+        if decide(enabled: false) != .decline(.detectionOff) {
+            failures.append("a call was armed with detection switched off")
+        }
+        if decide(answer: .never) != .decline(.appNever) {
+            failures.append("a call was armed for an app set never to record")
+        }
+
+        // The grant guard. Detection needs no permission; recording does, and a call armed
+        // without it is a recording that cannot happen.
+        if decide(readiness: denied) != .decline(.noMicrophone) {
+            failures.append("a call was armed with no Microphone grant")
+        }
+        if decide(answer: .always, readiness: denied) != .decline(.noMicrophone) {
+            failures.append("an always-record app got past the missing Microphone grant")
+        }
+
+        // Calendar correlation. A Zoom call that is on the calendar must produce exactly one
+        // meeting, so anything already armed or recording over this stretch of clock wins.
+        let recording = CallPolicy.MeetingWindow(
+            isActive: true,
+            start: now.addingTimeInterval(-30 * 60),
+            end: now.addingTimeInterval(-25 * 60)
+        )
+        if decide(meetings: [recording]) != .attach {
+            failures.append("a call detected during a live recording tried to start a second one")
+        }
+        let armed = CallPolicy.MeetingWindow(
+            isActive: false,
+            start: now.addingTimeInterval(60),
+            end: now.addingTimeInterval(30 * 60)
+        )
+        if decide(meetings: [armed]) != .attach {
+            failures.append("a call detected next to an armed meeting was armed a second time")
+        }
+        let joinedEarly = CallPolicy.MeetingWindow(
+            isActive: false,
+            start: now.addingTimeInterval(CallPolicy.correlationWindow / 2),
+            end: now.addingTimeInterval(CallPolicy.correlationWindow / 2 + 30 * 60)
+        )
+        if decide(meetings: [joinedEarly]) != .attach {
+            failures.append("a call joined before its meeting's start time was not correlated with it")
+        }
+        let unrelated = CallPolicy.MeetingWindow(
+            isActive: false,
+            start: now.addingTimeInterval(4 * 60 * 60),
+            end: now.addingTimeInterval(5 * 60 * 60)
+        )
+        if decide(meetings: [unrelated]) != .arm {
+            failures.append("a call attached itself to a meeting hours away")
+        }
+        let over = CallPolicy.MeetingWindow(
+            isActive: false,
+            start: now.addingTimeInterval(-3 * 60 * 60),
+            end: now.addingTimeInterval(-2 * 60 * 60)
+        )
+        if decide(meetings: [over]) != .arm {
+            failures.append("a call attached itself to a meeting that finished hours ago")
+        }
+        // Refusing the app is the user's answer and outranks correlation, which is only ever
+        // the app guessing that two things are the same thing.
+        if decide(answer: .never, meetings: [recording]) != .decline(.appNever) {
+            failures.append("an app set never to record was overruled by a meeting already running")
+        }
+
+        // Ask versus record. The default is to ask, and that is a consent decision.
+        if CallPolicy.recordsWithoutAsking(
+            bundleID: "us.zoom.xos", autoRecord: false, answer: nil
+        ) {
+            failures.append("a detected call recorded itself without being asked to")
+        }
+        if !CallPolicy.recordsWithoutAsking(
+            bundleID: "us.zoom.xos", autoRecord: true, answer: nil
+        ) {
+            failures.append("auto-record was switched on and the call still only asked")
+        }
+        if !CallPolicy.recordsWithoutAsking(
+            bundleID: "us.zoom.xos", autoRecord: false, answer: .always
+        ) {
+            failures.append("an app set to always record still only asked")
+        }
+        if CallPolicy.recordsWithoutAsking(
+            bundleID: "net.whatsapp.WhatsApp", autoRecord: true, answer: .never
+        ) {
+            failures.append("an app-level refusal lost to the global auto-record switch")
+        }
+        // R1: a browser holding both flags might be a Meet call and might be anything.
+        if CallPolicy.recordsWithoutAsking(
+            bundleID: "com.google.Chrome", autoRecord: true, answer: .always
+        ) {
+            failures.append("a plain browser tab was recorded without being asked about")
+        }
+        // The Meet web app carries its own identifier, so the precise case stays precise.
+        if !CallPolicy.recordsWithoutAsking(
+            bundleID: "com.google.Chrome.app.kjgfgldnnfoeklkmfkjfagphfepbbdan",
+            autoRecord: true,
+            answer: nil
+        ) {
+            failures.append("the Google Meet web app was treated as an ordinary browser tab")
+        }
+
+        // The synthesised event, which is what makes the whole arm / skip / island path
+        // reusable. Two calls in the same app are two events; one call is one event however
+        // often it is looked at.
+        let call = CallDetector.CallActivity(
+            bundleID: "us.zoom.xos",
+            pid: 910,
+            displayName: "zoom.us",
+            since: now,
+            hasInput: true,
+            hasOutput: true
+        )
+        let event = CallDetector.event(for: call)
+        if event.providerID != .detectedCall {
+            failures.append("a detected call was not marked as coming from the detector")
+        }
+        if event.id != CallDetector.event(for: call).id {
+            failures.append("the same call produced two different events")
+        }
+        var later = call
+        later.since = now.addingTimeInterval(3600)
+        if event.id == CallDetector.event(for: later).id {
+            failures.append("two separate calls in one app shared an event id")
+        }
+        if !CalendarProviderID.calendars.isEmpty,
+           CalendarProviderID.calendars.contains(.detectedCall) {
+            failures.append("the detector was listed as a calendar provider")
+        }
+
+        failures.append(contentsOf: callAppListFailures())
+        return failures
+    }
+
+    /// Phase 3's rules: which apps reach the settings list, and what the three-way answer
+    /// on each row means. The list is the half of this feature a person operates, and every
+    /// way it can lie is a rule here.
+    private static func callAppListFailures() -> [String] {
+        var failures: [String] = []
+        let ownPID: pid_t = 501
+
+        func process(_ pid: pid_t, _ bundleID: String?, input: Bool, output: Bool)
+        -> CallPolicy.AudioProcess {
+            CallPolicy.AudioProcess(
+                pid: pid,
+                bundleID: bundleID,
+                name: bundleID ?? "pid \(pid)",
+                isRunningInput: input,
+                isRunningOutput: output
+            )
+        }
+
+        // What earns a row. The microphone alone is enough — the point of the list is to be
+        // answerable before the first call in an app, not after it.
+        if !CallPolicy.isMicrophoneApp(
+            process(920, "us.zoom.xos", input: true, output: false), ownPID: ownPID
+        ) {
+            failures.append("an app holding the microphone was not offered a per-app answer")
+        }
+        if CallPolicy.isMicrophoneApp(
+            process(921, "com.apple.Music", input: false, output: true), ownPID: ownPID
+        ) {
+            failures.append("an app that only plays audio was listed as a microphone app")
+        }
+        if CallPolicy.isMicrophoneApp(
+            process(ownPID, AppIdentity.bundleIdentifier, input: true, output: true),
+            ownPID: ownPID
+        ) {
+            failures.append("Speechify listed itself as an app to answer for")
+        }
+        if CallPolicy.isMicrophoneApp(
+            process(922, "com.apple.CoreSpeech", input: true, output: true), ownPID: ownPID
+        ) {
+            failures.append("a system speech daemon was offered as an app to answer for")
+        }
+        // Answers are stored against the app. A pid names a different program next reboot,
+        // so an anonymous process gets no row rather than a row that goes stale.
+        if CallPolicy.isMicrophoneApp(
+            process(923, nil, input: true, output: true), ownPID: ownPID
+        ) {
+            failures.append("a process with no bundle id was given a per-app answer")
+        }
+
+        // R1, the ambiguous browser. "Always record" is not on offer, because
+        // `recordsWithoutAsking` would refuse to honour it.
+        if CallPolicy.availableAnswers(forApp: "com.google.Chrome").contains(.always) {
+            failures.append("a browser was offered Always record")
+        }
+        if !CallPolicy.availableAnswers(forApp: "com.google.Chrome").contains(.never) {
+            failures.append("a browser could not be refused")
+        }
+        if CallPolicy.availableAnswers(
+            forApp: "com.google.Chrome.app.kjgfgldnnfoeklkmfkjfagphfepbbdan"
+        ) != CallPolicy.AppAnswer.allCases {
+            failures.append("the Google Meet web app was restricted like a plain browser tab")
+        }
+
+        // What a row shows. An app nobody has answered for shows what the global switch
+        // does to it, which is the only honest thing a control can say.
+        func effective(_ bundleID: String, autoRecord: Bool, stored: CallPolicy.AppAnswer?)
+        -> CallPolicy.AppAnswer {
+            CallPolicy.effectiveAnswer(forApp: bundleID, autoRecord: autoRecord, stored: stored)
+        }
+        if effective("us.zoom.xos", autoRecord: false, stored: nil) != .ask {
+            failures.append("an unanswered app read as something other than Ask with auto-record off")
+        }
+        if effective("us.zoom.xos", autoRecord: true, stored: nil) != .always {
+            failures.append("an unanswered app read as Ask while auto-record was on")
+        }
+        if effective("us.zoom.xos", autoRecord: true, stored: .never) != .never {
+            failures.append("an app answered Never read as recording anyway")
+        }
+        if effective("com.google.Chrome", autoRecord: true, stored: nil) != .ask {
+            failures.append("a browser read as recording by itself")
+        }
+        if effective("com.google.Chrome", autoRecord: false, stored: .always) != .ask {
+            failures.append("a browser reported an Always it would not honour")
+        }
+
+        // The state a `Bool?` could not hold, and the reason the storage changed: ask about
+        // this one app while everything else records itself.
+        if CallPolicy.recordsWithoutAsking(
+            bundleID: "us.zoom.xos", autoRecord: true, answer: .ask
+        ) {
+            failures.append("an app answered Ask recorded itself because the global switch was on")
         }
 
         return failures

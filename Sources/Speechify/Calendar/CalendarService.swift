@@ -151,7 +151,7 @@ final class CalendarService {
 
         // Providers that are switched off still get a state, so Settings can say "Off"
         // rather than showing nothing at all.
-        for id in CalendarProviderID.allCases where states[id] == nil {
+        for id in CalendarProviderID.calendars where states[id] == nil {
             states[id] = disabledState(for: id)
         }
 
@@ -235,6 +235,10 @@ final class CalendarService {
         case .eventKit: return .disabled("Apple Calendar is switched off.")
         case .google: return .disabled("Google Calendar is switched off.")
         case .fake: return .disabled("Only active with --fake-calendar.")
+        // Never reached: `detectedCall` is not in `CalendarProviderID.calendars`, which is
+        // what the only caller iterates. Spelled out rather than defaulted so that adding a
+        // real provider still fails to compile until it has an answer here.
+        case .detectedCall: return .disabled("Not a calendar.")
         }
     }
 

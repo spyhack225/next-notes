@@ -161,10 +161,14 @@ final class Notifications {
     // MARK: - Posting
 
     /// "Recording <title> in a minute", with Record now / Skip.
-    func postMeetingArmed(meeting: Meeting, startsAt start: Date) {
+    /// - Parameter body: overrides the countdown sentence. A detected call has no lead time
+    ///   to count down — it is already happening — so "Speechify is about to start
+    ///   recording" would be both wrong and, given the default is to ask, a promise the app
+    ///   is not making.
+    func postMeetingArmed(meeting: Meeting, startsAt start: Date, body: String? = nil) {
         let content = UNMutableNotificationContent()
         content.title = meeting.title
-        content.body = Self.leadDescription(until: start)
+        content.body = body ?? Self.leadDescription(until: start)
         content.categoryIdentifier = Category.meetingArmed
         content.userInfo = [UserInfoKey.meetingID: meeting.id.uuidString]
         content.sound = .default

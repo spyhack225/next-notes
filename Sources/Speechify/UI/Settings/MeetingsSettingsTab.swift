@@ -41,6 +41,9 @@ struct MeetingsSettingsTab: View {
                 .foregroundStyle(DS.Color.textSecondary)
             }
 
+            callsSection
+            callAppsSection
+
             Section {
                 Toggle("Keep the recorded audio", isOn: $settings.meetingsKeepAudio)
 
@@ -145,6 +148,126 @@ struct MeetingsSettingsTab: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    // MARK: - Calls
+
+    /// The second trigger: a call nobody put on a calendar.
+    private var callsSection: some View {
+        Section {
+            Toggle("Notice when I\u{2019}m on a call", isOn: $settings.callDetectionEnabled)
+
+            Picker("When a call starts", selection: $settings.callDetectionAutoRecord) {
+                Text("Ask before recording").tag(false)
+                Text("Start recording").tag(true)
+            }
+            .disabled(!settings.callDetectionEnabled)
+        } header: {
+            Text("Calls")
+        } footer: {
+            Text("A call is an app holding your microphone and the speakers at once — "
+                 + "dictation is the microphone alone, and a video is the speakers alone. "
+                 + "Noticing one needs no permission at all; recording it does. Asking "
+                 + "first is the "
+                 + "default on purpose: a meeting in your calendar is something you agreed "
+                 + "to in advance, a call that rang out of nowhere isn\u{2019}t, and in some "
+                 + "places recording one needs everybody\u{2019}s agreement.")
+            .font(DS.Font.caption)
+            .foregroundStyle(DS.Color.textSecondary)
+        }
+    }
+
+    /// One row per app that has actually held the microphone on this Mac.
+    private var callAppsSection: some View {
+        Section {
+            if seenCallApps.isEmpty {
+                Text("Nothing yet. An app appears here the first time it uses your "
+                     + "microphone while Speechify is watching.")
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+            }
+
+            ForEach(seenCallApps) { app in
+                Picker(selection: answer(for: app)) {
+                    // Not every app is offered all three. A browser holding the microphone
+                    // and the speakers might be a Meet call in a tab and might be anything
+                    // else at all, and nothing cheap tells them apart — so `CallPolicy`
+                    // refuses to record one unasked, and offering "Always record" here
+                    // would be a switch that does nothing. Google Meet installed as a
+                    // Chrome app has its own bundle identifier, is not a browser as far as
+                    // this rule is concerned, and keeps all three.
+                    ForEach(CallPolicy.availableAnswers(forApp: app.bundleID)) { option in
+                        Text(option.displayName).tag(option)
+                    }
+                } label: {
+                    VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                        Text(app.name)
+                        Text(app.bundleID)
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
+                    }
+                }
+                .disabled(!settings.callDetectionEnabled)
+            }
+
+            if !settings.callAppAnswers.isEmpty {
+                LabeledContent("Per-app answers") {
+                    HStack(spacing: DS.Space.s) {
+                        Text("\(settings.callAppAnswers.count) set")
+                            .foregroundStyle(DS.Color.textSecondary)
+                        Button("Clear") { settings.callAppAnswers = [:] }
+                    }
+                }
+            }
+        } header: {
+            Text("Apps that use your microphone")
+        } footer: {
+            Text("This list is a record of what has happened on this Mac, not a catalogue "
+                 + "of what could — so nothing has to be typed in, and an app you have never "
+                 + "taken a call in never appears. An app nobody has answered for follows "
+                 + "the switch above, and the control shows what that comes to. A browser is "
+                 + "only ever asked about: a tab holding the microphone might be a meeting "
+                 + "and might be anything. Speechify\u{2019}s own dictation and the system\u{2019}s "
+                 + "speech services are never counted as calls.")
+            .font(DS.Font.caption)
+            .foregroundStyle(DS.Color.textSecondary)
+        }
+    }
+
+    /// One row of the app list.
+    private struct CallApp: Identifiable {
+        let bundleID: String
+        let name: String
+        var id: String { bundleID }
+    }
+
+    /// The apps seen holding the microphone, by the name a person would recognise.
+    ///
+    /// Sorted by that name rather than by when it was last seen: a list that reorders
+    /// itself while the Settings window is open moves the row under the pointer.
+    private var seenCallApps: [CallApp] {
+        settings.callAppsSeen
+            .map { CallApp(bundleID: $0.key, name: $0.value) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    /// The row’s control, which always shows what the *next* call in that app would get.
+    ///
+    /// An app nobody has answered for reads back whatever the switch above does to it, and
+    /// touching the control pins that answer to the app. There is deliberately no fourth
+    /// "follow the switch" position — it would be a state the user has to reason about to
+    /// predict — and Clear is how a row goes back to following it.
+    private func answer(for app: CallApp) -> Binding<CallPolicy.AppAnswer> {
+        Binding(
+            get: {
+                CallPolicy.effectiveAnswer(
+                    forApp: app.bundleID,
+                    autoRecord: settings.callDetectionAutoRecord,
+                    stored: settings.callAnswer(forApp: app.bundleID)
+                )
+            },
+            set: { settings.setCallAnswer($0, forApp: app.bundleID) }
+        )
     }
 
     /// "1 minute before" / "at the start time" — the stepper's value read as a sentence.

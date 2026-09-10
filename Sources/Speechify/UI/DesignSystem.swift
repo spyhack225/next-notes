@@ -186,9 +186,17 @@ enum DS {
 
         static let settingsWidth: CGFloat = 560
         static let settingsMinHeight: CGFloat = 420
+        /// An app's own icon, beside its name in the formatting picker.
+        static let appIcon: CGFloat = 20
         /// Text fields in a grouped `Form` stretch to the full row otherwise, which reads
         /// as a text area rather than as one value.
         static let settingsFieldWidth: CGFloat = 260
+        /// One capability checkbox column in the output-formatting table. Wide enough for a
+        /// checkbox and the gap that keeps five of them from reading as one control.
+        static let formatCapabilityColumn: CGFloat = 34
+        /// The output-formatting app list scrolls past this rather than pushing the buttons
+        /// below it off the window — the table grows with every app the user adds.
+        static let formatListHeight: CGFloat = 240
         /// The Google calendar checklist scrolls past this rather than pushing the rest of
         /// the tab off the window — some accounts subscribe to dozens.
         static let calendarListHeight: CGFloat = 132

@@ -24,6 +24,24 @@ every event has its own Record checkbox in the Upcoming list, and the whole beha
 switch in Settings ▸ Meetings (*Record calendar meetings automatically*, with the lead time
 beside it). Turn that off and meetings only record when you press the button.
 
+**A call nobody put on a calendar arms the same card.** Core Audio's process list says which
+processes hold the microphone and the speakers at once, which is what separates a call from
+dictation (microphone only) and from watching a video (speakers only). When one settles,
+Speechify raises the same armed card a calendar meeting raises — **Record now** and **Skip**,
+under the notch and in a notification — and records nothing until it is answered. Settings ▸
+Meetings ▸ **Calls** holds the switch (*Notice when I'm on a call*) and the choice between
+*Ask before recording* and *Start recording*; asking is the default on purpose, because a
+calendar meeting was agreed to in advance, an ad-hoc call was not, and consent law for
+recording one varies by jurisdiction. Under it, **every app that has actually held your
+microphone** gets its own *Always record* / *Ask first* / *Never* — a list built from what
+has happened on this Mac, so no bundle identifier is ever typed in, and empty until something
+uses the microphone. A browser is only ever asked about: Chrome holding the microphone might
+be a Meet call and might be any other tab, so *Always record* isn't offered for one, while
+Meet installed as a Chrome app has its own identity and is not restricted. A call that is
+already covered by an armed or recording meeting attaches to it rather than starting a second
+recording of the same conversation, and nothing is armed at all without the Microphone
+grant.
+
 **Pressing Stop is not the end of a meeting.** The session writes the transcript and hands
 the meeting to a pipeline that runs on its own: optionally identify the speakers on the
 system track, then write the notes, then — if the Workspace agent is enabled — read the
@@ -221,6 +239,8 @@ Sources/Speechify/
 │   ├── MeetingAudioWriter.swift    stereo CAF, left = you, right = everyone else
 │   ├── MeetingSession.swift        one recording: both captures, both transcribers
 │   ├── MeetingScheduler.swift      arms, starts and stops calendar meetings on a 30 s tick
+│   ├── CallPolicy.swift            the pure rules: both flags, self, denylist, debounce
+│   ├── CallDetector.swift          watches Core Audio's process list for a live call
 │   ├── MeetingController.swift     the single place a meeting starts or stops
 │   ├── MeetingPipeline.swift       what happens after the last window: diarize, then notes
 │   ├── MeetingDiarizer.swift       FluidAudio clustering over the system track
@@ -280,14 +300,25 @@ $S --selftest-transcribe <wav>      # WAV → ChunkedTranscriber → segments JS
 $S --selftest-calendar              # provider states, deduped events, auto-record rules
 $S --selftest-notes <wav> [--diarize]   # transcribe → notes; prints tok/s and peak RSS
 $S --selftest-llm-metal             # a Metal runtime and a CPU runtime in one process
+$S --selftest-calls                 # who holds mic + speakers now, and every CallPolicy rule
+#                                     including arming: correlation, the grant guard, ask-first
 $S --selftest-island                # island geometry per display, panel invariants, states
 $S --selftest-orb                   # the four ThinkingOrb modes at both sizes
 $S --selftest-gws                   # locate `gws`, read its version and auth state
 $S --selftest-agent <meeting-dir>   # proposals as JSON; executes nothing
+$S --selftest-dictation             # every way a hold can go wrong still ends at idle
 ```
 
 Each prints a single `<NAME>_OK` or `<NAME>_FAILED` line last, so they can be read by a
 script. Two are worth knowing about in detail:
+
+`--selftest-dictation` is the one that guards the tail. It drives `DictationController`
+with a real microphone but a fake engine: an engine whose `finish()` never returns, one that
+leaves its transcript stream open, and one so slow to start that the key is released before
+it is ready. Each has to come back to `.idle` and say what went wrong. Unbounded — which is
+what the tail used to be — the first two park the controller in `.finishing`, and the HUD
+and the island both draw that as a live recording, which is what "it looks stuck and it
+keeps recording in the background" is a description of.
 
 `--selftest-calendar` prints each provider's state, what it would record out of the next
 day, and the result of running the auto-record rules over invented events — that last half

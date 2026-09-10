@@ -9,14 +9,32 @@ enum CalendarProviderID: String, Codable, Sendable, CaseIterable, Identifiable {
     case google
     /// Only ever present when the app was launched with `--fake-calendar`.
     case fake
+    /// A call `CallDetector` noticed. Not a calendar, and the type now says otherwise —
+    /// the field is arguably `sourceID`.
+    ///
+    /// The alternative was a second island state, a second arming path, a second set of
+    /// notification actions and a second override map, all so that one enum would not carry
+    /// a name it has outgrown. Four duplicated mechanisms is the worse trade: everything
+    /// downstream of `MeetingEvent` — arming, skipping, Record now, the armed card, the
+    /// banner buttons — works on a detected call unchanged because of this one case.
+    case detectedCall
 
     var id: String { rawValue }
+
+    /// The ids that name an actual calendar.
+    ///
+    /// Every place that enumerates providers — the authorization states, the Calendar
+    /// settings rows, `--selftest-calendar` — is asking about calendars, and `detectedCall`
+    /// has no account to connect and no state to report. It is enumerated here rather than
+    /// filtered at each call site so a future source is excluded by construction.
+    static var calendars: [CalendarProviderID] { allCases.filter { $0 != .detectedCall } }
 
     var displayName: String {
         switch self {
         case .eventKit: "Apple Calendar"
         case .google: "Google Calendar"
         case .fake: "Test calendar"
+        case .detectedCall: "Detected call"
         }
     }
 }

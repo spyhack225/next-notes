@@ -46,7 +46,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-notes <wav> [--diarize]         --selftest-llm-metal
 --selftest-island    --selftest-orb        --selftest-gws
 --selftest-agent <meeting-dir>             --selftest-cleanup [engine]
---selftest-dictation
+--selftest-dictation --selftest-calls
 ```
 
 A self-test must **fail** when the thing it names did not happen. `--selftest-systemaudio`
@@ -334,6 +334,45 @@ someone started by hand is never cut off for being quiet.
 an invented meeting beside the real ones could start recording something that is actually
 happening. It is a modifier, not a self-test, and it is the only way to watch
 armed → notified → recording → done without waiting for a real meeting.
+
+**The microphone flag flickers, and the debounce is not paranoia.** Sampling
+`kAudioProcessPropertyIsRunningInput` at 1 Hz during *continuous* microphone use showed it
+read on, then report nobody for three consecutive samples, then read on again. That is
+measured on this machine, not feared. So `CallPolicy` announces a call only after it has
+held both flags for `onThreshold`, and ends one only after it has been gone for
+`offThreshold` — which is five times longer, because a card that lingers a few seconds is a
+much cheaper mistake than a card that blinks off and on in the middle of a call. Lowering
+`offThreshold` to make the island disappear promptly is the repair that re-introduces the
+bug. The state machine is a pure function of (state, observation, elapsed), so
+`--selftest-calls` drives minutes of it instantly; the Core Audio subscription underneath is
+the part no self-test can reach.
+
+**`corespeechd` holds the microphone with nobody on a call, and Speechify holds it whenever
+you dictate.** Both showed up in the probe, and either one taken at face value arms a
+meeting for a call that is not happening — the second one every time the user talks to this
+app. Hence the three filters in front of the both-flags rule: our own pid, our own bundle
+identifier (a helper or a second copy shares the id but not the pid), and
+`CallPolicy.deniedBundleIDs` for the speech and accessibility daemons that hold the
+microphone on somebody else's behalf. It is a **denylist, not an allowlist**, on purpose: a
+conferencing app nobody here has heard of has to work on the day it is installed. Fathom is
+deliberately *not* denied even though it records meetings — it only holds the microphone
+during a call, so denying it would suppress a real detection, and the per-app answer in
+Settings is where a user who dislikes that says so.
+
+**Chrome is offered only "Ask first" and "Never", and that missing third option is the
+feature.** Chrome holding the microphone and the speakers might be a Meet call in a tab and
+might be a video conference in a web app nobody has heard of, or a page that opened the
+microphone and never used it. Nothing cheap tells them apart — reading the window title over
+Accessibility was considered and rejected as fragile. So `CallPolicy.askOnlyBundleIDs`
+refuses to record a browser without asking, `availableAnswers(forApp:)` does not offer
+"Always record" for one, and `effectiveAnswer(…)` downgrades a stored `always` rather than
+displaying a promise the policy will not keep. Google Meet installed as a Chrome web app
+carries its **own** bundle id
+(`com.google.Chrome.app.kjgfgldnnfoeklkmfkjfagphfepbbdan`), is not in that set, and keeps all
+three answers — the precise case stays precise. Related: the app list in Meetings settings is
+**empty until an app has actually held the microphone**, because it is a record of what
+happened on this Mac rather than a table of bundle identifiers somebody typed. Empty is what
+a fresh machine correctly looks like.
 
 **Meetings record two tracks on purpose.** Microphone and system audio are captured,
 transcribed and stored separately (left and right channels of `audio.caf` when keep-audio
