@@ -87,6 +87,13 @@ CI fails if it drifts from `shared/`. After editing the shared file:
 cp shared/dictionary-test-vectors.json Tests/NextNotesDictionaryTests/
 ```
 
+The same copy rule applies to spoken-form scoring. After editing
+`shared/spoken-forms-test-vectors.json`:
+
+```bash
+cp shared/spoken-forms-test-vectors.json Tests/NextNotesDictionaryTests/
+```
+
 ---
 
 ## Things that look like bugs and are not
