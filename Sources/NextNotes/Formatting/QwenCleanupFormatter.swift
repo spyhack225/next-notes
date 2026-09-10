@@ -24,6 +24,8 @@ struct QwenCleanupFormatter: TextFormatter {
     private let fallback = RuleBasedFormatter()
     private let preferences: CleanupPreferences
     private let fixesGrammar: Bool
+    /// What the receiving app can render. Plain unless a caller says otherwise.
+    private let target: OutputProfile
     /// Longer than Apple's four seconds because this model is slower and the user opted
     /// into that, but still a bound: dictation stops being interactive somewhere around
     /// here, and past it the raw words beat a better sentence.
@@ -32,10 +34,12 @@ struct QwenCleanupFormatter: TextFormatter {
     init(
         preferences: CleanupPreferences,
         fixesGrammar: Bool = true,
+        target: OutputProfile = .plain(bundleID: "", displayName: "the focused app"),
         timeout: Duration = .seconds(8)
     ) {
         self.preferences = preferences
         self.fixesGrammar = fixesGrammar
+        self.target = target
         self.timeout = timeout
     }
 
@@ -61,7 +65,8 @@ struct QwenCleanupFormatter: TextFormatter {
                     try await Self.generate(
                         trimmed,
                         preferences: preferences,
-                        fixesGrammar: fixesGrammar
+                        fixesGrammar: fixesGrammar,
+                        target: target
                     )
                 }
                 group.addTask {
@@ -108,10 +113,15 @@ struct QwenCleanupFormatter: TextFormatter {
     static func generate(
         _ text: String,
         preferences: CleanupPreferences,
-        fixesGrammar: Bool
+        fixesGrammar: Bool,
+        target: OutputProfile = .plain(bundleID: "", displayName: "the focused app")
     ) async throws -> String {
         let completion = try await NotesModelRuntime.shared.complete(
-            system: CleanupInstructions.system(for: preferences, fixesGrammar: fixesGrammar),
+            system: CleanupInstructions.system(
+                for: preferences,
+                fixesGrammar: fixesGrammar,
+                target: target
+            ),
             user: CleanupInstructions.user(text, fixesGrammar: fixesGrammar),
             // Cleanup is never much longer than what was said. Budgeted from the input
             // rather than fixed, so a five-word utterance can't spend a thousand tokens

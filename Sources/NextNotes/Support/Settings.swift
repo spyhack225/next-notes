@@ -60,6 +60,46 @@ enum CleanupTone: String, CaseIterable, Sendable {
 }
 
 /// Where the app shows what it is hearing while you dictate.
+/// What to do when the user switches apps while a dictation is still being transcribed.
+///
+/// The tail between releasing the key and having text to insert is seconds long — drain,
+/// transcribe, then cleanup — and the user is free to walk away inside it. Something has to
+/// happen to that text, and which thing is genuinely a matter of taste: interrupting to
+/// deliver it, or holding it somewhere safe.
+enum SwitchAwayBehavior: String, CaseIterable, Sendable, Identifiable {
+    /// Bring the original app back to the front and type it there.
+    case returnToApp
+    /// Type it wherever the caret happens to be now.
+    case insertWhereFocused
+    /// Copy it and leave the front app alone.
+    case copyToClipboard
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .returnToApp: "Switch back and insert it"
+        case .insertWhereFocused: "Insert it wherever I am"
+        case .copyToClipboard: "Copy it to the clipboard"
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .returnToApp:
+            "The app you dictated into comes back to the front. This interrupts whatever "
+                + "you moved on to, which is the price of the text arriving where you meant it."
+        case .insertWhereFocused:
+            "Whatever you have moved to receives the text. If that is not a text field, "
+                + "the dictation is lost — this is how Next Notes behaved before the setting "
+                + "existed."
+        case .copyToClipboard:
+            "Nothing is typed and nothing is interrupted; press ⌘V when you are ready. "
+                + "Your previous clipboard contents are replaced."
+        }
+    }
+}
+
 enum HUDPlacement: String, CaseIterable, Sendable, Identifiable {
     /// The island at the top of the screen — hugging the notch on a Mac that has one, and
     /// a capsule under the menu bar on one that doesn't.
@@ -183,6 +223,14 @@ final class Settings {
     /// notifications rather than a live readout of something being held down.
     var hudPlacement: HUDPlacement {
         didSet { defaults.set(hudPlacement.rawValue, forKey: Keys.hudPlacement) }
+    }
+
+    /// What happens to a dictation when the user changes apps before it is ready.
+    ///
+    /// Only consulted when they actually switched: staying put takes the same path it
+    /// always did.
+    var switchAwayBehavior: SwitchAwayBehavior {
+        didSet { defaults.set(switchAwayBehavior.rawValue, forKey: Keys.switchAwayBehavior) }
     }
 
     /// Play a short tick when capture starts and stops.
@@ -447,6 +495,7 @@ final class Settings {
         static let compareMode = "compareMode"
         static let llmMetalEnabled = "llmMetalEnabled"
         static let hudPlacement = "hudPlacement"
+        static let switchAwayBehavior = "switchAwayBehavior"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let meetingsKeepAudio = "meetingsKeepAudio"
         static let meetingsDiarize = "meetingsDiarize"
@@ -504,6 +553,11 @@ final class Settings {
         hudPlacement = HUDPlacement(
             rawValue: defaults.string(forKey: Keys.hudPlacement) ?? ""
         ) ?? (IslandGeometry.hasNotch ? .notch : .bottom)
+        // Defaults to returning: the alternative was losing the text outright, which is
+        // the bug this setting was added alongside.
+        switchAwayBehavior = SwitchAwayBehavior(
+            rawValue: defaults.string(forKey: Keys.switchAwayBehavior) ?? ""
+        ) ?? .returnToApp
         hasCompletedOnboarding = defaults.object(forKey: Keys.hasCompletedOnboarding) as? Bool ?? false
         meetingsKeepAudio = defaults.object(forKey: Keys.meetingsKeepAudio) as? Bool ?? false
         meetingsDiarize = defaults.object(forKey: Keys.meetingsDiarize) as? Bool ?? false

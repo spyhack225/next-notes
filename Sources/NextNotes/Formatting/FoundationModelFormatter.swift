@@ -38,6 +38,8 @@ struct FoundationModelFormatter: TextFormatter {
     /// session, same token budget, same timeout — which is why grammar is free here rather
     /// than a trade against latency. `--selftest-cleanup` is where that claim is checked.
     private let fixesGrammar: Bool
+    /// What the receiving app can render. Plain unless a caller says otherwise.
+    private let target: OutputProfile
 
     init(
         preferences: CleanupPreferences = CleanupPreferences(
@@ -46,8 +48,10 @@ struct FoundationModelFormatter: TextFormatter {
             context: .general
         ),
         fixesGrammar: Bool = false,
+        target: OutputProfile = .plain(bundleID: "", displayName: "the focused app"),
         fallback: any TextFormatter = RuleBasedFormatter()
     ) {
+        self.target = target
         self.preferences = preferences
         self.fixesGrammar = fixesGrammar
         self.fallback = fallback
@@ -88,7 +92,8 @@ struct FoundationModelFormatter: TextFormatter {
                     try await Self.clean(
                         trimmed,
                         preferences: preferences,
-                        fixesGrammar: fixesGrammar
+                        fixesGrammar: fixesGrammar,
+                        target: target
                     )
                 }
                 group.addTask {
@@ -144,10 +149,15 @@ struct FoundationModelFormatter: TextFormatter {
     static func clean(
         _ text: String,
         preferences: CleanupPreferences,
-        fixesGrammar: Bool
+        fixesGrammar: Bool,
+        target: OutputProfile = .plain(bundleID: "", displayName: "the focused app")
     ) async throws -> String {
         let session = LanguageModelSession(
-            instructions: CleanupInstructions.system(for: preferences, fixesGrammar: fixesGrammar)
+            instructions: CleanupInstructions.system(
+                for: preferences,
+                fixesGrammar: fixesGrammar,
+                target: target
+            )
         )
 
         let response = try await session.respond(
