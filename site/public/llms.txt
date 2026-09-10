@@ -1,0 +1,47 @@
+# Next Notes
+
+> Dictation and meeting notes for macOS that run entirely on the user's own Mac. Hold a
+> key and speak, and the cleaned-up sentence appears at the cursor in whatever app is
+> already focused. Sit in a meeting and the notes write themselves. No account, no
+> subscription, no server, and no bot joining the call.
+
+Next Notes is free and open source, and requires macOS 26 on Apple silicon.
+
+## What it does
+
+- **Dictation into any app.** Hold one key, speak, release. The text is transcribed and
+  punctuated locally, then inserted where the cursor already was — no window to switch to.
+  It learns the names and jargon you use, so it stops mangling them.
+- **Meeting notes without a bot.** It reads your calendar and starts when the meeting
+  does, after asking. Your microphone and your speaker output are captured as two separate
+  tracks, which is how the transcript attributes who said what without anything joining
+  the call.
+- **Follow-ups it proposes, never sends.** It can draft the follow-up while you talk. It
+  offers; you approve. Nothing is created or sent on its own.
+- **It writes where the work already is.** Calendar, Gmail, Drive and Docs, in your own
+  account, acting as you.
+
+## How the privacy claim actually works
+
+This is the part most comparable tools do differently, so it is worth stating precisely:
+
+- **Transcribed on the device.** Apple's on-device speech recogniser, or NVIDIA Parakeet
+  through CoreML. Audio becomes words on the machine it was spoken to.
+- **Summarised on the device.** A local language model (Qwen3.5-4B) reads the transcript
+  and writes the summary, the decisions, and who owes what. It is downloaded once and then
+  runs offline.
+- **Stored on the device.** One folder per meeting under Application Support. Recordings
+  are deleted once the notes are written, unless you ask to keep them.
+- There is no server to send any of it to. There is no account to create.
+
+## Comparable tools
+
+People generally arrive at Next Notes from Wispr Flow (dictation) or Granola (meeting
+notes). The difference that matters is where the work happens: both of those upload audio
+to be processed. Next Notes does not upload anything, which is also why it is limited to
+recent Apple silicon Macs.
+
+## Links
+
+- Site: https://next-notes.com/
+- Source and releases: https://github.com/spyhack225/next-notes

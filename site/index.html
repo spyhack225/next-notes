@@ -3,24 +3,118 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <title>Next Notes — talk instead of typing, and never take notes again</title>
     <meta
       name="description"
-      content="Speak into any app and the words appear. Sit in any meeting and the notes write themselves. All of it happens on your Mac."
+      content="Speak into any app and the words appear. Sit in any meeting and the notes write themselves. All of it happens on your Mac — no account, no server, no bot joining the call."
     />
-    <meta property="og:title" content="Next Notes" />
+    <link rel="canonical" href="https://next-notes.com/" />
+
+    <!-- Absolute, not relative, and not negotiable. Open Graph consumers resolve these
+         server-side with no page context to resolve a relative path against, so "./icon.png"
+         is simply dropped — which is why every link to this site was previewing bare. -->
+    <meta property="og:url" content="https://next-notes.com/" />
+    <meta property="og:site_name" content="Next Notes" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Next Notes — talk instead of typing, and never take notes again" />
     <meta
       property="og:description"
       content="Talk instead of typing. Never take notes again. Everything runs on your Mac."
     />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/icon.png" />
+    <meta property="og:image" content="https://next-notes.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Next Notes — dictation and meeting notes that never leave your Mac." />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- summary_large_image needs an image at least 300px wide; the 256px app icon this
+         used to point at failed that minimum, so the card fell back to no image at all. -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="theme-color" content="#000000" />
-    <link rel="icon" href="/icon.png" />
+    <meta name="twitter:title" content="Next Notes — talk instead of typing, and never take notes again" />
+    <meta
+      name="twitter:description"
+      content="Talk instead of typing. Never take notes again. Everything runs on your Mac."
+    />
+    <meta name="twitter:image" content="https://next-notes.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Next Notes — dictation and meeting notes that never leave your Mac." />
+
+    <meta name="theme-color" content="#0a0a0b" />
+    <link rel="icon" href="./favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/png" href="./icon.png" sizes="256x256" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+
+    <!-- Structured data, stated as a fact rather than a claim about a claim: this is a free
+         macOS application. Written into the static HTML rather than injected by React,
+         because the crawlers most likely to read it are the ones that never run the bundle. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Next Notes",
+        "url": "https://next-notes.com/",
+        "applicationCategory": "ProductivityApplication",
+        "applicationSubCategory": "Dictation and meeting notes",
+        "operatingSystem": "macOS 26 or later, Apple silicon",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "Dictation and meeting notes for macOS that run entirely on your own Mac. Hold a key and speak, and the cleaned-up sentence appears at the cursor in whatever app is focused. Meetings are transcribed and summarised locally, with no bot joining the call.",
+        "featureList": [
+          "Push-to-talk dictation into any macOS app",
+          "On-device speech recognition (Apple Speech or NVIDIA Parakeet via CoreML)",
+          "On-device summarisation with a local language model",
+          "Meeting recording from your calendar, with microphone and system audio as separate tracks",
+          "Drafted follow-ups that you approve before anything is sent",
+          "A learned dictionary of your own names and jargon"
+        ],
+        "softwareRequirements": "macOS 26, Apple silicon",
+        "license": "https://github.com/spyhack225/next-notes",
+        "codeRepository": "https://github.com/spyhack225/next-notes"
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- The page is a client-rendered React app, so without this the document a crawler
+         receives is an empty div. Search engines render JavaScript; the assistant crawlers
+         this project most wants to be read by largely do not. This is the same claim the
+         rendered page makes, in the markup, for readers that never execute the bundle.
+         The real fix is prerendering the route at build time — this is the honest floor
+         under that, not a substitute for it. -->
+    <noscript>
+      <h1>Next Notes — talk instead of typing, and never take notes again</h1>
+      <p>
+        Dictation and meeting notes for macOS that run entirely on your own Mac. Hold a key
+        anywhere and speak: the cleaned-up sentence appears at the cursor, in whatever app
+        you were already in. Sit in a meeting and the notes write themselves.
+        Requires macOS 26 on Apple silicon. Free and open source.
+      </p>
+      <h2>Everything happens on the device</h2>
+      <ul>
+        <li>
+          <strong>Transcribed here.</strong> Apple's on-device speech recogniser, or Parakeet
+          through CoreML. Audio becomes words on the machine it was spoken to.
+        </li>
+        <li>
+          <strong>Written here.</strong> A local model reads the transcript and writes the
+          summary, the decisions and who owes what. Downloaded once, then offline.
+        </li>
+        <li>
+          <strong>Stored here.</strong> One folder per meeting in Application Support.
+          Recordings are deleted once the notes are written, unless you keep them.
+        </li>
+        <li>
+          Nothing joins your call, so nobody has to agree to a stranger in the room. There is
+          no server to send any of it to, and no account to create.
+        </li>
+      </ul>
+      <p><a href="https://github.com/spyhack225/next-notes">Source and releases on GitHub</a></p>
+    </noscript>
   </body>
 </html>
