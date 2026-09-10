@@ -2,7 +2,8 @@ import AppKit
 import ApplicationServices
 import Foundation
 
-/// Puts text into whatever field currently has keyboard focus.
+/// Puts text into a text field — by default whatever currently has keyboard focus, or,
+/// when an `Origin` is supplied, back into the app the dictation started in.
 ///
 /// Two strategies, in order:
 /// 1. **Accessibility** — set `kAXSelectedTextAttribute` on the focused element. Clean and
@@ -20,6 +21,110 @@ import Foundation
 /// target app, so "the focused element" is still their text field.
 @MainActor
 enum TextInjector {
+    /// The app a dictation started in, so its text can be put back there.
+    ///
+    /// Dictation is not instant: draining, transcribing and cleaning up take seconds, and
+    /// the user is free to switch away in the middle. Resolving the target at *insertion*
+    /// time — which is all `insert(_:)` can do on its own — then means the text lands
+    /// wherever they happen to be looking, or nowhere at all if that is not a text field.
+    /// Capturing the app at key-down is what makes "put it where I started" possible.
+    struct Origin {
+        let app: NSRunningApplication
+        let displayName: String
+
+        var isFrontmost: Bool {
+            NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier
+        }
+    }
+
+    /// The frontmost app, or nil when that is Next Notes itself.
+    ///
+    /// Nil is not a failure. The HUD is a non-activating panel, so during a normal dictation
+    /// the user's app stays frontmost and this returns it; nil means they really were in
+    /// Next Notes, and inserting into whatever is focused then is exactly right.
+    static func captureOrigin() -> Origin? {
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              app.bundleIdentifier != AppIdentity.bundleIdentifier
+        else { return nil }
+        return Origin(app: app, displayName: app.localizedName ?? app.bundleIdentifier ?? "that app")
+    }
+
+    /// Why an insertion did not land where it was meant to.
+    enum Outcome: Equatable {
+        case inserted
+        /// The origin app could not be brought back. The text is on the clipboard — the
+        /// previous contents are deliberately *not* restored in this case, because a
+        /// clipboard the user can paste is the difference between recoverable and lost.
+        case leftOnClipboard(appName: String)
+    }
+
+    /// Inserts `text`, first returning to the app the dictation started in.
+    ///
+    /// The common case costs nothing: if the user never left, `origin.isFrontmost` is true
+    /// and this is the same code path as before.
+    @discardableResult
+    static func insert(_ text: String, returningTo origin: Origin?) async -> Outcome {
+        guard !text.isEmpty else { return .inserted }
+
+        if let origin, !origin.isFrontmost {
+            Log.inject.info("user switched away — returning to \(origin.displayName, privacy: .public)")
+            guard await restoreFocus(to: origin) else {
+                Log.inject.error("could not return to \(origin.displayName, privacy: .public) — leaving the text on the clipboard")
+                leaveOnClipboard(text)
+                return .leftOnClipboard(appName: origin.displayName)
+            }
+        }
+
+        insert(text)
+        return .inserted
+    }
+
+    /// Brings `origin` back to the front, and waits until it actually is.
+    ///
+    /// Two mechanisms, because one is not enough. `NSRunningApplication.activate()` is the
+    /// polite one, but under macOS's cooperative activation a *background* app often cannot
+    /// raise another — and Next Notes is always background here, by design: the HUD is a
+    /// non-activating panel precisely so focus never leaves the user's field. So when that
+    /// is refused, ask the accessibility API instead, which answers to the Accessibility
+    /// grant this app already requires in order to see the hotkey at all.
+    ///
+    /// Polling rather than trusting the return value: activation is asynchronous, and
+    /// pasting into an app that has not finished coming forward puts ⌘V somewhere else.
+    private static func restoreFocus(to origin: Origin) async -> Bool {
+        guard !origin.app.isTerminated else { return false }
+
+        origin.app.activate()
+        if await waitUntilFrontmost(origin, within: .milliseconds(600)) { return true }
+
+        let element = AXUIElementCreateApplication(origin.app.processIdentifier)
+        AXUIElementSetAttributeValue(element, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
+        return await waitUntilFrontmost(origin, within: .milliseconds(400))
+    }
+
+    private static func waitUntilFrontmost(_ origin: Origin, within budget: Duration) async -> Bool {
+        let step = Duration.milliseconds(25)
+        var waited = Duration.zero
+        while waited < budget {
+            if origin.isFrontmost {
+                // Frontmost is not the same as ready for keystrokes: the app still has to
+                // restore its own key window and caret. Without this the ⌘V of the
+                // pasteboard fallback can arrive before there is anywhere to put it.
+                try? await Task.sleep(for: .milliseconds(60))
+                return true
+            }
+            try? await Task.sleep(for: step)
+            waited += step
+        }
+        return false
+    }
+
+    /// The last resort: make the text recoverable rather than lost.
+    private static func leaveOnClipboard(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+    }
+
     /// A snapshot of the editable selection that was focused when Command Mode began.
     /// Keeping the AX element and range lets us refuse to edit if focus or selection moved
     /// while speech recognition and the model were running.

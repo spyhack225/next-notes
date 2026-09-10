@@ -977,7 +977,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     formatter: RuleBasedFormatter(),
                     makeEngine: { SelfTestEngine(shape: shape) },
                     limits: limits,
-                    insert: { inbox.append($0) },
+                    insert: { text, _ in
+                        inbox.append(text)
+                        return .inserted
+                    },
                     // Discarded, not filed. These are fixtures, and the Dictation list is the
                     // user's own history — a self-test has no business appearing in it.
                     record: { _ in }
