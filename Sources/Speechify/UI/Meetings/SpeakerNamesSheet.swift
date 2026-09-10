@@ -21,15 +21,16 @@ struct SpeakerNamesSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.l) {
-            VStack(alignment: .leading, spacing: DS.Space.xs) {
-                Text("Who was speaking?")
-                    .font(DS.Font.title3)
-                Text("Leave a field empty to keep the label the model gave it. The notes use "
-                     + "these names the next time they are written.")
-                .font(DS.Font.callout)
-                .foregroundStyle(DS.Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            }
+            // `solving` is diarization's shape everywhere else in the app, and this sheet is
+            // what diarization was for — so the same mark opens it. Still: the clustering
+            // pass has already finished by the time anyone can be renamed.
+            SectionHeading(
+                title: "Who was speaking?",
+                eyebrow: "Speakers",
+                subtitle: "Leave a field empty to keep the label the model gave it. The notes "
+                    + "use these names the next time they are written.",
+                orb: .solving
+            )
 
             Form {
                 ForEach(labels, id: \.self) { label in

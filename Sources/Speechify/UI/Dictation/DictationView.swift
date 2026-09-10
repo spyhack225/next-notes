@@ -2,9 +2,13 @@ import SwiftUI
 
 /// The Dictation section: record, watch the level, read what came out.
 ///
-/// The meter and counter stay above the list rather than inside the toolbar because the
-/// meter is the one instrument in the app that has to be readable at a glance from across
-/// the desk, and toolbar items are sized for icons.
+/// The band, the counter and the meter stay above the list rather than inside the toolbar
+/// because recording state is the one thing here that has to be readable at a glance from
+/// across the desk, and toolbar items are sized for icons.
+///
+/// The screen carries **one** animating orb and it moves between two homes: the band's,
+/// while there are rows to read, and the empty state's, while there are not. Both are
+/// saying the same word, so drawing both would cost a second canvas to repeat a sentence.
 struct DictationView: View {
     @Bindable var controller: DictationController
 
@@ -27,11 +31,16 @@ struct DictationView: View {
 
     private var isRecording: Bool { controller.state.isActive }
 
+    /// What the list is actually filtered on, and what the "no results" message quotes back.
+    /// One property so the two can never disagree about what was searched for.
+    private var trimmedQuery: String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var runs: [DictationRun] {
         let all = store.newestFirst
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return all }
-        return all.filter { $0.text.localizedStandardContains(trimmed) }
+        guard !trimmedQuery.isEmpty else { return all }
+        return all.filter { $0.text.localizedStandardContains(trimmedQuery) }
     }
 
     var body: some View {
@@ -40,6 +49,17 @@ struct DictationView: View {
                 AccessibilityNotice(controller: controller)
                 Divider()
             }
+
+            DictationStatusBand(
+                state: controller.state,
+                level: controller.level,
+                elapsed: elapsed,
+                holdKey: settings.pushToTalkKey.displayName,
+                // The empty state below is already drawing the screen's orb, and it is
+                // drawing the same one.
+                showsOrb: !runs.isEmpty
+            )
+            Divider()
 
             if runs.isEmpty {
                 emptyState
@@ -182,16 +202,24 @@ struct DictationView: View {
         return "\(selection.count) of \(store.runs.count) selected"
     }
 
+    /// Both empty states are *stages* rather than absences — nothing said yet, and nothing
+    /// found — so each takes the orb for its own cause: `listening` is the invitation to
+    /// speak, `searching` repeats the word the user already typed. A grey SF Symbol here
+    /// would say the screen is broken.
     @ViewBuilder
     private var emptyState: some View {
         if store.runs.isEmpty {
-            ContentUnavailableView(
-                "No recordings",
-                systemImage: SidebarSection.dictation.systemImage,
-                description: Text("Hold \(settings.pushToTalkKey.displayName), or press Record.")
+            OrbUnavailableView(
+                .listening,
+                title: "No recordings",
+                message: "Hold \(settings.pushToTalkKey.displayName), or press Record."
             )
         } else {
-            ContentUnavailableView.search(text: query)
+            OrbUnavailableView(
+                .searching,
+                title: "No results",
+                message: "No transcription matches “\(trimmedQuery)”."
+            )
         }
     }
 

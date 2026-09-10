@@ -10,10 +10,8 @@ struct PermissionsSettingsTab: View {
             Section {
                 PermissionsChecklist()
             } footer: {
-                Text("Grants are tied to this build's code signature. Reinstalling Speechify "
-                     + "can reset them.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: "Grants are tied to this build's code signature. "
+                             + "Reinstalling Speechify can reset them.")
             }
         }
         .formStyle(.grouped)

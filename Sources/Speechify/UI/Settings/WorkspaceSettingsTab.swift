@@ -64,10 +64,10 @@ struct WorkspaceSettingsTab: View {
                 }
             }
 
-            Text(agent.authState.detail)
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            // No orb here: the row above already carries `connecting` while the probe is
+            // out, and a second canvas naming the same wait is the scattering the design
+            // system rules out.
+            SettingsNote(text: agent.authState.detail)
 
             nextStep
 
@@ -107,14 +107,12 @@ struct WorkspaceSettingsTab: View {
                     Button("Use an existing client\u{2026}") { isImportingClient = true }
                 }
             }
-            Text("A client of type \u{201c}Desktop app\u{201d}, created in the Google Cloud "
-                 + "console with the Gmail, Calendar, Drive and Docs APIs enabled. Its JSON "
-                 + "is copied to \(GoogleWorkspaceCLI.clientConfigURL.path), and the same "
-                 + "client is applied to Google Calendar \u{2014} import it once, here or "
-                 + "in the Calendar tab, and both are set up.")
-            .font(DS.Font.caption)
-            .foregroundStyle(DS.Color.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
+            SettingsNote(text: "A client of type \u{201c}Desktop app\u{201d}, created in the "
+                         + "Google Cloud console with the Gmail, Calendar, Drive and Docs "
+                         + "APIs enabled. Its JSON is copied to "
+                         + "\(GoogleWorkspaceCLI.clientConfigURL.path), and the same client "
+                         + "is applied to Google Calendar \u{2014} import it once, here or in "
+                         + "the Calendar tab, and both are set up.")
         case .signedOut:
             LabeledContent("Account") {
                 Button("Sign in\u{2026}") { WorkspaceInstaller.signIn() }
@@ -195,8 +193,6 @@ struct WorkspaceSettingsTab: View {
     }
 
     private func footnote(_ text: String) -> some View {
-        Text(text)
-            .font(DS.Font.caption)
-            .foregroundStyle(DS.Color.textSecondary)
+        SettingsNote(text: text)
     }
 }

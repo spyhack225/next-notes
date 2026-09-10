@@ -21,10 +21,8 @@ struct GeneralSettingsTab: View {
                 }
                 Toggle("Play a tick when capture starts and stops", isOn: $settings.soundEnabled)
             } footer: {
-                Text("Hold this key anywhere to dictate. The Record button works regardless "
-                     + "of what's focused.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: "Hold this key anywhere to dictate. The Record button "
+                             + "works regardless of what's focused.")
             }
 
             Section {
@@ -53,9 +51,7 @@ struct GeneralSettingsTab: View {
             } header: {
                 Text("Command Mode")
             } footer: {
-                Text(commandModeNote)
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: commandModeNote)
             }
         }
         .formStyle(.grouped)

@@ -112,6 +112,15 @@ enum DS {
         static let notesSubheading = SwiftUI.Font.headline
         static let chip = SwiftUI.Font.caption.weight(.medium)
         static let sectionLabel = SwiftUI.Font.subheadline.weight(.semibold)
+        /// A small capitalised label above or beside a thing, rather than a heading for it —
+        /// the landing page's card labels. Letterspaced, because capitals set at caption
+        /// size and default tracking read as one long word.
+        static let eyebrow = SwiftUI.Font.caption2.weight(.medium)
+        static let eyebrowTracking: CGFloat = 1.4
+        /// An empty state's heading. Matches `ContentUnavailableView`'s own, so the two
+        /// vocabularies can sit on the same screen without arguing.
+        static let emptyStateTitle = SwiftUI.Font.title3.weight(.semibold)
+        static let emptyStateMessage = SwiftUI.Font.callout
     }
 
     // MARK: - Spacing
@@ -125,6 +134,21 @@ enum DS {
         static let l: CGFloat = 16
         static let xl: CGFloat = 24
         static let xxl: CGFloat = 32
+        static let xxxl: CGFloat = 48
+
+        /// A screen's own margin inside the detail pane. Larger than a list row's inset,
+        /// because a screen that carries a backdrop needs the content to sit off the edge
+        /// far enough that the backdrop reads as *behind* it rather than as a border.
+        static let page: CGFloat = 20
+        /// Between two sections of one screen.
+        static let section: CGFloat = 28
+        /// Inside a glass card, all round.
+        static let card: CGFloat = 14
+        /// Inside a small glass card or a glass chip.
+        static let cardTight: CGFloat = 10
+        /// Between an orb and the text it labels. Wider than `s`: an orb is a busy shape
+        /// and its dots reach its own edge, so text set at `s` from one reads as touching.
+        static let orbGap: CGFloat = 10
     }
 
     // MARK: - Radius
@@ -139,6 +163,13 @@ enum DS {
         static let island: CGFloat = 14
         /// All four corners, once the island is floating below the menu bar instead.
         static let islandFloating: CGFloat = 18
+        /// A glass surface in a window. Larger than `card`: glass has no border, so the
+        /// corner is the only thing that says where the pane ends.
+        static let glass: CGFloat = 16
+        /// The same treatment on something the size of a chip or a single row.
+        static let glassSmall: CGFloat = 10
+        /// A dotted field used as a panel background rather than as a whole screen.
+        static let field: CGFloat = 12
     }
 
     // MARK: - Size
@@ -230,9 +261,88 @@ enum DS {
         static let islandBarWidth: CGFloat = 44
         static let islandExpandedBarWidth: CGFloat = 120
 
-        /// The two orb sizes, which are separate tunings rather than one design scaled.
+        // MARK: Orbs
+
+        /// The orb at each scale it is drawn.
+        ///
+        /// These are canvas sides, not scale factors: `OrbGeometry` is a pure function of
+        /// size, so an orb is *asked for* the size it will occupy rather than drawn once
+        /// and transformed. A `scaleEffect` on an orb is always a mistake — it magnifies
+        /// the dot radii along with the sphere and turns a lattice into a smear.
+        ///
+        /// Two tunings back these, not one: below `orbInlineCeiling` the inline preset is
+        /// correct (a tenth of the dots at twice the radius) and above it the large one is.
+        /// `ThinkingOrb` picks for itself when it is given an explicit size.
+
+        /// Beside a single line of text in a list row.
+        static let orbBadge: CGFloat = 16
+        /// The default, beside a status line. Matches the HUD and the island.
         static let orbInline: CGFloat = 20
+        /// Labelling a card, the way the landing page labels its hero cards.
+        static let orbSmall: CGFloat = 28
+        /// A section header's mark, where it is the heading's companion rather than a badge.
+        static let orbMedium: CGFloat = 44
+        /// The large tuning's home size: the one orb a working screen is allowed.
         static let orbLarge: CGFloat = 64
+        /// An empty state's mark, where the orb *is* the illustration.
+        static let orbFeature: CGFloat = 96
+        /// A screen's ambient backdrop, behind the content.
+        static let orbBackdrop: CGFloat = 320
+        /// The same, on a full-width screen with room for it. The landing page's hero size.
+        static let orbBackdropWide: CGFloat = 520
+        /// The size at and above which the large tuning is drawn. Below it the large
+        /// design's several hundred dots overlap into grey mud, which is the whole reason
+        /// the library ships two designs rather than one and a scale factor.
+        static let orbInlineCeiling: CGFloat = 96
+
+        // MARK: Empty states and cards
+
+        /// How wide an empty state's message is allowed to run before it wraps. Narrower
+        /// than the pane on purpose — a sentence centred under an orb reads as a caption
+        /// only while it is short enough to take in at a glance.
+        static let emptyStateWidth: CGFloat = 340
+        /// Keeps an empty state vertically centred in a pane that is otherwise short,
+        /// rather than clinging to the top of it.
+        static let emptyStateMinHeight: CGFloat = 260
+        /// A glass card in a grid, before the grid decides how many fit.
+        static let cardMin: CGFloat = 240
+        static let cardIdeal: CGFloat = 300
+
+        /// How far prose is allowed to run before it wraps — notes, a transcript, a long
+        /// explanation. A detail pane on a wide display is far wider than a comfortable
+        /// line, and nothing about the window's width is an argument for a 1400pt measure.
+        static let readingWidth: CGFloat = 680
+        /// A screen's header strip, when it carries a field or a backdrop of its own rather
+        /// than sitting on the window like a toolbar.
+        static let headerBand: CGFloat = 140
+    }
+
+    // MARK: - Field
+
+    /// The dotted matrix: the landing page's texture, as a background.
+    ///
+    /// The same ink as an orb and the same lattice logic, flattened. It is drawn **once**,
+    /// not per frame — a full-window field is thousands of dots, and a `TimelineView` over
+    /// that would cost more than every orb in the app put together for a texture nobody
+    /// looks directly at.
+    enum Field {
+        static let dotFine: CGFloat = 1
+        static let dot: CGFloat = 1.5
+        static let dotBold: CGFloat = 2.5
+
+        static let spacingTight: CGFloat = 9
+        static let spacing: CGFloat = 14
+        static let spacingWide: CGFloat = 22
+
+        /// How finely the fade is quantized. Each level is one `Path` and one fill, so this
+        /// is the number of draw calls a whole field costs.
+        static let inkLevels = 8
+        /// The exponent on a radial fade. Above 1 the centre holds its weight and the fall
+        /// happens late, which is what keeps a field from reading as a vignette.
+        static let falloff: Double = 1.6
+        /// How far out the radial fade reaches, as a fraction of the half-diagonal. Under 1
+        /// so the field dies before the edge and has no boundary to see.
+        static let reach: Double = 0.92
     }
 
     // MARK: - Material
@@ -240,7 +350,13 @@ enum DS {
     enum Material {
         static let hud = SwiftUI.Material.ultraThin
         static let card = SwiftUI.Material.regular
+        static let thin = SwiftUI.Material.thin
         static let hudGlass: Glass = .regular
+        /// A glass pane inside a window — the app's equivalent of the landing page's
+        /// `.liquid-glass`. The rim light that CSS draws by hand is not ported: the system
+        /// glass draws its own specular edge, and it draws it correctly in both
+        /// appearances, where a hard-coded white lip would only ever be right in one.
+        static let surfaceGlass: Glass = .regular
     }
 
     // MARK: - Opacity
@@ -257,6 +373,29 @@ enum DS {
         /// Secondary text on the island's black substrate, where `.secondary` would be
         /// resolved against the window's appearance rather than against the bezel.
         static let islandInkSecondary: Double = 0.68
+
+        // MARK: Backdrop and field
+
+        /// A backdrop orb behind a screen's content.
+        ///
+        /// An order of magnitude fainter than the landing page's 0.5, and that is not
+        /// timidity. The page draws white ink on pure black and nothing else is on it; this
+        /// draws `.primary` on a window that already carries text, a sidebar and controls,
+        /// in whichever appearance the user chose. At 0.5 it would be a second thing to
+        /// read. The test is that you notice it only once you look for it.
+        static let orbBackdrop: Double = 0.08
+        /// The same, on a screen that is otherwise empty and can carry more.
+        static let orbBackdropStrong: Double = 0.14
+        /// A backdrop that sits under text rather than beside it.
+        static let orbWatermark: Double = 0.05
+
+        static let fieldFaint: Double = 0.06
+        static let field: Double = 0.10
+        static let fieldStrong: Double = 0.18
+
+        /// An empty state's orb. Held just off full ink so it reads as an illustration
+        /// rather than as a control.
+        static let emptyStateOrb: Double = 0.85
     }
 
     // MARK: - Scale
@@ -284,6 +423,10 @@ enum DS {
     enum Shadow {
         static let card = Spec(color: .black.opacity(0.12), radius: 8, x: 0, y: 2)
         static let hud = Spec(color: .black.opacity(0.28), radius: 18, x: 0, y: 8)
+        /// A **material** card that has to float over a backdrop rather than sit on the
+        /// window. Softer and lower than `card`. Not for glass: a glass pane separates
+        /// itself by refraction, and a shadow under one only muddies what it is refracting.
+        static let raised = Spec(color: .black.opacity(0.16), radius: 14, x: 0, y: 4)
 
         struct Spec {
             let color: SwiftUI.Color
@@ -344,6 +487,33 @@ enum DS {
         static let peakHold: TimeInterval = 1.0
         /// Release plus the peak-hold decay, for the same reason as `needleSettle`.
         static let barSettle: TimeInterval = 2.0
+
+        // MARK: Ambient orbs
+
+        /// How fast a backdrop orb runs against its own clock.
+        ///
+        /// A backdrop is decoration in the corner of the eye, and decoration that moves at
+        /// working speed reads as something demanding attention. Quartering the clock also
+        /// quarters how often the picture meaningfully changes, which is what makes the
+        /// reduced redraw rate below invisible.
+        static let orbBackdropScale: Double = 0.25
+        /// The same idea, one step less slowed, for an orb that is decorative but sits in
+        /// the reading path — an empty state's mark.
+        static let orbAmbientScale: Double = 0.5
+
+        /// Redraw cap for a backdrop orb, in place of the display's own cadence.
+        ///
+        /// A 320pt canvas of five hundred dots is the most expensive thing this app draws,
+        /// and at a quarter speed there is nothing in it that 20 frames a second loses.
+        static let orbBackdropFrameInterval: TimeInterval = 1.0 / 20
+        /// The same cap for an ambient orb at reading size.
+        static let orbAmbientFrameInterval: TimeInterval = 1.0 / 30
+
+        /// Content arriving over a backdrop. Slower than `standard` and without a spring:
+        /// something appearing in front of a slowly moving field should not also bounce.
+        static let reveal = Animation.smooth(duration: 0.35)
+        /// A backdrop or a field crossfading as a screen changes what it is about.
+        static let ambient = Animation.easeInOut(duration: 1.2)
     }
 
     // MARK: - Meter geometry

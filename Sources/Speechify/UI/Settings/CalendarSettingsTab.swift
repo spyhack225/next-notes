@@ -189,11 +189,9 @@ struct CalendarSettingsTab: View {
             }
             .frame(height: DS.Size.calendarListHeight)
 
-            Text(settings.googleCalendarIDs.isEmpty
-                 ? "None ticked — the calendars selected in Google are used."
-                 : "\(settings.googleCalendarIDs.count) calendar(s) read.")
-            .font(DS.Font.caption)
-            .foregroundStyle(DS.Color.textSecondary)
+            SettingsNote(text: settings.googleCalendarIDs.isEmpty
+                         ? "None ticked — the calendars selected in Google are used."
+                         : "\(settings.googleCalendarIDs.count) calendar(s) read.")
         }
     }
 
@@ -208,7 +206,11 @@ struct CalendarSettingsTab: View {
                     Button("Refresh") { Task { await calendar.refresh() } }
                         .disabled(calendar.isRefreshing)
                     if calendar.isRefreshing {
-                        ProgressView().controlSize(.small)
+                        // `searching` — reading a diary it did not write, to find the
+                        // meetings worth recording. A spinner says only "wait"; this says
+                        // which of the app's long jobs is the one you are waiting on, and a
+                        // calendar pass over several accounts is long enough to ask.
+                        ThinkingOrb(state: .searching, label: "Reading calendars")
                     }
                 }
             }
@@ -260,8 +262,6 @@ struct CalendarSettingsTab: View {
     }
 
     private func footnote(_ text: String) -> some View {
-        Text(text)
-            .font(DS.Font.caption)
-            .foregroundStyle(DS.Color.textSecondary)
+        SettingsNote(text: text)
     }
 }

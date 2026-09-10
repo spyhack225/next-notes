@@ -141,9 +141,17 @@ struct MeetingDetailView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: DS.Space.s) {
             HStack(alignment: .firstTextBaseline, spacing: DS.Space.m) {
-                Text(meeting.title)
-                    .font(DS.Font.title3)
-                    .lineLimit(2)
+                // The heading carries the meeting's state as a shape, so the pane says what
+                // it is doing before anyone reads the chip below it. `lineLimit` is on the
+                // heading rather than inside it: the only text here that can run to two
+                // lines is the title, since no subtitle is passed.
+                SectionHeading(
+                    title: meeting.title,
+                    orb: meeting.status.orb,
+                    orbSize: DS.Size.orbSmall,
+                    isOrbAnimated: isHeaderOrbAnimated
+                )
+                .lineLimit(2)
                 Spacer()
                 actions
             }
@@ -186,6 +194,21 @@ struct MeetingDetailView: View {
             }
         }
         .padding(DS.Space.l)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // The page's texture rather than a second orb. A header band is exactly what
+        // `DottedField` is for — it is drawn once and then costs nothing, where a backdrop
+        // orb here would be a second canvas competing with the one the heading already has.
+        .dottedField(opacity: DS.Opacity.fieldFaint, fade: .top)
+    }
+
+    /// Which view owns this pane's one animating orb.
+    ///
+    /// `writingNotes` and the diarizing strip each draw the orb for the job they are
+    /// reporting on, and they draw it larger and beside the progress. While either is up,
+    /// the heading's mark is still: the same word twice, on two canvases, is a redundancy
+    /// and a battery cost rather than emphasis.
+    private var isHeaderOrbAnimated: Bool {
+        meeting.status.isActive && !isWritingNotes && !diarization.isRunning(meeting.id)
     }
 
     private var actions: some View {
@@ -267,23 +290,26 @@ struct MeetingDetailView: View {
                         }
                     }
                     .padding(DS.Space.l)
+                    // Notes are prose, and a detail pane on a wide display is far wider
+                    // than a line anyone wants to read. Nothing else goes behind them: a
+                    // dotted field under long-form text is texture in the way of reading.
+                    .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
-                ContentUnavailableView {
-                    Label("No notes", systemImage: "doc.text")
-                } description: {
-                    Text(notesPlaceholder)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                OrbUnavailableView(
+                    emptyOrb,
+                    title: "No notes",
+                    message: notesPlaceholder
+                )
             }
         case .transcript:
             if segments.isEmpty {
-                ContentUnavailableView {
-                    Label("No transcript", systemImage: "text.alignleft")
-                } description: {
-                    Text(transcriptPlaceholder)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                OrbUnavailableView(
+                    emptyOrb,
+                    title: "No transcript",
+                    message: transcriptPlaceholder
+                )
             } else {
                 TranscriptView(segments: segments, speakerNames: meeting.speakerNames)
             }
@@ -313,18 +339,34 @@ struct MeetingDetailView: View {
                 .foregroundStyle(DS.Color.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .dottedField(opacity: DS.Opacity.fieldFaint)
     }
+
+    /// The orb an empty tab shows: the state of whatever is standing between the user and
+    /// the thing that is missing, not the emptiness itself.
+    ///
+    /// A transcript that is empty because the recording is still being transcribed shows
+    /// `working`, not a shrug — the tab is then telling the same story as the heading and
+    /// the list row, in the same shape. Once nothing is running, the cause is simply that
+    /// there is nothing yet, which is `breathing`.
+    private var emptyOrb: OrbGeometry.State { meeting.status.orb ?? .breathing }
 
     /// The `.diarizing` state. Progress is a real fraction here — the segmentation model
     /// works through the recording in fixed chunks and says how many it has done — so the
     /// bar is determinate from the first one.
     private var identifyingSpeakers: some View {
         HStack(spacing: DS.Space.m) {
+            // `solving` means diarization and only diarization, so this strip is where a
+            // person learns that shape. At the inline size, because it can overlap with
+            // the notes orb — a user can ask for speakers while a regeneration runs — and
+            // twenty points of inline tuning is a tenth of the dots of the one below it.
+            LabeledOrb(
+                state: .solving,
+                title: MeetingStatus.diarizing.displayName,
+                size: DS.Size.orbInline
+            )
             ProgressView(value: diarization.fraction(for: meeting.id) ?? 0)
                 .frame(width: DS.Size.progressWidth)
-            Text(MeetingStatus.diarizing.displayName)
-                .font(DS.Font.callout)
-                .foregroundStyle(DS.Color.textSecondary)
             Spacer()
         }
         .padding(.horizontal, DS.Space.l)

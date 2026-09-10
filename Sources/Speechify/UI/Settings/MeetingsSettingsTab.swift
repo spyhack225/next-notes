@@ -33,12 +33,11 @@ struct MeetingsSettingsTab: View {
             } header: {
                 Text("Automatic recording")
             } footer: {
-                Text("A calendar entry records itself when it has a conference link or at "
-                     + "least one other person, isn\u{2019}t all day, and you haven\u{2019}t "
-                     + "declined it. Every meeting can be answered individually in the "
-                     + "Upcoming list, and that answer wins over this switch.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: "A calendar entry records itself when it has a conference "
+                             + "link or at least one other person, isn\u{2019}t all day, and "
+                             + "you haven\u{2019}t declined it. Every meeting can be answered "
+                             + "individually in the Upcoming list, and that answer wins over "
+                             + "this switch.")
             }
 
             callsSection
@@ -55,13 +54,12 @@ struct MeetingsSettingsTab: View {
             } header: {
                 Text("Recording")
             } footer: {
-                Text("Two channels are recorded: your microphone on the left, everything the "
-                     + "Mac plays on the right. About 230 MB per hour — off by default because "
-                     + "the transcript is what the notes are written from. A meeting that is "
-                     + "going to have its speakers identified records audio either way, and "
-                     + "throws it away afterwards unless it is being kept.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: "Two channels are recorded: your microphone on the left, "
+                             + "everything the Mac plays on the right. About 230 MB per hour "
+                             + "— off by default because the transcript is what the notes are "
+                             + "written from. A meeting that is going to have its speakers "
+                             + "identified records audio either way, and throws it away "
+                             + "afterwards unless it is being kept.")
             }
 
             Section {
@@ -79,12 +77,11 @@ struct MeetingsSettingsTab: View {
             } header: {
                 Text("Speakers")
             } footer: {
-                Text("Runs on the system track after the recording stops, and labels it "
-                     + "Speaker 1, Speaker 2 and so on — rename them from the meeting itself, "
-                     + "and the notes pick the real names up on the next Regenerate. Your own "
-                     + "microphone is never clustered: it is already one person.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: "Runs on the system track after the recording stops, and "
+                             + "labels it Speaker 1, Speaker 2 and so on — rename them from "
+                             + "the meeting itself, and the notes pick the real names up on "
+                             + "the next Regenerate. Your own microphone is never clustered: "
+                             + "it is already one person.")
             }
 
             Section {
@@ -98,11 +95,10 @@ struct MeetingsSettingsTab: View {
             } header: {
                 Text("Transcription")
             } footer: {
-                Text("Meetings always use Parakeet, whichever engine dictation is set to: it "
-                     + "transcribes recorded windows far faster than realtime, which is what "
-                     + "keeps a live transcript close behind the conversation.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: "Meetings always use Parakeet, whichever engine dictation "
+                             + "is set to: it transcribes recorded windows far faster than "
+                             + "realtime, which is what keeps a live transcript close behind "
+                             + "the conversation.")
             }
 
             Section {
@@ -126,11 +122,9 @@ struct MeetingsSettingsTab: View {
             } header: {
                 Text("Notes")
             } footer: {
-                Text(settings.notesProvider.summary
-                     + " Notes are rewritten on demand from the Regenerate button in a "
-                     + "meeting, so the choice here isn\u{2019}t final.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: settings.notesProvider.summary
+                             + " Notes are rewritten on demand from the Regenerate button in "
+                             + "a meeting, so the choice here isn\u{2019}t final.")
             }
 
             Section {
@@ -140,11 +134,9 @@ struct MeetingsSettingsTab: View {
             } header: {
                 Text("Permissions")
             } footer: {
-                Text("macOS asks once, the first time a meeting records. Without it the "
-                     + "meeting still records your microphone, and the other participants "
-                     + "are missing from the transcript.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: "macOS asks once, the first time a meeting records. "
+                             + "Without it the meeting still records your microphone, and the "
+                             + "other participants are missing from the transcript.")
             }
         }
         .formStyle(.grouped)
@@ -165,15 +157,13 @@ struct MeetingsSettingsTab: View {
         } header: {
             Text("Calls")
         } footer: {
-            Text("A call is an app holding your microphone and the speakers at once — "
-                 + "dictation is the microphone alone, and a video is the speakers alone. "
-                 + "Noticing one needs no permission at all; recording it does. Asking "
-                 + "first is the "
-                 + "default on purpose: a meeting in your calendar is something you agreed "
-                 + "to in advance, a call that rang out of nowhere isn\u{2019}t, and in some "
-                 + "places recording one needs everybody\u{2019}s agreement.")
-            .font(DS.Font.caption)
-            .foregroundStyle(DS.Color.textSecondary)
+            SettingsNote(text: "A call is an app holding your microphone and the speakers "
+                         + "at once — dictation is the microphone alone, and a video is the "
+                         + "speakers alone. Noticing one needs no permission at all; "
+                         + "recording it does. Asking first is the default on purpose: a "
+                         + "meeting in your calendar is something you agreed to in advance, "
+                         + "a call that rang out of nowhere isn\u{2019}t, and in some places "
+                         + "recording one needs everybody\u{2019}s agreement.")
         }
     }
 
@@ -181,10 +171,17 @@ struct MeetingsSettingsTab: View {
     private var callAppsSection: some View {
         Section {
             if seenCallApps.isEmpty {
-                Text("Nothing yet. An app appears here the first time it uses your "
-                     + "microphone while Speechify is watching.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                // `breathing`, still: nothing has happened here *yet*, which is a stage
+                // rather than a fault. Frozen because nothing is running — the list fills
+                // in when some other app picks up the microphone, not on a clock of ours.
+                LabeledOrb(
+                    state: .breathing,
+                    title: "Nothing yet",
+                    detail: "An app appears here the first time it uses your microphone "
+                        + "while Speechify is watching.",
+                    size: DS.Size.orbBadge,
+                    isAnimated: false
+                )
             }
 
             ForEach(seenCallApps) { app in
@@ -222,15 +219,14 @@ struct MeetingsSettingsTab: View {
         } header: {
             Text("Apps that use your microphone")
         } footer: {
-            Text("This list is a record of what has happened on this Mac, not a catalogue "
-                 + "of what could — so nothing has to be typed in, and an app you have never "
-                 + "taken a call in never appears. An app nobody has answered for follows "
-                 + "the switch above, and the control shows what that comes to. A browser is "
-                 + "only ever asked about: a tab holding the microphone might be a meeting "
-                 + "and might be anything. Speechify\u{2019}s own dictation and the system\u{2019}s "
-                 + "speech services are never counted as calls.")
-            .font(DS.Font.caption)
-            .foregroundStyle(DS.Color.textSecondary)
+            SettingsNote(text: "This list is a record of what has happened on this Mac, not "
+                         + "a catalogue of what could — so nothing has to be typed in, and an "
+                         + "app you have never taken a call in never appears. An app nobody "
+                         + "has answered for follows the switch above, and the control shows "
+                         + "what that comes to. A browser is only ever asked about: a tab "
+                         + "holding the microphone might be a meeting and might be anything. "
+                         + "Speechify\u{2019}s own dictation and the system\u{2019}s speech "
+                         + "services are never counted as calls.")
         }
     }
 

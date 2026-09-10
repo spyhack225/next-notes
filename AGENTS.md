@@ -429,11 +429,24 @@ survived the redesign.
 
 The direction is **a native macOS app**: `NavigationSplitView` with a sidebar, system
 materials, the system font at system text styles, standard controls, `Form { }` with
-`.formStyle(.grouped)` in Settings, `ContentUnavailableView` for empty states, and
-`.glassEffect` on the HUD. It should look like it shipped with the OS, and it should inherit
-the user's appearance, accent colour and accessibility settings without a line of code here
-knowing about them — which is why nearly every token resolves to a semantic system value
-(`.controlBackgroundColor`, `.accentColor`, `.body`) rather than a literal.
+`.formStyle(.grouped)` in Settings, and `.glassEffect` on the HUD. It should look like it
+shipped with the OS, and it should inherit the user's appearance, accent colour and
+accessibility settings without a line of code here knowing about them — which is why nearly
+every token resolves to a semantic system value (`.controlBackgroundColor`, `.accentColor`,
+`.body`) rather than a literal.
+
+Inside that native shell the app has **one visual voice of its own**, and it is the same one
+as the landing page in `site/`: the dotted orb, the dotted field it is made of, and the
+glass pane. Nothing else. The page is the reference implementation — read `site/src/`
+before adding to this, particularly `sections/Hero.tsx` (an orb as a large low-opacity
+backdrop behind type), `components/HeroStage.tsx` (a small orb labelling each card, a
+different state per idea) and `sections/HowItWorks.tsx` (four steps, four different orbs).
+The point of all three is that the page never repeats an animation: **each orb state carries
+a distinct meaning**, which is only true as long as this file's table below stays true.
+
+This is not a theme. It is the same app, with a vocabulary it previously used in three
+places now available everywhere — and it stays native everywhere the system has an answer:
+standard controls, standard toolbars, standard `Form` in Settings.
 
 Two colour rules are not negotiable, and they are the same two as before:
 
@@ -450,10 +463,33 @@ system's own materials and separators.
 
 Shared components live in `Sources/Speechify/UI/Components/` — `LevelMeter` (+ `LevelBar`),
 `RecordingIndicator`, `ModelStatusRow`, `CopyButton`, `StatusChip` (+ `SpeakerLabel`),
-`MarkdownView`, `ProblemBanner`, `FlowLayout`, and `ThinkingOrb` in
-`Components/ThinkingOrbs/`. Sections live in `UI/<Section>/`, one Settings tab per file in
-`UI/Settings/`. Reach for an existing component before writing a new one; three hand-rolled
-model-status rows is what `ModelStatusRow` exists to prevent.
+`MarkdownView`, `ProblemBanner`, `FlowLayout`, `ThinkingOrb` in `Components/ThinkingOrbs/`,
+and the five pieces the page's vocabulary is built from: `OrbBackdrop`, `DottedField`,
+`GlassSurface`, `LabeledOrb`, `SectionHeading` and `OrbUnavailableView`. Sections live in
+`UI/<Section>/`, one Settings tab per file in `UI/Settings/`. Reach for an existing component
+before writing a new one; three hand-rolled model-status rows is what `ModelStatusRow` exists
+to prevent.
+
+| Piece | What it is | The page it comes from |
+|---|---|---|
+| `.orbBackdrop(_:)` / `OrbBackdrop` | one large, faint, slow orb behind a screen's content | `Hero.tsx`'s 520pt `breathing` ring |
+| `.dottedField()` / `DottedField` | the dot lattice as a background, drawn once, never animated | the texture every orb on the page is made of |
+| `.glassSurface(…)` / `GlassCard` / `GlassGroup` | the glass pane | `.liquid-glass` in `index.css` |
+| `LabeledOrb` | a small orb and the status line it belongs to | the card labels in `HeroStage.tsx` |
+| `SectionHeading` | eyebrow, heading, qualifying sentence, optional still orb | every section header on the page |
+| `OrbUnavailableView` | an empty state whose illustration is the orb | — |
+
+`ContentUnavailableView` is still right for an absence the system has a symbol for — a
+failed search, a missing file. `OrbUnavailableView` is for a **stage**: nothing recorded
+*yet*, no account connected *yet*, a model not downloaded *yet*. A grey SF Symbol says the
+screen is broken; the right orb says which move comes next.
+
+The glass pane deliberately does **not** port `.liquid-glass`'s rim light. That gradient is
+a workaround for CSS having no glass; macOS 26 has one, it draws its own specular edge
+against whatever is really behind the pane, and it draws it correctly in both appearances —
+where a hard-coded white lip is only ever right on a black page. `.glassSurface` also falls
+back to a material under **Reduce Transparency**, which is not a nicety: that setting exists
+because refraction behind text is unreadable for some people.
 
 The notch island in `UI/Island/` is the one place that breaks the semantic-colour rule, and
 only there: while it hugs the notch its substrate is continuous with the machine's black
@@ -461,22 +497,55 @@ bezel, so `DS.Color.island` and `DS.Color.islandInk` are literal black and white
 on a permanently black card resolves to black in light mode. Floating below the menu bar on a
 display without a notch it uses glass and ordinary semantic ink instead.
 
-`ThinkingOrb` stands in for a spinner where the wait is minutes rather than frames. All nine
-upstream states are ported, and each is bound to one situation — they say *which* long thing
-is happening, which a `ProgressView` cannot, so picking the wrong one is a lie rather than a
-style choice:
+### The orb vocabulary
 
-| State | Where | Why that one |
+`ThinkingOrb` stands in for a spinner where the wait is minutes rather than frames, and it is
+the app's mark besides. All nine upstream states are ported, and **each one means exactly one
+thing, everywhere in the app.** They say *which* long thing is happening, which a
+`ProgressView` cannot, so picking one because it looks nice here is a lie about what the
+machine is doing rather than a style choice. This table is the whole list; if a new situation
+does not fit a row, it belongs under the nearest row rather than under a tenth state:
+
+| State | Means | Where it appears |
 |---|---|---|
-| `listening` | dictation HUD and island | one voice, a waveform through rings |
-| `weaving` | a meeting recording | two channels braided into one transcript |
-| `working` | transcribing | particles grinding round orbits |
-| `solving` | diarizing | a clustering problem scrambling and clicking back |
-| `composing` | notes being written | an undulating sash |
-| `searching` | the agent reading mail and calendar | a meridian sweeping a globe |
-| `breathing` | an armed meeting awaiting an answer | idling on purpose, nothing processing |
-| `connecting` | Google / Workspace sign-in | a constellation wiring two parties together |
-| `shaping` | a model downloading and loading | an outline being formed from nothing |
+| `listening` | one voice, live, being heard | dictation HUD, island while dictating, the Dictation screen while recording, and its "say something" empty state |
+| `weaving` | two audio tracks braided into one meeting | island and Meetings while a meeting records; the Meetings "no meetings yet" empty state |
+| `working` | audio being turned into text | transcribing, anywhere — after a dictation release, and a meeting's tracks afterwards |
+| `solving` | speakers being told apart | diarization, and only diarization |
+| `composing` | the model is writing prose | notes being generated, **and dictation cleanup** — a cleaned-up sentence and a set of notes are the same act at different lengths |
+| `searching` | reading things it did not write, to find something | the agent over mail and calendar; also the **no-search-results** empty state, where the word is already the user's |
+| `breathing` | present and idle — waiting on purpose, nothing processing | an armed meeting awaiting an answer, every screen **backdrop**, and any "nothing here yet" empty state |
+| `connecting` | two parties being wired together | Google / Workspace sign-in and account checks; the "not connected yet" empty state |
+| `shaping` | something being fetched and assembled out of nothing | a model downloading, verifying and loading; the "not downloaded" empty state |
+
+Read the other way round, so the mapping is unambiguous for the states a screen has to show:
+idle → `breathing`; dictating → `listening`; transcribing → `working`; cleaning up →
+`composing`; generating notes → `composing`; diarizing → `solving`; the agent thinking →
+`searching`; connecting to Google → `connecting`; downloading a model → `shaping`. An empty
+state takes the orb for **its cause**, not its mood: no results → `searching`, nothing yet →
+`breathing`, not connected → `connecting`, not downloaded → `shaping`.
+
+### Where orbs may go, and how many
+
+Every orb is a `Canvas` inside a `TimelineView`, re-deriving up to five hundred dots per
+frame. This is a laptop.
+
+- **One animating orb per screen.** The screen's ambient backdrop, or the one job that is
+  actually running — not both, and never a scattering of small ones. The landing page can
+  afford four at once; a window that is also transcribing audio cannot.
+- **Decorative means large-and-slow, not many-and-small.** `OrbBackdrop` runs at
+  `DS.Motion.orbBackdropScale` and redraws at `DS.Motion.orbBackdropFrameInterval`, which is
+  a quarter speed and a third of the frames. Both are what make one 320pt canvas affordable.
+- **Never animate an orb that is off-screen, in a collapsed row, or naming work that is not
+  running.** `isAnimated:` exists for this, and it is not optional politeness: an orb runs on
+  a clock rather than on the work, so one still turning over a finished job is a claim the
+  app cannot back up. `SectionHeading`'s orb is still by default for exactly that reason.
+- **Reduce Motion freezes them**, and the library already does it — a frozen orb draws no
+  `TimelineView` at all, just one canvas at t=1.7.
+- **Never `scaleEffect` an orb.** The geometry is a pure function of size; pass a
+  `DS.Size.orb…` token as `size:` instead. Scaling magnifies the dot radii along with the
+  sphere and turns the lattice into a smear. Above `DS.Size.orbInlineCeiling` the large
+  tuning is drawn and below it the inline one, which `ThinkingOrb` decides for itself.
 
 An orb never replaces the red dot: red still means recording and only recording, and the orb
 sits beside it saying what kind of work is running. In the HUD it also does not replace the
@@ -500,6 +569,36 @@ a gradient would advertise a design this app does not have.
 Red is still only ever recording — a recording island shows the same
 `RecordingIndicator` dot as everywhere else, with the `weaving` orb beside it saying what
 kind of recording it is, exactly as the HUD sets an orb beside the dot and the level bar.
+
+### The dotted field
+
+`DottedField` is the orb's own lattice flattened out and laid behind content: the page has no
+separate dot pattern, because its texture *is* the orbs. **It never animates.** A
+window-sized field is a few thousand marks, and driving that from a `TimelineView` would cost
+more per frame than every working orb in the app put together, for a texture nobody looks
+directly at — `Canvas` redraws it only when the size changes, so a field on a screen nobody
+resizes is drawn once and then free. It is bucketed into `DS.Field.inkLevels` paths for the
+same reason `ThinkingOrb` buckets its dots: a 900×600 field at the default spacing is 3290
+lattice points and seven fills. Rows are staggered by half a step and packed at 0.866 of the
+column spacing, so it reads as a lattice rather than as a grid lining up with the window's
+own edges, and the radial fade dies before the corners so it has no boundary to see.
+
+### Tokens the new vocabulary added
+
+`DS.Size.orbBadge / orbInline / orbSmall / orbMedium / orbLarge / orbFeature / orbBackdrop /
+orbBackdropWide` are canvas sides, not scale factors, and `orbInlineCeiling` is where the
+tuning changes. `DS.Field` holds the dotted field's dot sizes, spacings, quantization and
+falloff. `DS.Opacity.orbBackdrop / orbBackdropStrong / orbWatermark / fieldFaint / field /
+fieldStrong` are all an order of magnitude fainter than the landing page's equivalents, and
+that is not timidity: the page draws white ink on pure black with nothing else on the canvas,
+while a window already carries text, a sidebar and controls in whichever appearance the user
+chose. The test a backdrop has to pass is that you notice it only once you go looking.
+`DS.Motion.orbBackdropScale / orbAmbientScale / orbBackdropFrameInterval /
+orbAmbientFrameInterval / reveal / ambient` are the motion curves for ambient work.
+`DS.Radius.glass / glassSmall / field`, `DS.Space.page / section / card / cardTight /
+orbGap / xxxl` and `DS.Font.eyebrow / eyebrowTracking / emptyStateTitle / emptyStateMessage`
+are the layout and type this vocabulary needs. As always: if a view needs a number that is
+not here, add it here rather than inlining it.
 
 ## macOS specifics
 
