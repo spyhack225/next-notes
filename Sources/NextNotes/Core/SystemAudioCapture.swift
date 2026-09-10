@@ -21,7 +21,7 @@ import Foundation
 final class SystemAudioCapture: @unchecked Sendable {
     /// The IO queue keeps the aggregate device's callback off the main thread; Core Audio
     /// still treats it as real-time, so the same copy-before-return rule applies.
-    private let ioQueue = DispatchQueue(label: "ai.pivotstudio.speechify.systemaudio", qos: .userInitiated)
+    private let ioQueue = DispatchQueue(label: "ai.pivotstudio.nextnotes.systemaudio", qos: .userInitiated)
 
     private var tapID = AudioObjectID(kAudioObjectUnknown)
     private var aggregateID = AudioObjectID(kAudioObjectUnknown)
@@ -77,7 +77,7 @@ final class SystemAudioCapture: @unchecked Sendable {
 
     private func createTap() throws {
         let description = CATapDescription(stereoGlobalTapButExcludeProcesses: [try Self.ownProcessObject()])
-        description.name = "Speechify meeting tap"
+        description.name = "Next Notes meeting tap"
         description.uuid = UUID()
         // Private: visible only to this process, so it never appears in Audio MIDI Setup.
         description.isPrivate = true
@@ -117,7 +117,7 @@ final class SystemAudioCapture: @unchecked Sendable {
         let uid = UUID().uuidString
 
         let description: [String: Any] = [
-            kAudioAggregateDeviceNameKey: "Speechify Meeting Capture",
+            kAudioAggregateDeviceNameKey: "Next Notes Meeting Capture",
             kAudioAggregateDeviceUIDKey: uid,
             kAudioAggregateDeviceMainSubDeviceKey: outputUID,
             kAudioAggregateDeviceIsPrivateKey: true,
@@ -300,7 +300,7 @@ enum SystemAudioError: LocalizedError {
         case .ownProcessLookupFailed(let status):
             return "Core Audio didn't recognise this process (\(status))."
         case .tapCreationFailed(let status):
-            return "Couldn't listen to system audio (\(status)). Allow Speechify in "
+            return "Couldn't listen to system audio (\(status)). Allow Next Notes in "
                 + "System Settings ▸ Privacy & Security ▸ Audio Recording."
         case .tapFormatUnavailable(let status):
             return "The system-audio tap didn't report a format (\(status))."

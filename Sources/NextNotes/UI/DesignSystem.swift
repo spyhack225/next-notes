@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The design system for Speechify.
+/// The design system for Next Notes.
 ///
 /// Direction: a native macOS app. Sidebar navigation, system materials, the system font,
 /// standard controls. The app should look like it shipped with the OS, and it should
@@ -315,6 +315,10 @@ enum DS {
         /// A screen's header strip, when it carries a field or a backdrop of its own rather
         /// than sitting on the window like a toolbar.
         static let headerBand: CGFloat = 140
+        /// The dictation status band. Pinned so the list beneath it does not jump as the
+        /// band's content changes between states — the meter used to set this height, and
+        /// removing it left the band free to resize on every transition.
+        static let statusBandMinHeight: CGFloat = 44
     }
 
     // MARK: - Field

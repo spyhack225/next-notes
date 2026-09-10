@@ -308,11 +308,11 @@ enum GoogleCalendarError: LocalizedError, Equatable {
         case .notSignedIn:
             "Google Calendar isn't connected yet."
         case .accessRevoked:
-            "Google revoked Speechify's access. Connect the account again."
+            "Google revoked Next Notes' access. Connect the account again."
         case .accessTokenRejected:
             "Google rejected the access token."
         case .noRefreshToken:
-            "Google didn't return a refresh token. Remove Speechify from the account's third-party access list and connect again."
+            "Google didn't return a refresh token. Remove Next Notes from the account's third-party access list and connect again."
         case .badAuthorizationURL:
             "Couldn't build the Google request URL."
         case .callbackListenerFailed:

@@ -141,7 +141,7 @@ enum ModelDownloader {
             didFinishDownloadingTo location: URL
         ) {
             let stash = FileManager.default.temporaryDirectory
-                .appendingPathComponent("speechify-model-\(UUID().uuidString)")
+                .appendingPathComponent("nextnotes-model-\(UUID().uuidString)")
             if (try? FileManager.default.moveItem(at: location, to: stash)) != nil {
                 lock.lock()
                 _stashedURL = stash

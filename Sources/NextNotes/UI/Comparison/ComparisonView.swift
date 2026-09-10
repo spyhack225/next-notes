@@ -30,13 +30,14 @@ struct ComparisonView: View {
                 }
             }
             .padding(DS.Space.xl)
-            // The column stops at a reading width rather than following the window. Two
-            // reasons, and the first one is the transcripts: a sentence set across a 5K
-            // display is a line, not a paragraph. The second is that it leaves the backdrop
-            // a gutter to stand in, which is the landing page's whole hero composition —
-            // type in a column, the mark in the space beside it.
+            // The column stops at a reading width rather than following the window, because
+            // a sentence set across a 5K display is a line, not a paragraph.
             .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            // The column's text stays left-aligned; the column itself is centred in the pane.
+            // Pinned leading, a reading-width column on a wide window left the whole right
+            // half empty with only a corner orb in it, which read as a layout that had failed
+            // rather than as breathing room.
+            .frame(maxWidth: .infinity, alignment: .center)
         }
         // Anchored into the corner rather than centred, so a quarter of it is in the pane
         // and it reads as ground the cards are standing on rather than as a circle drawn

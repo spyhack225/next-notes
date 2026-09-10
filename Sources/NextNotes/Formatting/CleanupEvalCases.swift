@@ -34,7 +34,7 @@ enum CleanupEvalCases {
 
     static let all: [Case] = shipped + constructed
 
-    /// Real transcripts, copied from `~/Library/Application Support/Speechify/runs.jsonl`.
+    /// Real transcripts, copied from `~/Library/Application Support/Next Notes/runs.jsonl`.
     static let shipped: [Case] = [
         Case(
             id: "R1-agreement",

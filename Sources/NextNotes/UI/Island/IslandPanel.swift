@@ -190,7 +190,7 @@ final class IslandPanel: NSPanel {
     ///
     /// Two monitors because they see different things: the global one gets moves delivered
     /// to every other app, which is where the pointer is nearly all the time, and the local
-    /// one gets the ones delivered to Speechify's own windows.
+    /// one gets the ones delivered to Next Notes' own windows.
     private func startWatchingPointer() {
         guard monitors.isEmpty else { return }
         let events: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged]

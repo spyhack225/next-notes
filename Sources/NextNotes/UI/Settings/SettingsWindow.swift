@@ -84,7 +84,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .formatting: "How the text lands in each app"
         case .meetings: "When a meeting records itself"
         case .calendar: "Where meetings are read from"
-        case .workspace: "What Speechify may do in your account"
+        case .workspace: "What Next Notes may do in your account"
         case .models: "What lives on this Mac"
         case .permissions: "What macOS has agreed to"
         }

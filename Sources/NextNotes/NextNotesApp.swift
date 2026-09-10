@@ -4,7 +4,7 @@ import FluidAudio
 import SwiftUI
 
 @main
-struct SpeechifyApp: App {
+struct NextNotesApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
     var body: some Scene {
@@ -88,7 +88,7 @@ enum SelfTest {
     /// responsible, and the only way to run a self-test with the app itself responsible —
     /// rather than the shell that spawned it — is through LaunchServices:
     ///
-    ///     open -n -a Speechify --args --selftest-systemaudio --selftest-out /tmp/out.txt
+    ///     open -n -a NextNotes --args --selftest-systemaudio --selftest-out /tmp/out.txt
     ///
     /// which discards stdout entirely.
     static let outputPath: String? = {
@@ -114,7 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var stateObservation: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Before the self-test check: a notification the user actioned while Speechify was
+        // Before the self-test check: a notification the user actioned while Next Notes was
         // closed is delivered the instant the app launches, and a delegate installed after
         // that never sees it.
         Notifications.shared.configure()
@@ -172,7 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         observeState()
         observeMeetingBadge()
-        Log.app.info("Speechify ready — hold \(Settings.shared.pushToTalkKey.displayName) to dictate")
+        Log.app.info("Next Notes ready — hold \(Settings.shared.pushToTalkKey.displayName) to dictate")
     }
 
     /// Model-only smoke tests that avoid microphone, Accessibility, and text injection.
@@ -554,9 +554,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         + "the grant does. Before changing any setting, check how this was "
                         + "launched: TCC grants the *responsible* process, and a binary run "
                         + "straight from a shell is the shell's responsibility, not "
-                        + "Speechify's. Re-run it through LaunchServices — "
-                        + "open -n -a Speechify --args --selftest-systemaudio --selftest-out "
-                        + "/tmp/out.txt — and only if that is silent too, allow Speechify "
+                        + "Next Notes's. Re-run it through LaunchServices — "
+                        + "open -n -a NextNotes --args --selftest-systemaudio --selftest-out "
+                        + "/tmp/out.txt — and only if that is silent too, allow Next Notes "
                         + "under Privacy & Security ▸ Screen & System Audio Recording"
                     : "no frames arrived at all, so nothing was playing"
                 writeSelfTest("SYSTEM_AUDIO_SILENT: \(measurements) — \(cause).")
@@ -1062,7 +1062,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Checks the rules behind selecting and deleting several transcriptions at once.
     ///
-    /// The clicking itself cannot be tested — Speechify is blocked from UI automation on this
+    /// The clicking itself cannot be tested — Next Notes is blocked from UI automation on this
     /// machine — so what is asserted here is every rule that behaviour rests on.
     private static func selectionPolicyFailures() -> [String] {
         var failures: [String] = []
@@ -1103,7 +1103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// right now, and every rule `CallPolicy` applies to it.
     ///
     /// The table is the half a person reads: start a Zoom call and it should show Zoom with
-    /// both flags; dictate and it should show Speechify with input only. The assertions are
+    /// both flags; dictate and it should show Next Notes with input only. The assertions are
     /// the half a machine reads, and they are the reason `CallPolicy` is a separate file —
     /// the Core Audio subscription needs a real call to exercise it, the rules do not.
     ///
@@ -1237,11 +1237,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Self-exclusion, by pid and by identifier.
         let ourselves = process(ownPID, AppIdentity.bundleIdentifier, input: true, output: true)
         if CallPolicy.isCall(ourselves, ownPID: ownPID) {
-            failures.append("Speechify's own process counted as a call")
+            failures.append("Next Notes's own process counted as a call")
         }
         let ourHelper = process(903, AppIdentity.bundleIdentifier, input: true, output: true)
         if CallPolicy.isCall(ourHelper, ownPID: ownPID) {
-            failures.append("a second Speechify process counted as a call")
+            failures.append("a second Next Notes process counted as a call")
         }
 
         // The daemon denylist. `corespeechd` was measured holding the microphone with no
@@ -1554,7 +1554,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             process(ownPID, AppIdentity.bundleIdentifier, input: true, output: true),
             ownPID: ownPID
         ) {
-            failures.append("Speechify listed itself as an app to answer for")
+            failures.append("Next Notes listed itself as an app to answer for")
         }
         if CallPolicy.isMicrophoneApp(
             process(922, "com.apple.CoreSpeech", input: true, output: true), ownPID: ownPID
@@ -1868,7 +1868,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// JSON is caught on a machine with no 2.7 GB download and no Google account.
     ///
     /// - Parameter directory: a meeting folder under
-    ///   `Application Support/Speechify/Meetings/`.
+    ///   `Application Support/Next Notes/Meetings/`.
     private func runAgentSelfTest(directory path: String) {
         Task { @MainActor in
             var failures = Self.agentStaticFailures()
@@ -2121,7 +2121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// The log copy is not redundant. A self-test launched through LaunchServices — which is
     /// the only way to run one with the app itself as TCC's responsible process, rather than
     /// the shell that spawned it — has nowhere for stdout to go, and TCC answers differ
-    /// between those two launches. `log show --predicate 'subsystem == "ai.pivotstudio.speechify"'`
+    /// between those two launches. `log show --predicate 'subsystem == "ai.pivotstudio.nextnotes"'`
     /// is how you read one back.
     private func writeSelfTest(_ line: String) {
         let text = "\(line)\n"
@@ -2137,10 +2137,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// `speechify://show` — a scriptable way to raise the window on the comparison
+    /// `nextnotes://show` — a scriptable way to raise the window on the comparison
     /// section. It used to open a second window; now it just steers the one that exists.
     func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls where url.scheme == "speechify" {
+        for url in urls where url.scheme == "nextnotes" {
             switch url.host {
             case "show":
                 RunStore.shared.reload()
@@ -2167,7 +2167,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window?.makeKeyAndOrderFront(nil)
     }
 
-    static let mainWindowTitle = "Speechify"
+    static let mainWindowTitle = "Next Notes"
     static let mainWindowID = "main"
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -2202,7 +2202,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Keeps the Dock badge in step with a running meeting.
     ///
     /// The window is usually behind the call being recorded and the menu-bar item is a 16pt
-    /// glyph, so the Dock icon is the only place "Speechify is listening to this" is visible
+    /// glyph, so the Dock icon is the only place "Next Notes is listening to this" is visible
     /// from across the desk. The badge is red without being asked, which is the one colour
     /// rule this app has.
     private func observeMeetingBadge() {
@@ -2236,7 +2236,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 ///
 /// Its own view rather than a plain `Button` in the `CommandGroup` so the title can follow
 /// the controller: a menu item that says "Record Meeting" while one is recording is a menu
-/// item that lies. Application menus are only live while Speechify is frontmost — starting a
+/// item that lies. Application menus are only live while Next Notes is frontmost — starting a
 /// meeting from inside the call you are in is what the menu-bar item is for.
 private struct MeetingCommands: View {
     @State private var meetings = MeetingController.shared
@@ -2271,7 +2271,7 @@ private struct MenuContent: View {
     var body: some View {
         Text(statusLine)
 
-        // The next meeting, and whether Speechify intends to record it. This is the whole
+        // The next meeting, and whether Next Notes intends to record it. This is the whole
         // reason to look at the menu while a call is about to start.
         if let next = calendar.next, !meetings.isRecording {
             Text(nextMeetingLine(next))
@@ -2294,7 +2294,7 @@ private struct MenuContent: View {
 
         Divider()
 
-        Button("Open Speechify") { AppDelegate.showMainWindow() }
+        Button("Open Next Notes") { AppDelegate.showMainWindow() }
             .keyboardShortcut("o")
 
         SettingsLink {
@@ -2304,7 +2304,7 @@ private struct MenuContent: View {
 
         Divider()
 
-        Button("Quit Speechify") { NSApp.terminate(nil) }
+        Button("Quit Next Notes") { NSApp.terminate(nil) }
             .keyboardShortcut("q")
     }
 

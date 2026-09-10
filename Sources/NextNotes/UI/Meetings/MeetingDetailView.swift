@@ -24,7 +24,7 @@ struct MeetingDetailView: View {
         case notes
         case transcript
         /// What the agent has offered to do about this meeting. Last because it is the only
-        /// one that can change something outside Speechify, and because a meeting usually
+        /// one that can change something outside Next Notes, and because a meeting usually
         /// gets read before it gets acted on.
         case actions
 

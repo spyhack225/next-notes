@@ -510,7 +510,7 @@ final class DictationController {
         // that is no longer held.
         if case .starting = state {
             session &+= 1
-            fail("Speechify was still starting up, so that recording was lost. Hold the key again.")
+            fail("Next Notes was still starting up, so that recording was lost. Hold the key again.")
             return
         }
 

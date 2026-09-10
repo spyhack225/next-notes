@@ -25,7 +25,7 @@ final class MeetingScheduler {
     /// catches the "one last thing" without recording the next hour of an empty room.
     static let overrunGrace: TimeInterval = 5 * 60
     /// Stop a scheduled recording after this much silence on both tracks. The case it
-    /// exists for is a call that ended without anyone touching Speechify.
+    /// exists for is a call that ended without anyone touching Next Notes.
     static let silenceTimeout: TimeInterval = 10 * 60
     /// How long an armed meeting may wait for a busy session before it is written off.
     static let armedGrace: TimeInterval = 10 * 60
@@ -214,7 +214,7 @@ final class MeetingScheduler {
                 var missed = meeting
                 missed.status = .failed(
                     controller.session == nil
-                        ? "Speechify wasn't running when this meeting started."
+                        ? "Next Notes wasn't running when this meeting started."
                         : "Another meeting was being recorded when this one started."
                 )
                 store.save(missed)
@@ -419,7 +419,7 @@ final class MeetingScheduler {
         guard meeting.status == .armed else { return }
         // Deleted rather than written off as failed: nothing went wrong. The user was asked
         // a question for as long as the call lasted and did not answer it, and a row in the
-        // meetings list saying "Speechify wasn't running" would be untrue as well as useless.
+        // meetings list saying "Next Notes wasn't running" would be untrue as well as useless.
         Notifications.shared.withdrawMeetingArmed(meetingID: meeting.id)
         store.delete(meeting)
         Log.calls.info("""

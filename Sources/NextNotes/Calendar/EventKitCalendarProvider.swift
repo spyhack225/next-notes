@@ -20,7 +20,7 @@ actor EventKitCalendarProvider: CalendarProvider {
         case .fullAccess: .authorized
         case .notDetermined: .needsAuthorization
         // Write-only is what an app gets when it asks to add events but not read them.
-        // Speechify only ever reads, so it is as useless here as an outright refusal.
+        // Next Notes only ever reads, so it is as useless here as an outright refusal.
         case .denied, .restricted, .writeOnly: .denied
         @unknown default: .denied
         }

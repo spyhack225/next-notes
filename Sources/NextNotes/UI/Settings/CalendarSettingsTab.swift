@@ -167,7 +167,7 @@ struct CalendarSettingsTab: View {
                      + "It is the same client the Workspace agent uses, so importing it on "
                      + "either screen sets up both. A desktop client's secret isn't "
                      + "confidential (it ships inside every copy of an app that has one), "
-                     + "but Google's token endpoint asks for it. Speechify asks for "
+                     + "but Google's token endpoint asks for it. Next Notes asks for "
                      + "read-only access and stores the refresh token in your Keychain.")
         }
     }

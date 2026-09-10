@@ -178,7 +178,7 @@ struct MeetingsSettingsTab: View {
                     state: .breathing,
                     title: "Nothing yet",
                     detail: "An app appears here the first time it uses your microphone "
-                        + "while Speechify is watching.",
+                        + "while Next Notes is watching.",
                     size: DS.Size.orbBadge,
                     isAnimated: false
                 )
@@ -225,7 +225,7 @@ struct MeetingsSettingsTab: View {
                          + "has answered for follows the switch above, and the control shows "
                          + "what that comes to. A browser is only ever asked about: a tab "
                          + "holding the microphone might be a meeting and might be anything. "
-                         + "Speechify\u{2019}s own dictation and the system\u{2019}s speech "
+                         + "Next Notes\u{2019} own dictation and the system\u{2019}s speech "
                          + "services are never counted as calls.")
         }
     }

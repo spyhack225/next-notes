@@ -162,7 +162,7 @@ final class Notifications {
 
     /// "Recording <title> in a minute", with Record now / Skip.
     /// - Parameter body: overrides the countdown sentence. A detected call has no lead time
-    ///   to count down — it is already happening — so "Speechify is about to start
+    ///   to count down — it is already happening — so "Next Notes is about to start
     ///   recording" would be both wrong and, given the default is to ask, a promise the app
     ///   is not making.
     func postMeetingArmed(meeting: Meeting, startsAt start: Date, body: String? = nil) {
@@ -189,7 +189,7 @@ final class Notifications {
         post(content, identifier: "meeting-notes-\(meeting.id.uuidString)")
     }
 
-    /// "Speechify would like to send this", with Approve / Dismiss.
+    /// "Next Notes would like to send this", with Approve / Dismiss.
     ///
     /// Carries the proposal's id rather than the meeting's, because two proposals for one
     /// meeting are the normal case and the buttons have to answer one of them. The meeting
@@ -250,10 +250,10 @@ final class Notifications {
 
     private static func leadDescription(until start: Date) -> String {
         let seconds = start.timeIntervalSinceNow
-        if seconds <= 5 { return "Speechify is about to start recording." }
+        if seconds <= 5 { return "Next Notes is about to start recording." }
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
-        return "Speechify will start recording \(formatter.localizedString(for: start, relativeTo: Date()))."
+        return "Next Notes will start recording \(formatter.localizedString(for: start, relativeTo: Date()))."
     }
 
     /// `UNUserNotificationCenter.current()` traps in a process without a bundle identifier
@@ -300,7 +300,7 @@ private final class NotificationRouter: NSObject, UNUserNotificationCenterDelega
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        // Shown even when Speechify is frontmost: the user is usually looking at the
+        // Shown even when Next Notes is frontmost: the user is usually looking at the
         // conferencing app, and "frontmost" is not the same as "watching this window".
         completionHandler([.banner, .sound])
     }

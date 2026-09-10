@@ -52,7 +52,6 @@ struct DictationView: View {
 
             DictationStatusBand(
                 state: controller.state,
-                level: controller.level,
                 elapsed: elapsed,
                 holdKey: settings.pushToTalkKey.displayName,
                 // The empty state below is already drawing the screen's orb, and it is
@@ -303,7 +302,7 @@ private struct AccessibilityNotice: View {
 
 /// The rules the dictation list's selection follows.
 ///
-/// Lifted out of the view so they can be asserted headlessly. Speechify cannot be driven by
+/// Lifted out of the view so they can be asserted headlessly. Next Notes cannot be driven by
 /// UI automation on this machine, so "clicking two rows and pressing delete removes exactly
 /// those two" is not something a test can perform — but every rule that decision rests on is
 /// a pure function, and those are checked by `--selftest-dictation`.

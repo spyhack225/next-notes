@@ -94,7 +94,7 @@ final class AgentService {
     /// How long a probe's answer is trusted before another one is worth spawning.
     ///
     /// Every probe is two `gws` subprocesses, and the callers are a `.task` and an
-    /// app-activation notification — so alt-tabbing between Speechify and System Settings,
+    /// app-activation notification — so alt-tabbing between Next Notes and System Settings,
     /// which is exactly what setting the agent up involves, spawned a pair per switch. The
     /// answer only changes when the user does something in Terminal, and `force` covers
     /// the case where they just did.
@@ -106,7 +106,7 @@ final class AgentService {
     ///
     /// Called when a step that changes the answer is launched — installing, setting up a
     /// client, signing in. Those all finish in Terminal, and the user comes back to
-    /// Speechify afterwards, which is the activation that must not be served from cache.
+    /// Next Notes afterwards, which is the activation that must not be served from cache.
     func invalidateStatus() {
         lastProbe = nil
     }

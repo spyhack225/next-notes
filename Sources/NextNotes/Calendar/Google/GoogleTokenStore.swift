@@ -11,7 +11,7 @@ import Security
 /// Access tokens are never stored. They last an hour, and asking for a new one costs one
 /// HTTP round trip against a token the Keychain already holds.
 enum GoogleTokenStore {
-    static let service = "ai.pivotstudio.speechify.google"
+    static let service = "ai.pivotstudio.nextnotes.google"
     private static let account = "refresh-token"
 
     static var hasRefreshToken: Bool { refreshToken != nil }
