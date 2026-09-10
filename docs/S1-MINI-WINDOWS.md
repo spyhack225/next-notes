@@ -3,7 +3,7 @@
 ## Recommendation
 
 Use **S1-mini by Superwhisper** as an optional local cleanup engine after Parakeet and before
-Speechify's deterministic dictionary correction pass:
+Next Notes' deterministic dictionary correction pass:
 
 ```text
 microphone -> Parakeet ASR -> S1-mini cleanup -> dictionary corrections -> SendInput
@@ -23,8 +23,8 @@ be described as working until it also receives a real-hardware pass.
 
 The official GGUF build supports llama.cpp on Windows. A production integration should embed
 llama.cpp (directly or through maintained .NET bindings) behind a platform-neutral formatter
-interface in `Speechify.Core`/`Speechify.Speech`; do not put orchestration or retries in
-`Speechify.Platform.Windows`. A command-line or localhost-server prototype is useful for
+interface in `NextNotes.Core`/`NextNotes.Speech`; do not put orchestration or retries in
+`NextNotes.Platform.Windows`. A command-line or localhost-server prototype is useful for
 measuring latency and memory, but it should not be the final shipping architecture.
 
 The model's required request format is load-bearing:
@@ -39,7 +39,7 @@ The model's required request format is load-bearing:
 ## Product controls
 
 S1-mini v1 exposes four styling values: `casual`, `semi-casual`, `semi-formal`, and `formal`.
-It does **not** expose a distinct `balanced` value. If Speechify presents a five-position
+It does **not** expose a distinct `balanced` value. If Next Notes presents a five-position
 slider, “balanced” can only alias `semi-formal`; it would not be a fifth model behavior. Four
 honest presets are preferable until a model revision adds another trained value.
 
@@ -48,7 +48,7 @@ clear enumerations of at least three items. `Context` accepts `general` or `emai
 formats greeting, body, and sign-off blocks. S1-mini also resolves filler, false starts,
 spoken self-corrections, punctuation, casing, numbers, dates, currency, and email addresses.
 
-Speechify's existing correction dictionary must remain the final pass. S1-mini makes a
+Next Notes' existing correction dictionary must remain the final pass. S1-mini makes a
 probabilistic cleanup; dictionary mappings are the cross-platform deterministic contract in
 `shared/dictionary-test-vectors.json`.
 
