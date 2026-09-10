@@ -30,6 +30,7 @@ struct SettingsWindow: View {
         switch tab {
         case .general: GeneralSettingsTab(controller: controller)
         case .dictation: DictationSettingsTab()
+        case .formatting: FormattingSettingsTab()
         case .meetings: MeetingsSettingsTab()
         case .calendar: CalendarSettingsTab()
         case .workspace: WorkspaceSettingsTab()
@@ -46,6 +47,7 @@ struct SettingsWindow: View {
 enum SettingsTab: String, CaseIterable, Identifiable {
     case general
     case dictation
+    case formatting
     case meetings
     case calendar
     case workspace
@@ -58,6 +60,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         switch self {
         case .general: "General"
         case .dictation: "Dictation"
+        case .formatting: "Formatting"
         case .meetings: "Meetings"
         case .calendar: "Calendar"
         case .workspace: "Workspace"
@@ -70,6 +73,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         switch self {
         case .general: "gearshape"
         case .dictation: "waveform"
+        case .formatting: "text.alignleft"
         case .meetings: SidebarSection.meetings.systemImage
         case .calendar: "calendar"
         case .workspace: "point.3.connected.trianglepath.dotted"
