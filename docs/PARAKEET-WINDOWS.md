@@ -37,7 +37,7 @@ speed; v3 simply carries a larger vocabulary.
 ## Where the files go
 
 ```
-%LOCALAPPDATA%\Speechify\models\parakeet-v2\
+%LOCALAPPDATA%\NextNotes\models\parakeet-v2\
     encoder.int8.onnx     ~652 MB
     decoder.int8.onnx     ~7 MB
     joiner.int8.onnx      ~1.7 MB
@@ -57,7 +57,7 @@ Settings → Model shows the resolved path and whether the files were found.
 Nothing to install. Paste this into PowerShell:
 
 ```powershell
-$dir = "$env:LOCALAPPDATA\Speechify\models\parakeet-v2"
+$dir = "$env:LOCALAPPDATA\NextNotes\models\parakeet-v2"
 $base = "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8/resolve/main"
 
 New-Item -ItemType Directory -Force $dir | Out-Null
@@ -99,7 +99,7 @@ pip install -U "huggingface_hub[cli]"
 
 hf download csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8 `
   --include "encoder.int8.onnx" "decoder.int8.onnx" "joiner.int8.onnx" "tokens.txt" `
-  --local-dir "$env:LOCALAPPDATA\Speechify\models\parakeet-v2"
+  --local-dir "$env:LOCALAPPDATA\NextNotes\models\parakeet-v2"
 ```
 
 **No Hugging Face token is required.** These repositories are public. If you are prompted to
@@ -122,7 +122,7 @@ already have `git-lfs`; otherwise use Option A.
 ## Verifying it worked
 
 ```powershell
-$dir = "$env:LOCALAPPDATA\Speechify\models\parakeet-v2"
+$dir = "$env:LOCALAPPDATA\NextNotes\models\parakeet-v2"
 $expect = @{
   "encoder.int8.onnx" = 652183000    # ±1 MB; exact size differs slightly between v2 and v3
   "decoder.int8.onnx" = 7257753
@@ -242,7 +242,7 @@ Minimum to reproduce a working setup:
 ```
 Repo:    csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8   (HuggingFace, public, no token)
 Files:   encoder.int8.onnx, decoder.int8.onnx, joiner.int8.onnx, tokens.txt
-Target:  %LOCALAPPDATA%\Speechify\models\parakeet-v2\
+Target:  %LOCALAPPDATA%\NextNotes\models\parakeet-v2\
 NuGet:   org.k2fsa.sherpa.onnx 1.13.5
          org.k2fsa.sherpa.onnx.runtime.win-x64 1.13.5   (or .win-arm64)
 ```

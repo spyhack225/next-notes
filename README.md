@@ -1,4 +1,4 @@
-# Speechify
+# Next Notes
 
 Push-to-talk dictation for macOS. Hold a key, talk, release — cleaned-up text lands in
 whatever text field has focus. A Wispr Flow-shaped app, built native and fully on-device.
@@ -15,7 +15,7 @@ this Mac; the only network traffic is a model download, your own calendar, and a
 action you approved. The Windows app builds and is exercised in CI, but has not yet been
 used for a real microphone/key/injection session on Windows hardware.
 
-**Meetings record themselves by default.** Once Calendar access is granted, Speechify reads
+**Meetings record themselves by default.** Once Calendar access is granted, Next Notes reads
 your calendars (Apple Calendar through EventKit, and optionally Google Calendar through its
 API), and any event that looks like a real meeting — a conference link or at least one other
 attendee, not all-day, not declined — is armed a minute before it starts and recorded when
@@ -27,7 +27,7 @@ beside it). Turn that off and meetings only record when you press the button.
 **A call nobody put on a calendar arms the same card.** Core Audio's process list says which
 processes hold the microphone and the speakers at once, which is what separates a call from
 dictation (microphone only) and from watching a video (speakers only). When one settles,
-Speechify raises the same armed card a calendar meeting raises — **Record now** and **Skip**,
+Next Notes raises the same armed card a calendar meeting raises — **Record now** and **Skip**,
 under the notch and in a notification — and records nothing until it is answered. Settings ▸
 Meetings ▸ **Calls** holds the switch (*Notice when I'm on a call*) and the choice between
 *Ask before recording* and *Start recording*; asking is the default on purpose, because a
@@ -49,11 +49,12 @@ notes and propose what to do about them. Each stage has its own status in the me
 (*Identifying speakers*, *Writing notes*), so the Record button comes back long before the
 Notes tab fills in.
 
-**The island.** On a MacBook with a notch, Speechify's status lives in a small card hugging
-it — what is being dictated, a meeting about to start with **Record now** / **Skip**, the
-elapsed recording, notes being written, and an agent proposal with **Approve** / **Dismiss**.
-Hover expands it. On a display without a notch it is a floating capsule under the menu bar,
-and Settings ▸ Dictation can put dictation back on the old bottom-of-screen HUD instead.
+**The island.** On a MacBook with a notch, the Next Notes status lives in a small card
+hugging it — what is being dictated, a meeting about to start with **Record now** /
+**Skip**, the elapsed recording, notes being written, and an agent proposal with
+**Approve** / **Dismiss**. Hover expands it. On a display without a notch it is a floating
+capsule under the menu bar, and Settings ▸ Dictation can put dictation back on the old
+bottom-of-screen HUD instead.
 
 ---
 
@@ -62,11 +63,12 @@ and Settings ▸ Dictation can put dictation back on the old bottom-of-screen HU
 This app is built to run alongside other dictation tools without colliding with them, which
 is not automatic on macOS and is worth understanding before changing anything:
 
-- **Bundle ID `ai.pivotstudio.speechify`** — TCC keys Accessibility and Microphone
+- **Bundle ID `ai.pivotstudio.nextnotes`** — TCC keys Accessibility and Microphone
   grants to the bundle ID, so granting or revoking a permission here has no effect on any
   other app, and vice versa.
-- **Executable `Speechify`** — distinct enough that `pkill -x Speechify` cannot
-  match a differently-named binary. The `Makefile` only ever targets `$(EXEC)`.
+- **Executable `NextNotes`** — one word, no space, so `pkill -x NextNotes` matches this
+  binary and nothing else. The bundle is `Next Notes.app`; only the binary inside it is
+  spelled as one word. The `Makefile` only ever targets `$(EXEC)`.
 - **Hotkey is configurable** (Right ⌥ / fn / Right ⌘) precisely because another tool may
   already own the key you'd reach for first. The event tap inspects only its own keycode
   and passes everything else through untouched.
@@ -96,9 +98,9 @@ Audio Recording is the odd one out: there is no API to ask whether it was grante
 tap without it succeeds and returns pure silence rather than an error. So the Permissions
 checklist shows that row as unanswerable, and a flat "Others" meter during a meeting is the
 only symptom you will get. `--selftest-systemaudio` reports `SYSTEM_AUDIO_SILENT` for the
-same reason, and `tccutil reset AudioCapture ai.pivotstudio.speechify` resets that one row.
+same reason, and `tccutil reset AudioCapture ai.pivotstudio.nextnotes` resets that one row.
 
-Restart Speechify after granting Accessibility. Then hold **Right ⌥** and talk.
+Restart Next Notes after granting Accessibility. Then hold **Right ⌥** and talk.
 
 ### How rebuilds affect grants
 
@@ -109,14 +111,14 @@ reported untrusted, and flipping it changes nothing because the stale row is the
 
 The `Makefile` auto-detects a stable Developer ID through `security find-identity` and falls
 back to ad-hoc signing. Developer ID builds retain their grants across rebuilds. Ad-hoc builds
-need a fresh Accessibility grant after each rebuild; Speechify now detects that the event tap
+need a fresh Accessibility grant after each rebuild; Next Notes now detects that the event tap
 did not arm, shows the repair action, and retries automatically after the grant is restored.
 
 If a grant ever does get wedged, reset that one row and re-add — never toggle:
 
 ```bash
-tccutil reset Accessibility ai.pivotstudio.speechify
-tccutil reset Microphone   ai.pivotstudio.speechify
+tccutil reset Accessibility ai.pivotstudio.nextnotes
+tccutil reset Microphone   ai.pivotstudio.nextnotes
 ```
 
 Always pass the bundle ID. A bare `tccutil reset Accessibility` wipes **every** app on the
@@ -198,8 +200,8 @@ text editing can change providers without rewiring capture or injection.
 ### Layout
 
 ```
-Sources/Speechify/
-├── SpeechifyApp.swift              @main, AppDelegate, MenuBarExtra
+Sources/NextNotes/
+├── NextNotesApp.swift              @main, AppDelegate, MenuBarExtra
 ├── Core/
 │   ├── DictationController.swift   state machine, wires everything
 │   ├── HotkeyMonitor.swift         CGEventTap on .flagsChanged
@@ -293,22 +295,22 @@ Each flag runs one thing and exits, so a subsystem can be answered from a termin
 of by using the app. Run them from the installed bundle:
 
 ```bash
-S=/Applications/Speechify.app/Contents/MacOS/Speechify
+S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 
-$S --selftest-s1                    # S1-mini cleanup through the shared llama.cpp backend
-$S --selftest-parakeet              # Parakeet loads and transcribes a silent second
-$S --selftest-systemaudio           # 3 s process tap: frames, format, peak, RMS
-$S --selftest-transcribe <wav>      # WAV → ChunkedTranscriber → segments JSON + RTF
-$S --selftest-calendar              # provider states, deduped events, auto-record rules
-$S --selftest-notes <wav> [--diarize]   # transcribe → notes; prints tok/s and peak RSS
-$S --selftest-llm-metal             # a Metal runtime and a CPU runtime in one process
-$S --selftest-calls                 # who holds mic + speakers now, and every CallPolicy rule
-#                                     including arming: correlation, the grant guard, ask-first
-$S --selftest-island                # island geometry per display, panel invariants, states
-$S --selftest-orb                   # the four ThinkingOrb modes at both sizes
-$S --selftest-gws                   # locate `gws`, read its version and auth state
-$S --selftest-agent <meeting-dir>   # proposals as JSON; executes nothing
-$S --selftest-dictation             # every way a hold can go wrong still ends at idle
+"$S" --selftest-s1                      # S1-mini cleanup through the shared llama.cpp backend
+"$S" --selftest-parakeet                # Parakeet loads and transcribes a silent second
+"$S" --selftest-systemaudio             # 3 s process tap: frames, format, peak, RMS
+"$S" --selftest-transcribe <wav>        # WAV → ChunkedTranscriber → segments JSON + RTF
+"$S" --selftest-calendar                # provider states, deduped events, auto-record rules
+"$S" --selftest-notes <wav> [--diarize] # transcribe → notes; prints tok/s and peak RSS
+"$S" --selftest-llm-metal               # a Metal runtime and a CPU runtime in one process
+"$S" --selftest-calls                   # who holds mic + speakers now, and every CallPolicy rule
+#                                         including arming: correlation, the grant guard, ask-first
+"$S" --selftest-island                  # island geometry per display, panel invariants, states
+"$S" --selftest-orb                     # the four ThinkingOrb modes at both sizes
+"$S" --selftest-gws                     # locate `gws`, read its version and auth state
+"$S" --selftest-agent <meeting-dir>     # proposals as JSON; executes nothing
+"$S" --selftest-dictation               # every way a hold can go wrong still ends at idle
 ```
 
 Each prints a single `<NAME>_OK` or `<NAME>_FAILED` line last, so they can be read by a
@@ -338,7 +340,7 @@ real calendars, so a test can't record something that is actually happening.
 
 ## Meetings
 
-A meeting is a directory under `~/Library/Application Support/Speechify/Meetings/<uuid>/`
+A meeting is a directory under `~/Library/Application Support/Next Notes/Meetings/<uuid>/`
 holding `meeting.json`, `transcript.json`, `notes.md`, `proposals.json` and — while one is
 needed — `audio.caf`. Nothing about a meeting lives only in memory, which is what lets the
 app be quit in the middle of one and repair it at the next launch.
@@ -406,7 +408,7 @@ dependency, no bundled model, no cloud path, real streaming with `.volatileResul
 text appears while you're still talking. The OS downloads and manages model assets, so the
 first run for a locale may pause on `AssetInstallationRequest`.
 
-The other built-in choice is **Parakeet v3** via FluidAudio and CoreML. Speechify validates
+The other built-in choice is **Parakeet v3** via FluidAudio and CoreML. Next Notes validates
 every required model artifact before marking it ready and prepares it when selected. The
 encoder currently uses deterministic CPU placement because accelerator compilation can
 stall or wedge on macOS 26.
@@ -427,7 +429,7 @@ Both engines feed the same cleanup, dictionary, history, and injection pipeline.
   fixes spacing, capitalizes sentences, and adds terminal punctuation.
 - **On-device cleanup** is selectable in Settings. Apple's Foundation Models formatter
   handles false starts, spoken self-corrections, paragraphing, and list formatting. S1-mini
-  by Superwhisper is an embedded open-weight transcript normalizer; Speechify downloads its
+  by Superwhisper is an embedded open-weight transcript normalizer; Next Notes downloads its
   462 MiB Q4 model once, verifies its SHA-256 digest, and runs it through the bundled
   llama.cpp runtime with no network request during formatting. Both fall back to the
   deterministic pass when unavailable or unsuccessful.
@@ -439,7 +441,7 @@ Both engines feed the same cleanup, dictionary, history, and injection pipeline.
   deterministically after cleanup on both macOS and Windows. This implements names and short
   jargon; pronunciation-trained `SFCustomLanguageModelData` models are not built.
 - **Command Mode** is opt-in. Select editable text, hold its independently configured second
-  hotkey, and speak an instruction such as "make this more formal." Speechify snapshots the
+  hotkey, and speak an instruction such as "make this more formal." Next Notes snapshots the
   AX selection, applies the instruction with Apple's on-device model, and replaces it only if
   focus and selection are unchanged. A timeout/model failure leaves the source text intact.
 
@@ -454,9 +456,10 @@ whose `source_dir` is `docs`, with `deploy_on_push` on `main` and **no build com
 own** — it serves the committed `docs/` verbatim. That is why the build output has to be in
 version control: it is not a convenience, it is the deployed artifact. It is also why
 `npm run deploy` finishes by polling <https://next-notes.com> rather than a Pages URL.
-`doctl apps list-deployments e2366c03-b11d-4c56-8d07-fdea08b21cdc` shows what shipped. GitHub Pages is still switched on for this
-repository and still serves an old copy at `spyhack225.github.io/speechify-site/`; that URL is
-not production and can be ignored or turned off.
+`doctl apps list-deployments e2366c03-b11d-4c56-8d07-fdea08b21cdc` shows what shipped.
+GitHub Pages is still switched on for this repository and still serves an old copy at
+`spyhack225.github.io/speechify-site/` — the repository itself has not been renamed yet. That
+URL is not production and can be ignored or turned off.
 
 ```bash
 cd site && npm install     # once
@@ -475,9 +478,9 @@ optional message — `npm run deploy -- "Rewrite the hero"` — and it:
 5. pushes;
 6. fetches the live page and waits until it serves the bundle just built.
 
-Step 6 is the point. A push is not a deployment: Pages rebuilds asynchronously and takes up
-to a minute, so the only honest confirmation is the live URL serving the new hash. The
-script exits non-zero if it never does.
+Step 6 is the point. A push is not a deployment: App Platform rebuilds asynchronously and
+takes a minute or two, so the only honest confirmation is the live URL serving the new hash.
+The script exits non-zero if it never does.
 
 **Asset paths are relative (`base: "./"`), and must stay that way** unless you are certain
 the site will only ever be served from a domain root. An absolute `/` base 404s every asset
@@ -487,21 +490,22 @@ both places.
 
 **Where the build goes, and why it is committed.** `docs/` is build output, tracked on
 purpose. Editing it by hand works right up until the next build silently discards the change
-— edit `site/src/` instead. Publishing is a commit, not a CI run: Pages is set to *Deploy
-from a branch*, `main`, `/docs`. No workflow, no Actions minutes, and whatever was previewed
-locally is byte-for-byte what ships. The two workflows in `.github/workflows/` build the
-macOS and Windows apps and have nothing to do with the site.
+— edit `site/src/` instead. Publishing is a commit, not a CI run: App Platform watches
+`main` and republishes `docs/` exactly as committed. No workflow, no Actions minutes, and
+whatever was previewed locally is byte-for-byte what ships. The two workflows in
+`.github/workflows/` build the macOS and Windows apps and have nothing to do with the site.
 
 The cost of that choice is build output in version control, which makes diffs noisy. The
 benefit is that a deploy can be verified locally before it ships, and there is no CI to be
 broken by something unrelated.
 
-Two details in `site/vite.config.ts` that look like oversights and are not. `base` is
-`/speechify-site/` because the site is served from a repository subpath, not a domain root.
-And `emptyOutDir` is **false**: `docs/` also holds `PARAKEET-WINDOWS.md` and
-`S1-MINI-WINDOWS.md`, which are linked from this file, `AGENTS.md` and `windows/README.md`,
-so wiping the directory would delete them and break four links. The build script clears
-`docs/assets` instead, which is the only part that accumulates stale hashed bundles.
+Two details in `site/vite.config.ts` that look like oversights and are not. `base` is `"./"`
+and not `/` for the reason just given — next-notes.com is a domain root, but the same build
+still has to work under the old Pages subpath. And `emptyOutDir` is **false**: `docs/` also
+holds `PARAKEET-WINDOWS.md` and `S1-MINI-WINDOWS.md`, which are linked from this file,
+`AGENTS.md` and `windows/README.md`, so wiping the directory would delete them and break
+four links. The build script clears `docs/assets` instead, which is the only part that
+accumulates stale hashed bundles.
 
 The orb on the page is not a picture. `site/src/components/Orb.tsx` is the `listening`
 geometry ported from `OrbGeometry.swift` with the same preset resolved at the same size, so
@@ -546,7 +550,7 @@ had the one real thing it needs:
 
 Driven with a synthetic Right ⌥ hold (`scratchpad/ptt/ptt2.swift` posts `flagsChanged`
 events) and confirmed via `/usr/bin/log show --predicate 'subsystem ==
-"ai.pivotstudio.speechify"'`:
+"ai.pivotstudio.nextnotes"'`:
 
 - Builds clean under Swift 6 strict concurrency.
 - Signs with Developer ID when one is installed. Ad-hoc development builds require a fresh

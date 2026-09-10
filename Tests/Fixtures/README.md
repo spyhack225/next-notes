@@ -20,4 +20,4 @@ done
 
 and concatenate the parts with 0.8 s of silence between them.
 
-Used by `Speechify --selftest-transcribe Tests/Fixtures/meeting-2min.wav`.
+Used by `NextNotes --selftest-transcribe Tests/Fixtures/meeting-2min.wav`.
