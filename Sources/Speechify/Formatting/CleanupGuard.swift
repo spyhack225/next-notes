@@ -306,13 +306,49 @@ enum CleanupGuard {
     // MARK: - Tokens
 
     /// Lowercased alphanumeric words, minus the function words that a cleanup pass
-    /// legitimately shuffles. Contractions are split so "isn't" matches "isn t".
+    /// legitimately shuffles.
+    ///
+    /// Contractions are expanded first, not merely split on. Splitting turns "hasn't" into
+    /// "hasn" + "t", and "hasn" matches nothing in a transcript that said "has not" — so
+    /// contracting a phrase, which is exactly the kind of repair this formatter exists to
+    /// make, was rejected as an invented word. Measured: the C13 eval case produced a
+    /// perfectly good rewrite and the guard threw it away over "hasn".
     static func contentWords(_ text: String, mode: Mode) -> [String] {
         let ignored = stopWords(for: mode)
-        return text.lowercased()
+        return expandContractions(text.lowercased())
             .split { !$0.isLetter && !$0.isNumber }
             .map(String.init)
             .filter { !ignored.contains($0) }
+    }
+
+    /// Rewrites contractions into the words they stand for, so a contracted form and a
+    /// spoken-out form tokenize the same way.
+    ///
+    /// The irregular three come first: "won't" is not "wo" + not, and "can't" is one word
+    /// with the "n" shared. Everything after that is the regular suffix set. The possessive
+    /// "'s" is dropped rather than expanded, because it is genuinely ambiguous — "it's" is
+    /// "it is" and "sarah's" is neither — and a stray "s" token would look invented.
+    static func expandContractions(_ text: String) -> String {
+        var result = text.replacingOccurrences(of: "\u{2019}", with: "'")
+        for (contraction, expansion) in [
+            ("won't", "will not"),
+            ("can't", "can not"),
+            ("shan't", "shall not"),
+        ] {
+            result = result.replacingOccurrences(of: contraction, with: expansion)
+        }
+        for (suffix, expansion) in [
+            ("n't", " not"),
+            ("'ll", " will"),
+            ("'re", " are"),
+            ("'ve", " have"),
+            ("'m", " am"),
+            ("'d", " would"),
+            ("'s", ""),
+        ] {
+            result = result.replacingOccurrences(of: suffix, with: expansion)
+        }
+        return result
     }
 
     private static func counts(_ words: [String]) -> [String: Int] {

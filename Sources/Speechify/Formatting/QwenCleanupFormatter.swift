@@ -89,30 +89,37 @@ struct QwenCleanupFormatter: TextFormatter {
         }
     }
 
-    /// Announced to `LlamaBackend` the way `S1MiniRuntime.normalize` is, so a meeting that
-    /// ends mid-dictation doesn't start loading a second copy of the weights underneath it.
+    /// Deliberately does NOT announce itself to `LlamaBackend`'s cleanup gate.
+    ///
+    /// It did, by analogy with `S1MiniRuntime.normalize`, and it deadlocked on the first
+    /// call — the process sat for three hours on 2 seconds of CPU, holding 29 MB against a
+    /// 2.74 GB model it never loaded.
+    ///
+    /// The gate is one-directional by design: the notes model waits for dictation cleanup to
+    /// finish before loading, so two different sets of weights never load at once on a 16 GB
+    /// machine. `NotesModelRuntime.loadIfNeeded` calls `awaitCleanupIdle()`. So calling
+    /// `beginCleanup()` here and then asking that same runtime to complete closed the cycle:
+    /// the load waited for a cleanup count that only `endCleanup()` clears, and `endCleanup()`
+    /// runs after the load returns.
+    ///
+    /// There is nothing for the gate to protect here anyway. It exists to keep *two different
+    /// models* off the memory bus simultaneously, and this cleanup is the notes model — the
+    /// same weights, behind the same actor, which already serialises them.
     static func generate(
         _ text: String,
         preferences: CleanupPreferences,
         fixesGrammar: Bool
     ) async throws -> String {
-        await LlamaBackend.shared.beginCleanup()
-        do {
-            let completion = try await NotesModelRuntime.shared.complete(
-                system: CleanupInstructions.system(for: preferences, fixesGrammar: fixesGrammar),
-                user: CleanupInstructions.user(text, fixesGrammar: fixesGrammar),
-                // Cleanup is never much longer than what was said. Budgeted from the input
-                // rather than fixed, so a five-word utterance can't spend a thousand tokens
-                // wandering — and clamped, because the guard's length rule would throw away
-                // anything that ran that far anyway.
-                maxTokens: maxTokens(for: text)
-            )
-            await LlamaBackend.shared.endCleanup()
-            return completion.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        } catch {
-            await LlamaBackend.shared.endCleanup()
-            throw error
-        }
+        let completion = try await NotesModelRuntime.shared.complete(
+            system: CleanupInstructions.system(for: preferences, fixesGrammar: fixesGrammar),
+            user: CleanupInstructions.user(text, fixesGrammar: fixesGrammar),
+            // Cleanup is never much longer than what was said. Budgeted from the input
+            // rather than fixed, so a five-word utterance can't spend a thousand tokens
+            // wandering — and clamped, because the guard's length rule would throw away
+            // anything that ran that far anyway.
+            maxTokens: maxTokens(for: text)
+        )
+        return completion.text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Roughly two tokens per spoken word, doubled for headroom, floor 64, ceiling 1200.
