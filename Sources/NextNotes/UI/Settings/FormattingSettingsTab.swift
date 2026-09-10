@@ -39,7 +39,7 @@ struct FormattingSettingsTab: View {
             Divider()
 
             HStack {
-                Button("Add apps Speechify knows about") { store.addMissingDefaults() }
+                Button("Add apps Next Notes knows about") { store.addMissingDefaults() }
                     .help("Puts back any built-in app you have removed. Your own rows and "
                           + "your edits are left alone.")
                 Spacer()
@@ -145,9 +145,9 @@ struct FormattingSettingsTab: View {
     /// One click for the app the user was in a moment ago.
     ///
     /// Far kinder than asking anyone to find a bundle identifier, and it is the reason the
-    /// store tracks app activations: by the time this window is open Speechify is itself
+    /// store tracks app activations: by the time this window is open Next Notes is itself
     /// the frontmost app, so asking the workspace right now would only ever answer
-    /// "Speechify".
+    /// "Next Notes".
     @ViewBuilder
     private var addFrontmostButton: some View {
         if let app = store.lastForeignApp {

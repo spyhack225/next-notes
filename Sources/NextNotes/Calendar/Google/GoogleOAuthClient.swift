@@ -210,7 +210,7 @@ enum GoogleOAuthClient {
 /// callbacks on a dispatch queue, and the continuation they resume has to be reachable
 /// from there without an `await`.
 private final class LoopbackCallbackListener: @unchecked Sendable {
-    private let queue = DispatchQueue(label: "ai.pivotstudio.speechify.oauth-callback")
+    private let queue = DispatchQueue(label: "ai.pivotstudio.nextnotes.oauth-callback")
     private let lock = NSLock()
     private var listener: NWListener?
     private var connections: [NWConnection] = []
@@ -402,10 +402,10 @@ private final class LoopbackCallbackListener: @unchecked Sendable {
     }
 
     private func reply(on connection: NWConnection, success: Bool) {
-        let title = success ? "Speechify is connected" : "Sign-in didn’t finish"
+        let title = success ? "Next Notes is connected" : "Sign-in didn’t finish"
         let body = success
-            ? "You can close this tab and go back to Speechify."
-            : "Nothing was connected. Try again from Speechify’s Calendar settings."
+            ? "You can close this tab and go back to Next Notes."
+            : "Nothing was connected. Try again from Next Notes’ Calendar settings."
         let html = """
             <!doctype html><html><head><meta charset="utf-8"><title>\(title)</title></head>\
             <body style="font-family:-apple-system,system-ui,sans-serif;text-align:center;padding:4rem">\

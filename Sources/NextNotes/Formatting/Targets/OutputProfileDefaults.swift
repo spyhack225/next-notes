@@ -1,10 +1,10 @@
 import Foundation
 
-/// The table Speechify ships with, seeded into `formatting.txt` on first launch.
+/// The table Next Notes ships with, seeded into `formatting.txt` on first launch.
 ///
 /// ## How these were decided
 ///
-/// The test applied to every cell: **when text is inserted the way Speechify inserts it,
+/// The test applied to every cell: **when text is inserted the way Next Notes inserts it,
 /// does that mark help the person who reads the result, or does it show up as noise?**
 ///
 /// That splits into two questions, and both matter:

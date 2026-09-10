@@ -280,7 +280,7 @@ final class CallDetector {
     /// Core Audio calls listeners on this queue; each one immediately hops to the main actor,
     /// so nothing but the hop happens here.
     private static let listenerQueue = DispatchQueue(
-        label: "ai.pivotstudio.speechify.calls",
+        label: "ai.pivotstudio.nextnotes.calls",
         qos: .utility
     )
 

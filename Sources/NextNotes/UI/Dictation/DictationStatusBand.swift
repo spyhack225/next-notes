@@ -3,19 +3,20 @@ import SwiftUI
 /// The strip above the transcription list that answers, from across the desk, whether this
 /// thing is recording.
 ///
-/// Three questions get three separate answers, and keeping them separate is the point: the
-/// orb says which kind of work is running, the red dot says it is being recorded, and the
-/// needle says the microphone is actually receiving something. An orb runs on a clock
-/// rather than on the signal, so on its own it would keep dancing over a muted input and
-/// answer the third question with a confident yes — which is the same reason the HUD sets
-/// all three side by side instead of letting the orb stand for the lot.
+/// Two questions get two separate answers: the orb says which kind of work is running, and
+/// the red dot says it is being recorded.
+///
+/// It used to answer a third — a VU needle saying the microphone was actually receiving
+/// something — and that was a real signal, because an orb runs on a clock rather than on the
+/// input and will keep dancing over a muted mic. The needle went because it was the last of
+/// the old instrument-panel design left on this screen and read as borrowed from a different
+/// app. The HUD still sets level beside the orb for anyone who needs it while dictating.
 ///
 /// The dotted field behind it is the landing page's texture, faded from the top so the band
 /// settles into the list rather than sitting on it as a panel. It is drawn once and never
 /// animates; the only moving things here are the orb, the dot and the needle.
 struct DictationStatusBand: View {
     let state: DictationController.State
-    let level: Float
     /// Seconds since the hold began. Owned by the view above, because the key works from
     /// every section and a recording can therefore already be running when this appears.
     let elapsed: TimeInterval
@@ -45,18 +46,14 @@ struct DictationStatusBand: View {
             }
 
             Spacer(minLength: DS.Space.m)
-
-            // The one instrument in the app that has to be readable across a room, which is
-            // why it is here at full size rather than as a bar in the toolbar.
-            LevelMeter(level: level, isActive: isRecording)
-                .frame(width: DS.Size.meter.width, height: DS.Size.meter.height)
         }
         .padding(.horizontal, DS.Space.l)
         .padding(.vertical, DS.Space.m)
+        .frame(minHeight: DS.Size.statusBandMinHeight)
         .frame(maxWidth: .infinity, alignment: .leading)
         .dottedField(opacity: DS.Opacity.fieldFaint, fade: .top)
-        // Only the words cross-fade. The orb, the dot and the needle each run their own
-        // clock, and a transition laid over the lot would fight all three.
+        // Only the words cross-fade. The orb and the dot each run their own clock, and a
+        // transition laid over both would fight them.
         .animation(DS.Motion.reveal, value: state)
     }
 

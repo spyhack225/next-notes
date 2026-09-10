@@ -11,7 +11,7 @@ struct PermissionsSettingsTab: View {
                 PermissionsChecklist()
             } footer: {
                 SettingsNote(text: "Grants are tied to this build's code signature. "
-                             + "Reinstalling Speechify can reset them.")
+                             + "Reinstalling Next Notes can reset them.")
             }
         }
         .formStyle(.grouped)

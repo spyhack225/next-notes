@@ -3,7 +3,7 @@ import Observation
 
 /// Every recorded meeting on disk, and the one in-memory list the UI observes.
 ///
-/// One directory per meeting under `Application Support/Speechify/Meetings/<uuid>/`:
+/// One directory per meeting under `Application Support/Next Notes/Meetings/<uuid>/`:
 ///
 /// ```
 /// meeting.json     the small record; the only file this store keeps in memory
@@ -98,7 +98,7 @@ final class MeetingStore {
             let hadTranscript = meeting.status == .diarizing || meeting.status == .summarizing
             repaired.status = hadTranscript
                 ? .done
-                : .failed("Speechify quit while this meeting was recording.")
+                : .failed("Next Notes quit while this meeting was recording.")
             if repaired.end == nil { repaired.end = Date() }
             save(repaired)
             // A meeting repaired to done is finished, and nothing will run on it again:

@@ -4,7 +4,7 @@ import ApplicationServices
 import EventKit
 import Foundation
 
-/// Every grant Speechify can ask for, and where to send the user when it can't ask.
+/// Every grant Next Notes can ask for, and where to send the user when it can't ask.
 ///
 /// - **Microphone** — dictation and the "you" track of a meeting.
 /// - **Accessibility** — the `CGEventTap` hotkey and the AX text insert. No programmatic
@@ -130,7 +130,7 @@ enum Permissions {
 
     /// `Privacy_ScreenCapture`, not `Privacy_AudioCapture`. The grant lives in the combined
     /// "Screen & System Audio Recording" pane, which is the screen-capture anchor; the audio
-    /// one lands on a page that does not list Speechify at all.
+    /// one lands on a page that does not list Next Notes at all.
     static func openSystemAudioSettings() {
         open("Privacy_ScreenCapture")
     }

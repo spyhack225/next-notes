@@ -82,7 +82,7 @@ struct MeetingsView: View {
 
     private var live: Meeting? { controller.session?.meeting }
 
-    /// What the calendar says is coming, whether or not Speechify has claimed it yet.
+    /// What the calendar says is coming, whether or not Next Notes has claimed it yet.
     private var upcomingEvents: [MeetingEvent] {
         let now = Date()
         return calendar.upcoming.filter { event in
@@ -358,7 +358,7 @@ private struct UpcomingEventRow: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: DS.Space.orbGap) {
-            // Only the entries Speechify has actually claimed get a mark. `breathing` means
+            // Only the entries Next Notes has actually claimed get a mark. `breathing` means
             // waiting on purpose, and an event the checkbox has been turned off for is not
             // waiting for anything — so the orb here is the same answer the checkbox gives,
             // readable a whole column away.

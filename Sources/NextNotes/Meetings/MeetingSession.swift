@@ -21,7 +21,7 @@ final class MeetingSession {
     ///
     /// Seeded with the start time, so a meeting that never produces a word is still
     /// measured from somewhere. Phase 3's scheduler reads it to stop a call that ended
-    /// without anyone telling Speechify; a level threshold would have been cheaper still,
+    /// without anyone telling Next Notes; a level threshold would have been cheaper still,
     /// but keyboard noise and an open fan register as level and never as a segment.
     private(set) var lastSpeechAt = Date()
     /// Set when the process tap couldn't start. The meeting continues on the mic alone —
@@ -245,7 +245,7 @@ final class MeetingSession {
 
         meeting.end = Date()
         meeting.status = segments.isEmpty
-            ? .failed("Speechify quit before anything was transcribed.")
+            ? .failed("Next Notes quit before anything was transcribed.")
             : .done
         store.saveTranscript(segments, for: meeting.id)
         store.save(meeting)

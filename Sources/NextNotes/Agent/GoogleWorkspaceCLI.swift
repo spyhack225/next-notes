@@ -37,13 +37,13 @@ enum WorkspaceAuthState: Equatable, Sendable {
     var detail: String {
         switch self {
         case .notInstalled:
-            "The Google Workspace CLI isn\u{2019}t on this Mac. Speechify runs it to read and "
+            "The Google Workspace CLI isn\u{2019}t on this Mac. Next Notes runs it to read and "
                 + "write your Workspace; nothing is attempted without it."
         case .needsOAuthClient:
             "Google only issues Workspace access to an OAuth client you own. Set one up "
                 + "before signing in."
         case .signedOut:
-            "The CLI has a client but no account. Sign in to let Speechify act as you."
+            "The CLI has a client but no account. Sign in to let Next Notes act as you."
         case .signedIn(let method):
             "Credentials are stored by \(method)."
         case .failed(let reason):

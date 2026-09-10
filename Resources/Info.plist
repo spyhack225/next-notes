@@ -3,17 +3,20 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleName</key>
-	<string>Speechify</string>
+	<string>Next Notes</string>
 	<key>CFBundleDisplayName</key>
-	<string>Speechify</string>
-	<!-- Deliberately space-free and distinct from the existing app's `Speechify`, so that
-	     `pkill`/`killall` on either app can never match the other. -->
+	<string>Next Notes</string>
+	<!-- Deliberately space-free, and deliberately not just `Notes`: the executable's name is
+	     what `pkill`/`killall` match on, so it is what a script or a developer types to stop
+	     this app. `NextNotes` matches this process and nothing else, where `Notes` would also
+	     take down Apple's Notes.app. -->
 	<key>CFBundleExecutable</key>
-	<string>Speechify</string>
-	<!-- Separate from the existing Speechify's com.Speechify.client: distinct TCC identity,
-	     distinct preferences domain, no shared state of any kind. -->
+	<string>NextNotes</string>
+	<!-- Our own reverse-DNS. TCC grants and the preferences domain are both keyed on this
+	     string, so changing it starts the app over with a clean slate: the permission prompts
+	     come back, and `AppIdentity` folds the old `ai.pivotstudio.speechify` defaults in. -->
 	<key>CFBundleIdentifier</key>
-	<string>ai.pivotstudio.speechify</string>
+	<string>ai.pivotstudio.nextnotes</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,10 +31,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>ai.pivotstudio.speechify</string>
+			<string>ai.pivotstudio.nextnotes</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>speechify</string>
+				<string>nextnotes</string>
 			</array>
 		</dict>
 	</array>
@@ -44,14 +47,14 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Speechify listens while you hold the push-to-talk key so it can turn your speech into text.</string>
+	<string>Next Notes listens while you hold the push-to-talk key so it can turn your speech into text.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Speechify transcribes your speech on-device to insert text where you're typing.</string>
+	<string>Next Notes transcribes your speech on-device to insert text where you're typing.</string>
 	<key>NSAudioCaptureUsageDescription</key>
-	<string>Speechify records what you hear during a meeting so it can transcribe the other participants on-device. Audio never leaves this Mac.</string>
+	<string>Next Notes records what you hear during a meeting so it can transcribe the other participants on-device. Audio never leaves this Mac.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>Speechify reads your calendar to know when a meeting starts, so it can offer to take notes.</string>
+	<string>Next Notes reads your calendar to know when a meeting starts, so it can offer to take notes.</string>
 	<key>NSUserNotificationsUsageDescription</key>
-	<string>Speechify notifies you before a meeting recording starts and when notes are ready.</string>
+	<string>Next Notes notifies you before a meeting recording starts and when notes are ready.</string>
 </dict>
 </plist>

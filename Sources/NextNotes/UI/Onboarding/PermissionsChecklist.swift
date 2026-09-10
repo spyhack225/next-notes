@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Every grant Speechify can ask for, with the one button that gets it.
+/// Every grant Next Notes can ask for, with the one button that gets it.
 ///
 /// Shown as a sheet on first launch and again in Settings, because TCC ties grants to the
 /// code signature: a reinstalled or re-signed build loses them, and the app has to be able
@@ -74,7 +74,7 @@ struct PermissionsChecklist: View {
                 }
             }
 
-            // Not a macOS grant at all, and the only row that leads outside Speechify: the
+            // Not a macOS grant at all, and the only row that leads outside Next Notes: the
             // Workspace CLI is Google's own tool, signed in through a Terminal window. It is
             // here because the checklist is where a user finds out what is not yet set up,
             // and "the agent proposes nothing" is otherwise indistinguishable from "there
@@ -109,7 +109,7 @@ struct PermissionsChecklist: View {
             }
 
             // Last, because everything above it is a capability and this one is only a way
-            // of being told. Speechify records the meeting either way; without this it just
+            // of being told. Next Notes records the meeting either way; without this it just
             // does it without saying so, and the notes land silently.
             PermissionRow(
                 title: "Notifications",
@@ -140,7 +140,7 @@ struct PermissionsChecklist: View {
             // request and Workspace is not a TCC grant at all, so both stay one-at-a-time
             // above rather than pretending to be part of a sweep.
             HStack {
-                Text("Speechify asks for each of these separately. This walks through them.")
+                Text("Next Notes asks for each of these separately. This walks through them.")
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -278,7 +278,7 @@ struct OnboardingSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.l) {
             VStack(alignment: .leading, spacing: DS.Space.xs) {
-                Text("Welcome to Speechify")
+                Text("Welcome to Next Notes")
                     .font(DS.Font.title)
                 Text("Hold a key, talk, let go — the text lands in whatever had focus. "
                      + "Two of these grants are needed for that; the rest can wait.")

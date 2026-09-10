@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-/// The three things the user has to do outside Speechify before the agent can work, and the
+/// The three things the user has to do outside Next Notes before the agent can work, and the
 /// one thing it can do for them.
 ///
 /// Installing software, authorising a Google Cloud project and signing in all happen in
@@ -36,7 +36,7 @@ enum WorkspaceInstaller {
             gcloud auth login
             gws auth setup --login
             echo
-            echo "Done. Back in Speechify, the Workspace tab will re-check this."
+            echo "Done. Back in Next Notes, the Workspace tab will re-check this."
             """)
     }
 
@@ -49,7 +49,7 @@ enum WorkspaceInstaller {
             echo
             gws auth status
             echo
-            echo "Done. Back in Speechify, the Workspace tab will re-check this."
+            echo "Done. Back in Next Notes, the Workspace tab will re-check this."
             """)
     }
 

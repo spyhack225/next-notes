@@ -1,6 +1,6 @@
 #!/bin/zsh
 #
-# Installs the Google Workspace CLI, which Speechify runs as its Workspace tool layer.
+# Installs the Google Workspace CLI, which Next Notes runs as its Workspace tool layer.
 #
 # Opened in Terminal rather than run inside the app on purpose: this installs software on
 # the user's machine, Homebrew and npm both ask for input, and an installer that ran
@@ -8,7 +8,7 @@
 # do quietly. The user watches it, and can stop it.
 set -e
 
-echo "Installing the Google Workspace CLI (gws) for Speechify."
+echo "Installing the Google Workspace CLI (gws) for Next Notes."
 echo
 
 if command -v brew >/dev/null 2>&1; then
@@ -26,4 +26,4 @@ fi
 echo
 gws --version
 echo
-echo "Done. Back in Speechify, the Workspace tab will now offer the next step."
+echo "Done. Back in Next Notes, the Workspace tab will now offer the next step."

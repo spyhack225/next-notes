@@ -11,7 +11,7 @@ struct OutputTarget: Sendable, Hashable {
 /// Which app gets which formatting, persisted as a plain text file you can edit by hand.
 ///
 /// `DictionaryStore` is the model this follows deliberately: a text file in
-/// `Application Support/Speechify/`, a documented header, atomic writes, and a
+/// `Application Support/Next Notes/`, a documented header, atomic writes, and a
 /// `DispatchSource` watcher so an edit made in a text editor shows up in the app live.
 /// That is what "the user should be able to edit the list" means here, and it keeps the
 /// table out of `UserDefaults`, where a list of records with five flags each has no
@@ -38,11 +38,11 @@ final class OutputProfileStore {
     /// `captureTarget()`.
     private(set) var capturedTarget: OutputTarget?
 
-    /// The most recent frontmost app that was not Speechify itself.
+    /// The most recent frontmost app that was not Next Notes itself.
     ///
     /// Tracked continuously rather than read on demand because the one place the UI needs
     /// it — the "Add the app I was just in" button — runs while the Settings window is
-    /// frontmost, so `NSWorkspace.frontmostApplication` at that moment is always Speechify.
+    /// frontmost, so `NSWorkspace.frontmostApplication` at that moment is always Next Notes.
     private(set) var lastForeignApp: OutputTarget?
 
     private var watcher: DispatchSourceFileSystemObject?
@@ -94,7 +94,7 @@ final class OutputProfileStore {
     ///
     /// By the time text is injected the user may have switched away — formatting a list as
     /// Slack bullets and then dropping it into Mail is worse than not formatting at all.
-    /// The HUD is a non-activating panel, so Speechify never takes the foreground during a
+    /// The HUD is a non-activating panel, so Next Notes never takes the foreground during a
     /// dictation and the frontmost app at key-down really is the app the text will land in.
     @discardableResult
     func captureTarget() -> OutputTarget? {
@@ -298,7 +298,7 @@ final class OutputProfileStore {
     }
 
     private static let header = """
-        # Speechify output formatting
+        # Next Notes output formatting
         #
         # Dictated text is formatted to suit the app it is about to be typed into. One app
         # per line, three fields separated by "|":

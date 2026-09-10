@@ -43,7 +43,7 @@ enum CallPolicy {
     ///
     /// Fathom is *not* here, though it records meetings and holds the microphone to do it.
     /// It only holds it during a call, so denying it would suppress a real detection; a user
-    /// who does not want Speechify arming on Fathom's account gets the per-app control in
+    /// who does not want Next Notes arming on Fathom's account gets the per-app control in
     /// Phase 3 instead.
     static let deniedBundleIDs: Set<String> = [
         "com.apple.CoreSpeech",
@@ -52,7 +52,7 @@ enum CallPolicy {
         "com.apple.assistantd",
         "com.apple.Siri",
         "com.apple.accessibility.AXVisualSupportAgent",
-        // Our own bundle, as well as our own pid. A helper or a second copy of Speechify
+        // Our own bundle, as well as our own pid. A helper or a second copy of Next Notes
         // shares the identifier but not the process id, and the app triggering on its own
         // dictation is the failure this whole filter exists to prevent.
         AppIdentity.bundleIdentifier,
@@ -290,7 +290,7 @@ extension CallPolicy {
                 case .appNever:
                     "calls in this app are set never to record"
                 case .noMicrophone:
-                    "Speechify has no Microphone grant, so the recording would be empty"
+                    "Next Notes has no Microphone grant, so the recording would be empty"
                 }
             }
         }

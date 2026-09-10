@@ -2,10 +2,10 @@ import SwiftUI
 
 /// The Workspace agent: whether its tool layer is ready, and how much rope it gets.
 ///
-/// The whole tab is one question — can Speechify act in your Google Workspace — and it has
-/// four possible answers, each with a different next step. Nothing here happens silently:
-/// every step that changes the machine or talks to Google opens Terminal, in front of the
-/// user, and the status is re-read when they come back.
+/// The whole tab is one question — can Next Notes act in your Google Workspace — and it
+/// has four possible answers, each with a different next step. Nothing here happens
+/// silently: every step that changes the machine or talks to Google opens Terminal, in
+/// front of the user, and the status is re-read when they come back.
 struct WorkspaceSettingsTab: View {
     @State private var settings = Settings.shared
     @State private var agent = AgentService.shared
@@ -80,7 +80,7 @@ struct WorkspaceSettingsTab: View {
         } header: {
             Text("Google Workspace")
         } footer: {
-            footnote("Speechify acts through Google's own command-line tool rather than "
+            footnote("Next Notes acts through Google's own command-line tool rather than "
                      + "carrying its own Workspace credentials. Everything it runs is a "
                      + "command you could type yourself, and nothing runs without the "
                      + "approval shown in the meeting.")
@@ -175,7 +175,7 @@ struct WorkspaceSettingsTab: View {
         } header: {
             Text("What it can do")
         } footer: {
-            footnote("These are the only Workspace calls Speechify will make. Each one is "
+            footnote("These are the only Workspace calls Next Notes will make. Each one is "
                      + "proposed with the exact arguments it would run, and can be edited "
                      + "before it is approved.")
         }
