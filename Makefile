@@ -1,4 +1,4 @@
-EXEC     := Speechify
+EXEC     := NextNotes
 CONFIG   := debug
 
 ## Build products live OUTSIDE this directory, for the same reason the .app does.
@@ -7,8 +7,8 @@ CONFIG   := debug
 ## .build while the compiler is using them — producing "input file was modified during
 ## the build" on random object files, and occasionally a wedged swift-frontend stuck at
 ## 0% CPU. Moving the scratch path to ~/Library/Caches (never synced) removes the race.
-SCRATCH  := $(HOME)/Library/Caches/SpeechifyBuild/scratch
-TEST_SCRATCH := $(HOME)/Library/Caches/SpeechifyBuild/test-scratch
+SCRATCH  := $(HOME)/Library/Caches/NextNotesBuild/scratch
+TEST_SCRATCH := $(HOME)/Library/Caches/NextNotesBuild/test-scratch
 BUILD    := $(SCRATCH)/$(CONFIG)/$(EXEC)
 LLAMA_FRAMEWORK := $(SCRATCH)/$(CONFIG)/llama.framework
 
@@ -19,8 +19,8 @@ LLAMA_FRAMEWORK := $(SCRATCH)/$(CONFIG)/llama.framework
 ## and codesign hard-refuses anything carrying them ("resource fork, Finder information,
 ## or similar detritus not allowed"). `xattr -cr` immediately before signing is not enough
 ## — the provider re-stamps in between. Staging in ~/Library/Caches sidesteps it entirely.
-STAGE    := $(HOME)/Library/Caches/SpeechifyBuild
-APPNAME  := Speechify.app
+STAGE    := $(HOME)/Library/Caches/NextNotesBuild
+APPNAME  := Next Notes.app
 BUNDLE   := $(STAGE)/$(APPNAME)
 CONTENTS := $(BUNDLE)/Contents
 
@@ -28,7 +28,7 @@ CONTENTS := $(BUNDLE)/Contents
 ## changes on every build — makes the user re-grant after every `make`. Signing with a
 ## stable Developer ID keeps the identity constant and the grant sticky. Falls back to
 ## ad-hoc ("-") on a machine without the cert.
-LOCAL_SIGN_CN := Speechify Local Signing
+LOCAL_SIGN_CN := Next Notes Local Signing
 
 SIGN_ID := $(shell security find-identity -v -p codesigning 2>/dev/null \
              | grep "Developer ID Application" | head -1 | sed -E 's/.*"(.*)".*/\1/')
@@ -70,7 +70,7 @@ test:
 icon:
 	@swiftc -O -o "$(SCRATCH)/makeicon" \
 		Tools/makeicon.swift \
-		Sources/Speechify/UI/Components/ThinkingOrbs/OrbGeometry.swift
+		Sources/NextNotes/UI/Components/ThinkingOrbs/OrbGeometry.swift
 	@"$(SCRATCH)/makeicon"
 	@iconutil -c icns Resources/AppIcon.iconset -o Resources/AppIcon.icns
 	@echo "wrote Resources/AppIcon.icns"
@@ -103,7 +103,7 @@ app: build
 		"$(BUNDLE)"
 	@echo "built $(BUNDLE)  [signed: $(SIGN_ID)]"
 
-## Only ever targets the Speechify executable.
+## Only ever targets the Next Notes executable.
 run: app
 	@pkill -x $(EXEC) 2>/dev/null || true
 	@open "$(BUNDLE)"
@@ -120,7 +120,7 @@ install: app
 
 ## Creates the stable self-signed certificate the signing block above looks for.
 ##
-## Run once per machine. It is additive and reversible: delete "Speechify Local Signing"
+## Run once per machine. It is additive and reversible: delete "Next Notes Local Signing"
 ## from Keychain Access to undo it. Gatekeeper trusts it no more than ad-hoc — the point is
 ## only that it does not change between builds, so a TCC grant given once keeps applying.
 signing-cert:

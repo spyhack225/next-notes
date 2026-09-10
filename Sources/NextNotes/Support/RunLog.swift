@@ -1,4 +1,4 @@
-import SpeechifyDictionary
+import NextNotesDictionary
 import Foundation
 
 /// One completed dictation.

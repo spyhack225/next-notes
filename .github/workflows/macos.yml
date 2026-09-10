@@ -44,9 +44,9 @@ jobs:
 
       - name: Confirm the vectors on both sides are identical
         run: |
-          if ! diff -q shared/dictionary-test-vectors.json Tests/SpeechifyDictionaryTests/dictionary-test-vectors.json; then
+          if ! diff -q shared/dictionary-test-vectors.json Tests/NextNotesDictionaryTests/dictionary-test-vectors.json; then
             echo "::error::The Swift test copy of the vectors has drifted from shared/."
-            echo "Run: cp shared/dictionary-test-vectors.json Tests/SpeechifyDictionaryTests/"
+            echo "Run: cp shared/dictionary-test-vectors.json Tests/NextNotesDictionaryTests/"
             exit 1
           fi
           echo "Vectors match."

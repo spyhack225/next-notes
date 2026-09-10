@@ -1,4 +1,4 @@
-import SpeechifyDictionary
+import NextNotesDictionary
 import SwiftUI
 
 /// One past dictation in the list.

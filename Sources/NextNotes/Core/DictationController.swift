@@ -1,4 +1,4 @@
-import SpeechifyDictionary
+import NextNotesDictionary
 import AVFoundation
 import AppKit
 import Foundation

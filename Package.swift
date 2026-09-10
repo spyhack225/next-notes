@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "Speechify",
+    name: "NextNotes",
     platforms: [.macOS(.v26)],
     dependencies: [
         // Parakeet TDT as local CoreML through FluidAudio. Optional at runtime — Apple's
@@ -21,18 +21,18 @@ let package = Package(
         // behaviour is a cross-platform contract: the Windows app reimplements this logic in
         // C#, and both sides run the same vectors in shared/dictionary-test-vectors.json.
         .target(
-            name: "SpeechifyDictionary",
-            path: "Sources/SpeechifyDictionary",
+            name: "NextNotesDictionary",
+            path: "Sources/NextNotesDictionary",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .executableTarget(
-            name: "Speechify",
+            name: "NextNotes",
             dependencies: [
-                "SpeechifyDictionary",
+                "NextNotesDictionary",
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 "LlamaFramework",
             ],
-            path: "Sources/Speechify",
+            path: "Sources/NextNotes",
             // The upstream licence for the vendored orb geometry. It lives beside the code
             // it covers rather than in a licences folder nobody opens, which means SwiftPM
             // finds a file in a source directory that it has no rule for.
@@ -42,9 +42,9 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "SpeechifyDictionaryTests",
-            dependencies: ["SpeechifyDictionary"],
-            path: "Tests/SpeechifyDictionaryTests",
+            name: "NextNotesDictionaryTests",
+            dependencies: ["NextNotesDictionary"],
+            path: "Tests/NextNotesDictionaryTests",
             resources: [.copy("dictionary-test-vectors.json")],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
