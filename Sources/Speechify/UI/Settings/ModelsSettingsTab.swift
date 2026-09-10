@@ -49,11 +49,10 @@ struct ModelsSettingsTab: View {
             } header: {
                 Text("On-device models")
             } footer: {
-                Text("\(NotesModels.spec.displayName) reads a whole meeting at once, which is "
-                     + "what lets it tell a decision from a suggestion. Without it, notes are "
-                     + "written by the Apple Foundation Model in pieces.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: "\(NotesModels.spec.displayName) reads a whole meeting at "
+                             + "once, which is what lets it tell a decision from a "
+                             + "suggestion. Without it, notes are written by the Apple "
+                             + "Foundation Model in pieces.")
             }
 
             Section {
@@ -61,10 +60,9 @@ struct ModelsSettingsTab: View {
             } header: {
                 Text("Acceleration")
             } footer: {
-                Text("Takes effect at next launch: the llama.cpp backend is initialised once "
-                     + "per process. Turn this off if Metal shader compilation wedges.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: "Takes effect at next launch: the llama.cpp backend is "
+                             + "initialised once per process. Turn this off if Metal shader "
+                             + "compilation wedges.")
             }
         }
         .formStyle(.grouped)

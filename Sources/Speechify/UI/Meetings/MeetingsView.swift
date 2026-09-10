@@ -219,11 +219,28 @@ struct MeetingsView: View {
         }
     }
 
+    /// Two different absences, and they want different answers.
+    ///
+    /// A library with meetings in it is waiting for a choice — `breathing`, the screen at
+    /// rest. An empty one is waiting for a first recording, so it takes `weaving`: the orb
+    /// for the thing the toolbar button is offering to start.
+    ///
+    /// This pane carries the orb rather than the list's own overlay because the orb is 96pt
+    /// and the list column is two hundred; and because only one of the two may animate.
+    @ViewBuilder
     private var placeholder: some View {
-        ContentUnavailableView {
-            Label("No meeting selected", systemImage: SidebarSection.meetings.systemImage)
-        } description: {
-            Text("Pick a meeting, or record one now.")
+        if store.meetings.isEmpty, live == nil {
+            OrbUnavailableView(
+                .weaving,
+                title: "No meetings yet",
+                message: "Record one to get a transcript of both sides."
+            )
+        } else {
+            OrbUnavailableView(
+                .breathing,
+                title: "No meeting selected",
+                message: "Pick a meeting, or record one now."
+            )
         }
     }
 
@@ -288,28 +305,36 @@ private struct MeetingRow: View {
     var elapsed: TimeInterval = 0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.Space.xxs) {
-            Text(meeting.title)
-                .font(DS.Font.headline)
-                .lineLimit(1)
+        HStack(alignment: .firstTextBaseline, spacing: DS.Space.orbGap) {
+            // The column is reserved whether or not there is a shape to put in it. A
+            // finished meeting has no orb, and titles that jumped left on every row that
+            // finished would make the list harder to scan rather than easier — the busy
+            // rows are supposed to be the ones that stand out.
+            MeetingStatusOrb(status: isLive ? .recording : meeting.status)
 
-            if isLive {
-                RecordingIndicator(elapsed: elapsed, compact: true)
-            } else {
-                HStack(spacing: DS.Space.s) {
-                    Text(meeting.start.formatted(date: .abbreviated, time: .shortened))
-                        .font(DS.Font.caption)
-                        .foregroundStyle(DS.Color.textSecondary)
-                    if let duration = meeting.duration {
-                        Text(duration.counterText)
-                            .font(DS.Font.timestamp)
-                            .foregroundStyle(DS.Color.textTertiary)
+            VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                Text(meeting.title)
+                    .font(DS.Font.headline)
+                    .lineLimit(1)
+
+                if isLive {
+                    RecordingIndicator(elapsed: elapsed, compact: true)
+                } else {
+                    HStack(spacing: DS.Space.s) {
+                        Text(meeting.start.formatted(date: .abbreviated, time: .shortened))
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
+                        if let duration = meeting.duration {
+                            Text(duration.counterText)
+                                .font(DS.Font.timestamp)
+                                .foregroundStyle(DS.Color.textTertiary)
+                        }
                     }
                 }
-            }
 
-            if meeting.status != .done, !isLive {
-                StatusChip(text: meeting.status.displayName, color: meeting.status.chipColor)
+                if meeting.status != .done, !isLive {
+                    StatusChip(text: meeting.status.displayName, color: meeting.status.chipColor)
+                }
             }
         }
         .padding(.vertical, DS.Space.xxs)
@@ -332,46 +357,57 @@ private struct UpcomingEventRow: View {
     @State private var controller = MeetingController.shared
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.Space.xxs) {
-            HStack(spacing: DS.Space.s) {
-                Text(event.title)
-                    .font(DS.Font.headline)
-                    .lineLimit(1)
-                if event.conferenceURL != nil {
-                    Image(systemName: "video")
+        HStack(alignment: .firstTextBaseline, spacing: DS.Space.orbGap) {
+            // Only the entries Speechify has actually claimed get a mark. `breathing` means
+            // waiting on purpose, and an event the checkbox has been turned off for is not
+            // waiting for anything — so the orb here is the same answer the checkbox gives,
+            // readable a whole column away.
+            MeetingStatusOrb(state: isClaimed ? .breathing : nil)
+
+            VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                HStack(spacing: DS.Space.s) {
+                    Text(event.title)
+                        .font(DS.Font.headline)
+                        .lineLimit(1)
+                    if event.conferenceURL != nil {
+                        Image(systemName: "video")
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
+                    }
+                }
+
+                HStack(spacing: DS.Space.s) {
+                    Text(event.start.formatted(date: .omitted, time: .shortened))
                         .font(DS.Font.caption)
                         .foregroundStyle(DS.Color.textSecondary)
+                    Text(event.calendarName)
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.textTertiary)
+                        .lineLimit(1)
                 }
-            }
 
-            HStack(spacing: DS.Space.s) {
-                Text(event.start.formatted(date: .omitted, time: .shortened))
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
-                Text(event.calendarName)
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textTertiary)
-                    .lineLimit(1)
-            }
-
-            if meeting?.status == .armed {
-                StatusChip(text: MeetingStatus.armed.displayName, color: DS.Color.info)
-            }
-
-            HStack(spacing: DS.Space.s) {
-                Toggle("Record", isOn: recordBinding)
-                    .toggleStyle(.checkbox)
-                    .font(DS.Font.caption)
-                Spacer(minLength: DS.Space.xs)
-                Button("Record now") {
-                    Task { await scheduler.recordNow(event) }
+                if meeting?.status == .armed {
+                    StatusChip(text: MeetingStatus.armed.displayName, color: DS.Color.info)
                 }
-                .buttonStyle(.link)
-                .disabled(controller.session != nil)
+
+                HStack(spacing: DS.Space.s) {
+                    Toggle("Record", isOn: recordBinding)
+                        .toggleStyle(.checkbox)
+                        .font(DS.Font.caption)
+                    Spacer(minLength: DS.Space.xs)
+                    Button("Record now") {
+                        Task { await scheduler.recordNow(event) }
+                    }
+                    .buttonStyle(.link)
+                    .disabled(controller.session != nil)
+                }
             }
         }
         .padding(.vertical, DS.Space.xxs)
     }
+
+    /// Whether this calendar entry is going to become a recording.
+    private var isClaimed: Bool { willRecord || meeting?.status == .armed }
 
     /// Writing an explicit answer rather than clearing back to the heuristic: the user
     /// touching this control *is* the answer, and a toggle that silently reverts to

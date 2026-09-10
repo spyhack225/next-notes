@@ -53,21 +53,31 @@ struct MeetingActionsView: View {
                 .foregroundStyle(DS.Color.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .dottedField(opacity: DS.Opacity.fieldFaint)
     }
 
     private var empty: some View {
-        ContentUnavailableView {
-            Label("No actions", systemImage: "sparkles")
-        } description: {
-            Text(emptyDescription)
-        } actions: {
+        OrbUnavailableView(
+            emptyOrb,
+            title: "No actions",
+            message: emptyDescription
+        ) {
             if agent.isReady {
                 Button("Review this meeting") { agent.review(meeting, force: true) }
             } else {
                 SettingsLink { Text("Open Settings\u{2026}") }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// The orb takes the empty state's *cause*, which here is one of two different things.
+    ///
+    /// An agent that is switched off or signed out is a connection that has not been made,
+    /// and `connecting` is the same shape the Workspace tab shows while it is being made —
+    /// so the orb and the button under it are telling the same story. A meeting that simply
+    /// asked for nothing is a screen at rest, which is `breathing`.
+    private var emptyOrb: OrbGeometry.State {
+        settings.agentEnabled && agent.authState.isSignedIn ? .breathing : .connecting
     }
 
     /// Says which of the three reasons there is nothing here — off, not signed in, or
@@ -88,7 +98,11 @@ struct MeetingActionsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: DS.Space.l) {
                 if !proposals.isEmpty {
-                    section("Waiting for you") {
+                    // `searching` on the heading and nowhere else. Every card under it came
+                    // out of the same pass over the notes and the transcript, so the mark
+                    // belongs to the section rather than repeated down a column of cards —
+                    // which would be the "scattering of small orbs" the design rules out.
+                    section("Waiting for you", orb: .searching) {
                         ForEach(proposals) { proposal in
                             ProposalCard(
                                 proposal: proposal,
@@ -115,18 +129,23 @@ struct MeetingActionsView: View {
                 }
             }
             .padding(DS.Space.l)
+            .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        // Something for the glass to be glass over. A pane with nothing behind it has
+        // nothing to refract, which is how a card ends up reading as a flat grey box.
+        .dottedField(opacity: DS.Opacity.fieldFaint)
     }
 
+    /// "Done" gets no orb, and the absence is the point: the section above it is work the
+    /// agent went looking for, and this one is a record of what already happened.
     private func section(
         _ title: String,
+        orb: OrbGeometry.State? = nil,
         @ViewBuilder content: () -> some View
     ) -> some View {
-        VStack(alignment: .leading, spacing: DS.Space.s) {
-            Text(title)
-                .font(DS.Font.sectionLabel)
-                .foregroundStyle(DS.Color.textSecondary)
+        VStack(alignment: .leading, spacing: DS.Space.m) {
+            SectionHeading(title: title, orb: orb)
             content()
         }
     }
@@ -148,6 +167,15 @@ private struct ProposalCard: View {
     let dismiss: () -> Void
 
     var body: some View {
+        GlassCard {
+            card
+        }
+    }
+
+    /// The landing page's hero card, in a window: a pane with nothing but a corner radius
+    /// and its own refraction saying where it ends. The border and the opaque fill it
+    /// replaces were both standing in for that.
+    private var card: some View {
         VStack(alignment: .leading, spacing: DS.Space.s) {
             HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
                 Text(proposal.title)
@@ -171,6 +199,8 @@ private struct ProposalCard: View {
                 }
                 .frame(maxHeight: DS.Size.messagePreviewHeight)
                 .padding(DS.Space.s)
+                // Stays an opaque fill rather than becoming a second glass surface: this is
+                // a well *inside* a pane, and glass in glass refracts glass.
                 .background(DS.Color.groupedFill, in: RoundedRectangle(cornerRadius: DS.Radius.control))
             }
 
@@ -187,12 +217,7 @@ private struct ProposalCard: View {
             }
             .disabled(isRunning)
         }
-        .padding(DS.Space.m)
-        .background(DS.Color.content, in: RoundedRectangle(cornerRadius: DS.Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: DS.Radius.card)
-                .strokeBorder(DS.Color.separator, lineWidth: DS.Border.hairline)
-        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Warning for anything that speaks as the user, plain otherwise. Never red: red is

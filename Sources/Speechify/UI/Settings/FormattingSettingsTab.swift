@@ -29,15 +29,12 @@ struct FormattingSettingsTab: View {
             profileList
             controls
 
-            Text(
-                "Dictated text is written to suit the app it is about to land in — a "
+            SettingsNote(
+                text: "Dictated text is written to suit the app it is about to land in — a "
                     + "spoken list becomes bullets in Slack and a sentence in Mail. An "
                     + "app that isn't listed gets plain prose, because a formatting mark "
                     + "an app doesn't render is worse than none."
             )
-            .font(DS.Font.caption)
-            .foregroundStyle(DS.Color.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
 
             Divider()
 
@@ -53,11 +50,8 @@ struct FormattingSettingsTab: View {
                 .help(OutputProfileStore.fileURL.path)
             }
 
-            Text("The table is a plain text file. Edit it in any editor and the app picks "
-                 + "up the change immediately.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            SettingsNote(text: "The table is a plain text file. Edit it in any editor and "
+                         + "the app picks up the change immediately.")
         }
         .padding(DS.Space.xl)
         .sheet(isPresented: $isAdding) {
@@ -96,10 +90,13 @@ struct FormattingSettingsTab: View {
     @ViewBuilder
     private var profileList: some View {
         if store.profiles.isEmpty {
-            ContentUnavailableView(
-                "No apps listed",
-                systemImage: SettingsTab.formatting.systemImage,
-                description: Text("Every app gets plain prose until you add one.")
+            // A stage, not a fault: an empty table is what a fresh install looks like, and
+            // every app still gets plain prose meanwhile. `breathing` is the orb for
+            // nothing-here-yet — a grey symbol would say the screen was broken.
+            OrbUnavailableView(
+                .breathing,
+                title: "No apps listed",
+                message: "Every app gets plain prose until you add one."
             )
             .frame(maxHeight: .infinity)
         } else {
@@ -254,12 +251,9 @@ private struct OutputProfileEditor: View {
             }
             .formStyle(.grouped)
 
-            Text("Leave every switch off for plain prose. Only switch on what the app "
-                 + "actually renders — a mark it doesn't render shows up as literal "
-                 + "punctuation in your message.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            SettingsNote(text: "Leave every switch off for plain prose. Only switch on what "
+                         + "the app actually renders — a mark it doesn't render shows up as "
+                         + "literal punctuation in your message.")
 
             HStack {
                 Spacer()
@@ -359,10 +353,16 @@ private struct AppPickerSheet: View {
     @ViewBuilder
     private var appList: some View {
         if isLoading {
-            ProgressView()
-                .controlSize(.small)
-                .frame(maxWidth: .infinity)
-                .frame(height: DS.Size.formatListHeight)
+            // `searching` — reading things it did not write, to find something — for a walk
+            // over every application folder on the Mac. It is the one wait on this sheet,
+            // so it is the one orb.
+            LabeledOrb(
+                state: .searching,
+                title: "Looking through your applications\u{2026}",
+                size: DS.Size.orbSmall
+            )
+            .frame(maxWidth: .infinity)
+            .frame(height: DS.Size.formatListHeight)
         } else if candidates.isEmpty {
             ContentUnavailableView.search(text: query)
                 .frame(height: DS.Size.formatListHeight)
@@ -400,12 +400,9 @@ private struct AppPickerSheet: View {
                 .help(capability.help)
             }
 
-            Text("Leave every switch off for plain prose. Only switch on what the app "
-                 + "actually renders — a mark it doesn't render shows up as literal "
-                 + "punctuation in your message.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            SettingsNote(text: "Leave every switch off for plain prose. Only switch on what "
+                         + "the app actually renders — a mark it doesn't render shows up as "
+                         + "literal punctuation in your message.")
         }
         .disabled(selected == nil)
         .opacity(selected == nil ? DS.Opacity.disabled : 1)

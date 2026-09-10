@@ -267,7 +267,9 @@ Sources/Speechify/
 │   │                               IslandState (what to show), IslandView
 │   ├── Components/                 LevelMeter (+LevelBar), RecordingIndicator,
 │   │                               ModelStatusRow, CopyButton, StatusChip, MarkdownView,
-│   │                               ProblemBanner, FlowLayout, ThinkingOrbs/
+│   │                               ProblemBanner, FlowLayout, ThinkingOrbs/,
+│   │                               OrbBackdrop, DottedField, GlassSurface,
+│   │                               LabeledOrb, SectionHeading, OrbUnavailableView
 │   ├── Dictation/                  DictationView, TranscriptionRow
 │   ├── Dictionary/                 DictionaryPanel
 │   ├── Comparison/                 ComparisonView

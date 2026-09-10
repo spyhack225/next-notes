@@ -30,8 +30,24 @@ struct ComparisonView: View {
                 }
             }
             .padding(DS.Space.xl)
+            // The column stops at a reading width rather than following the window. Two
+            // reasons, and the first one is the transcripts: a sentence set across a 5K
+            // display is a line, not a paragraph. The second is that it leaves the backdrop
+            // a gutter to stand in, which is the landing page's whole hero composition —
+            // type in a column, the mark in the space beside it.
+            .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        // Anchored into the corner rather than centred, so a quarter of it is in the pane
+        // and it reads as ground the cards are standing on rather than as a circle drawn
+        // behind them.
+        .orbBackdrop(
+            .breathing,
+            size: DS.Size.orbBackdropWide,
+            opacity: store.runs.isEmpty ? 0 : DS.Opacity.orbBackdrop,
+            alignment: .bottomTrailing,
+            isAnimated: isBackdropAnimated
+        )
         .navigationTitle(SidebarSection.comparison.title)
         .navigationSubtitle("\(store.runs.count) recording\(store.runs.count == 1 ? "" : "s")")
         .toolbar {
@@ -61,29 +77,68 @@ struct ComparisonView: View {
 
     /// One button that records every engine at once — no hotkeys, and the results appear in
     /// this same section, so there's nowhere to go afterwards to read them.
+    ///
+    /// The pane is glass and it is the only glass on this screen — the landing page's
+    /// control pill, which is the one piece of chrome here that is *above* the content
+    /// rather than part of it. The cards below are opaque material instead, because a card
+    /// you read a transcript out of should not have a moving lattice showing through it.
     private var recordBar: some View {
-        VStack(alignment: .leading, spacing: DS.Space.s) {
-            Button {
-                if isRecording {
-                    controller.stopButtonRecording()
-                } else {
-                    controller.startButtonRecording()
+        GlassCard {
+            VStack(alignment: .leading, spacing: DS.Space.m) {
+                Button {
+                    if isRecording {
+                        controller.stopButtonRecording()
+                    } else {
+                        controller.startButtonRecording()
+                    }
+                } label: {
+                    Label(
+                        isRecording ? "Stop" : "Record all engines",
+                        systemImage: isRecording ? "stop.fill" : "record.circle"
+                    )
+                    .frame(maxWidth: .infinity)
                 }
-            } label: {
-                Label(
-                    isRecording ? "Stop" : "Record all engines",
-                    systemImage: isRecording ? "stop.fill" : "record.circle"
-                )
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(isRecording ? DS.Color.record : DS.Color.accent)
-            .controlSize(.large)
+                .buttonStyle(.borderedProminent)
+                .tint(isRecording ? DS.Color.record : DS.Color.accent)
+                .controlSize(.large)
 
-            Text(statusLine)
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                // Drawn in secondary ink, orb included: this line is an instruction while
+                // the screen is idle, and an instruction set in primary shouts over the
+                // button it is explaining.
+                LabeledOrb(
+                    state: workState,
+                    title: statusLine,
+                    style: .status,
+                    ink: DS.Color.textSecondary,
+                    isAnimated: isRecording
+                )
+            }
         }
+    }
+
+    /// Which of the nine the button is currently causing.
+    ///
+    /// The reverse mapping in `AGENTS.md`, and nothing invented: a held recording is one
+    /// voice being heard, the wait after it is audio being turned into text, and a screen
+    /// that is doing neither is present and idle. The orb is frozen in that last case —
+    /// an orb turning over work that is not running is a claim the app cannot back up.
+    private var workState: OrbGeometry.State {
+        switch controller.state {
+        case .starting, .listening: .listening
+        case .finishing: .working
+        case .idle, .error: .breathing
+        }
+    }
+
+    /// One animating orb per screen, decided here.
+    ///
+    /// The backdrop is the screen's *idle* state, so it yields to anything that is actually
+    /// running: the record bar's orb while capture is live, and the empty state's while
+    /// there is nothing to show. It is also invisible in that second case — the empty state
+    /// brings its own field and its own mark, and two ambient textures over each other read
+    /// as noise rather than as depth.
+    private var isBackdropAnimated: Bool {
+        !isRecording && !store.runs.isEmpty
     }
 
     private var statusLine: String {
@@ -94,15 +149,17 @@ struct ComparisonView: View {
             : "Click Record, talk, click Stop. Wispr Flow isn't installed, so it's Apple vs Parakeet."
     }
 
+    /// Nothing here *yet* — a stage rather than a fault, so it takes `breathing` and not a
+    /// grey split-rectangle symbol saying the screen is broken.
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label("Nothing recorded yet", systemImage: SidebarSection.comparison.systemImage)
-        } description: {
-            Text(settings.compareMode
-                 ? "Hold \(settings.pushToTalkKey.displayName), say a sentence, let go. "
-                   + "Both engines run on that one recording and appear here."
-                 : "Turn on Compare mode in Settings to see both engines on one recording.")
-        }
+        OrbUnavailableView(
+            .breathing,
+            title: "Nothing recorded yet",
+            message: settings.compareMode
+                ? "Hold \(settings.pushToTalkKey.displayName), say a sentence, let go. "
+                  + "Both engines run on that one recording and appear here."
+                : "Turn on Compare mode in Settings to see both engines on one recording."
+        )
         .frame(maxWidth: .infinity)
     }
 }
@@ -169,8 +226,7 @@ private struct ComparisonCard: View {
                 EngineRow(run: run, isWinner: runs.count > 1 && index == 0)
             }
         }
-        .padding(DS.Space.l)
-        .background(DS.Color.groupedFill, in: .rect(cornerRadius: DS.Radius.card))
+        .raisedCard(padding: DS.Space.l)
     }
 
     private var header: some View {
@@ -245,7 +301,29 @@ private struct SingleCard: View {
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(DS.Space.m)
-        .background(DS.Color.groupedFill, in: .rect(cornerRadius: DS.Radius.card))
+        .raisedCard(padding: DS.Space.card)
+    }
+}
+
+// MARK: - Card surface
+
+private extension View {
+    /// A card that floats over the screen's backdrop rather than sitting flat on the window.
+    ///
+    /// Opaque material, not the quaternary fill it used to be and not glass: the thing
+    /// behind these cards is now a moving lattice, and a transcript read through either of
+    /// those is a transcript read through texture. `DS.Shadow.raised` is the token for
+    /// exactly this case — a material card with something behind it — and it is the only
+    /// thing separating the card from a ground that has no edge of its own.
+    func raisedCard(padding: CGFloat) -> some View {
+        self
+            .padding(padding)
+            .background(DS.Material.card, in: .rect(cornerRadius: DS.Radius.glass))
+            .shadow(
+                color: DS.Shadow.raised.color,
+                radius: DS.Shadow.raised.radius,
+                x: DS.Shadow.raised.x,
+                y: DS.Shadow.raised.y
+            )
     }
 }

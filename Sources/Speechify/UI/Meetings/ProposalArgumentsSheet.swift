@@ -25,13 +25,15 @@ struct ProposalArgumentsSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.l) {
-            VStack(alignment: .leading, spacing: DS.Space.xs) {
-                Text(proposal.title)
-                    .font(DS.Font.title3)
-                Text(proposal.tool)
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textTertiary)
-            }
+            // The tool's own name reads as an eyebrow rather than as a footnote: it is the
+            // category this sheet belongs to, which is exactly what an eyebrow is for. The
+            // orb is `searching` and still — the pass that produced this proposal is over,
+            // and the sheet is only editing what it came back with.
+            SectionHeading(
+                title: proposal.title,
+                eyebrow: proposal.tool,
+                orb: .searching
+            )
 
             Form {
                 ForEach(parameters) { parameter in

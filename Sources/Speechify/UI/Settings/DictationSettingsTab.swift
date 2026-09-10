@@ -25,9 +25,7 @@ struct DictationSettingsTab: View {
             } header: {
                 Text("Transcription")
             } footer: {
-                Text(engineNote)
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: engineNote, orb: engineWork)
             }
 
             Section {
@@ -39,9 +37,7 @@ struct DictationSettingsTab: View {
             } header: {
                 Text("Heads-up display")
             } footer: {
-                Text(placementNote)
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: placementNote)
             }
 
             Section {
@@ -81,13 +77,30 @@ struct DictationSettingsTab: View {
             } header: {
                 Text("Cleanup")
             } footer: {
-                Text(cleanupNote)
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
+                SettingsNote(text: cleanupNote, orb: cleanupWork)
             }
         }
         .formStyle(.grouped)
         .animation(DS.Motion.standard, value: settings.cleanupEnabled)
+    }
+
+    /// The orb the transcription note carries — `shaping`, a model being fetched and
+    /// assembled, and only while that is actually happening. Nothing else on this tab is
+    /// work: every other control resolves the instant it is touched. Compare mode is
+    /// excluded because its note is about compare mode rather than about the download.
+    private var engineWork: OrbGeometry.State? {
+        guard !settings.compareMode, settings.engine == .parakeet,
+              case .preparing = models.parakeetState
+        else { return nil }
+        return .shaping
+    }
+
+    /// The same, for the cleanup model. Only S1-mini is downloaded; Apple's is already here.
+    private var cleanupWork: OrbGeometry.State? {
+        guard settings.cleanupEnabled, settings.cleanupEngine == .s1Mini,
+              case .preparing = models.s1MiniState
+        else { return nil }
+        return .shaping
     }
 
     private var placementNote: String {

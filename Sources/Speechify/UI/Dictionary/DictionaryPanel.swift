@@ -67,25 +67,42 @@ struct DictionaryPanel: View {
         }
     }
 
+    /// Both of these are stages rather than faults, which is why neither is a grey symbol
+    /// any more: an empty dictionary is one nobody has taught anything to *yet*, and a
+    /// search that found nothing is the app having looked. The orbs are the ones the
+    /// vocabulary already assigns to those two causes.
     @ViewBuilder
     private var emptyState: some View {
         if store.entries.isEmpty {
-            ContentUnavailableView(
-                "Dictionary empty",
-                systemImage: SidebarSection.dictionary.systemImage,
-                description: Text("Add words it keeps getting wrong.")
+            OrbUnavailableView(
+                .breathing,
+                title: "Dictionary empty",
+                message: "Add words it keeps getting wrong."
             )
         } else {
-            ContentUnavailableView.search(text: query)
+            OrbUnavailableView(
+                .searching,
+                title: "No results",
+                message: "Nothing in the dictionary matches \u{201C}\(query)\u{201D}."
+            )
         }
     }
 
     /// The file path is shown because the spec asks for the dictionary to be editable
     /// outside the UI — which is only true if you can find it.
+    ///
+    /// This band is the only chrome the screen has, so it is where the field goes: a list
+    /// paints an opaque background over anything laid behind it, and a texture nobody can
+    /// see is a texture that should not be drawn. Heaviest at the bottom edge, so the
+    /// window ends on a ground rather than on a hairline.
     private var footer: some View {
         HStack {
+            // The count is set as the page sets a card label — small, letterspaced, upper
+            // case — rather than as another line of body text competing with the link.
             Text("\(store.entries.count) entr\(store.entries.count == 1 ? "y" : "ies")")
-                .font(DS.Font.caption)
+                .font(DS.Font.eyebrow)
+                .tracking(DS.Font.eyebrowTracking)
+                .textCase(.uppercase)
                 .foregroundStyle(DS.Color.textSecondary)
             Spacer()
             Button("Reveal dictionary.txt") {
@@ -96,6 +113,11 @@ struct DictionaryPanel: View {
         }
         .padding(.horizontal, DS.Space.l)
         .padding(.vertical, DS.Space.s)
+        .dottedField(
+            opacity: DS.Opacity.field,
+            spacing: DS.Field.spacingTight,
+            fade: .bottom
+        )
     }
 }
 
@@ -172,8 +194,10 @@ private struct DictionaryEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.l) {
-            Text(entry == nil ? "New Entry" : "Edit Entry")
-                .font(DS.Font.title3)
+            SectionHeading(
+                title: entry == nil ? "New Entry" : "Edit Entry",
+                eyebrow: SidebarSection.dictionary.title
+            )
 
             Form {
                 Picker("Kind", selection: $kind) {

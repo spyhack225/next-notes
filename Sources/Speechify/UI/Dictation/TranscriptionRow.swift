@@ -6,6 +6,12 @@ import SwiftUI
 /// The Copy button appears on hover only. A visible button on every row turns a list of
 /// sentences into a list of controls, and the same command is on the context menu for
 /// anyone who never hovers.
+///
+/// **No orb lives here.** Every orb is a `Canvas` in a `TimelineView`, and a mark on each
+/// row is one per visible row — a scattering of small ones is exactly what the vocabulary
+/// forbids, and a list scrolls. The row speaks the same language through its type instead:
+/// the engine is set as the landing page sets a card label, and everything above the
+/// sentence is quieted so the sentence is what the eye lands on.
 struct TranscriptionRow: View {
     let run: DictationRun
 
@@ -14,7 +20,14 @@ struct TranscriptionRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.xs) {
             HStack(spacing: DS.Space.s) {
-                StatusChip(text: run.engine)
+                // An eyebrow rather than a chip. A filled badge on every row turned a list
+                // of sentences into a list of badges, and the engine is context for the
+                // transcript rather than a status about it.
+                Text(run.engine)
+                    .font(DS.Font.eyebrow)
+                    .tracking(DS.Font.eyebrowTracking)
+                    .textCase(.uppercase)
+                    .foregroundStyle(DS.Color.textSecondary)
                 Text(run.date, style: .time)
                     .font(DS.Font.timestamp)
                     .foregroundStyle(DS.Color.textSecondary)
@@ -34,16 +47,23 @@ struct TranscriptionRow: View {
             // is most of the row's area. Selecting a fragment is the rarer want; Copy is on
             // hover and in the context menu, for one row or for many. If free selection is
             // ever wanted back, it belongs in a detail view, not in the list.
+            //
+            // Capped at a comfortable measure rather than at the window's. A detail pane on
+            // a wide display is far wider than a readable line, and nothing about the
+            // window's width is an argument for a 1400pt one. The row itself still runs the
+            // full width — the `Spacer()` above and `.contentShape` below see to that — so
+            // clicking beside the text still selects the row.
             Text(run.text)
                 .font(DS.Font.transcript)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
 
             if let corrections = run.corrections, !corrections.isEmpty {
                 CorrectionBadges(corrections: corrections)
             }
         }
-        .padding(.vertical, DS.Space.xs)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, DS.Space.s)
         .contentShape(.rect)
         .onHover { isHovering = $0 }
     }

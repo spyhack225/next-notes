@@ -85,7 +85,11 @@ struct PermissionsChecklist: View {
                     + "it asked for. Optional.",
                 systemImage: "point.3.connected.trianglepath.dotted",
                 isGranted: agent.authState.isSignedIn,
-                actionTitle: workspaceActionTitle
+                actionTitle: workspaceActionTitle,
+                // The only row whose answer is not a bit the kernel already knows: it is a
+                // `gws` process being spawned and asked. `connecting` is the orb for two
+                // parties being wired together, which is the whole of what this row is.
+                busy: agent.isProbing ? .connecting : nil
             ) {
                 switch agent.authState {
                 case .notInstalled, .failed: WorkspaceInstaller.install()
@@ -141,6 +145,12 @@ struct PermissionsChecklist: View {
                     .foregroundStyle(DS.Color.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer()
+                if isGrantingAll {
+                    // `breathing` — present and idle, waiting on purpose. It is the honest
+                    // state: the sweep is not computing anything, it is standing still in
+                    // front of a system dialog until somebody answers it.
+                    ThinkingOrb(state: .breathing, label: "Waiting for an answer")
+                }
                 Button(isGrantingAll ? "Asking…" : "Grant All…") { grantAll() }
                     .disabled(isGrantingAll || hasEveryPromptableGrant)
                     .help(hasEveryPromptableGrant
@@ -218,6 +228,10 @@ private struct PermissionRow: View {
     let systemImage: String
     let isGranted: Bool?
     let actionTitle: String
+    /// Work this row is waiting on, while it is waiting. The orb goes beside the button
+    /// rather than in place of the icon: the symbol says *which* grant this is, which no
+    /// orb in the vocabulary can, and the orb says what the row is doing about it.
+    var busy: OrbGeometry.State?
     let action: () -> Void
 
     var body: some View {
@@ -244,7 +258,13 @@ private struct PermissionRow: View {
                     .foregroundStyle(DS.Color.success)
                     .labelStyle(.titleAndIcon)
             } else {
-                Button(actionTitle, action: action)
+                HStack(spacing: DS.Space.s) {
+                    if let busy {
+                        ThinkingOrb(state: busy, size: DS.Size.orbBadge)
+                            .accessibilityHidden(true)
+                    }
+                    Button(actionTitle, action: action)
+                }
             }
         }
         .animation(DS.Motion.standard, value: isGranted)
@@ -277,5 +297,11 @@ struct OnboardingSheet: View {
         }
         .padding(DS.Space.xl)
         .frame(width: DS.Size.onboardingWidth)
+        // The landing page's hero, brought inside: one slow `breathing` ring behind the
+        // type, at a fraction of the page's opacity because this is a window in the user's
+        // own appearance rather than white ink on black. The first screen anyone sees is
+        // the one place the mark can be large, and there is no work running behind it to
+        // misrepresent — the app is present and idle, which is what `breathing` means.
+        .orbBackdrop(.breathing, opacity: DS.Opacity.orbWatermark)
     }
 }

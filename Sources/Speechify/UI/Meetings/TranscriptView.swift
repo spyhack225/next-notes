@@ -51,6 +51,10 @@ private struct SegmentRow: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+            // A transcript is prose, and a detail pane on a wide display is several times
+            // wider than a line the eye can track back from. Only a ceiling — a narrow pane
+            // is unaffected.
+            .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
         }
         .padding(.vertical, DS.Space.xs)
     }
