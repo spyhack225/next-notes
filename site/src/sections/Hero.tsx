@@ -77,7 +77,7 @@ export default function Hero() {
             whileTap={{ scale: 0.98 }}
             className="bg-foreground text-background rounded-full px-6 sm:px-8 py-3 text-sm font-medium inline-block whitespace-nowrap"
           >
-            Get Speechify
+            Get Next Notes
           </motion.a>
           <a
             href={REPO_URL}

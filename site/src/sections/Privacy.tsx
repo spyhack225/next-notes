@@ -41,7 +41,7 @@ export default function Privacy() {
           {...fadeUp(0.12)}
           className="text-muted-foreground text-lg max-w-2xl mx-auto mb-24 mt-7 text-center leading-relaxed"
         >
-          Speechify does the listening, the transcribing and the writing on the Mac in front
+          Next Notes does the listening, the transcribing and the writing on the Mac in front
           of you. No account, no subscription, and no bot joining your call to take notes on
           everyone's behalf.
         </motion.p>

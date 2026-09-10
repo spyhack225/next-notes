@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { orbFrame, type OrbState } from "./orbGeometry";
 
 /**
- * The Speechify mark: the app's own thinking orbs, all nine of them. The geometry lives in
+ * The Next Notes mark: the app's own thinking orbs, all nine of them. The geometry lives in
  * `orbGeometry.ts`, ported from the Mac app's `OrbGeometry.swift`, so a state on this page
  * is the same state in the menu bar — same formulas, same tuned constants, same tempo.
  *

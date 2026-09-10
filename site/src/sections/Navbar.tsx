@@ -20,7 +20,7 @@ export default function Navbar() {
       <nav className="flex items-center justify-between gap-6">
         <a href="#top" className="flex items-center gap-2.5 shrink-0">
           <Orb size={28} />
-          <span className="font-bold tracking-[-0.02em]">Speechify</span>
+          <span className="font-bold tracking-[-0.02em]">Next Notes</span>
         </a>
 
         <div className="hidden md:flex items-center gap-3 text-sm">
@@ -41,7 +41,7 @@ export default function Navbar() {
           href={REPO_URL}
           target="_blank"
           rel="noreferrer"
-          aria-label="Speechify on GitHub"
+          aria-label="Next Notes on GitHub"
           className="liquid-glass w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-foreground/80 hover:text-foreground transition-colors"
         >
           <Github className="w-[18px] h-[18px]" strokeWidth={1.6} />

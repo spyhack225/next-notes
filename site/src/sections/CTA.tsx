@@ -45,7 +45,7 @@ export default function CTA() {
             whileTap={{ scale: 0.98 }}
             className="bg-foreground text-background rounded-lg px-8 py-3.5 text-sm font-medium inline-block"
           >
-            Get Speechify
+            Get Next Notes
           </motion.a>
           <motion.a
             href={REPO_URL}
