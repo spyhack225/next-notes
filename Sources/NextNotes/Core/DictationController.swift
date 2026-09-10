@@ -113,7 +113,7 @@ final class DictationController {
     private let formatter: (any TextFormatter)?
     /// Injected only by tests; production types into whatever had focus. A self-test that
     /// used the real injector would type its fixture into the terminal that started it.
-    private let insert: @MainActor (String) -> Void
+    private let insert: @MainActor (String, TextInjector.Origin?) async -> TextInjector.Outcome
     /// Injected only by tests; production files the run for the Dictation list. A self-test
     /// that used the real log would write its fixtures into the user's own history — which
     /// it did, until this seam existed.
@@ -228,6 +228,14 @@ final class DictationController {
 
     private var recordingIntent = RecordingIntent.dictation
 
+    /// The app that was frontmost when this hold began.
+    ///
+    /// Captured at key-down rather than read at insertion time, because the tail between
+    /// the two is seconds long — drain, transcribe, cleanup — and the user is free to
+    /// switch apps inside it. Without this the text goes wherever they ended up, which in
+    /// practice means it vanishes.
+    private var origin: TextInjector.Origin?
+
     /// Compare mode only: the recording, kept so every engine sees identical audio.
     private var recorded: [AudioChunk] = []
     private var isComparing = false
@@ -237,7 +245,8 @@ final class DictationController {
         commandProcessor: any TextCommandProcessor = FoundationModelCommandProcessor(),
         makeEngine: @escaping @MainActor @Sendable () -> any TranscriptionEngine = engineForCurrentSetting,
         limits: Limits = .standard,
-        insert: @escaping @MainActor (String) -> Void = { TextInjector.insert($0) },
+        insert: @escaping @MainActor (String, TextInjector.Origin?) async -> TextInjector.Outcome
+            = { await TextInjector.insert($0, returningTo: $1) },
         record: @escaping @MainActor (DictationRun) -> Void = { RunLog.record($0) }
     ) {
         self.formatter = formatter
@@ -343,6 +352,7 @@ final class DictationController {
         session &+= 1
         let session = self.session
         recordingIntent = intent
+        origin = TextInjector.captureOrigin()
         state = .starting
         transcript = ""
         holdStarted = Date()
@@ -609,11 +619,21 @@ final class DictationController {
                 Log.speech.info("dictionary · \(corrections.count, privacy: .public) correction(s) applied")
             }
 
+            // Recorded before injection, deliberately. If the text cannot be placed, the
+            // Dictation list is the other way back to it, and an utterance that is hard to
+            // deliver is exactly the one worth having filed.
             recordRun(text: output, corrections: corrections)
-            insert(output)
-            if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
 
-            finishIdle()
+            switch await insert(output, origin) {
+            case .inserted:
+                if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
+                finishIdle()
+            case .leftOnClipboard(let appName):
+                // Not silent. The old behaviour here was to paste into whatever the user
+                // had switched to — or nowhere — and say nothing, which is indistinguishable
+                // from the app losing the recording.
+                fail("Couldn't switch back to \(appName). That dictation is on your clipboard.")
+            }
         }
     }
 
@@ -624,6 +644,7 @@ final class DictationController {
         state = .idle
         transcript = ""
         recordingIntent = .dictation
+        origin = nil
     }
 
     private func applyCommand(_ rawCommand: String, to selection: TextInjector.Selection) async {
@@ -816,6 +837,7 @@ final class DictationController {
         level = 0
         isComparing = false
         recordingIntent = .dictation
+        origin = nil
         holdStarted = nil
         releasedAt = nil
 
