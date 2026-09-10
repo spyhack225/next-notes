@@ -1,4 +1,4 @@
-import SpeechifyDictionary
+import NextNotesDictionary
 import AppKit
 import SwiftUI
 

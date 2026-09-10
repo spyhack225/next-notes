@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import SpeechifyDictionary
+@testable import NextNotesDictionary
 
 /// Runs the shared behavioural contract in `shared/dictionary-test-vectors.json`.
 ///
