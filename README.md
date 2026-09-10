@@ -443,21 +443,41 @@ Both engines feed the same cleanup, dictionary, history, and injection pipeline.
 
 ## Landing page
 
-The site source is `site/` — Vite, React, TypeScript, Tailwind and Framer Motion — and it
-builds into `docs/`, which is what GitHub Pages serves. It is live at
-<https://spyhack225.github.io/speechify-site/>.
+The site source is `site/` — Vite, React, TypeScript, Tailwind and Framer Motion. **There is
+no `build/` or `dist/` folder.** Vite is pointed at `docs/` instead, because that is what
+GitHub Pages serves. Live at <https://spyhack225.github.io/speechify-site/>.
 
 ```bash
 cd site && npm install     # once
-npm run build              # emits ../docs
 npm run dev                # local preview
+npm run deploy             # build, commit docs/, push, and confirm it went live
 ```
 
-**`docs/` is build output and is committed on purpose.** Editing it by hand works right up
-until the next build silently discards the change — edit `site/src/` instead. Publishing is
-therefore a commit, not a CI run: Pages is set to *Deploy from a branch*, `main`, `/docs`,
-which needs no workflow, spends no Actions minutes, and guarantees that whatever was
-previewed locally is byte-for-byte what ships.
+`npm run deploy` is the whole sequence and the only one worth remembering. It takes an
+optional message — `npm run deploy -- "Rewrite the hero"` — and it:
+
+1. refuses unless you are on `main`, since that is the branch Pages serves;
+2. refuses if `origin` is the upstream repository this project was started from;
+3. builds;
+4. commits `docs/` **and only `docs/`**, so anything else half-staged in the tree is not
+   swept into a "Rebuild the site" commit;
+5. pushes;
+6. fetches the live page and waits until it serves the bundle just built.
+
+Step 6 is the point. A push is not a deployment: Pages rebuilds asynchronously and takes up
+to a minute, so the only honest confirmation is the live URL serving the new hash. The
+script exits non-zero if it never does.
+
+**Where the build goes, and why it is committed.** `docs/` is build output, tracked on
+purpose. Editing it by hand works right up until the next build silently discards the change
+— edit `site/src/` instead. Publishing is a commit, not a CI run: Pages is set to *Deploy
+from a branch*, `main`, `/docs`. No workflow, no Actions minutes, and whatever was previewed
+locally is byte-for-byte what ships. The two workflows in `.github/workflows/` build the
+macOS and Windows apps and have nothing to do with the site.
+
+The cost of that choice is build output in version control, which makes diffs noisy. The
+benefit is that a deploy can be verified locally before it ships, and there is no CI to be
+broken by something unrelated.
 
 Two details in `site/vite.config.ts` that look like oversights and are not. `base` is
 `/speechify-site/` because the site is served from a repository subpath, not a domain root.
