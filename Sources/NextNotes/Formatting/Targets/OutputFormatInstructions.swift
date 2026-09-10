@@ -25,6 +25,11 @@ import Foundation
 /// It is deliberately a pure function of a profile, with no reference to `Settings` or to
 /// any formatter, so it can be wired in from either side without the two edits colliding.
 ///
+/// It carries two axes now, not one: what the app renders, and whether the app resolves a
+/// path reference. `CleanupInstructions` appends this block last of all, *after* the list of
+/// names harvested off the screen, so the names arrive first and the syntax for writing one
+/// arrives immediately before the transcript. Do not move either half of that.
+///
 /// One interaction worth flagging to whoever wires this up: `CleanupPreferences.formatsLists`
 /// already says "turn enumerations of three or more items into Markdown lists". That rule
 /// and this one overlap, and this one is the more specific — a target that cannot render
@@ -34,6 +39,12 @@ import Foundation
 enum OutputFormatInstructions {
 
     /// The rules for one target, as individual lines ready to join a rule list.
+    ///
+    /// Now also carries the path-reference rule. The plain branch below returns early, so
+    /// `pathReferenceRules` has to be appended inside it too — an app can render nothing and
+    /// still resolve @-paths, which is exactly Claude Code in a terminal, and it is the case
+    /// the second axis exists for. Forgetting that branch would switch file tagging off for
+    /// precisely the targets it was built for.
     static func rules(for profile: OutputProfile) -> [String] {
         let name = profile.displayName.isEmpty ? "the focused app" : profile.displayName
 
@@ -45,7 +56,7 @@ enum OutputFormatInstructions {
                     + OutputCapability.allCases.map(\.prohibition).joined(separator: "; ")
                     + ". Write a spoken list as a sentence.",
                 Self.neverInvent,
-            ]
+            ] + pathReferenceRules(for: profile)
         }
 
         let supported = profile.sortedCapabilities
@@ -67,7 +78,44 @@ enum OutputFormatInstructions {
         }
 
         lines.append(Self.neverInvent)
+        lines += pathReferenceRules(for: profile)
         return lines
+    }
+
+    /// How this target wants a resolved file reference written.
+    ///
+    /// Split out so the grounding block can be tested against it, and so the plain and
+    /// non-plain branches of `rules(for:)` cannot drift — the mention rule has to appear in
+    /// both, and two copies of a sentence this specific would have diverged the first time
+    /// anyone reworded one of them.
+    ///
+    /// It sits at the *end* of the rule list on purpose, and that ordering is load-bearing.
+    /// `CleanupInstructions` puts the list of harvested screen names before these rules, so
+    /// the model reads the names first and reads how to write one last — which keeps the
+    /// syntax rule attached to the syntax rather than to the list. See
+    /// `CleanupInstructions.groundingRules`.
+    ///
+    /// A target that resolves nothing still gets a line, because the failure it prevents is
+    /// real in the other direction: a model told a file name is on screen will reach for the
+    /// syntax it saw most recently in training, and a literal `@src/auth/login.ts` in a sent
+    /// email points at nothing and reads as a mistake.
+    static func pathReferenceRules(for profile: OutputProfile) -> [String] {
+        let name = profile.displayName.isEmpty ? "the focused app" : profile.displayName
+
+        guard profile.resolvesPaths else {
+            return [
+                "\(name) does not resolve file references. Never use "
+                    + PathReferenceStyle.plain.prohibition + ".",
+            ]
+        }
+
+        return [
+            "\(name) resolves file references. " + profile.pathReference.instruction,
+            "Use that syntax only where the speaker was clearly naming a file, folder or app "
+                + "— never on an ordinary noun that happens to appear in the list, and never "
+                + "on a word you are unsure about. Never use "
+                + profile.pathReference.prohibition + ".",
+        ]
     }
 
     /// The same content as one block, for a caller that is not assembling a rule list.

@@ -40,6 +40,11 @@ struct FoundationModelFormatter: TextFormatter {
     private let fixesGrammar: Bool
     /// What the receiving app can render. Plain unless a caller says otherwise.
     private let target: OutputProfile
+    /// The names that were visible in that app when the key went down, for resolving a spoken
+    /// file reference against something real. `.empty` unless a caller says otherwise, because
+    /// no grounding is safer than stale grounding: names harvested for the *previous*
+    /// dictation would read to the model as a confident answer about this one.
+    private let context: ScreenContext
 
     init(
         preferences: CleanupPreferences = CleanupPreferences(
@@ -49,9 +54,11 @@ struct FoundationModelFormatter: TextFormatter {
         ),
         fixesGrammar: Bool = false,
         target: OutputProfile = .plain(bundleID: "", displayName: "the focused app"),
+        context: ScreenContext = .empty,
         fallback: any TextFormatter = RuleBasedFormatter()
     ) {
         self.target = target
+        self.context = context
         self.preferences = preferences
         self.fixesGrammar = fixesGrammar
         self.fallback = fallback
@@ -93,7 +100,8 @@ struct FoundationModelFormatter: TextFormatter {
                         trimmed,
                         preferences: preferences,
                         fixesGrammar: fixesGrammar,
-                        target: target
+                        target: target,
+                        context: context
                     )
                 }
                 group.addTask {
@@ -150,13 +158,15 @@ struct FoundationModelFormatter: TextFormatter {
         _ text: String,
         preferences: CleanupPreferences,
         fixesGrammar: Bool,
-        target: OutputProfile = .plain(bundleID: "", displayName: "the focused app")
+        target: OutputProfile = .plain(bundleID: "", displayName: "the focused app"),
+        context: ScreenContext = .empty
     ) async throws -> String {
         let session = LanguageModelSession(
             instructions: CleanupInstructions.system(
                 for: preferences,
                 fixesGrammar: fixesGrammar,
-                target: target
+                target: target,
+                context: context
             )
         )
 

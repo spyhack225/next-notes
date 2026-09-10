@@ -45,7 +45,13 @@ let package = Package(
             name: "NextNotesDictionaryTests",
             dependencies: ["NextNotesDictionary"],
             path: "Tests/NextNotesDictionaryTests",
-            resources: [.copy("dictionary-test-vectors.json")],
+            // Both shared contracts, copied rather than processed: they are read verbatim
+            // and diffed against shared/ in CI, so any transformation would make the two
+            // sides differ for a reason nobody could see.
+            resources: [
+                .copy("dictionary-test-vectors.json"),
+                .copy("spoken-forms-test-vectors.json"),
+            ],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
     ]

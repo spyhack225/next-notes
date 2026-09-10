@@ -4,10 +4,15 @@ import SwiftUI
 
 /// Which app gets which formatting, and the editor for that table.
 ///
-/// The list is a grid rather than a `Table`: at the settings window's width five capability
-/// columns plus an app name leaves a `Table`'s own column headers no room, and the headers
-/// are the only thing that says what the five checkboxes mean. A header row of symbols with
-/// tooltips, over rows of unlabelled checkboxes, fits and reads as a table anyway.
+/// The list is a grid rather than a `Table`: at the settings window's width six columns plus
+/// an app name leaves a `Table`'s own column headers no room, and the headers are the only
+/// thing that says what the checkboxes mean. A header row of symbols with tooltips, over rows
+/// of unlabelled controls, fits and reads as a table anyway.
+///
+/// The sixth column is not a sixth checkbox. Five of them are capabilities — a set, any
+/// combination valid — and the last is `PathReferenceStyle`, one choice of three on a
+/// different axis, so it is a menu. It shares the capability columns' width because a symbol
+/// fits there and the words fit inside the menu it opens; see `PathReferenceStyle.systemImage`.
 ///
 /// Alone among the settings tabs this one is NOT a `Form`. It was, and the app list could not
 /// be scrolled: a grouped `Form` is itself a scroll view, and a `List` nested inside one gets
@@ -16,6 +21,10 @@ import SwiftUI
 /// owns the wheel. Do not put this back inside a `Form`.
 struct FormattingSettingsTab: View {
     @State private var store = OutputProfileStore.shared
+    @State private var screenContext = ScreenContextStore.shared
+    /// Bound directly, like every other settings tab. `screenContext.isEnabled` reads through to
+    /// the same property; the tab binds the owner so the toggle needs no hand-written `Binding`.
+    @State private var settings = Settings.shared
     @State private var selection: Set<String> = []
     @State private var isAdding = false
     @State private var isPicking = false
@@ -35,6 +44,10 @@ struct FormattingSettingsTab: View {
                     + "app that isn't listed gets plain prose, because a formatting mark "
                     + "an app doesn't render is worse than none."
             )
+
+            Divider()
+
+            screenNames
 
             Divider()
 
@@ -58,14 +71,68 @@ struct FormattingSettingsTab: View {
             OutputProfileEditor(existing: nil) { store.upsert($0) }
         }
         .sheet(isPresented: $isPicking) {
-            AppPickerSheet(alreadyListed: Set(store.profiles.map(\.bundleID))) { app, capabilities in
+            AppPickerSheet(alreadyListed: Set(store.profiles.map(\.bundleID))) {
+                app, capabilities, pathReference in
                 store.upsert(OutputProfile(
                     bundleID: app.bundleID,
                     displayName: app.displayName,
-                    capabilities: capabilities
+                    capabilities: capabilities,
+                    pathReference: pathReference
                 ))
                 selection = [app.bundleID]
             }
+        }
+    }
+
+    // MARK: - Screen names
+
+    /// The switch for reading names off the screen at all, and the plainest statement of what
+    /// that means the user is going to get.
+    ///
+    /// The note is long and stays long. Wispr Flow took real reputational damage over screen
+    /// capture, and a feature that reads another application's window has to say what it reads
+    /// and what it does not, in the place where it is switched on — not in a support article.
+    /// Naming the exclusions is the point: "we skip password fields" is the sentence somebody
+    /// needs to see before they trust the switch, and it is only worth writing because
+    /// `AXHarvester` actually enforces it.
+    @ViewBuilder
+    private var screenNames: some View {
+        VStack(alignment: .leading, spacing: DS.Space.s) {
+            Text("Screen names")
+                .font(DS.Font.headline)
+
+            Toggle(
+                "Use file and folder names visible on screen",
+                isOn: $settings.screenContextEnabled
+            )
+            .help("Lets \"the login handler file\" come out as the real file name")
+
+            // The one harvest failure the user can fix, and the only reason `AXHarvester` goes to
+            // the trouble of telling a stub tree apart from an empty project. Bound to the
+            // sticky record rather than to the live capture: by the time this window is
+            // frontmost the captured harvest has been cleared and would never be a Cursor one
+            // anyway. Dismissible because the user may have just fixed it, and the next hold
+            // into that editor puts it back if they have not.
+            if let remediation = screenContext.stubRemediation {
+                ProblemBanner(message: remediation) {
+                    screenContext.dismissStubRemediation()
+                }
+            }
+
+            SettingsNote(
+                text: "While you hold the dictation key, Next Notes reads the names of open "
+                    + "tabs, files and folders in the app you are dictating into, and uses "
+                    + "them to recognise a file you say out loud. Nothing is stored, nothing "
+                    + "leaves your Mac, and no page or document text is read — only names. "
+                    + "Password fields, number-only fields and browser address bars are "
+                    + "skipped, and banking and finance apps are never read at all."
+            )
+
+            SettingsNote(
+                text: "Needs cleanup set to fix grammar as well as punctuation: the "
+                    + "punctuation-only model takes no instructions, so it has nowhere to be "
+                    + "told which names are on screen."
+            )
         }
     }
 
@@ -84,6 +151,11 @@ struct FormattingSettingsTab: View {
                     .frame(width: DS.Size.formatCapabilityColumn)
                     .help("\(capability.displayName) — \(capability.help)")
             }
+            Image(systemName: "at")
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+                .frame(width: DS.Size.formatCapabilityColumn)
+                .help("Whether this app resolves @-paths into files")
         }
     }
 
@@ -102,9 +174,15 @@ struct FormattingSettingsTab: View {
         } else {
             List(selection: $selection) {
                 ForEach(store.profiles) { profile in
-                    OutputProfileRow(profile: profile) { capability, isOn in
-                        store.setCapability(capability, on: isOn, for: profile.bundleID)
-                    }
+                    OutputProfileRow(
+                        profile: profile,
+                        onToggle: { capability, isOn in
+                            store.setCapability(capability, on: isOn, for: profile.bundleID)
+                        },
+                        onPathReference: { style in
+                            store.setPathReference(style, for: profile.bundleID)
+                        }
+                    )
                     .tag(profile.bundleID)
                 }
             }
@@ -172,13 +250,14 @@ struct FormattingSettingsTab: View {
 private struct OutputProfileRow: View {
     let profile: OutputProfile
     let onToggle: (OutputCapability, Bool) -> Void
+    let onPathReference: (PathReferenceStyle) -> Void
 
     var body: some View {
         HStack(spacing: DS.Space.xs) {
             VStack(alignment: .leading, spacing: 0) {
                 Text(profile.displayName)
                     .font(DS.Font.body)
-                Text(profile.isPlain ? "Plain prose" : profile.bundleID)
+                Text(profile.isPlain && !profile.resolvesPaths ? "Plain prose" : profile.bundleID)
                     .font(DS.Font.caption2)
                     .foregroundStyle(DS.Color.textTertiary)
             }
@@ -196,9 +275,57 @@ private struct OutputProfileRow: View {
                 .frame(width: DS.Size.formatCapabilityColumn)
                 .help("\(profile.displayName): \(capability.help)")
             }
+            pathReferenceMenu
         }
         .padding(.vertical, DS.Space.xxs)
     }
+
+    /// A `Picker` nested inside a `Menu` rather than a `Picker` on its own, so the trigger can
+    /// be the current style's symbol while the options keep their words and their checkmark.
+    /// A bare menu-style `Picker` shows its selected title, and "Backticked paths" is wider
+    /// than the app-name column beside it.
+    private var pathReferenceMenu: some View {
+        Menu {
+            Picker(
+                "Path references",
+                selection: Binding(
+                    get: { profile.pathReference },
+                    set: { onPathReference($0) }
+                )
+            ) {
+                ForEach(PathReferenceStyle.allCases, id: \.self) { style in
+                    Text(style.displayName).tag(style)
+                }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+        } label: {
+            Image(systemName: profile.pathReference.systemImage)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .frame(width: DS.Size.formatCapabilityColumn)
+        .help("\(profile.displayName): \(profile.pathReference.help)")
+    }
+}
+
+// MARK: - Path references
+
+/// The path-reference control both sheets use.
+///
+/// A labelled `Picker` here rather than the table row's symbol menu. A sheet has the width for
+/// words, and a sheet is where someone is deciding what the setting means rather than flipping
+/// one they already understand — the two contexts want opposite amounts of text, which is why
+/// this is a second control rather than the row's one reused.
+@ViewBuilder
+private func pathReferencePicker(_ selection: Binding<PathReferenceStyle>) -> some View {
+    Picker("File references", selection: selection) {
+        ForEach(PathReferenceStyle.allCases, id: \.self) { style in
+            Text(style.displayName).tag(style)
+        }
+    }
+    .help("What this app does with a spoken file name. Choose \"@-paths\" only for an app that "
+          + "opens the file the path names — anywhere else the @ arrives as a literal @.")
 }
 
 // MARK: - Editor
@@ -212,6 +339,7 @@ private struct OutputProfileEditor: View {
     @State private var bundleID: String
     @State private var displayName: String
     @State private var capabilities: Set<OutputCapability>
+    @State private var pathReference: PathReferenceStyle
 
     init(existing: OutputProfile?, onSave: @escaping (OutputProfile) -> Void) {
         self.existing = existing
@@ -219,6 +347,7 @@ private struct OutputProfileEditor: View {
         _bundleID = State(initialValue: existing?.bundleID ?? "")
         _displayName = State(initialValue: existing?.displayName ?? "")
         _capabilities = State(initialValue: existing?.capabilities ?? [])
+        _pathReference = State(initialValue: existing?.pathReference ?? .plain)
     }
 
     private var trimmedBundleID: String {
@@ -248,6 +377,8 @@ private struct OutputProfileEditor: View {
                     ))
                     .help(capability.help)
                 }
+
+                pathReferencePicker($pathReference)
             }
             .formStyle(.grouped)
 
@@ -266,7 +397,8 @@ private struct OutputProfileEditor: View {
                             .isEmpty
                             ? trimmedBundleID
                             : displayName.trimmingCharacters(in: .whitespacesAndNewlines),
-                        capabilities: capabilities
+                        capabilities: capabilities,
+                        pathReference: pathReference
                     ))
                     dismiss()
                 }
@@ -288,7 +420,7 @@ private struct OutputProfileEditor: View {
 /// simply never matches, and the user gets plain prose with nothing to explain why.
 private struct AppPickerSheet: View {
     let alreadyListed: Set<String>
-    let onAdd: (InstalledApp, Set<OutputCapability>) -> Void
+    let onAdd: (InstalledApp, Set<OutputCapability>, PathReferenceStyle) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var apps: [InstalledApp] = []
@@ -296,6 +428,7 @@ private struct AppPickerSheet: View {
     @State private var query = ""
     @State private var selectedID: String?
     @State private var capabilities: Set<OutputCapability> = []
+    @State private var pathReference: PathReferenceStyle = .plain
 
     /// Apps already in the table are dropped rather than shown greyed out. This list is long
     /// enough that the shortest version of it is the kindest.
@@ -335,7 +468,7 @@ private struct AppPickerSheet: View {
                     .keyboardShortcut(.cancelAction)
                 Button("Add") {
                     guard let selected else { return }
-                    onAdd(selected, capabilities)
+                    onAdd(selected, capabilities, pathReference)
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -399,6 +532,9 @@ private struct AppPickerSheet: View {
                 ))
                 .help(capability.help)
             }
+
+            pathReferencePicker($pathReference)
+                .fixedSize()
 
             SettingsNote(text: "Leave every switch off for plain prose. Only switch on what "
                          + "the app actually renders — a mark it doesn't render shows up as "

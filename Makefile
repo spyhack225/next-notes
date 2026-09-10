@@ -58,8 +58,14 @@ all: app
 build:
 	swift build -c $(CONFIG) --scratch-path "$(SCRATCH)"
 
+## Two suites, named explicitly rather than matched by one regex.
+##
+## --filter takes a regex, and a single pattern loose enough to catch both would also catch
+## whatever gets added next — or miss it. Worse, a suite accidentally named
+## SpokenFormsVectorTests would be swept up by "VectorTests" alone and appear to run until
+## the day somebody renamed it. Each suite gets its own flag; SwiftPM ORs them.
 test:
-	swift test --scratch-path "$(TEST_SCRATCH)" --filter VectorTests
+	swift test --scratch-path "$(TEST_SCRATCH)" --filter VectorTests --filter SpokenFormsTests
 
 ## Regenerates AppIcon.icns from Tools/makeicon.swift. Not a dependency of `app` — the
 ## icon rarely changes and rendering 10 PNGs on every build is wasted time.

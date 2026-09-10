@@ -217,11 +217,22 @@ Sources/NextNotes/
 │   ├── TranscriptionEngine.swift   protocol + AudioChunk
 │   ├── AppleSpeechEngine.swift     SpeechAnalyzer / SpeechTranscriber
 │   └── ParakeetEngine.swift        local FluidAudio/CoreML batch ASR
+├── Context/
+│   ├── ScreenContext.swift         CandidateName + CandidateKind: what a harvest found
+│   ├── ScreenContextStore.swift    one walk per hold, started at key-down, awaited twice
+│   ├── AXHarvester.swift           the budgeted tree walk itself
+│   ├── AXAppAdapters.swift         the three editors, by bundle id, hand-tested
+│   └── ContextPrivacyFilter.swift  what is never read: secure fields, URL bars, finance apps
+├── Dictionary/
+│   └── DictionaryStore.swift       the user's own corrections, and the ASR bias list
 ├── Formatting/
 │   ├── TextFormatter.swift         protocol + RuleBasedFormatter
 │   ├── FoundationModelFormatter.swift
 │   ├── S1MiniFormatter.swift       local llama.cpp cleanup
 │   ├── FoundationModelCommandProcessor.swift
+│   ├── CleanupInstructions.swift   the cleanup prompt, including the grounding block
+│   ├── Targets/                    OutputProfile (+PathReferenceStyle), OutputProfileStore,
+│   │                               OutputFormatInstructions, InstalledApps
 │   └── LLM/
 │       ├── LlamaBackend.swift      one llama.cpp backend for both local models
 │       ├── LlamaHelpers.swift      tokenize/detokenize/batch, shared
@@ -315,6 +326,8 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-gws                     # locate `gws`, read its version and auth state
 "$S" --selftest-agent <meeting-dir>     # proposals as JSON; executes nothing
 "$S" --selftest-dictation               # every way a hold can go wrong still ends at idle
+"$S" --selftest-context [bundle-id]     # harvest an editor's window: names, paths, ms,
+#                                         the grounding block, and what stopped the walk
 ```
 
 Each prints a single `<NAME>_OK` or `<NAME>_FAILED` line last, so they can be read by a
@@ -327,6 +340,14 @@ it is ready. Each has to come back to `.idle` and say what went wrong. Unbounded
 what the tail used to be — the first two park the controller in `.finishing`, and the HUD
 and the island both draw that as a live recording, which is what "it looks stuck and it
 keeps recording in the background" is a description of.
+
+`--selftest-context` is the only way to find out whether the screen-name harvest works,
+because nothing else can: CI cannot build this target, the tests reach only the
+platform-neutral scoring in `NextNotesDictionary`, and the equivalent log line needs a real
+hold with a microphone and grammar-repair cleanup. It defaults to Cursor and takes any
+bundle identifier with an adapter. **It fails on a stub tree**, which is the normal state of
+a fresh VS Code fork: those editors expose nothing until `editor.accessibilitySupport` is
+set to `on`, and the failure line is the sentence that says so.
 
 `--selftest-calendar` prints each provider's state, what it would record out of the next
 day, and the result of running the auto-record rules over invented events — that last half

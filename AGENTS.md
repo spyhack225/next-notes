@@ -46,7 +46,8 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-notes <wav> [--diarize]         --selftest-llm-metal
 --selftest-island    --selftest-orb        --selftest-gws
 --selftest-agent <meeting-dir>             --selftest-cleanup [engine]
---selftest-dictation --selftest-calls
+--selftest-dictation --selftest-calls      --selftest-axreadback
+--selftest-learn     --selftest-context [bundle-id]
 ```
 
 A self-test must **fail** when the thing it names did not happen. `--selftest-systemaudio`
@@ -774,6 +775,19 @@ development machine. Treat anything here as unproven, and do not describe it as 
 - **Every Workspace write.** `gws auth status` reports no credentials, so no proposal has
   ever been approved and `WorkspaceToolRunner` has never spoken to the API. Each tool's
   flags were checked against `gws <service> <helper> --help`, not against a live call.
+- **The screen-name harvest, against a real editor.** `Sources/NextNotes/Context/` reads the
+  file, folder and tab names out of Cursor, Windsurf or VS Code at key-down so a spoken "the
+  login handler file" resolves to the real name. The walk needs the Accessibility grant, and
+  all three editors expose an empty tree until
+  `editor.accessibilitySupport` is set to `on` inside the editor itself — which is why
+  `--selftest-context [bundle-id]` fails rather than passes on a stub tree. **It has been run,
+  and it fails:** against the Cursor open on this machine on 2026-09-10 the walk came back with
+  zero names in 109 ms and `stub tree`, which is the accessibility setting being off, not a
+  defect — the same shape `--selftest-axreadback` records for reading text back out of Cursor.
+  Nobody has yet seen a harvest return real file names, so no spoken file name has ever been
+  resolved end to end. The shrunk-budget half of that self-test does pass (`node cap, depth
+  cap`), so the walk, the ceilings and the truncation reporting are exercised; and the scoring
+  half (`SpokenForms`) is the part CI tests.
 - **The redesigned UI, by eye.** Screenshots need Screen Recording and driving the UI needs
   Accessibility; neither can be granted non-interactively. Nobody has seen the sidebar, the
   onboarding sheet, or the island expand out of the notch.

@@ -39,8 +39,11 @@ jobs:
       # The app target needs macOS 26 and the Speech framework, which the runner image
       # does not have. The dictionary target is deliberately platform-neutral, so it — and
       # the contract that matters here — builds and tests anywhere.
+      # Both suites are named, for the reason the Makefile spells out: one regex loose
+      # enough to catch both would also catch the next thing added, and a suite named
+      # "SpokenFormsVectorTests" would be matched by "VectorTests" by accident.
       - name: Test the dictionary target
-        run: swift test --filter VectorTests
+        run: swift test --filter VectorTests --filter SpokenFormsTests
 
       - name: Confirm the vectors on both sides are identical
         run: |
@@ -50,3 +53,15 @@ jobs:
             exit 1
           fi
           echo "Vectors match."
+
+      # The same check for the spoken-form contract. Without this step the shared file is a
+      # specification nobody verifies: the suite would keep passing against a test copy that
+      # had quietly drifted from the one a Windows port would be written against.
+      - name: Confirm the spoken-form vectors on both sides are identical
+        run: |
+          if ! diff -q shared/spoken-forms-test-vectors.json Tests/NextNotesDictionaryTests/spoken-forms-test-vectors.json; then
+            echo "::error::The Swift test copy of the spoken-form vectors has drifted from shared/."
+            echo "Run: cp shared/spoken-forms-test-vectors.json Tests/NextNotesDictionaryTests/"
+            exit 1
+          fi
+          echo "Spoken-form vectors match."
