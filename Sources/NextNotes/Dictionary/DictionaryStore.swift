@@ -82,6 +82,26 @@ final class DictionaryStore {
 
     var biasPhrases: [String] { DictionaryCorrector.biasPhrases(from: entries) }
 
+    /// The bias list with harvested screen names folded in.
+    ///
+    /// The split between this list and the one the cleanup prompt gets is asymmetric on
+    /// purpose, and the numbers are not arbitrary. `biasPhrases` is already capped at 40 by
+    /// `DictionaryCorrector.biasLimit`, whose comment records what a long context list does to
+    /// these models on quiet audio — they start emitting the vocabulary they were primed with,
+    /// which is a worse failure than the misspelling the biasing was meant to prevent.
+    /// Harvested names are the riskiest possible entries for that, because they are guesses
+    /// read out of another app's accessibility tree rather than words the user deliberately
+    /// typed. So they get at most ten of the forty slots, they get them only after every
+    /// dictionary phrase has one, and a harvested name equal to a dictionary phrase is dropped
+    /// rather than counted twice.
+    ///
+    /// The cleanup prompt takes the full harvest instead, up to `ScreenContext.promptNameLimit`
+    /// — that pass edits text that already exists, so a candidate nothing was said about is
+    /// inert there rather than a word the model can reach for on silence.
+    func biasPhrases(withHarvested harvested: [String]) -> [String] {
+        SpokenForms.mergedBiasPhrases(dictionary: self.biasPhrases, harvested: harvested)
+    }
+
     // MARK: - Persistence
 
     private func load() {

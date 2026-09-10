@@ -26,6 +26,10 @@ struct QwenCleanupFormatter: TextFormatter {
     private let fixesGrammar: Bool
     /// What the receiving app can render. Plain unless a caller says otherwise.
     private let target: OutputProfile
+    /// The names that were visible in that app when the key went down. `.empty` unless a caller
+    /// says otherwise — see `FoundationModelFormatter.context` for why the default is nothing
+    /// rather than whatever was harvested last.
+    private let context: ScreenContext
     /// Longer than Apple's four seconds because this model is slower and the user opted
     /// into that, but still a bound: dictation stops being interactive somewhere around
     /// here, and past it the raw words beat a better sentence.
@@ -35,11 +39,13 @@ struct QwenCleanupFormatter: TextFormatter {
         preferences: CleanupPreferences,
         fixesGrammar: Bool = true,
         target: OutputProfile = .plain(bundleID: "", displayName: "the focused app"),
+        context: ScreenContext = .empty,
         timeout: Duration = .seconds(8)
     ) {
         self.preferences = preferences
         self.fixesGrammar = fixesGrammar
         self.target = target
+        self.context = context
         self.timeout = timeout
     }
 
@@ -66,7 +72,8 @@ struct QwenCleanupFormatter: TextFormatter {
                         trimmed,
                         preferences: preferences,
                         fixesGrammar: fixesGrammar,
-                        target: target
+                        target: target,
+                        context: context
                     )
                 }
                 group.addTask {
@@ -114,13 +121,15 @@ struct QwenCleanupFormatter: TextFormatter {
         _ text: String,
         preferences: CleanupPreferences,
         fixesGrammar: Bool,
-        target: OutputProfile = .plain(bundleID: "", displayName: "the focused app")
+        target: OutputProfile = .plain(bundleID: "", displayName: "the focused app"),
+        context: ScreenContext = .empty
     ) async throws -> String {
         let completion = try await NotesModelRuntime.shared.complete(
             system: CleanupInstructions.system(
                 for: preferences,
                 fixesGrammar: fixesGrammar,
-                target: target
+                target: target,
+                context: context
             ),
             user: CleanupInstructions.user(text, fixesGrammar: fixesGrammar),
             // Cleanup is never much longer than what was said. Budgeted from the input

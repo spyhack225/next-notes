@@ -121,7 +121,11 @@ final class DictationController {
     private let commandProcessor: any TextCommandProcessor
 
     /// Chosen per-utterance so the menu toggle applies to the very next hold.
-    private var activeFormatter: any TextFormatter {
+    ///
+    /// A function rather than a computed property because of `context`: the names visible on
+    /// screen are harvested on a detached task and have to be awaited, and a property has
+    /// nowhere to put the await. It stays private, so nothing outside this file is affected.
+    private func activeFormatter(context: ScreenContext) -> any TextFormatter {
         if let formatter { return formatter }
         let settings = Settings.shared
         // What the app about to receive this text can actually render, captured at
@@ -136,14 +140,16 @@ final class DictationController {
             return FoundationModelFormatter(
                 preferences: settings.cleanupPreferences,
                 fixesGrammar: settings.cleanupFixesGrammar,
-                target: target
+                target: target,
+                context: context
             )
         case .s1Mini:
-            // S1-mini takes no instructions at all, so a target profile cannot reach it.
-            // Punctuation-only cleanup is therefore the one combination where per-app
-            // formatting has no effect — there is no prompt to put the rules in. With
-            // grammar repair on, the second pass below is a general-purpose model and does
-            // honour them.
+            // S1-mini takes no instructions at all, so neither a target profile nor the list of
+            // on-screen names can reach it. Punctuation-only cleanup is therefore the one
+            // combination where per-app formatting has no effect *and* where a spoken file name
+            // stays a spoken file name — there is no prompt to put either set of rules in, and
+            // the harvest that ran at key-down is simply discarded. With grammar repair on, the
+            // second pass below is a general-purpose model and does honour both.
             let punctuation = S1MiniFormatter(preferences: settings.cleanupPreferences)
             guard settings.cleanupFixesGrammar else { return punctuation }
             // S1-mini cannot repair grammar — it is a punctuation model, not an
@@ -157,10 +163,70 @@ final class DictationController {
                     preferences: settings.cleanupPreferences,
                     fixesGrammar: true,
                     target: target,
+                    context: context,
                     fallback: KeepAsIsFormatter()
                 )
             )
         }
+    }
+
+    /// Whether the formatter this hold is about to build can be told anything at all about
+    /// the screen. False means the harvest is not merely unused but must not be *scored*.
+    ///
+    /// Mirrors `activeFormatter(context:)` above, and has to be read against it rather than
+    /// guessed at: the injected `formatter` test seam ignores the context, and punctuation-only
+    /// S1-mini takes no instructions — but S1-mini *with* grammar repair chains a second
+    /// Apple pass that does honour it, so the engine alone does not answer the question.
+    private var formatterUsesContext: Bool {
+        if formatter != nil { return false }
+        let settings = Settings.shared
+        return settings.cleanupEngine != .s1Mini || settings.cleanupFixesGrammar
+    }
+
+    /// The harvested names, narrowed to the ones this transcript plausibly mentions.
+    ///
+    /// The second read of the harvest that started at key-down, and the patient one: by now the
+    /// walk finished seconds ago, so a full second of budget is a formality that only matters
+    /// for an utterance short enough to beat a slow tree.
+    ///
+    /// `narrowed(toMentionsIn:)` is what keeps this list honest. The prompt gets up to
+    /// `ScreenContext.promptNameLimit` names rather than the ten the recognizer got, and that is
+    /// safe for a reason the recognizer's cap does not share: this pass is editing text that
+    /// already exists, so a name nothing was said about is inert here instead of being a word
+    /// the model can reach for on quiet audio.
+    ///
+    /// It is also the most expensive pure computation in the app, and this method exists
+    /// because it used to run inline on the main actor. Every candidate is scored against every
+    /// window of up to six transcript tokens, so with a Cursor sidebar's 200 names it measured
+    /// 3 s for a one-minute utterance in the debug configuration `make install` builds — three
+    /// seconds of frozen HUD between transcription and injection, billed to `cleanup` in the
+    /// tail log, and paid in full even where the result was thrown away. So: skipped outright
+    /// when no formatter can read it, run off the main actor, and bounded.
+    ///
+    /// The bound stops the *waiting*, not the arithmetic — there is no cancellation point
+    /// inside the scoring — so a run that overshoots finishes unobserved on a background
+    /// thread while the prompt is built from `rankLimited()`. That is the right trade for a
+    /// list whose ordering is an optimisation: rank order is what the ASR slice already uses,
+    /// and it is a worse list rather than no list.
+    private func screenNames(mentionedIn raw: String) async -> ScreenContext {
+        guard formatterUsesContext else { return .empty }
+
+        let harvested = await ScreenContextStore.shared.awaitCapture(within: .seconds(1))
+        guard !harvested.isEmpty else { return harvested }
+
+        // Not `Task.detached`: `withBoundedWait` runs its closure in a task started from a
+        // nonisolated function, so the body is already off the main actor. One mechanism for
+        // the bound and the hop, rather than two nested ones.
+        let narrowed = await withBoundedWait(limits.narrow) {
+            harvested.narrowed(toMentionsIn: raw)
+        }
+        if let narrowed { return narrowed }
+        Log.speech.error("""
+            narrowing \(harvested.candidates.count, privacy: .public) screen name(s) did not \
+            finish within \(String(describing: self.limits.narrow), privacy: .public) — \
+            using rank order
+            """)
+        return harvested.rankLimited()
     }
 
     private var engine: (any TranscriptionEngine)?
@@ -202,6 +268,18 @@ final class DictationController {
         var transcribe = Duration.seconds(90)
         /// Smart cleanup. On timeout the raw transcript is used — never dropped.
         var cleanup = Duration.seconds(30)
+        /// Scoring the harvested names against the transcript.
+        ///
+        /// Pure arithmetic, but not free arithmetic: every candidate is scored against every
+        /// window of up to six transcript tokens, so the cost is linear in the utterance and
+        /// multiplied by up to `AXHarvester.Budget.maxCandidates` names. Measured on this
+        /// machine with 200 names — a full Cursor sidebar — a 136-word transcript takes 0.13s
+        /// optimised and 2.9s at `-Onone`, which is the debug configuration `make install`
+        /// actually builds. Two seconds therefore leaves a release build an order of magnitude
+        /// of headroom and covers a debug build for anything up to about a minute of speech;
+        /// past that the rank-ordered list is the better trade, because this sits between
+        /// transcription and injection and the user is waiting on it.
+        var narrow = Duration.seconds(2)
         /// Command Mode's model pass.
         var command = Duration.seconds(60)
 
@@ -364,13 +442,47 @@ final class DictationController {
         session &+= 1
         let session = self.session
         recordingIntent = intent
-        // Two captures of the same instant, for two different jobs. `origin` holds the
+        // Three captures of the same instant, for three different jobs. `origin` holds the
         // running application, because returning to it needs something to activate;
         // `captureTarget()` files the bundle identifier, because choosing the formatting
         // rules needs something to look up — and it falls back to the last foreign app,
         // which matters on the path where the frontmost read comes back empty.
+        //
+        // The harvest reads the file, folder and tab names visible in that same app, and
+        // belongs here for the reason the other two do — the user may switch away
+        // mid-utterance — plus one of its own: it is a tree walk with a 120 ms budget, and the
+        // only moment that time is free is while the key is still held. `beginCapture` returns
+        // immediately and the walk runs off the main actor, so nothing here blocks.
+        //
+        // It is not, however, unwaited-for further down. `AppleSpeechEngine.start()` waits up to
+        // 60 ms for it before opening the microphone, because contextual strings have to be set
+        // before the first buffer arrives — often zero, since loading the transcriber has
+        // already outlasted the walk, but never guaranteed. That cost is argued where it is
+        // paid, on `AppleSpeechEngine.context()`; the honest summary here is that the deadline
+        // is small and deliberately shorter than the walk's own.
         origin = TextInjector.captureOrigin()
-        OutputProfileStore.shared.captureTarget()
+        let target = OutputProfileStore.shared.captureTarget()
+        ScreenContextStore.shared.beginCapture(
+            for: target,
+            // The process id, not the `NSRunningApplication` it came from. The walk happens on
+            // a detached task and `AXUIElement` is not `Sendable`; an `Int32` is, and the
+            // harvester builds its own element from it on the far side.
+            //
+            // Deliberately `origin`'s pid rather than one derived from `target`. A nil origin
+            // means Next Notes itself was frontmost, and then there is no harvest at all — even
+            // though `captureTarget()` still resolves a profile, from the last foreign app.
+            //
+            // `originBundleID` is what makes the pid and the bundle identifier name the same
+            // running process rather than merely being asserted to. They come from two reads of
+            // the frontmost app with different rules: `captureOrigin()` accepts an app with no
+            // bundle identifier at all — an unsigned Electron build, something run from a
+            // terminal — while `frontmostApp()` requires one and otherwise falls back to the
+            // last foreign app. So Cursor could be the target while the pid belonged to
+            // something else entirely, and the harvest would then walk an app no adapter and no
+            // deny list was ever consulted for and label the result "Cursor".
+            processID: origin?.app.processIdentifier,
+            originBundleID: origin?.app.bundleIdentifier
+        )
         state = .starting
         transcript = ""
         holdStarted = Date()
@@ -607,8 +719,16 @@ final class DictationController {
             // On a cleanup timeout the raw transcript is used rather than dropped: badly
             // punctuated text in the right field beats nothing at all.
             var cleaned = raw
+            // Timed separately from the cleanup it feeds, because it used to be billed to it.
+            // Scoring the screen names is arithmetic in this process and cleanup is a language
+            // model; a tail that reads "cleanup 3.4s" when three of those seconds went on
+            // narrowing sends whoever reads it to the wrong machine entirely.
+            var narrowedAt = transcribedAt
             if Settings.shared.cleanupEnabled {
-                let formatter = activeFormatter
+                let screen = await screenNames(mentionedIn: raw)
+                narrowedAt = Date().timeIntervalSince(began)
+                guard self.session == session else { return }
+                let formatter = activeFormatter(context: screen)
                 if let formatted = await withBoundedWait(limits.cleanup, { await formatter.format(raw) }) {
                     cleaned = formatted
                 } else {
@@ -618,13 +738,15 @@ final class DictationController {
 
             // The split, every time, at info level. `runs.jsonl` records one number for the
             // whole tail, and a run that took three minutes when it should have taken two
-            // seconds is not diagnosable from one number: draining, transcribing and
-            // cleaning up are three different machines and any of them can be the slow one.
+            // seconds is not diagnosable from one number: draining, transcribing, narrowing the
+            // screen names and cleaning up are four different machines and any of them can be
+            // the slow one.
             let cleanedAt = Date().timeIntervalSince(began)
             Log.speech.info("""
                 dictation tail · drain \(drained, format: .fixed(precision: 2))s · \
                 transcribe \(transcribedAt - drained, format: .fixed(precision: 2))s · \
-                cleanup \(cleanedAt - transcribedAt, format: .fixed(precision: 2))s
+                names \(narrowedAt - transcribedAt, format: .fixed(precision: 2))s · \
+                cleanup \(cleanedAt - narrowedAt, format: .fixed(precision: 2))s
                 """)
 
             guard self.session == session else { return }
@@ -672,6 +794,7 @@ final class DictationController {
         recordingIntent = .dictation
         origin = nil
         OutputProfileStore.shared.clearCapturedTarget()
+        ScreenContextStore.shared.clearCaptured()
     }
 
     private func applyCommand(_ rawCommand: String, to selection: TextInjector.Selection) async {
@@ -866,6 +989,7 @@ final class DictationController {
         recordingIntent = .dictation
         origin = nil
         OutputProfileStore.shared.clearCapturedTarget()
+        ScreenContextStore.shared.clearCaptured()
         holdStarted = nil
         releasedAt = nil
 

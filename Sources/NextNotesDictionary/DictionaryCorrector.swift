@@ -136,11 +136,11 @@ public extension DictionaryCorrector {
     /// Kept deliberately short. These models drift when given a long context list — on quiet
     /// or ambiguous audio they start inventing text from the vocabulary they were primed
     /// with, which is a far worse failure than the misspelling it was meant to fix.
-    public static let biasLimit = 40
+    static let biasLimit = 40
 
     /// - Returns: the correct spellings — `.term` words and the *write* side of corrections —
     ///   most recently useful first, capped at `biasLimit`.
-    public static func biasPhrases(from entries: [DictionaryEntry]) -> [String] {
+    static func biasPhrases(from entries: [DictionaryEntry]) -> [String] {
         var seen = Set<String>()
         var phrases: [String] = []
 

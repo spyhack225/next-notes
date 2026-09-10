@@ -17,16 +17,26 @@ struct OutputTarget: Sendable, Hashable {
 /// table out of `UserDefaults`, where a list of records with five flags each has no
 /// business being.
 ///
-/// The format is one app per line, three `|`-separated fields:
+/// The format is one app per line, four `|`-separated fields:
 ///
 /// ```
-/// com.tinyspeck.slackmacgap | Slack | bullets, numbered, code
-/// com.apple.mail            | Mail  | plain
+/// bundle identifier         | name  | what it renders         | how it references paths
+/// com.tinyspeck.slackmacgap | Slack | bullets, numbered, code | backtick-paths
+/// com.apple.mail            | Mail  | plain                   | plain
 /// ```
 ///
 /// The third field is a comma-separated list of `markdown`, `bullets`, `numbered`,
-/// `tables`, `code`, or the word `plain` for none of them. `#` starts a comment.
-/// An app with no line here is plain prose — see `profile(for:)`.
+/// `tables`, `code`, or the word `plain` for none of them. The fourth is one of `plain`,
+/// `at-paths` or `backtick-paths` — a different axis, and a different meaning of the word
+/// `plain`. `#` starts a comment. An app with no line here is plain prose — see
+/// `profile(for:)`.
+///
+/// Both directions of compatibility, with no version stamp and no migration step. A
+/// three-field line written by an older build yields `.plain`, because `fields.count >= 4`
+/// already reads that way; and an older build reading a four-field file ignores the fourth,
+/// because its parser only ever indexes `fields[0...2]`. The first save after upgrading
+/// rewrites every row with the new column, which the `isSaving` flag already keeps the
+/// watcher from reading back as an external edit.
 @MainActor
 @Observable
 final class OutputProfileStore {
@@ -149,7 +159,8 @@ final class OutputProfileStore {
         let trimmed = OutputProfile(
             bundleID: profile.bundleID.trimmingCharacters(in: .whitespaces),
             displayName: Self.sanitized(profile.displayName),
-            capabilities: profile.capabilities
+            capabilities: profile.capabilities,
+            pathReference: profile.pathReference
         )
         guard !trimmed.bundleID.isEmpty else { return }
 
@@ -174,6 +185,14 @@ final class OutputProfileStore {
         } else {
             profiles[index].capabilities.remove(capability)
         }
+        save()
+    }
+
+    /// Mirrors `setCapability` for the second axis. One style rather than a set, so this
+    /// sets rather than inserts or removes.
+    func setPathReference(_ style: PathReferenceStyle, for bundleID: String) {
+        guard let index = profiles.firstIndex(where: { $0.bundleID == bundleID }) else { return }
+        profiles[index].pathReference = style
         save()
     }
 
@@ -236,11 +255,16 @@ final class OutputProfileStore {
             // pasting a corrected row underneath the old one means.
             let displayName = fields[1].isEmpty ? bundleID : fields[1]
             let capabilities = fields.count >= 3 ? parseCapabilities(fields[2]) : []
+            // Field four is optional on read, which is the whole of the upgrade story: a
+            // line written before this column existed has three fields and means "resolves
+            // nothing", which is exactly what `.plain` is.
+            let pathReference = fields.count >= 4 ? parsePathReference(fields[3]) : .plain
 
             let profile = OutputProfile(
                 bundleID: bundleID,
                 displayName: displayName,
-                capabilities: capabilities
+                capabilities: capabilities,
+                pathReference: pathReference
             )
             if let index = result.firstIndex(where: { $0.bundleID == bundleID }) {
                 result[index] = profile
@@ -267,6 +291,15 @@ final class OutputProfileStore {
         return result
     }
 
+    /// An unknown word here resolves nothing, for the same reason an unknown capability
+    /// grants nothing: writing `@src/auth/login.ts` into an app that does not resolve it
+    /// leaves a literal @ in something already sent, while writing the name as words is
+    /// never wrong in a way anyone can see.
+    private static func parsePathReference(_ field: String) -> PathReferenceStyle {
+        let word = field.trimmingCharacters(in: .whitespaces).lowercased()
+        return PathReferenceStyle(rawValue: word) ?? .plain
+    }
+
     private func save() {
         isSaving = true
         defer { isSaving = false }
@@ -278,20 +311,33 @@ final class OutputProfileStore {
     /// Separate from `save()` so `parse(serialize(x)) == x` can be checked without writing
     /// over the user's real table — which is what `--selftest-formatting` does.
     static func serialize(_ profiles: [OutputProfile]) -> String {
-        // Pad the first two columns so the file stays a readable table by hand. Cheap, and
-        // it is the difference between a file someone will edit and one they won't.
+        // Pad the first three columns so the file stays a readable table by hand. Cheap, and
+        // it is the difference between a file someone will edit and one they won't. The
+        // third column is padded now that a fourth follows it — an unpadded capability list
+        // puts the reference style at a different indent on every row, and the column stops
+        // reading as a column at all.
+        let capabilityToken = { (profile: OutputProfile) -> String in
+            profile.isPlain
+                ? "plain"
+                : profile.sortedCapabilities.map(\.token).joined(separator: ", ")
+        }
         let idWidth = profiles.map(\.bundleID.count).max() ?? 0
         let nameWidth = profiles.map(\.displayName.count).max() ?? 0
+        let capabilityWidth = profiles.map { capabilityToken($0).count }.max() ?? 0
 
         let body = profiles.map { profile in
             let id = profile.bundleID.padding(toLength: max(idWidth, profile.bundleID.count),
                                               withPad: " ", startingAt: 0)
             let name = profile.displayName.padding(toLength: max(nameWidth, profile.displayName.count),
                                                    withPad: " ", startingAt: 0)
-            let capabilities = profile.isPlain
-                ? "plain"
-                : profile.sortedCapabilities.map(\.token).joined(separator: ", ")
-            return "\(id) | \(name) | \(capabilities)"
+            let raw = capabilityToken(profile)
+            let capabilities = raw.padding(toLength: max(capabilityWidth, raw.count),
+                                           withPad: " ", startingAt: 0)
+            // Always four columns, so the first save after an upgrade rewrites every row
+            // with the new one. `--selftest-formatting` asserts `parse(serialize(x)) == x`
+            // and `Hashable` synthesis picked the new field up for free, so a `serialize`
+            // that forgot this column fails that check rather than silently losing a setting.
+            return "\(id) | \(name) | \(capabilities) | \(profile.pathReference.token)"
         }.joined(separator: "\n")
 
         return header + body + "\n"
@@ -301,9 +347,9 @@ final class OutputProfileStore {
         # Next Notes output formatting
         #
         # Dictated text is formatted to suit the app it is about to be typed into. One app
-        # per line, three fields separated by "|":
+        # per line, four fields separated by "|":
         #
-        #   bundle identifier | name | what that app renders
+        #   bundle identifier | name | what that app renders | how it references paths
         #
         # The third field is any of:
         #
@@ -314,6 +360,21 @@ final class OutputProfileStore {
         #   code       ``` fenced blocks
         #
         # or the word "plain" for none of them. "#" starts a comment.
+        #
+        # The fourth field is exactly one of:
+        #
+        #   plain            a file name is written as words, and nothing is resolved
+        #   at-paths         "@src/auth/login.ts" — the app opens the file it names
+        #   backtick-paths   "`src/auth/login.ts`" — nothing is resolved, but the path
+        #                    survives as a path instead of being read as prose
+        #
+        # Fields three and four are different questions, and "plain" is the answer to both
+        # of them for most apps — so "plain | plain" on one line is correct and is not a
+        # duplicated column. Field three is what the app *draws*; field four is whether the
+        # app *acts* on a path. Claude Code in a terminal draws none of it and resolves all
+        # of it; Slack draws code fences and resolves nothing.
+        #
+        # A line with only three fields is still read: it means "resolves nothing".
         #
         # An app with no line here gets plain prose. That is deliberate: writing "**bold**"
         # into an app that shows the asterisks is worse than writing nothing at all, so an

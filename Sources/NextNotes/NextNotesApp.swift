@@ -298,6 +298,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runAXReadbackSelfTest()
             return true
         }
+        if arguments.contains("--selftest-context") {
+            runScreenContextSelfTest(
+                bundleID: SelfTest.value(after: "--selftest-context") ?? Self.defaultContextBundleID
+            )
+            return true
+        }
         if arguments.contains("--selftest-dictation") {
             runDictationSelfTest()
             return true
@@ -509,6 +515,124 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             writeSelfTest("=== AX readback by app ===")
             for row in rows.sorted() { writeSelfTest(row) }
             writeSelfTest("AXREADBACK_OK: \(rows.count) app(s) probed")
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// Cursor, because it is the editor this feature was read against and the one whose
+    /// sidebar produces the 200 names every cap in `AXHarvester.Budget` was chosen for.
+    private static let defaultContextBundleID = "com.todesktop.230313mzl4w4u92"
+
+    /// Does a harvest of a real editor come back with real file names, and in how many
+    /// milliseconds?
+    ///
+    /// The one question this feature cannot be believed without, and the one nothing else can
+    /// answer: CI cannot build this target at all, the only test target sees the platform-neutral
+    /// scoring and not the walk, and the log line that carries these numbers requires a
+    /// microphone, a hotkey, the Accessibility grant and grammar-repair cleanup all working at
+    /// once. Reading it needs `editor.accessibilitySupport` flipped inside a third-party app,
+    /// which is precisely why it has to be one command instead of a paragraph of instructions.
+    ///
+    /// Fails on a stub tree, a denied bundle, a missing adapter and a harvest with no names, on
+    /// the `--selftest-systemaudio` principle: on this machine a probe that cannot reach the
+    /// thing it is named after must say so rather than pass. It also prints the grounding block
+    /// verbatim, because with a hundred names in a prompt "which names did the model actually
+    /// see" is the only debuggable question and no other surface answers it.
+    ///
+    /// Does not go through `ScreenContextStore`: the store gates on the kill switch and on the
+    /// frontmost app, and this probe wants to name its target and be told what happened.
+    private func runScreenContextSelfTest(bundleID: String) {
+        Task { @MainActor in
+            guard Permissions.hasAccessibility else {
+                writeSelfTest("CONTEXT_FAILED: no Accessibility grant, so no tree is readable")
+                NSApp.terminate(nil)
+                return
+            }
+            guard AXHarvester.supports(bundleID: bundleID) else {
+                writeSelfTest("CONTEXT_FAILED: \(bundleID) has no adapter, or is on the deny list")
+                NSApp.terminate(nil)
+                return
+            }
+            guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else {
+                writeSelfTest("CONTEXT_FAILED: \(bundleID) is not running — open it, with a project, and retry")
+                NSApp.terminate(nil)
+                return
+            }
+
+            let context = AXHarvester.harvest(bundleID: bundleID, processID: app.processIdentifier)
+            let reasons = context.truncation.reasons
+            writeSelfTest("=== screen context: \(context.appName) (\(bundleID)) ===")
+            writeSelfTest("""
+                  \(context.candidates.count) name(s) in \
+                \(context.elapsed.milliseconds)ms, root \(context.projectRoot ?? "—")\
+                \(reasons.isEmpty ? "" : ", stopped by: " + reasons.joined(separator: ", "))
+                """)
+            for candidate in context.candidates.prefix(40) {
+                writeSelfTest(String(
+                    format: "  %-3d %-14s %@%@",
+                    candidate.rank,
+                    (candidate.kind.rawValue as NSString).utf8String!,
+                    candidate.text,
+                    candidate.path.map { " (\($0))" } ?? ""
+                ))
+            }
+            if context.candidates.count > 40 {
+                writeSelfTest("  … \(context.candidates.count - 40) more")
+            }
+
+            // The prompt as it would actually be built, for the app the names came from. The
+            // narrowing is done against a sentence a person would say, so the score ordering is
+            // exercised rather than the rank ordering the raw harvest already has.
+            let spoken = "open the login handler file and put the config next to it"
+            let profile = OutputProfileStore.shared.resolved(
+                for: OutputTarget(bundleID: bundleID, displayName: context.appName)
+            )
+            writeSelfTest("")
+            writeSelfTest("=== grounding block for \"\(spoken)\" ===")
+            let rules = CleanupInstructions.groundingRules(
+                for: context.narrowed(toMentionsIn: spoken),
+                target: profile
+            )
+            for rule in rules { writeSelfTest("  - \(rule)") }
+            if rules.isEmpty { writeSelfTest("  (empty)") }
+
+            // Every ceiling shrunk at once, which is what `AXHarvester.Budget` is a struct for
+            // and the only thing that exercises the truncation reporting on a healthy tree.
+            //
+            // Its reasons are printed rather than asserted, deliberately. At eight nodes the
+            // node-floor inference in `harvest` reports `.stubTree` no matter what, and so does a
+            // walk that never got a focused window at all — measured here against Cursor, where
+            // a 25 ms per-call timeout is enough to lose that read — so no reason set tells those
+            // two apart. What *is* worth asserting is the candidate ceiling, below: a walk that
+            // returns more names than it was allowed is a cap nothing enforces, and that cannot
+            // be a false positive.
+            let pinched = AXHarvester.harvest(
+                bundleID: bundleID,
+                processID: app.processIdentifier,
+                budget: AXHarvester.Budget(deadline: .milliseconds(20), maxNodes: 8, maxDepth: 2, maxCandidates: 2)
+            )
+            writeSelfTest("")
+            writeSelfTest("""
+                  shrunk budget: \(pinched.candidates.count) name(s) in \
+                \(pinched.elapsed.milliseconds)ms, \
+                stopped by: \(pinched.truncation.reasons.joined(separator: ", "))
+                """)
+
+            if context.truncation.contains(.stubTree) {
+                writeSelfTest("""
+                    CONTEXT_FAILED: \(context.appName) answered with a stub tree. \
+                    \(AXAppAdapters.adapter(for: bundleID)?.remediation ?? "")
+                    """)
+            } else if context.candidates.isEmpty {
+                writeSelfTest("CONTEXT_FAILED: the walk finished and found no names")
+            } else if pinched.candidates.count > 2 {
+                writeSelfTest("""
+                    CONTEXT_FAILED: a budget of two candidates returned \
+                    \(pinched.candidates.count)
+                    """)
+            } else {
+                writeSelfTest("CONTEXT_OK: \(context.candidates.count) name(s) from \(context.appName)")
+            }
             NSApp.terminate(nil)
         }
     }

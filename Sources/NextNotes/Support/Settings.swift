@@ -247,6 +247,19 @@ final class Settings {
         didSet { defaults.set(cleanupContext.rawValue, forKey: Keys.cleanupContext) }
     }
 
+    /// Read the file, folder and tab names visible in the app being dictated into, and use them
+    /// to resolve a spoken file name. See `ScreenContextStore`, which owns the harvest itself
+    /// and reads this through `isEnabled`.
+    ///
+    /// On by default. The harvest costs 120 ms of a window in which the user is holding a key
+    /// anyway, and it is scoped to three hand-tested editors — everywhere else the answer is
+    /// already "no adapter", so the switch has nothing to turn off. Off is for somebody who does
+    /// not want another application's window read at all, which is a position worth honouring
+    /// without argument.
+    var screenContextEnabled: Bool {
+        didSet { defaults.set(screenContextEnabled, forKey: Keys.screenContextEnabled) }
+    }
+
     /// Where the dictation HUD appears.
     ///
     /// The default is decided by the hardware rather than fixed: on a Mac with a notch the
@@ -530,6 +543,9 @@ final class Settings {
         static let cleanupTone = "cleanupTone"
         static let cleanupFormatsLists = "cleanupFormatsLists"
         static let cleanupContext = "cleanupContext"
+        /// The key `ScreenContextStore` wrote before this moved onto `Settings`. Unchanged on
+        /// purpose: a renamed key is a silently reset preference.
+        static let screenContextEnabled = "screenContextEnabled"
         static let legacySmartCleanup = "smartCleanup"
         static let compareMode = "compareMode"
         static let llmMetalEnabled = "llmMetalEnabled"
@@ -587,6 +603,7 @@ final class Settings {
         cleanupContext = CleanupContext(
             rawValue: defaults.string(forKey: Keys.cleanupContext) ?? ""
         ) ?? .general
+        screenContextEnabled = defaults.object(forKey: Keys.screenContextEnabled) as? Bool ?? true
         compareMode = defaults.object(forKey: Keys.compareMode) as? Bool ?? false
         soundEnabled = defaults.object(forKey: Keys.soundEnabled) as? Bool ?? true
         llmMetalEnabled = defaults.object(forKey: Keys.llmMetalEnabled) as? Bool ?? true

@@ -33,11 +33,31 @@ import Foundation
 /// something already sent to other people, while a missing capability only costs prose that
 /// reads perfectly well.
 ///
+/// The fourth field asks a different question, and the test for it is: **does this app turn
+/// a reference into a file it acts on, or into characters a person reads?** That is not the
+/// rendering question, and answering it with the rendering answer gets both wrong. Cursor's
+/// composer resolves `@src/auth/login.ts` into file contents it reads, and Cursor renders no
+/// Markdown at all; Slack renders code fences and resolves nothing, but a backticked path
+/// still survives a Slack message as a path rather than being read as three words of prose.
+/// So Cursor and Windsurf are `.atRelative`, Slack is `.backtickPath`, and everything else
+/// here resolves nothing — including the editors, which is worth saying out loud: Visual
+/// Studio Code's *editor pane* has no reference syntax, only its chat sidebar does, and the
+/// text Next Notes inserts lands in whichever field has focus. The same "which field is
+/// this?" problem the browsers have, one app down.
+///
+/// The terminals are the sharper version of it. Claude Code resolves @-paths and is the case
+/// this whole column exists for — but Claude Code is a process running inside Terminal or
+/// iTerm, and a terminal's bundle identifier says nothing about what is running in it. The
+/// same window is a shell prompt where a stray `@` is a syntax error. So the terminals stay
+/// plain by default and a user who lives in one agent CLI switches their own row, exactly as
+/// with the browsers.
+///
 /// ## What was checked
 ///
 /// Bundle identifiers for Slack, Mail, Messages, Xcode, Cursor, Terminal, Safari, Chrome
 /// and Notes were read off the installed bundles on this machine. Notion, Obsidian, Linear,
-/// Visual Studio Code and iTerm were not installed and use their published identifiers —
+/// Visual Studio Code, Windsurf and iTerm were not installed and use their published
+/// identifiers —
 /// the most likely thing in this file to be wrong, and it fails safe: an identifier that
 /// matches nothing simply never resolves, and that app gets plain prose.
 ///
@@ -100,10 +120,15 @@ enum OutputProfileDefaults {
         // Lists are on for the second reason rather than the first: Slack does not convert
         // pasted `- item` into a list widget, but `- item` on its own line is how Slack
         // messages have always been written and reads as a list to whoever gets it.
+        //
+        // Slack resolves nothing, and `.backtickPath` is not a claim that it does. It is the
+        // narrower win: `src/auth/login.ts` inside single backticks is mrkdwn Slack does
+        // render, and it stops a path being read as prose or line-broken across a message.
         OutputProfile(
             bundleID: "com.tinyspeck.slackmacgap",
             displayName: "Slack",
-            capabilities: [.bullets, .numbered, .code]
+            capabilities: [.bullets, .numbered, .code],
+            pathReference: .backtickPath
         ),
         // Same reasoning as Slack's lists, and only that. Notes' hyphen-to-bullet is a
         // typing substitution that fires on Return, so it never sees inserted text — but a
@@ -132,9 +157,31 @@ enum OutputProfileDefaults {
         // every newline in a bulleted list is a line the shell tries to run.
         .plain(bundleID: "com.apple.dt.Xcode", displayName: "Xcode"),
         .plain(bundleID: "com.microsoft.VSCode", displayName: "Visual Studio Code"),
-        .plain(bundleID: "com.todesktop.230313mzl4w4u92", displayName: "Cursor"),
         .plain(bundleID: "com.apple.Terminal", displayName: "Terminal"),
         .plain(bundleID: "com.googlecode.iterm2", displayName: "iTerm"),
+
+        // MARK: Renders none of it, and resolves paths
+        //
+        // The two rows the fourth column was added for. Cursor's composer and Windsurf's
+        // Cascade both read an @-prefixed project-relative path as a file to open, and
+        // neither renders a formatting mark — which is the pair of answers a single
+        // capability enum could not have held.
+        //
+        // Windsurf's identifier is published rather than read off this machine, and it fails
+        // the same safe way every unverified identifier in this file does: it matches nothing
+        // and that app gets plain prose. Note that harvesting names out of Windsurf also
+        // needs its bundle identifier in `AXAppAdapters` — this row alone only says what to
+        // do with a name once one has been found.
+        OutputProfile(
+            bundleID: "com.todesktop.230313mzl4w4u92",
+            displayName: "Cursor",
+            pathReference: .atRelative
+        ),
+        OutputProfile(
+            bundleID: "com.exafunction.windsurf",
+            displayName: "Windsurf",
+            pathReference: .atRelative
+        ),
 
         // MARK: Browsers — the hard case, and deliberately plain
         //

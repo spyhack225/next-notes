@@ -44,10 +44,12 @@ actor AppleSpeechEngine: TranscriptionEngine {
         let (inputStream, inputContinuation) = AsyncStream<AnalyzerInput>.makeStream()
         self.inputContinuation = inputContinuation
 
-        // Bias the recognizer toward the dictionary's words before it hears anything. This
-        // is a nudge, not a guarantee — `DictionaryCorrector` is the pass that actually
-        // enforces spelling — but it's free and it catches things a post-hoc rewrite can't,
-        // like a name the engine would otherwise split into two ordinary words.
+        // Bias the recognizer toward the dictionary's words — and a few of the names visible
+        // on screen — before it hears anything. This is a nudge, not a guarantee:
+        // `DictionaryCorrector` is the pass that actually enforces spelling, and the cleanup
+        // prompt is where a spoken file name is actually resolved. But it's free and it catches
+        // things a post-hoc rewrite can't, like a name the engine would otherwise split into
+        // two ordinary words.
         //
         // The list is capped at `DictionaryCorrector.biasLimit`. A long context list makes
         // these models drift: on quiet or ambiguous audio they start emitting the terms they
@@ -125,23 +127,44 @@ actor AppleSpeechEngine: TranscriptionEngine {
 
     // MARK: - Setup helpers
 
-    /// The dictionary's words, handed to the analyzer as contextual strings.
+    /// The dictionary's words plus a small slice of the names harvested from the app the text
+    /// is going into, handed to the analyzer as contextual strings.
     ///
-    /// Reads the store on the main actor because that's where it lives; the resulting array
+    /// Reads both stores on the main actor because that's where they live; the resulting array
     /// of strings is plain value data and crosses back safely.
-    /// - Returns: nil when the dictionary is empty, so an empty context is never set for
+    /// - Returns: nil when there is nothing to bias with, so an empty context is never set for
     ///   nothing.
     ///
-    /// Hops to the main actor rather than asserting it. The store is main-actor isolated and
+    /// Hops to the main actor rather than asserting it. The stores are main-actor isolated and
     /// this runs on the engine's own executor — `MainActor.assumeIsolated` here doesn't check
     /// that claim, it asserts it, and takes the whole process down when it's false.
+    /// `OutputProfileStore.startTrackingFrontmostApp` records the same reasoning.
     private static func context() async -> AnalysisContext? {
-        let phrases = await MainActor.run { DictionaryStore.shared.biasPhrases }
+        // Sixty milliseconds against the harvester's 120 ms budget, and short of it on purpose.
+        // Contextual strings have to be set before the first audio buffer arrives, so this wait
+        // sits in front of the recording: a bias name that misses the deadline is invisible,
+        // while a late start costs the user the first word of their sentence. Timing out does
+        // not cancel the walk — the cleanup pass wants that same result a few seconds later.
+        let harvested = await ScreenContextStore.shared
+            .awaitCapture(within: .milliseconds(60))
+            .biasPhrases()
+
+        // Both numbers, because the asymmetry between the two lists is the counter-intuitive
+        // part of this feature and the log is where anyone checks it against a real run. A line
+        // reading `40 + 0` is a full dictionary crowding the harvest out, which is correct and
+        // otherwise indistinguishable from a harvest that silently returned nothing.
+        let (phrases, dictionaryCount) = await MainActor.run { () -> ([String], Int) in
+            let store = DictionaryStore.shared
+            return (store.biasPhrases(withHarvested: harvested), store.biasPhrases.count)
+        }
         guard !phrases.isEmpty else { return nil }
 
         let context = AnalysisContext()
         context.contextualStrings[.general] = phrases
-        Log.speech.info("biasing with \(phrases.count, privacy: .public) dictionary phrase(s)")
+        Log.speech.info("""
+            biasing with \(dictionaryCount, privacy: .public) dictionary phrase(s) \
+            + \(phrases.count - dictionaryCount, privacy: .public) screen name(s)
+            """)
         return context
     }
 
