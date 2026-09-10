@@ -404,7 +404,16 @@ final class CallDetector {
     /// `afplay` is neither a running application nor a bundle.
     static func displayName(pid: pid_t, bundleID: String?) -> String {
         if let app = NSRunningApplication(processIdentifier: pid), let name = app.localizedName {
-            return name
+            // Trimmed, because some bundles prefix their name with a bidirectional control
+            // character. WhatsApp ships a left-to-right mark, which is invisible in the app
+            // list and turned the first real detected call into a meeting titled
+            // "\u{200E}WhatsApp call".
+            let clean = name.trimmingCharacters(
+                in: .whitespacesAndNewlines
+                    .union(.controlCharacters)
+                    .union(CharacterSet(charactersIn: "\u{200E}\u{200F}"))
+            )
+            if !clean.isEmpty { return clean }
         }
         var buffer = [UInt8](repeating: 0, count: Int(MAXPATHLEN))
         let length = proc_name(pid, &buffer, UInt32(buffer.count))

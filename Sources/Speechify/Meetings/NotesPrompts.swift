@@ -44,6 +44,12 @@ enum NotesPrompts {
         - Write only what was said. Never infer a decision, an owner, or a date. If the \
         transcript is too garbled or too short to summarise, say so in ## Summary and leave \
         the other sections empty.
+        - The transcript may be in any language. Write the notes in the SAME language the \
+        transcript is in, keeping the English headings exactly as given. A transcript you can \
+        read is never a reason to return an empty section.
+        - ## Summary is never \(emptyMarker). Any transcript with speech in it can be \
+        described in a sentence, even if that sentence is that it was a short informal call \
+        with nothing decided. The empty marker is for the other four sections.
         """
 
     static func notesUser(meeting: Meeting, transcript: String) -> String {
