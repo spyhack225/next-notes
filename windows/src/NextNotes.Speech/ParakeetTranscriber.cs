@@ -1,7 +1,7 @@
-using Speechify.Abstractions;
+using NextNotes.Abstractions;
 using SherpaOnnx;
 
-namespace Speechify.Speech;
+namespace NextNotes.Speech;
 
 /// <summary>
 /// NVIDIA Parakeet TDT, running locally through sherpa-onnx.
@@ -62,7 +62,7 @@ public sealed class ParakeetTranscriber : ITranscriber
     {
         yield return Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Speechify", "models", "parakeet-v2");
+            "NextNotes", "models", "parakeet-v2");
 
         // AppContext.BaseDirectory, not Assembly.Location — the latter returns an empty
         // string in a single-file app, which silently resolves paths against the current

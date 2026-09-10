@@ -1,16 +1,16 @@
 {
   "solution": {
-    "path": "Speechify.sln",
+    "path": "NextNotes.sln",
     "projects": [
-      "src\\Speechify.Abstractions\\Speechify.Abstractions.csproj",
-      "src\\Speechify.App\\Speechify.App.csproj",
-      "src\\Speechify.Core\\Speechify.Core.csproj",
-      "src\\Speechify.Dictionary\\Speechify.Dictionary.csproj",
-      "src\\Speechify.Speech\\Speechify.Speech.csproj",
-      "src\\Speechify.Testing\\Speechify.Testing.csproj",
-      "tests\\Speechify.App.Tests\\Speechify.App.Tests.csproj",
-      "tests\\Speechify.Core.Tests\\Speechify.Core.Tests.csproj",
-      "tests\\Speechify.Dictionary.Tests\\Speechify.Dictionary.Tests.csproj"
+      "src\\NextNotes.Abstractions\\NextNotes.Abstractions.csproj",
+      "src\\NextNotes.App\\NextNotes.App.csproj",
+      "src\\NextNotes.Core\\NextNotes.Core.csproj",
+      "src\\NextNotes.Dictionary\\NextNotes.Dictionary.csproj",
+      "src\\NextNotes.Speech\\NextNotes.Speech.csproj",
+      "src\\NextNotes.Testing\\NextNotes.Testing.csproj",
+      "tests\\NextNotes.App.Tests\\NextNotes.App.Tests.csproj",
+      "tests\\NextNotes.Core.Tests\\NextNotes.Core.Tests.csproj",
+      "tests\\NextNotes.Dictionary.Tests\\NextNotes.Dictionary.Tests.csproj"
     ]
   }
 }

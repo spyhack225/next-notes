@@ -1,9 +1,9 @@
-using Speechify.Abstractions;
-using Speechify.Core;
-using Speechify.Dictionary;
-using Speechify.Speech;
+using NextNotes.Abstractions;
+using NextNotes.Core;
+using NextNotes.Dictionary;
+using NextNotes.Speech;
 
-namespace Speechify.App;
+namespace NextNotes.App;
 
 /// <summary>
 /// Wires the app together: settings, storage, the platform layer, and the engine.
@@ -15,7 +15,7 @@ namespace Speechify.App;
 /// </para>
 /// <para>
 /// The platform implementations are resolved by reflection rather than referenced directly,
-/// so <c>Speechify.App</c> can target plain <c>net10.0</c> and therefore be built, run and
+/// so <c>NextNotes.App</c> can target plain <c>net10.0</c> and therefore be built, run and
 /// headless-tested on macOS — which is the entire reason Avalonia was chosen over WPF. On any
 /// non-Windows machine the lookup simply finds nothing and the app runs with inert stand-ins,
 /// which is exactly what a UI test wants.

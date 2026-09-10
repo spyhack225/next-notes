@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Speechify.Core;
+namespace NextNotes.Core;
 
 /// <summary>User preferences.</summary>
 public sealed record SettingsData
@@ -41,7 +41,7 @@ public sealed class AppSettings
     /// <summary>The default location.</summary>
     public static string DefaultPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Speechify", "settings.json");
+        "NextNotes", "settings.json");
 
     /// <summary>Current values.</summary>
     public SettingsData Data { get; private set; }

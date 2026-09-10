@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
-using Speechify.Abstractions;
+using NextNotes.Abstractions;
 
-namespace Speechify.Testing;
+namespace NextNotes.Testing;
 
 /// <summary>
 /// Test doubles for the four platform interfaces.

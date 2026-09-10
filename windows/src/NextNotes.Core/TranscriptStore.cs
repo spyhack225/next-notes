@@ -1,8 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Speechify.Dictionary;
+using NextNotes.Dictionary;
 
-namespace Speechify.Core;
+namespace NextNotes.Core;
 
 /// <summary>One saved dictation.</summary>
 public sealed record TranscriptRecord
@@ -55,7 +55,7 @@ public sealed class TranscriptStore
     /// <summary>The default location.</summary>
     public static string DefaultPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Speechify", "transcripts.jsonl");
+        "NextNotes", "transcripts.jsonl");
 
     /// <summary>Every record, newest first.</summary>
     public IReadOnlyList<TranscriptRecord> Records => _records;

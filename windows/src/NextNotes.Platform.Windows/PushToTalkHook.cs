@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
-using Speechify.Abstractions;
+using NextNotes.Abstractions;
 
-namespace Speechify.Platform.Windows;
+namespace NextNotes.Platform.Windows;
 
 /// <summary>Keys that work as a push-to-talk trigger.</summary>
 public enum PushToTalkKey
@@ -204,7 +204,7 @@ public sealed class PushToTalkHook : IHotkeySource
         })
         {
             IsBackground = true,
-            Name = "Speechify push-to-talk hook",
+            Name = "NextNotes push-to-talk hook",
             // Stay ahead of the 1000 ms timeout that silently removes the hook.
             Priority = ThreadPriority.AboveNormal,
         };

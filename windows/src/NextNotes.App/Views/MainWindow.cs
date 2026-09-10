@@ -4,11 +4,11 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
-using Speechify.App.Controls;
-using Speechify.App.Design;
-using Speechify.Core;
+using NextNotes.App.Controls;
+using NextNotes.App.Design;
+using NextNotes.Core;
 
-namespace Speechify.App.Views;
+namespace NextNotes.App.Views;
 
 /// <summary>
 /// The main window — the front panel of the unit.
@@ -48,7 +48,7 @@ public sealed class MainWindow : Window
     {
         _composition = composition;
 
-        Title = "Speechify";
+        Title = "Next Notes";
         MinWidth = 720;
         MinHeight = 520;
         Width = 880;
@@ -186,7 +186,7 @@ public sealed class MainWindow : Window
                 },
                 new TextBlock
                 {
-                    Text = "Speech model not installed — Speechify cannot transcribe yet. "
+                    Text = "Speech model not installed — Next Notes cannot transcribe yet. "
                          + "See Settings, or docs/PARAKEET-WINDOWS.md.",
                     FontFamily = Tokens.Fonts.Grotesque,
                     FontSize = Tokens.Fonts.Label,

@@ -4,11 +4,11 @@ using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Speechify.App.Controls;
-using Speechify.App.Design;
-using Speechify.Core;
+using NextNotes.App.Controls;
+using NextNotes.App.Design;
+using NextNotes.Core;
 
-namespace Speechify.App.Views;
+namespace NextNotes.App.Views;
 
 /// <summary>
 /// Past transcriptions: searchable, each copyable and deletable.

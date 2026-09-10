@@ -3,7 +3,7 @@
     <!-- The ONLY project in the repo allowed to call Win32. Keep it thin: anything with
          logic in it is code CI cannot exercise. -->
     <TargetFramework>net10.0-windows</TargetFramework>
-    <RootNamespace>Speechify.Platform.Windows</RootNamespace>
+    <RootNamespace>NextNotes.Platform.Windows</RootNamespace>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
   </PropertyGroup>
 
@@ -12,6 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Speechify.Abstractions\Speechify.Abstractions.csproj" />
+    <ProjectReference Include="..\NextNotes.Abstractions\NextNotes.Abstractions.csproj" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-namespace Speechify.Abstractions;
+namespace NextNotes.Abstractions;
 
 /// <summary>
 /// A block of captured audio: mono, 32-bit float, 16 kHz, samples in [-1, 1].

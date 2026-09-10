@@ -1,6 +1,6 @@
-using Speechify.Abstractions;
+using NextNotes.Abstractions;
 
-namespace Speechify.Core;
+namespace NextNotes.Core;
 
 /// <summary>
 /// Splits a long recording into pieces the encoder can actually process.

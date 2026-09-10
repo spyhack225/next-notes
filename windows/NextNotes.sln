@@ -1,24 +1,24 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Speechify.Dictionary", "src\Speechify.Dictionary\Speechify.Dictionary.csproj", "{A1000000-0000-0000-0000-000000000001}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NextNotes.Dictionary", "src\NextNotes.Dictionary\NextNotes.Dictionary.csproj", "{A1000000-0000-0000-0000-000000000001}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Speechify.Dictionary.Tests", "tests\Speechify.Dictionary.Tests\Speechify.Dictionary.Tests.csproj", "{A1000000-0000-0000-0000-000000000002}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NextNotes.Dictionary.Tests", "tests\NextNotes.Dictionary.Tests\NextNotes.Dictionary.Tests.csproj", "{A1000000-0000-0000-0000-000000000002}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Speechify.Abstractions", "src\Speechify.Abstractions\Speechify.Abstractions.csproj", "{A1000000-0000-0000-0000-000000000003}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NextNotes.Abstractions", "src\NextNotes.Abstractions\NextNotes.Abstractions.csproj", "{A1000000-0000-0000-0000-000000000003}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Speechify.Core", "src\Speechify.Core\Speechify.Core.csproj", "{A1000000-0000-0000-0000-000000000004}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NextNotes.Core", "src\NextNotes.Core\NextNotes.Core.csproj", "{A1000000-0000-0000-0000-000000000004}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Speechify.Testing", "src\Speechify.Testing\Speechify.Testing.csproj", "{A1000000-0000-0000-0000-000000000005}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NextNotes.Testing", "src\NextNotes.Testing\NextNotes.Testing.csproj", "{A1000000-0000-0000-0000-000000000005}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Speechify.Core.Tests", "tests\Speechify.Core.Tests\Speechify.Core.Tests.csproj", "{A1000000-0000-0000-0000-000000000006}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NextNotes.Core.Tests", "tests\NextNotes.Core.Tests\NextNotes.Core.Tests.csproj", "{A1000000-0000-0000-0000-000000000006}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Speechify.Platform.Windows", "src\Speechify.Platform.Windows\Speechify.Platform.Windows.csproj", "{A1000000-0000-0000-0000-000000000007}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NextNotes.Platform.Windows", "src\NextNotes.Platform.Windows\NextNotes.Platform.Windows.csproj", "{A1000000-0000-0000-0000-000000000007}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Speechify.Speech", "src\Speechify.Speech\Speechify.Speech.csproj", "{A1000000-0000-0000-0000-000000000008}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NextNotes.Speech", "src\NextNotes.Speech\NextNotes.Speech.csproj", "{A1000000-0000-0000-0000-000000000008}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Speechify.App", "src\Speechify.App\Speechify.App.csproj", "{A1000000-0000-0000-0000-000000000009}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NextNotes.App", "src\NextNotes.App\NextNotes.App.csproj", "{A1000000-0000-0000-0000-000000000009}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Speechify.App.Tests", "tests\Speechify.App.Tests\Speechify.App.Tests.csproj", "{A1000000-0000-0000-0000-00000000000A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NextNotes.App.Tests", "tests\NextNotes.App.Tests\NextNotes.App.Tests.csproj", "{A1000000-0000-0000-0000-00000000000A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

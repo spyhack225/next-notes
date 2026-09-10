@@ -3,9 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Avalonia.Threading;
-using Speechify.App.Design;
+using NextNotes.App.Design;
 
-namespace Speechify.App.Controls;
+namespace NextNotes.App.Controls;
 
 /// <summary>
 /// A brushed-metal panel.

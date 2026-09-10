@@ -2,10 +2,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Speechify.App.Controls;
-using Speechify.App.Design;
+using NextNotes.App.Controls;
+using NextNotes.App.Design;
 
-namespace Speechify.App.Views;
+namespace NextNotes.App.Views;
 
 /// <summary>
 /// Shared panel furniture — search rows, footers, cards, buttons on a dark readout.

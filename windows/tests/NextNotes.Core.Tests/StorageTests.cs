@@ -1,9 +1,9 @@
-using Speechify.Core;
-using Speechify.Dictionary;
+using NextNotes.Core;
+using NextNotes.Dictionary;
 using Shouldly;
 using Xunit;
 
-namespace Speechify.CoreTests;
+namespace NextNotes.CoreTests;
 
 /// <summary>
 /// The dictionary's plain-text file format.
@@ -14,7 +14,7 @@ namespace Speechify.CoreTests;
 /// </remarks>
 public sealed class DictionaryFileTests : IDisposable
 {
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"Speechify-dict-{Guid.NewGuid():N}.txt");
+    private readonly string _path = Path.Combine(Path.GetTempPath(), $"NextNotes-dict-{Guid.NewGuid():N}.txt");
 
     public void Dispose()
     {
@@ -25,7 +25,7 @@ public sealed class DictionaryFileTests : IDisposable
     public void Parses_terms_corrections_comments_and_disabled_entries()
     {
         var entries = DictionaryFile.Parse("""
-            # Speechify dictionary
+            # Next Notes dictionary
             # a plain comment is ignored
 
             Anthropic
@@ -106,7 +106,7 @@ public sealed class DictionaryFileTests : IDisposable
 /// <summary>Transcript history persistence.</summary>
 public sealed class TranscriptStoreTests : IDisposable
 {
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"Speechify-hist-{Guid.NewGuid():N}.jsonl");
+    private readonly string _path = Path.Combine(Path.GetTempPath(), $"NextNotes-hist-{Guid.NewGuid():N}.jsonl");
 
     public void Dispose()
     {
@@ -204,7 +204,7 @@ public sealed class TranscriptStoreTests : IDisposable
 /// <summary>Settings persistence.</summary>
 public sealed class AppSettingsTests : IDisposable
 {
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"Speechify-set-{Guid.NewGuid():N}.json");
+    private readonly string _path = Path.Combine(Path.GetTempPath(), $"NextNotes-set-{Guid.NewGuid():N}.json");
 
     public void Dispose()
     {

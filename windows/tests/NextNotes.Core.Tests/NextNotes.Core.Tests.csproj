@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Speechify.Core\Speechify.Core.csproj" />
-    <ProjectReference Include="..\..\src\Speechify.Testing\Speechify.Testing.csproj" />
+    <ProjectReference Include="..\..\src\NextNotes.Core\NextNotes.Core.csproj" />
+    <ProjectReference Include="..\..\src\NextNotes.Testing\NextNotes.Testing.csproj" />
   </ItemGroup>
 </Project>

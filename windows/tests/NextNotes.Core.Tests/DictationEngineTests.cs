@@ -1,12 +1,12 @@
-using Speechify.Abstractions;
-using Speechify.Core;
-using Speechify.Dictionary;
-using Speechify.Testing;
+using NextNotes.Abstractions;
+using NextNotes.Core;
+using NextNotes.Dictionary;
+using NextNotes.Testing;
 using NetArchTest.Rules;
 using Shouldly;
 using Xunit;
 
-namespace Speechify.CoreTests;
+namespace NextNotes.CoreTests;
 
 /// <summary>
 /// Exercises the entire dictation path with fakes.
@@ -134,12 +134,12 @@ public sealed class DictationEngineTests
     public void Core_does_not_depend_on_any_platform_project()
     {
         var result = Types.InAssembly(typeof(DictationEngine).Assembly)
-            .That().ResideInNamespace("Speechify.Core")
-            .ShouldNot().HaveDependencyOn("Speechify.Platform")
+            .That().ResideInNamespace("NextNotes.Core")
+            .ShouldNot().HaveDependencyOn("NextNotes.Platform")
             .GetResult();
 
         result.IsSuccessful.ShouldBeTrue(
-            "Speechify.Core must stay platform-neutral: " +
+            "NextNotes.Core must stay platform-neutral: " +
             string.Join(", ", result.FailingTypeNames ?? []));
     }
 }

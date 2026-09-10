@@ -1,10 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Speechify.Dictionary;
+using NextNotes.Dictionary;
 using Shouldly;
 using Xunit;
 
-namespace Speechify.DictionaryTests;
+namespace NextNotes.DictionaryTests;
 
 /// <summary>
 /// Runs the shared behavioural contract in <c>shared/dictionary-test-vectors.json</c>.

@@ -2,12 +2,12 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Speechify.App.Controls;
-using Speechify.App.Design;
-using Speechify.Core;
-using Speechify.Dictionary;
+using NextNotes.App.Controls;
+using NextNotes.App.Design;
+using NextNotes.Core;
+using NextNotes.Dictionary;
 
-namespace Speechify.App.Views;
+namespace NextNotes.App.Views;
 
 /// <summary>
 /// The dictionary: add, edit, delete, search.

@@ -1,8 +1,8 @@
 using System.Buffers;
-using Speechify.Abstractions;
-using Speechify.Dictionary;
+using NextNotes.Abstractions;
+using NextNotes.Dictionary;
 
-namespace Speechify.Core;
+namespace NextNotes.Core;
 
 /// <summary>What the engine is doing right now.</summary>
 public enum DictationState
