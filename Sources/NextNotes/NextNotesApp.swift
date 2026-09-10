@@ -53,15 +53,37 @@ struct NextNotesApp: App {
 enum SelfTest {
     /// The flag the process was launched with, if any.
     ///
-    /// `--selftest-out` is excluded: it is a destination, not a test, and it can precede the
-    /// test's own flag on the command line.
+    /// The harness's own flags are excluded. They share the `--selftest` prefix but are
+    /// settings rather than tests, and either can precede the test's flag on the command
+    /// line — put `--selftest-timeout` first and the process would otherwise decide the
+    /// test it had been asked to run was "--selftest-timeout".
     static let requested = CommandLine.arguments.dropFirst().first {
-        $0.hasPrefix("--selftest") && $0 != outputFlag
+        $0.hasPrefix("--selftest") && !harnessFlags.contains($0)
     }
 
     static var isRunning: Bool { requested != nil }
 
     static let outputFlag = "--selftest-out"
+    static let timeoutFlag = "--selftest-timeout"
+
+    /// Flags that configure a run rather than name one.
+    private static let harnessFlags: Set<String> = [outputFlag, timeoutFlag]
+
+    /// The argument following `flag`, or nil when there isn't one.
+    ///
+    /// **A flag is never a value.** Without that rule
+    /// `--selftest-cleanup --selftest-timeout 2400` reads "--selftest-timeout" as the engine
+    /// name, reports `unknown engine`, runs nothing, and still exits 0 — a green result for a
+    /// suite that never executed, which is the worst kind of test failure there is.
+    static func value(after flag: String) -> String? {
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: flag), index + 1 < arguments.count else {
+            return nil
+        }
+        let next = arguments[index + 1]
+        guard !next.hasPrefix("--") else { return nil }
+        return next
+    }
 
     /// How long a self-test may run before it is declared hung.
     ///
@@ -75,12 +97,36 @@ enum SelfTest {
     /// Override with `--selftest-timeout <seconds>`.
     static let timeout: Double = {
         let arguments = CommandLine.arguments
-        guard let index = arguments.firstIndex(of: "--selftest-timeout"),
+        guard let index = arguments.firstIndex(of: timeoutFlag),
               index + 1 < arguments.count,
               let seconds = Double(arguments[index + 1]), seconds > 0
-        else { return 300 }
+        else { return defaultTimeout }
         return seconds
     }()
+
+    /// A flat budget suits a test that does a fixed piece of work — load a model, run one
+    /// utterance, report. The cleanup eval is not that shape: it runs every fixture in
+    /// `CleanupEvalCases.all` through every requested engine, and one model-backed fixture
+    /// takes about a minute on this hardware. `--selftest-cleanup all` is five model passes
+    /// over every fixture, so the flat 300s stopped it at the fourth fixture of twenty and
+    /// called it hung — for a run that had been asked for roughly two hours of work and was
+    /// proceeding normally. Sized from the fixtures instead, so adding a case moves the
+    /// budget with it.
+    private static var defaultTimeout: Double {
+        let flat: Double = 300
+        guard requested == "--selftest-cleanup" else { return flat }
+
+        let modelBacked: Set<String> = ["apple", "apple-grammar", "s1", "chain", "qwen"]
+        let choice = value(after: "--selftest-cleanup") ?? "all"
+        let passes = choice == "all"
+            ? modelBacked.count
+            : (modelBacked.contains(choice) ? 1 : 0)
+        // "guard" and "rules" are pure computation and finish in milliseconds.
+        guard passes > 0 else { return flat }
+
+        let perFixture: Double = 90
+        return max(flat, Double(passes * CleanupEvalCases.all.count) * perFixture)
+    }
 
     /// Where to mirror output, for a run that has no stdout to write to.
     ///
@@ -208,11 +254,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runCalendarSelfTest()
             return true
         }
-        if let path = Self.value(after: "--selftest-transcribe") {
+        if let path = SelfTest.value(after: "--selftest-transcribe") {
             runTranscribeSelfTest(path: path)
             return true
         }
-        if let path = Self.value(after: "--selftest-notes") {
+        if let path = SelfTest.value(after: "--selftest-notes") {
             runNotesSelfTest(path: path, diarize: arguments.contains("--diarize"))
             return true
         }
@@ -236,12 +282,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runWorkspaceCLISelfTest()
             return true
         }
-        if let path = Self.value(after: "--selftest-agent") {
+        if let path = SelfTest.value(after: "--selftest-agent") {
             runAgentSelfTest(directory: path)
             return true
         }
         if arguments.contains("--selftest-cleanup") {
-            runCleanupSelfTest(engine: Self.value(after: "--selftest-cleanup") ?? "all")
+            runCleanupSelfTest(engine: SelfTest.value(after: "--selftest-cleanup") ?? "all")
             return true
         }
         if arguments.contains("--selftest-dictation") {
@@ -2095,14 +2141,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// The argument following `flag`, for self-tests that take a path.
-    private static func value(after flag: String) -> String? {
-        let arguments = Array(CommandLine.arguments)
-        guard let index = arguments.firstIndex(of: flag), index + 1 < arguments.count else {
-            return nil
-        }
-        return arguments[index + 1]
-    }
-
     /// Fails a self-test that stops making progress, instead of letting it hang forever.
     ///
     /// Dies with the process, so a test that finishes normally never sees it. Exits non-zero
