@@ -90,6 +90,12 @@ cp shared/dictionary-test-vectors.json Tests/SpeechifyDictionaryTests/
 
 ## Things that look like bugs and are not
 
+**A new engine in `--selftest-cleanup` scores 28/28 until you give it a `rawCleanup` case.**
+The verdict compares the guarded pipeline output against an unguarded second call; with no
+case in `rawCleanup` that call returns nil, every verdict defaults to "ok", and a rejected
+answer is indistinguishable from a perfect one. The chain genuinely scored 28/28 that way and
+23/28 once the raw path existed. Add both halves or the number means nothing.
+
 **A self-test run from a shell can be denied a grant the app plainly has.** TCC grants the
 *responsible* process, and for a binary launched straight from a terminal that is the shell,
 not Speechify. `--selftest-systemaudio` reported `SYSTEM_AUDIO_SILENT` from a shell while the

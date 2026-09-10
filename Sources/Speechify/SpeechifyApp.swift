@@ -285,7 +285,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// dictionary together — a number in which a Parakeet batch decode can hide a cleanup
     /// pass entirely. This harness times the cleanup call and nothing else.
     ///
-    /// `--selftest-cleanup rules|apple|apple-grammar|s1|qwen|all`. The first case a
+    /// `--selftest-cleanup rules|apple|apple-grammar|s1|chain|qwen|all`. The first case a
     /// model-backed formatter sees pays its cold start and is reported separately, because
     /// on a machine where the model has idled out that is the latency a real dictation gets.
     private func runCleanupSelfTest(engine: String) {
@@ -302,14 +302,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             writeSelfTest("""
                   live dictation config: cleanup \(live.cleanupEnabled ? "on" : "off"), \
                 engine \(live.cleanupEngine.displayName), \
-                grammar \(live.cleanupEngine == .s1Mini
-                    ? "unavailable on this engine"
-                    : (live.cleanupFixesGrammar ? "on" : "off"))
+                grammar \(live.cleanupFixesGrammar
+                    ? (live.cleanupEngine == .s1Mini
+                        ? "on, as a second Apple pass"
+                        : "on, in the same pass")
+                    : "off")
                 """)
 
             let requested: [String]
             switch engine {
-            case "all": requested = ["guard", "rules", "apple", "apple-grammar", "s1", "qwen"]
+            case "all": requested = ["guard", "rules", "apple", "apple-grammar", "s1", "chain", "qwen"]
             default: requested = [engine]
             }
 
@@ -361,6 +363,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 case "s1":
                     formatter = S1MiniFormatter(preferences: preferences)
                     mode = .punctuationOnly
+                case "chain":
+                    // What a real hold does when the engine is S1-mini and grammar is on:
+                    // punctuate locally, then repair locally. Judged as `.grammar`, because
+                    // the second pass is allowed to change words.
+                    formatter = ChainedFormatter(
+                        first: S1MiniFormatter(preferences: preferences),
+                        second: FoundationModelFormatter(
+                            preferences: preferences,
+                            fixesGrammar: true,
+                            fallback: KeepAsIsFormatter()
+                        )
+                    )
+                    mode = .grammar
                 case "qwen":
                     formatter = QwenCleanupFormatter(preferences: preferences, fixesGrammar: true)
                     mode = .grammar
@@ -461,6 +476,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "qwen":
             return try? await QwenCleanupFormatter.generate(
                 text, preferences: preferences, fixesGrammar: true
+            )
+        case "chain":
+            // The punctuation stage runs guarded, exactly as it does in production — it is
+            // not the stage under test. Only the grammar stage is taken raw, so a rejection
+            // there is visible instead of being absorbed by `KeepAsIsFormatter` and reported
+            // as a pass. Without this case the chain scored 28/28, which was not a result.
+            let punctuated = await S1MiniFormatter(preferences: preferences).format(text)
+            return try? await FoundationModelFormatter.clean(
+                punctuated, preferences: preferences, fixesGrammar: true
             )
         default:
             return nil

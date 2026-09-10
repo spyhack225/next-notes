@@ -70,10 +70,9 @@ struct DictationSettingsTab: View {
                         }
                     }
                     Toggle("Fix grammar, not just punctuation", isOn: $settings.cleanupFixesGrammar)
-                        .disabled(settings.cleanupEngine == .s1Mini)
                         .help(settings.cleanupEngine == .s1Mini
-                              ? "S1-mini restores punctuation and capitalisation only. Switch "
-                                + "the cleanup model to Apple to repair grammar."
+                              ? "S1-mini punctuates, then Apple's on-device model repairs "
+                                + "grammar — two local passes, a little over a second."
                               : "Repairs agreement, tense and word order — \"there is some "
                                 + "lags\" becomes \"there are some lags\". Runs on device.")
 
