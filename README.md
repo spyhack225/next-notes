@@ -1,11 +1,15 @@
 # Next Notes
 
-Push-to-talk dictation for macOS. Hold a key, talk, release — cleaned-up text lands in
-whatever text field has focus. A Wispr Flow-shaped app, built native and fully on-device.
+Push-to-talk dictation for macOS. Hold a key, talk, release — cleaned-up text lands in the
+app you were already in. A Wispr Flow-shaped app, built native and fully on-device.
+
+![Next Notes turning a spoken false start into a finished sentence](site/public/demo-dictation.gif)
 
 **Status:** the macOS app is in daily use. It supports Apple and Parakeet transcription,
-deterministic or on-device LLM cleanup, personal dictionary bias and corrections, and an
-opt-in voice Command Mode for editing selected text. It also records meetings: the
+deterministic or on-device LLM cleanup, per-app output formatting, personal dictionary bias
+and corrections, and an opt-in voice Command Mode for editing selected text. Dictated text
+returns to the app it was started in, even if you switch away while the model is still
+working. It also records meetings: the
 microphone and the system's own output are captured as two separate tracks and transcribed
 separately, which is where the "You" and "Others" attribution in a meeting transcript comes
 from. A finished recording then walks itself the rest of the way — tell the speakers on the
@@ -148,7 +152,7 @@ Other targets: `make app` (bundle only), `make run` (run in place), `make clean`
                                             ▼
                                       TextFormatter
                                             ▼
-                                      TextInjector ─► focused app
+                                      TextInjector ─► origin app
 
  selected text ─► Command hotkey ─► speech command ─► Foundation Model
                                                               │
@@ -440,6 +444,23 @@ Both engines feed the same cleanup, dictionary, history, and injection pipeline.
   `AnalysisContext.contextualStrings` before audio arrives. Correction pairs then run
   deterministically after cleanup on both macOS and Windows. This implements names and short
   jargon; pronunciation-trained `SFCustomLanguageModelData` models are not built.
+- **Per-app output profiles** decide which formatting marks the cleanup pass is allowed to
+  emit. `formatting.txt` in Application Support maps a bundle identifier to what that app can
+  actually render — Slack takes bullets and fenced code but shows a pipe table as pipes;
+  Obsidian renders all of it; Terminal renders none — and Settings ▸ Formatting edits the same
+  table. **An app with no row gets plain prose**, deliberately: emitting `**bold**` into
+  something that shows the asterisks is worse than emitting nothing. The profile is resolved
+  from the app that was frontmost when the key went down, not the one frontmost when the text
+  lands, and it overrides *Format spoken lists* — a list the target renders as literal hyphens
+  is worse than the prose it replaced. S1-mini is the one engine this cannot reach, because it
+  takes no instructions at all; with grammar repair on, the second pass is a general-purpose
+  model and honours it.
+- **Where the text goes** is the app you started dictating into. Transcription and cleanup take
+  seconds and you are free to move on inside them, so the target is captured at key-down and
+  returned to at insertion. Settings ▸ Dictation chooses what happens when you *have* moved:
+  switch back and insert (the default), insert wherever you now are, or copy to the clipboard
+  and disturb nothing. If the original app cannot be brought back — it quit — the text is left
+  on the clipboard and the HUD says so, rather than vanishing.
 - **Command Mode** is opt-in. Select editable text, hold its independently configured second
   hotkey, and speak an instruction such as "make this more formal." Next Notes snapshots the
   AX selection, applies the instruction with Apple's on-device model, and replaces it only if
@@ -459,6 +480,26 @@ version control: it is not a convenience, it is the deployed artifact. It is als
 `doctl apps list-deployments e2366c03-b11d-4c56-8d07-fdea08b21cdc` shows what shipped.
 GitHub Pages served this site before the move and has been switched off, so there is exactly
 one live copy and one URL to reason about.
+
+**`site/public/` is copied verbatim** and holds everything a crawler asks for by convention
+rather than by link: `robots.txt`, `sitemap.xml`, `llms.txt`, `favicon.ico`,
+`apple-touch-icon.png`, `og-image.png` and the demo GIF above.
+
+Two rules about that metadata, both learned the hard way:
+
+- **`og:image`, `og:url` and the canonical must be absolute.** Open Graph consumers resolve
+  them server-side, with no page context to resolve a relative path against, so `./icon.png`
+  was simply dropped and every link to the site previewed bare. `base` is `"./"` for the
+  bundle, which makes the contrast easy to miss.
+- **The card must be at least 300px wide** for `twitter:card: summary_large_image`. It used to
+  point at the 256px app icon, which fails that minimum, so the card had no image even when
+  the URL resolved. It is now a 1200×630 render.
+
+The page is a client-rendered React app, so a crawler that does not run JavaScript receives
+`<div id="root"></div>` and nothing else. Search engines cope; the assistant crawlers this
+project cares about mostly do not. The static `<noscript>` block and the JSON-LD in
+`index.html` exist for them and must keep saying what the rendered page says. Prerendering the
+route at build time is the real fix and is not done.
 
 ```bash
 cd site && npm install     # once
@@ -534,9 +575,15 @@ had the one real thing it needs:
 
 - **The system-audio tap with its grant.** `--selftest-systemaudio` has only ever reported
   `SYSTEM_AUDIO_SILENT` here, and no recording has yet contained an "Others" track.
-- **Qwen3.5-4B.** Never downloaded on the development machine (it needs ~7 GB free: the
-  model plus the downloader's 4 GB reserve), so its SHA-256 is not pinned yet and every
-  notes run so far has used Apple Foundation Models.
+- **Returning the text to the app it came from.** `TextInjector.Origin` and the switch-away
+  setting are written and the state machine is covered by `--selftest-dictation`, but that
+  harness stubs the insert seam. The activation path — `NSRunningApplication.activate()`, the
+  `kAXFrontmostAttribute` fallback, and the polling behind both — has never run against a real
+  app switch, because it needs a real hold and the Accessibility grant. `Log.inject` says which
+  branch was taken.
+- **Per-app output profiles reaching the model.** Wired from `captureTarget()` through to the
+  cleanup prompt and verified by reading each link, but never observed end to end for the same
+  reason. `output target: <app>` in the log at key-down is the proof when it runs.
 - **Google Calendar.** The OAuth loopback flow, the token store and the provider are
   written; no account has been connected. It needs your own Desktop-type OAuth client.
 - **Apple Calendar.** Compile-verified only — the Calendar grant has not been given here.
@@ -552,8 +599,13 @@ events) and confirmed via `/usr/bin/log show --predicate 'subsystem ==
 "ai.pivotstudio.nextnotes"'`:
 
 - Builds clean under Swift 6 strict concurrency.
-- Signs with Developer ID when one is installed. Ad-hoc development builds require a fresh
-  Accessibility grant after rebuilding because macOS keys that permission to the signature.
+- Signs with Developer ID when one is installed, and otherwise with the stable self-signed
+  "Next Notes Local Signing" certificate that `make signing-cert` creates. That certificate is
+  the whole reason grants stick: two consecutive builds produce an identical designated
+  requirement, so macOS does not treat the rebuilt app as a different one. Genuinely ad-hoc
+  builds — no certificate at all — do require a fresh Accessibility grant every rebuild.
+- Qwen3.5-4B downloaded, SHA-256 pinned, and running on Metal with real weights alongside
+  S1-mini on the CPU in one process.
 - Launches as a regular macOS app with its main window and menu bar item present.
 - Event tap arms on grant without a restart (the poller catches it).
 - Full state machine: `starting → listening → finishing → idle`, no errors.
