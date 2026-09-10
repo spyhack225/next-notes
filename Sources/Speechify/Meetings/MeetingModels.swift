@@ -177,6 +177,16 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
     /// to a document once the proposal that made it is gone.
     var agentActions: [AgentActionRecord] = []
 
+    /// Whether this meeting came from `CallDetector` noticing a call rather than from a
+    /// calendar.
+    ///
+    /// Three rules in `MeetingScheduler` turn on it, and each is about the same missing
+    /// thing — nobody agreed to this in advance and nothing knows when it ends: an armed
+    /// detected call is never started by the tick, it is never written off for overrunning
+    /// a schedule it does not have, and a refusal of it is not persisted as an override for
+    /// a key that will never be seen again.
+    var isDetectedCall: Bool { providerID == CalendarProviderID.detectedCall.rawValue }
+
     /// How long the recording ran, once it has stopped.
     var duration: TimeInterval? {
         guard let end else { return nil }

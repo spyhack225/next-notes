@@ -12,6 +12,8 @@ struct PermissionsChecklist: View {
     @State private var hasMicrophone = false
     @State private var hasCalendar = false
     @State private var hasNotifications = false
+    @State private var hasSystemAudio = false
+    @State private var isGrantingAll = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.m) {
@@ -44,12 +46,17 @@ struct PermissionsChecklist: View {
 
             PermissionRow(
                 title: "System audio",
-                detail: "Hears the other side of a meeting. Asked for when one first records.",
+                detail: "Hears the other side of a meeting. Without it a recording is only "
+                    + "your half, in silence.",
                 systemImage: "speaker.wave.2",
-                isGranted: nil,
-                actionTitle: "Open Settings…"
+                isGranted: hasSystemAudio,
+                actionTitle: "Grant…"
             ) {
-                Permissions.openSystemAudioSettings()
+                // Prompts the first time and returns the standing answer afterwards, exactly
+                // like the microphone. macOS asks for this one under "Screen & System Audio
+                // Recording" — the same grant screen capture uses.
+                if !Permissions.requestSystemAudio() { Permissions.openSystemAudioSettings() }
+                refresh()
             }
 
             PermissionRow(
@@ -114,6 +121,32 @@ struct PermissionsChecklist: View {
                     refresh()
                 }
             }
+
+            Divider()
+
+            // Five separate prompts, in a row, without having to find five buttons.
+            //
+            // Sequential rather than concurrent, and deliberately so: each of these puts a
+            // system dialog on screen, and firing them together stacks modal alerts over one
+            // another in an order nobody chose. Each `await` returns when that dialog is
+            // answered, so the next one appears on a clear screen.
+            //
+            // Only the rows the OS can actually prompt for. Accessibility has no programmatic
+            // request and Workspace is not a TCC grant at all, so both stay one-at-a-time
+            // above rather than pretending to be part of a sweep.
+            HStack {
+                Text("Speechify asks for each of these separately. This walks through them.")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer()
+                Button(isGrantingAll ? "Asking…" : "Grant All…") { grantAll() }
+                    .disabled(isGrantingAll || hasEveryPromptableGrant)
+                    .help(hasEveryPromptableGrant
+                          ? "Everything macOS can prompt for is already granted"
+                          : "Ask for the microphone, system audio, calendar and notifications "
+                            + "one after another")
+            }
         }
         // Probed once rather than on the poll below: every answer here is a bit the kernel
         // already knows, except this one — which is a process spawn, and spawning `gws`
@@ -138,10 +171,37 @@ struct PermissionsChecklist: View {
         }
     }
 
+    /// Everything macOS will put a dialog up for. Accessibility is excluded because it has
+    /// no programmatic request, so "grant all" can never finish it.
+    private var hasEveryPromptableGrant: Bool {
+        hasMicrophone && hasSystemAudio && hasCalendar && hasNotifications
+    }
+
+    private func grantAll() {
+        isGrantingAll = true
+        Task {
+            if !hasMicrophone, await Permissions.requestMicrophone() == false {
+                Permissions.openMicrophoneSettings()
+            }
+            if !hasSystemAudio, Permissions.requestSystemAudio() == false {
+                Permissions.openSystemAudioSettings()
+            }
+            if !hasCalendar, await Permissions.requestCalendar() == false {
+                Permissions.openCalendarSettings()
+            }
+            if !hasNotifications, await Notifications.shared.requestAuthorization() == false {
+                Permissions.openNotificationSettings()
+            }
+            isGrantingAll = false
+            refresh()
+        }
+    }
+
     private func refresh() {
         hasAccessibility = Permissions.hasAccessibility
         hasMicrophone = Permissions.hasMicrophone
         hasCalendar = Permissions.hasCalendar
+        hasSystemAudio = Permissions.hasSystemAudio
         // The only row that can't be answered synchronously — the notification center's
         // settings are fetched, not read off a bit.
         Task { hasNotifications = await Notifications.shared.isAuthorized() }

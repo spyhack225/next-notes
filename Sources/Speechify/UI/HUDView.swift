@@ -43,7 +43,7 @@ struct HUDView: View {
     /// Which orb the capsule shows. Parakeet resolves on release rather than while you
     /// speak, so the wait after letting go is real work and says so with `working`.
     private var orb: OrbGeometry.State {
-        controller.state == .finishing ? .working : .listening
+        controller.state == .listening ? .listening : .working
     }
 
     private var isError: Bool {
@@ -53,7 +53,9 @@ struct HUDView: View {
 
     private var label: String {
         switch controller.state {
-        case .starting: "Listening…"
+        // Not "Listening…": the microphone is not open yet in `.starting`, and on a cold
+        // Parakeet that is eleven seconds of the HUD claiming to hear you.
+        case .starting: "Getting ready…"
         case .listening: controller.transcript.isEmpty ? "Listening…" : controller.transcript
         // Parakeet transcribes in one pass on release, so there's nothing to show until
         // it lands — say what's happening instead of leaving an empty pill.

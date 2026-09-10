@@ -156,34 +156,46 @@ struct IslandView: View {
     // MARK: - Badge
 
     /// The one element that exists in both layouts, so it can travel between them.
-    @ViewBuilder
+    ///
+    /// A recording meeting wears both marks. They answer two different questions — the dot
+    /// says this is being recorded, `weaving` says the two channels are being braided into
+    /// one transcript — so the orb is drawn *beside* the red dot rather than in place of
+    /// it, the same way `HUDView` sets the orb beside the dot and the level bar. Red is
+    /// still only ever recording, and nothing else is ever allowed to say it.
     private var badge: some View {
-        Group {
-            if let orb = state.kind.orb {
-                ThinkingOrb(state: orb, ink: ink)
-                    // The breath is the badge's, not the orb's: the orb already moves, and
-                    // this is what makes a collapsed badge read as alive at a glance.
-                    .phaseAnimator([false, true]) { view, breathing in
-                        view
-                            .scaleEffect(breathing ? DS.Scale.orbBreath : 1)
-                            .opacity(breathing ? 1 : DS.Opacity.orbBreathLow)
-                    } animation: { _ in
-                        .easeInOut(duration: DS.Motion.orbBreath)
-                    }
-            } else {
-                switch state.kind {
-                case .meetingRecording:
-                    RecordingIndicator(compact: true, label: nil)
-                case .meetingArmed:
-                    glyph("calendar.badge.clock")
-                case .notesReady:
-                    glyph("doc.text")
-                default:
-                    EmptyView()
-                }
+        HStack(spacing: DS.Space.xs) {
+            mark
+            if case .meetingRecording = state.kind {
+                RecordingIndicator(compact: true, label: nil)
             }
         }
         .matchedGeometryEffect(id: Self.badgeID, in: namespace)
+    }
+
+    /// The orb for whatever work is running, or the glyph that stands in where none does.
+    @ViewBuilder
+    private var mark: some View {
+        if let orb = state.kind.orb {
+            ThinkingOrb(state: orb, ink: ink)
+                // The breath is the badge's, not the orb's: the orb already moves, and
+                // this is what makes a collapsed badge read as alive at a glance.
+                .phaseAnimator([false, true]) { view, breathing in
+                    view
+                        .scaleEffect(breathing ? DS.Scale.orbBreath : 1)
+                        .opacity(breathing ? 1 : DS.Opacity.orbBreathLow)
+                } animation: { _ in
+                    .easeInOut(duration: DS.Motion.orbBreath)
+                }
+        } else {
+            switch state.kind {
+            case .meetingArmed:
+                glyph("calendar.badge.clock")
+            case .notesReady:
+                glyph("doc.text")
+            default:
+                EmptyView()
+            }
+        }
     }
 
     private func glyph(_ name: String) -> some View {
@@ -201,9 +213,14 @@ struct IslandView: View {
     @ViewBuilder
     private var trailing: some View {
         switch state.kind {
-        case .dictating(_, let level):
-            LevelBar(level: level)
-                .frame(width: DS.Size.islandBarWidth)
+        case .dictating(_, let level, let capturing):
+            // The meter answers "is it hearing me?", so it is shown only while something
+            // is actually being heard. A bar pinned at zero after the key came up reads as
+            // a dead microphone rather than as work in progress.
+            if capturing {
+                LevelBar(level: level)
+                    .frame(width: DS.Size.islandBarWidth)
+            }
         case .meetingRecording(let elapsed, _, _):
             counter(elapsed)
         case .summarizing(let progress), .diarizing(let progress):
@@ -233,11 +250,13 @@ struct IslandView: View {
     @ViewBuilder
     private var detail: some View {
         switch state.kind {
-        case .dictating(let transcript, let level):
+        case .dictating(let transcript, let level, let capturing):
             HStack(spacing: DS.Space.s) {
-                LevelBar(level: level)
-                    .frame(width: DS.Size.islandBarWidth)
-                Text(transcript.isEmpty ? "Listening\u{2026}" : transcript)
+                if capturing {
+                    LevelBar(level: level)
+                        .frame(width: DS.Size.islandBarWidth)
+                }
+                Text(transcript.isEmpty ? (capturing ? "Listening\u{2026}" : "Transcribing\u{2026}") : transcript)
                     .font(DS.Font.callout)
                     .foregroundStyle(secondaryInk)
                     .lineLimit(2)
@@ -330,7 +349,7 @@ struct IslandView: View {
     private var title: String {
         switch state.kind {
         case .hidden: ""
-        case .dictating: "Dictating"
+        case .dictating(_, _, let capturing): capturing ? "Dictating" : "Transcribing"
         case .meetingArmed(let event): event.title
         case .meetingRecording: meetings.session?.meeting.title ?? "Recording"
         case .transcribing: MeetingStatus.transcribing.displayName
@@ -342,6 +361,9 @@ struct IslandView: View {
     }
 
     private func armedDetail(_ event: MeetingEvent) -> String {
+        // A detected call started before the card did, so the countdown wording would read
+        // "Recording now." on a card whose whole purpose is that it has not started.
+        if event.providerID == .detectedCall { return "Record this call?" }
         let time = event.start.formatted(date: .omitted, time: .shortened)
         return event.start > Date()
             ? "Recording starts at \(time)."

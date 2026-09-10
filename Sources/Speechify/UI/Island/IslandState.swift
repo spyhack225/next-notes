@@ -34,7 +34,12 @@ final class IslandState {
 
     enum Kind: Equatable {
         case hidden
-        case dictating(transcript: String, level: Float)
+        /// `isCapturing` is false once the key has been let go and the engine is still
+        /// working. The island used to have no way to say that, so a dictation stuck in
+        /// `.finishing` went on showing the listening orb and the word "Listening…" — which
+        /// is what "it looks stuck, it keeps recording in the background" is a description
+        /// of. The HUD has always drawn the two apart; this is the island catching up.
+        case dictating(transcript: String, level: Float, isCapturing: Bool)
         case meetingArmed(MeetingEvent)
         case meetingRecording(elapsed: TimeInterval, micLevel: Float, systemLevel: Float)
         case transcribing
@@ -57,7 +62,7 @@ final class IslandState {
         var identity: String {
             switch self {
             case .hidden: "hidden"
-            case .dictating: "dictating"
+            case .dictating(_, _, let capturing): capturing ? "dictating" : "dictating.finishing"
             case .meetingArmed(let event): "armed:\(event.id)"
             case .meetingRecording: "recording"
             case .transcribing: "transcribing"
@@ -100,7 +105,7 @@ final class IslandState {
         /// recording; the orb says what *kind* of work is going on beside it.
         var orb: OrbGeometry.State? {
             switch self {
-            case .dictating: .listening
+            case .dictating(_, _, let capturing): capturing ? .listening : .working
             case .meetingRecording: .weaving
             case .meetingArmed: .breathing
             case .transcribing: .working
@@ -267,7 +272,11 @@ final class IslandState {
         // counter losing three seconds to it costs nothing.
         if let dictation, dictation.state.shouldShowHUD,
            Settings.shared.hudPlacement == .notch {
-            return .dictating(transcript: dictation.transcript, level: dictation.level)
+            return .dictating(
+                transcript: dictation.transcript,
+                level: dictation.level,
+                isCapturing: dictation.state == .listening
+            )
         }
         if let session = meetings.session, session.isRecording {
             return .meetingRecording(

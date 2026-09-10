@@ -1,5 +1,6 @@
 import AVFoundation
 import AppKit
+import CoreGraphics
 import ApplicationServices
 import EventKit
 import Foundation
@@ -10,8 +11,9 @@ import Foundation
 /// - **Accessibility** — the `CGEventTap` hotkey and the AX text insert. No programmatic
 ///   request exists; the OS shows a prompt and the user toggles it in System Settings.
 /// - **System audio** — the Core Audio process tap that hears the other side of a meeting.
-///   The OS prompts on first use of the tap; there is no query API, so `SystemAudioCapture`
-///   probes by trying.
+///   macOS folds audio-only taps into the same grant as screen recording, "Screen & System
+///   Audio Recording", so the CoreGraphics screen-capture calls are what answers for it and
+///   what prompts for it. That coupling is Apple's, not ours.
 /// - **Calendar** — EventKit, for meeting detection. Google Calendar is OAuth, not TCC.
 ///
 /// TCC keys every grant on the code signature, so re-signing the app resets them.
@@ -27,6 +29,29 @@ enum Permissions {
 
     static var hasCalendar: Bool {
         EKEventStore.authorizationStatus(for: .event) == .fullAccess
+    }
+
+    /// Whether the process tap will carry real audio rather than silence.
+    ///
+    /// There is no query API for the tap itself, which is why this used to be unanswerable
+    /// and the checklist row simply had no state. It is answerable through the front door
+    /// instead: macOS gates audio-only taps on "Screen & System Audio Recording", the same
+    /// grant screen capture uses, so its preflight is the tap's answer too.
+    ///
+    /// The ground truth is still the tap. Without the grant a tap succeeds, delivers frames,
+    /// and every sample is zero — measured on 2026-09-09, which is why `--selftest-systemaudio`
+    /// reports the zeroed-frame case in so many words rather than trusting this bit.
+    static var hasSystemAudio: Bool {
+        CGPreflightScreenCaptureAccess()
+    }
+
+    /// Asks for it, so the checklist can prompt inline like every other row.
+    ///
+    /// Prompts once per install; afterwards it returns the standing answer and the Settings
+    /// pane is the only way to change it, so a refusal sends the user there.
+    @discardableResult
+    static func requestSystemAudio() -> Bool {
+        CGRequestScreenCaptureAccess()
     }
 
     /// Shows the system Accessibility prompt if the app isn't yet trusted.
@@ -90,8 +115,11 @@ enum Permissions {
         open("Privacy_Microphone")
     }
 
+    /// `Privacy_ScreenCapture`, not `Privacy_AudioCapture`. The grant lives in the combined
+    /// "Screen & System Audio Recording" pane, which is the screen-capture anchor; the audio
+    /// one lands on a page that does not list Speechify at all.
     static func openSystemAudioSettings() {
-        open("Privacy_AudioCapture")
+        open("Privacy_ScreenCapture")
     }
 
     static func openCalendarSettings() {

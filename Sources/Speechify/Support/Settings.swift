@@ -240,6 +240,56 @@ final class Settings {
         didSet { defaults.set(meetingAutoRecordOverrides, forKey: Keys.meetingAutoRecordOverrides) }
     }
 
+    /// Notice that the Mac is on a call and offer to record it.
+    ///
+    /// On by default, and on by itself it records nothing. Detection needs no permission at
+    /// all — Core Audio's process list reads without a TCC grant — and all it ever does on
+    /// its own is raise the same armed card a calendar meeting raises, with Record now and
+    /// Skip on it. The switch that turns that question into a recording is the next one.
+    var callDetectionEnabled: Bool {
+        didSet { defaults.set(callDetectionEnabled, forKey: Keys.callDetectionEnabled) }
+    }
+
+    /// Record a detected call without asking first.
+    ///
+    /// **Off by default, and that default is the argument.** A calendar meeting is
+    /// something the user agreed to in advance; a call that rang out of nowhere could be a
+    /// doctor or a lawyer, and consent law for recording a call varies by jurisdiction —
+    /// several places require every party to agree. Asking costs nothing to build, because
+    /// the island already has the card. Anyone who wants the calendar behaviour turns this
+    /// on, and `callAppAnswers` makes "always record Zoom" one switch without making it
+    /// the answer for every app.
+    var callDetectionAutoRecord: Bool {
+        didSet { defaults.set(callDetectionAutoRecord, forKey: Keys.callDetectionAutoRecord) }
+    }
+
+    /// Per-app answers to "record calls in this app?", keyed by bundle identifier and
+    /// holding `CallPolicy.AppAnswer` raw values.
+    ///
+    /// Keyed by the *app*, where `meetingAutoRecordOverrides` is keyed by the occurrence,
+    /// and the difference is deliberate: a calendar event recurs, so an answer about one
+    /// occurrence is worth keeping and an answer about the series would be wrong. A call
+    /// happens once and never again under the same key, so a per-call answer would be a row
+    /// that is written and never read. Every call in an app is the same kind of call.
+    ///
+    /// Strings rather than the `Bool` this held first, because the control has three
+    /// positions and a `Bool?` has only two plus "unanswered" — with auto-record on there
+    /// was no way to store "ask me about this one".
+    var callAppAnswers: [String: String] {
+        didSet { defaults.set(callAppAnswers, forKey: Keys.callAppAnswers) }
+    }
+
+    /// Apps that have actually been seen holding the microphone: bundle identifier to the
+    /// name a person would recognise.
+    ///
+    /// Written by `CallDetector`, read by the Meetings settings tab, and the reason that
+    /// tab can offer a per-app answer without anybody typing `us.zoom.xos` into a text
+    /// field. A record of what happened on this Mac, not a catalogue of what exists — an
+    /// app nobody has ever used the microphone in is an app with no calls to answer for.
+    var callAppsSeen: [String: String] {
+        didSet { defaults.set(callAppsSeen, forKey: Keys.callAppsSeen) }
+    }
+
     /// Read meetings from the Mac's own calendars through EventKit.
     var calendarEventKitEnabled: Bool {
         didSet { defaults.set(calendarEventKitEnabled, forKey: Keys.calendarEventKitEnabled) }
@@ -342,6 +392,29 @@ final class Settings {
         meetingAutoRecordOverrides = overrides
     }
 
+    /// The stored answer for one app's calls, or nil when the global switch decides.
+    func callAnswer(forApp bundleID: String) -> CallPolicy.AppAnswer? {
+        callAppAnswers[bundleID].flatMap(CallPolicy.AppAnswer.init(rawValue:))
+    }
+
+    /// Records or clears one app's answer. `nil` hands its calls back to the global switch.
+    func setCallAnswer(_ value: CallPolicy.AppAnswer?, forApp bundleID: String) {
+        var answers = callAppAnswers
+        answers[bundleID] = value?.rawValue
+        callAppAnswers = answers
+    }
+
+    /// Notes that an app has used the microphone, so it can be answered for.
+    ///
+    /// The name is refreshed as well as the identifier: an app that was running unbundled
+    /// the first time it was seen, or was renamed, should not be listed forever under
+    /// whatever it was called then.
+    func rememberCallApp(bundleID: String, name: String) {
+        var seen = callAppsSeen
+        seen[bundleID] = name
+        callAppsSeen = seen
+    }
+
     private let defaults = UserDefaults.standard
 
     private enum Keys {
@@ -368,6 +441,10 @@ final class Settings {
         static let meetingsAutoRecord = "meetingsAutoRecord"
         static let meetingLeadMinutes = "meetingLeadMinutes"
         static let meetingAutoRecordOverrides = "meetingAutoRecordOverrides"
+        static let callDetectionEnabled = "callDetectionEnabled"
+        static let callDetectionAutoRecord = "callDetectionAutoRecord"
+        static let callAppAnswers = "callAppAnswers"
+        static let callAppsSeen = "callAppsSeen"
         static let calendarEventKitEnabled = "calendarEventKitEnabled"
         static let calendarGoogleEnabled = "calendarGoogleEnabled"
         static let googleClientID = "googleClientID"
@@ -427,6 +504,10 @@ final class Settings {
         meetingLeadMinutes = min(max(leadMinutes, Self.leadMinutesRange.lowerBound), Self.leadMinutesRange.upperBound)
         meetingAutoRecordOverrides = defaults.dictionary(forKey: Keys.meetingAutoRecordOverrides)
             as? [String: Bool] ?? [:]
+        callDetectionEnabled = defaults.object(forKey: Keys.callDetectionEnabled) as? Bool ?? true
+        callDetectionAutoRecord = defaults.object(forKey: Keys.callDetectionAutoRecord) as? Bool ?? false
+        callAppAnswers = defaults.dictionary(forKey: Keys.callAppAnswers) as? [String: String] ?? [:]
+        callAppsSeen = defaults.dictionary(forKey: Keys.callAppsSeen) as? [String: String] ?? [:]
         calendarEventKitEnabled = defaults.object(forKey: Keys.calendarEventKitEnabled) as? Bool ?? true
         calendarGoogleEnabled = defaults.object(forKey: Keys.calendarGoogleEnabled) as? Bool ?? false
         googleClientID = defaults.string(forKey: Keys.googleClientID) ?? ""
