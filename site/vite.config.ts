@@ -1,12 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// The site is served from a project page, not a user page, so every asset URL has to
-// carry the repo name: https://spyhack225.github.io/speechify-site/
+// Served from the root of its own domain — https://next-notes.com/ — on DigitalOcean App
+// Platform, which publishes `docs/` as the site root. No repo-name prefix: that was needed
+// only while this was a GitHub Pages *project* page, and carrying it here asks the browser
+// for every asset one directory too deep.
 export default defineConfig({
-  base: "/speechify-site/",
+  base: "/",
   build: {
-    // Built straight into the directory GitHub Pages already serves (`main` `/docs`), so
+    // Built straight into the directory the App Platform static site serves (`docs/`), so
     // publishing is a commit rather than a CI run, and what was previewed locally is
     // byte-for-byte what ships.
     outDir: "../docs",

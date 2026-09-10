@@ -2,10 +2,11 @@
 #
 # Build the landing page and publish it, in one step.
 #
-# GitHub Pages serves `docs/` on `main` as committed — there is no Actions workflow — so
-# publishing is: build, commit the output, push. Doing that by hand invites the two failures
-# this script exists to prevent: pushing source without rebuilding, so the live site silently
-# stays on the old bundle; and assuming the push deployed, which it does not guarantee.
+# DigitalOcean App Platform serves `docs/` on `main` as committed, rebuilding on push — there
+# is no Actions workflow. So publishing is: build, commit the output, push. Doing that by hand
+# invites the two failures this script exists to prevent: pushing source without rebuilding, so
+# the live site silently stays on the old bundle; and assuming the push deployed, which it does
+# not guarantee.
 #
 #   npm run deploy
 #   npm run deploy -- "Rewrite the hero"
@@ -16,11 +17,15 @@ cd "$ROOT"
 
 MESSAGE="${1:-Rebuild the landing page}"
 
+# The live site, and the App Platform app behind it. The app rebuilds from `main` on push.
+SITE_URL="https://next-notes.com/"
+DO_APP_ID="e2366c03-b11d-4c56-8d07-fdea08b21cdc"
+
 # --- Guards -----------------------------------------------------------------------------
 
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 if [ "$BRANCH" != "main" ]; then
-    echo "refusing: Pages serves 'main', and you are on '$BRANCH'." >&2
+    echo "refusing: the app deploys 'main', and you are on '$BRANCH'." >&2
     echo "Merge to main first, or the push will not change the live site." >&2
     exit 1
 fi
@@ -64,30 +69,33 @@ fi
 
 # --- Verify -----------------------------------------------------------------------------
 #
-# A push is not a deployment. Pages rebuilds asynchronously and can take a minute, so the
-# only honest confirmation is fetching the live page and checking it serves the bundle that
-# was just built.
+# A push is not a deployment. App Platform rebuilds asynchronously and takes a minute or two,
+# so the only honest confirmation is fetching the live page and checking it serves the bundle
+# that was just built.
 
 EXPECTED="$(grep -o 'assets/index-[A-Za-z0-9_-]*\.js' docs/index.html | head -1)"
-# `basename`/`dirname` rather than a regex: BSD sed on macOS rejects the non-greedy form,
-# and this has to work on the machine the app is built on. `tr` folds the SSH `:` into a `/`
-# so git@host:owner/repo and https://host/owner/repo parse the same way.
-NORMALISED="$(printf '%s' "$ORIGIN" | tr ':' '/')"
-REPO="$(basename "$NORMALISED" .git)"
-OWNER="$(basename "$(dirname "$NORMALISED")")"
-URL="https://${OWNER}.github.io/${REPO}/"
 
-echo "==> waiting for $URL to serve $EXPECTED"
+echo "==> waiting for $SITE_URL to serve $EXPECTED"
 for attempt in $(seq 1 12); do
-    LIVE="$(curl -fsS --max-time 20 "$URL" 2>/dev/null | grep -o 'assets/index-[A-Za-z0-9_-]*\.js' | head -1 || true)"
+    # Cache-busted on purpose. The App Platform edge sends s-maxage=86400, so without this a
+    # stale HTML document can outlive the deploy and make a good build look broken.
+    LIVE="$(curl -fsS --max-time 20 "${SITE_URL}?cb=${RANDOM}${attempt}" 2>/dev/null \
+            | grep -o 'assets/index-[A-Za-z0-9_-]*\.js' | head -1 || true)"
     if [ "$LIVE" = "$EXPECTED" ]; then
-        echo "==> live: $URL"
-        exit 0
+        # The HTML is current. Confirm the bundle it points at is actually reachable — a
+        # wrong `base` in vite.config.ts produces exactly this: correct HTML, 404 assets,
+        # blank page.
+        if curl -fsS -o /dev/null --max-time 20 "https://next-notes.com/${EXPECTED}?cb=${RANDOM}"; then
+            echo "==> live: $SITE_URL"
+            exit 0
+        fi
+        echo "    attempt $attempt: HTML is current but $EXPECTED does not resolve" >&2
+    else
+        echo "    attempt $attempt: serving ${LIVE:-nothing yet}"
     fi
-    echo "    attempt $attempt: serving ${LIVE:-nothing yet}"
     sleep 15
 done
 
-echo "the push succeeded but the live site is still on the old bundle after 3 minutes." >&2
-echo "Pages is probably still building. Check https://github.com/${OWNER}/${REPO}/deployments" >&2
+echo "the push succeeded but the live site is still not serving the new bundle after 3 minutes." >&2
+echo "Check the deployment:  doctl apps list-deployments $DO_APP_ID" >&2
 exit 1
