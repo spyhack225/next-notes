@@ -124,15 +124,26 @@ final class DictationController {
     private var activeFormatter: any TextFormatter {
         if let formatter { return formatter }
         let settings = Settings.shared
+        // What the app about to receive this text can actually render, captured at
+        // key-down. Resolving it here rather than at injection time is the whole point:
+        // formatting a list as Slack bullets and then dropping it into Mail is worse than
+        // not formatting at all.
+        let target = OutputProfileStore.shared.capturedProfile
         switch settings.cleanupEngine {
         case .apple:
             // One model, one pass. Apple's does restoration and grammar in the same call, so
             // grammar is free here rather than a second trip.
             return FoundationModelFormatter(
                 preferences: settings.cleanupPreferences,
-                fixesGrammar: settings.cleanupFixesGrammar
+                fixesGrammar: settings.cleanupFixesGrammar,
+                target: target
             )
         case .s1Mini:
+            // S1-mini takes no instructions at all, so a target profile cannot reach it.
+            // Punctuation-only cleanup is therefore the one combination where per-app
+            // formatting has no effect — there is no prompt to put the rules in. With
+            // grammar repair on, the second pass below is a general-purpose model and does
+            // honour them.
             let punctuation = S1MiniFormatter(preferences: settings.cleanupPreferences)
             guard settings.cleanupFixesGrammar else { return punctuation }
             // S1-mini cannot repair grammar — it is a punctuation model, not an
@@ -145,6 +156,7 @@ final class DictationController {
                 second: FoundationModelFormatter(
                     preferences: settings.cleanupPreferences,
                     fixesGrammar: true,
+                    target: target,
                     fallback: KeepAsIsFormatter()
                 )
             )
@@ -352,7 +364,13 @@ final class DictationController {
         session &+= 1
         let session = self.session
         recordingIntent = intent
+        // Two captures of the same instant, for two different jobs. `origin` holds the
+        // running application, because returning to it needs something to activate;
+        // `captureTarget()` files the bundle identifier, because choosing the formatting
+        // rules needs something to look up — and it falls back to the last foreign app,
+        // which matters on the path where the frontmost read comes back empty.
         origin = TextInjector.captureOrigin()
+        OutputProfileStore.shared.captureTarget()
         state = .starting
         transcript = ""
         holdStarted = Date()
@@ -628,7 +646,15 @@ final class DictationController {
             case .inserted:
                 if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
                 finishIdle()
-            case .leftOnClipboard(let appName):
+
+            case .copiedByChoice:
+                // The setting asked for this, so it is a success and gets the success
+                // sound. Saying "that went to your clipboard" every time would be nagging
+                // someone about a choice they already made.
+                if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
+                finishIdle()
+
+            case .couldNotReturn(let appName):
                 // Not silent. The old behaviour here was to paste into whatever the user
                 // had switched to — or nowhere — and say nothing, which is indistinguishable
                 // from the app losing the recording.
@@ -645,6 +671,7 @@ final class DictationController {
         transcript = ""
         recordingIntent = .dictation
         origin = nil
+        OutputProfileStore.shared.clearCapturedTarget()
     }
 
     private func applyCommand(_ rawCommand: String, to selection: TextInjector.Selection) async {
@@ -838,6 +865,7 @@ final class DictationController {
         isComparing = false
         recordingIntent = .dictation
         origin = nil
+        OutputProfileStore.shared.clearCapturedTarget()
         holdStarted = nil
         releasedAt = nil
 

@@ -41,6 +41,18 @@ struct DictationSettingsTab: View {
             }
 
             Section {
+                Picker("If you switch apps first", selection: $settings.switchAwayBehavior) {
+                    ForEach(SwitchAwayBehavior.allCases) { behavior in
+                        Text(behavior.displayName).tag(behavior)
+                    }
+                }
+            } header: {
+                Text("Where the text goes")
+            } footer: {
+                SettingsNote(text: switchAwayNote)
+            }
+
+            Section {
                 Toggle("Clean up transcripts", isOn: $settings.cleanupEnabled)
 
                 if settings.cleanupEnabled {
@@ -101,6 +113,13 @@ struct DictationSettingsTab: View {
               case .preparing = models.s1MiniState
         else { return nil }
         return .shaping
+    }
+
+    /// Only the chosen row's consequence, rather than all three at once: the reason to
+    /// read this is to find out what the setting you are looking at will do to you.
+    private var switchAwayNote: String {
+        "Transcribing takes a moment, and you are free to move on inside it. "
+            + settings.switchAwayBehavior.explanation
     }
 
     private var placementNote: String {

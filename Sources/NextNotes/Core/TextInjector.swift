@@ -49,29 +49,49 @@ enum TextInjector {
         return Origin(app: app, displayName: app.localizedName ?? app.bundleIdentifier ?? "that app")
     }
 
-    /// Why an insertion did not land where it was meant to.
+    /// Where the text ended up.
     enum Outcome: Equatable {
         case inserted
-        /// The origin app could not be brought back. The text is on the clipboard — the
-        /// previous contents are deliberately *not* restored in this case, because a
-        /// clipboard the user can paste is the difference between recoverable and lost.
-        case leftOnClipboard(appName: String)
+        /// The origin app could not be brought back — it quit, or refused to come forward.
+        /// The text is on the clipboard as a rescue, and the previous contents are
+        /// deliberately *not* restored: a clipboard the user can paste is the difference
+        /// between recoverable and lost.
+        case couldNotReturn(appName: String)
+        /// The user switched away and has asked for the clipboard in that case. Not a
+        /// failure — this is the setting doing what it says.
+        case copiedByChoice(appName: String)
     }
 
     /// Inserts `text`, first returning to the app the dictation started in.
     ///
     /// The common case costs nothing: if the user never left, `origin.isFrontmost` is true
-    /// and this is the same code path as before.
+    /// and this takes the same path it always did — the behaviour setting is not even read,
+    /// because it only describes what to do about a switch that did not happen.
     @discardableResult
-    static func insert(_ text: String, returningTo origin: Origin?) async -> Outcome {
+    static func insert(
+        _ text: String,
+        returningTo origin: Origin?,
+        whenSwitched behavior: SwitchAwayBehavior = Settings.shared.switchAwayBehavior
+    ) async -> Outcome {
         guard !text.isEmpty else { return .inserted }
 
         if let origin, !origin.isFrontmost {
-            Log.inject.info("user switched away — returning to \(origin.displayName, privacy: .public)")
-            guard await restoreFocus(to: origin) else {
-                Log.inject.error("could not return to \(origin.displayName, privacy: .public) — leaving the text on the clipboard")
+            switch behavior {
+            case .insertWhereFocused:
+                Log.inject.info("switched away — inserting at the current caret by preference")
+
+            case .copyToClipboard:
+                Log.inject.info("switched away — copying by preference, leaving \(origin.displayName, privacy: .public) alone")
                 leaveOnClipboard(text)
-                return .leftOnClipboard(appName: origin.displayName)
+                return .copiedByChoice(appName: origin.displayName)
+
+            case .returnToApp:
+                Log.inject.info("switched away — returning to \(origin.displayName, privacy: .public)")
+                guard await restoreFocus(to: origin) else {
+                    Log.inject.error("could not return to \(origin.displayName, privacy: .public) — leaving the text on the clipboard")
+                    leaveOnClipboard(text)
+                    return .couldNotReturn(appName: origin.displayName)
+                }
             }
         }
 
