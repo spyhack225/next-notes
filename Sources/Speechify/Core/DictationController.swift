@@ -126,7 +126,10 @@ final class DictationController {
         let settings = Settings.shared
         switch settings.cleanupEngine {
         case .apple:
-            return FoundationModelFormatter(preferences: settings.cleanupPreferences)
+            return FoundationModelFormatter(
+                preferences: settings.cleanupPreferences,
+                fixesGrammar: settings.cleanupFixesGrammar
+            )
         case .s1Mini:
             return S1MiniFormatter(preferences: settings.cleanupPreferences)
         }

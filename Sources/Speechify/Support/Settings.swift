@@ -147,6 +147,20 @@ final class Settings {
         didSet { defaults.set(cleanupEngine.rawValue, forKey: Keys.cleanupEngine) }
     }
 
+    /// Repair grammar, not only punctuation — the Grammarly job, done locally.
+    ///
+    /// Only the Apple engine can do this. S1-mini is a purpose-trained punctuation and
+    /// capitalisation model, not an instruction-following one; it has no grammar mode to
+    /// switch on. `activeFormatter` therefore ignores this for `.s1Mini`, and the Dictation
+    /// settings tab says so rather than offering a switch that would do nothing.
+    ///
+    /// On by default because it measured both better and faster than the alternative: over
+    /// the 28 evaluation cases, Apple returned 19 clean against Qwen's 14, at a warm median
+    /// of 0.686s against 7.41s. See `--selftest-cleanup apple-grammar`.
+    var cleanupFixesGrammar: Bool {
+        didSet { defaults.set(cleanupFixesGrammar, forKey: Keys.cleanupFixesGrammar) }
+    }
+
     var cleanupTone: CleanupTone {
         didSet { defaults.set(cleanupTone.rawValue, forKey: Keys.cleanupTone) }
     }
@@ -425,6 +439,7 @@ final class Settings {
         static let soundEnabled = "soundEnabled"
         static let engine = "engine"
         static let cleanupEngine = "cleanupEngine"
+        static let cleanupFixesGrammar = "cleanupFixesGrammar"
         static let cleanupTone = "cleanupTone"
         static let cleanupFormatsLists = "cleanupFormatsLists"
         static let cleanupContext = "cleanupContext"
@@ -465,6 +480,7 @@ final class Settings {
         // Apple by default: no download, no dependency, live text while speaking.
         engine = SpeechEngineChoice(rawValue: defaults.string(forKey: Keys.engine) ?? "") ?? .apple
         cleanupEnabled = defaults.object(forKey: Keys.cleanupEnabled) as? Bool ?? true
+        cleanupFixesGrammar = defaults.object(forKey: Keys.cleanupFixesGrammar) as? Bool ?? true
         if let rawCleanupEngine = defaults.string(forKey: Keys.cleanupEngine) {
             cleanupEngine = CleanupEngineChoice(rawValue: rawCleanupEngine) ?? .apple
         } else {
