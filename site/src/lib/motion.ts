@@ -11,4 +11,4 @@ export const fadeUp = (delay: number) =>
     transition: { duration: 0.6, delay, ease: "easeOut" },
   }) as const;
 
-export const REPO_URL = "https://github.com/spyhack225/speechify-site";
+export const REPO_URL = "https://github.com/spyhack225/next-notes";
