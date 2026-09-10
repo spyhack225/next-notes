@@ -1,6 +1,6 @@
 using Avalonia;
 
-namespace Speechify.App;
+namespace NextNotes.App;
 
 /// <summary>Entry point.</summary>
 public static class Program

@@ -1,16 +1,16 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Loader;
-using Speechify.Abstractions;
+using NextNotes.Abstractions;
 
-namespace Speechify.App;
+namespace NextNotes.App;
 
 /// <summary>
 /// Loads the Windows platform layer, if it is present.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Why reflection rather than a project reference:</b> <c>Speechify.Platform.Windows</c>
+/// <b>Why reflection rather than a project reference:</b> <c>NextNotes.Platform.Windows</c>
 /// targets <c>net10.0-windows</c>. Referencing it directly would force this project onto that
 /// TFM too, and the app could then no longer be built or headless-tested on macOS — losing
 /// the fast local loop that is the whole reason for choosing Avalonia.
@@ -22,8 +22,8 @@ namespace Speechify.App;
 /// </remarks>
 internal static class PlatformFactory
 {
-    private const string AssemblyName = "Speechify.Platform.Windows";
-    private const string Namespace = "Speechify.Platform.Windows";
+    private const string AssemblyName = "NextNotes.Platform.Windows";
+    private const string Namespace = "NextNotes.Platform.Windows";
 
     private static Assembly? _assembly;
     private static bool _attempted;
@@ -36,7 +36,7 @@ internal static class PlatformFactory
     /// </summary>
     /// <remarks>
     /// <c>PublishSingleFile</c> only bundles assemblies the compiler knows about, and this
-    /// one is deliberately invisible to it — that is what keeps <c>Speechify.App</c> on plain
+    /// one is deliberately invisible to it — that is what keeps <c>NextNotes.App</c> on plain
     /// <c>net10.0</c>. It therefore ships as a loose file next to the exe. Default probing
     /// normally finds it, but a single-file host resolves differently enough that relying on
     /// that alone is a bet — and losing it means the app starts fine and then does nothing
@@ -45,7 +45,7 @@ internal static class PlatformFactory
     [UnconditionalSuppressMessage(
         "Trimming",
         "IL2026:RequiresUnreferencedCode",
-        Justification = "Speechify.Platform.Windows ships whole beside the executable and is "
+        Justification = "NextNotes.Platform.Windows ships whole beside the executable and is "
                       + "never trimmed; nothing it depends on can have been removed.")]
     public static void InstallResolver()
     {
@@ -71,7 +71,7 @@ internal static class PlatformFactory
     [UnconditionalSuppressMessage(
         "Trimming",
         "IL2075:DynamicallyAccessedMembers",
-        Justification = "Speechify.Platform.Windows is published whole and never trimmed.")]
+        Justification = "NextNotes.Platform.Windows is published whole and never trimmed.")]
     public static IHotkeySource? CreateHotkeySource(int virtualKey)
     {
         var hook = Create<IHotkeySource>("PushToTalkHook", []);
@@ -103,11 +103,11 @@ internal static class PlatformFactory
     [UnconditionalSuppressMessage(
         "Trimming",
         "IL2072:DynamicallyAccessedMembers",
-        Justification = "Speechify.Platform.Windows is published whole and never trimmed.")]
+        Justification = "NextNotes.Platform.Windows is published whole and never trimmed.")]
     [UnconditionalSuppressMessage(
         "Trimming",
         "IL2075:DynamicallyAccessedMembers",
-        Justification = "Speechify.Platform.Windows is published whole and never trimmed.")]
+        Justification = "NextNotes.Platform.Windows is published whole and never trimmed.")]
     private static T? Create<T>(string typeName, object?[] arguments) where T : class
     {
         var assembly = Load();

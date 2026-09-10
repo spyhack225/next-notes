@@ -2,12 +2,12 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Speechify.App.Controls;
-using Speechify.App.Design;
-using Speechify.Core;
-using Speechify.Speech;
+using NextNotes.App.Controls;
+using NextNotes.App.Design;
+using NextNotes.Core;
+using NextNotes.Speech;
 
-namespace Speechify.App.Views;
+namespace NextNotes.App.Views;
 
 /// <summary>Settings: the hotkey and the model.</summary>
 public sealed class SettingsWindow : Window
@@ -39,7 +39,7 @@ public sealed class SettingsWindow : Window
     {
         _settings = settings;
 
-        Title = "Speechify Settings";
+        Title = "Next Notes Settings";
         Width = 540;
         SizeToContent = SizeToContent.Height;
         CanResize = false;
@@ -141,7 +141,7 @@ public sealed class SettingsWindow : Window
             // Showing the resolved path matters: "model not found" is unactionable without
             // knowing which directory was actually checked.
             ? Note($"Loaded from {located}")
-            : Note("Windows has no built-in speech engine equivalent to Apple's, so Speechify "
+            : Note("Windows has no built-in speech engine equivalent to Apple's, so Next Notes "
                  + "cannot transcribe until the Parakeet model is downloaded (~661 MB). "
                  + "See docs/PARAKEET-WINDOWS.md. Expected in:\n"
                  + string.Join("\n", ParakeetTranscriber.DefaultSearchPaths()));

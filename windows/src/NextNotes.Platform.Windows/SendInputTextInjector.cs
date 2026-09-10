@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
-using Speechify.Abstractions;
+using NextNotes.Abstractions;
 
-namespace Speechify.Platform.Windows;
+namespace NextNotes.Platform.Windows;
 
 /// <summary>
 /// Types text into whatever application has focus.

@@ -1,6 +1,6 @@
-using Speechify.Dictionary;
+using NextNotes.Dictionary;
 
-namespace Speechify.Core;
+namespace NextNotes.Core;
 
 /// <summary>
 /// The dictionary, persisted as a plain text file you can edit by hand.
@@ -46,7 +46,7 @@ public sealed class DictionaryFile
     /// <summary>The default location, alongside the transcript history.</summary>
     public static string DefaultPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Speechify", "dictionary.txt");
+        "NextNotes", "dictionary.txt");
 
     /// <summary>
     /// Where this dictionary lives on disk.
@@ -165,7 +165,7 @@ public sealed class DictionaryFile
 
     private static readonly string Header = string.Join(Environment.NewLine,
     [
-        "# Speechify dictionary",
+        "# Next Notes dictionary",
         "#",
         "#   Anthropic                 a term — the engine is told this word exists",
         "#   cloud code -> Claude Code a correction — when you hear X, write Y",

@@ -45,14 +45,14 @@ jobs:
             Select-Object Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
 
       - name: Restore
-        run: dotnet restore Speechify.sln
+        run: dotnet restore NextNotes.sln
 
       # --no-incremental is REQUIRED, not tidiness: Roslyn analyzer warnings are not
       # re-emitted on an incremental build, so -warnaserror would pass on cached results
       # and the whole gate would be theatre.
       - name: Build (warnings are errors)
         run: >
-          dotnet build Speechify.sln
+          dotnet build NextNotes.sln
           --no-restore
           --configuration Release
           --no-incremental
@@ -61,7 +61,7 @@ jobs:
 
       - name: Test
         run: >
-          dotnet test Speechify.sln
+          dotnet test NextNotes.sln
           --no-build
           --configuration Release
           --logger "trx;LogFileName=results.trx"
@@ -75,11 +75,11 @@ jobs:
       - name: Publish and smoke-test the real exe
         shell: pwsh
         run: |
-          dotnet publish src/Speechify.App/Speechify.App.csproj `
+          dotnet publish src/NextNotes.App/NextNotes.App.csproj `
             --configuration Release --runtime win-x64 --self-contained true `
             -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
             --output artifacts/publish
-          $exe = 'artifacts/publish/Speechify.App.exe'
+          $exe = 'artifacts/publish/NextNotes.App.exe'
           if (-not (Test-Path $exe)) { throw "Published exe not found at $exe" }
           $size = [math]::Round((Get-Item $exe).Length / 1MB, 1)
           Write-Host "published: $size MB"
@@ -91,8 +91,8 @@ jobs:
       - name: Upload the exe
         uses: actions/upload-artifact@v4
         with:
-          name: Speechify-win-x64
-          path: windows/artifacts/publish/Speechify.App.exe
+          name: NextNotes-win-x64
+          path: windows/artifacts/publish/NextNotes.App.exe
           if-no-files-found: error
           compression-level: 0
 

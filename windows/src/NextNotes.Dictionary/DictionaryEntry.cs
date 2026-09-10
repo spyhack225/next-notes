@@ -1,4 +1,4 @@
-namespace Speechify.Dictionary;
+namespace NextNotes.Dictionary;
 
 /// <summary>
 /// One thing the dictionary knows.

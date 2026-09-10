@@ -40,7 +40,7 @@
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
 
     <Company>Pivot Studio</Company>
-    <Product>Speechify</Product>
+    <Product>Next Notes</Product>
     <Copyright>Copyright © Pat Simmons</Copyright>
   </PropertyGroup>
 </Project>

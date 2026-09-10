@@ -20,6 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Speechify.App\Speechify.App.csproj" />
+    <ProjectReference Include="..\..\src\NextNotes.App\NextNotes.App.csproj" />
   </ItemGroup>
 </Project>

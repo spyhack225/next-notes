@@ -1,12 +1,12 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
-using Speechify.Abstractions;
+using NextNotes.Abstractions;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 
-namespace Speechify.Platform.Windows;
+namespace NextNotes.Platform.Windows;
 
 /// <summary>
 /// Microphone capture through WASAPI, delivering 16 kHz mono float.

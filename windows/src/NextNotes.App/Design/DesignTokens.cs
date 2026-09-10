@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Styling;
 
-namespace Speechify.App.Design;
+namespace NextNotes.App.Design;
 
 /// <summary>
 /// The design system, in one place.

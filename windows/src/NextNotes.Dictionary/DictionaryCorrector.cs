@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Speechify.Dictionary;
+namespace NextNotes.Dictionary;
 
 /// <summary>One correction that actually fired.</summary>
 public sealed record AppliedCorrection(string From, string To, int Count);

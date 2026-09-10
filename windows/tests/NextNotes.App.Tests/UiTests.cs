@@ -3,14 +3,14 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Themes.Fluent;
-using Speechify.App.Controls;
-using Speechify.App.Design;
-using Speechify.App.Views;
+using NextNotes.App.Controls;
+using NextNotes.App.Design;
+using NextNotes.App.Views;
 using Shouldly;
 
-[assembly: AvaloniaTestApplication(typeof(Speechify.AppTests.TestAppBuilder))]
+[assembly: AvaloniaTestApplication(typeof(NextNotes.AppTests.TestAppBuilder))]
 
-namespace Speechify.AppTests;
+namespace NextNotes.AppTests;
 
 /// <summary>Hosts the app headlessly so the UI can be exercised without a display.</summary>
 public static class TestAppBuilder

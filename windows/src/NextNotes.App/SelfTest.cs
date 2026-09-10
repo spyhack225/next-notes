@@ -1,9 +1,9 @@
 using System.Runtime.InteropServices;
-using Speechify.Core;
-using Speechify.Dictionary;
-using Speechify.Speech;
+using NextNotes.Core;
+using NextNotes.Dictionary;
+using NextNotes.Speech;
 
-namespace Speechify.App;
+namespace NextNotes.App;
 
 /// <summary>
 /// A headless check that the published binary actually works.
@@ -51,7 +51,7 @@ public static class SelfTest
     {
         // Exercises the source-generated JSON, which is the part most likely to have been
         // silently broken by trimming or single-file publishing.
-        var directory = Path.Combine(Path.GetTempPath(), $"Speechify-selftest-{Guid.NewGuid():N}");
+        var directory = Path.Combine(Path.GetTempPath(), $"NextNotes-selftest-{Guid.NewGuid():N}");
 
         try
         {
@@ -97,8 +97,8 @@ public static class SelfTest
     /// Verifies the platform layer resolves from inside the published bundle.
     /// </summary>
     /// <remarks>
-    /// This is the riskiest thing in the app's structure. <c>Speechify.App</c> targets plain
-    /// <c>net10.0</c> and loads <c>Speechify.Platform.Windows</c> by reflection, which is what
+    /// This is the riskiest thing in the app's structure. <c>NextNotes.App</c> targets plain
+    /// <c>net10.0</c> and loads <c>NextNotes.Platform.Windows</c> by reflection, which is what
     /// lets the UI be built and headless-tested on macOS. Reflection into a single-file
     /// bundle is exactly where that arrangement would fail — and it would fail at the moment
     /// the user first pressed the hotkey, not at startup. So it is checked here, on Windows,

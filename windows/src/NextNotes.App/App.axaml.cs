@@ -2,9 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Speechify.App.Views;
+using NextNotes.App.Views;
 
-namespace Speechify.App;
+namespace NextNotes.App;
 
 /// <summary>The application.</summary>
 public partial class App : Application
@@ -24,7 +24,7 @@ public partial class App : Application
             _main = new MainWindow(_composition);
             desktop.MainWindow = _main;
 
-            // Closing the window leaves Speechify running in the tray — the hotkey still works,
+            // Closing the window leaves Next Notes running in the tray — the hotkey still works,
             // which is the whole point of a dictation app. Quit is explicit, from the tray
             // menu or the app menu.
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
