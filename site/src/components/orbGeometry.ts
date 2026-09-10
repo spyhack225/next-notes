@@ -1,6 +1,6 @@
 /**
  * The Mac app's orb engine, ported line for line from
- * `Sources/Speechify/UI/Components/ThinkingOrbs/OrbGeometry.swift`.
+ * `Sources/NextNotes/UI/Components/ThinkingOrbs/OrbGeometry.swift`.
  *
  * Nine states, each a pure function of `(size, time)` returning finished draw
  * instructions — position, radius and opacity, already sorted back to front. The maths,
