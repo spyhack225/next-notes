@@ -457,9 +457,8 @@ own** — it serves the committed `docs/` verbatim. That is why the build output
 version control: it is not a convenience, it is the deployed artifact. It is also why
 `npm run deploy` finishes by polling <https://next-notes.com> rather than a Pages URL.
 `doctl apps list-deployments e2366c03-b11d-4c56-8d07-fdea08b21cdc` shows what shipped.
-GitHub Pages is still switched on for this repository and still serves an old copy at
-`spyhack225.github.io/speechify-site/` — the repository itself has not been renamed yet. That
-URL is not production and can be ignored or turned off.
+GitHub Pages served this site before the move and has been switched off, so there is exactly
+one live copy and one URL to reason about.
 
 ```bash
 cd site && npm install     # once
