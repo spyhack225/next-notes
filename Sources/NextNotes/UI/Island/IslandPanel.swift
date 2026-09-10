@@ -30,6 +30,11 @@ final class IslandPanel: NSPanel {
     private var hosting: NSHostingView<IslandView>?
     /// The last state written to the log, so a level change doesn't repeat it.
     private var lastLoggedKind: String?
+    /// True between `present()` and `dismiss()`, including during the fade. The HUD's
+    /// equivalent early-exit is `!isVisible || alphaValue < 1`; that is the wrong test
+    /// here, because a level tick during the fade sees `alphaValue < 1` and starts
+    /// again from 0 — which is the island going blank several times a second.
+    private var isPresented = false
     private var monitors: [Any] = []
     private var screenObserver: NSObjectProtocol?
 
@@ -43,7 +48,12 @@ final class IslandPanel: NSPanel {
         )
 
         isFloatingPanel = true
-        level = .statusBar
+        // One step above the menu bar. `.statusBar` is the same level as the menu itself,
+        // so a collapsed island hugging the notch is drawn *under* it and the badges in
+        // the flanks never appear — which is "the island is missing while I dictate" on a
+        // notched Mac. Notices expand below the menu and were visible anyway; dictation
+        // stays collapsed until the pointer arrives, so it has to sit on top.
+        level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         hidesOnDeactivate = false
         isMovableByWindowBackground = false
@@ -77,10 +87,15 @@ final class IslandPanel: NSPanel {
     /// Re-arms after every change to what the island is saying, exactly like the app
     /// delegate's own tracking loop. Re-registering has to happen after a hop: the callback
     /// runs while the change is still being applied.
+    ///
+    /// `cardIdentity` and `isHovered` are the two things that actually move the window.
+    /// Observing `kind` (or the computed `isExpanded`, which reads `kind`) would re-run
+    /// `apply()` on every audio buffer, because dictation puts the microphone level in
+    /// `kind`. The SwiftUI view still watches `kind` for the meter.
     private func observe() {
         withObservationTracking {
-            _ = state.kind
-            _ = state.isExpanded
+            _ = state.cardIdentity
+            _ = state.isHovered
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
@@ -141,6 +156,11 @@ final class IslandPanel: NSPanel {
             hosting.rootView = root
         } else {
             let view = NSHostingView(rootView: root)
+            // The panel is parked in the screen's top safe area on purpose: that inset
+            // *is* the notch, and the collapsed island lives inside it. A hosting view
+            // that respects the safe area would push the badges below the notch — or
+            // clip them away entirely when the card is collapsed to that same height.
+            view.safeAreaRegions = []
             view.frame = container.bounds
             view.autoresizingMask = [.width, .height]
             container.addSubview(view)
@@ -160,7 +180,8 @@ final class IslandPanel: NSPanel {
 
     private func present() {
         startWatchingPointer()
-        guard !isVisible || alphaValue < 1 else { return }
+        guard !isPresented else { return }
+        isPresented = true
         alphaValue = 0
         orderFrontRegardless()
         NSAnimationContext.runAnimationGroup { context in
@@ -172,6 +193,8 @@ final class IslandPanel: NSPanel {
     private func dismiss() {
         stopWatchingPointer()
         state.isHovered = false
+        guard isPresented else { return }
+        isPresented = false
         guard isVisible else { return }
         NSAnimationContext.runAnimationGroup { context in
             context.duration = DS.Motion.islandFade

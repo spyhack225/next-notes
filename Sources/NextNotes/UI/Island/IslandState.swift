@@ -118,6 +118,14 @@ final class IslandState {
     }
 
     private(set) var kind: Kind = .hidden
+    /// What the panel treats as "the island changed its mind".
+    ///
+    /// `kind` itself carries a microphone level and a transcript, so it changes several
+    /// times a second while dictating. The panel used to observe `kind` directly, and
+    /// every tick re-ran `present()` — which resets the window to alpha 0 whenever the
+    /// fade has not finished, so the island blinks blank for the whole hold. Views still
+    /// read `kind` for the meter; the panel watches this instead.
+    private(set) var cardIdentity: String = Kind.hidden.identity
     /// Set by the panel when the pointer is over the island.
     var isHovered = false {
         didSet { if isHovered != oldValue { rearmNotice() } }
@@ -262,6 +270,10 @@ final class IslandState {
     /// priority order without a microphone.
     func refresh() {
         let next = notice?.kind ?? liveKind()
+        let nextID = next.identity
+        if cardIdentity != nextID {
+            cardIdentity = nextID
+        }
         guard next != kind else { return }
         kind = next
     }

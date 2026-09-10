@@ -24,7 +24,7 @@ import Foundation
 enum OrbGeometry {
 
     /// What an agent is doing, in the orb's vocabulary.
-    enum State: String, CaseIterable, Sendable {
+    enum State: String, CaseIterable, Sendable, Equatable {
         /// A waveform rolls through the rings.
         case listening
         /// Particles run tilted orbits.
