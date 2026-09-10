@@ -12,7 +12,6 @@ struct PermissionsChecklist: View {
     @State private var hasMicrophone = false
     @State private var hasCalendar = false
     @State private var hasNotifications = false
-    @State private var hasSystemAudio = false
     @State private var isGrantingAll = false
 
     var body: some View {
@@ -49,14 +48,16 @@ struct PermissionsChecklist: View {
                 detail: "Hears the other side of a meeting. Without it a recording is only "
                     + "your half, in silence.",
                 systemImage: "speaker.wave.2",
-                isGranted: hasSystemAudio,
-                actionTitle: "Grant…"
+                // `nil`, not false. This grant has no query API — macOS decides it on the
+                // first tap — so claiming either answer would be inventing one. The row says
+                // "ask", and `--selftest-systemaudio` is where a real answer comes from.
+                isGranted: nil,
+                actionTitle: "Ask…"
             ) {
-                // Prompts the first time and returns the standing answer afterwards, exactly
-                // like the microphone. macOS asks for this one under "Screen & System Audio
-                // Recording" — the same grant screen capture uses.
-                if !Permissions.requestSystemAudio() { Permissions.openSystemAudioSettings() }
-                refresh()
+                // Raises the prompt by opening a tap, then shows the pane, because a grant
+                // already decided will not prompt again and the pane is the only way back.
+                Permissions.requestSystemAudio()
+                Permissions.openSystemAudioSettings()
             }
 
             PermissionRow(
@@ -145,7 +146,7 @@ struct PermissionsChecklist: View {
                     .help(hasEveryPromptableGrant
                           ? "Everything macOS can prompt for is already granted"
                           : "Ask for the microphone, system audio, calendar and notifications "
-                            + "one after another")
+                            + "one after another, then opens the system audio pane")
             }
         }
         // Probed once rather than on the poll below: every answer here is a bit the kernel
@@ -171,10 +172,11 @@ struct PermissionsChecklist: View {
         }
     }
 
-    /// Everything macOS will put a dialog up for. Accessibility is excluded because it has
-    /// no programmatic request, so "grant all" can never finish it.
+    /// Everything macOS will put a dialog up for and then let us read back. Accessibility is
+    /// excluded because it has no programmatic request; system audio because it has no way to
+    /// be read, so it can be asked for but never ticked off.
     private var hasEveryPromptableGrant: Bool {
-        hasMicrophone && hasSystemAudio && hasCalendar && hasNotifications
+        hasMicrophone && hasCalendar && hasNotifications
     }
 
     private func grantAll() {
@@ -183,9 +185,10 @@ struct PermissionsChecklist: View {
             if !hasMicrophone, await Permissions.requestMicrophone() == false {
                 Permissions.openMicrophoneSettings()
             }
-            if !hasSystemAudio, Permissions.requestSystemAudio() == false {
-                Permissions.openSystemAudioSettings()
-            }
+            // No `if` guard, because there is nothing to guard on: this grant cannot be
+            // read. Opening a tap is harmless when it is already granted — it prompts only
+            // when macOS has not yet decided.
+            Permissions.requestSystemAudio()
             if !hasCalendar, await Permissions.requestCalendar() == false {
                 Permissions.openCalendarSettings()
             }
@@ -201,7 +204,6 @@ struct PermissionsChecklist: View {
         hasAccessibility = Permissions.hasAccessibility
         hasMicrophone = Permissions.hasMicrophone
         hasCalendar = Permissions.hasCalendar
-        hasSystemAudio = Permissions.hasSystemAudio
         // The only row that can't be answered synchronously — the notification center's
         // settings are fetched, not read off a bit.
         Task { hasNotifications = await Notifications.shared.isAuthorized() }

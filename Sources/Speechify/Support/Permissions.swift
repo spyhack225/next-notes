@@ -1,6 +1,5 @@
 import AVFoundation
 import AppKit
-import CoreGraphics
 import ApplicationServices
 import EventKit
 import Foundation
@@ -11,9 +10,10 @@ import Foundation
 /// - **Accessibility** — the `CGEventTap` hotkey and the AX text insert. No programmatic
 ///   request exists; the OS shows a prompt and the user toggles it in System Settings.
 /// - **System audio** — the Core Audio process tap that hears the other side of a meeting.
-///   macOS folds audio-only taps into the same grant as screen recording, "Screen & System
-///   Audio Recording", so the CoreGraphics screen-capture calls are what answers for it and
-///   what prompts for it. That coupling is Apple's, not ours.
+///   It lives in the "Screen & System Audio Recording" pane but in that pane's *second*
+///   list, "System Audio Recording Only", which is a different grant from screen recording
+///   and has no query API. macOS decides on first use of a tap, so it cannot be read, only
+///   provoked and then measured.
 /// - **Calendar** — EventKit, for meeting detection. Google Calendar is OAuth, not TCC.
 ///
 /// TCC keys every grant on the code signature, so re-signing the app resets them.
@@ -31,27 +31,40 @@ enum Permissions {
         EKEventStore.authorizationStatus(for: .event) == .fullAccess
     }
 
-    /// Whether the process tap will carry real audio rather than silence.
+    /// Nudges macOS into asking for system audio, by doing the thing it asks about.
     ///
-    /// There is no query API for the tap itself, which is why this used to be unanswerable
-    /// and the checklist row simply had no state. It is answerable through the front door
-    /// instead: macOS gates audio-only taps on "Screen & System Audio Recording", the same
-    /// grant screen capture uses, so its preflight is the tap's answer too.
+    /// There is no preflight and no request API for an audio-only process tap. macOS decides
+    /// on first use of a tap, so the only way to raise the prompt is to open one and throw it
+    /// away — which is what this does.
     ///
-    /// The ground truth is still the tap. Without the grant a tap succeeds, delivers frames,
-    /// and every sample is zero — measured on 2026-09-09, which is why `--selftest-systemaudio`
-    /// reports the zeroed-frame case in so many words rather than trusting this bit.
-    static var hasSystemAudio: Bool {
-        CGPreflightScreenCaptureAccess()
-    }
+    /// **Do not reach for `CGPreflightScreenCaptureAccess` here.** It looks like the answer,
+    /// because the pane is called "Screen & System Audio Recording" and the tap's own error
+    /// points at it. It is not: that pane holds two separate lists, and an app granted
+    /// "System Audio Recording Only" captures audio perfectly while screen-capture preflight
+    /// keeps returning false. Measured on 2026-09-09 — a tap returning `rms 0.17489,
+    /// peak 0.75562` in the same process where the preflight said no.
+    ///
+    /// Nothing is returned because nothing truthful can be. A tap without the grant still
+    /// succeeds and still delivers frames; it just zeroes every sample, so "did it work" can
+    /// only be answered while something is playing. `--selftest-systemaudio` is that answer.
+    static func requestSystemAudio() {
+        let capture = SystemAudioCapture()
+        guard let format = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: 16_000,
+            channels: 1,
+            interleaved: false
+        ) else { return }
 
-    /// Asks for it, so the checklist can prompt inline like every other row.
-    ///
-    /// Prompts once per install; afterwards it returns the standing answer and the Settings
-    /// pane is the only way to change it, so a refusal sends the user there.
-    @discardableResult
-    static func requestSystemAudio() -> Bool {
-        CGRequestScreenCaptureAccess()
+        do {
+            try capture.start(outputFormat: format, onBuffer: { _ in }, onLevel: { _ in })
+        } catch {
+            Log.systemAudio.error("tap probe failed: \(error.localizedDescription, privacy: .public)")
+            return
+        }
+        // Long enough for the tap to exist and the prompt to be raised, short enough that
+        // nothing downstream has to care that it happened.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { capture.stop() }
     }
 
     /// Shows the system Accessibility prompt if the app isn't yet trusted.

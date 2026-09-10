@@ -90,6 +90,38 @@ cp shared/dictionary-test-vectors.json Tests/SpeechifyDictionaryTests/
 
 ## Things that look like bugs and are not
 
+**A self-test run from a shell can be denied a grant the app plainly has.** TCC grants the
+*responsible* process, and for a binary launched straight from a terminal that is the shell,
+not Speechify. `--selftest-systemaudio` reported `SYSTEM_AUDIO_SILENT` from a shell while the
+same build, same machine, same second, returned `rms 0.17489, peak 0.75562` when launched
+through LaunchServices. Before touching any privacy setting, re-run it as the app:
+
+```
+open -n -a Speechify --args --selftest-systemaudio --selftest-out /tmp/out.txt
+```
+
+`--selftest-out` exists for exactly this: a LaunchServices launch has no stdout.
+
+**There is no way to read the system-audio grant, and `CGPreflightScreenCaptureAccess` is not
+it.** It is tempting — the pane is called "Screen & System Audio Recording" and the tap's own
+error points there. But that pane holds *two* lists, and an app granted "System Audio
+Recording Only" captures audio perfectly while the screen-capture preflight keeps answering
+false. Measured both ways in one process. `Permissions.requestSystemAudio()` opens a throwaway
+tap to provoke the prompt; nothing reads the answer back, because nothing can.
+
+**A self-test cannot fail by hanging.** It runs as a task inside a SwiftUI app; if it never
+finishes it never terminates, and the process falls through into the AppKit run loop looking
+exactly like a running app. `--selftest-cleanup qwen` sat that way for three hours on 2 seconds
+of CPU. There is now a watchdog — `SelfTest.timeout`, 300 s, `--selftest-timeout` to override —
+which prints `SELFTEST_TIMEOUT` and exits non-zero.
+
+**`LlamaBackend`'s cleanup gate is one-directional, and closing the cycle deadlocks it.**
+`NotesModelRuntime.loadIfNeeded` calls `awaitCleanupIdle()`, so notes wait for dictation
+cleanup. A cleanup formatter that calls `beginCleanup()` and *then* asks that same runtime to
+complete waits forever: the load waits on a count only `endCleanup()` clears, and `endCleanup()`
+runs after the load returns. `QwenCleanupFormatter` therefore does not touch the gate — it is
+the notes model, behind the same actor, which already serialises it.
+
 **Transcript text in the Dictation list cannot be selected with the mouse.** Deliberate. The
 list is a multi-select `List`, and selectable text competes with row selection for the same
 mouse-down: with `.textSelection(.enabled)` on the transcript, clicking the body of a row

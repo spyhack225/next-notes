@@ -52,11 +52,52 @@ struct SpeechifyApp: App {
 /// test then prints its result and hangs forever instead of exiting.
 enum SelfTest {
     /// The flag the process was launched with, if any.
+    ///
+    /// `--selftest-out` is excluded: it is a destination, not a test, and it can precede the
+    /// test's own flag on the command line.
     static let requested = CommandLine.arguments.dropFirst().first {
-        $0.hasPrefix("--selftest")
+        $0.hasPrefix("--selftest") && $0 != outputFlag
     }
 
     static var isRunning: Bool { requested != nil }
+
+    static let outputFlag = "--selftest-out"
+
+    /// How long a self-test may run before it is declared hung.
+    ///
+    /// A self-test that never finishes never fails, because the process falls through into
+    /// the AppKit run loop and waits for events that are not coming. `--selftest-cleanup qwen`
+    /// did exactly that on 2026-09-09: it printed its header and then sat for three hours on
+    /// 2 seconds of CPU, holding 29 MB against a 2.74 GB model it had not loaded. Nothing
+    /// reported it, because from the outside it looked like a running app.
+    ///
+    /// Generous on purpose. The slowest honest test loads a multi-gigabyte model from cold.
+    /// Override with `--selftest-timeout <seconds>`.
+    static let timeout: Double = {
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: "--selftest-timeout"),
+              index + 1 < arguments.count,
+              let seconds = Double(arguments[index + 1]), seconds > 0
+        else { return 300 }
+        return seconds
+    }()
+
+    /// Where to mirror output, for a run that has no stdout to write to.
+    ///
+    /// That is not a hypothetical: TCC answers can depend on which process it holds
+    /// responsible, and the only way to run a self-test with the app itself responsible —
+    /// rather than the shell that spawned it — is through LaunchServices:
+    ///
+    ///     open -n -a Speechify --args --selftest-systemaudio --selftest-out /tmp/out.txt
+    ///
+    /// which discards stdout entirely.
+    static let outputPath: String? = {
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: outputFlag), index + 1 < arguments.count else {
+            return nil
+        }
+        return arguments[index + 1]
+    }()
 }
 
 @MainActor
@@ -138,6 +179,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// They make the two large local runtimes testable after installation and in support.
     private func runRequestedSelfTest() -> Bool {
         guard SelfTest.isRunning else { return false }
+        startSelfTestWatchdog()
         let arguments = Set(CommandLine.arguments.dropFirst())
         if arguments.contains("--selftest-s1") {
             Task { @MainActor in
@@ -473,8 +515,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // all is a machine that genuinely wasn't playing anything.
                 let cause = frames > 0
                     ? "frames arrived but every sample is zero, which is what a tap without "
-                        + "the grant does — allow Speechify under Privacy & Security ▸ "
-                        + "Screen & System Audio Recording"
+                        + "the grant does. Before changing any setting, check how this was "
+                        + "launched: TCC grants the *responsible* process, and a binary run "
+                        + "straight from a shell is the shell's responsibility, not "
+                        + "Speechify's. Re-run it through LaunchServices — "
+                        + "open -n -a Speechify --args --selftest-systemaudio --selftest-out "
+                        + "/tmp/out.txt — and only if that is silent too, allow Speechify "
+                        + "under Privacy & Security ▸ Screen & System Audio Recording"
                     : "no frames arrived at all, so nothing was playing"
                 writeSelfTest("SYSTEM_AUDIO_SILENT: \(measurements) — \(cause).")
             } else {
@@ -1058,14 +1105,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             // What the arming half would do with the machine as it stands. The microphone
             // line covers your own half of a call. The far end rides on the system-audio
-            // tap, which has no query API of its own but is gated on "Screen & System Audio
-            // Recording" — so the screen-capture preflight answers for it. `--selftest-systemaudio`
-            // remains the ground truth, because a tap without the grant still delivers
-            // frames and simply zeroes every sample.
+            // tap, which has no query API at all, so it is reported as unreadable rather
+            // than guessed at — `--selftest-systemaudio` is the only thing that can answer,
+            // and only while something is playing.
             let readiness = CallPolicy.RecordingReadiness(hasMicrophone: Permissions.hasMicrophone)
             writeSelfTest("""
                   microphone grant: \(readiness.hasMicrophone ? "yes" : "no") — \
-                system audio grant: \(Permissions.hasSystemAudio ? "yes" : "no")
+                system audio: not readable, run --selftest-systemaudio with audio playing
                 """)
             writeSelfTest("""
                   settings: detection \
@@ -2018,8 +2064,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return arguments[index + 1]
     }
 
+    /// Fails a self-test that stops making progress, instead of letting it hang forever.
+    ///
+    /// Dies with the process, so a test that finishes normally never sees it. Exits non-zero
+    /// rather than calling `NSApp.terminate`, because a timeout is a failure and a script
+    /// that runs these needs to be able to tell.
+    private func startSelfTestWatchdog() {
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(SelfTest.timeout))
+            writeSelfTest("""
+                SELFTEST_TIMEOUT: \(SelfTest.requested ?? "unknown") did not finish within \
+                \(Int(SelfTest.timeout))s — it is hung, not slow
+                """)
+            exit(1)
+        }
+    }
+
+    /// Self-test output goes to stdout and to the unified log.
+    ///
+    /// The log copy is not redundant. A self-test launched through LaunchServices — which is
+    /// the only way to run one with the app itself as TCC's responsible process, rather than
+    /// the shell that spawned it — has nowhere for stdout to go, and TCC answers differ
+    /// between those two launches. `log show --predicate 'subsystem == "ai.pivotstudio.speechify"'`
+    /// is how you read one back.
     private func writeSelfTest(_ line: String) {
-        FileHandle.standardOutput.write(Data("\(line)\n".utf8))
+        let text = "\(line)\n"
+        FileHandle.standardOutput.write(Data(text.utf8))
+        Log.app.info("selftest · \(line, privacy: .public)")
+        guard let path = SelfTest.outputPath else { return }
+        if let handle = FileHandle(forWritingAtPath: path) {
+            handle.seekToEndOfFile()
+            handle.write(Data(text.utf8))
+            try? handle.close()
+        } else {
+            try? text.write(toFile: path, atomically: true, encoding: .utf8)
+        }
     }
 
     /// `speechify://show` — a scriptable way to raise the window on the comparison
