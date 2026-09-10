@@ -42,7 +42,13 @@ struct DictionaryPanel: View {
                     }
                 }
                 .listStyle(.inset)
-                .alternatingRowBackgrounds()
+                // No alternating backgrounds here, unlike the Dictation list. AppKit paints
+                // those bands over the whole view, not just the rows that exist, so a
+                // dictionary holding five entries in a tall window shows five entries and
+                // twenty empty stripes that read as broken placeholder rows. Dictation earns
+                // them because its rows are multi-line paragraphs that need separating and
+                // its list is usually long; a one-line term with a checkbox and a chip does
+                // not need help being told apart from its neighbour.
             }
 
             Divider()
