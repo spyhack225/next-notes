@@ -295,6 +295,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 formatsLists: true,
                 context: .general
             )
+            // What a real hold would use, printed before any fixture runs. The eval below
+            // exercises engines by name; this line is the only thing that says which of them
+            // the app is actually configured to reach for.
+            let live = Settings.shared
+            writeSelfTest("""
+                  live dictation config: cleanup \(live.cleanupEnabled ? "on" : "off"), \
+                engine \(live.cleanupEngine.displayName), \
+                grammar \(live.cleanupEngine == .s1Mini
+                    ? "unavailable on this engine"
+                    : (live.cleanupFixesGrammar ? "on" : "off"))
+                """)
+
             let requested: [String]
             switch engine {
             case "all": requested = ["guard", "rules", "apple", "apple-grammar", "s1", "qwen"]

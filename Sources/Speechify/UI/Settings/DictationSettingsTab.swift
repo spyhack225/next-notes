@@ -69,6 +69,14 @@ struct DictationSettingsTab: View {
                             Text(context.displayName).tag(context)
                         }
                     }
+                    Toggle("Fix grammar, not just punctuation", isOn: $settings.cleanupFixesGrammar)
+                        .disabled(settings.cleanupEngine == .s1Mini)
+                        .help(settings.cleanupEngine == .s1Mini
+                              ? "S1-mini restores punctuation and capitalisation only. Switch "
+                                + "the cleanup model to Apple to repair grammar."
+                              : "Repairs agreement, tense and word order — \"there is some "
+                                + "lags\" becomes \"there are some lags\". Runs on device.")
+
                     Toggle("Format spoken lists", isOn: $settings.cleanupFormatsLists)
                 }
             } header: {
