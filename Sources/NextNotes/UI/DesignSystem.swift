@@ -219,22 +219,19 @@ enum DS {
         /// narrow enough not to read as a divider.
         static let progressWidth: CGFloat = 220
 
-        /// Settings is a sidebar of panes plus a grouped form. Ten toolbar tabs will not
-        /// fit in `settingsWidth`; they all fit in a spine this wide.
-        static let settingsSidebarMin: CGFloat = 168
-        static let settingsSidebarIdeal: CGFloat = 196
-        static let settingsSidebarMax: CGFloat = 240
-        /// The form column, not the window. The window is `settingsWindowWidth`.
+        /// The system Settings sidebar's share of the window. We do not draw this
+        /// column; we size around it so a compact inspector frame cannot clip the form.
+        static let settingsSidebarWidth: CGFloat = 240
+        /// The grouped form column, not the window.
         static let settingsWidth: CGFloat = 560
-        static let settingsWindowWidth: CGFloat = settingsSidebarIdeal + settingsWidth
-        /// Tall enough for every sidebar row (General through Permissions) plus the
-        /// Formatting pane's heading. Shorter than this and the HStack clips the first
-        /// rows off the top — the screenshot that looked like Agent was selected over a
-        /// Formatting form.
-        static let settingsMinHeight: CGFloat = 560
-        /// One sidebar row. Used to prove the window can actually show every pane, not
-        /// just that the list exists in the view tree.
-        static let settingsSidebarRow: CGFloat = 28
+        /// Sidebar plus form. Narrower than this is the cropped strip: ten names, no pane.
+        static let settingsWindowMinWidth: CGFloat = settingsSidebarWidth + settingsWidth
+        /// First-open size. Same as the min so a persisted inspector frame cannot return
+        /// narrower than the form.
+        static let settingsWindowWidth: CGFloat = settingsWindowMinWidth
+        /// Tall enough for the sidebar list and a grouped form heading.
+        static let settingsWindowMinHeight: CGFloat = 560
+        static let settingsMinHeight: CGFloat = settingsWindowMinHeight
         /// An app's own icon, beside its name in the formatting picker.
         static let appIcon: CGFloat = 20
         /// Text fields in a grouped `Form` stretch to the full row otherwise, which reads
@@ -244,7 +241,7 @@ enum DS {
         /// checkbox and the gap that keeps five of them from reading as one control.
         static let formatCapabilityColumn: CGFloat = 34
         /// The output-formatting app list scrolls inside this height rather than growing
-        /// the pane. Unbounded height is what clipped the Settings sidebar.
+        /// the pane.
         static let formatListHeight: CGFloat = 240
         /// The Google calendar checklist scrolls past this rather than pushing the rest of
         /// the tab off the window — some accounts subscribe to dozens.

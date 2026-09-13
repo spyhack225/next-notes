@@ -323,8 +323,8 @@ Sources/NextNotes/
 │   ├── Agent/                      AgentView — conversation, tasks, audit history
 │   ├── Onboarding/                 PermissionsChecklist, OnboardingSheet
 │   └── Settings/                   SettingsWindow + one Form per tab: General, Dictation,
-│                                   Meetings, Calendar, Workspace, Agent, Integrations,
-│                                   Models, Permissions
+│                                   Formatting, Meetings, Calendar, Workspace, Agent,
+│                                   Integrations, Models, Permissions
 └── Support/
     ├── Settings.swift, LocalModelStore.swift, Permissions.swift, Log.swift
     ├── ModelDownloader.swift       one ModelSpec download path with progress + SHA-256
