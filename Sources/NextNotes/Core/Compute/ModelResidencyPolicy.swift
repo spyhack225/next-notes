@@ -165,7 +165,8 @@ extension ModelResidencyPolicy {
     /// 1. A background job yields when `realtimeASR` is queued.
     /// 2. Pressure unload order is notes → diarization, and never wake/ASR
     ///    while those sessions are marked needed.
-    static func runSelfTest() async {
+    @discardableResult
+    static func runSelfTest() async -> Bool {
         var failures: [String] = []
 
         // 1. Scheduler yield (same contract as ComputeScheduler.runSelfTest).
@@ -235,6 +236,7 @@ extension ModelResidencyPolicy {
             print("RESIDENCY_WRONG: \(failure)")
         }
         print(failures.isEmpty ? "RESIDENCY_OK" : "RESIDENCY_FAILED")
+        return failures.isEmpty
     }
 }
 

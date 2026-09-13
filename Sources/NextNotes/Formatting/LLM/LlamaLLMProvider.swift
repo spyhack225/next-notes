@@ -28,4 +28,16 @@ struct LlamaLLMProvider: LLMProvider {
             maxTokens: maxTokens
         )
     }
+
+    func stream(
+        system: String,
+        user: String,
+        maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        await NotesModelRuntime.shared.stream(
+            system: system,
+            user: user,
+            maxTokens: maxTokens
+        )
+    }
 }

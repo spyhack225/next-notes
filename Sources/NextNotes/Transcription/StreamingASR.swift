@@ -6,7 +6,14 @@ import Foundation
 enum StreamingASR {
     /// How often Parakeet re-transcribes the held buffer while the key is down.
     /// Short enough for HUD live text; long enough that CoreML is not thrashed.
-    static let dictationPartialIntervalSeconds: TimeInterval = 2.0
+    /// First partials should appear after roughly one second of speech. The engine still
+    /// requires a small minimum audio span, but two seconds made the HUD feel batch based.
+    static let dictationPartialIntervalSeconds: TimeInterval = 1.0
+
+    /// At most one partial can wait behind the current CoreML pass. A newer snapshot replaces
+    /// the older one because it already contains all of its audio; retaining every cadence
+    /// point creates a stale, unbounded tail when inference falls behind.
+    static let maxQueuedPartials = 1
 
     /// Leftover audio after the last partial below which `finish()` reuses that
     /// partial instead of a full cold pass.
@@ -62,9 +69,17 @@ enum StreamingASR {
         if ChunkedTranscriber.WindowConfig.legacy.minWindowSeconds < 30 {
             failures.append("legacy WindowConfig should preserve the 30 s floor for comparison")
         }
-        if dictationPartialIntervalSeconds < 1.0 || dictationPartialIntervalSeconds > 5.0 {
+        if dictationPartialIntervalSeconds < 0.5 || dictationPartialIntervalSeconds > 5.0 {
             failures.append(
                 "dictation partial interval \(dictationPartialIntervalSeconds)s is not a near-stream cadence"
+            )
+        }
+        if maxQueuedPartials != 1 {
+            failures.append("partial backlog is not bounded to one latest snapshot")
+        }
+        if ChunkedTranscriber.maxPendingWindows < 1 || ChunkedTranscriber.maxPendingWindows > 16 {
+            failures.append(
+                "meeting transcription backlog limit is unreasonable"
             )
         }
         if !ParakeetEngine.emitsPartialsWhileHeld {

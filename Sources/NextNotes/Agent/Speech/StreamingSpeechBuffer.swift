@@ -4,11 +4,9 @@ import Foundation
 /// in flight.
 ///
 /// Producers with a real token stream should call `append` as chunks arrive
-/// and `finalize` when the reply is complete. Today's agent paths
-/// (`RealtimeAgent.finish`, tool replies, Foundation Models `respond`) hand
-/// back a finished string with no token stream — those go through
-/// `RealtimeAudioSession.speak`, which feeds the full text into this buffer
-/// in one append + finalize so the API is live and ready for a stream later.
+/// and `finalize` when the reply is complete. Explicit Qwen answers stream here;
+/// one-shot tool and Foundation Models replies go through `RealtimeAudioSession.speak`,
+/// which feeds the full text into this buffer in one append + finalize.
 ///
 /// Silence rules use the accumulating buffer: if `spokenForm` is empty
 /// (URL, tool name, code, long listing), nothing is enqueued. Incomplete
@@ -39,6 +37,17 @@ final class StreamingSpeechBuffer {
     /// `AgentSpeechPolicy.spokenClauses`) are enqueued immediately.
     func append(_ chunk: String) {
         guard !cancelled, !chunk.isEmpty else { return }
+        let next = buffer + chunk
+        if AgentSpeechPolicy.isUnsafeForStreaming(next) {
+            buffer = next
+            cancelled = true
+            flushedCount = 0
+            didEnqueue = false
+            // This is deliberately stronger than clearing pending clauses: if an
+            // unsafe token follows a spoken clause, stop the current utterance too.
+            synthesizer.stop()
+            return
+        }
         buffer += chunk
         flush(finalize: false)
     }
@@ -46,6 +55,11 @@ final class StreamingSpeechBuffer {
     /// End of reply — speak any trailing incomplete clause, then stop accepting.
     func finalize() {
         guard !cancelled else { return }
+        guard !AgentSpeechPolicy.isUnsafeForStreaming(buffer) else {
+            cancelled = true
+            synthesizer.stop()
+            return
+        }
         flush(finalize: true)
     }
 

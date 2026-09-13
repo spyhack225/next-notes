@@ -55,7 +55,9 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-settings  --selftest-metrics    --selftest-cleanup-router
 --selftest-meeting-live                    --selftest-tts
 --selftest-tts-stream
+--selftest-local-model-stream
 --selftest-toolloop  --selftest-acp-confirm --selftest-scheduler
+--selftest-toolloop-production
 --selftest-capture   --selftest-meeting-reconcile
 --selftest-meeting-reconcile-llm
 --selftest-stream    --selftest-transcript-bus

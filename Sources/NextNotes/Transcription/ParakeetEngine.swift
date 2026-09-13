@@ -20,10 +20,14 @@ actor ParakeetEngine: TranscriptionEngine {
 
     /// Sample count at which the last provisional was fired.
     private var lastPartialAt = 0
-    /// Most recent provisional text — reused on release when leftover audio is short.
+    /// Most recent completed provisional text — reused on release when leftover audio is short.
     private var lastPartialText = ""
-    /// Serialises provisional passes so two CoreML calls never overlap inside one hold.
-    private var partialTail: Task<Void, Never>?
+    /// Sample position represented by `lastPartialText`.
+    private var lastCompletedPartialAt = 0
+    /// One active provisional pass. A second pass never starts until this one completes.
+    private var partialTask: Task<Void, Never>?
+    /// The newest snapshot waiting behind the active pass. Older snapshots are discarded.
+    private var queuedPartial: (samples: [Float], at: Int)?
 
     /// `ComputeScheduler` lane held for this engine instance from successful
     /// `start()` through `finish()`. Notes take `.background` and checkpoint;
@@ -57,7 +61,12 @@ actor ParakeetEngine: TranscriptionEngine {
         samples.removeAll(keepingCapacity: true)
         lastPartialAt = 0
         lastPartialText = ""
-        partialTail = nil
+        lastCompletedPartialAt = 0
+        partialTask?.cancel()
+        let oldPartial = partialTask
+        partialTask = nil
+        queuedPartial = nil
+        await oldPartial?.value
         // A previous start that never reached finish must not leave a stale id;
         // only this instance's lane is released below on failure.
         await releaseSchedulerLane()
@@ -123,17 +132,26 @@ actor ParakeetEngine: TranscriptionEngine {
         let jobID = schedulerJobID
         schedulerJobID = nil
 
+        let activePartial = partialTask
+        partialTask?.cancel()
+        partialTask = nil
+        queuedPartial = nil
+
+        // Do not begin the final model pass while a provisional pass still owns the manager.
+        // FluidAudio cancellation is cooperative, so the controller's finish deadline is
+        // the upper bound on this wait rather than spawning two recognizers concurrently.
+        await activePartial?.value
+
         defer {
             continuation?.finish()
             continuation = nil
             samples.removeAll(keepingCapacity: true)
             lastPartialAt = 0
             lastPartialText = ""
-            partialTail = nil
+            lastCompletedPartialAt = 0
+            partialTask = nil
+            queuedPartial = nil
         }
-
-        // Let any in-flight provisional land before deciding whether to reuse it.
-        await partialTail?.value
 
         guard samples.count >= 1_600 else {
             Log.speech.info("Parakeet: skipped — only \(self.samples.count) samples captured")
@@ -141,10 +159,10 @@ actor ParakeetEngine: TranscriptionEngine {
             return
         }
 
-        let leftover = samples.count - lastPartialAt
+        let leftover = samples.count - lastCompletedPartialAt
         let reusable = !lastPartialText.isEmpty
             && leftover < reuseBelowSamples
-            && lastPartialAt >= 1_600
+            && lastCompletedPartialAt >= 1_600
 
         do {
             let text: String
@@ -195,7 +213,7 @@ actor ParakeetEngine: TranscriptionEngine {
     // MARK: - Partials
 
     /// Re-transcribes the buffer so far when enough new audio has arrived.
-    /// Model work runs off the feed path's critical section via `partialTail`;
+    /// Model work runs off the feed path's critical section via one bounded task;
     /// the audio thread only ever handed us a copied buffer.
     private func maybeEmitPartial() async {
         guard samples.count >= 1_600 else { return }
@@ -205,21 +223,45 @@ actor ParakeetEngine: TranscriptionEngine {
         let at = samples.count
         lastPartialAt = at
 
-        let previous = partialTail
-        partialTail = Task {
-            await previous?.value
-            await self.runPartial(snapshot: snapshot)
+        if partialTask != nil {
+            // Keep only the newest complete view of the audio. Older snapshots can never
+            // improve the transcript and used to form an unbounded chain when inference lagged.
+            queuedPartial = (snapshot, at)
+            return
+        }
+        startPartial(snapshot: snapshot, at: at, generation: recognitionGeneration)
+    }
+
+    private func startPartial(snapshot: [Float], at: Int, generation: Int) {
+        partialTask = Task { [weak self] in
+            await self?.runPartial(snapshot: snapshot, at: at, generation: generation)
+            await self?.partialDidFinish(generation: generation)
         }
     }
 
-    private func runPartial(snapshot: [Float]) async {
+    private func partialDidFinish(generation: Int) {
+        guard generation == recognitionGeneration else {
+            partialTask = nil
+            queuedPartial = nil
+            return
+        }
+        partialTask = nil
+        guard let queued = queuedPartial else { return }
+        queuedPartial = nil
+        startPartial(snapshot: queued.samples, at: queued.at, generation: generation)
+    }
+
+    private func runPartial(snapshot: [Float], at: Int, generation: Int) async {
+        guard generation == recognitionGeneration, !Task.isCancelled else { return }
         do {
             let manager = try await ParakeetModels.shared.manager()
             var decoderState = try TdtDecoderState()
             let result = try await manager.transcribe(snapshot, decoderState: &decoderState)
             let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard generation == recognitionGeneration, !Task.isCancelled else { return }
             guard !text.isEmpty else { return }
             lastPartialText = text
+            lastCompletedPartialAt = at
             continuation?.yield(TranscriptionChunk(text: text, isFinal: false))
         } catch {
             // A failed partial must not kill the hold — finish() still has the buffer.

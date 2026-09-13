@@ -5,6 +5,8 @@ import Foundation
 enum AgentTurnIntent: Equatable {
     case capabilities
     case reply(String)
+    case localModel(prompt: String)
+    case toolLoop(prompt: String)
     case calendar(date: String)
     case mail(query: String)
     case files(query: String)
@@ -16,6 +18,8 @@ enum AgentTurnIntent: Equatable {
     var progressTitle: String {
         switch self {
         case .capabilities, .reply, .unknown: ""
+        case .localModel: "Answering locally…"
+        case .toolLoop: "Working with tools…"
         case .calendar: "Checking the calendar…"
         case .mail: "Checking email…"
         case .files: "Searching files…"
@@ -34,6 +38,14 @@ enum AgentTurnIntent: Equatable {
     /// task when the user named a harness — otherwise we say so, we do not vanish.
     @MainActor
     static func resolve(_ text: String, choice: AgentHarnessChoice) -> AgentTurnIntent {
+        if let prompt = localModelPrompt(for: text) { return .localModel(prompt: prompt) }
+        if localModelPrefixOnly(for: text) {
+            return .reply("What would you like me to ask the local model?")
+        }
+        if let prompt = toolLoopPrompt(for: text) { return .toolLoop(prompt: prompt) }
+        if toolLoopPrefixOnly(for: text) {
+            return .reply("What would you like me to do with tools?")
+        }
         if RealtimeAgent.capabilitiesReply(for: text) != nil { return .capabilities }
 
         if let meeting = meetingReply(for: text) { return .reply(meeting) }
@@ -57,6 +69,72 @@ enum AgentTurnIntent: Equatable {
         if choice.source == .explicit && choice.id != .local { return .delegate }
 
         return .unknown
+    }
+
+    /// Model-led tool use is deliberately opt in. A free-form utterance must never
+    /// turn into a model generated click, file edit, or Workspace action by accident.
+    static func toolLoopPrompt(for text: String) -> String? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lowered = trimmed.lowercased()
+        let prefixes = [
+            "use tools to", "use the tools to", "use tools and", "use the tools and",
+            "plan this with tools", "ask the agent to use tools",
+        ]
+        guard let prefix = prefixes.first(where: {
+            guard lowered.hasPrefix($0) else { return false }
+            let remainder = lowered.dropFirst($0.count)
+            return remainder.isEmpty || remainder.first?.isWhitespace == true
+                || remainder.first == ":" || remainder.first == ","
+        }) else {
+            return nil
+        }
+        let prompt = trimmed.dropFirst(prefix.count)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: ":,"))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return prompt.isEmpty ? nil : prompt
+    }
+
+    private static func toolLoopPrefixOnly(for text: String) -> Bool {
+        let lowered = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return [
+            "use tools to", "use the tools to", "use tools and", "use the tools and",
+            "plan this with tools", "ask the agent to use tools",
+        ].contains(lowered)
+    }
+
+    /// An explicit opt-in is required because model startup can take many seconds.
+    /// Unknown speech and deterministic tool requests must never fall through to this.
+    static func localModelPrompt(for text: String) -> String? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lowered = trimmed.lowercased()
+        let prefixes = [
+            "ask the local model", "ask local model",
+            "ask the on-device model", "ask the on device model",
+            "use the local model", "use local model", "ask qwen",
+        ]
+        guard let prefix = prefixes.first(where: {
+            guard lowered.hasPrefix($0) else { return false }
+            let remainder = lowered.dropFirst($0.count)
+            return remainder.isEmpty || remainder.first?.isWhitespace == true
+                || remainder.first == ":" || remainder.first == ","
+        }) else {
+            return nil
+        }
+        let prompt = trimmed.dropFirst(prefix.count)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: ":,"))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return prompt.isEmpty ? nil : prompt
+    }
+
+    private static func localModelPrefixOnly(for text: String) -> Bool {
+        let lowered = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return [
+            "ask the local model", "ask local model",
+            "ask the on-device model", "ask the on device model",
+            "use the local model", "use local model", "ask qwen",
+        ].contains(lowered)
     }
 
     @MainActor

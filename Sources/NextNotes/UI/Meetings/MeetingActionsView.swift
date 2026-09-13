@@ -114,11 +114,16 @@ struct MeetingActionsView: View {
                         ForEach(reconciled.candidates) { bound in
                             CandidateActionCard(
                                 bound: bound,
+                                isRunning: bound.proposal.map(agent.isRunning) ?? false,
                                 approve: {
-                                    agent.approveCandidate(
-                                        bound.candidate,
-                                        meetingID: meeting.id
-                                    )
+                                    if let proposal = bound.proposal {
+                                        agent.approve(proposal)
+                                    } else {
+                                        agent.approveCandidate(
+                                            bound.candidate,
+                                            meetingID: meeting.id
+                                        )
+                                    }
                                 },
                                 prepare: {
                                     agent.prepareCandidate(
@@ -189,10 +194,11 @@ struct MeetingActionsView: View {
 }
 
 /// One extracted live ask, optionally folded with a matching Workspace proposal after
-/// review. System-audio cards have Prepare, never Approve-to-execute. A send still shows
-/// its message before Approve — the same rule as a standalone proposal card.
+/// review. System-audio cards still require an explicit click, but a matched proposal keeps
+/// the full preview visible so the user can approve it with confidence.
 private struct CandidateActionCard: View {
     let bound: MeetingActionReconciler.BoundCandidate
+    let isRunning: Bool
     let approve: () -> Void
     let prepare: () -> Void
     let edit: () -> Void
@@ -213,12 +219,21 @@ private struct CandidateActionCard: View {
                     StatusChip(text: chipText, color: DS.Color.info)
                 }
 
+                if let proposal {
+                    // Keep the proposed tool and its resolved target visible on a folded
+                    // candidate, just as they are on a standalone proposal card.
+                    Text(proposal.title)
+                        .font(DS.Font.callout)
+                        .foregroundStyle(DS.Color.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
                 Text(detailText)
                     .font(DS.Font.callout)
                     .foregroundStyle(DS.Color.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                if let preview = proposal?.messagePreview, !preview.isEmpty {
+                if let preview = proposal?.reviewPreview, !preview.isEmpty {
                     ScrollView {
                         Text(preview)
                             .font(DS.Font.transcript)
@@ -242,8 +257,13 @@ private struct CandidateActionCard: View {
                         Button("Edit\u{2026}", action: edit)
                     }
                     Button("Dismiss", role: .cancel, action: dismiss)
+                    if isRunning {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
                     Spacer()
                 }
+                .disabled(isRunning)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -251,7 +271,7 @@ private struct CandidateActionCard: View {
 
     private var chipText: String {
         if proposal != nil {
-            return candidate.source == .system ? "Others asked · ready" : "You said · ready"
+            return candidate.source == .system ? "Others asked · review" : "You said · review"
         }
         return candidate.source == .system ? "Others asked" : "You said"
     }
@@ -303,7 +323,7 @@ private struct ProposalCard: View {
                 .foregroundStyle(DS.Color.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if let preview = proposal.messagePreview, !preview.isEmpty {
+            if let preview = proposal.reviewPreview, !preview.isEmpty {
                 ScrollView {
                     Text(preview)
                         .font(DS.Font.transcript)

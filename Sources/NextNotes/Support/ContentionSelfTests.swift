@@ -29,7 +29,8 @@ import Foundation
 enum ContentionSelfTests {
     /// Prints `CONTENTION_WRONG:` lines, then `CONTENTION_OK` / `CONTENTION_FAILED` last.
     @MainActor
-    static func runSelfTest() async {
+    @discardableResult
+    static func runSelfTest() async -> Bool {
         var failures: [String] = []
 
         failures += meetingAndWakeHubFailures()
@@ -41,6 +42,7 @@ enum ContentionSelfTests {
             print("CONTENTION_WRONG: \(failure)")
         }
         print(failures.isEmpty ? "CONTENTION_OK" : "CONTENTION_FAILED")
+        return failures.isEmpty
     }
 
     // MARK: - A · Meeting + wake share one hub seat

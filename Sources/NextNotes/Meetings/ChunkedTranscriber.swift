@@ -25,6 +25,9 @@ actor ChunkedTranscriber {
 
     /// Parakeet's training rate. Feeding anything else transcribes silently-wrong text.
     static let sampleRate: Double = 16_000
+    /// Maximum number of windows retained by one track while Parakeet catches up. Newest
+    /// windows are dropped after this point so a stalled model cannot grow memory forever.
+    static let maxPendingWindows = 8
 
     /// Meeting ASR window sizes. Defaults are the 2–5 s provisional path; `.legacy`
     /// preserves the old 30/60 numbers for comparison in self-tests.
@@ -100,6 +103,8 @@ actor ChunkedTranscriber {
     /// Windows are transcribed in a chain rather than in parallel tasks, so segments reach
     /// the session in the order they were spoken.
     private var pending: Task<Void, Never>?
+    private var pendingCount = 0
+    private var generation = 0
 
     init(
         source: AudioSource,
@@ -143,6 +148,19 @@ actor ChunkedTranscriber {
         pending = nil
     }
 
+    /// Cancel queued work when a meeting session is abandoned. The generation check also
+    /// prevents a task that was already inside FluidAudio from publishing stale segments.
+    func cancel() {
+        generation &+= 1
+        pending?.cancel()
+        pending = nil
+        pendingCount = 0
+        buffer.removeAll(keepingCapacity: false)
+        bufferOrigin = 0
+        scanned = 0
+        silenceRun = 0
+    }
+
     // MARK: - Windowing
 
     /// - Returns: how many samples to cut from the front of `buffer`, or `nil` to wait.
@@ -166,6 +184,10 @@ actor ChunkedTranscriber {
     }
 
     private func enqueue(window: [Float]) {
+        guard pendingCount < Self.maxPendingWindows else {
+            Log.meeting.error("transcription backlog full — dropped window")
+            return
+        }
         let start = Double(bufferOrigin) / Self.sampleRate
         let source = self.source
         let meetingID = self.meetingID
@@ -173,9 +195,19 @@ actor ChunkedTranscriber {
         let provisional = onProvisional
         let emitProvisionals = config.emitsProvisionals
         let previous = pending
+        let generation = self.generation
+        let shouldContinue: @Sendable () async -> Bool = { [weak self] in
+            guard let self else { return false }
+            return await self.isCurrent(generation)
+        }
+        pendingCount += 1
 
         pending = Task {
             await previous?.value
+            guard !Task.isCancelled, self.isCurrent(generation) else {
+                self.windowFinished(generation)
+                return
+            }
             await Self.transcribe(
                 window: window,
                 start: start,
@@ -183,8 +215,20 @@ actor ChunkedTranscriber {
                 meetingID: meetingID,
                 emitProvisionals: emitProvisionals,
                 onProvisional: provisional,
-                onSegment: handler
+                onSegment: handler,
+                shouldContinue: shouldContinue
             )
+            self.windowFinished(generation)
+        }
+    }
+
+    private func isCurrent(_ generation: Int) -> Bool {
+        self.generation == generation
+    }
+
+    private func windowFinished(_ generation: Int) {
+        if self.generation == generation {
+            pendingCount = max(0, pendingCount - 1)
         }
     }
 
@@ -214,10 +258,12 @@ actor ChunkedTranscriber {
         meetingID: UUID?,
         emitProvisionals: Bool,
         onProvisional: ProvisionalHandler?,
-        onSegment: SegmentHandler
+        onSegment: SegmentHandler,
+        shouldContinue: @escaping @Sendable () async -> Bool
     ) async {
         let duration = Double(window.count) / sampleRate
         guard window.count >= minTranscribableSamples else { return }
+        guard !Task.isCancelled, await shouldContinue() else { return }
         // Running the model over a window of pure silence costs a second of CPU to produce
         // an empty string; the meters already say nothing was said.
         guard containsSpeech(window) else { return }
@@ -225,6 +271,7 @@ actor ChunkedTranscriber {
         do {
             let began = Date()
             let result = try await TranscriptionQueue.shared.transcribe(window)
+            guard !Task.isCancelled, await shouldContinue() else { return }
             let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
             let elapsed = Date().timeIntervalSince(began)
             Log.meeting.info("""
@@ -236,6 +283,7 @@ actor ChunkedTranscriber {
 
             let provisionalID = UUID()
             if emitProvisionals, let onProvisional {
+                guard !Task.isCancelled, await shouldContinue() else { return }
                 await onProvisional(
                     TranscriptEvent(
                         meetingID: meetingID,
@@ -251,6 +299,7 @@ actor ChunkedTranscriber {
 
             // Finals still respect sentence / pause boundaries for diarization.
             for segment in segments(from: result, text: text, start: start, duration: duration, source: source) {
+                guard !Task.isCancelled, await shouldContinue() else { return }
                 await onSegment(segment)
             }
         } catch {

@@ -366,6 +366,8 @@ final class MeetingSession {
         systemContinuation?.finish()
         micDrain?.cancel()
         systemDrain?.cancel()
+        await micTranscriber?.cancel()
+        await systemTranscriber?.cancel()
         micTranscriber = nil
         systemTranscriber = nil
         writer = nil

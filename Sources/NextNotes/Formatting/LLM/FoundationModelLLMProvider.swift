@@ -50,7 +50,68 @@ struct FoundationModelLLMProvider: LLMProvider {
         )
     }
 
+    /// Native incremental stream supplied by Foundation Models.
+    ///
+    /// `ResponseStream<String>` yields snapshots, rather than deltas.  The snapshots are
+    /// cumulative, so only the suffix after the previously observed snapshot is forwarded
+    /// to the speech buffer.  If the framework ever supplies a replacement snapshot, fail
+    /// the stream instead of repeating or silently dropping words: spoken output cannot be
+    /// retracted once it has reached the synthesizer.
+    func stream(
+        system: String,
+        user: String,
+        maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    try Task.checkCancellation()
+                    let session = LanguageModelSession(instructions: system)
+                    let responseStream = session.streamResponse(
+                        to: user,
+                        options: GenerationOptions(
+                            temperature: temperature,
+                            maximumResponseTokens: maxTokens
+                        )
+                    )
+
+                    var previous = ""
+                    for try await snapshot in responseStream {
+                        try Task.checkCancellation()
+                        let current = snapshot.content
+                        guard let delta = Self.delta(previous: previous, current: current) else {
+                            throw StreamError.replacementSnapshot
+                        }
+                        if !delta.isEmpty {
+                            continuation.yield(delta)
+                        }
+                        previous = current
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
+    }
+
     /// Low, for the same reason dictation cleanup runs low: notes are an extraction task.
     /// Inventing a decision nobody made is the failure mode that matters here.
     private let temperature = 0.3
+
+    /// `nil` means the framework revised earlier text; replaying a replacement
+    /// snapshot would duplicate already spoken words.
+    static func delta(previous: String, current: String) -> String? {
+        guard current.hasPrefix(previous) else { return nil }
+        return String(current.dropFirst(previous.count))
+    }
+
+    private enum StreamError: LocalizedError {
+        case replacementSnapshot
+
+        var errorDescription: String? {
+            "Foundation Model returned a non-cumulative response snapshot"
+        }
+    }
 }

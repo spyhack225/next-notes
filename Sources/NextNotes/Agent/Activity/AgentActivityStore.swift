@@ -51,6 +51,9 @@ final class AgentAuditLog {
         taskID: String? = nil,
         meetingID: UUID? = nil
     ) {
+        // Realtime and tool self-tests drive real agent paths with fixture text.
+        // Keep those probes out of the person's persistent activity history.
+        guard !SelfTest.isRunning else { return }
         let entry = AgentAuditEntry(
             kind: kind,
             title: title,

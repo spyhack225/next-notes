@@ -14,9 +14,9 @@ struct AgentTurn: Sendable {
 
 /// Persistent conversational agent. One resolve, one action, always a visible reply.
 ///
-/// There is no second “ask the model to invent a tool call” path. That wait is how
-/// mail sat in Thinking… until the user pressed Stop. Open-ended chat is an honest
-/// “ask me to do a thing”, not a 50-second hang.
+/// Ordinary mail, calendar and computer requests stay on deterministic routes.
+/// Explicit “ask the local model” answers a question without tools; explicit
+/// “use tools to” runs a bounded, read-only model tool plan.
 @MainActor
 @Observable
 final class RealtimeAgent {
@@ -26,6 +26,7 @@ final class RealtimeAgent {
         /// Workspace and file reads. A second path used to add 50 s of model time
         /// on top of this; that is gone.
         static let tool: Duration = .seconds(20)
+        static let localModel: Duration = .seconds(90)
         static let captureFinish: Duration = .seconds(8)
     }
 
@@ -39,6 +40,15 @@ final class RealtimeAgent {
     /// Same job as `DictationController.session`: a late tool must not write over a
     /// turn the user already stopped or barged in on.
     private var generation = 0
+    /// The model answer owns a child task so barge-in cancels llama / provider work even
+    /// while the VAD task remains free to endpoint the next utterance.
+    private var localModelTask: Task<AgentTurn, Never>?
+    /// Injectable only for the production-routing self-test. Normal turns always resolve
+    /// the configured local provider and never use this seam.
+    var localModelProviderForTesting: (any LLMProvider)?
+    var localModelLimitForTesting: Duration?
+    /// Only the production-route tool-loop self-test shortens the planner deadline.
+    var toolLoopLimitForTesting: Duration?
 
     private init() {}
 
@@ -104,6 +114,29 @@ final class RealtimeAgent {
         case .reply(let answer):
             replyTrace.end(note: "context")
             return conclude(mine, answer, route: "context")
+        case .localModel(let prompt):
+            beginWork(title: intent.progressTitle)
+            let task = Task { @MainActor [weak self] in
+                guard let self else { return AgentTurn(reply: "", delegated: false) }
+                return await self.answerLocally(prompt, generation: mine, replyTrace: replyTrace)
+            }
+            localModelTask = task
+            let turn = await withBoundedWait(localModelLimitForTesting ?? Limits.localModel) {
+                await task.value
+            }
+            if generation == mine { localModelTask = nil }
+            if let turn { return turn }
+            task.cancel()
+            guard isCurrent(mine) else {
+                return AgentTurn(reply: lastReply, delegated: false)
+            }
+            // Invalidate the suspended producer before changing the visible reply.
+            // It may still unwind after a blocking model load returns.
+            generation += 1
+            RealtimeAudioSession.shared.noteUserSpeech()
+            let reply = "The local model took too long, so I stopped waiting."
+            finish(reply)
+            return AgentTurn(reply: reply, delegated: false)
         case .unknown:
             replyTrace.end(note: "unknown")
             return conclude(mine, Self.unknownReply, route: "unknown")
@@ -116,7 +149,7 @@ final class RealtimeAgent {
                 delegated: true,
                 route: "task"
             )
-        case .calendar, .mail, .files, .drive, .computer:
+        case .calendar, .mail, .files, .drive, .computer, .toolLoop:
             beginWork(title: intent.progressTitle)
             let toolTrace = LatencyTrace.start(.agentToolCallToResult)
             let boxed = await withBoundedWait(Limits.tool) {
@@ -146,6 +179,8 @@ final class RealtimeAgent {
     func cancel() {
         guard isThinking || ActivationController.shared.mode == .agentWorking else { return }
         generation += 1
+        localModelTask?.cancel()
+        localModelTask = nil
         PermissionGate.shared.cancelPending()
         Log.agent.info("realtime · stopped")
         finish("Stopped.")
@@ -162,6 +197,8 @@ final class RealtimeAgent {
         }
         guard isThinking else { return }
         generation += 1
+        localModelTask?.cancel()
+        localModelTask = nil
         PermissionGate.shared.cancelPending()
         Log.agent.info("realtime · barge-in")
         finish(Self.bargeInReply)
@@ -185,6 +222,8 @@ final class RealtimeAgent {
             • Search files and run a shell command, after you approve
             • Wake from sleep when you say “Hey Next”
             • Draft Gmail, Calendar, Drive and Docs actions if Workspace is connected
+            • Answer a question on-device when you say “ask the local model …”
+            • Plan several read-only checks when you say “use tools to …”
 
             Ask something specific — mail, calendar, this window, or a file.
             """
@@ -247,7 +286,120 @@ final class RealtimeAgent {
         return AgentTurn(reply: reply, delegated: delegated)
     }
 
-    private func finish(_ reply: String) {
+    private static let localModelSystem = """
+        You are the local, on-device answer model for Next Notes. Answer the user's question
+        clearly and briefly in natural language. Use only information in the user's prompt.
+        Do not emit URLs, source code, shell commands, tool calls, file listings, markdown
+        fences, or long structured output. If the prompt does not contain enough information,
+        say that plainly. Keep the answer to a few short sentences suitable for speech.
+        """
+
+    private func answerLocally(
+        _ prompt: String,
+        generation mine: Int,
+        replyTrace: LatencyTrace
+    ) async -> AgentTurn {
+        var replyTraceEnded = false
+        func endReplyTrace(_ note: String) {
+            guard !replyTraceEnded else { return }
+            replyTrace.end(note: note)
+            replyTraceEnded = true
+        }
+        guard isCurrent(mine) else {
+            endReplyTrace("superseded")
+            return AgentTurn(reply: lastReply, delegated: false)
+        }
+
+        let provider: (any LLMProvider)?
+        if let localModelProviderForTesting {
+            provider = localModelProviderForTesting
+        } else {
+            provider = await LLMProviders.resolve(preferring: Settings.shared.notesProvider)
+        }
+        // Provider discovery can suspend while a new voice turn starts. The old
+        // turn must not reset the new turn's speech buffer after that await.
+        guard isCurrent(mine), !Task.isCancelled else {
+            endReplyTrace("superseded")
+            return AgentTurn(reply: lastReply, delegated: false)
+        }
+        guard let provider else {
+            endReplyTrace("local-model-unavailable")
+            let reason = (await LLMProviders.make(Settings.shared.notesProvider).unavailableReason)
+                ?? "no local model is available"
+            return conclude(
+                mine,
+                "I can’t answer locally right now: \(reason)",
+                route: "local-model-unavailable"
+            )
+        }
+
+        let startedStreaming = AgentCaptureController.shared.isSessionActive
+        if startedStreaming { RealtimeAudioSession.shared.beginSpokenReply() }
+        var answer = ""
+        do {
+            let chunks = await provider.stream(
+                system: Self.localModelSystem,
+                user: prompt,
+                maxTokens: 256
+            )
+            for try await chunk in chunks {
+                try Task.checkCancellation()
+                guard isCurrent(mine) else {
+                    endReplyTrace("superseded")
+                    return AgentTurn(reply: lastReply, delegated: false)
+                }
+                if !chunk.isEmpty { endReplyTrace("local-model") }
+                answer += chunk
+                lastReply = answer
+                AgentCaptureController.shared.noteAssistantReply(answer)
+                if AgentCaptureController.shared.isSessionActive {
+                    RealtimeAudioSession.shared.appendSpokenReply(chunk)
+                } else {
+                    IslandState.shared.showAgentReply(answer)
+                }
+            }
+            try Task.checkCancellation()
+            guard isCurrent(mine) else {
+                endReplyTrace("superseded")
+                return AgentTurn(reply: lastReply, delegated: false)
+            }
+            guard !answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                endReplyTrace("local-model-empty")
+                if startedStreaming { RealtimeAudioSession.shared.finalizeSpokenReply() }
+                return conclude(mine, "The local model returned no answer.", route: "local-model-empty")
+            }
+            if startedStreaming {
+                RealtimeAudioSession.shared.finalizeSpokenReply()
+            }
+            return concludeStreamed(mine, answer, route: "local-model")
+        } catch is CancellationError {
+            endReplyTrace("cancelled")
+            return AgentTurn(reply: lastReply, delegated: false)
+        } catch {
+            guard isCurrent(mine) else {
+                endReplyTrace("superseded")
+                return AgentTurn(reply: lastReply, delegated: false)
+            }
+            endReplyTrace("local-model-error")
+            if startedStreaming { RealtimeAudioSession.shared.noteUserSpeech() }
+            return conclude(
+                mine,
+                "I couldn’t get an answer from the local model. \(error.localizedDescription)",
+                route: "local-model-error"
+            )
+        }
+    }
+
+    private func concludeStreamed(_ mine: Int, _ reply: String, route: String) -> AgentTurn {
+        guard isCurrent(mine) else { return AgentTurn(reply: lastReply, delegated: false) }
+        Log.agent.info("realtime · \(route, privacy: .public)")
+        // The speech bridge already consumed the chunks. Recording through `finish` is
+        // still needed, but speaking the completed answer again would duplicate TTS.
+        finish(reply, speak: false)
+        return AgentTurn(reply: reply, delegated: false)
+    }
+
+    private func finish(_ reply: String, speak: Bool = true) {
         lastReply = reply
         isThinking = false
         progressTitle = ""
@@ -258,13 +410,14 @@ final class RealtimeAgent {
             // Speak-replies is on for the open session only. Wave 2 can make this
             // a Settings toggle. The agent loop does not wait for the utterance.
             //
-            // No Foundation Models / local token stream on this path today —
-            // producers must call `appendSpokenReply` as chunks arrive when one
-            // exists. `speak` feeds the finished string through
+            // One-shot replies use `speak`; the explicit local-model path calls
+            // `appendSpokenReply` as chunks arrive. `speak` feeds the finished string through
             // begin → append → finalize so clause TTS is ready for a stream.
-            let tts = LatencyTrace.start(.agentFirstTokenToFirstTTS)
-            RealtimeAudioSession.shared.speak(reply)
-            tts.end()
+            if speak {
+                let tts = LatencyTrace.start(.agentFirstTokenToFirstTTS)
+                RealtimeAudioSession.shared.speak(reply)
+                tts.end()
+            }
             ActivationController.shared.markListening()
             IslandState.shared.showAgentListening(transcript: "", level: 0)
         } else {
