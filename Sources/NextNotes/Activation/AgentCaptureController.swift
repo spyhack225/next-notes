@@ -50,7 +50,6 @@ final class AgentCaptureController {
     private var lastSpeechAt: Date?
     private var lastActivityAt: Date?
     private var committedPrefix = ""
-    private var isEndingTurn = false
     private var captureAudio = true
 
     func begin() async {
@@ -211,7 +210,7 @@ final class AgentCaptureController {
 
     @discardableResult
     private func tick(force: Bool) async -> Bool {
-        guard isSessionActive, !isEndingTurn else { return false }
+        guard isSessionActive else { return false }
         let now = Date()
 
         if heardSpeech,
@@ -250,13 +249,17 @@ final class AgentCaptureController {
         source: EndpointSource,
         continueSession: Bool
     ) async {
-        isEndingTurn = true
         lastEndpoint = source
         committedPrefix = committedPrefix.isEmpty ? transcript : committedPrefix + " " + text
         resetTurn()
+        // Release the VAD before `handle` so the next utterance can barge in while
+        // a tool is running. Holding `isEndingTurn` across the whole turn is what
+        // made “are you checking my email?” never become a turn of its own.
         Log.agent.info("realtime · endpoint \(source.rawValue, privacy: .public)")
+        if RealtimeAgent.shared.isThinking {
+            RealtimeAgent.shared.interrupt()
+        }
         _ = await RealtimeAgent.shared.handle(text, source: .voice)
-        isEndingTurn = false
         lastActivityAt = Date()
         if continueSession, isSessionActive {
             ActivationController.shared.markListening()

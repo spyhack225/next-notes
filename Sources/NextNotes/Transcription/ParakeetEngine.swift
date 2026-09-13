@@ -160,16 +160,32 @@ actor ParakeetModels {
                 : "downloading models (~470 MB, one time)"
             Log.speech.info("Parakeet: \(stage, privacy: .public)")
             let started = Date()
-            // Reliability wins over peak throughput in push-to-talk. The Neural Engine path
-            // can stall for minutes on first compile, while the GPU path can wedge in
-            // MTLCompilerService on macOS 26. CPU placement loads deterministically and this
-            // 0.6B CoreML model still resolves short dictations comfortably after release.
-            let models = try await AsrModels.downloadAndLoad(
-                version: .v3,
-                encoderPrecision: .int8,
-                encoderComputeUnits: .cpuOnly,
-                progressHandler: progressHandler
-            )
+            // ANE is FluidAudio's default and the bench path (~100× realtime). CPU-only was
+            // a reliability hedge: first ANE compile can stall, and GPU can wedge
+            // MTLCompilerService on macOS 26. That hedge made every release wait 10–15s on
+            // this machine — comfortably is not what the runs show. We already warm the
+            // models at launch, so the compile stall lands on startup rather than on the
+            // utterance, and `.cpuAndNeuralEngine` never opens the GPU path. CPU remains
+            // the fallback if ANE refuses to load, not the steady state.
+            let models: AsrModels
+            do {
+                models = try await AsrModels.downloadAndLoad(
+                    version: .v3,
+                    encoderPrecision: .int8,
+                    encoderComputeUnits: .cpuAndNeuralEngine,
+                    progressHandler: progressHandler
+                )
+            } catch {
+                Log.speech.error(
+                    "Parakeet: Neural Engine load failed — \(error.localizedDescription, privacy: .public) — retrying on CPU"
+                )
+                models = try await AsrModels.downloadAndLoad(
+                    version: .v3,
+                    encoderPrecision: .int8,
+                    encoderComputeUnits: .cpuOnly,
+                    progressHandler: progressHandler
+                )
+            }
             let manager = AsrManager(config: .default)
             try await manager.loadModels(models)
             Log.speech.info("Parakeet: ready in \(Date().timeIntervalSince(started), format: .fixed(precision: 1))s")

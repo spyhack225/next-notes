@@ -148,25 +148,24 @@ final class DictationController {
             // on-screen names can reach it. Punctuation-only cleanup is therefore the one
             // combination where per-app formatting has no effect *and* where a spoken file name
             // stays a spoken file name — there is no prompt to put either set of rules in, and
-            // the harvest that ran at key-down is simply discarded. With grammar repair on, the
-            // second pass below is a general-purpose model and does honour both.
-            let punctuation = S1MiniFormatter(preferences: settings.cleanupPreferences)
-            guard settings.cleanupFixesGrammar else { return punctuation }
-            // S1-mini cannot repair grammar — it is a punctuation model, not an
-            // instruction-following one — so grammar is a second pass on its output rather
-            // than a setting it could honour. `KeepAsIsFormatter` because by this point the
-            // sentence is already punctuated: if the grammar stage cannot run, the right
-            // answer is what S1-mini produced, not a rule-based third opinion about it.
-            return ChainedFormatter(
-                first: punctuation,
-                second: FoundationModelFormatter(
+            // the harvest that ran at key-down is simply discarded.
+            //
+            // Grammar, lists and per-app layout are instruction-following work S1-mini cannot
+            // do. We used to chain Apple after it, but that stacked two waits (S1 up to 8s,
+            // Apple 4s) and the grammar stage often timed out, so the typed text was S1's
+            // casual punctuation with no layout. Apple already restores punctuation in the
+            // same call as grammar, so when grammar is on we spend the budget on the one
+            // model that can actually format. `--selftest-cleanup chain` still measures the
+            // old two-pass path.
+            if settings.cleanupFixesGrammar {
+                return FoundationModelFormatter(
                     preferences: settings.cleanupPreferences,
                     fixesGrammar: true,
                     target: target,
-                    context: context,
-                    fallback: KeepAsIsFormatter()
+                    context: context
                 )
-            )
+            }
+            return S1MiniFormatter(preferences: settings.cleanupPreferences)
         }
     }
 
@@ -175,8 +174,8 @@ final class DictationController {
     ///
     /// Mirrors `activeFormatter(context:)` above, and has to be read against it rather than
     /// guessed at: the injected `formatter` test seam ignores the context, and punctuation-only
-    /// S1-mini takes no instructions — but S1-mini *with* grammar repair chains a second
-    /// Apple pass that does honour it, so the engine alone does not answer the question.
+    /// S1-mini takes no instructions — but S1-mini *with* grammar repair uses Apple, which
+    /// does honour it, so the engine alone does not answer the question.
     private var formatterUsesContext: Bool {
         if formatter != nil { return false }
         let settings = Settings.shared
@@ -639,7 +638,7 @@ final class DictationController {
         // `.finishing` is "active", so without this a second press during processing would
         // run the whole tail again — re-reading `transcript` before the first pass cleared
         // it and pasting the same utterance twice. The window is wide: Parakeet transcribes
-        // inside `finish()`, and smart cleanup adds up to 4s on top.
+        // inside `finish()`, and smart cleanup adds several seconds on top.
         guard state.isActive, state != .finishing else { return }
         guard expected == nil || recordingIntent.kind == expected else { return }
 

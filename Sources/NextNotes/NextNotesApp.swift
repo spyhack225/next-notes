@@ -767,9 +767,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     formatter = S1MiniFormatter(preferences: preferences)
                     mode = .punctuationOnly
                 case "chain":
-                    // What a real hold does when the engine is S1-mini and grammar is on:
-                    // punctuate locally, then repair locally. Judged as `.grammar`, because
-                    // the second pass is allowed to change words.
+                    // The historical S1-then-Apple path, kept so the two-pass score is still
+                    // measurable. A real hold with grammar on now uses Apple alone. Judged
+                    // as `.grammar`, because the second pass is allowed to change words.
                     formatter = ChainedFormatter(
                         first: S1MiniFormatter(preferences: preferences),
                         second: FoundationModelFormatter(
@@ -3041,6 +3041,64 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             check("“what’s on my calendar” selected a coding harness", calendarPick.id == .local)
             check("“what’s on my calendar” selected ACP", calendarPick.backend == .local)
 
+            // Mail must take the bounded `search_email` path. The live failure was
+            // “check my email” falling through to the model, which never named the
+            // tool; the user cancelled after ~48 s with no reply.
+            let inboxAsk = MailIntent.parse(
+                "Can you check what's happening on my email, making sure that I didn't miss any emails"
+            )
+            check("an inbox check was not parsed as mail", inboxAsk != nil)
+            check(
+                "an inbox check did not search unread mail",
+                inboxAsk?.query == "is:unread"
+            )
+            let followUp = MailIntent.parse("Are you checking my email right now?")
+            check("“are you checking my email” was not parsed as mail", followUp != nil)
+            check(
+                "a status follow-up was treated as compose",
+                followUp != nil && MailIntent.parse("email the proposal") == nil
+            )
+            check("“test” was parsed as mail", MailIntent.parse("test") == nil)
+            check(
+                "a calendar ask was parsed as mail",
+                MailIntent.parse("what's on my calendar") == nil
+            )
+            check(
+                "a compose ask was parsed as a search",
+                MailIntent.parse("send an email to Sam") == nil
+            )
+
+            let localChoice = AgentHarnessChoice(
+                id: .local, source: .settings, available: true, fallbackToLocal: false, note: ""
+            )
+            check(
+                "mail still fell through as unknown",
+                AgentTurnIntent.resolve(
+                    "Can you check what's happening on my email, making sure that I didn't miss any emails",
+                    choice: localChoice
+                ) == .mail(query: "is:unread")
+            )
+            check(
+                "“what’s on my email” was treated as calendar",
+                AgentTurnIntent.resolve("what's on my email", choice: localChoice)
+                    == .mail(query: "in:inbox newer_than:2d")
+            )
+            check(
+                "“test” waited on a model instead of answering",
+                AgentTurnIntent.resolve("test", choice: localChoice) == .unknown
+            )
+            let unknown = await RealtimeAgent.shared.handle("test", source: .text)
+            check("an unknown ask produced no reply", unknown.reply == RealtimeAgent.unknownReply)
+            check("an unknown ask was delegated", !unknown.delegated)
+            check(
+                "“find the latest deck” was not a file search",
+                FileIntent.parse("find the latest deck") == .home(query: "deck")
+            )
+            check(
+                "a coding phrase without a named harness was delegated",
+                AgentTurnIntent.resolve("fix the failing build", choice: localChoice) == .unknown
+            )
+
             let reuse = AgentHarnessRouter.shared.choose(for: "fix the failing build")
             check(
                 "a second coding ask did not reuse the last coding harness from history",
@@ -3097,7 +3155,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             for failure in failures { writeSelfTest("  REALTIME_WRONG: \(failure)") }
             writeSelfTest(failures.isEmpty
-                          ? "REALTIME_OK: context, capabilities, harness routing, duplex VAD and the tool loop hold"
+                          ? "REALTIME_OK: one-path routing, unknown asks reply, harness, duplex VAD and the tool loop hold"
                           : "REALTIME_FAILED: \(failures.count) rule(s) wrong")
             NSApp.terminate(nil)
         }

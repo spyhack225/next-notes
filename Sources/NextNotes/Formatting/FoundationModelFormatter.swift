@@ -26,8 +26,6 @@ struct FoundationModelFormatter: TextFormatter {
     /// is `KeepAsIsFormatter`.
     private let fallback: any TextFormatter
 
-    /// Past this, taking the raw text beats making the user wait.
-    private let timeout: Duration = .seconds(4)
     private let preferences: CleanupPreferences
 
     /// Whether the pass also repairs grammar, or only punctuation and fillers.
@@ -35,8 +33,9 @@ struct FoundationModelFormatter: TextFormatter {
     /// It changes two things, and neither of them is a second model call: the instructions
     /// gain a block of grammar rules, and the output guard switches from "no new content
     /// words at all" to "every new word must be traceable to one that was dropped". Same
-    /// session, same token budget, same timeout — which is why grammar is free here rather
-    /// than a trade against latency. `--selftest-cleanup` is where that claim is checked.
+    /// session, same token budget — which is why grammar is free here rather than a trade
+    /// against latency. The timeout grows with the transcript; see `timeout(for:)`.
+    /// `--selftest-cleanup` is where that claim is checked.
     private let fixesGrammar: Bool
     /// What the receiving app can render. Plain unless a caller says otherwise.
     private let target: OutputProfile
@@ -94,6 +93,7 @@ struct FoundationModelFormatter: TextFormatter {
         }
 
         do {
+            let budget = Self.timeout(for: trimmed)
             let cleaned = try await withThrowingTaskGroup(of: String.self) { group in
                 group.addTask {
                     try await Self.clean(
@@ -105,7 +105,7 @@ struct FoundationModelFormatter: TextFormatter {
                     )
                 }
                 group.addTask {
-                    try await Task.sleep(for: timeout)
+                    try await Task.sleep(for: budget)
                     throw CleanupError.timedOut
                 }
                 // Whichever finishes first wins; cancel the loser.
@@ -181,6 +181,18 @@ struct FoundationModelFormatter: TextFormatter {
         )
 
         return response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// How long this transcript is allowed to spend in the model.
+    ///
+    /// A flat 4s is right for a sentence (warm median 0.686s) and wrong for a minute of
+    /// speech plus a screen-name list: those were missing the deadline, falling back, and
+    /// arriving as unformatted ASR. One extra second per forty words, capped at 12s, so a
+    /// long hold still finishes and a stalled model still cannot sit on the tail.
+    static func timeout(for text: String) -> Duration {
+        let words = text.split { $0.isWhitespace || $0.isNewline }.count
+        let seconds = min(12.0, 4.0 + Double(max(0, words - 40)) / 40.0)
+        return .seconds(seconds)
     }
 
     private enum CleanupError: LocalizedError {

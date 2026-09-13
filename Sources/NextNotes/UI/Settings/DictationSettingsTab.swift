@@ -90,11 +90,9 @@ struct DictationSettingsTab: View {
                         }
                     }
                     Toggle("Fix grammar, not just punctuation", isOn: $settings.cleanupFixesGrammar)
-                        .help(settings.cleanupEngine == .s1Mini
-                              ? "S1-mini punctuates, then Apple's on-device model repairs "
-                                + "grammar — two local passes, a little over a second."
-                              : "Repairs agreement, tense and word order — \"there is some "
-                                + "lags\" becomes \"there are some lags\". Runs on device.")
+                        .help("Repairs agreement, tense and word order — \"there is some "
+                              + "lags\" becomes \"there are some lags\". Runs on Apple's "
+                              + "on-device model; S1-mini cannot do this on its own.")
 
                     Toggle("Format spoken lists", isOn: $settings.cleanupFormatsLists)
                 }
@@ -184,8 +182,11 @@ struct DictationSettingsTab: View {
         case .s1Mini:
             switch models.s1MiniState {
             case .ready:
-                return "S1-mini by Superwhisper runs locally through llama.cpp; no transcript "
-                    + "leaves this Mac."
+                return settings.cleanupFixesGrammar
+                    ? "Grammar repair uses Apple's on-device model. S1-mini is the "
+                        + "punctuation-only engine; turn grammar off to use it alone."
+                    : "S1-mini by Superwhisper punctuates locally through llama.cpp; no "
+                        + "transcript leaves this Mac."
             case .preparing(let message): return message
             case .failed(let message): return "S1-mini failed: \(message)"
             case .notDownloaded:

@@ -17,7 +17,10 @@ struct LocalAgentBackend: AgentBackend {
 
     func submit(_ task: AgentTask) async throws -> AgentTaskOutcome {
         guard let tool = task.tool else {
-            return .completed(task.objective)
+            return .failed(
+                "Nothing local can do that. Name a coding agent in Settings ▸ Agent, "
+                    + "or ask me to check mail, the calendar, this window, or a file."
+            )
         }
         let result = try await AgentToolExecutor.run(
             tool,

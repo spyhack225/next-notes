@@ -192,7 +192,7 @@ struct AgentView: View {
                 Button("Stop") { RealtimeAgent.shared.cancel() }
             }
             Button("Send", action: send)
-                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || agent.isThinking)
+                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(DS.Space.m)
     }
@@ -201,6 +201,9 @@ struct AgentView: View {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         draft = ""
+        if agent.isThinking {
+            RealtimeAgent.shared.interrupt()
+        }
         Task { await RealtimeAgent.shared.handle(text, source: .text) }
     }
 }
