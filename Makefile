@@ -9,8 +9,11 @@ CONFIG   := debug
 ## 0% CPU. Moving the scratch path to ~/Library/Caches (never synced) removes the race.
 SCRATCH  := $(HOME)/Library/Caches/NextNotesBuild/scratch
 TEST_SCRATCH := $(HOME)/Library/Caches/NextNotesBuild/test-scratch
-BUILD    := $(SCRATCH)/$(CONFIG)/$(EXEC)
-LLAMA_FRAMEWORK := $(SCRATCH)/$(CONFIG)/llama.framework
+## Recursive, not `:=`, so a target-specific `CONFIG := release` actually changes
+## which binary and framework get copied. Immediate expansion would bake `debug`
+## in at parse time and `make release` would ship yesterday's debug build.
+BUILD    = $(SCRATCH)/$(CONFIG)/$(EXEC)
+LLAMA_FRAMEWORK = $(SCRATCH)/$(CONFIG)/llama.framework
 
 ## The bundle is assembled and signed OUTSIDE this directory on purpose.
 ##
@@ -51,7 +54,37 @@ ifeq ($(strip $(SIGN_ID)),)
 SIGN_ID := -
 endif
 
-.PHONY: all build test app run install clean icon signing-cert
+## What kind of identity we landed on. The release path uses this to decide whether a
+## secure timestamp and the stricter entitlements file are legal: both assume a real
+## Developer ID. A local or ad-hoc signature must keep `disable-library-validation`
+## and `--timestamp=none`, or the bundled llama.framework will not load.
+SIGN_KIND := adhoc
+ifneq ($(findstring Developer ID Application,$(SIGN_ID)),)
+SIGN_KIND := developer-id
+else ifneq ($(SIGN_ID),-)
+SIGN_KIND := local
+endif
+
+TIMESTAMP    := --timestamp=none
+ENTITLEMENTS := Resources/$(EXEC).entitlements
+STAMP_VERSION :=
+
+## Disk image for GitHub Releases. The versioned name is what a human reads on the
+## release page; `NextNotes.dmg` is the stable URL the website downloads from
+## (`…/releases/latest/download/NextNotes.dmg`). Both are the same bytes.
+## Do not use `$(...)` or `#` inside `$(shell ...)`. Make treats the first `)` as the
+## end of the function and `#` as the start of a comment, which is how the first
+## version of this line failed to parse.
+VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
+ifeq ($(strip $(VERSION)),)
+VERSION := 0.1.0
+endif
+BUILD_NUMBER ?= $(shell git rev-list --count HEAD 2>/dev/null || echo 1)
+DMG_STAGE    := $(STAGE)/dmg-root
+DMG          := $(STAGE)/NextNotes-$(VERSION).dmg
+DMG_STABLE   := $(STAGE)/NextNotes.dmg
+
+.PHONY: all build test app run install clean icon signing-cert release dmg
 
 all: app
 
@@ -100,12 +133,17 @@ app: build
 	@# xattrs inherited from the synced .build directory.
 	@xattr -cr "$(BUNDLE)"
 	@install_name_tool -add_rpath "@executable_path/../Frameworks" "$(CONTENTS)/MacOS/$(EXEC)"
-	@codesign --force --sign "$(SIGN_ID)" --options runtime --timestamp=none \
+	@if [ "$(STAMP_VERSION)" = "1" ]; then \
+		/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" "$(CONTENTS)/Info.plist"; \
+		/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(BUILD_NUMBER)" "$(CONTENTS)/Info.plist"; \
+		echo "stamped $(VERSION) ($(BUILD_NUMBER))"; \
+	fi
+	@codesign --force --sign "$(SIGN_ID)" --options runtime $(TIMESTAMP) \
 		"$(CONTENTS)/Frameworks/llama.framework"
 	@codesign --force --sign "$(SIGN_ID)" \
-		--entitlements Resources/$(EXEC).entitlements \
+		--entitlements "$(ENTITLEMENTS)" \
 		--options runtime \
-		--timestamp=none \
+		$(TIMESTAMP) \
 		"$(BUNDLE)"
 	@echo "built $(BUNDLE)  [signed: $(SIGN_ID)]"
 
@@ -123,6 +161,48 @@ install: app
 	@cp -R "$(BUNDLE)" "/Applications/$(APPNAME)"
 	@open "/Applications/$(APPNAME)"
 	@echo "installed to /Applications/$(APPNAME)"
+
+## Release configuration of the same bundle `make app` builds. Stamps the version from
+## the current git tag (or 0.1.0 if there isn't one). Does not pass `-DPAID_BUILD` —
+## that flag is the paid-product boundary in docs/PAID-RELEASE.md, and a source-built
+## or GitHub-hosted DMG is still the free app.
+##
+## A Developer ID switches on a secure timestamp and drops `disable-library-validation`,
+## because both halves are then signed with the same Team ID. Without one, this is a
+## release-optimized binary that Gatekeeper will still refuse to open from a download.
+release: CONFIG := release
+release: STAMP_VERSION := 1
+ifeq ($(SIGN_KIND),developer-id)
+release: TIMESTAMP := --timestamp
+release: ENTITLEMENTS := Resources/$(EXEC).release.entitlements
+endif
+release: app
+
+## Wrap the release bundle in a drag-to-Applications disk image. The image lives under
+## ~/Library/Caches, not in the repo — committing a 50 MB binary per tag would bloat
+## git permanently; GitHub Releases is where it is published.
+dmg: release
+	@rm -rf "$(DMG_STAGE)"
+	@mkdir -p "$(DMG_STAGE)"
+	@cp -R "$(BUNDLE)" "$(DMG_STAGE)/"
+	@ln -s /Applications "$(DMG_STAGE)/Applications"
+	@rm -f "$(DMG)" "$(DMG_STABLE)"
+	@hdiutil create \
+		-srcfolder "$(DMG_STAGE)" \
+		-volname "Next Notes" \
+		-fs HFS+ \
+		-format UDZO \
+		-ov \
+		"$(DMG)"
+	@cp "$(DMG)" "$(DMG_STABLE)"
+	@shasum -a 256 "$(DMG)" | awk '{print $$1 "  NextNotes-$(VERSION).dmg"}' > "$(DMG).sha256"
+	@if [ "$(SIGN_KIND)" = "developer-id" ]; then \
+		codesign --force --sign "$(SIGN_ID)" --timestamp "$(DMG)"; \
+		codesign --force --sign "$(SIGN_ID)" --timestamp "$(DMG_STABLE)"; \
+	fi
+	@echo "built $(DMG)"
+	@ls -lh "$(DMG)"
+	@cat "$(DMG).sha256"
 
 ## Creates the stable self-signed certificate the signing block above looks for.
 ##

@@ -1,0 +1,101 @@
+name: Release
+
+# Builds a release-configured .app, wraps it in a DMG, and attaches both the
+# versioned and the stable filename to the GitHub Release for the tag. The
+# website downloads `NextNotes.dmg` from `/releases/latest/download/`, so that
+# second name is load-bearing — do not drop it.
+#
+# Triggered only by a `v*` tag (and a manual dispatch that builds without
+# publishing). The DMG is never committed: 50 MB per release would bloat the
+# repo permanently, which is why this workflow exists.
+#
+# Signing follows the Makefile. A runner with no Developer ID produces an
+# ad-hoc signature, and Gatekeeper will refuse a downloaded copy until Phase 1
+# of docs/PAID-RELEASE.md lands the certificate in `DEVELOPER_ID_P12_*`.
+# Notarization is the same story and is not attempted here.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  macos-dmg:
+    name: macOS DMG
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select the newest Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Using $latest"
+          sudo xcode-select -s "$latest/Contents/Developer"
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Resolve version
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          else
+            v=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || true)
+            echo "VERSION=${v:-0.1.0}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Import Developer ID
+        if: ${{ secrets.DEVELOPER_ID_P12_BASE64 != '' }}
+        env:
+          P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+        run: |
+          # Temporary keychain so the certificate does not land in the runner's
+          # login keychain, and is gone when the job ends.
+          KEYCHAIN="$RUNNER_TEMP/nextnotes-signing.keychain-db"
+          PASS=$(openssl rand -base64 24)
+          security create-keychain -p "$PASS" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$PASS" "$KEYCHAIN"
+          echo "$P12_BASE64" | base64 --decode > "$RUNNER_TEMP/developer-id.p12"
+          security import "$RUNNER_TEMP/developer-id.p12" \
+            -k "$KEYCHAIN" -P "$P12_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$PASS" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/developer-id.p12"
+          security find-identity -v -p codesigning
+
+      - name: Build the disk image
+        run: make dmg VERSION="$VERSION"
+
+      - name: Upload the DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: NextNotes-${{ env.VERSION }}
+          path: |
+            ${{ env.HOME }}/Library/Caches/NextNotesBuild/NextNotes-${{ env.VERSION }}.dmg
+            ${{ env.HOME }}/Library/Caches/NextNotesBuild/NextNotes.dmg
+            ${{ env.HOME }}/Library/Caches/NextNotesBuild/NextNotes-${{ env.VERSION }}.dmg.sha256
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Attach to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.HOME }}/Library/Caches/NextNotesBuild/NextNotes-${{ env.VERSION }}.dmg
+            ${{ env.HOME }}/Library/Caches/NextNotesBuild/NextNotes.dmg
+            ${{ env.HOME }}/Library/Caches/NextNotesBuild/NextNotes-${{ env.VERSION }}.dmg.sha256
+          generate_release_notes: true
+          fail_on_unmatched_files: true

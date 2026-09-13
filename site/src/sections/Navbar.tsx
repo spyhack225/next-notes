@@ -1,7 +1,7 @@
 import { Github } from "lucide-react";
 import { motion } from "framer-motion";
 import Orb from "../components/Orb";
-import { REPO_URL } from "../lib/motion";
+import { DOWNLOAD_URL, REPO_URL } from "../lib/motion";
 
 const links = [
   { label: "How it works", href: "#how-it-works" },
@@ -37,15 +37,23 @@ export default function Navbar() {
           ))}
         </div>
 
-        <a
-          href={REPO_URL}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="Next Notes on GitHub"
-          className="liquid-glass w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-foreground/80 hover:text-foreground transition-colors"
-        >
-          <Github className="w-[18px] h-[18px]" strokeWidth={1.6} />
-        </a>
+        <div className="flex items-center gap-3 shrink-0">
+          <a
+            href={DOWNLOAD_URL}
+            className="hidden sm:inline-block text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
+          >
+            Download
+          </a>
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Next Notes on GitHub"
+            className="liquid-glass w-10 h-10 rounded-full flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors"
+          >
+            <Github className="w-[18px] h-[18px]" strokeWidth={1.6} />
+          </a>
+        </div>
       </nav>
     </motion.header>
   );

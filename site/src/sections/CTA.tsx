@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import Orb from "../components/Orb";
-import { fadeUp, REPO_URL } from "../lib/motion";
+import { fadeUp, DOWNLOAD_URL, REPO_URL } from "../lib/motion";
 
 export default function CTA() {
   return (
@@ -31,21 +31,20 @@ export default function CTA() {
           {...fadeUp(0.2)}
           className="text-muted-foreground text-lg mt-6 max-w-xl leading-relaxed"
         >
-          There is no signed release yet, so you build it yourself — clone the repo and run{" "}
-          <code className="text-foreground/80">make install</code>. It compiles, installs to
-          your Applications folder and walks you through the permissions.
+          Download the app, or clone the repo and run{" "}
+          <code className="text-foreground/80">make install</code>. The disk image is small;
+          speech and notes models download on first use. The build is not notarized yet, so
+          the first open is right-click the app and choose Open.
         </motion.p>
 
         <motion.div {...fadeUp(0.3)} className="flex flex-wrap gap-4 justify-center mt-10">
           <motion.a
-            href={REPO_URL}
-            target="_blank"
-            rel="noreferrer"
+            href={DOWNLOAD_URL}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
             className="bg-foreground text-background rounded-lg px-8 py-3.5 text-sm font-medium inline-block"
           >
-            Get Next Notes
+            Download for Mac
           </motion.a>
           <motion.a
             href={REPO_URL}

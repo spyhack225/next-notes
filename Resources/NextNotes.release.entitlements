@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Deliberately NOT sandboxed: a CGEventTap and system-wide AX access are both
+	     impossible inside the App Sandbox. Distribution is Developer ID, not MAS. -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+	<!-- No `disable-library-validation`. The debug entitlements file carries it because
+	     ad-hoc and local-signing builds have no Team ID, so hardened-runtime library
+	     validation rejects the bundled llama.framework. A Developer ID re-signs that
+	     framework with the same identity as the app, and matching Team IDs satisfy
+	     the check. If a release build then fails to load the framework, the cause is
+	     a signing order or Team ID mismatch — put the entitlement back and you have
+	     hidden that, not fixed it. -->
+</dict>
+</plist>
