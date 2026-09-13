@@ -62,7 +62,7 @@ export default function Hero() {
           style={{ color: "hsl(var(--hero-subtitle))" }}
         >
           Speak into any app and the words appear. Sit in any meeting and the notes write
-          themselves. All of it happens on your Mac.
+          themselves. Ask the Mac, and it answers on this machine.
         </motion.p>
 
         <motion.div

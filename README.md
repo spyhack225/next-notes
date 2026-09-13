@@ -1,7 +1,8 @@
 # Next Notes
 
 Push-to-talk dictation for macOS. Hold a key, talk, release — cleaned-up text lands in the
-app you were already in. A Wispr Flow-shaped app, built native and fully on-device.
+app you were already in. Meetings record themselves. ⇧⌘ Space talks to the Mac. A Wispr
+Flow-shaped app, built native and fully on-device.
 
 ![Next Notes turning a spoken false start into a finished sentence](site/public/demo-dictation.gif)
 
@@ -14,10 +15,16 @@ microphone and the system's own output are captured as two separate tracks and t
 separately, which is where the "You" and "Others" attribution in a meeting transcript comes
 from. A finished recording then walks itself the rest of the way — tell the speakers on the
 system track apart, write Granola-style notes with a local LLM, and offer follow-up actions
-in Gmail, Calendar, Drive and Docs that only happen if you approve them. Everything runs on
-this Mac; the only network traffic is a model download, your own calendar, and a Workspace
-action you approved. The Windows app builds and is exercised in CI, but has not yet been
-used for a real microphone/key/injection session on Windows hardware.
+in Gmail, Calendar, Drive and Docs that only happen if you approve them. Separately, ⇧⌘ Space
+or “Hey Next” opens a conversation with the same Mac: silence ends a turn, Done leaves the
+session, and it can inspect the frontmost window, click and type after you approve, search
+files, run a shell command (never sudo), or hand longer work to a coding CLI you already
+have installed. Optional MCP servers and Composio sit behind the same permission broker;
+native Workspace tools stay on `gws`. Everything runs on this Mac; the only network traffic
+is a model download, your own calendar, a Workspace action you approved, and a coding agent
+or MCP server you chose to add. The Windows app is dictation only: it builds and is
+exercised in CI, but has not yet been used for a real microphone/key/injection session on
+Windows hardware.
 
 **Meetings record themselves by default.** Once Calendar access is granted, Next Notes reads
 your calendars (Apple Calendar through EventKit, and optionally Google Calendar through its
@@ -55,8 +62,9 @@ Notes tab fills in.
 
 **The island.** On a MacBook with a notch, the Next Notes status lives in a small card
 hugging it — what is being dictated, a meeting about to start with **Record now** /
-**Skip**, the elapsed recording, notes being written, and an agent proposal with
-**Approve** / **Dismiss**. Hover expands it. On a display without a notch it is a floating
+**Skip**, the elapsed recording, notes being written, an agent conversation (silence
+ends a turn; **Done** leaves), and an agent proposal with **Approve** / **Dismiss**.
+Hover expands it. On a display without a notch it is a floating
 capsule under the menu bar, and Settings ▸ Dictation can put dictation back on the old
 bottom-of-screen HUD instead.
 
@@ -183,6 +191,16 @@ Do not commit the DMG; it lives on the Release, not in `docs/`.
                   DiarizationService    NotesService        AgentService
                   (speaker labels)      (local LLM)      (proposals, approved
                                                           one at a time)
+
+ ⇧⌘ Space / “Hey Next” ─► ActivationController ─► AgentCaptureController
+                                                      │
+                                                      ▼
+                                                RealtimeAgent
+                                                      │
+              ┌──────────────┬────────────────────────┼──────────────┬─────────────┐
+              ▼              ▼                        ▼              ▼             ▼
+        Computer         Files / shell         WorkspaceToolRunner  ACP         MCP
+        (AX ids)         (no sudo)             (gws, approved)     (optional)  (optional)
 ```
 
 ### Decisions worth knowing
@@ -301,6 +319,8 @@ Sources/NextNotes/
 │   └── WakeWord/                   phrase config, local keywords.txt, trainer
 ├── Computer/
 │   ├── ComputerToolExecutor.swift  NSWorkspace + Accessibility, no screenshots
+│   ├── ComputerIntent.swift        click / type / inspect parsed from an utterance
+│   ├── ComputerSelfTestHarness.swift  --selftest-computer: an owned window, then a stub
 │   ├── AccessibilitySnapshot.swift inspect_ui ids the click/set_text tools reuse
 │   └── BrowserToolExecutor.swift   snapshot → id → act → snapshot; stubs stay empty
 ├── Shell/
@@ -330,9 +350,11 @@ Sources/NextNotes/
 │   │                               ProposalArgumentsSheet, SpeakerNamesSheet
 │   ├── Agent/                      AgentView — conversation, tasks, audit history
 │   ├── Onboarding/                 PermissionsChecklist, OnboardingSheet
-│   └── Settings/                   SettingsWindow + one Form per tab: General, Dictation,
-│                                   Formatting, Meetings, Calendar, Workspace, Agent,
-│                                   Integrations, Models, Permissions
+│   └── Settings/                   SettingsWindow + one Form per tab, ten panes:
+│                                   General, Dictation, Formatting, Meetings, Calendar,
+│                                   Workspace, Agent, Integrations, Models, Permissions.
+│                                   `--selftest-settings` fails if any drop out of
+│                                   `SettingsTab.allCases`.
 └── Support/
     ├── Settings.swift, LocalModelStore.swift, Permissions.swift, Log.swift
     ├── ModelDownloader.swift       one ModelSpec download path with progress + SHA-256
@@ -359,10 +381,13 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-calls                   # who holds mic + speakers now, and every CallPolicy rule
 #                                         including arming: correlation, the grant guard, ask-first
 "$S" --selftest-island                  # island geometry per display, panel invariants, states
-"$S" --selftest-orb                     # the four ThinkingOrb modes at both sizes
+"$S" --selftest-orb                     # the nine ThinkingOrb states at both sizes
 "$S" --selftest-gws                     # locate `gws`, read its version and auth state
 "$S" --selftest-agent <meeting-dir>     # proposals as JSON; executes nothing
+"$S" --selftest-cleanup [engine]        # rules / apple / s1 / qwen / chain / all against the eval corpus
 "$S" --selftest-dictation               # every way a hold can go wrong still ends at idle
+"$S" --selftest-learn                   # CorrectionLearner acceptances and the rejections
+"$S" --selftest-axreadback              # which frontmost apps expose readable AX text
 "$S" --selftest-context [bundle-id]     # harvest an editor's window: names, paths, ms,
 #                                         the grounding block, and what stopped the walk
 "$S" --selftest-tools                   # registry, native-first router, permission broker
@@ -448,7 +473,35 @@ ends*), and **Regenerate** rewrites them with either provider afterwards.
 
 ---
 
-## The Workspace agent
+## The agent
+
+Push-to-talk stays dictation. ⇧⌘ Space (Settings ▸ Agent; configurable) or the wake
+phrase — default “Hey Next”, after the keyword model is downloaded — opens a conversation.
+Silence ends a turn; **Done** on the island leaves the session. “what can you do” answers
+from a canned list and does not wait on a model. Open-ended chat needs Apple Intelligence
+or Qwen in Settings ▸ Models.
+
+The same local LLM that writes notes can answer from meeting context and the calendar
+without a tool call. A longer job is handed to a background task. Settings ▸ Agent picks
+the default harness (local tools, or an ACP coding CLI: Claude Code, Codex, Qwen Code,
+OpenCode). Naming one in the utterance wins for that turn. Calendar, mail, Drive, Docs,
+click and type stay on this Mac unless you name a coding agent. A live CLI has to be on
+`PATH`; `--selftest-acp` speaks the session protocol to a local fixture.
+
+**Computer, files, shell.** `inspect_ui` reads the frontmost window over Accessibility and
+returns ids. `click`, `type` and `set_text` reuse those ids — no screenshots. Inspecting is
+automatic; clicks and typing raise an **Approve** card unless Settings ▸ Agent ▸ *Click and
+type without asking* is on. Accessibility is required. Files are a bounded search, read,
+write, trash and reveal. The shell is a cancellable `zsh` with `sudo`, `su`, `osascript`
+and the rest of a short denylist refused. Sending, deleting and privileged commands always
+ask. There is no switch that allows everything.
+
+**Integrations.** MCP servers (stdio or HTTP) are added in Settings ▸ Integrations and
+pass the same permission broker. Composio is an optional gateway for the rest of its
+catalogue and needs an API key; without one it does nothing. A native `gws` tool wins when
+one exists.
+
+### Workspace
 
 Optional, off until you turn it on, and it is a proposer rather than an actor. After a
 meeting — and, if *Watch during the meeting* is on, every two minutes during one — the same
@@ -655,8 +708,9 @@ this repository instead. If a release ever ships, the call to action is the thin
    design and constraints are in [`docs/S1-MINI-WINDOWS.md`](docs/S1-MINI-WINDOWS.md).
 3. **Notarization and Windows distribution signing.** Local macOS builds use a stable
    Developer ID when available, but neither platform has a complete distribution pipeline.
-4. **Meetings on Windows.** Everything from the process tap onwards is macOS-only; the
-   Windows app is still dictation.
+4. **Meetings and the agent on Windows.** Everything from the process tap onwards is
+   macOS-only; the Windows app is still dictation. No island, no wake phrase, no
+   computer tools, no `gws`.
 
 ### Written but never exercised end to end
 
@@ -680,6 +734,11 @@ had the one real thing it needs:
 
 - **Workspace writes.** `gws` reports no credentials on this machine, so no proposal has
   ever been approved and no Doc, event or email has been created by the agent.
+- **Composio.** Settings ▸ Integrations accepts a key; none has been entered, so the
+  gateway has never listed a live tool.
+- **A live coding CLI over ACP.** `--selftest-acp` talks to a local fixture. Claude Code,
+  Codex, Qwen Code or OpenCode still have to be installed by the user before a real
+  hand-off.
 
 ---
 
@@ -716,6 +775,11 @@ events) and confirmed via `/usr/bin/log show --predicate 'subsystem ==
   and passes clicks through outside its own rectangle (`--selftest-island`).
 - The auto-record rules over invented events, and the agent's tool catalogue, parser and
   risk gate (`--selftest-calendar`, `--selftest-agent`) — both need no account.
+- The conversational agent: canned “what can you do”, duplex VAD, harness routing,
+  wake-phrase spotting, inspect/click/type on an owned window, filesystem search/read,
+  sudo refused, MCP and ACP handshakes against local fixtures
+  (`--selftest-realtime`, `--selftest-wake`, `--selftest-computer`, `--selftest-fs`,
+  `--selftest-mcp`, `--selftest-acp`, `--selftest-settings`).
 
 **Nobody has looked at the redesigned UI or the island on screen.** The self-tests prove
 geometry and behaviour, not appearance: hover-to-expand, the growth out of the notch, the

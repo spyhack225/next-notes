@@ -5,8 +5,8 @@ import { fadeUp } from "../lib/motion";
 
 /**
  * The orb over each card is the app's own binding, not decoration: dictation listens, a
- * meeting braids two tracks into one, diarization is a clustering problem clicking into
- * place, and the agent sweeps your mail and calendar.
+ * meeting braids two tracks into one, the agent reads things it did not write, and
+ * Workspace is two parties being wired together.
  */
 const features: { title: string; body: string; orb: OrbState }[] = [
   {
@@ -18,6 +18,16 @@ const features: { title: string; body: string; orb: OrbState }[] = [
     orb: "weaving",
     title: "Meetings record themselves",
     body: "It reads your calendar and starts when the meeting does, asking first. Your microphone and what comes out of your speakers are heard as two separate tracks, which is how the transcript knows who said what without anything joining the call.",
+  },
+  {
+    orb: "searching",
+    title: "Ask the Mac",
+    body: "⇧⌘ Space, or say “Hey Next”. Silence ends a turn; Done leaves the conversation. Ask “what can you do” and it answers without a model. Longer work can go to a coding agent you already have installed.",
+  },
+  {
+    orb: "searching",
+    title: "Clicks, files, a command",
+    body: "It can read the frontmost window, click and type, search a folder and run a shell command — never sudo. Each of those raises an Approve card unless you already said it may.",
   },
   {
     orb: "searching",
@@ -49,7 +59,7 @@ export default function WhatItDoes() {
           {...fadeUp(0.1)}
           className="text-4xl md:text-6xl font-medium tracking-[-1.5px] text-center mt-6 leading-[1.05]"
         >
-          Talk. Meet. Then it{" "}
+          Talk. Meet. Ask. Then it{" "}
           <span className="font-serif italic font-normal">follows through.</span>
         </motion.h2>
 
@@ -75,7 +85,7 @@ export default function WhatItDoes() {
           </p>
         </motion.div>
 
-        <div id="meetings" className="grid md:grid-cols-4 gap-12 md:gap-8 mt-24 scroll-mt-28">
+        <div id="meetings" className="grid md:grid-cols-2 lg:grid-cols-3 gap-12 md:gap-8 mt-24 scroll-mt-28">
           {features.map((feature, i) => (
             <motion.div key={feature.title} {...fadeUp(0.08 * i)}>
               <Orb state={feature.orb} size={64} className="-ml-1 mb-5" />
