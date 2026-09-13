@@ -19,6 +19,7 @@ struct MeetingDetailView: View {
     @State private var isConfirmingDelete = false
     @State private var isExporting = false
     @State private var isRenamingSpeakers = false
+    @State private var isRenamingMeeting = false
 
     private enum Tab: String, CaseIterable, Identifiable {
         case notes
@@ -124,6 +125,11 @@ struct MeetingDetailView: View {
                 store.save(renamed)
             }
         }
+        .sheet(isPresented: $isRenamingMeeting) {
+            RenameMeetingSheet(meeting: meeting) { title in
+                store.rename(meeting, to: title)
+            }
+        }
         .fileExporter(
             isPresented: $isExporting,
             document: TextDocument(text: exportText, contentType: exportType),
@@ -152,6 +158,8 @@ struct MeetingDetailView: View {
                     isOrbAnimated: isHeaderOrbAnimated
                 )
                 .lineLimit(2)
+                .onTapGesture(count: 2) { isRenamingMeeting = true }
+                .help("Double-click to rename")
                 Spacer()
                 actions
             }
@@ -234,6 +242,7 @@ struct MeetingDetailView: View {
             .help("Write the notes again with a chosen model")
 
             Menu {
+                Button("Rename…") { isRenamingMeeting = true }
                 Button("Identify speakers") { diarization.identifySpeakers(in: meeting) }
                     .disabled(!canIdentifySpeakers)
                 Button("Rename speakers…") { isRenamingSpeakers = true }

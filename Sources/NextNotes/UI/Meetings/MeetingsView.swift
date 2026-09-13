@@ -13,6 +13,7 @@ struct MeetingsView: View {
     @State private var scheduler = MeetingScheduler.shared
     @State private var selection: MeetingSelection?
     @State private var query = ""
+    @State private var renaming: Meeting?
 
     var body: some View {
         HSplitView {
@@ -48,6 +49,11 @@ struct MeetingsView: View {
             if isSearching { await store.prepareSearchIndex() }
         }
         .task { await calendar.refresh() }
+        .sheet(item: $renaming) { meeting in
+            RenameMeetingSheet(meeting: meeting) { title in
+                store.rename(meeting, to: title)
+            }
+        }
         // A meeting that starts anywhere — the menu bar, and from Phase 3 the scheduler —
         // opens itself here, so the section is never showing a stale meeting while another
         // one records. When the session ends, the selection moves from the live slot onto
@@ -141,6 +147,9 @@ struct MeetingsView: View {
                 Section("Live") {
                     MeetingRow(meeting: live, isLive: true, elapsed: controller.elapsed)
                         .tag(MeetingSelection.live)
+                        .contextMenu {
+                            Button("Rename…") { renaming = live }
+                        }
                 }
             }
 
@@ -160,6 +169,9 @@ struct MeetingsView: View {
                     ForEach(upcomingMeetings) { meeting in
                         MeetingRow(meeting: meeting)
                             .tag(MeetingSelection.meeting(meeting.id))
+                            .contextMenu {
+                                Button("Rename…") { renaming = meeting }
+                            }
                     }
                 }
             }
@@ -170,6 +182,7 @@ struct MeetingsView: View {
                         MeetingRow(meeting: meeting)
                             .tag(MeetingSelection.meeting(meeting.id))
                             .contextMenu {
+                                Button("Rename…") { renaming = meeting }
                                 Button("Delete", role: .destructive) { delete(meeting) }
                             }
                     }

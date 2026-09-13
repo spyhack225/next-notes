@@ -90,6 +90,14 @@ final class MeetingController {
         problem = nil
     }
 
+    /// Keeps the in-memory session in step with a rename that went through the store.
+    ///
+    /// The live pane and the island read `session.meeting.title`, not the copy on disk, so
+    /// a save alone would leave the recording looking un-renamed until it stopped.
+    func syncTitle(of id: UUID, to title: String) {
+        session?.applyTitle(title, ifID: id)
+    }
+
     /// "Meeting · 14:30" — enough to tell two ad-hoc recordings apart in a list.
     private static func defaultTitle(at date: Date) -> String {
         let time = date.formatted(date: .omitted, time: .shortened)

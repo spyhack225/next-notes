@@ -45,6 +45,20 @@ final class MeetingContextStore {
         replace(nil)
     }
 
+    /// Keeps the agent's copy of the name in step with a rename. Nothing to do when this
+    /// meeting has never grown a `context.json`.
+    func rename(meetingID: UUID, to title: String) {
+        if var context = current, context.meetingID == meetingID {
+            context.title = title
+            current = context
+            save(context, meetingID: meetingID)
+            return
+        }
+        guard var context = load(meetingID: meetingID) else { return }
+        context.title = title
+        save(context, meetingID: meetingID)
+    }
+
     /// `--selftest-realtime` plants a fixture without a recording.
     func replace(_ context: MeetingContext?) {
         current = context

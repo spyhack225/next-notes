@@ -1,9 +1,11 @@
+import AppKit
 import SwiftUI
 
 /// Which engine hears you, and what happens to the text before it is typed.
 struct DictationSettingsTab: View {
     @State private var settings = Settings.shared
     @State private var models = LocalModelStore.shared
+    @State private var isPickingAutoSendApp = false
 
     var body: some View {
         Form {
@@ -50,6 +52,51 @@ struct DictationSettingsTab: View {
                 Text("Where the text goes")
             } footer: {
                 SettingsNote(text: switchAwayNote)
+            }
+
+            Section {
+                Toggle("Auto-send after dictation", isOn: $settings.autoSendEnabled)
+
+                if !settings.autoSendEnabled {
+                    if autoSendApps.isEmpty {
+                        LabeledOrb(
+                            state: .breathing,
+                            title: "No apps yet",
+                            detail: "Add an app to press Return only there. Everywhere else "
+                                + "you send it yourself.",
+                            size: DS.Size.orbBadge,
+                            isAnimated: false
+                        )
+                    }
+
+                    ForEach(autoSendApps) { app in
+                        LabeledContent {
+                            Button("Remove", role: .destructive) {
+                                settings.removeAutoSendApp(bundleID: app.bundleID)
+                            }
+                        } label: {
+                            HStack(spacing: DS.Space.s) {
+                                if let icon = appIcon(for: app.bundleID) {
+                                    Image(nsImage: icon)
+                                        .resizable()
+                                        .frame(width: DS.Size.appIcon, height: DS.Size.appIcon)
+                                }
+                                VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                                    Text(app.name)
+                                    Text(app.bundleID)
+                                        .font(DS.Font.caption)
+                                        .foregroundStyle(DS.Color.textSecondary)
+                                }
+                            }
+                        }
+                    }
+
+                    Button("Add App\u{2026}") { isPickingAutoSendApp = true }
+                }
+            } header: {
+                Text("After inserting")
+            } footer: {
+                SettingsNote(text: autoSendNote)
             }
 
             Section {
@@ -104,6 +151,44 @@ struct DictationSettingsTab: View {
         }
         .formStyle(.grouped)
         .animation(DS.Motion.standard, value: settings.cleanupEnabled)
+        .animation(DS.Motion.standard, value: settings.autoSendEnabled)
+        .sheet(isPresented: $isPickingAutoSendApp) {
+            InstalledAppPickerSheet(alreadyListed: Set(settings.autoSendApps.keys)) { app in
+                settings.addAutoSendApp(bundleID: app.bundleID, name: app.displayName)
+            }
+        }
+    }
+
+    private struct AutoSendApp: Identifiable {
+        let bundleID: String
+        let name: String
+        var id: String { bundleID }
+    }
+
+    /// Sorted by the name a person would recognise, not by when it was added: a list that
+    /// reorders itself while Settings is open moves the row under the pointer.
+    private var autoSendApps: [AutoSendApp] {
+        settings.autoSendApps
+            .map { AutoSendApp(bundleID: $0.key, name: $0.value) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    private func appIcon(for bundleID: String) -> NSImage? {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+        else { return nil }
+        return NSWorkspace.shared.icon(forFile: url.path)
+    }
+
+    private var autoSendNote: String {
+        if settings.autoSendEnabled {
+            return "After the text is typed, Return is pressed so Slack, Messages and mail "
+                + "compose windows send it. Turn this off to choose which apps do that."
+        }
+        if autoSendApps.isEmpty {
+            return "Return is not pressed. Add an app to send automatically only there."
+        }
+        return "Return is pressed only in the apps listed here. Everywhere else you send "
+            + "the dictation yourself."
     }
 
     /// The orb the transcription note carries — `shaping`, a model being fetched and

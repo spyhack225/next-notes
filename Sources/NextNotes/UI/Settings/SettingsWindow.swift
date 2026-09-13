@@ -163,10 +163,11 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
 
     /// What `--selftest-settings` answers: every pane is listed, Formatting is one of
     /// them, every heading still contains U+0020, letter-spacing is not collapsing
-    /// words, each pane's real form can be built, and a captured output profile
-    /// actually reaches the cleanup prompt — a `NavigationSplitView` inside `Settings`
-    /// drew ten gray bars instead, and an unused `OutputProfileStore` wrote
-    /// `formatting.txt` that dictation never read.
+    /// words, each pane's real form can be built, a captured output profile
+    /// actually reaches the cleanup prompt, and the auto-send policy matches the
+    /// four combinations a toggle and an app list can produce — a `NavigationSplitView`
+    /// inside `Settings` drew ten gray bars instead, and an unused `OutputProfileStore`
+    /// wrote `formatting.txt` that dictation never read.
     @MainActor
     static func catalogFailures() -> [String] {
         var failures: [String] = []
@@ -214,6 +215,7 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
         }
 
         failures.append(contentsOf: OutputProfileStore.captureFailures())
+        failures.append(contentsOf: AutoSendPolicy.selfTestFailures())
 
         return failures
     }
