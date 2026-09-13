@@ -91,6 +91,13 @@ stable for the life of the certificate.
 
 ## Phase 2 — A release build target
 
+**Done, minus the paid flag.** `make release` and `make dmg` live in the `Makefile`.
+They build `-c release`, stamp the version from the git tag, and wrap a
+drag-to-Applications image. They do **not** pass `-DPAID_BUILD` — that flag is still
+the product boundary below, and a GitHub-hosted DMG is the free app. A Developer ID
+switches on the secure timestamp and `NextNotes.release.entitlements`; without one,
+the release binary is still locally or ad-hoc signed.
+
 **Blocks:** everything downstream. **Effort:** half a day.
 
 The debug path in `Makefile` is already close to right: it stages outside the synced tree, it
@@ -416,6 +423,11 @@ the runner image does not have macOS 26. **That comment is now stale** — `maco
 generally available for GitHub-hosted runners in February 2026, on Apple silicon. The app
 target can now build in CI, which means the whole release can.
 
+`.github/workflows/release.yml` already builds the DMG on `macos-26` and attaches it
+to the GitHub Release for a `v*` tag. What is still missing is the Developer ID
+import actually having a certificate behind it, notarization, Sparkle, and
+`PAID_BUILD`. The rest of this phase is those remaining steps.
+
 Add `.github/workflows/release.yml`, triggered on `v*` tags:
 
 1. `runs-on: macos-26`
@@ -454,8 +466,10 @@ already tied to the tag, and the appcast can point straight at the asset URL. On
 
 **Effort:** half a day. **Depends on:** a download existing.
 
-`site/src/sections/CTA.tsx` currently says, accurately: *"There is no signed release yet, so
-you build it yourself."* That sentence is the thing that changes.
+`site/src/sections/CTA.tsx` already offers **Download for Mac** (the latest GitHub Release
+DMG) and **View source**. What this phase still changes is the primary button becoming
+**Buy**, once there is a notarized image and a price. Until then the download is the
+unsigned convenience build, and the copy says so.
 
 The new CTA shows **both paths, without hiding either**:
 

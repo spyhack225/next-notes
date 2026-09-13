@@ -761,8 +761,10 @@ lookahead, `\p{L}`, and `$1`–`$9` in replacements. Nothing else.
 
 ## What isn't built
 
-1. **Notarization** (macOS) and **code signing** (Windows). Both apps are unsigned for
-   distribution, so Windows users will meet SmartScreen.
+1. **Notarization** (macOS) and **code signing** (Windows). `make dmg` and the
+   tag-triggered GitHub Release exist, but the image is ad-hoc or locally signed until
+   a Developer ID is in CI, so Gatekeeper still refuses a downloaded copy. Windows
+   users will meet SmartScreen.
 2. **An installer** for Windows, and model download from inside the app rather than by
    following `docs/PARAKEET-WINDOWS.md` by hand.
 3. **A Claude-backed cleanup or notes provider.** `TextFormatter`, `TextCommandProcessor`

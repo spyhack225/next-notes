@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import HeroStage, { HeroStageIsland, HeroStageDestinations } from "../components/HeroStage";
 import Orb from "../components/Orb";
-import { fadeUp, REPO_URL } from "../lib/motion";
+import { fadeUp, DOWNLOAD_URL, REPO_URL } from "../lib/motion";
 
 /**
  * Three rows, not a stack.
@@ -70,14 +70,12 @@ export default function Hero() {
           className="mt-8 sm:mt-10 liquid-glass rounded-full p-2 flex items-center gap-1 max-w-full"
         >
           <motion.a
-            href={REPO_URL}
-            target="_blank"
-            rel="noreferrer"
+            href={DOWNLOAD_URL}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
             className="bg-foreground text-background rounded-full px-6 sm:px-8 py-3 text-sm font-medium inline-block whitespace-nowrap"
           >
-            Get Next Notes
+            Download for Mac
           </motion.a>
           <a
             href={REPO_URL}

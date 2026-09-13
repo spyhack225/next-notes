@@ -133,7 +133,15 @@ list and will otherwise show the row you just deleted.
 > on this machine; the sync engine can materialize/dematerialize files inside an `.app` and
 > corrupt its signature. `make install` puts the running copy in `/Applications`.
 
-Other targets: `make app` (bundle only), `make run` (run in place), `make clean`.
+Other targets: `make app` (bundle only), `make run` (run in place), `make dmg`
+(release build + drag-to-Applications disk image), `make clean`.
+
+A `v*` tag on `main` runs `.github/workflows/release.yml`, which builds that same
+DMG on `macos-26` and attaches `NextNotes-$VERSION.dmg` and a stable `NextNotes.dmg`
+to the GitHub Release. The website's Download button points at
+`/releases/latest/download/NextNotes.dmg`. The image is not notarized — there is no
+Developer ID in CI yet — so the first open is right-click the app and choose Open.
+Do not commit the DMG; it lives on the Release, not in `docs/`.
 
 ---
 
@@ -613,8 +621,9 @@ both places.
 purpose. Editing it by hand works right up until the next build silently discards the change
 — edit `site/src/` instead. Publishing is a commit, not a CI run: App Platform watches
 `main` and republishes `docs/` exactly as committed. No workflow, no Actions minutes, and
-whatever was previewed locally is byte-for-byte what ships. The two workflows in
-`.github/workflows/` build the macOS and Windows apps and have nothing to do with the site.
+whatever was previewed locally is byte-for-byte what ships. The three workflows in
+`.github/workflows/` build the macOS and Windows apps and publish the macOS DMG on a
+`v*` tag; they have nothing to do with the site.
 
 The cost of that choice is build output in version control, which makes diffs noisy. The
 benefit is that a deploy can be verified locally before it ships, and there is no CI to be
