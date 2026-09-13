@@ -1,15 +1,12 @@
 /// Two local passes, each doing the thing it is actually good at.
 ///
-/// S1-mini is a purpose-trained punctuation and capitalisation model: fast, and incapable of
-/// grammar because it was never an instruction-following model. Apple's on-device model
-/// repairs grammar well but is a general model being asked to do restoration. Running them in
-/// that order — punctuate, then repair — gives the grammar stage a punctuated sentence to
-/// work on, which is the form it handles best.
+/// Kept for `--selftest-cleanup chain`. The live dictation path no longer uses this when
+/// grammar is on: S1 then Apple stacked two waits and the second often timed out, so the
+/// typed text was S1's punctuation with no grammar or layout. Apple already restores
+/// punctuation in the same call, so production spends that budget on one pass.
 ///
-/// Measured separately over the same 28 cases: S1-mini 0.511s warm median, Apple 0.686s. The
-/// chain costs roughly the sum, a little over a second, which is still inside the pause
-/// between releasing the key and looking at the screen. The alternative that avoids the
-/// second pass entirely — Qwen, which does both in one — takes 7.410s.
+/// Measured separately over the same 28 cases: S1-mini 0.511s warm median, Apple 0.686s.
+/// The chain costs roughly the sum when both are warm, and much more when S1 is cold.
 struct ChainedFormatter: TextFormatter {
     let first: any TextFormatter
     let second: any TextFormatter

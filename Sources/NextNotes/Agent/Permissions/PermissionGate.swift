@@ -59,4 +59,12 @@ final class PermissionGate {
         }
         return true
     }
+
+    /// Barge-in and Stop must not leave a tool parked on this continuation.
+    func cancelPending() {
+        pending = nil
+        waiter?.resume(returning: false)
+        waiter = nil
+        IslandState.shared.dismissNotice()
+    }
 }

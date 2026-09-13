@@ -119,10 +119,13 @@ final class AgentTaskManager {
                 title: outcome.status == .completed ? (outcome.result ?? "Done") : (outcome.failure ?? "Failed")
             )
             if let result = outcome.result {
-                IslandState.shared.showAgentReply(result)
+                announce(result)
+            } else if let failure = outcome.failure {
+                announce(failure)
             }
         } catch is CancellationError {
             update(id) { $0.status = .cancelled }
+            announce("Cancelled.")
         } catch let error as AgentError {
             if case .needsPermission(let title) = error {
                 update(id) { item in
@@ -142,11 +145,13 @@ final class AgentTaskManager {
                 item.failure = error.localizedDescription
             }
             AgentActivityStore.shared.finish(taskID: id, title: error.localizedDescription)
+            announce(error.localizedDescription)
         } catch {
             update(id) { item in
                 item.status = .failed
                 item.failure = error.localizedDescription
             }
+            announce(error.localizedDescription)
         }
         running[id] = nil
     }
@@ -166,6 +171,16 @@ final class AgentTaskManager {
 
     private func persist() {
         AgentTaskStore.shared.save(tasks)
+    }
+
+    /// Background work used to finish only in the task list. A failure the conversation
+    /// never hears is the same shape as a turn that never replied.
+    private func announce(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        AgentSession.shared.recordAssistant(trimmed)
+        AgentAuditLog.shared.record(kind: .reply, title: trimmed)
+        IslandState.shared.showAgentReply(trimmed)
     }
 }
 

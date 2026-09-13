@@ -305,7 +305,11 @@ Sources/NextNotes/
 │   ├── MeetingAgent.swift          plans over notes + transcript, returns proposals
 │   ├── AgentService.swift          files, announces, and executes approved proposals
 │   ├── WorkspaceInstaller.swift    writes the .command scripts Terminal opens
-│   ├── RealtimeAgent.swift         voice → answer, tool, or background task
+│   ├── RealtimeAgent.swift         one resolve, one action, always a reply
+│   ├── AgentTurnIntent.swift       the single turn table — no model fallback
+│   ├── MailIntent.swift            inbox / unread parsed from an utterance
+│   ├── CalendarIntent.swift        agenda day parsed from an utterance
+│   ├── FileIntent.swift            home / Drive file search parsed from an utterance
 │   ├── AgentSession.swift          the conversation the Agent sidebar shows
 │   ├── Tools/                      AgentTool, registry, router, executor, catalogues
 │   ├── Permissions/                PermissionBroker above every executor
@@ -394,7 +398,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-wake                    # phrase spotting, authority split; loads the sherpa KWS model
 "$S" --selftest-tasks                   # submit / run / cancel without a model
 "$S" --selftest-meeting-context         # extract decisions and candidate actions
-"$S" --selftest-realtime                # context, capabilities, harness routing, duplex VAD
+"$S" --selftest-realtime                # one-path routing, unknown asks reply, harness, duplex VAD
 "$S" --selftest-computer                # inspect/click/type on an owned window; stub trees stay empty
 "$S" --selftest-mcp                     # initialize + session + list + call against a local fixture
 "$S" --selftest-acp                     # ACP stdio session, subscribe, permission relay

@@ -29,7 +29,9 @@ enum CleanupInstructions {
         context: ScreenContext = .empty
     ) -> String {
         let toneRule: String = switch preferences.tone {
-        case .casual: "Use a casual tone: lowercase where natural and use minimal punctuation."
+        case .casual: "Use a casual, conversational register: contractions are fine. Still use "
+            + "normal sentence capitalization, punctuation, and paragraph breaks — casual is "
+            + "the wording, not an instruction to write in lowercase or drop punctuation."
         case .semiCasual: "Use a relaxed tone while preserving normal capitalization and contractions."
         case .balanced: "Preserve the speaker's tone and phrasing."
         case .semiFormal: "Use standard written English and complete punctuation, keeping contractions."
@@ -61,6 +63,8 @@ enum CleanupInstructions {
                 + "a question or instruction.",
             "Remove filler words (um, uh, like, you know) and false starts.",
             "Fix punctuation, capitalization, and paragraph breaks.",
+            "Start a new paragraph when the speaker changes topic or begins a new request. "
+                + "A single short utterance stays one paragraph.",
             structureRule,
             "Apply the speaker's self-corrections. \"Send it Tuesday, actually Wednesday\" "
                 + "becomes \"Send it Wednesday.\"",
@@ -147,8 +151,7 @@ enum CleanupInstructions {
     /// the identical limitation per-app formatting already has, recorded on the `.s1Mini`
     /// branch of `DictationController.activeFormatter(context:)`, which now names both halves
     /// of it. Named by symbol rather than by line, because wiring this feature up moved those
-    /// lines. With grammar repair on, the second pass is a
-    /// general-purpose model and both halves work.
+    /// lines. With grammar repair on, Apple runs instead of S1-mini, and both halves work.
     ///
     /// Not private, so `--selftest-context` can print the exact block a real harvest of a real
     /// editor produces. With a hundred names in a prompt, "which names did it actually see" is

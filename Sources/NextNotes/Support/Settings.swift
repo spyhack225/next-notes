@@ -225,8 +225,9 @@ final class Settings {
     ///
     /// Only the Apple engine can do this. S1-mini is a purpose-trained punctuation and
     /// capitalisation model, not an instruction-following one; it has no grammar mode to
-    /// switch on. `activeFormatter` therefore ignores this for `.s1Mini`, and the Dictation
-    /// settings tab says so rather than offering a switch that would do nothing.
+    /// switch on. `activeFormatter` therefore uses Apple alone when this is on, even if the
+    /// cleanup picker says S1-mini — chaining the two was a second wait that often timed
+    /// out and left the unformatted S1 text as what got typed.
     ///
     /// On by default because it measured both better and faster than the alternative: over
     /// the 28 evaluation cases, Apple returned 19 clean against Qwen's 14, at a warm median
