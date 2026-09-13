@@ -345,13 +345,15 @@ Sources/NextNotes/
 │   │                               ModelStatusRow, CopyButton, StatusChip, MarkdownView,
 │   │                               ProblemBanner, FlowLayout, ThinkingOrbs/,
 │   │                               OrbBackdrop, DottedField, GlassSurface,
-│   │                               LabeledOrb, SectionHeading, OrbUnavailableView
+│   │                               LabeledOrb, SectionHeading, OrbUnavailableView,
+│   │                               InstalledAppPickerSheet
 │   ├── Dictation/                  DictationView, TranscriptionRow
 │   ├── Dictionary/                 DictionaryPanel
 │   ├── Comparison/                 ComparisonView
 │   ├── Meetings/                   MeetingsView, MeetingLiveView, MeetingDetailView,
 │   │                               TranscriptView, MeetingActionsView,
-│   │                               ProposalArgumentsSheet, SpeakerNamesSheet
+│   │                               ProposalArgumentsSheet, SpeakerNamesSheet,
+│   │                               RenameMeetingSheet
 │   ├── Agent/                      AgentView — conversation, tasks, audit history
 │   ├── Onboarding/                 PermissionsChecklist, OnboardingSheet
 │   └── Settings/                   SettingsWindow + one Form per tab, ten panes:

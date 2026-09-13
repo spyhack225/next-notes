@@ -10,12 +10,19 @@ struct MeetingLiveView: View {
     @Bindable var session: MeetingSession
 
     @State private var controller = MeetingController.shared
+    @State private var store = MeetingStore.shared
+    @State private var isRenamingMeeting = false
 
     var body: some View {
         VStack(spacing: 0) {
             header
             Divider()
             transcript
+        }
+        .sheet(isPresented: $isRenamingMeeting) {
+            RenameMeetingSheet(meeting: session.meeting) { title in
+                store.rename(session.meeting, to: title)
+            }
         }
     }
 
@@ -33,6 +40,8 @@ struct MeetingLiveView: View {
                 VStack(alignment: .leading, spacing: DS.Space.xxs) {
                     Text(session.meeting.title)
                         .font(DS.Font.title3)
+                        .onTapGesture(count: 2) { isRenamingMeeting = true }
+                        .help("Double-click to rename")
                     RecordingIndicator(elapsed: session.elapsed)
                 }
                 Spacer()

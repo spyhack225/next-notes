@@ -160,6 +160,15 @@ enum MeetingStatus: Codable, Sendable, Equatable {
     }
 }
 
+/// A meeting name the user typed. Empty after trimming is not a name: `title` is required
+/// on disk, and saving a blank one would make the row look deleted.
+enum MeetingTitle {
+    static func cleaned(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
 /// One meeting: what it was, when, and what came out of it.
 ///
 /// The heavy parts — transcript, notes, audio — live in sibling files rather than in this

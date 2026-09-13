@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import Carbon.HIToolbox
 import Foundation
 
 /// Puts text into a text field — by default whatever currently has keyboard focus, or,
@@ -95,7 +96,8 @@ enum TextInjector {
             }
         }
 
-        insert(text)
+        let placement = await place(text)
+        await maybeAutoSend(after: placement, origin: origin)
         return .inserted
     }
 
@@ -192,8 +194,54 @@ enum TextInjector {
             Log.inject.info("inserted via AX (\(text.count) chars)")
         case .unverified(let reason):
             Log.inject.info("AX insert not verified (\(reason, privacy: .public)) — pasting")
-            insertViaPasteboard(text)
+            Task { @MainActor in
+                await insertViaPasteboard(text)
+            }
         }
+    }
+
+    private enum Placement {
+        case accessibility
+        case pasteboard
+    }
+
+    /// The dictation path: wait for the paste to land before Return can follow it.
+    private static func place(_ text: String) async -> Placement {
+        switch insertViaAccessibility(text) {
+        case .inserted:
+            Log.inject.info("inserted via AX (\(text.count) chars)")
+            return .accessibility
+        case .unverified(let reason):
+            Log.inject.info("AX insert not verified (\(reason, privacy: .public)) — pasting")
+            await insertViaPasteboard(text)
+            return .pasteboard
+        }
+    }
+
+    /// Presses Return after a successful insert, when the setting says to.
+    ///
+    /// Skipped for Command Mode (`replace`) and for the clipboard-only outcomes, because
+    /// those never typed anything. The bundle id is the app the text actually landed in:
+    /// the origin captured at key-down, or the frontmost app when the user asked to insert
+    /// wherever they are.
+    private static func maybeAutoSend(after placement: Placement, origin: Origin?) async {
+        let bundleID: String?
+        if let origin, origin.isFrontmost {
+            bundleID = origin.app.bundleIdentifier
+        } else {
+            let front = NSWorkspace.shared.frontmostApplication
+            bundleID = front?.bundleIdentifier
+        }
+        guard Settings.shared.shouldAutoSend(to: bundleID) else { return }
+
+        switch placement {
+        case .accessibility:
+            try? await Task.sleep(for: .milliseconds(50))
+        case .pasteboard:
+            break
+        }
+        postReturn()
+        Log.inject.info("auto-send Return in \(bundleID ?? "unknown", privacy: .public)")
     }
 
     private enum AXOutcome {
@@ -287,7 +335,7 @@ enum TextInjector {
 
     // MARK: - Strategy 2: Pasteboard + ⌘V
 
-    private static func insertViaPasteboard(_ text: String) {
+    private static func insertViaPasteboard(_ text: String) async {
         let pasteboard = NSPasteboard.general
         let saved = pasteboard.pasteboardItems?.compactMap { item -> [NSPasteboard.PasteboardType: Data] in
             var copy: [NSPasteboard.PasteboardType: Data] = [:]
@@ -300,16 +348,18 @@ enum TextInjector {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
 
-        Task { @MainActor in
-            // Give the target app a moment to observe the new pasteboard generation before
-            // ⌘V arrives, or a fast paste can grab the *previous* contents.
-            try? await Task.sleep(for: .milliseconds(40))
-            postCommandV()
-            Log.inject.info("pasted (\(text.count) chars)")
+        // Give the target app a moment to observe the new pasteboard generation before
+        // ⌘V arrives, or a fast paste can grab the *previous* contents.
+        try? await Task.sleep(for: .milliseconds(40))
+        postCommandV()
+        Log.inject.info("pasted (\(text.count) chars)")
 
-            // The paste is asynchronous in the target app; restore only once it's had time
-            // to read the pasteboard.
-            try? await Task.sleep(for: .milliseconds(500))
+        // Long enough for the paste to land, short enough that Return can follow it
+        // before the clipboard is restored. The restore itself waits out the rest of
+        // the original 500 ms budget in the background.
+        try? await Task.sleep(for: .milliseconds(80))
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(420))
             restore(saved, to: pasteboard)
         }
     }
@@ -326,6 +376,18 @@ enum TextInjector {
         // still be resting a finger on something.
         down.flags = .maskCommand
         up.flags = .maskCommand
+
+        down.post(tap: .cghidEventTap)
+        up.post(tap: .cghidEventTap)
+    }
+
+    private static func postReturn() {
+        guard let source = CGEventSource(stateID: .privateState) else { return }
+        let keyCode = CGKeyCode(kVK_Return)
+
+        guard let down = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true),
+              let up = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
+        else { return }
 
         down.post(tap: .cghidEventTap)
         up.post(tap: .cghidEventTap)

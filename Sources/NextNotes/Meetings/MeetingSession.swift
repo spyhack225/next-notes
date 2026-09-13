@@ -52,6 +52,13 @@ final class MeetingSession {
 
     var isRecording: Bool { meeting.status == .recording }
 
+    /// In-memory only. `MeetingStore.rename` writes the file and then calls this so the
+    /// live pane and the island do not keep showing the old name until the session ends.
+    func applyTitle(_ title: String, ifID id: UUID) {
+        guard meeting.id == id else { return }
+        meeting.title = title
+    }
+
     // MARK: - Lifecycle
 
     func start() async throws {

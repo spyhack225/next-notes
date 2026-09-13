@@ -128,6 +128,19 @@ final class MeetingStore {
         }
     }
 
+    /// Changes the name a person sees in the list. Empty after trimming is refused, so a
+    /// meeting can never lose the required `title` that decode treats as identity-adjacent.
+    @discardableResult
+    func rename(_ meeting: Meeting, to rawTitle: String) -> Bool {
+        guard let title = MeetingTitle.cleaned(rawTitle) else { return false }
+        var updated = self.meeting(id: meeting.id) ?? meeting
+        updated.title = title
+        save(updated)
+        MeetingContextStore.shared.rename(meetingID: updated.id, to: title)
+        MeetingController.shared.syncTitle(of: updated.id, to: title)
+        return true
+    }
+
     /// Removes a meeting and everything it produced.
     ///
     /// The work still running on it is stopped first, and from here rather than from each

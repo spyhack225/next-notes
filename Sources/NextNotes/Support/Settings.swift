@@ -134,6 +134,65 @@ enum DictionaryLearning: String, CaseIterable, Sendable, Identifiable {
     }
 }
 
+/// Whether Return is pressed after a dictation lands in a text field.
+///
+/// On (the default) means every app. Off means only the apps the user picked — and none
+/// at all until they pick one. The origin is the app captured at key-down, not whichever
+/// one happens to be frontmost after the tail.
+enum AutoSendPolicy {
+    static func shouldSend(
+        enabled: Bool,
+        selectedApps: [String: String],
+        bundleID: String?
+    ) -> Bool {
+        guard let bundleID, !bundleID.isEmpty else { return false }
+        if bundleID == AppIdentity.bundleIdentifier { return false }
+        if enabled { return true }
+        return selectedApps[bundleID] != nil
+    }
+
+    /// What `--selftest-settings` asks of the policy: the four combinations a toggle and
+    /// a list can produce, plus the two title-cleaning cases rename depends on. Pure, so
+    /// it fails without a grant or a key event.
+    static func selfTestFailures() -> [String] {
+        var failures: [String] = []
+        let slack = "com.tinyspeck.slackmacgap"
+        if !shouldSend(enabled: true, selectedApps: [:], bundleID: slack) {
+            failures.append("auto-send on should send in any app")
+        }
+        if shouldSend(enabled: true, selectedApps: [:], bundleID: nil) {
+            failures.append("auto-send on should not send without an origin app")
+        }
+        if shouldSend(enabled: true, selectedApps: [:], bundleID: AppIdentity.bundleIdentifier) {
+            failures.append("auto-send should never press Return in Next Notes")
+        }
+        if shouldSend(enabled: false, selectedApps: [:], bundleID: slack) {
+            failures.append("auto-send off with no apps should be manual")
+        }
+        if !shouldSend(
+            enabled: false,
+            selectedApps: [slack: "Slack"],
+            bundleID: slack
+        ) {
+            failures.append("auto-send off should send in a selected app")
+        }
+        if shouldSend(
+            enabled: false,
+            selectedApps: [slack: "Slack"],
+            bundleID: "com.apple.mail"
+        ) {
+            failures.append("auto-send off should stay manual in other apps")
+        }
+        if MeetingTitle.cleaned("  Stand-up  ") != "Stand-up" {
+            failures.append("meeting title should trim")
+        }
+        if MeetingTitle.cleaned("   ") != nil {
+            failures.append("blank meeting title should be rejected")
+        }
+        return failures
+    }
+}
+
 enum HUDPlacement: String, CaseIterable, Sendable, Identifiable {
     /// The island at the top of the screen — hugging the notch on a Mac that has one, and
     /// a capsule under the menu bar on one that doesn't.
@@ -279,6 +338,22 @@ final class Settings {
     /// always did.
     var switchAwayBehavior: SwitchAwayBehavior {
         didSet { defaults.set(switchAwayBehavior.rawValue, forKey: Keys.switchAwayBehavior) }
+    }
+
+    /// Press Return after the text is typed, so Slack / Messages / mail send it.
+    ///
+    /// On by default: the point of dictating into a composer is usually to send, and a
+    /// leftover Return the user has to press themselves is the one extra step this
+    /// setting exists to remove. Off is for people who want that step back everywhere
+    /// except the apps they list in `autoSendApps`.
+    var autoSendEnabled: Bool {
+        didSet { defaults.set(autoSendEnabled, forKey: Keys.autoSendEnabled) }
+    }
+
+    /// Apps that still press Return when `autoSendEnabled` is off, keyed by bundle
+    /// identifier to the name a person would recognise.
+    var autoSendApps: [String: String] {
+        didSet { defaults.set(autoSendApps, forKey: Keys.autoSendApps) }
     }
 
     /// Whether editing a past transcript teaches the dictionary.
@@ -600,6 +675,30 @@ final class Settings {
         callAppsSeen = seen
     }
 
+    /// Whether Return should follow a successful insert into this app.
+    ///
+    /// `bundleID` is the app the text actually landed in — the origin captured at
+    /// key-down, or the frontmost app when the user asked to insert wherever they are.
+    func shouldAutoSend(to bundleID: String?) -> Bool {
+        AutoSendPolicy.shouldSend(
+            enabled: autoSendEnabled,
+            selectedApps: autoSendApps,
+            bundleID: bundleID
+        )
+    }
+
+    func addAutoSendApp(bundleID: String, name: String) {
+        var apps = autoSendApps
+        apps[bundleID] = name
+        autoSendApps = apps
+    }
+
+    func removeAutoSendApp(bundleID: String) {
+        var apps = autoSendApps
+        apps[bundleID] = nil
+        autoSendApps = apps
+    }
+
     private let defaults = UserDefaults.standard
 
     private enum Keys {
@@ -622,6 +721,8 @@ final class Settings {
         static let llmMetalEnabled = "llmMetalEnabled"
         static let hudPlacement = "hudPlacement"
         static let switchAwayBehavior = "switchAwayBehavior"
+        static let autoSendEnabled = "autoSendEnabled"
+        static let autoSendApps = "autoSendApps"
         static let dictionaryLearning = "dictionaryLearning"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let meetingsKeepAudio = "meetingsKeepAudio"
@@ -704,6 +805,8 @@ final class Settings {
         switchAwayBehavior = SwitchAwayBehavior(
             rawValue: defaults.string(forKey: Keys.switchAwayBehavior) ?? ""
         ) ?? .returnToApp
+        autoSendEnabled = defaults.object(forKey: Keys.autoSendEnabled) as? Bool ?? true
+        autoSendApps = defaults.dictionary(forKey: Keys.autoSendApps) as? [String: String] ?? [:]
         hasCompletedOnboarding = defaults.object(forKey: Keys.hasCompletedOnboarding) as? Bool ?? false
         meetingsKeepAudio = defaults.object(forKey: Keys.meetingsKeepAudio) as? Bool ?? false
         meetingsDiarize = defaults.object(forKey: Keys.meetingsDiarize) as? Bool ?? false

@@ -2365,7 +2365,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 writeSelfTest(
                     "SETTINGS_OK: \(SettingsTab.allCases.count) pane(s), "
                     + "Formatting listed, "
-                    + "headings contain U+0020, each form built, profile captured"
+                    + "headings contain U+0020, each form built, profile captured, "
+                    + "auto-send policy"
                 )
             } else {
                 writeSelfTest("SETTINGS_FAILED: \(failures.count) problem(s)")
