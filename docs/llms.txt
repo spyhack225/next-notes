@@ -1,8 +1,9 @@
 # Next Notes
 
-> Dictation and meeting notes for macOS that run entirely on the user's own Mac. Hold a
-> key and speak, and the cleaned-up sentence appears at the cursor in whatever app is
-> already focused. Sit in a meeting and the notes write themselves. No account, no
+> Dictation, meeting notes and a voice interface for macOS that run entirely on the
+> user's own Mac. Hold a key and speak, and the cleaned-up sentence appears at the
+> cursor in whatever app is already focused. Sit in a meeting and the notes write
+> themselves. Ask the Mac, and it answers on this machine. No account, no
 > subscription, no server, and no bot joining the call.
 
 Next Notes is free and open source, and requires macOS 26 on Apple silicon.
@@ -16,10 +17,14 @@ Next Notes is free and open source, and requires macOS 26 on Apple silicon.
   does, after asking. Your microphone and your speaker output are captured as two separate
   tracks, which is how the transcript attributes who said what without anything joining
   the call.
+- **Ask the Mac.** ⇧⌘ Space, or say “Hey Next”. Silence ends a turn; Done leaves the
+  conversation. It can inspect the frontmost window, click and type, search files and
+  run a shell command — never sudo — each behind an Approve card unless you already
+  said it may. Longer work can go to a coding agent you already have installed.
 - **Follow-ups it proposes, never sends.** It can draft the follow-up while you talk. It
   offers; you approve. Nothing is created or sent on its own.
 - **It writes where the work already is.** Calendar, Gmail, Drive and Docs, in your own
-  account, acting as you.
+  account, acting as you. MCP servers and Composio are optional and need setup.
 
 ## How the privacy claim actually works
 
