@@ -40,6 +40,21 @@ enum AgentSpeechPolicy {
         return splitIntoClauses(spoken)
     }
 
+    /// Streaming guard used after a clause may already have started. Once unsafe
+    /// content appears, queued speech is stopped so URLs, tool output and code never
+    /// continue through the speaker.
+    static func isUnsafeForStreaming(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        return containsURL(trimmed)
+            || containsToolName(trimmed)
+            || containsCode(trimmed)
+            || isFileListing(trimmed)
+            || isLongListing(trimmed)
+            || trimmed.count > spokenCap
+            || lineCount(trimmed) > 3
+    }
+
     /// Split already-speakable text into short playback clauses.
     static func splitIntoClauses(_ text: String) -> [String] {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)

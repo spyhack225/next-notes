@@ -189,7 +189,8 @@ extension RealtimeAudioSession {
     ///     return true
     /// }
     /// ```
-    static func runSelfTest() async {
+    @discardableResult
+    static func runSelfTest() async -> Bool {
         var failures: [String] = []
 
         failures += bargeInFailures()
@@ -201,6 +202,7 @@ extension RealtimeAudioSession {
             print("DUPLEX_WRONG: \(failure)")
         }
         print(failures.isEmpty ? "DUPLEX_OK" : "DUPLEX_FAILED")
+        return failures.isEmpty
     }
 
     /// Interrupt must stop the synthesizer backing without awaiting utterance end,

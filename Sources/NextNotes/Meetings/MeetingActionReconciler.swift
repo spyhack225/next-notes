@@ -20,11 +20,12 @@ enum MeetingActionReconciler {
 
         var id: String { candidate.id }
 
-        /// Microphone speech may authorise execute. System audio never does — a matching
-        /// Workspace proposal is a person clicking Approve, not Sarah's ask becoming
-        /// authority.
+        /// A bound proposal can be approved from the Actions tab after its preview is shown.
+        /// System audio never becomes authority: the candidate source remains `.system`, and
+        /// this is true only because a person is explicitly approving the proposal. A live
+        /// candidate without a proposal can only be prepared for review.
         var canExecute: Bool {
-            MeetingIntentDetector.mayAuthorizeExecute(candidate)
+            proposal != nil
         }
     }
 
@@ -55,12 +56,27 @@ enum MeetingActionReconciler {
             actionItems: actionItems
         )
 
+        let rankedCandidates = candidates.enumerated().sorted {
+            if MeetingIntentDetector.mayAuthorizeExecute($0.element) != MeetingIntentDetector.mayAuthorizeExecute($1.element) {
+                return MeetingIntentDetector.mayAuthorizeExecute($0.element)
+            }
+            return $0.offset < $1.offset
+        }
+
         var claimed: Set<String> = []
-        let bound: [BoundCandidate] = candidates.map { candidate in
-            let paired = surviving.filter { Self.matches(candidate, $0) }
-            let attached = paired.count == 1 ? paired[0] : nil
-            if let attached { claimed.insert(attached.id) }
-            return BoundCandidate(candidate: candidate, proposal: attached)
+        var attachedForCandidate: [String: AgentProposal?] = [:]
+        for indexedCandidate in rankedCandidates {
+            let candidate = indexedCandidate.element
+            let unclaimed = surviving.filter { !claimed.contains($0.id) }
+            let matched = unclaimed.filter { Self.matches(candidate, $0) }
+            if matched.count == 1 {
+                attachedForCandidate[candidate.id] = matched.first
+                claimed.insert(matched[0].id)
+            }
+        }
+
+        let bound: [BoundCandidate] = candidates.map {
+            BoundCandidate(candidate: $0, proposal: attachedForCandidate[$0.id] ?? nil)
         }
 
         let leftover = surviving.filter { !claimed.contains($0.id) }
@@ -83,11 +99,24 @@ enum MeetingActionReconciler {
         }
     }
 
-    /// Same object in the proposal's title, rationale or arguments. No object, no guess —
-    /// the same conservative rule `AgentService.matchingProposal` uses at Approve time.
+    /// Match the action's tool, its object, and (when the live ask names one) the proposal's
+    /// explicit target. Rationale text is useful for a card, but it is not a recipient field:
+    /// using it as one can bind Sarah's ask to a proposal addressed to Jordan.
     static func matches(_ candidate: MeetingCandidateAction, _ proposal: AgentProposal) -> Bool {
-        guard let object = candidate.object?.lowercased(), !object.isEmpty else { return false }
-        return haystack(for: proposal).contains(object)
+        guard actionMatches(candidate.action, proposal.tool) else { return false }
+
+        let object = normalize(candidate.object ?? "")
+        if !object.isEmpty, !containsPhrase(object, in: haystack(for: proposal)) { return false }
+
+        let recipient = candidate.recipient.map(normalize) ?? ""
+        guard !object.isEmpty || !recipient.isEmpty else { return false }
+        guard !recipient.isEmpty else { return true }
+
+        let targets = proposalTargets(for: proposal)
+        guard !targets.isEmpty else { return false }
+        return recipientAliases(recipient).contains { candidateAlias in
+            targets.contains(candidateAlias)
+        }
     }
 
     // MARK: - Inventions
@@ -117,6 +146,86 @@ enum MeetingActionReconciler {
             proposal.title + " " + proposal.rationale + " "
                 + proposal.arguments.values.joined(separator: " ")
         ).lowercased()
+    }
+
+    /// Keep the small detector vocabulary tied to the tool that can perform it. Matching a
+    /// `send` candidate to a `create_doc` proposal just because both mention "deck" would
+    /// make the folded card approve the wrong kind of work.
+    private static func actionMatches(_ action: String, _ tool: String) -> Bool {
+        switch normalize(action) {
+        case "send", "email":
+            return tool == "send_email"
+        case "share":
+            return tool == "send_email" || tool == "upload_to_drive"
+        case "create", "write":
+            return tool == "create_doc"
+        case "append", "update":
+            return tool == "append_doc"
+        case "upload":
+            return tool == "upload_to_drive"
+        case "schedule":
+            return tool == "create_event"
+        case "search", "find":
+            return tool == "search_email" || tool == "find_drive_files"
+        case "read":
+            return tool == "read_doc"
+        default:
+            return false
+        }
+    }
+
+    private static func containsPhrase(_ phrase: String, in text: String) -> Bool {
+        let needle = normalize(phrase)
+        guard !needle.isEmpty else { return false }
+        return (" " + normalize(text) + " ").contains(" " + needle + " ")
+    }
+
+    /// Candidate intent and proposal matching are both phrase-driven, so the same normalization
+    /// keeps punctuation and spacing stable before containment checks.
+    private static func normalize(_ text: String) -> String {
+        text
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: #"[^\p{L}\p{N}\s]+"#, with: " ", options: .regularExpression)
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+    }
+
+    /// Pull likely recipients out of proposal arguments to avoid cross-speaker cross-target
+    /// merges when two asks say “send the deck”.
+    private static func proposalTargets(for proposal: AgentProposal) -> Set<String> {
+        let fields = ["to", "to_email", "attendees", "attendee", "cc", "bcc", "recipient", "recipients", "owner", "owners"]
+        let values = proposal.arguments
+            .filter { fields.contains($0.key.lowercased()) }
+            .flatMap { splitTargets($0.value) }
+
+        return Set(values.flatMap(recipientAliases))
+    }
+
+    /// Produce both display-name and email aliases without first normalizing away `@`.
+    private static func recipientAliases(_ value: String) -> Set<String> {
+        let lowered = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let cleaned = normalize(lowered)
+        guard !cleaned.isEmpty else { return [] }
+
+        var aliases: Set<String> = [cleaned]
+        if let at = lowered.firstIndex(of: "@") {
+            let local = lowered[..<at]
+                .split(whereSeparator: { $0.isWhitespace || $0 == "<" || $0 == ">" })
+                .last
+                .map(String.init) ?? String(lowered[..<at])
+            let normalizedLocal = normalize(local)
+            if !normalizedLocal.isEmpty { aliases.insert(normalizedLocal) }
+            aliases.insert(String(lowered[...]))
+        }
+        return aliases
+    }
+
+    private static func splitTargets(_ value: String) -> [String] {
+        value
+            .components(separatedBy: CharacterSet(charactersIn: ",;|"))
+            .flatMap { $0.replacingOccurrences(of: " and ", with: ",").components(separatedBy: ",") }
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 
     private static func isDocumentAction(_ candidate: MeetingCandidateAction) -> Bool {
@@ -180,14 +289,134 @@ enum MeetingActionReconciler {
             rationale: "Sarah asked you to send the deck.",
             source: .review
         )
+        let teamDeck = AgentProposal(
+            meetingID: meetingID,
+            tool: "send_email",
+            arguments: [
+                "to": "jordan@example.com",
+                "subject": "the deck",
+                "body": "Here is the deck too.",
+            ],
+            rationale: "Jordan asked you to send the deck.",
+            source: .review
+        )
+        let wrongRecipient = AgentProposal(
+            meetingID: meetingID,
+            tool: "send_email",
+            arguments: [
+                "to": "jordan@example.com",
+                "subject": "the deck",
+                "body": "Here is the deck.",
+            ],
+            rationale: "Sarah asked you to send the deck.",
+            source: .review
+        )
+        let wrongTool = AgentProposal(
+            meetingID: meetingID,
+            tool: "create_doc",
+            arguments: [
+                "title": "the deck",
+                "markdown": "Deck notes for Sarah.",
+            ],
+            rationale: "Create a copy of the deck for Sarah.",
+            source: .review
+        )
+        let calendarWrite = AgentProposal(
+            meetingID: meetingID,
+            tool: "create_event",
+            arguments: [
+                "title": "Review the deck",
+                "start": "2026-09-15T10:00:00-04:00",
+                "end": "2026-09-15T10:30:00-04:00",
+                "attendees": "sarah@example.com",
+            ],
+            rationale: "Schedule the follow-up.",
+            source: .review
+        )
+        check(
+            "calendar approval omitted concrete times or attendees",
+            calendarWrite.reviewPreview?.contains("2026-09-15T10:00:00-04:00") == true
+                && calendarWrite.reviewPreview?.contains("sarah@example.com") == true
+        )
+        let sarahSystem = MeetingCandidateAction(
+            recipient: "Sarah",
+            action: "send",
+            object: "deck",
+            speaker: "Sarah",
+            source: .system,
+            confidence: "high"
+        )
+        let jordanSystem = MeetingCandidateAction(
+            recipient: "Jordan",
+            action: "send",
+            object: "deck",
+            speaker: "Jordan",
+            source: .system,
+            confidence: "high"
+        )
+        let micDeck = MeetingCandidateAction(action: "send", object: "deck", source: .mic)
+        let ungrounded = MeetingCandidateAction(action: "send", source: .mic)
+
+        let recipientsMatched = reconcile(
+            candidates: [sarahSystem, jordanSystem],
+            proposals: [email, teamDeck]
+        )
+        check(
+            "same-object asks for different recipients were matched to Sarah",
+            recipientsMatched.candidates.first(where: { $0.candidate.id == sarahSystem.id })?.proposal?.id == email.id
+        )
+        check(
+            "same-object asks for different recipients were matched to Jordan",
+            recipientsMatched.candidates.first(where: { $0.candidate.id == jordanSystem.id })?.proposal?.id == teamDeck.id
+        )
+        let ambiguousMic = reconcile(
+            candidates: [micDeck],
+            proposals: [email, teamDeck]
+        )
+        check(
+            "a mic ask without a recipient stayed ambiguous",
+            ambiguousMic.candidates.first?.proposal == nil && ambiguousMic.proposals.count == 2
+        )
+        check(
+            "a rationale could not override the proposal recipient",
+            !matches(sarahSystem, wrongRecipient)
+        )
+        check(
+            "an object-only match could not cross tools",
+            !matches(sarahSystem, wrongTool)
+        )
+        check(
+            "an ungrounded candidate did not bind by tool alone",
+            !matches(ungrounded, email)
+        )
+        let confirmation = reconcile(
+            candidates: [sarahSystem, micDeck],
+            proposals: [email]
+        )
+        check(
+            "a mic confirmation kept the live execution path over system-only",
+            confirmation.candidates.first(where: { $0.candidate.id == micDeck.id })?.proposal?.id == email.id
+                && confirmation.candidates.first(where: { $0.candidate.id == sarahSystem.id })?.proposal == nil
+        )
+        check(
+            "a folded system proposal kept explicit approval with preview",
+            confirmation.candidates.first(where: { $0.candidate.id == sarahSystem.id })?.candidate.source == .system
+                && reconcile(candidates: [sarahSystem], proposals: [email])
+                    .candidates.first(where: { $0.candidate.id == sarahSystem.id })?.canExecute == true
+        )
+        check(
+            "explicit approval did not turn system speech into authority",
+            confirmation.candidates.first(where: { $0.candidate.id == sarahSystem.id })
+                .map { !MeetingIntentDetector.mayAuthorizeExecute($0.candidate) } ?? false
+        )
 
         let merged = reconcile(candidates: [deck], proposals: [email])
-        check("duplicate live candidate + review proposal became two rows", merged.rowCount == 1)
-        check("the live candidate was dropped", merged.candidates.map(\.id) == [deck.id])
-        check("the matching proposal stayed visible as its own card", merged.proposals.isEmpty)
+        check("duplicate live candidate + review proposal became one row", merged.rowCount == 1)
+        check("the live candidate stayed visible", merged.candidates.map(\.id) == [deck.id])
+        check("the matching proposal folded into the live card", merged.proposals.isEmpty)
         check(
-            "a system-audio candidate reported as executable",
-            merged.candidates.count == 1 && !merged.candidates[0].canExecute
+            "a system-audio candidate remained preview-approvable",
+            merged.candidates.count == 1 && merged.candidates[0].canExecute
         )
 
         let discussion = MeetingContextItem(
@@ -222,7 +451,7 @@ enum MeetingActionReconciler {
         )
 
         let systemOnly = reconcile(candidates: [deck], proposals: [])
-        check("a live system candidate was removed", systemOnly.rowCount == 1)
+        check("a live system candidate stayed visible", systemOnly.rowCount == 1)
         check(
             "a system-audio candidate reported as executable",
             systemOnly.candidates.count == 1 && !systemOnly.candidates[0].canExecute
@@ -231,8 +460,8 @@ enum MeetingActionReconciler {
         let mic = MeetingCandidateAction(action: "send", object: "deck", source: .mic)
         let fromMic = reconcile(candidates: [mic], proposals: [])
         check(
-            "mic speech was refused authority",
-            fromMic.candidates.count == 1 && fromMic.candidates[0].canExecute
+            "a mic candidate without a proposal stayed in Prepare",
+            fromMic.candidates.count == 1 && !fromMic.candidates[0].canExecute
         )
 
         writeLine(failures)

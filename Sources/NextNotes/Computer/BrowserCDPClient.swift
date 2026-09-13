@@ -1,11 +1,20 @@
 import Foundation
 
+struct BrowserSnapshotNode: Sendable, Equatable {
+    var id: String
+    var tag: String
+    var text: String
+}
+
 /// A page the local Chromium debugger advertised.
 struct BrowserCDPTarget: Sendable, Equatable {
     var id: String
     var title: String
     var url: String
     var webSocketDebuggerURL: String
+    /// Some browser wrappers expose their active target in `/json/list`; Chromium
+    /// itself does not, so the resolver falls back to `document.hasFocus()`.
+    var isActive: Bool? = nil
 }
 
 /// Chrome DevTools Protocol over a local debugging port. Chrome, Edge and Brave
@@ -14,6 +23,18 @@ struct BrowserCDPTarget: Sendable, Equatable {
 enum BrowserCDPClient {
     static let defaultHost = "127.0.0.1"
     static let defaultPort = 9222
+    private static let snapshotSelector = "a,button,input,textarea,select,[role=button],[role=link],[role=textbox]"
+    private static let snapshotExpression = """
+        JSON.stringify((() => {
+          const nodes = [...document.querySelectorAll('\(snapshotSelector)')];
+          return nodes.slice(0, 80).map((el, i) => ({
+            id: String(i + 1),
+            tag: el.tagName.toLowerCase(),
+            text: (el.innerText || el.value || el.getAttribute('aria-label') || '')
+              .trim().slice(0, 80)
+          }));
+        })())
+        """
 
     struct Probe: Sendable, Equatable {
         var browser: String
@@ -48,11 +69,17 @@ enum BrowserCDPClient {
             let url = item["url"] as? String ?? ""
             let socket = item["webSocketDebuggerUrl"] as? String ?? ""
             guard !socket.isEmpty else { return nil }
+            // CDP ids are stable within a browser session. If a wrapper omits one,
+            // use its socket URL so two same-URL tabs cannot share a cache slot.
+            let advertisedID = (item["id"] as? String ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let id = advertisedID.isEmpty ? socket : advertisedID
             return BrowserCDPTarget(
-                id: item["id"] as? String ?? url,
+                id: id,
                 title: item["title"] as? String ?? url,
                 url: url,
-                webSocketDebuggerURL: socket
+                webSocketDebuggerURL: socket,
+                isActive: item["active"] as? Bool
             )
         }
     }
@@ -102,7 +129,7 @@ enum BrowserCDPClient {
         await probe(host: host, port: port) != nil
     }
 
-    /// Snapshot / click / fill against the first page target. Throws when the port
+    /// Snapshot / click / fill against the active page target. Throws when the port
     /// is closed so the caller can fall through to Accessibility.
     static func run(
         _ tool: AgentTool,
@@ -113,13 +140,10 @@ enum BrowserCDPClient {
         guard let probe = await probe(host: host, port: port) else {
             throw AgentError.backendUnavailable("No local browser debugger on port \(port).")
         }
-        let target = probe.targets.first
+        let target = try await resolveTarget(for: tool, arguments: arguments, from: probe.targets)
         switch tool.name {
         case "navigate", "download":
             let url = arguments["url"] ?? ""
-            guard let target else {
-                return AgentToolResult(summary: "CDP: \(probe.browser). No page target to navigate.")
-            }
             let reply = try await command(
                 "Page.navigate",
                 params: ["url": url],
@@ -127,29 +151,19 @@ enum BrowserCDPClient {
             )
             return AgentToolResult(summary: "CDP navigated \(target.title) → \(url). \(reply)")
         case "snapshot":
-            guard let target else {
-                return AgentToolResult(summary: "CDP: \(probe.browser). No page target.")
-            }
-            let expression = """
-                JSON.stringify((() => {
-                  const nodes = [...document.querySelectorAll(
-                    'a,button,input,textarea,select,[role=button],[role=link],[role=textbox]'
-                  )];
-                  return nodes.slice(0, 80).map((el, i) => ({
-                    id: String(i + 1),
-                    tag: el.tagName.toLowerCase(),
-                    text: (el.innerText || el.value || el.getAttribute('aria-label') || '')
-                      .trim().slice(0, 80)
-                  }));
-                })())
-                """
-            let raw = try await evaluate(expression, webSocketURL: target.webSocketDebuggerURL)
-            SnapshotCache.shared.replace(snapshotIDs(in: raw))
+            let raw = try await evaluate(snapshotExpression, webSocketURL: target.webSocketDebuggerURL)
+            SnapshotCache.shared.replace(
+                target,
+                with: snapshotNodes(in: raw)
+            )
             return AgentToolResult(
-                summary: "CDP \(target.title) \(target.url)\n\(raw)"
+                summary: "CDP targetId: \(target.id) \(target.title) \(target.url)\n\(raw)"
             )
         case "click":
-            return try await act(arguments: arguments, target: target, probe: probe) { id, socket in
+            return try await act(
+                arguments: arguments,
+                target: target
+            ) { id, socket in
                 try await evaluate(
                     "document.querySelectorAll('a,button,input,textarea,select,[role=button],[role=link],[role=textbox]')[\(max(0, id - 1))]?.click()",
                     webSocketURL: socket
@@ -157,19 +171,17 @@ enum BrowserCDPClient {
             }
         case "fill", "select":
             let text = arguments["text"] ?? arguments["value"] ?? ""
-            let escaped = text
-                .replacingOccurrences(of: "\\", with: "\\\\")
-                .replacingOccurrences(of: "'", with: "\\'")
-            return try await act(arguments: arguments, target: target, probe: probe) { id, socket in
+            let encoded = jsonStringLiteral(text)
+            return try await act(arguments: arguments, target: target) { id, socket in
                 try await evaluate(
                     """
                     (() => {
                       const el = document.querySelectorAll(
-                        'a,button,input,textarea,select,[role=button],[role=link],[role=textbox]'
+                        '\(snapshotSelector)'
                       )[\(max(0, id - 1))];
                       if (!el) return 'missing';
                       el.focus();
-                      el.value = '\(escaped)';
+                      el.value = \(encoded);
                       el.dispatchEvent(new Event('input', { bubbles: true }));
                       el.dispatchEvent(new Event('change', { bubbles: true }));
                       return 'filled';
@@ -185,57 +197,225 @@ enum BrowserCDPClient {
 
     // MARK: - Session
 
-    private final class SnapshotCache: @unchecked Sendable {
+    final class SnapshotCache: @unchecked Sendable {
         static let shared = SnapshotCache()
+        struct SnapshotState: Sendable {
+            var url: String
+            var webSocketDebuggerURL: String = ""
+            var nodes: [String: BrowserSnapshotNode]
+        }
         private let lock = NSLock()
-        private var ids: Set<String> = []
+        private var states: [String: SnapshotState] = [:]
 
-        func replace(_ new: Set<String>) {
+        func replace(_ target: BrowserCDPTarget, with nodes: [BrowserSnapshotNode]) {
             lock.lock()
-            ids = new
+            states[target.id] = SnapshotState(
+                url: target.url,
+                webSocketDebuggerURL: target.webSocketDebuggerURL,
+                nodes: Dictionary(uniqueKeysWithValues: nodes.map { ($0.id, $0) })
+            )
             lock.unlock()
         }
 
-        func contains(_ id: String) -> Bool {
+        func snapshot(for target: BrowserCDPTarget) -> SnapshotState? {
             lock.lock()
             defer { lock.unlock() }
-            return ids.contains(id)
+            return states[target.id]
         }
 
-        var isEmpty: Bool {
+        func node(for id: String, in target: BrowserCDPTarget) -> BrowserSnapshotNode? {
             lock.lock()
             defer { lock.unlock() }
-            return ids.isEmpty
+            return states[target.id]?.nodes[id]
         }
+
+        func remove(_ target: BrowserCDPTarget) {
+            lock.lock()
+            states.removeValue(forKey: target.id)
+            lock.unlock()
+        }
+
+        func isEmpty(for target: BrowserCDPTarget) -> Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            return states[target.id]?.nodes.isEmpty ?? true
+        }
+
+        func contains(_ id: String, in target: BrowserCDPTarget) -> Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            return states[target.id]?.nodes.keys.contains(id) ?? false
+        }
+
+        func url(for target: BrowserCDPTarget) -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            return states[target.id]?.url ?? ""
+        }
+    }
+
+    /// Returns the URL of the page that this browser tool would act on. Permission
+    /// authorization calls this before execution so a standing domain grant is tied to
+    /// the actual tab rather than the frontmost application or an arbitrary list item.
+    static func targetURL(
+        for tool: AgentTool,
+        arguments: [String: String],
+        host: String = defaultHost,
+        port: Int = defaultPort
+    ) async -> String? {
+        guard let probe = await probe(host: host, port: port) else { return nil }
+        return try? await resolveTarget(for: tool, arguments: arguments, from: probe.targets).url
+    }
+
+    /// Resolves the target identity once so authorization and execution can carry the
+    /// same tab through a focus change between those two steps.
+    static func targetID(
+        for tool: AgentTool,
+        arguments: [String: String],
+        host: String = defaultHost,
+        port: Int = defaultPort
+    ) async -> String? {
+        guard let probe = await probe(host: host, port: port) else { return nil }
+        return try? await resolveTarget(for: tool, arguments: arguments, from: probe.targets).id
+    }
+
+    private static func resolveTarget(
+        for tool: AgentTool,
+        arguments: [String: String],
+        from targets: [BrowserCDPTarget]
+    ) async throws -> BrowserCDPTarget {
+        if let explicit = first(arguments, keys: ["targetId", "target_id", "browserTargetId", "cdpTargetId"]) {
+            if let target = targets.first(where: { $0.id == explicit }) {
+                return target
+            }
+            throw AgentError.backendUnavailable("CDP target id “\(explicit)” was not found. Snapshot again and use that id.")
+        }
+
+        guard targets.count == 1, let target = targets.first else {
+            let advertised = targets.filter { $0.isActive == true }
+            if advertised.count == 1 { return advertised[0] }
+
+            // `/json/list` has no active-tab field. Ask every page directly; only a
+            // unique focused/visible page is safe to select. List order is not a
+            // focus signal and must never decide where a click or fill goes.
+            let states = await withTaskGroup(of: (Int, String?).self, returning: [(Int, String?)].self) { group in
+                for (index, target) in targets.enumerated() {
+                    group.addTask {
+                        let state = try? await evaluate(
+                            "document.hasFocus() ? 'focused' : (document.visibilityState === 'visible' ? 'visible' : 'background')",
+                            webSocketURL: target.webSocketDebuggerURL
+                        )
+                        return (index, state?.lowercased())
+                    }
+                }
+                var result: [(Int, String?)] = []
+                for await item in group { result.append(item) }
+                return result.sorted { $0.0 < $1.0 }
+            }
+            let focused = states.compactMap { index, state in
+                state == "focused" ? targets[index] : nil
+            }
+            if focused.count == 1 { return focused[0] }
+
+            let visible = states.compactMap { index, state in
+                state == "visible" ? targets[index] : nil
+            }
+            if visible.count == 1 { return visible[0] }
+
+            let choices = targets.map { "\($0.id) (\($0.title))" }.joined(separator: ", ")
+            throw AgentError.backendUnavailable(
+                focused.isEmpty
+                    ? "CDP target could not identify the active browser tab. Choose targetId from: \(choices)."
+                    : "CDP target is ambiguous (multiple focused browser tabs are open). Choose targetId from: \(choices)."
+            )
+        }
+        return target
+    }
+
+    private static func normalize(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let url = URL(string: trimmed), let absolute = url.absoluteString.removingPercentEncoding {
+            return absolute.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "/").union(.whitespacesAndNewlines))
+        }
+        return trimmed.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "/").union(.whitespacesAndNewlines))
+    }
+
+    private static func first(_ arguments: [String: String], keys: [String]) -> String? {
+        for key in keys {
+            let value = arguments[key]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !value.isEmpty { return value }
+        }
+        return nil
+    }
+
+    static func jsonStringLiteral(_ raw: String) -> String {
+        if let data = try? JSONEncoder().encode(raw),
+           let text = String(data: data, encoding: .utf8) {
+            return text
+        }
+        return "\"\""
+    }
+
+    static func replaceSnapshotCache(for target: BrowserCDPTarget, with nodes: [BrowserSnapshotNode]) {
+        SnapshotCache.shared.replace(target, with: nodes)
+    }
+
+    static func removeSnapshotCache(for target: BrowserCDPTarget) {
+        SnapshotCache.shared.remove(target)
     }
 
     private static func act(
         arguments: [String: String],
-        target: BrowserCDPTarget?,
-        probe: Probe,
+        target: BrowserCDPTarget,
         body: (Int, String) async throws -> String
     ) async throws -> AgentToolResult {
-        guard let target else {
-            return AgentToolResult(summary: "CDP: \(probe.browser). No page target.")
-        }
         let rawID = arguments["id"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard let id = Int(rawID), id > 0 else {
             return AgentToolResult(summary: "No snapshot id \(rawID.isEmpty ? "(missing)" : rawID). Snapshot first.")
         }
-        if !SnapshotCache.shared.isEmpty, !SnapshotCache.shared.contains(rawID) {
+        guard let snapshot = SnapshotCache.shared.snapshot(for: target), !snapshot.nodes.isEmpty else {
+            return AgentToolResult(summary: "No snapshot for target id \(target.id). Snapshot first.")
+        }
+        if normalize(snapshot.url) != normalize(target.url) {
+            return AgentToolResult(summary: "Snapshot no longer matches this tab. Snapshot first.")
+        }
+        if !snapshot.webSocketDebuggerURL.isEmpty,
+           snapshot.webSocketDebuggerURL != target.webSocketDebuggerURL {
+            return AgentToolResult(summary: "Snapshot no longer matches this tab. Snapshot first.")
+        }
+        if !SnapshotCache.shared.contains(rawID, in: target) {
             return AgentToolResult(summary: "No snapshot id \(rawID). Snapshot first.")
+        }
+        guard let cached = SnapshotCache.shared.node(for: rawID, in: target) else {
+            return AgentToolResult(summary: "No snapshot id \(rawID). Snapshot first.")
+        }
+
+        let currentRaw = try await evaluate(snapshotExpression, webSocketURL: target.webSocketDebuggerURL)
+        let currentNodes = snapshotNodes(in: currentRaw)
+        guard let current = currentNodes.first(where: { $0.id == rawID }) else {
+            return AgentToolResult(summary: "Snapshot id \(rawID) is stale for this tab. Snapshot first.")
+        }
+        if current != cached {
+            return AgentToolResult(summary: "Snapshot id \(rawID) is stale for this tab. Snapshot first.")
         }
         let reply = try await body(id, target.webSocketDebuggerURL)
         return AgentToolResult(summary: "CDP \(reply)")
     }
 
-    private static func snapshotIDs(in raw: String) -> Set<String> {
+    private static func snapshotNodes(in raw: String) -> [BrowserSnapshotNode] {
         guard let data = raw.data(using: .utf8),
               let items = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
         else {
             return []
         }
-        return Set(items.compactMap { $0["id"] as? String })
+        return items.compactMap {
+            guard let id = $0["id"] as? String else { return nil }
+            return BrowserSnapshotNode(
+                id: id,
+                tag: ($0["tag"] as? String ?? "").lowercased(),
+                text: ($0["text"] as? String ?? "")
+            )
+        }
     }
 
     private static func evaluate(_ expression: String, webSocketURL: String) async throws -> String {
@@ -261,10 +441,27 @@ enum BrowserCDPClient {
         defer { task.cancel(with: .goingAway, reason: nil) }
         let id = Int.random(in: 1...10_000)
         let payload = encode(method: method, params: params, id: id)
-        try await task.send(.data(payload))
+        let didSend = await withBoundedWait(.seconds(4)) { () -> Bool in
+            do {
+                try await task.send(.data(payload))
+                return true
+            } catch {
+                return false
+            }
+        }
+        guard didSend == true else {
+            throw AgentError.backendUnavailable("Browser debugger did not accept \(method).")
+        }
         let deadline = Date().addingTimeInterval(4)
         while Date() < deadline {
-            let message = try await task.receive()
+            // `receive()` itself has no deadline. A debugger that accepts the
+            // socket but never replies must not park authorization forever.
+            let received = await withBoundedWait(.seconds(4)) { () -> URLSessionWebSocketTask.Message? in
+                try? await task.receive()
+            }
+            guard let message = received ?? nil else {
+                throw AgentError.backendUnavailable("Browser debugger did not answer \(method).")
+            }
             let data: Data
             switch message {
             case .data(let value):

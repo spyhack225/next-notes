@@ -305,8 +305,10 @@ Sources/NextNotes/
 │   ├── MeetingAgent.swift          plans over notes + transcript, returns proposals
 │   ├── AgentService.swift          files, announces, and executes approved proposals
 │   ├── WorkspaceInstaller.swift    writes the .command scripts Terminal opens
-│   ├── RealtimeAgent.swift         one resolve, one action, always a reply
-│   ├── AgentTurnIntent.swift       the single turn table — no model fallback
+│   ├── RealtimeAgent.swift         routed tools and opt-in local-model answers
+│   ├── RealtimeAgentLocalModelSelfTest.swift  streamed answer and interruption probe
+│   ├── RealtimeAgentToolLoopSelfTest.swift  opt-in read tool loop probe
+│   ├── AgentTurnIntent.swift       the single turn table, with explicit model opt-in
 │   ├── MailIntent.swift            inbox / unread parsed from an utterance
 │   ├── CalendarIntent.swift        agenda day parsed from an utterance
 │   ├── FileIntent.swift            home / Drive file search parsed from an utterance
@@ -326,7 +328,8 @@ Sources/NextNotes/
 │   ├── ComputerIntent.swift        click / type / inspect parsed from an utterance
 │   ├── ComputerSelfTestHarness.swift  --selftest-computer: an owned window, then a stub
 │   ├── AccessibilitySnapshot.swift inspect_ui ids the click/set_text tools reuse
-│   └── BrowserToolExecutor.swift   snapshot → id → act → snapshot; stubs stay empty
+│   ├── BrowserToolExecutor.swift   Accessibility browser fallback
+│   └── BrowserCDPClient.swift      target-bound Chromium debugger actions
 ├── Shell/
 │   ├── FilesystemExecutor.swift    bounded search, read/write/trash
 │   └── ShellExecutor.swift         cancellable zsh, privileged commands refused
@@ -413,7 +416,9 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-meeting-live            # cadence, cards, and the authority split
 "$S" --selftest-tts                     # speech policy plus synthesizer interrupt
 "$S" --selftest-tts-stream              # clause-stream policy plus synthesizer stream queue
+"$S" --selftest-local-model-stream      # opt-in model route, early TTS, interruption and timeout
 "$S" --selftest-toolloop                # inspect → click must make both calls
+"$S" --selftest-toolloop-production     # opt-in model → read tool → model route
 "$S" --selftest-acp-confirm             # a missing CLI asks before local tools
 "$S" --selftest-scheduler               # background yields when realtime ASR is queued
 "$S" --selftest-capture                 # one mic engine serves wake + meeting + dictation

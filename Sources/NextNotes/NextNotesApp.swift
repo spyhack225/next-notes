@@ -1,5 +1,6 @@
 import AVFoundation
 import AppKit
+import Darwin
 import FluidAudio
 import SwiftUI
 
@@ -53,6 +54,9 @@ struct NextNotesApp: App {
 /// screen has to check this: a sheet keeps `NSApp.terminate` from ever completing, and the
 /// test then prints its result and hangs forever instead of exiting.
 enum SelfTest {
+    /// AppKit's normal termination status is zero. A named failed verdict must
+    /// survive `NSApp.terminate(nil)` so scripts cannot mistake it for success.
+    @MainActor static var failed = false
     /// The flag the process was launched with, if any.
     ///
     /// The harness's own flags are excluded. They share the `--selftest` prefix but are
@@ -363,97 +367,111 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
         if arguments.contains("--selftest-metrics") {
-            _ = LatencyTrace.runSelfTest()
+            SelfTest.failed = !LatencyTrace.runSelfTest()
             NSApp.terminate(nil)
             return true
         }
         if arguments.contains("--selftest-cleanup-router") {
             Task { @MainActor in
-                _ = await CleanupRouter.runSelfTest()
+                SelfTest.failed = !(await CleanupRouter.runSelfTest())
                 NSApp.terminate(nil)
             }
             return true
         }
         if arguments.contains("--selftest-meeting-live") {
-            _ = MeetingLiveAgent.runSelfTest()
+            SelfTest.failed = !MeetingLiveAgent.runSelfTest()
             NSApp.terminate(nil)
             return true
         }
         if arguments.contains("--selftest-tts") {
-            _ = AgentSpeechPolicy.runSelfTest()
+            SelfTest.failed = !AgentSpeechPolicy.runSelfTest()
             NSApp.terminate(nil)
             return true
         }
         if arguments.contains("--selftest-tts-stream") {
-            _ = AgentSpeechPolicy.runStreamSelfTest()
+            SelfTest.failed = !AgentSpeechPolicy.runStreamSelfTest()
             NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-local-model-stream") {
+            Task { @MainActor in
+                SelfTest.failed = !(await RealtimeAgentLocalModelSelfTest.run())
+                NSApp.terminate(nil)
+            }
             return true
         }
         if arguments.contains("--selftest-toolloop") {
             Task { @MainActor in
-                await AgentToolLoop.runSelfTest()
+                SelfTest.failed = !(await AgentToolLoop.runSelfTest())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-toolloop-production") {
+            Task { @MainActor in
+                SelfTest.failed = !(await RealtimeAgentToolLoopSelfTest.run())
                 NSApp.terminate(nil)
             }
             return true
         }
         if arguments.contains("--selftest-acp-confirm") {
-            ACPConfirmation.runSelfTest()
+            SelfTest.failed = !ACPConfirmation.runSelfTest()
             NSApp.terminate(nil)
             return true
         }
         if arguments.contains("--selftest-scheduler") {
             Task { @MainActor in
-                await ComputeScheduler.runSelfTest()
+                SelfTest.failed = !(await ComputeScheduler.runSelfTest())
                 NSApp.terminate(nil)
             }
             return true
         }
         if arguments.contains("--selftest-capture") {
             Task { @MainActor in
-                await AudioCaptureHub.runSelfTest()
+                SelfTest.failed = !(await AudioCaptureHub.runSelfTest())
                 NSApp.terminate(nil)
             }
             return true
         }
         if arguments.contains("--selftest-meeting-reconcile") {
-            _ = MeetingActionReconciler.runSelfTest()
+            SelfTest.failed = !MeetingActionReconciler.runSelfTest()
             NSApp.terminate(nil)
             return true
         }
         if arguments.contains("--selftest-meeting-reconcile-llm") {
-            _ = MeetingContextReconciler.runSelfTest()
+            SelfTest.failed = !MeetingContextReconciler.runSelfTest()
             NSApp.terminate(nil)
             return true
         }
         if arguments.contains("--selftest-stream") {
-            _ = StreamingASR.runSelfTest()
+            SelfTest.failed = !StreamingASR.runSelfTest()
             NSApp.terminate(nil)
             return true
         }
         if arguments.contains("--selftest-transcript-bus") {
             Task { @MainActor in
-                _ = await TranscriptBus.runSelfTest()
+                SelfTest.failed = !(await TranscriptBus.runSelfTest())
                 NSApp.terminate(nil)
             }
             return true
         }
         if arguments.contains("--selftest-duplex") {
             Task { @MainActor in
-                await RealtimeAudioSession.runSelfTest()
+                SelfTest.failed = !(await RealtimeAudioSession.runSelfTest())
                 NSApp.terminate(nil)
             }
             return true
         }
         if arguments.contains("--selftest-contention") {
             Task { @MainActor in
-                await ContentionSelfTests.runSelfTest()
+                SelfTest.failed = !(await ContentionSelfTests.runSelfTest())
                 NSApp.terminate(nil)
             }
             return true
         }
         if arguments.contains("--selftest-residency") {
             Task { @MainActor in
-                await ModelResidencyPolicy.runSelfTest()
+                SelfTest.failed = !(await ModelResidencyPolicy.runSelfTest())
                 NSApp.terminate(nil)
             }
             return true
@@ -2889,6 +2907,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } else {
                 failures.append("a Chrome grant covered Safari")
             }
+            check(
+                "an unrestricted grant covered an unresolved browser target",
+                !PermissionScope.any.covers(
+                    PermissionScope(kind: .unresolved, value: "browser-target")
+                )
+            )
 
             check(
                 "canonical github mapping",
@@ -3208,6 +3232,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AgentCaptureController.shared.simulateSpeech("what can you do")
             AgentCaptureController.shared.simulateSilence()
             let endedByVAD = await AgentCaptureController.shared.considerEndpoint()
+            await AgentCaptureController.shared.waitForActiveTurnForTesting()
             check("duplex still required Done to produce a reply", endedByVAD)
             check(
                 "duplex endpoint was not VAD",
@@ -3219,6 +3244,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
             check("a VAD turn closed the session", AgentCaptureController.shared.isSessionActive)
             await AgentCaptureController.shared.endSession(source: .done)
+
+            // A previous turn can be waiting on a tool or permission card.
+            // Another spoken turn must still reach its VAD endpoint promptly.
+            await AgentCaptureController.shared.beginSession(captureAudio: false)
+            var fakeTurnStarts = 0
+            AgentCaptureController.shared.turnHandlerForTesting = { _ in
+                fakeTurnStarts += 1
+                try? await Task.sleep(for: .seconds(5))
+            }
+            AgentCaptureController.shared.simulateSpeech("first turn")
+            AgentCaptureController.shared.simulateSilence()
+            _ = await AgentCaptureController.shared.considerEndpoint()
+            await Task.yield()
+            AgentCaptureController.shared.simulateSpeech("second turn")
+            AgentCaptureController.shared.simulateSilence()
+            let secondBegan = ContinuousClock.now
+            let secondEnded = await AgentCaptureController.shared.considerEndpoint()
+            let secondDelay = secondBegan.duration(to: .now)
+            check("a waiting tool blocked the next VAD endpoint", secondEnded && secondDelay < .milliseconds(500))
+            await Task.yield()
+            check("the second utterance did not start a turn", fakeTurnStarts == 2)
+            await AgentCaptureController.shared.endSession(source: .done)
+            AgentCaptureController.shared.turnHandlerForTesting = nil
 
             do {
                 let loop = try await AgentToolLoop.run(
@@ -3559,6 +3607,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             func check(_ name: String, _ condition: Bool) {
                 if !condition { failures.append(name) }
             }
+            func launchCDPFixture(_ mode: String) async -> (process: Process, port: Int)? {
+                let script = try? AgentStdioFixtures.writeCDP()
+                guard let script else { return nil }
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: AgentStdioFixtures.python)
+                process.arguments = [script.path, "0", mode]
+                let pipe = Pipe()
+                process.standardOutput = pipe
+                process.standardError = FileHandle.nullDevice
+                do {
+                    try process.run()
+                } catch {
+                    return nil
+                }
+                var port = 0
+                let deadline = Date().addingTimeInterval(2)
+                while Date() < deadline && port == 0 {
+                    var ready = pollfd(
+                        fd: pipe.fileHandleForReading.fileDescriptor,
+                        events: Int16(POLLIN),
+                        revents: 0
+                    )
+                    guard poll(&ready, 1, 50) > 0 else { continue }
+                    let data = pipe.fileHandleForReading.availableData
+                    if let line = String(data: data, encoding: .utf8)?
+                        .trimmingCharacters(in: .whitespacesAndNewlines),
+                       let value = Int(line) {
+                        port = value
+                    }
+                }
+                guard port > 0 else {
+                    process.terminate()
+                    return nil
+                }
+                return (process, port)
+            }
             do {
                 let snap = try BrowserToolExecutor.run(
                     AgentToolRegistry.shared.tool(named: "browser.snapshot")!,
@@ -3590,49 +3674,156 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     "AX is not the fallback when CDP is down",
                     await BrowserExecutor.preferredBackend(host: "127.0.0.1", port: 9) == .accessibility
                 )
-
-                let script = try AgentStdioFixtures.writeCDP()
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: AgentStdioFixtures.python)
-                process.arguments = [script.path, "0"]
-                let pipe = Pipe()
-                process.standardOutput = pipe
-                process.standardError = FileHandle.nullDevice
-                try process.run()
-                defer { process.terminate() }
-                var port = 0
-                let deadline = Date().addingTimeInterval(2)
-                while Date() < deadline, port == 0 {
-                    let data = pipe.fileHandleForReading.availableData
-                    if let line = String(data: data, encoding: .utf8)?
-                        .trimmingCharacters(in: .whitespacesAndNewlines),
-                       let value = Int(line) {
-                        port = value
-                    } else {
-                        try? await Task.sleep(for: .milliseconds(50))
-                    }
+                do {
+                    _ = try await BrowserExecutor.run(
+                        AgentToolRegistry.shared.tool(named: "browser.click")!,
+                        arguments: ["id": "1", "targetId": "closed-debugger"],
+                        host: "127.0.0.1",
+                        port: 9
+                    )
+                    failures.append("a pinned CDP target fell through to a frontmost AX window")
+                } catch {
+                    check(
+                        "a vanished CDP target failed for the wrong reason",
+                        error.localizedDescription.contains("authorized browser target")
+                    )
                 }
-                if port == 0 {
-                    failures.append("CDP fixture never printed a port")
-                } else {
-                    let base = URL(string: "http://127.0.0.1:\(port)")!
+                guard let fixture = await launchCDPFixture("single") else {
+                    throw NSError(domain: "BrowserSelfTest", code: 1,
+                                  userInfo: [NSLocalizedDescriptionKey: "CDP fixture never printed a port"])
+                }
+                defer { fixture.process.terminate() }
+                do {
+                    let base = URL(string: "http://127.0.0.1:\(fixture.port)")!
                     let targets = try await BrowserCDPClient.listTargets(baseURL: base)
                     check("fixture tab was missed", targets.contains { $0.url.contains("example.com") })
                     check(
                         "fixture probe failed",
-                        await BrowserCDPClient.probe(host: "127.0.0.1", port: port) != nil
+                        await BrowserCDPClient.probe(host: "127.0.0.1", port: fixture.port) != nil
                     )
                     check(
                         "CDP was not preferred against the fixture",
-                        await BrowserExecutor.preferredBackend(host: "127.0.0.1", port: port) == .cdp
+                        await BrowserExecutor.preferredBackend(host: "127.0.0.1", port: fixture.port) == .cdp
                     )
                 }
+
+                guard let ambiguous = await launchCDPFixture("ambiguous") else {
+                    throw NSError(domain: "BrowserSelfTest", code: 2,
+                                  userInfo: [NSLocalizedDescriptionKey: "CDP ambiguous fixture never printed a port"])
+                }
+                defer { ambiguous.process.terminate() }
+                do {
+                    let targets = try await BrowserCDPClient.listTargets(
+                        baseURL: URL(string: "http://127.0.0.1:\(ambiguous.port)")!
+                    )
+                    check("CDP ambiguous fixture did not expose two tabs", targets.count == 2)
+                    let ambiguousClick = try await BrowserCDPClient.run(
+                        AgentToolRegistry.shared.tool(named: "browser.click")!,
+                        arguments: ["id": "1"],
+                        host: "127.0.0.1",
+                        port: ambiguous.port
+                    )
+                    let activeTargetID = await BrowserCDPClient.targetID(
+                        for: AgentToolRegistry.shared.tool(named: "browser.click")!,
+                        arguments: [:],
+                        host: "127.0.0.1",
+                        port: ambiguous.port
+                    )
+                    check(
+                        "multi-tab action did not use the advertised active target (id=\(activeTargetID ?? "nil"), result=\(ambiguousClick.summary))",
+                        activeTargetID == "2"
+                            && ambiguousClick.summary.contains("No snapshot for target id 2")
+                    )
+                }
+
+                guard let noActive = await launchCDPFixture("ambiguous-none") else {
+                    throw NSError(domain: "BrowserSelfTest", code: 4,
+                                  userInfo: [NSLocalizedDescriptionKey: "CDP no-active fixture never printed a port"])
+                }
+                defer { noActive.process.terminate() }
+                do {
+                    _ = try await BrowserExecutor.run(
+                        AgentToolRegistry.shared.tool(named: "browser.click")!,
+                        arguments: ["id": "1"],
+                        host: "127.0.0.1",
+                        port: noActive.port
+                    )
+                    failures.append("ambiguous CDP target fell through to Accessibility")
+                } catch {
+                    check(
+                        "ambiguous CDP target failed for the wrong reason",
+                        error.localizedDescription.localizedCaseInsensitiveContains("target")
+                    )
+                }
+
+                guard let silent = await launchCDPFixture("unresponsive") else {
+                    throw NSError(domain: "BrowserSelfTest", code: 5,
+                                  userInfo: [NSLocalizedDescriptionKey: "CDP unresponsive fixture never printed a port"])
+                }
+                defer { silent.process.terminate() }
+                let stalledAt = ContinuousClock.now
+                do {
+                    _ = try await BrowserCDPClient.run(
+                        AgentToolRegistry.shared.tool(named: "browser.snapshot")!,
+                        arguments: [:],
+                        host: "127.0.0.1",
+                        port: silent.port
+                    )
+                    failures.append("an unresponsive debugger returned a snapshot")
+                } catch {
+                    check(
+                        "an unresponsive debugger did not exercise the four-second deadline (\(error.localizedDescription), \(stalledAt.duration(to: .now)))",
+                        stalledAt.duration(to: .now) >= .seconds(3)
+                            && stalledAt.duration(to: .now) < .seconds(6)
+                            && error.localizedDescription.contains("did not answer")
+                    )
+                }
+
+                guard let stale = await launchCDPFixture("stale") else {
+                    throw NSError(domain: "BrowserSelfTest", code: 3,
+                                  userInfo: [NSLocalizedDescriptionKey: "CDP stale fixture never printed a port"])
+                }
+                defer { stale.process.terminate() }
+                let staleTarget = BrowserCDPTarget(
+                    id: "1",
+                    title: "example",
+                    url: "https://example.com/",
+                    webSocketDebuggerURL: "ws://127.0.0.1:\(stale.port)/devtools"
+                )
+                BrowserCDPClient.replaceSnapshotCache(
+                    for: staleTarget,
+                    with: [
+                        .init(
+                            id: "1",
+                            tag: "input",
+                            text: "Name"
+                        )
+                    ]
+                )
+                let staleClick = try await BrowserCDPClient.run(
+                    AgentToolRegistry.shared.tool(named: "browser.click")!,
+                    arguments: ["id": "1", "targetId": "1"],
+                    host: "127.0.0.1",
+                    port: stale.port
+                )
+                check(
+                    "stale snapshot cache did not block action",
+                    staleClick.summary.localizedCaseInsensitiveContains("stale")
+                    || staleClick.summary.localizedCaseInsensitiveContains("snapshot first")
+                )
+                let newline = "attacker\nline"
+                let encodedJSON = BrowserCDPClient.jsonStringLiteral(newline)
+                check(
+                    "malicious newline payload is not escaped",
+                    !encodedJSON.contains("\n") && encodedJSON.contains("\\n")
+                )
+                BrowserCDPClient.removeSnapshotCache(for: staleTarget)
             } catch {
                 failures.append(error.localizedDescription)
             }
             for failure in failures { writeSelfTest("  BROWSER_WRONG: \(failure)") }
             writeSelfTest(failures.isEmpty
-                          ? "BROWSER_OK: stub trees invent no elements; CDP probe and AX fallback hold"
+                          ? "BROWSER_OK: target binding, stale IDs, debugger deadline and AX safety hold"
                           : "BROWSER_FAILED: \(failures.count) rule(s) wrong")
             NSApp.terminate(nil)
         }
@@ -3657,6 +3848,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// between those two launches. `log show --predicate 'subsystem == "ai.pivotstudio.nextnotes"'`
     /// is how you read one back.
     private func writeSelfTest(_ line: String) {
+        if line.split(whereSeparator: \.isNewline).contains(where: { part in
+            part.trimmingCharacters(in: .whitespaces).range(
+                of: #"^[A-Z][A-Z0-9_]*(?:_FAILED|_SILENT|_TIMEOUT|_MISSING)(?::|\b)"#,
+                options: .regularExpression
+            ) != nil
+        }) {
+            SelfTest.failed = true
+        }
         let text = "\(line)\n"
         FileHandle.standardOutput.write(Data(text.utf8))
         Log.app.info("selftest · \(line, privacy: .public)")
@@ -3709,6 +3908,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // transcribed; windows still in flight are lost. Better than a meeting whose file
         // says it is still recording.
         meetings.endForTermination()
+        if SelfTest.isRunning && SelfTest.failed {
+            exit(1)
+        }
     }
 
     /// Shows and hides the HUD in step with the controller's state.

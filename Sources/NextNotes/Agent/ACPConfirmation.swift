@@ -141,7 +141,8 @@ extension ACPConfirmation {
     /// Fail if an unavailable CLI would run local tools without a confirmation
     /// outcome. Not wired to `--selftest-acp` and never calls `RunLog.record`.
     @MainActor
-    static func runSelfTest() {
+    @discardableResult
+    static func runSelfTest() -> Bool {
         var failures: [String] = []
         func check(_ name: String, _ condition: Bool) {
             if !condition { failures.append(name) }
@@ -275,5 +276,6 @@ extension ACPConfirmation {
             print("ACP_CONFIRM_WRONG: \(failure)")
         }
         print(failures.isEmpty ? "ACP_CONFIRM_OK" : "ACP_CONFIRM_FAILED")
+        return failures.isEmpty
     }
 }

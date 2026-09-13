@@ -50,7 +50,7 @@ enum MeetingContextExtractor {
             // Candidates are detected independently of the action-item marks: "send me the
             // deck" is a request even when it never said "can you".
             if let candidate = MeetingIntentDetector.candidate(in: segment, speakerNames: speakerNames) {
-                if !next.candidateActions.contains(where: { $0.action == candidate.action && $0.object == candidate.object }) {
+                if !next.candidateActions.contains(where: { Self.candidateFingerprint($0) == Self.candidateFingerprint(candidate) }) {
                     next.candidateActions.append(candidate)
                 }
             }
@@ -92,6 +92,16 @@ enum MeetingContextExtractor {
         if list.contains(where: { $0.text == item.text }) { return }
         list.append(item)
         if list.count > 40 { list.removeFirst(list.count - 40) }
+    }
+
+    private static func candidateFingerprint(_ candidate: MeetingCandidateAction) -> String {
+        [
+            candidate.action,
+            candidate.object ?? "",
+            candidate.source.rawValue,
+            candidate.recipient ?? "",
+            candidate.speaker ?? "",
+        ].map { normalize($0).lowercased() }.joined(separator: "|")
     }
 
     /// Prefer refined wording when it covers an existing item; otherwise append.
@@ -163,6 +173,24 @@ enum MeetingContextExtractor {
             source: .system,
             speaker: "Sarah"
         )
+        let deckSystemSara = TranscriptSegment(
+            start: 18, end: 20,
+            text: "Can you send the deck?",
+            source: .system,
+            speaker: "Sara"
+        )
+        let deckSystemTerry = TranscriptSegment(
+            start: 22, end: 24,
+            text: "Can you send the deck?",
+            source: .system,
+            speaker: "Terry"
+        )
+        let deckSystemSaraRepeat = TranscriptSegment(
+            start: 26, end: 28,
+            text: "Can you send the deck?",
+            source: .system,
+            speaker: "Sara"
+        )
         let decision = TranscriptSegment(
             start: 3, end: 5,
             text: "We decided to ship on Friday.",
@@ -189,7 +217,17 @@ enum MeetingContextExtractor {
             text: "We still need to pick a date.",
             source: .system
         )
-        context = apply([deck, decision, command, discussion, topic, open], to: context)
+        context = apply([
+            deck,
+            deckSystemSara,
+            deckSystemTerry,
+            deckSystemSaraRepeat,
+            decision,
+            command,
+            discussion,
+            topic,
+            open,
+        ], to: context)
 
         check("can you send the deck produced no candidate", context.candidateActions.contains {
             $0.object == "deck" && $0.source == .system
@@ -198,7 +236,15 @@ enum MeetingContextExtractor {
         check("a topic was missed", context.topics.contains { $0.text.localizedCaseInsensitiveContains("launch") })
         check("an unresolved item was missed", context.unresolvedItems.contains { $0.text.localizedCaseInsensitiveContains("date") })
         check("a mention was missed", context.documentsMentioned.contains { $0.text.localizedCaseInsensitiveContains("doc") })
-        check("a discussion became a candidate", context.candidateActions.count == 1)
+        check("system-only duplicate asks stayed as three separate entries", context.candidateActions.filter {
+            $0.action == "send" && $0.object == "deck" && $0.source == .system
+        }.count == 3)
+        check(
+            "an identical ask from the same source and recipient was still deduped",
+            context.candidateActions.filter {
+                $0.action == "send" && $0.object == "deck" && $0.source == .system && $0.recipient == "Sara"
+            }.count == 1
+        )
         check("an agent command polluted the notes text", !context.actionItems.contains { $0.text.contains("email the proposal") })
 
         check(
@@ -223,6 +269,25 @@ enum MeetingContextExtractor {
         check(
             "mic speech was refused authority",
             MeetingIntentDetector.mayAuthorizeExecute(micAsk)
+        )
+        context = apply([micAsk], to: context)
+        check(
+            "system and mic asks with the same object were treated as distinct entries",
+            context.candidateActions.filter { $0.action == "send" && $0.object == "deck" }.count == 4
+        )
+        check(
+            "mic confirmation was treated as separate from system ask",
+            context.candidateActions.contains(where: { $0.action == "send" && $0.object == "deck" && $0.source == .mic })
+        )
+        check(
+            "distinct system speakers remained distinct",
+            context.candidateActions.filter { $0.action == "send" && $0.object == "deck" && $0.source == .system }.count == 3
+        )
+        check(
+            "system requests captured distinct recipients",
+            Set(context.candidateActions.filter {
+                $0.action == "send" && $0.object == "deck" && $0.source == .system
+            }.map { normalize($0.recipient ?? "").lowercased() }).count == 3
         )
 
         return failures

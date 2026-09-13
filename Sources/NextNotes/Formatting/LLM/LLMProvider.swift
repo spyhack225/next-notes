@@ -49,6 +49,41 @@ protocol LLMProvider: Sendable {
     func countTokens(_ text: String) async throws -> Int
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion
+
+    /// Incremental text for interactive answers. Providers with a native token stream
+    /// should override this; the default keeps existing providers compatible while still
+    /// giving callers one cancellable interface.
+    func stream(
+        system: String,
+        user: String,
+        maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error>
+}
+
+extension LLMProvider {
+    func stream(
+        system: String,
+        user: String,
+        maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    let completion = try await complete(
+                        system: system,
+                        user: user,
+                        maxTokens: maxTokens
+                    )
+                    try Task.checkCancellation()
+                    continuation.yield(completion.text)
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
+    }
 }
 
 /// What a generation produced, and what it cost.

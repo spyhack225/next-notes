@@ -29,10 +29,42 @@ enum AgentToolExecutor {
             effective.autoObserve = true
         }
 
-        let scope = PermissionScopeResolver.inferred(tool: tool, arguments: arguments)
+        var authorizedArguments = arguments
+        authorizedArguments.removeValue(forKey: "_browserBackend")
+        authorizedArguments.removeValue(forKey: "_authorizedPageURL")
+        if tool.namespace == .browser {
+            if await BrowserCDPClient.isReachable() {
+                guard let targetID = await BrowserCDPClient.targetID(
+                    for: tool, arguments: authorizedArguments
+                ) else {
+                    throw AgentError.backendUnavailable("The active browser tab could not be identified. Choose a targetId and try again.")
+                }
+                // Keep the target and backend selected for authorization fixed
+                // through a permission prompt and the eventual action.
+                authorizedArguments["targetId"] = targetID
+                authorizedArguments["_browserBackend"] = "cdp"
+            } else {
+                guard authorizedArguments["targetId"] == nil else {
+                    throw AgentError.backendUnavailable("The selected browser target is no longer available. Snapshot again.")
+                }
+                authorizedArguments["_browserBackend"] = "accessibility"
+                if tool.name != "navigate" && tool.name != "download" {
+                    guard let pageURL = BrowserToolExecutor.currentURL() else {
+                        throw AgentError.backendUnavailable("The focused browser document URL could not be identified.")
+                    }
+                    authorizedArguments["_authorizedPageURL"] = pageURL
+                }
+            }
+        }
+        let scope = await PermissionScopeResolver.inferredAsync(tool: tool, arguments: authorizedArguments)
+        if scope.kind == .unresolved {
+            throw AgentError.permissionDenied(
+                "The active browser tab could not be identified, so \(tool.id) was not run."
+            )
+        }
         let decision = await PermissionBroker.shared.authorize(
             tool,
-            arguments: arguments,
+            arguments: authorizedArguments,
             policy: effective,
             scope: scope,
             meetingID: meetingID,
@@ -54,7 +86,7 @@ enum AgentToolExecutor {
             break
         }
 
-        let publicTitle = AgentActivityProjector.title(for: tool, arguments: arguments)
+        let publicTitle = AgentActivityProjector.title(for: tool, arguments: authorizedArguments)
         AgentActivityStore.shared.update(
             taskID: taskID ?? "",
             kind: AgentActivityProjector.kind(for: tool),
@@ -70,7 +102,7 @@ enum AgentToolExecutor {
             meetingID: meetingID
         )
 
-        return try await perform(tool, arguments: arguments)
+        return try await perform(tool, arguments: authorizedArguments)
     }
 
     /// The Workspace runner, kept as the implementation for the eleven existing tools.

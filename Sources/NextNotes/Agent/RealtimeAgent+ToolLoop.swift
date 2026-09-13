@@ -1,5 +1,9 @@
 import Foundation
 
+private enum GeneralToolStepError: Error, Sendable {
+    case message(String)
+}
+
 /// Result of parking on the missing-CLI card. Voice `handle` and the
 /// sidebar `handleLive` path share `waitForACPConfirmation`.
 enum ACPHandleWait {
@@ -55,12 +59,12 @@ extension RealtimeAgent {
         let intent = AgentTurnIntent.resolve(text, choice: local)
         AgentSession.shared.recordUser(text)
         switch intent {
-        case .calendar, .mail, .files, .drive, .computer:
+        case .calendar, .mail, .files, .drive, .computer, .toolLoop:
             let reply = await perform(intent)
             AgentSession.shared.recordAssistant(reply)
             IslandState.shared.showAgentReply(reply)
             return AgentTurn(reply: reply, delegated: false)
-        case .capabilities, .reply, .delegate, .unknown:
+        case .capabilities, .reply, .localModel, .delegate, .unknown:
             if !SelfTest.isRunning {
                 AgentTaskManager.shared.submit(
                     objective: text,
@@ -105,7 +109,9 @@ extension RealtimeAgent {
             )
         case .computer(let computer):
             return await performComputer(computer) ?? "I couldn’t do that."
-        case .capabilities, .reply, .delegate, .unknown:
+        case .toolLoop(let prompt):
+            return await runGeneralToolLoop(prompt)
+        case .capabilities, .reply, .localModel, .delegate, .unknown:
             return Self.unknownReply
         }
     }
@@ -170,6 +176,133 @@ extension RealtimeAgent {
         } catch {
             return error.localizedDescription
         }
+    }
+
+    /// Explicit, model-led tool planning for a voice turn. The normal resolver never
+    /// reaches this path: the user must say "use tools ...". The model sees a deliberately
+    /// small catalogue, while every call still goes through the registry and permission
+    /// broker in AgentToolExecutor.
+    private func runGeneralToolLoop(_ prompt: String) async -> String {
+        // Keep this route read/observe-only. A detached timeout cannot guarantee that a
+        // mutating executor stopped before it commits a write. Explicit click/type requests
+        // already have the deterministic path, whose permission prompt is awaited directly.
+        let allowedIDs: Set<String> = [
+            "get_agenda", "search_email", "find_drive_files", "read_doc",
+            "computer.active_app", "computer.windows", "computer.inspect_ui",
+            "computer.get_selection", "computer.clipboard",
+            "filesystem.search", "filesystem.read",
+        ]
+        let tools = AgentToolRegistry.shared.tools(upTo: .read)
+            .filter { allowedIDs.contains($0.id) }
+        guard !tools.isEmpty else {
+            return "The local tool catalogue is unavailable."
+        }
+        let provider: any LLMProvider
+        if let testingProvider = localModelProviderForTesting {
+            provider = testingProvider
+        } else if let resolvedProvider = await LLMProviders.resolve(preferring: Settings.shared.notesProvider) {
+            provider = resolvedProvider
+        } else {
+            return "I can’t use local tools because no local model is available."
+        }
+
+        let schema = AgentToolRegistry.shared.schemaJSON(for: tools)
+        let system = """
+            You are Next Notes' local tool planner. Use only the tools listed below. Work on
+            the user's explicit request, one verified step at a time. Emit a Hermes call as
+            <tool_call>{"name":"...","arguments":{...},"rationale":"..."}</tool_call>.
+            After a tool result, either emit the next necessary call or answer in plain
+            language with no tool tags. Never invent a result, claim a failed or denied tool
+            succeeded, repeat a failed call, or use a tool outside this list.
+            Never use a tool to change the user's UI or data in this route. Clicking, typing,
+            sending, and writing are handled by the app's explicit action paths.
+
+            Available tools:
+            """ + schema
+        let clock = ContinuousClock()
+        let deadline = clock.now + (toolLoopLimitForTesting ?? Duration.seconds(18))
+        var results: [String] = []
+        var callsUsed = 0
+        let maxRounds = AgentToolLoop.clampedMaxRounds(AgentToolLoop.defaultMaxRounds)
+
+        for _ in 0..<maxRounds {
+            guard !Task.isCancelled else { return "I stopped the tool plan." }
+            guard clock.now < deadline else {
+                return "I stopped the tool plan because it took too long."
+            }
+            let user = AgentToolLoop.userMessage(original: prompt, results: results)
+            let remaining = clock.now.duration(to: deadline)
+            let completion: Result<String, GeneralToolStepError>? = await withBoundedWait(remaining) {
+                do {
+                    return .success(try await provider.complete(
+                        system: system,
+                        user: user,
+                        maxTokens: 256
+                    ).text)
+                } catch {
+                    return .failure(.message(error.localizedDescription))
+                }
+            }
+            guard let completion else {
+                return "I stopped the tool plan because it took too long."
+            }
+            let completionText: String
+            switch completion {
+            case .success(let text): completionText = text
+            case .failure(.message(let message)): return "The tool planner failed: " + message
+            }
+            let parsedCalls = AgentToolCallParser.calls(in: completionText)
+            if parsedCalls.isEmpty {
+                if completionText.contains("<tool_call>") || completionText.contains("</tool_call>") {
+                    return "The tool planner returned an invalid tool request."
+                }
+                let reply = completionText.trimmingCharacters(in: .whitespacesAndNewlines)
+                return reply.isEmpty ? "The tool plan did not produce an answer." : reply
+            }
+
+            for call in parsedCalls {
+                guard callsUsed < AgentToolLoop.defaultMaxCalls else {
+                    return "I couldn’t finish the tool plan within the safe limit."
+                }
+                guard allowedIDs.contains(call.name),
+                      AgentToolRegistry.shared.tool(named: call.name) != nil
+                else {
+                    return "The tool planner requested an unavailable tool; nothing else was run."
+                }
+                guard clock.now < deadline else {
+                    return "I stopped the tool plan because it took too long."
+                }
+                let callRemaining = clock.now.duration(to: deadline)
+                let policy = PermissionPolicy.fromSettings()
+                let execution: Result<String, GeneralToolStepError>? = await withBoundedWait(callRemaining) {
+                    do {
+                        let result = try await AgentToolExecutor.run(
+                            call.name,
+                            arguments: call.arguments,
+                            policy: policy,
+                            autoApproveReads: true,
+                            promptIfNeeded: false
+                        )
+                        return .success(result.summary)
+                    } catch {
+                        return .failure(.message(error.localizedDescription))
+                    }
+                }
+                guard let execution else {
+                    return "I stopped the tool plan because it took too long."
+                }
+                switch execution {
+                case .success(let output):
+                    results.append(AgentPrompts.toolResult(name: call.name, output: output))
+                    callsUsed += 1
+                case .failure(.message(let message)):
+                    // Do not hand a denial/error back to the model for a possible
+                    // optimistic rewrite. A failed tool ends this turn visibly.
+                    return "The tool " + call.name + " did not run: " + message
+                }
+            }
+        }
+        return "I couldn’t finish the tool plan within the safe limit."
     }
 
     private func executeComputerCall(_ call: AgentToolCall) async -> String {

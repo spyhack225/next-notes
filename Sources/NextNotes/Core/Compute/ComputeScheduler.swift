@@ -231,7 +231,8 @@ extension ComputeScheduler {
     /// window. This probe stays on the in-memory scheduler — it does not
     /// drive Parakeet or a meeting — and still prints `SCHEDULER_OK` when
     /// the yield / acquire / release contract holds.
-    static func runSelfTest() async {
+    @discardableResult
+    static func runSelfTest() async -> Bool {
         var failures: [String] = []
 
         let scheduler = ComputeScheduler()
@@ -349,6 +350,7 @@ extension ComputeScheduler {
             print("SCHEDULER_WRONG: \(failure)")
         }
         print(failures.isEmpty ? "SCHEDULER_OK" : "SCHEDULER_FAILED")
+        return failures.isEmpty
     }
 }
 

@@ -120,6 +120,17 @@ struct AgentProposal: Identifiable, Sendable, Equatable, Codable {
     /// put words in the user's name.
     var messagePreview: String? { definition?.preview(for: arguments) }
 
+    /// Every write needs a concrete preview, including Calendar times and Drive paths.
+    /// Message-producing tools keep their tailored full-text preview; the remaining tools
+    /// show every argument so an approval never rests on the model's rationale alone.
+    var reviewPreview: String? {
+        if let messagePreview, !messagePreview.isEmpty { return messagePreview }
+        guard risk != .read, !arguments.isEmpty else { return nil }
+        return arguments.keys.sorted().map { key in
+            "\(key.replacingOccurrences(of: "_", with: " ")): \(arguments[key] ?? "")"
+        }.joined(separator: "\n")
+    }
+
     init(
         id: String = UUID().uuidString,
         meetingID: UUID,

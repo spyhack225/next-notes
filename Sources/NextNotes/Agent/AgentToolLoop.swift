@@ -93,7 +93,8 @@ extension AgentToolLoop {
     /// Inspect → click must make both calls. Not wired to `--selftest-realtime`
     /// and never calls `RunLog.record`.
     @MainActor
-    static func runSelfTest() async {
+    @discardableResult
+    static func runSelfTest() async -> Bool {
         var failures: [String] = []
         func check(_ name: String, _ condition: Bool) {
             if !condition { failures.append(name) }
@@ -155,5 +156,6 @@ extension AgentToolLoop {
             print("TOOLLOOP_WRONG: \(failure)")
         }
         print(failures.isEmpty ? "TOOLLOOP_OK" : "TOOLLOOP_FAILED")
+        return failures.isEmpty
     }
 }

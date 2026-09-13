@@ -27,7 +27,7 @@ enum AgentStdioFixtures {
 
     static let mcp = """
         #!/usr/bin/env python3
-        import json, sys
+        import json, sys, time
 
         def send(obj):
             sys.stdout.write(json.dumps(obj) + "\\n")
@@ -173,27 +173,65 @@ enum AgentStdioFixtures {
     /// CDP discovery without launching Chrome with a debug port.
     static let cdp = """
         #!/usr/bin/env python3
-        from http.server import BaseHTTPRequestHandler, HTTPServer
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        import base64, hashlib, struct
         import json, sys
 
         port = int(sys.argv[1]) if len(sys.argv) > 1 else 0
+        mode = sys.argv[2] if len(sys.argv) > 2 else "single"
+
+        targets = [{
+            "id": "1",
+            "type": "page",
+            "title": "Example",
+            "url": "https://example.com/",
+            "webSocketDebuggerUrl": "ws://127.0.0.1:%d/devtools/1" % port,
+        }]
+        if mode in ("ambiguous", "ambiguous-none"):
+            targets = [
+                {
+                    "id": "1",
+                    "type": "page",
+                    "title": "Example",
+                    "url": "https://example.com/",
+                    "webSocketDebuggerUrl": "ws://127.0.0.1:%d/devtools/1" % port,
+                },
+                {
+                    "id": "2",
+                    "type": "page",
+                    "title": "Docs",
+                    "url": "https://developer.example/",
+                    "active": mode == "ambiguous",
+                    "webSocketDebuggerUrl": "ws://127.0.0.1:%d/devtools/2" % port,
+                },
+            ]
+        elif mode == "stale":
+            targets = [{
+                "id": "1",
+                "type": "page",
+                "title": "YouAreStale",
+                "url": "https://stale.example/",
+                "webSocketDebuggerUrl": "ws://127.0.0.1:%d/devtools/1" % port,
+            }]
 
         class Handler(BaseHTTPRequestHandler):
+            protocol_version = "HTTP/1.1"
             def do_GET(self):
                 bound = self.server.server_address[1]
+                if self.headers.get("Upgrade", "").lower() == "websocket":
+                    self.handle_websocket(bound)
+                    return
                 if self.path.startswith("/json/version"):
                     body = json.dumps({
                         "Browser": "Chrome/fixture",
                         "webSocketDebuggerUrl": "ws://127.0.0.1:%d/devtools" % bound,
                     })
                 elif self.path.startswith("/json"):
-                    body = json.dumps([{
-                        "id": "1",
-                        "type": "page",
-                        "title": "Example",
-                        "url": "https://example.com/",
-                        "webSocketDebuggerUrl": "ws://127.0.0.1:%d/devtools" % bound,
-                    }])
+                    body = json.dumps([
+                        dict(item, webSocketDebuggerUrl=item["webSocketDebuggerUrl"].replace(
+                            ":0/", ":%d/" % bound
+                        )) for item in targets
+                    ])
                 else:
                     self.send_error(404)
                     return
@@ -203,10 +241,74 @@ enum AgentStdioFixtures {
                 self.send_header("Content-Length", str(len(data)))
                 self.end_headers()
                 self.wfile.write(data)
+
+            def handle_websocket(self, bound):
+                key = self.headers.get("Sec-WebSocket-Key", "")
+                accept = base64.b64encode(hashlib.sha1(
+                    (key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()
+                ).digest()).decode()
+                self.send_response(101, "Switching Protocols")
+                self.send_header("Upgrade", "websocket")
+                self.send_header("Connection", "Upgrade")
+                self.send_header("Sec-WebSocket-Accept", accept)
+                self.end_headers()
+
+                active = mode not in ("ambiguous", "ambiguous-none") or (
+                    mode == "ambiguous" and self.path.endswith("/2")
+                )
+                while True:
+                    header = self.rfile.read(2)
+                    if len(header) != 2:
+                        return
+                    opcode = header[0] & 0x0f
+                    length = header[1] & 0x7f
+                    if length == 126:
+                        length = struct.unpack("!H", self.rfile.read(2))[0]
+                    elif length == 127:
+                        length = struct.unpack("!Q", self.rfile.read(8))[0]
+                    masked = header[1] & 0x80
+                    mask = self.rfile.read(4) if masked else b""
+                    payload = self.rfile.read(length)
+                    if masked:
+                        payload = bytes(value ^ mask[index % 4] for index, value in enumerate(payload))
+                    if opcode == 8:
+                        return
+                    if opcode != 1:
+                        continue
+                    request = json.loads(payload.decode())
+                    if mode == "unresponsive":
+                        time.sleep(10)
+                        return
+                    expression = request.get("params", {}).get("expression", "")
+                    method = request.get("method", "")
+                    if "hasFocus" in expression:
+                        value = "focused" if active else "background"
+                    elif method == "Runtime.evaluate":
+                        value = json.dumps([
+                            {"id": "1", "tag": "button", "text": "OK"},
+                            {"id": "2", "tag": "input", "text": "Name"},
+                        ])
+                    elif method == "Page.navigate":
+                        value = "navigated"
+                    else:
+                        value = "ok"
+                    response = json.dumps({
+                        "id": request.get("id"),
+                        "result": {"result": {"value": value}},
+                    }).encode()
+                    if len(response) < 126:
+                        frame = bytes([0x81, len(response)]) + response
+                    elif len(response) <= 65535:
+                        frame = b"\\x81\\x7e" + struct.pack("!H", len(response)) + response
+                    else:
+                        frame = b"\\x81\\x7f" + struct.pack("!Q", len(response)) + response
+                    self.wfile.write(frame)
+                    self.wfile.flush()
+
             def log_message(self, *args):
                 pass
 
-        httpd = HTTPServer(("127.0.0.1", port), Handler)
+        httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
         print(httpd.server_address[1], flush=True)
         httpd.serve_forever()
         """

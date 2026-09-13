@@ -44,6 +44,13 @@ final class AgentCaptureController {
     private var engine: (any TranscriptionEngine)?
     private var consumeTask: Task<Void, Never>?
     private var vadTask: Task<Void, Never>?
+    /// A tool or permission request belongs to a turn, not to the VAD timer.
+    /// The timer must keep endpointing speech while this task is suspended.
+    private var activeTurnTask: Task<Void, Never>?
+    private var turnGeneration = 0
+    /// A suspended fake lets `--selftest-realtime` prove the next endpoint does
+    /// not wait for a previous tool. Never installed during normal operation.
+    @ObservationIgnored var turnHandlerForTesting: (@MainActor (String) async -> Void)?
     private var heardSpeech = false
     private var speechBeganAt: Date?
     private var lastSpeechAt: Date?
@@ -57,6 +64,9 @@ final class AgentCaptureController {
 
     func beginSession(captureAudio: Bool = true) async {
         if isSessionActive { return }
+        turnGeneration &+= 1
+        activeTurnTask?.cancel()
+        activeTurnTask = nil
         self.captureAudio = captureAudio
         isSessionActive = true
         RealtimeAudioSession.shared.begin()
@@ -87,6 +97,13 @@ final class AgentCaptureController {
     func endSession(source: EndpointSource = .done) async {
         guard isSessionActive else { return }
         isSessionActive = false
+        turnGeneration &+= 1
+        activeTurnTask?.cancel()
+        activeTurnTask = nil
+        _ = ACPConfirmationGate.shared.cancel()
+        if RealtimeAgent.shared.isThinking {
+            RealtimeAgent.shared.cancel()
+        }
         lastEndpoint = source
         RealtimeAudioSession.shared.end()
         stopVAD()
@@ -262,12 +279,37 @@ final class AgentCaptureController {
         if RealtimeAgent.shared.isThinking {
             RealtimeAgent.shared.interrupt()
         }
+        activeTurnTask?.cancel()
+        _ = ACPConfirmationGate.shared.cancel()
+        turnGeneration &+= 1
+        let generation = turnGeneration
+        if continueSession {
+            // `startVAD` awaits `tick`. Awaiting a tool here would prevent the
+            // next utterance from reaching another endpoint until that tool
+            // returned (up to twenty seconds). Own the reply separately.
+            activeTurnTask = Task { @MainActor [weak self] in
+                if let testHandler = self?.turnHandlerForTesting {
+                    await testHandler(text)
+                } else {
+                    _ = await RealtimeAgent.shared.handle(text, source: .voice)
+                }
+                guard let self, self.turnGeneration == generation, self.isSessionActive else {
+                    return
+                }
+                self.activeTurnTask = nil
+                self.lastActivityAt = Date()
+                ActivationController.shared.markListening()
+                IslandState.shared.showAgentListening(transcript: "", level: 0)
+            }
+            return
+        }
         _ = await RealtimeAgent.shared.handle(text, source: .voice)
         lastActivityAt = Date()
-        if continueSession, isSessionActive {
-            ActivationController.shared.markListening()
-            IslandState.shared.showAgentListening(transcript: "", level: 0)
-        }
+    }
+
+    /// Wait for a lightweight test turn before asserting its reply.
+    func waitForActiveTurnForTesting() async {
+        await activeTurnTask?.value
     }
 
     func noteAssistantReply(_ text: String) {

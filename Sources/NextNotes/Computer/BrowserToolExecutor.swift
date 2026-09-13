@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Foundation
 
 /// Local browser automation. Eveclaw drives Chromium in a Vercel sandbox; that is not a
@@ -96,5 +97,60 @@ enum BrowserToolExecutor {
             return "\(app.localizedName ?? "The browser"): \(body)"
         }
         return body
+    }
+
+    /// Returns the focused browser document URL for permission scoping when CDP is
+    /// unavailable. Accessibility trees expose this on the web area/document node;
+    /// the walk is deliberately bounded because it runs before every browser action.
+    @MainActor
+    static func currentURL() -> String? {
+        guard Permissions.hasAccessibility,
+              let app = NSWorkspace.shared.frontmostApplication,
+              let bundle = app.bundleIdentifier,
+              browserBundleIDs.contains(bundle)
+        else { return nil }
+        let axApp = AXUIElementCreateApplication(app.processIdentifier)
+        var windowRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            axApp,
+            kAXFocusedWindowAttribute as CFString,
+            &windowRef
+        ) == .success,
+              let windowRef
+        else { return nil }
+        let window = windowRef as! AXUIElement
+        return documentURL(in: window, depth: 0)
+    }
+
+    private static func documentURL(in element: AXUIElement, depth: Int) -> String? {
+        guard depth < 8 else { return nil }
+        var roleRef: CFTypeRef?
+        let hasRole = AXUIElementCopyAttributeValue(
+            element, kAXRoleAttribute as CFString, &roleRef
+        ) == .success
+        let role = hasRole ? roleRef as? String : nil
+        if role == "AXWebArea" || role == "AXDocument" {
+            // Links also expose AXURL. Only a web document's own URL is the
+            // domain of the page we are about to inspect or change.
+            var urlRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(element, kAXURLAttribute as CFString, &urlRef) == .success,
+               let url = urlRef as? URL, !url.absoluteString.isEmpty {
+                return url.absoluteString
+            }
+            if let url = urlRef as? String, !url.isEmpty { return url }
+        }
+
+        var childrenRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            element,
+            kAXChildrenAttribute as CFString,
+            &childrenRef
+        ) == .success,
+              let children = childrenRef as? [AXUIElement]
+        else { return nil }
+        for child in children.prefix(80) {
+            if let url = documentURL(in: child, depth: depth + 1) { return url }
+        }
+        return nil
     }
 }

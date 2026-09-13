@@ -97,6 +97,34 @@ actor NotesModelRuntime {
         }
     }
 
+    /// Native token stream for interactive agent answers. The task is owned by the
+    /// returned sequence, so cancelling a consumer reaches the llama loop between tokens.
+    func stream(
+        system: String,
+        user: String,
+        maxTokens: Int
+    ) -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    try await self.withBackgroundLane { jobID in
+                        try await self.streamWhileScheduled(
+                            jobID: jobID,
+                            system: system,
+                            user: user,
+                            maxTokens: maxTokens,
+                            yield: { piece in continuation.yield(piece) }
+                        )
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
+    }
+
     /// Generation body that already holds the background lane.
     private func completeWhileScheduled(
         jobID: UUID,
@@ -167,6 +195,83 @@ actor NotesModelRuntime {
             generatedTokens: generated,
             duration: Date().timeIntervalSince(began)
         )
+    }
+
+    /// The streaming twin of `completeWhileScheduled`. Keep token sampling in this actor:
+    /// the context is shared with notes generation and must never be touched concurrently.
+    private func streamWhileScheduled(
+        jobID: UUID,
+        system: String,
+        user: String,
+        maxTokens: Int,
+        yield: @escaping @Sendable (String) -> Void
+    ) async throws {
+        try await loadIfNeeded(schedulerJobID: jobID)
+        defer {
+            lastUse = Date()
+            scheduleIdleUnload()
+        }
+        guard let vocabulary else { throw LlamaError.notLoaded }
+
+        let prompt = Self.chatMLPrompt(system: system, user: user)
+        let promptTokens = try LlamaHelpers.tokenize(prompt, vocabulary: vocabulary)
+        guard promptTokens.count + maxTokens + Self.contextHeadroom <= contextTokens else {
+            throw LlamaError.inputTooLong
+        }
+
+        let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
+        llama_memory_clear(llama_get_memory(context), true)
+        try LlamaHelpers.decodePrompt(promptTokens, context: context, chunk: Int(Self.batchTokens))
+
+        guard let sampler = makeSampler(vocabulary: vocabulary) else {
+            throw LlamaError.samplerFailed
+        }
+        defer { llama_sampler_free(sampler) }
+
+        var output = ""
+        var pending = ""
+        var generated = 0
+        var position = llama_pos(promptTokens.count)
+        var batch = llama_batch_init(1, 0, 1)
+        defer { llama_batch_free(batch) }
+
+        while generated < maxTokens {
+            try Task.checkCancellation()
+            await ComputeScheduler.shared.checkpoint(jobID)
+
+            let token = llama_sampler_sample(sampler, context, -1)
+            if llama_vocab_is_eog(vocabulary, token) { break }
+            let piece = LlamaHelpers.piece(token, vocabulary: vocabulary)
+            output += piece
+            generated += 1
+            pending += piece
+            // Hold a suffix that could still become the ChatML terminator. This avoids
+            // sending `<|im_end|>` fragments into the spoken-reply bridge.
+            let maxHeld = min(Self.turnEnd.count, pending.count)
+            let held: Int
+            if maxHeld == 0 {
+                held = 0
+            } else {
+                held = (1...maxHeld).reversed().first {
+                    String(pending.suffix($0)) == String(Self.turnEnd.prefix($0))
+                } ?? 0
+            }
+            let safeCount = pending.count - held
+            if safeCount > 0 {
+                yield(String(pending.prefix(safeCount)))
+                pending.removeFirst(safeCount)
+            }
+            if pending == Self.turnEnd {
+                pending = ""
+                break
+            }
+
+            batch.n_tokens = 0
+            LlamaHelpers.add(token, position: position, logits: true, to: &batch)
+            guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
+            position += 1
+        }
+        if !pending.isEmpty, !pending.hasPrefix(Self.turnEnd) { yield(pending) }
     }
 
     /// Acquires the shared background lane for the duration of `body`.
