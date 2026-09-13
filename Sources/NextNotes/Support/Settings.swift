@@ -487,6 +487,76 @@ final class Settings {
         didSet { defaults.set(agentLiveDuringMeeting, forKey: Keys.agentLiveDuringMeeting) }
     }
 
+    /// Local wake-phrase detection. Off until the user turns it on — a hot microphone
+    /// while the app is sleeping is a choice, not a default.
+    var voiceWakeEnabled: Bool {
+        didSet {
+            defaults.set(voiceWakeEnabled, forKey: Keys.voiceWakeEnabled)
+            WakeWordAudioMonitor.shared.sync()
+        }
+    }
+
+    var wakePhrase: String {
+        didSet { defaults.set(wakePhrase, forKey: Keys.wakePhrase) }
+    }
+
+    /// 0 = conservative, 1 = sensitive.
+    var wakeSensitivity: Double {
+        didSet { defaults.set(wakeSensitivity, forKey: Keys.wakeSensitivity) }
+    }
+
+    var listenWhileSleeping: Bool {
+        didSet {
+            defaults.set(listenWhileSleeping, forKey: Keys.listenWhileSleeping)
+            WakeWordAudioMonitor.shared.sync()
+        }
+    }
+
+    var agentShortcutEnabled: Bool {
+        didSet { defaults.set(agentShortcutEnabled, forKey: Keys.agentShortcutEnabled) }
+    }
+
+    var agentShortcut: AgentShortcut {
+        didSet { defaults.set(agentShortcut.rawValue, forKey: Keys.agentShortcut) }
+    }
+
+    var agentBackend: AgentBackendKind {
+        didSet { defaults.set(agentBackend.rawValue, forKey: Keys.agentBackend) }
+    }
+
+    var acpBackendID: String {
+        didSet { defaults.set(acpBackendID, forKey: Keys.acpBackendID) }
+    }
+
+    var agentAutoSearchFiles: Bool {
+        didSet { defaults.set(agentAutoSearchFiles, forKey: Keys.agentAutoSearchFiles) }
+    }
+
+    /// Standing yes for local click / type / open. Off by default — observe still runs.
+    var agentAllowComputerControl: Bool {
+        didSet { defaults.set(agentAllowComputerControl, forKey: Keys.agentAllowComputerControl) }
+    }
+
+    var composioEnabled: Bool {
+        didSet { defaults.set(composioEnabled, forKey: Keys.composioEnabled) }
+    }
+
+    var composioAPIKey: String {
+        didSet { defaults.set(composioAPIKey, forKey: Keys.composioAPIKey) }
+    }
+
+    var composioURL: String {
+        didSet { defaults.set(composioURL, forKey: Keys.composioURL) }
+    }
+
+    var composioAllowlist: [String] {
+        didSet { defaults.set(composioAllowlist, forKey: Keys.composioAllowlist) }
+    }
+
+    var mcpServersJSON: String {
+        didSet { defaults.set(mcpServersJSON, forKey: Keys.mcpServersJSON) }
+    }
+
     /// Whether the first-launch permissions checklist has been dismissed. The checklist
     /// itself stays reachable from Settings, so this only decides whether it opens by
     /// itself — not whether the app is usable.
@@ -573,6 +643,21 @@ final class Settings {
         static let agentEnabled = "agentEnabled"
         static let agentAutoRunReadTools = "agentAutoRunReadTools"
         static let agentLiveDuringMeeting = "agentLiveDuringMeeting"
+        static let voiceWakeEnabled = "voiceWakeEnabled"
+        static let wakePhrase = "wakePhrase"
+        static let wakeSensitivity = "wakeSensitivity"
+        static let listenWhileSleeping = "listenWhileSleeping"
+        static let agentShortcutEnabled = "agentShortcutEnabled"
+        static let agentShortcut = "agentShortcut"
+        static let agentBackend = "agentBackend"
+        static let acpBackendID = "acpBackendID"
+        static let agentAutoSearchFiles = "agentAutoSearchFiles"
+        static let agentAllowComputerControl = "agentAllowComputerControl"
+        static let composioEnabled = "composioEnabled"
+        static let composioAPIKey = "composioAPIKey"
+        static let composioURL = "composioURL"
+        static let composioAllowlist = "composioAllowlist"
+        static let mcpServersJSON = "mcpServersJSON"
     }
 
     private init() {
@@ -646,6 +731,21 @@ final class Settings {
         agentEnabled = defaults.object(forKey: Keys.agentEnabled) as? Bool ?? false
         agentAutoRunReadTools = defaults.object(forKey: Keys.agentAutoRunReadTools) as? Bool ?? true
         agentLiveDuringMeeting = defaults.object(forKey: Keys.agentLiveDuringMeeting) as? Bool ?? false
+        voiceWakeEnabled = defaults.object(forKey: Keys.voiceWakeEnabled) as? Bool ?? false
+        wakePhrase = defaults.string(forKey: Keys.wakePhrase) ?? WakeWordConfiguration.defaultPhrase
+        wakeSensitivity = defaults.object(forKey: Keys.wakeSensitivity) as? Double ?? 0.5
+        listenWhileSleeping = defaults.object(forKey: Keys.listenWhileSleeping) as? Bool ?? true
+        agentShortcutEnabled = defaults.object(forKey: Keys.agentShortcutEnabled) as? Bool ?? true
+        agentShortcut = AgentShortcut(rawValue: defaults.string(forKey: Keys.agentShortcut) ?? "") ?? .shiftCommandSpace
+        agentBackend = AgentBackendKind(rawValue: defaults.string(forKey: Keys.agentBackend) ?? "") ?? .local
+        acpBackendID = defaults.string(forKey: Keys.acpBackendID) ?? ""
+        agentAutoSearchFiles = defaults.object(forKey: Keys.agentAutoSearchFiles) as? Bool ?? false
+        agentAllowComputerControl = defaults.object(forKey: Keys.agentAllowComputerControl) as? Bool ?? false
+        composioEnabled = defaults.object(forKey: Keys.composioEnabled) as? Bool ?? false
+        composioAPIKey = defaults.string(forKey: Keys.composioAPIKey) ?? ""
+        composioURL = defaults.string(forKey: Keys.composioURL) ?? ComposioProvider.defaultURL
+        composioAllowlist = defaults.stringArray(forKey: Keys.composioAllowlist) ?? []
+        mcpServersJSON = defaults.string(forKey: Keys.mcpServersJSON) ?? ""
 
         // Old/default values can be loaded without invoking property observers.
         if commandModeEnabled, commandModeKey == pushToTalkKey {

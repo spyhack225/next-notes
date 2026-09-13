@@ -114,9 +114,13 @@ enum DS {
         static let sectionLabel = SwiftUI.Font.subheadline.weight(.semibold)
         /// A small capitalised label above or beside a thing, rather than a heading for it —
         /// the landing page's card labels. Letterspaced, because capitals set at caption
-        /// size and default tracking read as one long word.
+        /// size and default tracking read as one long word. Must stay non-negative: a
+        /// negative figure is what collapses “Talk to your computer” into one glyph-run.
         static let eyebrow = SwiftUI.Font.caption2.weight(.medium)
         static let eyebrowTracking: CGFloat = 1.4
+        /// Headings and sentences. Zero is the system default; it is a token so a title
+        /// cannot inherit eyebrow letterspacing and lose its word spaces.
+        static let wordTracking: CGFloat = 0
         /// An empty state's heading. Matches `ContentUnavailableView`'s own, so the two
         /// vocabularies can sit on the same screen without arguing.
         static let emptyStateTitle = SwiftUI.Font.title3.weight(.semibold)
@@ -215,8 +219,22 @@ enum DS {
         /// narrow enough not to read as a divider.
         static let progressWidth: CGFloat = 220
 
+        /// Settings is a sidebar of panes plus a grouped form. Ten toolbar tabs will not
+        /// fit in `settingsWidth`; they all fit in a spine this wide.
+        static let settingsSidebarMin: CGFloat = 168
+        static let settingsSidebarIdeal: CGFloat = 196
+        static let settingsSidebarMax: CGFloat = 240
+        /// The form column, not the window. The window is `settingsWindowWidth`.
         static let settingsWidth: CGFloat = 560
-        static let settingsMinHeight: CGFloat = 420
+        static let settingsWindowWidth: CGFloat = settingsSidebarIdeal + settingsWidth
+        /// Tall enough for every sidebar row (General through Permissions) plus the
+        /// Formatting pane's heading. Shorter than this and the HStack clips the first
+        /// rows off the top — the screenshot that looked like Agent was selected over a
+        /// Formatting form.
+        static let settingsMinHeight: CGFloat = 560
+        /// One sidebar row. Used to prove the window can actually show every pane, not
+        /// just that the list exists in the view tree.
+        static let settingsSidebarRow: CGFloat = 28
         /// An app's own icon, beside its name in the formatting picker.
         static let appIcon: CGFloat = 20
         /// Text fields in a grouped `Form` stretch to the full row otherwise, which reads
@@ -225,8 +243,8 @@ enum DS {
         /// One capability checkbox column in the output-formatting table. Wide enough for a
         /// checkbox and the gap that keeps five of them from reading as one control.
         static let formatCapabilityColumn: CGFloat = 34
-        /// The output-formatting app list scrolls past this rather than pushing the buttons
-        /// below it off the window — the table grows with every app the user adds.
+        /// The output-formatting app list scrolls inside this height rather than growing
+        /// the pane. Unbounded height is what clipped the Settings sidebar.
         static let formatListHeight: CGFloat = 240
         /// The Google calendar checklist scrolls past this rather than pushing the rest of
         /// the tab off the window — some accounts subscribe to dozens.

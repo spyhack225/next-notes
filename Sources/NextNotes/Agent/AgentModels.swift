@@ -2,34 +2,65 @@ import Foundation
 
 /// How much a tool can cost if the model is wrong about wanting it.
 ///
-/// The three classes are the whole permission model, and they are graded by what can't be
-/// taken back: reading is invisible to everyone else, writing leaves something the user can
-/// delete, and sending puts words in the user's name in front of another person. Nothing
-/// about the model's confidence changes which class a tool is in — the class is a property
-/// of the tool.
+/// Graded by what can't be taken back. The original three classes — read, write, send —
+/// stay as they were so proposals already on disk keep decoding, and the v2 broker sits
+/// the newer ones around them rather than renaming anything a meeting file already stored.
+/// Nothing about the model's confidence changes which class a tool is in — the class is a
+/// property of the tool.
 enum AgentRisk: String, Codable, Sendable, CaseIterable, Comparable {
+    /// Looks at what is already on screen or in a meeting. Automatic.
+    case observe
     /// Looks something up. Runs without asking when `Settings.agentAutoRunReadTools` is on.
     case read
+    /// Changes a local file or UI the user already owns. Confirmation depends on scope.
+    case modify
     /// Creates or changes something the user owns. One click.
     case write
     /// Says something as the user. One click, and the full message is shown first.
+    ///
+    /// This is the "communicate" class in the v2 roadmap. The raw value stays `send` so a
+    /// proposal written before the rename still decodes as the same thing.
     case send
+    /// Deletes or irreversibly destroys something. Strong confirmation.
+    case destructive
+    /// Installs software, runs as root, or otherwise leaves the user's machine. Strong
+    /// confirmation, and never an "always allow everything" escape.
+    case privileged
 
     var displayName: String {
         switch self {
+        case .observe: "Observes"
         case .read: "Reads"
+        case .modify: "Edits"
         case .write: "Creates"
         case .send: "Sends"
+        case .destructive: "Deletes"
+        case .privileged: "Privileged"
         }
     }
+
+    /// Whether this class may ever run without a person pressing a button.
+    var mayAutoRun: Bool {
+        switch self {
+        case .observe, .read: true
+        case .modify, .write, .send, .destructive, .privileged: false
+        }
+    }
+
+    /// Whether executing this leaves something another person can see.
+    var speaksForTheUser: Bool { self == .send }
 
     /// Ordered by consequence, so `max` over a set of tools answers "what is the worst this
     /// could do".
     private var rank: Int {
         switch self {
-        case .read: 0
-        case .write: 1
-        case .send: 2
+        case .observe: 0
+        case .read: 1
+        case .modify: 2
+        case .write: 3
+        case .send: 4
+        case .destructive: 5
+        case .privileged: 6
         }
     }
 
@@ -124,6 +155,11 @@ struct WorkspaceToolResult: Sendable {
     }
 }
 
+/// The generic shape every executor returns. Workspace results are this type already;
+/// keeping one struct is what lets the island, the audit log and the model see the same
+/// answer whether the work was native, MCP or a local computer tool.
+typealias AgentToolResult = WorkspaceToolResult
+
 /// A tool that actually ran, recorded on the meeting.
 ///
 /// Written into `meeting.json` rather than kept in memory because the answer to "did I
@@ -165,6 +201,11 @@ enum AgentError: LocalizedError, Equatable {
     case unknownTool(String)
     case missingArgument(name: String, tool: String)
     case noProposals
+    case permissionDenied(String)
+    case needsPermission(String)
+    case noIntegration(String)
+    case cancelled
+    case backendUnavailable(String)
 
     var errorDescription: String? {
         switch self {
@@ -185,6 +226,16 @@ enum AgentError: LocalizedError, Equatable {
             "\(tool) needs \u{201c}\(name)\u{201d}, and it is empty."
         case .noProposals:
             "Nothing in this meeting needed following up."
+        case .permissionDenied(let reason):
+            reason
+        case .needsPermission(let reason):
+            reason
+        case .noIntegration(let name):
+            "Nothing is connected that can do \u{201c}\(name)\u{201d}."
+        case .cancelled:
+            "The task was cancelled."
+        case .backendUnavailable(let reason):
+            reason
         }
     }
 }

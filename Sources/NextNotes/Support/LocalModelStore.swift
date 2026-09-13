@@ -23,12 +23,14 @@ final class LocalModelStore {
     private(set) var s1MiniState: State
     private(set) var notesModelState: State
     private(set) var diarizerState: State
+    private(set) var wakeWordState: State
 
     private init() {
         parakeetState = ParakeetModels.isDownloaded ? .ready : .notDownloaded
         s1MiniState = S1MiniModels.isDownloaded ? .ready : .notDownloaded
         notesModelState = NotesModels.isDownloaded ? .ready : .notDownloaded
         diarizerState = MeetingDiarizer.isDownloaded ? .ready : .notDownloaded
+        wakeWordState = WakeWordModelManager.isReadyToLoad ? .ready : .notDownloaded
     }
 
     func prepareParakeet() {
@@ -145,6 +147,32 @@ final class LocalModelStore {
         }
     }
 
+    func prepareWakeWord() {
+        guard !wakeWordState.isBusy else { return }
+        wakeWordState = .preparing(
+            WakeWordModelManager.isReadyToLoad
+                ? "Loading wake phrase…"
+                : "Downloading wake phrase (\(WakeWordModels.archive.displaySize))…"
+        )
+        Task {
+            do {
+                try await WakeWordModelManager.download(configuration: WakeWordConfiguration.current) { [weak self] fraction in
+                    Task { @MainActor [weak self] in
+                        let percent = Int((fraction * 100).rounded())
+                        self?.wakeWordState = .preparing("Downloading wake phrase… \(percent)%")
+                    }
+                }
+                wakeWordState = .preparing("Loading wake phrase…")
+                _ = try WakeWordModelManager.loadSpotter()
+                wakeWordState = .ready
+                WakeWordAudioMonitor.shared.sync()
+            } catch {
+                wakeWordState = .failed(error.localizedDescription)
+                Log.agent.error("wake model preparation failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
     func refresh() {
         if !parakeetState.isBusy {
             parakeetState = ParakeetModels.isDownloaded ? .ready : .notDownloaded
@@ -157,6 +185,9 @@ final class LocalModelStore {
         }
         if !diarizerState.isBusy {
             diarizerState = MeetingDiarizer.isDownloaded ? .ready : .notDownloaded
+        }
+        if !wakeWordState.isBusy {
+            wakeWordState = WakeWordModelManager.isReadyToLoad ? .ready : .notDownloaded
         }
     }
 }

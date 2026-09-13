@@ -71,6 +71,7 @@ final class AgentService {
             self?.handle(action)
         }
         IslandState.shared.onProposalDecision = { [weak self] proposal, approved in
+            if PermissionGate.shared.respond(id: proposal.id, approved: approved) { return }
             self?.decide(proposalID: proposal.id, approved: approved)
         }
 
@@ -244,7 +245,7 @@ final class AgentService {
             guard let self else { return }
             defer { self.running.remove(proposal.id) }
             do {
-                let result = try await WorkspaceToolRunner.run(proposal, cli: self.cli)
+                let result = try await AgentToolExecutor.run(proposal, cli: self.cli)
                 self.record(
                     AgentActionRecord(
                         id: proposal.id,

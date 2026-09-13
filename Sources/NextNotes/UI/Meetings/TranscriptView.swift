@@ -63,10 +63,11 @@ private struct SegmentRow: View {
 extension Array where Element == TranscriptSegment {
     /// The transcript as plain text, for the clipboard and for the export file.
     func plainText(speakerNames: [String: String] = [:]) -> String {
-        map { segment in
-            let name = speakerNames[segment.displaySpeaker] ?? segment.displaySpeaker
-            return "[\(segment.start.counterText)] \(name): \(segment.text)"
-        }
-        .joined(separator: "\n")
+        filter(\.includeInMeetingNotes)
+            .map { segment in
+                let name = speakerNames[segment.displaySpeaker] ?? segment.displaySpeaker
+                return "[\(segment.start.counterText)] \(name): \(segment.text)"
+            }
+            .joined(separator: "\n")
     }
 }

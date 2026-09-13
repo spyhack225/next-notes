@@ -33,6 +33,8 @@ struct NextNotesApp: App {
         SwiftUI.Settings {
             SettingsWindow(controller: delegate.controller)
         }
+        .defaultSize(width: DS.Size.settingsWindowWidth, height: DS.Size.settingsMinHeight)
+        .windowResizability(.contentMinSize)
 
         // Secondary now: status and the hotkey while you're working in another app.
         MenuBarExtra {
@@ -214,6 +216,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // registers a notification observer and the island's decision handler, and both of
         // those have to exist before a proposal from a previous session is delivered.
         AgentService.shared.start()
+        // Touch the registry so native tools exist before the first utterance, then arm
+        // the agent shortcut. Wake-word audio is not started until the user turns it on.
+        _ = AgentToolRegistry.shared
+        ActivationController.shared.start()
         Task { await Notifications.shared.requestAuthorization() }
 
         observeState()
@@ -306,6 +312,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-dictation") {
             runDictationSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-tools") {
+            runToolsSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-wake") {
+            runWakeSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-tasks") {
+            runTasksSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-meeting-context") {
+            runMeetingContextSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-realtime") {
+            runRealtimeSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-computer") {
+            runComputerSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-mcp") {
+            runMCPSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-acp") {
+            runACPSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-activity") {
+            runActivitySelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-fs") {
+            runFilesystemSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-browser") {
+            runBrowserSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-settings") {
+            runSettingsSelfTest()
             return true
         }
         if arguments.contains("--selftest-parakeet") {
@@ -1990,6 +2044,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             var failures = Self.islandStateFailures()
+            failures.append(contentsOf: Self.islandViewFailures())
 
             // The one property this panel must never lose. A key island would take focus
             // away from the text field `TextInjector` is about to type into.
@@ -2133,6 +2188,99 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         check("transcribing works", IslandState.Kind.transcribing.orb == .working)
         check("summarizing composes", IslandState.Kind.summarizing(progress: nil).orb == .composing)
 
+        // A recording with no session, and a listen with no reply, must still have words.
+        // Reaching into MeetingController / AgentCaptureController from IslandView.content
+        // is what SIGSEGV'd the process (`assumeIsolated` on a view-body getter).
+        let bare = IslandState()
+        bare.apply(.meetingRecording(elapsed: 0, micLevel: 0, systemLevel: 0))
+        check("a recording with no session still titles itself", bare.cardTitle == "Recording")
+        check(
+            "a listen with a transcript uses it",
+            bare.listeningDetail("hello") == "hello"
+        )
+        check("an empty listen still has a line", !bare.listeningDetail("").isEmpty)
+
+        return failures
+    }
+
+    /// Evaluates `IslandView.body` for every card, including kinds that have no session
+    /// and no agent. The crash was `content.getter` — a body that cannot be built must
+    /// not print `ISLAND_OK`.
+    @MainActor
+    private static func islandViewFailures() -> [String] {
+        let floating = IslandGeometry.Metrics(
+            bounds: NSRect(x: 0, y: 0, width: 400, height: 180),
+            collapsedSize: CGSize(width: 200, height: 32),
+            expandedSize: CGSize(width: 400, height: 180),
+            notchWidth: 0,
+            hugsNotch: false
+        )
+        let hugging = IslandGeometry.Metrics(
+            bounds: NSRect(x: 0, y: 0, width: 400, height: 180),
+            collapsedSize: CGSize(width: 200, height: 32),
+            expandedSize: CGSize(width: 400, height: 180),
+            notchWidth: 80,
+            hugsNotch: true
+        )
+
+        let armed = MeetingEvent(
+            id: "island-view",
+            providerID: .fake,
+            title: "Standup",
+            start: Date().addingTimeInterval(60),
+            end: Date().addingTimeInterval(1_860),
+            attendees: ["Sam"],
+            isOrganizerOrSelfAccepted: true,
+            conferenceURL: nil,
+            calendarName: "Test",
+            isAllDay: false
+        )
+        let kinds: [IslandState.Kind] = [
+            .hidden,
+            .dictating(transcript: "hello", level: 0.4, isCapturing: true),
+            .dictating(transcript: "", level: 0, isCapturing: false),
+            .meetingArmed(armed),
+            .meetingRecording(elapsed: 12, micLevel: 0.2, systemLevel: 0),
+            .transcribing,
+            .diarizing(progress: 0.3),
+            .summarizing(progress: nil),
+            .notesReady(meetingID: UUID(), title: "Weekly"),
+            .agentProposal(IslandProposal(
+                id: "view",
+                title: "Send",
+                detail: "Email Sam.",
+                meetingID: nil
+            )),
+            .agentListening(transcript: "", level: 0.1),
+            .agentWorking(title: "Searching mail"),
+            .agentReply("Done."),
+        ]
+
+        var failures: [String] = []
+        let state = IslandState()
+        let panel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: floating.expandedSize),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        defer { panel.close() }
+
+        for metrics in [floating, hugging] {
+            for kind in kinds {
+                state.apply(kind)
+                state.isHovered = true
+                let hosting = NSHostingView(rootView: IslandView(state: state, metrics: metrics))
+                hosting.frame = NSRect(origin: .zero, size: metrics.expandedSize)
+                panel.contentView = hosting
+                panel.layoutIfNeeded()
+                hosting.layoutSubtreeIfNeeded()
+                if hosting.bounds.isEmpty {
+                    failures.append("\(kind.identity) hosted in an empty frame")
+                }
+            }
+        }
+
         return failures
     }
 
@@ -2142,6 +2290,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// wrong is not a crash but a blank patch or a single dot in the corner — which nobody
     /// notices in a 20pt badge. This asks the four questions a screenshot would answer:
     /// are there dots, are they finite, are they inside the frame, and do they move.
+    /// `--selftest-settings` — every Settings pane is a sidebar row, and every heading
+    /// still contains U+0020. The last time this was a `TabView`, Integrations, Models and
+    /// Permissions sat behind a chevron that did not list them.
+    private func runSettingsSelfTest() {
+        Task { @MainActor in
+            var failures = SettingsTab.catalogFailures()
+            failures.append(contentsOf: SettingsTab.renderFailures(controller: controller))
+            for tab in SettingsTab.allCases {
+                let titleSpaces = SettingsTab.spaceCount(in: tab.title)
+                let headingSpaces = SettingsTab.spaceCount(in: tab.heading)
+                writeSelfTest(
+                    "  \(tab.rawValue): title \(tab.title.debugDescription) "
+                    + "(\(titleSpaces) U+0020) heading \(tab.heading.debugDescription) "
+                    + "(\(headingSpaces) U+0020)"
+                )
+            }
+            writeSelfTest(
+                "  agent: title \(AgentView.headingTitle.debugDescription) "
+                + "(\(SettingsTab.spaceCount(in: AgentView.headingTitle)) U+0020)"
+            )
+            writeSelfTest(
+                "  tracking: eyebrow \(DS.Font.eyebrowTracking) word \(DS.Font.wordTracking)"
+            )
+            for failure in failures { writeSelfTest("  SETTINGS_WRONG: \(failure)") }
+            if failures.isEmpty {
+                writeSelfTest(
+                    "SETTINGS_OK: \(SettingsTab.allCases.count) pane(s), "
+                    + "Formatting listed, "
+                    + "headings contain U+0020, each form built, profile captured"
+                )
+            } else {
+                writeSelfTest("SETTINGS_FAILED: \(failures.count) problem(s)")
+            }
+            NSApp.terminate(nil)
+        }
+    }
+
     private func runOrbSelfTest() {
         Task { @MainActor in
             var failures: [String] = []
@@ -2468,6 +2653,627 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Dies with the process, so a test that finishes normally never sees it. Exits non-zero
     /// rather than calling `NSApp.terminate`, because a timeout is a failure and a script
     /// that runs these needs to be able to tell.
+    /// Registry, router and broker — no model, no account, no execution of a write.
+    private func runToolsSelfTest() {
+        Task { @MainActor in
+            var failures: [String] = []
+            func check(_ name: String, _ condition: Bool) {
+                if !condition { failures.append(name) }
+            }
+
+            let registry = AgentToolRegistry.shared
+            check("workspace tools are missing", registry.tool(named: "search_email") != nil)
+            check("canonical workspace alias is missing", registry.tool(named: "workspace.search_email") != nil)
+            check("meeting context tool is missing", registry.tool(named: "meeting.action_items") != nil)
+            check("computer inspect is missing", registry.tool(named: "computer.inspect_ui") != nil)
+            check("computer type is missing", registry.tool(named: "computer.type") != nil)
+            check("computer click is missing", registry.tool(named: "computer.click") != nil)
+            check("filesystem search is missing", registry.tool(named: "filesystem.search") != nil)
+            check("shell run is missing", registry.tool(named: "shell.run") != nil)
+            check("browser snapshot is missing", registry.tool(named: "browser.snapshot") != nil)
+
+            if case .tool(let id) = ToolRouter.resolve("search_email") {
+                check("router did not prefer native Gmail", id == "search_email")
+            } else {
+                failures.append("router lost search_email")
+            }
+
+            guard let write = registry.tool(named: "send_email") else {
+                failures.append("send_email vanished")
+                writeSelfTest("TOOLS_FAILED: \(failures.joined(separator: "; "))")
+                NSApp.terminate(nil)
+                return
+            }
+            let denied = await PermissionBroker.shared.authorize(
+                write,
+                arguments: ["to": "a@x.com", "subject": "x", "body": "y"],
+                policy: .denyMutations
+            )
+            if case .ask = denied {
+                // The broker must stop a send.
+            } else {
+                failures.append("a send was not held for confirmation")
+            }
+
+            let observe = registry.tool(named: "computer.active_app")!
+            let allowed = await PermissionBroker.shared.authorize(
+                observe,
+                arguments: [:],
+                policy: PermissionPolicy(autoObserve: true, autoRead: false)
+            )
+            check("observe was not automatic", allowed == .allow)
+
+            do {
+                _ = try await AgentToolExecutor.run(
+                    "send_email",
+                    arguments: ["to": "a@x.com", "subject": "x", "body": "y"],
+                    policy: .denyMutations
+                )
+                failures.append("a send executed without the broker allowing it")
+            } catch AgentError.needsPermission, AgentError.permissionDenied {
+                // Expected.
+            } catch {
+                failures.append("send failed for the wrong reason: \(error.localizedDescription)")
+            }
+
+            check("unknown tools are not the most dangerous class", AgentProposal(
+                meetingID: UUID(), tool: "delete_everything", arguments: [:], rationale: ""
+            ).risk == .send)
+
+            for failure in failures { writeSelfTest("  TOOLS_WRONG: \(failure)") }
+            writeSelfTest(failures.isEmpty
+                          ? "TOOLS_OK: registry, router and broker hold"
+                          : "TOOLS_FAILED: \(failures.count) rule(s) wrong")
+            NSApp.terminate(nil)
+        }
+    }
+
+    private func runWakeSelfTest() {
+        Task { @MainActor in
+            var failures: [String] = []
+            func check(_ name: String, _ condition: Bool) {
+                if !condition { failures.append(name) }
+            }
+
+            check("normalize collapsed spaces", WakeWordConfiguration.normalize("  Hey   Next  ") == "Hey Next")
+            check("a one-letter phrase is accepted", WakeWordConfiguration(phrase: "X", sensitivity: 0.5, listenWhileSleeping: true).validatedPhrase() == nil)
+            let configuration = WakeWordConfiguration(phrase: "Hey Next", sensitivity: 0.5, listenWhileSleeping: true)
+            check("keywords file is empty", !configuration.keywordsFileContents.isEmpty)
+            check("Hey Next is not ARPAbet", configuration.keywordsFileContents.contains("HH EY1"))
+
+            let hit = WakeWordDetector.spot(
+                in: "Hey Next, what did Sarah just ask me to do?",
+                configuration: configuration
+            )
+            check("the phrase was not spotted", hit != nil)
+            check("the remainder was lost", hit?.remainder.lowercased().contains("sarah") == true)
+
+            let system = TranscriptSegment(start: 0, end: 1, text: "Hey Next, email the proposal", source: .system)
+            check("system audio authorised a command", WakeWordDetector.command(in: system, configuration: configuration) == nil)
+
+            let mic = TranscriptSegment(start: 0, end: 1, text: "Hey Next, email the proposal", source: .mic)
+            check("microphone command was ignored", WakeWordDetector.command(in: mic, configuration: configuration) != nil)
+
+            var attempts = [
+                WakeWordTrainer.score(transcript: "hey next", configuration: configuration),
+                WakeWordTrainer.score(transcript: "hey next", configuration: configuration),
+                WakeWordTrainer.score(transcript: "something else", configuration: configuration),
+            ]
+            for index in attempts.indices { attempts[index].index = index + 1 }
+            check("two good attempts were not enough", WakeWordTrainer.shouldSave(attempts))
+
+            if !WakeWordModelManager.isDownloaded {
+                for failure in failures { writeSelfTest("  WAKE_WRONG: \(failure)") }
+                writeSelfTest("WAKE_MODEL_MISSING: \(WakeWordModelManager.unavailableReason)")
+                NSApp.terminate(nil)
+                return
+            }
+
+            do {
+                try WakeWordModelManager.writeKeywords(configuration)
+                let spotter = try WakeWordModelManager.loadSpotter()
+                writeSelfTest("  WAKE_LOADED: \(WakeWordModels.encoderFile)")
+                if FileManager.default.fileExists(atPath: WakeWordModelManager.testEnglishWavURL.path),
+                   FileManager.default.fileExists(atPath: WakeWordModelManager.testKeywordsURL.path) {
+                    let probe = try WakeWordModelManager.loadSpotter(
+                        keywords: WakeWordModelManager.testKeywordsURL,
+                        threshold: 0.1
+                    )
+                    if let keyword = try probe.spot(wav: WakeWordModelManager.testEnglishWavURL) {
+                        writeSelfTest("  WAKE_SPOTTED: \(keyword)")
+                    } else {
+                        failures.append("the loaded model did not spot the bundled English test wav")
+                    }
+                }
+                _ = spotter
+            } catch {
+                failures.append("model did not load: \(error.localizedDescription)")
+            }
+
+            for failure in failures { writeSelfTest("  WAKE_WRONG: \(failure)") }
+            writeSelfTest(failures.isEmpty
+                          ? "WAKE_OK: model loaded; phrase spotting and authority split hold"
+                          : "WAKE_FAILED: \(failures.count) rule(s) wrong")
+            NSApp.terminate(nil)
+        }
+    }
+
+    private func runTasksSelfTest() {
+        Task { @MainActor in
+            var failures: [String] = []
+            func check(_ name: String, _ condition: Bool) {
+                if !condition { failures.append(name) }
+            }
+
+            let task = AgentTaskManager.shared.submit(
+                objective: "Self-test observe the front app",
+                tool: "computer.active_app",
+                source: "selftest"
+            )
+            check("task was not queued or running", task.status == .queued || task.status == .running)
+
+            let deadline = Date().addingTimeInterval(5)
+            while Date() < deadline {
+                if let current = AgentTaskManager.shared.task(id: task.id),
+                   current.status == .completed || current.status == .failed
+                    || current.status == .waitingForPermission || current.status == .cancelled {
+                    break
+                }
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            let finished = AgentTaskManager.shared.task(id: task.id)
+            check("task never left queued/running", finished?.status != .queued && finished?.status != .running)
+            check("audit log stayed empty", !AgentAuditLog.shared.entries.isEmpty)
+
+            AgentTaskManager.shared.cancel(task.id)
+            check(
+                "a tool run emitted no public activity",
+                AgentActivityStore.shared.activities.contains {
+                    AgentActivityProjector.isPublic($0.title) && !$0.title.isEmpty
+                }
+            )
+
+            for failure in failures { writeSelfTest("  TASKS_WRONG: \(failure)") }
+            writeSelfTest(failures.isEmpty
+                          ? "TASKS_OK: submit, run and cancel hold"
+                          : "TASKS_FAILED: \(failures.count) rule(s) wrong")
+            NSApp.terminate(nil)
+        }
+    }
+
+    private func runMeetingContextSelfTest() {
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+
+        let meetingID = UUID()
+        var context = MeetingContext.empty(meetingID: meetingID, title: "Pricing", participants: ["Sarah"])
+        let segments = [
+            TranscriptSegment(start: 0, end: 2, text: "Can you send me the STEP file after the call?", source: .system, speaker: "Sarah"),
+            TranscriptSegment(start: 3, end: 5, text: "We decided to ship on Friday.", source: .mic),
+            TranscriptSegment(start: 6, end: 8, text: "Hey Next, email the proposal", source: .mic, kind: .agentCommand),
+        ]
+        context = MeetingContextExtractor.apply(segments, to: context)
+
+        check("a decision was missed", context.decisions.contains { $0.text.contains("Friday") })
+        check("a candidate action was missed", context.candidateActions.contains { $0.source == .system })
+        check("system audio became authority", context.candidateActions.allSatisfy { !MeetingIntentDetector.mayExecute(source: $0.source) || $0.source == .mic })
+        check("an agent command polluted the notes text", !context.actionItems.contains { $0.text.contains("email the proposal") })
+        check("that did not resolve", MeetingIntentDetector.resolveThat(in: context) != nil)
+
+        let notes = [segments[0], segments[2]].plainText()
+        check("an agent command leaked into plain text", !notes.contains("email the proposal"))
+        check("ordinary speech was dropped from plain text", notes.contains("STEP"))
+
+        for failure in failures { writeSelfTest("  MEETING_CONTEXT_WRONG: \(failure)") }
+        writeSelfTest(failures.isEmpty
+                      ? "MEETING_CONTEXT_OK: extraction and the authority split hold"
+                      : "MEETING_CONTEXT_FAILED: \(failures.count) rule(s) wrong")
+        NSApp.terminate(nil)
+    }
+
+    private func runRealtimeSelfTest() {
+        Task { @MainActor in
+            var failures: [String] = []
+            func check(_ name: String, _ condition: Bool) {
+                if !condition { failures.append(name) }
+            }
+
+            var context = MeetingContext.empty(meetingID: UUID(), title: "Standup", participants: ["Sam"])
+            context.actionItems = [
+                MeetingContextItem(text: "Send the deck to Sam", source: .mic, confidence: "high")
+            ]
+            MeetingContextStore.shared.replace(context)
+
+            let turn = await RealtimeAgent.shared.handle("What action items do I have so far?", source: .text)
+            check("the agent did not answer from meeting context", turn.reply.contains("deck") || turn.reply.contains("Sam"))
+            check("a context question was delegated", !turn.delegated)
+
+            let help = await RealtimeAgent.shared.handle("what can you do", source: .text)
+            check("“what can you do” produced no assistant text", !help.reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            check(
+                "“what can you do” did not list capabilities",
+                help.reply.localizedCaseInsensitiveContains("calendar")
+                    && help.reply.localizedCaseInsensitiveContains("meeting")
+            )
+            check("a capabilities question was delegated", !help.delegated)
+            check(
+                "the sidebar was not given the assistant reply",
+                AgentSession.shared.messages.contains {
+                    $0.role == "assistant" && $0.text == help.reply
+                }
+            )
+
+            AgentHarnessRouter.shared.resetForTesting()
+            let named = AgentHarnessRouter.shared.choose(for: "use claude code to investigate this repo")
+            check(
+                "“use claude code to …” did not select the Claude/ACP harness",
+                named.id == .claude && named.backend == .acp
+            )
+            let namedTurn = await RealtimeAgent.shared.handle(
+                "use claude code to investigate this repo",
+                source: .text
+            )
+            check("a named harness turn produced no assistant text", !namedTurn.reply.isEmpty)
+            check("a named harness turn was not delegated", namedTurn.delegated)
+
+            let calendarPick = AgentHarnessRouter.shared.choose(for: "what's on my calendar")
+            check("“what’s on my calendar” selected a coding harness", calendarPick.id == .local)
+            check("“what’s on my calendar” selected ACP", calendarPick.backend == .local)
+
+            let reuse = AgentHarnessRouter.shared.choose(for: "fix the failing build")
+            check(
+                "a second coding ask did not reuse the last coding harness from history",
+                reuse.id == .claude
+            )
+            AgentHarnessRouter.shared.restorePersistence()
+
+            await AgentCaptureController.shared.endSession(source: .done)
+            await AgentCaptureController.shared.beginSession(captureAudio: false)
+            AgentCaptureController.shared.simulateSpeech("what can you do")
+            AgentCaptureController.shared.simulateSilence()
+            let endedByVAD = await AgentCaptureController.shared.considerEndpoint()
+            check("duplex still required Done to produce a reply", endedByVAD)
+            check(
+                "duplex endpoint was not VAD",
+                AgentCaptureController.shared.lastEndpoint == .vad
+            )
+            check(
+                "a VAD turn produced no assistant text",
+                !RealtimeAgent.shared.lastReply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            )
+            check("a VAD turn closed the session", AgentCaptureController.shared.isSessionActive)
+            await AgentCaptureController.shared.endSession(source: .done)
+
+            MeetingContextStore.shared.reset()
+
+            for failure in failures { writeSelfTest("  REALTIME_WRONG: \(failure)") }
+            writeSelfTest(failures.isEmpty
+                          ? "REALTIME_OK: context, capabilities, harness routing and duplex VAD hold"
+                          : "REALTIME_FAILED: \(failures.count) rule(s) wrong")
+            NSApp.terminate(nil)
+        }
+    }
+
+    private func runComputerSelfTest() {
+        Task { @MainActor in
+            if !Permissions.hasAccessibility {
+                writeSelfTest("COMPUTER_FAILED: Accessibility is not granted, so the window cannot be inspected.")
+                NSApp.terminate(nil)
+                return
+            }
+            let stub = AccessibilitySnapshot.capture(processID: 2_000_000, limit: 20)
+            writeSelfTest(stub)
+            if !AccessibilitySnapshot.isStub(stub) || stub.contains("label: OK") {
+                writeSelfTest("COMPUTER_FAILED: an empty tree did not report stub/zero names")
+                NSApp.terminate(nil)
+                return
+            }
+            let harness = ComputerSelfTestHarness()
+            harness.show()
+            try? await Task.sleep(for: .milliseconds(400))
+            do {
+                let snapshot = AccessibilitySnapshot.capture(
+                    processID: ProcessInfo.processInfo.processIdentifier,
+                    limit: 80
+                )
+                writeSelfTest(snapshot)
+                guard snapshot.contains("OK") else {
+                    writeSelfTest("COMPUTER_FAILED: inspect did not see the self-test OK button")
+                    harness.close()
+                    NSApp.terminate(nil)
+                    return
+                }
+                guard let buttonID = AccessibilitySnapshot.id(matching: "OK") else {
+                    writeSelfTest("COMPUTER_FAILED: inspect found no OK button id")
+                    harness.close()
+                    NSApp.terminate(nil)
+                    return
+                }
+                let click = try ComputerToolExecutor.run(
+                    AgentToolRegistry.shared.tool(named: "computer.click")!,
+                    arguments: ["id": buttonID]
+                )
+                writeSelfTest(click.summary)
+                let afterClick = AccessibilitySnapshot.capture(
+                    processID: ProcessInfo.processInfo.processIdentifier,
+                    limit: 80
+                )
+                writeSelfTest(afterClick)
+                guard afterClick.contains("OK"), !AccessibilitySnapshot.isStub(afterClick) else {
+                    writeSelfTest("COMPUTER_FAILED: Eve loop snapshot after click was stub or lost OK")
+                    harness.close()
+                    NSApp.terminate(nil)
+                    return
+                }
+                guard harness.buttonClicked else {
+                    writeSelfTest("COMPUTER_FAILED: click ran but the OK button was not pressed")
+                    harness.close()
+                    NSApp.terminate(nil)
+                    return
+                }
+                guard let fieldID = AccessibilitySnapshot.firstTextFieldID() else {
+                    writeSelfTest("COMPUTER_FAILED: inspect found no text field")
+                    harness.close()
+                    NSApp.terminate(nil)
+                    return
+                }
+                let typed = try ComputerToolExecutor.run(
+                    AgentToolRegistry.shared.tool(named: "computer.type")!,
+                    arguments: ["text": "hello", "id": fieldID]
+                )
+                writeSelfTest(typed.summary)
+                let typedValue = harness.fieldValue.isEmpty
+                    ? (AccessibilitySnapshot.value(of: fieldID) ?? "")
+                    : harness.fieldValue
+                guard typedValue == "hello" else {
+                    writeSelfTest("COMPUTER_FAILED: type ran but the field reads “\(typedValue)”")
+                    harness.close()
+                    NSApp.terminate(nil)
+                    return
+                }
+                writeSelfTest("COMPUTER_OK: inspected, clicked OK, typed hello")
+            } catch {
+                writeSelfTest("COMPUTER_FAILED: \(error.localizedDescription)")
+            }
+            harness.close()
+            NSApp.terminate(nil)
+        }
+    }
+
+    private func runMCPSelfTest() {
+        Task { @MainActor in
+            var failures: [String] = []
+            func check(_ name: String, _ condition: Bool) {
+                if !condition { failures.append(name) }
+            }
+
+            let encoded = MCPJSONRPC.request(id: 1, method: "tools/list")
+            check("tools/list is not JSON", (try? JSONSerialization.jsonObject(with: encoded)) != nil)
+            let result = MCPJSONRPC.parseResult(Data("{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"tools\":[]}}".utf8))
+            check("a valid result was dropped", result != nil)
+            let failed = MCPJSONRPC.parseResult(Data("{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":-1,\"message\":\"no\"}}".utf8))
+            check("an error was treated as success", failed == nil)
+            check("Composio URL is empty", !ComposioProvider.defaultURL.isEmpty)
+
+            do {
+                let script = try AgentStdioFixtures.writeMCP()
+                let server = MCPServerConfig(
+                    id: "selftest-mcp",
+                    name: "fixture",
+                    transport: .stdio,
+                    command: AgentStdioFixtures.python,
+                    arguments: [script.path],
+                    allowlist: ["echo"]
+                )
+                let tools = try await MCPClientStore.shared.refresh(server)
+                check("initialize never completed", MCPClientStore.shared.lastDidInitialize)
+                check("initialize returned no session id", !MCPClientStore.shared.lastSessionID.isEmpty)
+                check("tools/list did not return echo", tools.contains { $0.name == "echo" })
+                check(
+                    "annotations were not stored as metadata",
+                    MCPClientStore.shared.annotations(for: "echo")["readOnlyHint"] != nil
+                )
+                var policy = PermissionPolicy.selfTest
+                if let echoTool = AgentToolRegistry.shared.tool(named: "echo") {
+                    policy.grants = [PermissionGrant(toolID: echoTool.id, duration: .alwaysThisAction)]
+                }
+                let echo = try await AgentToolExecutor.run(
+                    "echo",
+                    arguments: ["text": "hello-mcp"],
+                    policy: policy
+                )
+                check("tools/call did not echo", echo.summary.contains("hello-mcp"))
+
+                let blocked = MCPServerConfig(
+                    id: "selftest-mcp-deny",
+                    name: "fixture-deny",
+                    transport: .stdio,
+                    command: AgentStdioFixtures.python,
+                    arguments: [script.path],
+                    allowlist: ["other"]
+                )
+                let listed = try await MCPClientStore.shared.refresh(blocked)
+                check("allowlist leaked echo", !listed.contains { $0.name == "echo" })
+                await MCPClientStore.shared.close(server.id)
+                await MCPClientStore.shared.close(blocked.id)
+            } catch {
+                failures.append("handshake/list/call failed: \(error.localizedDescription)")
+            }
+
+            for failure in failures { writeSelfTest("  MCP_WRONG: \(failure)") }
+            writeSelfTest(failures.isEmpty
+                          ? "MCP_OK: initialize, session, list and call hold"
+                          : "MCP_FAILED: \(failures.count) rule(s) wrong")
+            NSApp.terminate(nil)
+        }
+    }
+
+    private func runACPSelfTest() {
+        Task { @MainActor in
+            var failures: [String] = []
+            func check(_ name: String, _ condition: Bool) {
+                if !condition { failures.append(name) }
+            }
+            do {
+                let script = try AgentStdioFixtures.writeACP()
+                let session = ACPSession()
+                let flags = ACPSelfTestFlags()
+                let token = await session.subscribe { event in
+                    if event.title.lowercased().contains("secret") { flags.sawThought = true }
+                    if event.title == "Inspecting fixture" { flags.sawActivity = true }
+                }
+                try await session.start(
+                    command: AgentStdioFixtures.python,
+                    arguments: [script.path],
+                    taskID: "selftest-acp",
+                    approvePermissions: true
+                )
+                let reply = try await session.prompt("investigate the fixture")
+                let sessionID = await session.sessionID ?? ""
+                let initialized = await session.didInitialize
+                let permission = await session.permissionRelayed
+                let publicTitle = await session.lastPublicTitle
+                await session.unsubscribe(token)
+                await session.close()
+
+                check("initialize never completed", initialized)
+                check("session/new returned no sessionId", sessionID == "fixture-acp")
+                check("permission was not relayed", permission)
+                check("public activity was missing", flags.sawActivity && publicTitle == "Inspecting fixture")
+                check("chain-of-thought leaked as activity", !flags.sawThought)
+                check("session produced no reply", reply.contains("ACP session finished"))
+            } catch {
+                failures.append("ACP session failed: \(error.localizedDescription)")
+            }
+
+            for failure in failures { writeSelfTest("  ACP_WRONG: \(failure)") }
+            writeSelfTest(failures.isEmpty
+                          ? "ACP_OK: initialize, session, subscribe and permission relay hold"
+                          : "ACP_FAILED: \(failures.count) rule(s) wrong")
+            NSApp.terminate(nil)
+        }
+    }
+
+    private func runActivitySelfTest() {
+        Task { @MainActor in
+            var failures: [String] = []
+            func check(_ name: String, _ condition: Bool) {
+                if !condition { failures.append(name) }
+            }
+            do {
+                _ = try await AgentToolExecutor.run(
+                    "computer.active_app",
+                    arguments: [:],
+                    policy: .selfTest
+                )
+                _ = try await AgentToolExecutor.run(
+                    "computer.inspect_ui",
+                    arguments: [:],
+                    policy: .selfTest
+                )
+                let titles = AgentActivityStore.shared.activities.map(\.title)
+                check("a tool run emitted no public activity", titles.contains { AgentActivityProjector.isPublic($0) && !$0.isEmpty })
+                check("inspect did not project Inspecting…", titles.contains("Inspecting…"))
+                check(
+                    "activity leaked chain-of-thought",
+                    titles.allSatisfy { AgentActivityProjector.isPublic($0) }
+                )
+            } catch {
+                failures.append(error.localizedDescription)
+            }
+            for failure in failures { writeSelfTest("  ACTIVITY_WRONG: \(failure)") }
+            writeSelfTest(failures.isEmpty
+                          ? "ACTIVITY_OK: tool runs project public titles"
+                          : "ACTIVITY_FAILED: \(failures.count) rule(s) wrong")
+            NSApp.terminate(nil)
+        }
+    }
+
+    private func runFilesystemSelfTest() {
+        Task { @MainActor in
+            var failures: [String] = []
+            func check(_ name: String, _ condition: Bool) {
+                if !condition { failures.append(name) }
+            }
+            let folder = FileManager.default.temporaryDirectory
+                .appendingPathComponent("nextnotes-fs-\(UUID().uuidString)")
+            do {
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                let path = folder.appendingPathComponent("nextnotes-fs-probe.txt").path
+                let written = try FilesystemExecutor.run(
+                    AgentToolRegistry.shared.tool(named: "filesystem.write")!,
+                    arguments: ["path": path, "text": "fs-probe"]
+                )
+                check("write produced no file", FileManager.default.fileExists(atPath: path))
+                let found = try await AgentToolExecutor.run(
+                    "filesystem.search",
+                    arguments: ["query": "nextnotes-fs-probe", "folder": folder.path],
+                    policy: .selfTest
+                )
+                check("search missed the file we wrote", found.summary.contains("nextnotes-fs-probe"))
+                let read = try FilesystemExecutor.run(
+                    AgentToolRegistry.shared.tool(named: "filesystem.read")!,
+                    arguments: ["path": path]
+                )
+                check("read missed the written text", read.summary.contains("fs-probe"))
+                _ = written
+                do {
+                    _ = try await ShellExecutor.run(
+                        AgentToolRegistry.shared.tool(named: "shell.run")!,
+                        arguments: ["command": "sudo ls"]
+                    )
+                    failures.append("sudo was executed")
+                } catch AgentError.permissionDenied {
+                    // Expected.
+                } catch {
+                    failures.append("sudo failed for the wrong reason: \(error.localizedDescription)")
+                }
+            } catch {
+                failures.append(error.localizedDescription)
+            }
+            try? FileManager.default.removeItem(at: folder)
+            for failure in failures { writeSelfTest("  FS_WRONG: \(failure)") }
+            writeSelfTest(failures.isEmpty
+                          ? "FS_OK: search, read and privileged-shell refuse hold"
+                          : "FS_FAILED: \(failures.count) rule(s) wrong")
+            NSApp.terminate(nil)
+        }
+    }
+
+    private func runBrowserSelfTest() {
+        Task { @MainActor in
+            var failures: [String] = []
+            func check(_ name: String, _ condition: Bool) {
+                if !condition { failures.append(name) }
+            }
+            do {
+                let snap = try BrowserToolExecutor.run(
+                    AgentToolRegistry.shared.tool(named: "browser.snapshot")!,
+                    arguments: [:]
+                )
+                check(
+                    "a non-browser snapshot invented browser elements",
+                    snap.summary.contains("not a browser") && AccessibilitySnapshot.isStub(snap.summary)
+                )
+                check("snapshot invented a Chrome control", !snap.summary.contains("label: OK"))
+                let click = try BrowserToolExecutor.run(
+                    AgentToolRegistry.shared.tool(named: "browser.click")!,
+                    arguments: ["id": "9.1"]
+                )
+                check("click ran without a real snapshot id", click.summary.contains("not a browser") || click.summary.contains("No snapshot id"))
+            } catch {
+                failures.append(error.localizedDescription)
+            }
+            for failure in failures { writeSelfTest("  BROWSER_WRONG: \(failure)") }
+            writeSelfTest(failures.isEmpty
+                          ? "BROWSER_OK: stub trees invent no elements; Eve loop needs a snapshot id"
+                          : "BROWSER_FAILED: \(failures.count) rule(s) wrong")
+            NSApp.terminate(nil)
+        }
+    }
+
     private func startSelfTestWatchdog() {
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(SelfTest.timeout))
@@ -2698,6 +3504,11 @@ private struct MenuContent: View {
     }
 }
 
+
+private final class ACPSelfTestFlags: @unchecked Sendable {
+    var sawActivity = false
+    var sawThought = false
+}
 
 /// Accumulates level statistics from the audio thread during `--selftest-systemaudio`.
 private final class SelfTestMeter: @unchecked Sendable {

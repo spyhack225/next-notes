@@ -5,6 +5,7 @@ import Observation
 enum SidebarSection: String, CaseIterable, Identifiable, Sendable {
     case dictation
     case meetings
+    case agent
     case dictionary
     case comparison
 
@@ -14,6 +15,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .dictation: "Dictation"
         case .meetings: "Meetings"
+        case .agent: "Agent"
         case .dictionary: "Dictionary"
         case .comparison: "Comparison"
         }
@@ -23,6 +25,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .dictation: "waveform"
         case .meetings: "person.2.wave.2"
+        case .agent: "ear"
         case .dictionary: "character.book.closed"
         case .comparison: "rectangle.split.2x1"
         }
@@ -44,10 +47,10 @@ final class NavigationState {
     /// The meeting shown in the Meetings detail column, if any.
     var selectedMeetingID: UUID?
 
-    /// Which tab the Settings window shows.
+    /// Which pane the Settings window shows.
     ///
     /// Shared rather than local to that window so a screen that has diagnosed a problem can
-    /// open the tab that fixes it. Not persisted: where Settings was last is a detail of a
+    /// open the pane that fixes it. Not persisted: where Settings was last is a detail of a
     /// window that is usually closed, and reopening on General is the least surprising.
     var selectedSettingsTab: SettingsTab = .general
 

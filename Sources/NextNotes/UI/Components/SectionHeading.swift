@@ -44,10 +44,13 @@ struct SectionHeading: View {
                 }
                 Text(title)
                     .font(DS.Font.title3)
+                    .tracking(DS.Font.wordTracking)
                     .foregroundStyle(DS.Color.text)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let subtitle {
                     Text(subtitle)
                         .font(DS.Font.subheadline)
+                        .tracking(DS.Font.wordTracking)
                         .foregroundStyle(DS.Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

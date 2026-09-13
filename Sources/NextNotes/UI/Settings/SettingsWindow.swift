@@ -1,32 +1,74 @@
+import AppKit
 import SwiftUI
 
-/// Settings, as a standard macOS tabbed preferences window.
+/// Settings, as a sidebar of panes and one grouped form.
 ///
-/// One `Form { }.formStyle(.grouped)` per tab, each in its own file. The window is a fixed
-/// width and grows to whatever the tallest tab needs — the system convention, and the
-/// reason nothing here sets a height.
+/// A `TabView` of ten items in a `settingsWidth` window puts Integrations, Models and
+/// Permissions behind the system overflow chevron, and that chevron does not reliably
+/// list them. `NavigationSplitView` inside `SwiftUI.Settings` is the other failure:
+/// on macOS 26 the sidebar collapses to an unlabeled icon and the detail draws
+/// placeholder bars — which is why this is an `HStack` and a `List`, the same spine
+/// as the main window, not a split view and not a toolbar. The window is a fixed
+/// width and grows to whatever the tallest pane needs.
 struct SettingsWindow: View {
     @Bindable var controller: DictationController
 
     @State private var models = LocalModelStore.shared
-    /// Shared, so that a screen which found the problem can open the tab that fixes it.
+    /// Shared, so that a screen which found the problem can open the pane that fixes it.
     @State private var navigation = NavigationState.shared
 
     var body: some View {
-        TabView(selection: $navigation.selectedSettingsTab) {
-            ForEach(SettingsTab.allCases) { tab in
-                content(for: tab)
-                    .tabItem { Label(tab.title, systemImage: tab.systemImage) }
-                    .tag(tab)
-            }
+        HStack(alignment: .top, spacing: 0) {
+            sidebar
+
+            Divider()
+
+            content(for: navigation.selectedSettingsTab)
+                .frame(minWidth: DS.Size.settingsWidth)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .frame(width: DS.Size.settingsWidth)
+        .frame(minWidth: DS.Size.settingsWindowWidth)
         .frame(minHeight: DS.Size.settingsMinHeight)
+        .navigationTitle(navigation.selectedSettingsTab.title)
+        .background(SettingsWindowTitle(title: navigation.selectedSettingsTab.title))
         .onAppear { models.refresh() }
     }
 
-    /// Every tab gets the same band above it, so the eight of them read as one book with
-    /// eight chapters rather than as eight unrelated panes that happen to share a window.
+    /// Every pane as a row, always. `id: \.self` so the selection type matches the tag —
+    /// ForEach's `Identifiable` id is a String, and a String-keyed list is how the first
+    /// six rows drew empty while Agent still highlighted over a Formatting form.
+    private var sidebar: some View {
+        ScrollViewReader { proxy in
+            List(selection: $navigation.selectedSettingsTab) {
+                ForEach(SettingsTab.allCases, id: \.self) { tab in
+                    Label(tab.title, systemImage: tab.systemImage)
+                        .tag(tab)
+                        .id(tab)
+                }
+            }
+            .listStyle(.sidebar)
+            .dottedField(
+                opacity: DS.Opacity.fieldFaint,
+                spacing: DS.Field.spacingTight,
+                fade: .top
+            )
+            .frame(
+                minWidth: DS.Size.settingsSidebarMin,
+                idealWidth: DS.Size.settingsSidebarIdeal,
+                maxWidth: DS.Size.settingsSidebarMax
+            )
+            .frame(maxHeight: .infinity)
+            .onAppear {
+                proxy.scrollTo(navigation.selectedSettingsTab, anchor: .center)
+            }
+            .onChange(of: navigation.selectedSettingsTab) { _, tab in
+                proxy.scrollTo(tab, anchor: .center)
+            }
+        }
+    }
+
+    /// Every pane gets the same band above it, so the rows read as one book with
+    /// chapters rather than as unrelated forms that happen to share a window.
     private func content(for tab: SettingsTab) -> some View {
         SettingsPane(tab: tab) { pane(for: tab) }
     }
@@ -40,23 +82,27 @@ struct SettingsWindow: View {
         case .meetings: MeetingsSettingsTab()
         case .calendar: CalendarSettingsTab()
         case .workspace: WorkspaceSettingsTab()
+        case .agent: AgentSettingsTab()
+        case .integrations: IntegrationsSettingsTab()
         case .models: ModelsSettingsTab()
         case .permissions: PermissionsSettingsTab()
         }
     }
 }
 
-/// The tabs, in the order they appear.
+/// The panes, in the order they appear in the sidebar.
 ///
 /// Adding one is a case here plus a `<Name>SettingsTab.swift` beside this file; the
-/// `TabView` is driven from `allCases`, so nothing else has to change.
-enum SettingsTab: String, CaseIterable, Identifiable {
+/// list is driven from `allCases`, so nothing else has to change.
+enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
     case general
     case dictation
     case formatting
     case meetings
     case calendar
     case workspace
+    case agent
+    case integrations
     case models
     case permissions
 
@@ -70,13 +116,15 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .meetings: "Meetings"
         case .calendar: "Calendar"
         case .workspace: "Workspace"
+        case .agent: "Agent"
+        case .integrations: "Integrations"
         case .models: "Models"
         case .permissions: "Permissions"
         }
     }
 
-    /// The question the tab answers, which is a different thing from its name. The tab bar
-    /// already says "Models"; the band says what you came here to settle.
+    /// The question the pane answers, which is a different thing from its name. The
+    /// sidebar already says "Models"; the band says what you came here to settle.
     var heading: String {
         switch self {
         case .general: "The keys you hold"
@@ -85,13 +133,15 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .meetings: "When a meeting records itself"
         case .calendar: "Where meetings are read from"
         case .workspace: "What Next Notes may do in your account"
+        case .agent: "How you wake it and what it may do"
+        case .integrations: "Other apps it can reach"
         case .models: "What lives on this Mac"
         case .permissions: "What macOS has agreed to"
         }
     }
 
-    /// The mark for the tab's subject, from the vocabulary in `AGENTS.md`. Six distinct
-    /// states over eight tabs, and none of them borrowed to fill a hole: Permissions has
+    /// The mark for the pane's subject, from the vocabulary in `AGENTS.md`. Six distinct
+    /// states over the panes, and none of them borrowed to fill a hole: Permissions has
     /// none because no state in the vocabulary means "a grant", and inventing one — or
     /// bending `connecting`, which means Google — would cost the table its meaning.
     ///
@@ -109,6 +159,8 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .meetings: .weaving
         case .calendar: .searching
         case .workspace: .connecting
+        case .agent: .searching
+        case .integrations: .connecting
         case .models: .shaping
         case .permissions: nil
         }
@@ -122,8 +174,118 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .meetings: SidebarSection.meetings.systemImage
         case .calendar: "calendar"
         case .workspace: "point.3.connected.trianglepath.dotted"
+        case .agent: "ear"
+        case .integrations: "link"
         case .models: "shippingbox"
         case .permissions: "lock.shield"
         }
+    }
+
+    /// Panes the toolbar overflow hid, and panes a short HStack has clipped off the
+    /// top of the sidebar. `--selftest-settings` fails if any drop out of `allCases`.
+    static let requiredPanes: [SettingsTab] = [
+        .general, .dictation, .formatting, .meetings, .calendar, .workspace,
+        .agent, .integrations, .models, .permissions,
+    ]
+
+    /// What `--selftest-settings` answers: every pane is listed, Formatting is one of
+    /// them, every heading still contains U+0020, letter-spacing is not collapsing
+    /// words, each pane's real form can be built, and a captured output profile
+    /// actually reaches the cleanup prompt — a `NavigationSplitView` inside `Settings`
+    /// drew ten gray bars instead, and an unused `OutputProfileStore` wrote
+    /// `formatting.txt` that dictation never read.
+    @MainActor
+    static func catalogFailures() -> [String] {
+        var failures: [String] = []
+
+        for pane in requiredPanes where !allCases.contains(pane) {
+            failures.append("\(pane.rawValue) is missing from allCases")
+        }
+
+        if !allCases.contains(.formatting) {
+            failures.append("formatting is missing from allCases")
+        }
+        if allCases.first(where: { $0 == .formatting })?.title != "Formatting" {
+            failures.append("formatting sidebar title is not Formatting")
+        }
+
+        if allCases.map(\.title).contains(where: \.isEmpty) {
+            failures.append("a sidebar row has an empty title")
+        }
+
+        for tab in allCases {
+            if spaceCount(in: tab.heading) == 0 {
+                failures.append("\(tab.rawValue) heading has no spaces: \(tab.heading.debugDescription)")
+            }
+            if tab.title.contains("  ") || tab.heading.contains("  ") {
+                failures.append("\(tab.rawValue) has a doubled space")
+            }
+        }
+
+        if spaceCount(in: AgentView.headingTitle) == 0 {
+            failures.append("Agent heading has no spaces: \(AgentView.headingTitle.debugDescription)")
+        }
+        if DS.Font.eyebrowTracking < 0 {
+            failures.append("eyebrow tracking \(DS.Font.eyebrowTracking) collapses letters")
+        }
+        if DS.Font.wordTracking != 0 {
+            failures.append("word tracking \(DS.Font.wordTracking) is not the system default")
+        }
+
+        let sidebarBudget = DS.Size.settingsMinHeight
+        let rowsHeight = CGFloat(allCases.count) * DS.Size.settingsSidebarRow
+        if rowsHeight > sidebarBudget {
+            failures.append(
+                "\(allCases.count) sidebar rows need \(Int(rowsHeight))pt, "
+                    + "window is only \(Int(sidebarBudget))pt"
+            )
+        }
+
+        failures.append(contentsOf: OutputProfileStore.captureFailures())
+
+        return failures
+    }
+
+    /// Hosts `SettingsWindow` on every pane. Fails if a body cannot be built — the
+    /// skeleton-bar window was a body that never produced the form.
+    @MainActor
+    static func renderFailures(controller: DictationController) -> [String] {
+        var failures: [String] = []
+        let navigation = NavigationState.shared
+        let previous = navigation.selectedSettingsTab
+        let size = NSSize(
+            width: DS.Size.settingsWindowWidth,
+            height: DS.Size.settingsMinHeight
+        )
+
+        let panel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        defer { panel.close() }
+
+        for tab in allCases {
+            navigation.selectedSettingsTab = tab
+            let hosting = NSHostingView(rootView: SettingsWindow(controller: controller))
+            hosting.frame = NSRect(origin: .zero, size: size)
+            panel.contentView = hosting
+            panel.layoutIfNeeded()
+            hosting.layoutSubtreeIfNeeded()
+            if hosting.bounds.width < DS.Size.settingsSidebarMin {
+                failures.append("\(tab.rawValue) hosted narrower than the sidebar")
+            }
+            if hosting.bounds.isEmpty {
+                failures.append("\(tab.rawValue) hosted in an empty frame")
+            }
+        }
+
+        navigation.selectedSettingsTab = previous
+        return failures
+    }
+
+    static func spaceCount(in string: String) -> Int {
+        string.unicodeScalars.filter { $0 == " " }.count
     }
 }
