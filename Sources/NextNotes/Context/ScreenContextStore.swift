@@ -90,16 +90,18 @@ final class ScreenContextStore {
         // the HUD's waveform, during the one window the user is watching it.
         inFlight = Task.detached(priority: .userInitiated) { [weak self] in
             let context = AXHarvester.harvest(bundleID: bundleID, processID: processID)
-            await MainActor.run {
-                guard let self, self.captureToken == token else { return }
-                self.captured = context
-                if context.truncation.contains(.stubTree) {
-                    self.stubRemediation = AXAppAdapters.adapter(for: context.bundleID)?.remediation
-                }
-                Self.log(context)
-            }
+            await self?.completeCapture(context, token: token)
         }
         return true
+    }
+
+    private func completeCapture(_ context: ScreenContext, token: UInt64) {
+        guard captureToken == token else { return }
+        captured = context
+        if context.truncation.contains(.stubTree) {
+            stubRemediation = AXAppAdapters.adapter(for: context.bundleID)?.remediation
+        }
+        Self.log(context)
     }
 
     /// Waits for the in-flight harvest, at most `budget`.
