@@ -15,6 +15,26 @@ struct IslandProposal: Identifiable, Equatable, Sendable {
     /// speak in their name: two lines under the notch cannot show the message that would go
     /// out, and a button that approves what it doesn't show is not a permission model.
     var needsReview = false
+    /// Approve-to-execute. System-audio candidates are never true; the microphone is the
+    /// only source that can authorise a run, and even then the executor still asks
+    /// `PermissionBroker` for destructive work.
+    var canExecute = true
+    /// A live meeting candidate, not a Workspace tool proposal.
+    var isCandidate = false
+
+    /// Which button the island leads with. System-audio candidates are Prepare; a send
+    /// that needs the full message is Review; everything else that may run is Approve.
+    var leadAction: LeadAction {
+        if canExecute && !needsReview { return .approve }
+        if isCandidate { return .prepare }
+        return .review
+    }
+
+    enum LeadAction: Equatable, Sendable {
+        case approve
+        case prepare
+        case review
+    }
 }
 
 /// What the island is saying, and the only thing that decides it.
@@ -331,6 +351,12 @@ final class IslandState {
         guard let meetingID = proposal.meetingID else { return }
         NavigationState.shared.show(meeting: meetingID)
         AppDelegate.showMainWindow()
+    }
+
+    /// Same navigation as Review — the label is Prepare when the card is a candidate that
+    /// must not execute from the island.
+    func prepare(_ proposal: IslandProposal) {
+        review(proposal)
     }
 
     func endAgentListen() {

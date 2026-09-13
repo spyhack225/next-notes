@@ -98,24 +98,64 @@ struct MeetingLiveView: View {
 
     // MARK: - Transcript
 
+    private var hasProvisional: Bool {
+        session.provisionalText.values.contains { !$0.isEmpty }
+    }
+
     @ViewBuilder
     private var transcript: some View {
-        if session.segments.isEmpty {
+        if session.segments.isEmpty && !hasProvisional {
             waiting
         } else {
             // Follows the newest line, which is what you want while the meeting runs; the
             // finished transcript in `MeetingDetailView` doesn't scroll itself.
-            ScrollViewReader { proxy in
-                TranscriptView(segments: session.segments, speakerNames: session.meeting.speakerNames)
-                    .onChange(of: session.segments.count) { _, _ in
-                        guard let last = session.segments.last else { return }
-                        withAnimation(DS.Motion.standard) { proxy.scrollTo(last.id, anchor: .bottom) }
-                    }
+            VStack(spacing: 0) {
+                ScrollViewReader { proxy in
+                    TranscriptView(segments: session.segments, speakerNames: session.meeting.speakerNames)
+                        .onChange(of: session.segments.count) { _, _ in
+                            guard let last = session.segments.last else { return }
+                            withAnimation(DS.Motion.standard) { proxy.scrollTo(last.id, anchor: .bottom) }
+                        }
+                }
+                if hasProvisional {
+                    provisionalBand
+                }
             }
         }
     }
 
-    /// The first half-minute, before any window of audio has come back.
+    /// Early ASR for the open window — italic secondary ink so it does not read as a
+    /// committed turn. Finals replace it as soon as the sentence split lands.
+    private var provisionalBand: some View {
+        VStack(alignment: .leading, spacing: DS.Space.xs) {
+            Divider()
+            if let you = session.provisionalText[.mic], !you.isEmpty {
+                provisionalLine(speaker: "You", text: you)
+            }
+            if let others = session.provisionalText[.system], !others.isEmpty {
+                provisionalLine(speaker: "Others", text: others)
+            }
+        }
+        .padding(.horizontal, DS.Space.l)
+        .padding(.vertical, DS.Space.s)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func provisionalLine(speaker: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: DS.Space.xxs) {
+            Text(speaker)
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textTertiary)
+            Text(text)
+                .font(DS.Font.transcript)
+                .foregroundStyle(DS.Color.textSecondary)
+                .italic()
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
+        }
+    }
+
+    /// Before any provisional or final has come back.
     ///
     /// Set in the empty state's own type on the empty state's own field, but deliberately
     /// **without an orb**. `OrbUnavailableView` would put a 96pt `weaving` orb here while
@@ -127,8 +167,8 @@ struct MeetingLiveView: View {
             Text("Listening")
                 .font(DS.Font.emptyStateTitle)
                 .foregroundStyle(DS.Color.text)
-            Text("Speech is transcribed in windows of about half a minute, so the first "
-                 + "lines take a moment to appear.")
+            Text("Speech is transcribed in short windows, so the first lines appear within "
+                 + "a few seconds.")
                 .font(DS.Font.emptyStateMessage)
                 .foregroundStyle(DS.Color.textSecondary)
         }

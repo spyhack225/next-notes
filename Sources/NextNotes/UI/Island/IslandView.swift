@@ -377,12 +377,16 @@ struct IslandView: View {
         case .agentProposal(let proposal):
             HStack(spacing: DS.Space.s) {
                 Button("Dismiss") { state.decide(proposal, approved: false) }
-                // Nothing that speaks in the user's name is approved from here: the card
-                // shows two lines, and the message it would send is longer than that.
-                if proposal.needsReview {
+                // System-audio candidates never get Approve-to-execute. A send that
+                // speaks in the user's name still cannot be approved from two lines.
+                switch proposal.leadAction {
+                case .prepare:
+                    Button("Prepare") { state.prepare(proposal) }
+                        .buttonStyle(.borderedProminent)
+                case .review:
                     Button("Review\u{2026}") { state.review(proposal) }
                         .buttonStyle(.borderedProminent)
-                } else {
+                case .approve:
                     Button("Approve") { state.decide(proposal, approved: true) }
                         .buttonStyle(.borderedProminent)
                 }

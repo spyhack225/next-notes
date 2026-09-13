@@ -8,6 +8,7 @@ struct AgentView: View {
     @State private var audit = AgentAuditLog.shared
     @State private var activity = AgentActivityStore.shared
     @State private var gate = PermissionGate.shared
+    @State private var acpGate = ACPConfirmationGate.shared
     @State private var draft = ""
 
     private var isEmpty: Bool { session.messages.isEmpty && tasks.tasks.isEmpty }
@@ -28,6 +29,10 @@ struct AgentView: View {
 
                 if let pending = gate.pending {
                     permissionCard(pending)
+                }
+
+                if let acp = acpGate.pending {
+                    acpConfirmCard(acp)
                 }
 
                 if isEmpty {
@@ -115,6 +120,36 @@ struct AgentView: View {
         .glassSurface()
     }
 
+    private func acpConfirmCard(_ request: ACPConfirmationRequest) -> some View {
+        VStack(alignment: .leading, spacing: DS.Space.s) {
+            Text(request.title)
+                .font(DS.Font.headline)
+            Text(request.detail)
+                .font(DS.Font.callout)
+                .foregroundStyle(DS.Color.textSecondary)
+            HStack(spacing: DS.Space.s) {
+                Button("Cancel") {
+                    ACPConfirmationGate.shared.cancel()
+                }
+                Button("Run once") {
+                    let utterance = request.utterance
+                    let hadWaiter = ACPConfirmationGate.shared.confirmOnce()
+                    if !hadWaiter {
+                        Task {
+                            await RealtimeAgent.shared.runWithLocalToolsOnce(
+                                utterance,
+                                source: .text
+                            )
+                        }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(DS.Space.cardTight)
+        .glassSurface()
+    }
+
     private var conversation: some View {
         VStack(alignment: .leading, spacing: DS.Space.s) {
             Text("Conversation")
@@ -189,7 +224,10 @@ struct AgentView: View {
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { send() }
             if agent.isThinking {
-                Button("Stop") { RealtimeAgent.shared.cancel() }
+                Button("Stop") {
+                    ACPConfirmationGate.shared.cancel()
+                    RealtimeAgent.shared.cancel()
+                }
             }
             Button("Send", action: send)
                 .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -201,9 +239,10 @@ struct AgentView: View {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         draft = ""
+        ACPConfirmationGate.shared.cancel()
         if agent.isThinking {
             RealtimeAgent.shared.interrupt()
         }
-        Task { await RealtimeAgent.shared.handle(text, source: .text) }
+        Task { await RealtimeAgent.shared.handleLive(text, source: .text) }
     }
 }

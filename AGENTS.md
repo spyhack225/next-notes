@@ -52,7 +52,15 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-meeting-context                 --selftest-realtime
 --selftest-computer  --selftest-mcp        --selftest-acp
 --selftest-activity  --selftest-fs         --selftest-browser
---selftest-settings
+--selftest-settings  --selftest-metrics    --selftest-cleanup-router
+--selftest-meeting-live                    --selftest-tts
+--selftest-tts-stream
+--selftest-toolloop  --selftest-acp-confirm --selftest-scheduler
+--selftest-capture   --selftest-meeting-reconcile
+--selftest-meeting-reconcile-llm
+--selftest-stream    --selftest-transcript-bus
+--selftest-duplex    --selftest-contention
+--selftest-residency
 ```
 
 A self-test must **fail** when the thing it names did not happen. `--selftest-systemaudio`

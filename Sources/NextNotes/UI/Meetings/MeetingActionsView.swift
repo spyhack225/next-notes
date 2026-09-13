@@ -1,19 +1,28 @@
 import AppKit
 import SwiftUI
 
-/// What the agent has offered to do about this meeting, and what has already been done.
+/// What the meeting asked for, what the Workspace agent has offered, and what has already
+/// been done.
 ///
-/// Two lists, and the order is the point: the unanswered proposals first, because they are
-/// the only thing on this screen that needs a person, and the record of what was performed
-/// under them, because that is what answers "did I already send this?" a week later.
+/// Live candidates stay above leftover Workspace proposals. After a review pass,
+/// `AgentService.reconciled` folds a matching proposal into its live card so "send the
+/// deck" is one row rather than two — and drops an invented summary Doc that nobody
+/// asked for. Performed actions stay last.
 struct MeetingActionsView: View {
     let meeting: Meeting
 
     @State private var agent = AgentService.shared
     @State private var settings = Settings.shared
+    @State private var contextStore = MeetingContextStore.shared
     @State private var editing: AgentProposal?
 
-    private var proposals: [AgentProposal] { agent.proposals(for: meeting.id) }
+    /// Live cards + review proposals after dedupe. Observes the live store so a card
+    /// raised mid-meeting appears here without a reopen.
+    private var reconciled: MeetingActionReconciler.Outcome {
+        _ = contextStore.current
+        _ = agent.revision
+        return agent.reconciled(for: meeting.id)
+    }
 
     /// Read back off the store rather than from the captured `meeting`: approving something
     /// rewrites `meeting.json`, and the copy this view was handed is from before that.
@@ -26,7 +35,7 @@ struct MeetingActionsView: View {
         Group {
             if agent.isThinking(meeting.id) {
                 working
-            } else if proposals.isEmpty, performed.isEmpty {
+            } else if reconciled.isEmpty, performed.isEmpty {
                 empty
             } else {
                 list
@@ -34,6 +43,7 @@ struct MeetingActionsView: View {
         }
         .animation(DS.Motion.fluid, value: agent.revision)
         .animation(DS.Motion.fluid, value: agent.isThinking(meeting.id))
+        .animation(DS.Motion.fluid, value: reconciled.rowCount)
         .sheet(item: $editing) { proposal in
             ProposalArgumentsSheet(proposal: proposal) { arguments in
                 agent.update(proposal, arguments: arguments)
@@ -97,13 +107,40 @@ struct MeetingActionsView: View {
     private var list: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DS.Space.l) {
-                if !proposals.isEmpty {
+                if !reconciled.candidates.isEmpty {
+                    // No orb: these are notices the extractor already raised, not a job
+                    // that is running. The Meetings live pane keeps the one `weaving` orb.
+                    section("Asked in the meeting") {
+                        ForEach(reconciled.candidates) { bound in
+                            CandidateActionCard(
+                                bound: bound,
+                                approve: {
+                                    agent.approveCandidate(
+                                        bound.candidate,
+                                        meetingID: meeting.id
+                                    )
+                                },
+                                prepare: {
+                                    agent.prepareCandidate(
+                                        bound.candidate,
+                                        meetingID: meeting.id
+                                    )
+                                },
+                                edit: { editing = bound.proposal },
+                                dismiss: { agent.dismissCandidate(bound.candidate) }
+                            )
+                        }
+                    }
+                }
+
+                if !reconciled.proposals.isEmpty {
                     // `searching` on the heading and nowhere else. Every card under it came
                     // out of the same pass over the notes and the transcript, so the mark
                     // belongs to the section rather than repeated down a column of cards —
                     // which would be the "scattering of small orbs" the design rules out.
+                    // Matching live cards are already folded above; this list is leftovers.
                     section("Waiting for you", orb: .searching) {
-                        ForEach(proposals) { proposal in
+                        ForEach(reconciled.proposals) { proposal in
                             ProposalCard(
                                 proposal: proposal,
                                 isRunning: agent.isRunning(proposal),
@@ -148,6 +185,82 @@ struct MeetingActionsView: View {
             SectionHeading(title: title, orb: orb)
             content()
         }
+    }
+}
+
+/// One extracted live ask, optionally folded with a matching Workspace proposal after
+/// review. System-audio cards have Prepare, never Approve-to-execute. A send still shows
+/// its message before Approve — the same rule as a standalone proposal card.
+private struct CandidateActionCard: View {
+    let bound: MeetingActionReconciler.BoundCandidate
+    let approve: () -> Void
+    let prepare: () -> Void
+    let edit: () -> Void
+    let dismiss: () -> Void
+
+    private var candidate: MeetingCandidateAction { bound.candidate }
+    private var canExecute: Bool { bound.canExecute }
+    private var proposal: AgentProposal? { bound.proposal }
+
+    var body: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: DS.Space.s) {
+                HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
+                    Text(MeetingLiveAgent.title(for: candidate))
+                        .font(DS.Font.headline)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: DS.Space.s)
+                    StatusChip(text: chipText, color: DS.Color.info)
+                }
+
+                Text(detailText)
+                    .font(DS.Font.callout)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let preview = proposal?.messagePreview, !preview.isEmpty {
+                    ScrollView {
+                        Text(preview)
+                            .font(DS.Font.transcript)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxHeight: DS.Size.messagePreviewHeight)
+                    .padding(DS.Space.s)
+                    .background(DS.Color.groupedFill, in: RoundedRectangle(cornerRadius: DS.Radius.control))
+                }
+
+                HStack(spacing: DS.Space.s) {
+                    if canExecute {
+                        Button("Approve", action: approve)
+                            .buttonStyle(.borderedProminent)
+                    } else {
+                        Button("Prepare", action: prepare)
+                            .buttonStyle(.borderedProminent)
+                    }
+                    if proposal != nil {
+                        Button("Edit\u{2026}", action: edit)
+                    }
+                    Button("Dismiss", role: .cancel, action: dismiss)
+                    Spacer()
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var chipText: String {
+        if proposal != nil {
+            return candidate.source == .system ? "Others asked · ready" : "You said · ready"
+        }
+        return candidate.source == .system ? "Others asked" : "You said"
+    }
+
+    private var detailText: String {
+        if let proposal {
+            return proposal.rationale
+        }
+        return MeetingLiveAgent.detail(for: candidate)
     }
 }
 

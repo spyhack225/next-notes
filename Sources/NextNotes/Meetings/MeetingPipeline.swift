@@ -55,6 +55,10 @@ enum MeetingPipeline {
     /// ways a meeting reaches `.done` and are mutually exclusive — this one is the path
     /// where no notes were written. It refuses meetings it has already looked at, so a
     /// double call would cost nothing either way.
+    ///
+    /// `review` is where end-of-meeting reconcile lives: live `candidateActions` stay on
+    /// the Actions tab, matching Workspace proposals fold into them, and an invented
+    /// summary Doc is dropped before it reaches `proposals.json`.
     private static func finish(_ meeting: Meeting, store: MeetingStore = .shared) -> Meeting {
         var done = meeting
         // A recording that had already failed keeps its failure. Reaching the end of the

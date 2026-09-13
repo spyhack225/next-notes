@@ -15,6 +15,15 @@ import llama
 ///   built to fit the prompt and rebuilt when the next one doesn't fit.
 /// - **The model unloads when idle.** 2.7 GB of resident weights for a meeting that ended
 ///   half an hour ago is 2.7 GB the rest of the Mac could be using.
+///
+/// Compute residency (S4):
+/// - Load and generation run as `WorkClass.background` on `ComputeScheduler.shared`,
+///   so a queued `realtimeASR` job preempts them at the next `checkpoint`.
+/// - Before loading, this runtime still waits on `LlamaBackend.awaitCleanupIdle()`.
+///   It must **never** call `beginCleanup()` — that closes the gate and deadlocks
+///   Qwen cleanup (`QwenCleanupFormatter`).
+/// - Under memory pressure, `ModelResidencyPolicy` may call `shutdown()` before it
+///   unloads diarization. Wake/KWS and Parakeet stay warm.
 actor NotesModelRuntime {
     /// The notes model. Other instances exist only in `--selftest-llm-metal`, which loads a
     /// second, smaller GGUF on the GPU to prove Metal and CPU runtimes coexist.
@@ -68,18 +77,34 @@ actor NotesModelRuntime {
     /// Loads the weights without generating, so the first meeting to finish doesn't pay the
     /// cold start on top of transcription.
     func prepare() async throws {
-        try await loadIfNeeded()
+        try await withBackgroundLane { jobID in
+            try await loadIfNeeded(schedulerJobID: jobID)
+        }
     }
 
     func countTokens(_ text: String) async throws -> Int {
-        try await loadIfNeeded()
-        guard let vocabulary else { throw LlamaError.notLoaded }
-        return try LlamaHelpers.tokenize(text, vocabulary: vocabulary).count
+        try await withBackgroundLane { jobID in
+            try await loadIfNeeded(schedulerJobID: jobID)
+            guard let vocabulary else { throw LlamaError.notLoaded }
+            return try LlamaHelpers.tokenize(text, vocabulary: vocabulary).count
+        }
     }
 
     /// One ChatML turn, generated greedily-but-not-quite (see the sampler below).
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
-        try await loadIfNeeded()
+        try await withBackgroundLane { jobID in
+            try await completeWhileScheduled(jobID: jobID, system: system, user: user, maxTokens: maxTokens)
+        }
+    }
+
+    /// Generation body that already holds the background lane.
+    private func completeWhileScheduled(
+        jobID: UUID,
+        system: String,
+        user: String,
+        maxTokens: Int
+    ) async throws -> LLMCompletion {
+        try await loadIfNeeded(schedulerJobID: jobID)
         // On every exit, not just the successful one: a transcript that was too long, a
         // failed decode or a cancelled generation leaves the weights just as resident as a
         // generation that worked, and without this they would stay that way until quit.
@@ -117,6 +142,8 @@ actor NotesModelRuntime {
             // can run for minutes, and a user who deleted the meeting shouldn't have to wait
             // for the notes to finish being written for it.
             try Task.checkCancellation()
+            // Let a queued realtimeASR job take the lane between tokens.
+            await ComputeScheduler.shared.checkpoint(jobID)
 
             let token = llama_sampler_sample(sampler, context, -1)
             if llama_vocab_is_eog(vocabulary, token) { break }
@@ -140,6 +167,21 @@ actor NotesModelRuntime {
             generatedTokens: generated,
             duration: Date().timeIntervalSince(began)
         )
+    }
+
+    /// Acquires the shared background lane for the duration of `body`.
+    private func withBackgroundLane<T>(
+        _ body: (UUID) async throws -> T
+    ) async throws -> T {
+        let jobID = await ComputeScheduler.shared.acquire(.background)
+        do {
+            let result = try await body(jobID)
+            await ComputeScheduler.shared.release(jobID)
+            return result
+        } catch {
+            await ComputeScheduler.shared.release(jobID)
+            throw error
+        }
     }
 
     /// Frees the weights and the context if nothing has used them for `interval`.
@@ -234,26 +276,39 @@ actor NotesModelRuntime {
     /// shared task, a Regenerate that arrives while an automatic summary is waiting on that
     /// gate loads a second 2.7 GB copy of the weights and leaks the first, which is exactly
     /// the swapping the gate exists to prevent.
-    private func loadIfNeeded() async throws {
+    ///
+    /// When `schedulerJobID` is set (outer `withBackgroundLane`), the load checkpoints
+    /// before the heavy mmap so a queued `realtimeASR` job can take the lane first.
+    private func loadIfNeeded(schedulerJobID: UUID? = nil) async throws {
         if model != nil, vocabulary != nil { return }
         if let loadTask { return try await loadTask.value }
 
+        let jobID = schedulerJobID
         let task = Task<Void, Error> {
             defer { self.loadTask = nil }
-            try await self.load()
+            try await self.load(schedulerJobID: jobID)
         }
         loadTask = task
         try await task.value
     }
 
-    private func load() async throws {
+    private func load(schedulerJobID: UUID? = nil) async throws {
         guard spec.isDownloaded else { throw LlamaError.modelMissing }
+
+        ModelResidencyPolicy.installPressureObserver()
 
         await LlamaBackend.shared.initialize()
         // Both models are gigabytes and both are resident at once if this waits for nothing.
         // The dictation path is the one with a person waiting on it, so notes generation
         // yields: it loads only once the cleanup pass in flight has released its context.
+        //
+        // One-directional only. Do not call beginCleanup() here — Qwen cleanup is this
+        // same runtime, and closing the cycle deadlocks (AGENTS.md).
         await LlamaBackend.shared.awaitCleanupIdle()
+
+        if let schedulerJobID {
+            await ComputeScheduler.shared.checkpoint(schedulerJobID)
+        }
 
         var modelParameters = llama_model_default_params()
         modelParameters.n_gpu_layers = gpuLayers

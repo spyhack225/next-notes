@@ -31,22 +31,21 @@ final class AgentService {
     /// round trip, and a card that looks untouched for two seconds gets pressed again.
     private(set) var running: Set<String> = []
 
-    /// How long between live passes while a meeting is recording. Two minutes is what the
-    /// plan asks for and about what a 4B model costs to run over two minutes of speech —
-    /// any faster and the agent is competing with the transcription it reads.
-    static let liveInterval: TimeInterval = 120
+    /// How long to wait after a meeting-context delta before raising a card.
+    ///
+    /// Sentence-scale, not the two-minute poll that used to re-read the last excerpt and
+    /// propose a summary Doc every tick. Held inside 500–1500 ms so a burst of segments
+    /// collapses to one card, and a single ask still lands before the next sentence.
+    static var liveDebounceMilliseconds: Int { MeetingLiveAgent.debounceMilliseconds }
 
     @ObservationIgnored private var tasks: [UUID: Task<Void, Never>] = [:]
-    /// Live passes are tracked apart from the post-meeting ones. They shared a slot once,
-    /// and the cost was silent: a live pass still generating when the user pressed Stop made
-    /// `review` return, and nothing ever asked again.
-    @ObservationIgnored private var liveTasks: [UUID: Task<Void, Never>] = [:]
-    @ObservationIgnored private var liveTicker: Task<Void, Never>?
     /// Which meeting a live proposal belongs to, so a button pressed on a notification —
     /// which carries only the proposal's id — can find it again.
     @ObservationIgnored private var owners: [String: UUID] = [:]
-    /// How far through the transcript the last live pass read, per meeting.
-    @ObservationIgnored private var liveWatermark: [UUID: TimeInterval] = [:]
+    @ObservationIgnored private var liveDebounce: Task<Void, Never>?
+    @ObservationIgnored private var lastLiveFingerprint: String?
+    @ObservationIgnored private var announcedCandidates: Set<String> = []
+    @ObservationIgnored private var dismissedCandidates: Set<String> = []
     @ObservationIgnored private var isStarted = false
 
     private let store: MeetingStore
@@ -59,8 +58,9 @@ final class AgentService {
 
     // MARK: - Lifecycle
 
-    /// Wires the agent to the two places a proposal can be answered from, and starts the
-    /// live ticker. Called once, from the app delegate.
+    /// Wires the agent to the two places a proposal can be answered from, and starts
+    /// watching `MeetingContextStore` for candidate deltas. Called once, from the app
+    /// delegate.
     func start() {
         guard !isStarted else { return }
         isStarted = true
@@ -72,16 +72,14 @@ final class AgentService {
         }
         IslandState.shared.onProposalDecision = { [weak self] proposal, approved in
             if PermissionGate.shared.respond(id: proposal.id, approved: approved) { return }
+            if proposal.isCandidate {
+                self?.decideCandidate(proposal, approved: approved)
+                return
+            }
             self?.decide(proposalID: proposal.id, approved: approved)
         }
 
-        liveTicker = Task { @MainActor [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(Self.liveInterval))
-                guard !Task.isCancelled else { return }
-                await self?.liveTick()
-            }
-        }
+        observeLiveContext()
         Task { await refreshStatus() }
     }
 
@@ -147,6 +145,40 @@ final class AgentService {
         return store.proposals(for: id)
     }
 
+    /// Candidates the extractor has offered for this meeting, minus ones already dismissed.
+    func candidates(for id: UUID) -> [MeetingCandidateAction] {
+        _ = revision
+        return context(for: id)?.candidateActions
+            .filter { !dismissedCandidates.contains($0.id) } ?? []
+    }
+
+    /// Live cards and Workspace proposals as one list: duplicates fold, invented summary
+    /// Docs stay off the Actions tab. Live candidates are never dropped.
+    func reconciled(for id: UUID) -> MeetingActionReconciler.Outcome {
+        _ = revision
+        let context = context(for: id)
+        let live = (context?.candidateActions ?? []).filter { !dismissedCandidates.contains($0.id) }
+        return MeetingActionReconciler.reconcile(
+            candidates: live,
+            proposals: store.proposals(for: id),
+            mentioned: context?.documentsMentioned ?? [],
+            actionItems: context?.actionItems ?? []
+        )
+    }
+
+    /// In-memory context while the meeting is live; the on-disk copy afterwards.
+    private func context(for id: UUID) -> MeetingContext? {
+        if let current = MeetingContextStore.shared.current, current.meetingID == id {
+            return current
+        }
+        return MeetingContextStore.shared.load(meetingID: id)
+    }
+
+    func isCandidateDismissed(_ id: String) -> Bool {
+        _ = revision
+        return dismissedCandidates.contains(id)
+    }
+
     func isThinking(_ id: UUID) -> Bool { thinking.contains(id) }
     /// Whether this proposal's tool is running right now, for the card that offered it.
     func isRunning(_ proposal: AgentProposal) -> Bool { running.contains(proposal.id) }
@@ -197,13 +229,27 @@ final class AgentService {
                 // The meeting can be deleted while the model is thinking, and writing
                 // proposals for it would re-create the directory that `delete` removed.
                 guard self.store.meeting(id: id) != nil else { return }
+                // Drop invented summary Docs before they reach disk. Matching live cards
+                // stay filed — Approve on the card is what runs them — but the Actions
+                // tab folds them into one row via `reconciled(for:)`.
+                let context = self.context(for: id)
+                let accepted = MeetingActionReconciler.acceptedProposals(
+                    from: proposals,
+                    candidates: context?.candidateActions ?? [],
+                    mentioned: context?.documentsMentioned ?? [],
+                    actionItems: context?.actionItems ?? []
+                )
+                let dropped = proposals.count - accepted.count
                 // A forced review replaces what the previous one offered. Appending would
                 // put a second copy of the same Doc and the same email on the list, and
-                // approving both copies creates both.
-                self.record(proposals, for: id, announce: true, replacing: force)
+                // approving both copies creates both. An empty accept list still replaces
+                // when forced, so a second pass that finds only inventions clears the old
+                // ones rather than leaving them.
+                self.record(accepted, for: id, announce: true, replacing: force)
                 Log.agent.info("""
-                    \(proposals.count, privacy: .public) proposal(s) for \
-                    "\(meeting.title, privacy: .public)"
+                    \(accepted.count, privacy: .public) proposal(s) for \
+                    "\(meeting.title, privacy: .public)"\
+                    \(dropped > 0 ? " (\(dropped) dropped by reconcile)" : "")
                     """)
             } catch is CancellationError {
                 return
@@ -218,14 +264,11 @@ final class AgentService {
     func cancel(_ id: UUID) {
         tasks[id]?.cancel()
         tasks[id] = nil
-        liveTasks[id]?.cancel()
-        liveTasks[id] = nil
         thinking.remove(id)
         for proposal in store.proposals(for: id) {
             Notifications.shared.withdrawAgentProposal(id: proposal.id)
             owners[proposal.id] = nil
         }
-        liveWatermark[id] = nil
     }
 
     // MARK: - Answering
@@ -289,6 +332,40 @@ final class AgentService {
     func dismiss(_ proposal: AgentProposal) {
         Notifications.shared.withdrawAgentProposal(id: proposal.id)
         remove(proposal)
+    }
+
+    func dismissCandidate(_ candidate: MeetingCandidateAction) {
+        dismissedCandidates.insert(candidate.id)
+        announcedCandidates.insert(candidate.id)
+        revision += 1
+    }
+
+    /// Opens the meeting so the candidate can be edited or approved where the whole
+    /// card is on screen. Never a Workspace write.
+    func prepareCandidate(_ candidate: MeetingCandidateAction, meetingID: UUID) {
+        NavigationState.shared.show(meeting: meetingID)
+        AppDelegate.showMainWindow()
+        Log.agent.info(
+            "prepared candidate \(candidate.action, privacy: .public) \(candidate.object ?? "", privacy: .public)"
+        )
+    }
+
+    /// Approve-to-execute for a live candidate. System audio is refused here, not only
+    /// in the detector — a card that lost its source check still cannot run.
+    func approveCandidate(_ candidate: MeetingCandidateAction, meetingID: UUID) {
+        guard MeetingLiveAgent.canAuthorizeExecute(candidate) else {
+            Log.agent.info("refused execute: system audio is not authority")
+            prepareCandidate(candidate, meetingID: meetingID)
+            return
+        }
+        // Existing Workspace proposals still go through `approve`, which is the only
+        // path that runs a tool. A candidate without one is not turned into a send
+        // or a Doc — that is how the two-minute poll used to invent work.
+        if let match = matchingProposal(for: candidate, meetingID: meetingID) {
+            approve(match)
+            return
+        }
+        prepareCandidate(candidate, meetingID: meetingID)
     }
 
     /// Replaces one proposal's arguments, from the Actions tab's editor.
@@ -362,14 +439,15 @@ final class AgentService {
     ///
     /// - Parameter replacing: throw away whatever was waiting for this meeting first. The
     ///   "Review again" button reads the same transcript and proposes the same actions, so
-    ///   appending would list every one of them twice.
+    ///   appending would list every one of them twice. An empty list still clears when
+    ///   replacing — reconcile may have dropped every invention a forced pass produced.
     private func record(
         _ proposals: [AgentProposal],
         for id: UUID,
         announce: Bool,
         replacing: Bool = false
     ) {
-        guard !proposals.isEmpty else { return }
+        if proposals.isEmpty && !replacing { return }
         var existing = store.proposals(for: id)
         if replacing {
             for proposal in existing {
@@ -422,50 +500,241 @@ final class AgentService {
 
     // MARK: - Live
 
-    /// Looks at the last couple of minutes of a running meeting, when asked to.
-    ///
-    /// Deliberately narrow: only what was said since the previous pass, and only an explicit
-    /// request in it counts. The post-meeting prompt run every two minutes would propose a
-    /// summary Doc every two minutes.
-    private func liveTick() async {
-        guard Settings.shared.agentLiveDuringMeeting, isReady else { return }
-        guard let session = MeetingController.shared.session, session.isRecording else { return }
+    /// Re-registers after every write to the live context, the same hop `IslandState`
+    /// uses so the callback is not on the mutation stack and never needs `assumeIsolated`.
+    private func observeLiveContext() {
+        withObservationTracking {
+            _ = MeetingContextStore.shared.current?.meetingID
+            _ = MeetingContextStore.shared.current?.candidateActions
+            _ = MeetingContextStore.shared.current?.actionItems
+            _ = MeetingContextStore.shared.current?.documentsMentioned
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.scheduleLiveDebounce()
+                self.observeLiveContext()
+            }
+        }
+    }
 
-        let meeting = session.meeting
-        let since = liveWatermark[meeting.id] ?? 0
-        let recent = session.segments.filter { $0.start >= since }
-        guard !recent.isEmpty, let last = recent.last else { return }
-        // Checked before the watermark moves: a pass still running means this excerpt has
-        // not been read by anyone, and advancing past it would lose those two minutes. Only
-        // the live slot is consulted — a post-meeting review is about a different meeting.
-        guard liveTasks[meeting.id] == nil else { return }
-        liveWatermark[meeting.id] = last.end
+    private func scheduleLiveDebounce() {
+        liveDebounce?.cancel()
+        liveDebounce = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(Self.liveDebounceMilliseconds))
+            guard !Task.isCancelled else { return }
+            self?.handleLiveDelta()
+        }
+    }
 
-        guard let provider = await LLMProviders.resolve(preferring: Settings.shared.notesProvider) else {
+    /// Raises island cards for new candidates. Does not call `MeetingAgent.liveProposals`
+    /// — that path is what proposed a summary Doc every two minutes.
+    private func handleLiveDelta() {
+        guard Settings.shared.agentLiveDuringMeeting else { return }
+        guard let context = MeetingContextStore.shared.current else { return }
+
+        let fingerprint = MeetingLiveAgent.fingerprint(context)
+        guard fingerprint != lastLiveFingerprint else { return }
+        lastLiveFingerprint = fingerprint
+
+        let fresh = MeetingLiveAgent.unannouncedCards(
+            from: context,
+            announced: announcedCandidates.union(dismissedCandidates)
+        )
+        guard let card = fresh.last else { return }
+        for next in fresh { announcedCandidates.insert(next.id) }
+        IslandState.shared.propose(card)
+        revision += 1
+    }
+
+    private func decideCandidate(_ proposal: IslandProposal, approved: Bool) {
+        let meetingID = proposal.meetingID
+        let candidate = meetingID.flatMap { id in
+            candidates(for: id).first { $0.id == proposal.id }
+        }
+        guard approved else {
+            if let candidate { dismissCandidate(candidate) }
+            else { dismissedCandidates.insert(proposal.id) }
             return
         }
-        thinking.insert(meeting.id)
-        liveTasks[meeting.id] = Task { @MainActor [weak self] in
-            guard let self else { return }
-            defer {
-                self.thinking.remove(meeting.id)
-                self.liveTasks[meeting.id] = nil
-            }
-            do {
-                let proposals = try await MeetingAgent.shared.liveProposals(
-                    for: meeting,
-                    recent: recent,
-                    provider: provider
-                )
-                guard self.store.meeting(id: meeting.id) != nil else { return }
-                // Each live proposal is announced on its own: there is usually one, and it
-                // is about something said thirty seconds ago.
-                for proposal in proposals {
-                    self.record([proposal], for: meeting.id, announce: true)
-                }
-            } catch {
-                Log.agent.error("live agent pass failed: \(error.localizedDescription, privacy: .public)")
-            }
+        guard let meetingID else { return }
+        guard let candidate else {
+            NavigationState.shared.show(meeting: meetingID)
+            AppDelegate.showMainWindow()
+            return
+        }
+        if MeetingLiveAgent.canAuthorizeExecute(candidate) {
+            approveCandidate(candidate, meetingID: meetingID)
+        } else {
+            prepareCandidate(candidate, meetingID: meetingID)
+        }
+    }
+
+    /// A Workspace proposal that already exists for this meeting and names the same object.
+    /// Matching is conservative: no object, no guess, no invented tool — the same rule
+    /// `MeetingActionReconciler` uses when folding the two lists.
+    private func matchingProposal(for candidate: MeetingCandidateAction, meetingID: UUID) -> AgentProposal? {
+        let matches = store.proposals(for: meetingID).filter {
+            MeetingActionReconciler.matches(candidate, $0)
+        }
+        return matches.count == 1 ? matches[0] : nil
+    }
+}
+
+/// Event-driven live meeting intelligence: debounce context deltas, raise cards, and
+/// refuse execute unless the microphone authorised it.
+enum MeetingLiveAgent {
+    /// 800 ms sits in the 500–1500 ms window: long enough to collapse a burst of
+    /// segments, short enough that an ask still lands before the next sentence.
+    static let debounceMilliseconds = 800
+
+    static func canAuthorizeExecute(source: AudioSource) -> Bool {
+        MeetingIntentDetector.mayAuthorizeExecute(source: source)
+    }
+
+    static func canAuthorizeExecute(_ candidate: MeetingCandidateAction) -> Bool {
+        MeetingIntentDetector.mayAuthorizeExecute(candidate)
+    }
+
+    static func fingerprint(_ context: MeetingContext) -> String {
+        let candidates = context.candidateActions.map {
+            "\($0.id)|\($0.action)|\($0.object ?? "")"
+        }.joined(separator: ";")
+        let actions = context.actionItems.map(\.text).joined(separator: "\u{1e}")
+        let mentions = context.documentsMentioned.map(\.text).joined(separator: "\u{1e}")
+        return "\(context.meetingID.uuidString)|\(candidates)|\(actions)|\(mentions)"
+    }
+
+    static func islandProposal(for candidate: MeetingCandidateAction, meetingID: UUID) -> IslandProposal {
+        let authorized = canAuthorizeExecute(candidate)
+        return IslandProposal(
+            id: candidate.id,
+            title: title(for: candidate),
+            detail: detail(for: candidate),
+            meetingID: meetingID,
+            needsReview: !authorized,
+            canExecute: authorized,
+            isCandidate: true
+        )
+    }
+
+    static func unannouncedCards(
+        from context: MeetingContext,
+        announced: Set<String>
+    ) -> [IslandProposal] {
+        context.candidateActions
+            .filter { !announced.contains($0.id) }
+            .map { islandProposal(for: $0, meetingID: context.meetingID) }
+    }
+
+    static func title(for candidate: MeetingCandidateAction) -> String {
+        let object = candidate.object ?? "that"
+        let verb = candidate.action.prefix(1).uppercased() + candidate.action.dropFirst()
+        if let recipient = candidate.recipient, !recipient.isEmpty {
+            return "\(verb) \(object) to \(recipient)?"
+        }
+        return "\(verb) \(object)?"
+    }
+
+    static func detail(for candidate: MeetingCandidateAction) -> String {
+        if candidate.source == .system {
+            let who = candidate.speaker ?? "Someone"
+            return "\(who) asked for this. Prepare it — it cannot run from their speech."
+        }
+        return "You said this. Approve runs it only if a Workspace proposal already exists."
+    }
+
+    /// Prints one last `MEETING_LIVE_OK` / `MEETING_LIVE_FAILED` line, and runs the bus
+    /// bridge probe (`MEETING_BUS_OK` / `FAILED`) so finals → context stay covered without
+    /// a separate NextNotesApp flag. Does not start a recording, does not touch `RunLog`,
+    /// and does not call `gws`.
+    @MainActor
+    @discardableResult
+    static func runSelfTest() -> Bool {
+        var failures = MeetingContextExtractor.selfTestFailures()
+        // Bus → context is its own OK/FAILED line; fold the bool into this verdict so a
+        // green MEETING_LIVE cannot hide a broken ingestFinal path.
+        if !MeetingContextBusBridge.runSelfTest() {
+            failures.append("meeting bus bridge")
+        }
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+
+        check(
+            "debounce left the 500–1500 ms window",
+            debounceMilliseconds >= 500 && debounceMilliseconds <= 1_500
+        )
+
+        let system = TranscriptSegment(
+            start: 0, end: 2,
+            text: "Can you send the deck",
+            source: .system,
+            speaker: "Sarah"
+        )
+        let mic = TranscriptSegment(start: 3, end: 5, text: "Can you send the deck", source: .mic)
+        check("a .system segment authorised execute", !canAuthorizeExecute(source: system.source))
+        check("a .system segment authorised execute", !MeetingIntentDetector.mayAuthorizeExecute(system))
+
+        guard let systemCandidate = MeetingIntentDetector.candidate(in: system) else {
+            failures.append("can you send the deck produced no candidate")
+            writeLine(failures)
+            return false
+        }
+        check("a system candidate authorised execute", !canAuthorizeExecute(systemCandidate))
+
+        let meetingID = UUID()
+        let systemCard = islandProposal(for: systemCandidate, meetingID: meetingID)
+        check("a system card offered Approve-to-execute", !systemCard.canExecute)
+        check("a system card skipped Prepare", systemCard.leadAction == .prepare)
+        check("a system card was not marked as a candidate", systemCard.isCandidate)
+
+        if let micCandidate = MeetingIntentDetector.candidate(in: mic) {
+            check("mic speech was refused authority", canAuthorizeExecute(micCandidate))
+            let micCard = islandProposal(for: micCandidate, meetingID: meetingID)
+            check("a mic card hid Approve", micCard.canExecute && micCard.leadAction == .approve)
+        } else {
+            failures.append("mic can you send the deck produced no candidate")
+        }
+
+        var context = MeetingContext.empty(meetingID: meetingID, title: "Standup", participants: ["Sam"])
+        context = MeetingContextExtractor.apply(
+            [TranscriptSegment(start: 0, end: 2, text: "We should write this up in a doc later.", source: .mic)],
+            to: context
+        )
+        check(
+            "a discussion produced a live card",
+            unannouncedCards(from: context, announced: []).isEmpty
+        )
+
+        context = MeetingContextExtractor.apply([system], to: context)
+        let cards = unannouncedCards(from: context, announced: [])
+        check("a send-the-deck ask produced no card", !cards.isEmpty)
+        check("the deck card could execute", cards.allSatisfy { !$0.canExecute })
+
+        writeLine(failures)
+        return failures.isEmpty
+    }
+
+    private static func writeLine(_ failures: [String]) {
+        for failure in failures {
+            emit("  MEETING_LIVE_WRONG: \(failure)")
+        }
+        emit(failures.isEmpty
+             ? "MEETING_LIVE_OK: cadence, cards and the authority split hold"
+             : "MEETING_LIVE_FAILED: \(failures.count) rule(s) wrong")
+    }
+
+    private static func emit(_ line: String) {
+        let text = "\(line)\n"
+        FileHandle.standardOutput.write(Data(text.utf8))
+        Log.app.info("selftest · \(line, privacy: .public)")
+        guard let path = SelfTest.outputPath else { return }
+        if let handle = FileHandle(forWritingAtPath: path) {
+            handle.seekToEndOfFile()
+            handle.write(Data(text.utf8))
+            try? handle.close()
+        } else {
+            try? text.write(toFile: path, atomically: true, encoding: .utf8)
         }
     }
 }
