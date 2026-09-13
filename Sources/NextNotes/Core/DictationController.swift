@@ -596,6 +596,7 @@ final class DictationController {
                             Task { @MainActor in self?.updateLevel(level) }
                         }
                     )
+                    await MainActor.run { WakeWordAudioMonitor.shared.beginHold() }
                 } catch {
                     audioContinuation.finish()
                     feedTask.cancel()
@@ -656,6 +657,7 @@ final class DictationController {
 
         state = .finishing
         capture.stop()
+        WakeWordAudioMonitor.shared.endHold()
         level = 0
         releasedAt = Date()
         let session = self.session
@@ -788,6 +790,7 @@ final class DictationController {
     /// The one way back to rest after a successful run.
     private func finishIdle() {
         capture.stop()
+        WakeWordAudioMonitor.shared.endHold()
         level = 0
         state = .idle
         transcript = ""
@@ -840,6 +843,7 @@ final class DictationController {
     private func cancelDictation() {
         session &+= 1
         capture.stop()
+        WakeWordAudioMonitor.shared.endHold()
         audioContinuation?.finish()
         audioContinuation = nil
         feedTask?.cancel()
@@ -973,6 +977,7 @@ final class DictationController {
         // reached *because* something did not come back.
         session &+= 1
         capture.stop()
+        WakeWordAudioMonitor.shared.endHold()
         audioContinuation?.finish()
         audioContinuation = nil
         feedTask?.cancel()

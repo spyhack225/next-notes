@@ -46,6 +46,8 @@ struct MainWindow: View {
             DictationView(controller: controller)
         case .meetings:
             MeetingsView()
+        case .agent:
+            AgentView()
         case .dictionary:
             DictionaryPanel()
         case .comparison:

@@ -13,7 +13,6 @@ struct IslandView: View {
     @Bindable var state: IslandState
     let metrics: IslandGeometry.Metrics
 
-    @State private var meetings = MeetingController.shared
     @Namespace private var namespace
 
     var body: some View {
@@ -146,8 +145,9 @@ struct IslandView: View {
         HStack(alignment: .top, spacing: DS.Space.m) {
             badge
             VStack(alignment: .leading, spacing: DS.Space.xs) {
-                Text(title)
+                Text(state.cardTitle)
                     .font(DS.Font.headline)
+                    .tracking(0)
                     .foregroundStyle(ink)
                     .lineLimit(1)
                 detail
@@ -181,6 +181,7 @@ struct IslandView: View {
         switch state.kind {
         case .dictating(_, _, let capturing): capturing
         case .meetingRecording: true
+        case .agentListening: true
         default: false
         }
     }
@@ -232,6 +233,9 @@ struct IslandView: View {
             }
         case .meetingRecording(let elapsed, _, _):
             counter(elapsed)
+        case .agentListening(_, let level):
+            LevelBar(level: level)
+                .frame(width: DS.Size.islandBarWidth)
         case .summarizing(let progress), .diarizing(let progress):
             if let progress {
                 Text(progress.formatted(.percent.precision(.fractionLength(0))))
@@ -295,6 +299,31 @@ struct IslandView: View {
                 .foregroundStyle(secondaryInk)
                 .lineLimit(2)
 
+        case .agentListening(let transcript, let level):
+            HStack(spacing: DS.Space.s) {
+                LevelBar(level: level)
+                    .frame(width: DS.Size.islandBarWidth)
+                Text(state.listeningDetail(transcript))
+                    .font(DS.Font.callout)
+                    .tracking(0)
+                    .foregroundStyle(secondaryInk)
+                    .lineLimit(2)
+                    .truncationMode(.head)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+        case .agentWorking(let title):
+            Text(title)
+                .font(DS.Font.callout)
+                .foregroundStyle(secondaryInk)
+                .lineLimit(2)
+
+        case .agentReply(let text):
+            Text(text)
+                .font(DS.Font.callout)
+                .foregroundStyle(secondaryInk)
+                .lineLimit(3)
+
         case .summarizing(let progress), .diarizing(let progress):
             if let progress {
                 ProgressView(value: progress)
@@ -333,6 +362,18 @@ struct IslandView: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
 
+        case .agentListening:
+            Button("Done") { state.endAgentListen() }
+            .controlSize(.small)
+
+        case .agentWorking:
+            Button("Stop") { state.cancelAgentWork() }
+            .controlSize(.small)
+
+        case .agentReply:
+            Button("Dismiss") { state.dismissNotice() }
+                .controlSize(.small)
+
         case .agentProposal(let proposal):
             HStack(spacing: DS.Space.s) {
                 Button("Dismiss") { state.decide(proposal, approved: false) }
@@ -354,20 +395,6 @@ struct IslandView: View {
     }
 
     // MARK: - Words
-
-    private var title: String {
-        switch state.kind {
-        case .hidden: ""
-        case .dictating(_, _, let capturing): capturing ? "Dictating" : "Transcribing"
-        case .meetingArmed(let event): event.title
-        case .meetingRecording: meetings.session?.meeting.title ?? "Recording"
-        case .transcribing: MeetingStatus.transcribing.displayName
-        case .diarizing: MeetingStatus.diarizing.displayName
-        case .summarizing: MeetingStatus.summarizing.displayName
-        case .notesReady(_, let title): title
-        case .agentProposal(let proposal): proposal.title
-        }
-    }
 
     private func armedDetail(_ event: MeetingEvent) -> String {
         // A detected call started before the card did, so the countdown wording would read

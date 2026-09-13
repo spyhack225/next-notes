@@ -129,6 +129,7 @@ final class MeetingSession {
                     Task { @MainActor in self?.micLevel = level }
                 }
             )
+            WakeWordAudioMonitor.shared.beginHold()
         } catch {
             await abort(reason: error.localizedDescription)
             throw error
@@ -188,6 +189,7 @@ final class MeetingSession {
 
         micCapture.stop()
         systemCapture.stop()
+        WakeWordAudioMonitor.shared.endHold()
         clock?.cancel()
         clock = nil
         micLevel = 0
@@ -236,6 +238,7 @@ final class MeetingSession {
 
         micCapture.stop()
         systemCapture.stop()
+        WakeWordAudioMonitor.shared.endHold()
         clock?.cancel()
         clock = nil
         micContinuation?.finish()
@@ -258,8 +261,10 @@ final class MeetingSession {
     /// has already delivered.
     private func add(_ segment: TranscriptSegment) {
         lastSpeechAt = Date()
-        let index = segments.firstIndex { $0.start > segment.start } ?? segments.endIndex
-        segments.insert(segment, at: index)
+        let incoming = ActivationController.shared.handleWake(in: segment)
+        let index = segments.firstIndex { $0.start > incoming.start } ?? segments.endIndex
+        segments.insert(incoming, at: index)
+        MeetingContextStore.shared.ingest(segments, meeting: meeting)
         // Written on every segment rather than once at the end: a two-hour meeting that
         // loses everything because the app was force-quit at minute 118 is the failure
         // this feature can least afford, and the file is a few kilobytes.
@@ -269,6 +274,7 @@ final class MeetingSession {
     private func abort(reason: String) async {
         micCapture.stop()
         systemCapture.stop()
+        WakeWordAudioMonitor.shared.endHold()
         clock?.cancel()
         clock = nil
         micContinuation?.finish()

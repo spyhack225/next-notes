@@ -203,7 +203,7 @@ actor MeetingAgent {
                 rationale: call.rationale
             )
             do {
-                let result = try await WorkspaceToolRunner.run(proposal)
+                let result = try await AgentToolExecutor.run(proposal, policy: .fromSettings())
                 results.append(AgentPrompts.toolResult(name: call.name, output: result.summary))
             } catch {
                 results.append(AgentPrompts.toolResult(

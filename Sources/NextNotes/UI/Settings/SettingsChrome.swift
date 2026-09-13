@@ -1,23 +1,24 @@
+import AppKit
 import SwiftUI
 
-/// The two pieces every Settings tab is built out of: the band at the top of a pane, and
+/// The two pieces every Settings pane is built out of: the band at the top of a pane, and
 /// the footnote under a section.
 ///
-/// Settings stays eight grouped `Form`s, because that is what macOS Settings is. What the
+/// Settings stays grouped `Form`s, because that is what macOS Settings is. What the
 /// landing page adds here is the *frame* around them — the eyebrow, the heading and the
 /// mark that `site/src` gives every section — and one honest orb wherever a row is waiting
 /// on work rather than on the user.
 
 /// A Settings tab: the band that says what it is for, then the form itself.
 ///
-/// The tab bar names the tab in one word; the band says which question the tab answers,
-/// which is the thing a `TabView` has nowhere to put. It sits *above* the form rather than
+/// The sidebar names the pane in one word; the band says which question the pane answers,
+/// which is the thing a list row has nowhere to put. It sits *above* the form rather than
 /// inside it, so every row below is still a system-drawn `Form` row and nothing about the
 /// grouped style has to be reimplemented.
 ///
-/// The orb here is **still**, always. It is the mark for the tab's subject, not a report on
-/// anything in flight: eight canvases turning over a window where nothing is happening is
-/// the exact cost the one-animating-orb-per-screen rule exists to prevent, and a tab that
+/// The orb here is **still**, always. It is the mark for the pane's subject, not a report on
+/// anything in flight: ten canvases turning over a window where nothing is happening is
+/// the exact cost the one-animating-orb-per-screen rule exists to prevent, and a pane that
 /// does have work running says so on the row the work belongs to.
 struct SettingsPane<Content: View>: View {
     let tab: SettingsTab
@@ -36,8 +37,8 @@ struct SettingsPane<Content: View>: View {
 
     private var header: some View {
         HStack(alignment: .center, spacing: DS.Space.orbGap) {
-            // The column is reserved whether or not the tab has an orb, so the heading does
-            // not step sideways as the user walks along the tab bar.
+            // The column is reserved whether or not the pane has an orb, so the heading does
+            // not step sideways as the user walks the sidebar.
             Group {
                 if let orb = tab.orb {
                     ThinkingOrb(state: orb, size: DS.Size.orbSmall, isAnimated: false)
@@ -56,6 +57,26 @@ struct SettingsPane<Content: View>: View {
         // Heaviest against the tab bar and gone by the divider, so the band reads as the
         // top of the page settling into it rather than as a panel stuck on top.
         .dottedField(opacity: DS.Opacity.fieldFaint, fade: .top)
+    }
+}
+
+/// Pushes the selected pane's name onto the Settings window.
+///
+/// `SwiftUI.Settings` otherwise keeps "Next Notes Settings" for every pane, which is how
+/// a clipped sidebar and a Formatting form can look like they belong to Agent.
+struct SettingsWindowTitle: NSViewRepresentable {
+    let title: String
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        view.isHidden = true
+        return view
+    }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        DispatchQueue.main.async {
+            view.window?.title = title
+        }
     }
 }
 

@@ -14,11 +14,14 @@ import SwiftUI
 /// different axis, so it is a menu. It shares the capability columns' width because a symbol
 /// fits there and the words fit inside the menu it opens; see `PathReferenceStyle.systemImage`.
 ///
-/// Alone among the settings tabs this one is NOT a `Form`. It was, and the app list could not
-/// be scrolled: a grouped `Form` is itself a scroll view, and a `List` nested inside one gets
-/// a fixed height with no way to reach the rows past it — every app below the fold was simply
-/// unreachable. The tab is a plain stack so the list is the only scroll view on the pane and
-/// owns the wheel. Do not put this back inside a `Form`.
+/// The output-profile table, as a grouped `Form` like every other pane.
+///
+/// The app list is a `List` of fixed height inside the section — `DS.Size.formatListHeight`
+/// — so it scrolls inside that frame rather than growing the window. A `List` with
+/// `maxHeight: .infinity` inside the HStack Settings rewrite was what clipped General,
+/// Dictation and Formatting off the top of the sidebar: the pane's intrinsic height
+/// exceeded the window and the stack centered the overflow. Do not give this list an
+/// unbounded height again.
 struct FormattingSettingsTab: View {
     @State private var store = OutputProfileStore.shared
     @State private var screenContext = ScreenContextStore.shared
@@ -30,43 +33,12 @@ struct FormattingSettingsTab: View {
     @State private var isPicking = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.Space.m) {
-            Text("Apps")
-                .font(DS.Font.headline)
-
-            columnHeader
-            profileList
-            controls
-
-            SettingsNote(
-                text: "Dictated text is written to suit the app it is about to land in — a "
-                    + "spoken list becomes bullets in Slack and a sentence in Mail. An "
-                    + "app that isn't listed gets plain prose, because a formatting mark "
-                    + "an app doesn't render is worse than none."
-            )
-
-            Divider()
-
+        Form {
+            apps
             screenNames
-
-            Divider()
-
-            HStack {
-                Button("Add apps Next Notes knows about") { store.addMissingDefaults() }
-                    .help("Puts back any built-in app you have removed. Your own rows and "
-                          + "your edits are left alone.")
-                Spacer()
-                Button("Reveal formatting.txt") {
-                    NSWorkspace.shared.activateFileViewerSelecting([OutputProfileStore.fileURL])
-                }
-                .buttonStyle(.link)
-                .help(OutputProfileStore.fileURL.path)
-            }
-
-            SettingsNote(text: "The table is a plain text file. Edit it in any editor and "
-                         + "the app picks up the change immediately.")
+            file
         }
-        .padding(DS.Space.xl)
+        .formStyle(.grouped)
         .sheet(isPresented: $isAdding) {
             OutputProfileEditor(existing: nil) { store.upsert($0) }
         }
@@ -84,6 +56,42 @@ struct FormattingSettingsTab: View {
         }
     }
 
+    private var apps: some View {
+        Section {
+            columnHeader
+            profileList
+            controls
+        } header: {
+            Text("Apps")
+        } footer: {
+            SettingsNote(
+                text: "Dictated text is written to suit the app it is about to land in — a "
+                    + "spoken list becomes bullets in Slack and a sentence in Mail. An "
+                    + "app that isn't listed gets plain prose, because a formatting mark "
+                    + "an app doesn't render is worse than none."
+            )
+        }
+    }
+
+    private var file: some View {
+        Section {
+            HStack {
+                Button("Add apps Next Notes knows about") { store.addMissingDefaults() }
+                    .help("Puts back any built-in app you have removed. Your own rows and "
+                          + "your edits are left alone.")
+                Spacer()
+                Button("Reveal formatting.txt") {
+                    NSWorkspace.shared.activateFileViewerSelecting([OutputProfileStore.fileURL])
+                }
+                .buttonStyle(.link)
+                .help(OutputProfileStore.fileURL.path)
+            }
+        } footer: {
+            SettingsNote(text: "The table is a plain text file. Edit it in any editor and "
+                         + "the app picks up the change immediately.")
+        }
+    }
+
     // MARK: - Screen names
 
     /// The switch for reading names off the screen at all, and the plainest statement of what
@@ -97,10 +105,7 @@ struct FormattingSettingsTab: View {
     /// `AXHarvester` actually enforces it.
     @ViewBuilder
     private var screenNames: some View {
-        VStack(alignment: .leading, spacing: DS.Space.s) {
-            Text("Screen names")
-                .font(DS.Font.headline)
-
+        Section {
             Toggle(
                 "Use file and folder names visible on screen",
                 isOn: $settings.screenContextEnabled
@@ -118,21 +123,24 @@ struct FormattingSettingsTab: View {
                     screenContext.dismissStubRemediation()
                 }
             }
-
-            SettingsNote(
-                text: "While you hold the dictation key, Next Notes reads the names of open "
-                    + "tabs, files and folders in the app you are dictating into, and uses "
-                    + "them to recognise a file you say out loud. Nothing is stored, nothing "
-                    + "leaves your Mac, and no page or document text is read — only names. "
-                    + "Password fields, number-only fields and browser address bars are "
-                    + "skipped, and banking and finance apps are never read at all."
-            )
-
-            SettingsNote(
-                text: "Needs cleanup set to fix grammar as well as punctuation: the "
-                    + "punctuation-only model takes no instructions, so it has nowhere to be "
-                    + "told which names are on screen."
-            )
+        } header: {
+            Text("Screen names")
+        } footer: {
+            VStack(alignment: .leading, spacing: DS.Space.s) {
+                SettingsNote(
+                    text: "While you hold the dictation key, Next Notes reads the names of open "
+                        + "tabs, files and folders in the app you are dictating into, and uses "
+                        + "them to recognise a file you say out loud. Nothing is stored, nothing "
+                        + "leaves your Mac, and no page or document text is read — only names. "
+                        + "Password fields, number-only fields and browser address bars are "
+                        + "skipped, and banking and finance apps are never read at all."
+                )
+                SettingsNote(
+                    text: "Needs cleanup set to fix grammar as well as punctuation: the "
+                        + "punctuation-only model takes no instructions, so it has nowhere to be "
+                        + "told which names are on screen."
+                )
+            }
         }
     }
 
@@ -170,7 +178,7 @@ struct FormattingSettingsTab: View {
                 title: "No apps listed",
                 message: "Every app gets plain prose until you add one."
             )
-            .frame(maxHeight: .infinity)
+            .frame(height: DS.Size.formatListHeight)
         } else {
             List(selection: $selection) {
                 ForEach(store.profiles) { profile in
@@ -188,7 +196,7 @@ struct FormattingSettingsTab: View {
             }
             .listStyle(.inset)
             .alternatingRowBackgrounds()
-            .frame(minHeight: DS.Size.formatListHeight, maxHeight: .infinity)
+            .frame(height: DS.Size.formatListHeight)
         }
     }
 

@@ -161,7 +161,9 @@ struct WorkspaceSettingsTab: View {
     /// my account", and a footnote saying "manages your Workspace" is not one.
     private var toolsSection: some View {
         Section {
-            ForEach(AgentRisk.allCases, id: \.self) { risk in
+            ForEach(AgentRisk.allCases.filter { risk in
+                WorkspaceTools.all.contains { $0.risk == risk }
+            }, id: \.self) { risk in
                 LabeledContent(risk.displayName) {
                     Text(WorkspaceTools.all.filter { $0.risk == risk }
                         .map(\.name)

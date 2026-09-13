@@ -50,6 +50,12 @@ final class IslandState {
         case summarizing(progress: Double?)
         case notesReady(meetingID: UUID, title: String)
         case agentProposal(IslandProposal)
+        /// The dedicated agent shortcut or wake phrase is listening.
+        case agentListening(transcript: String, level: Float)
+        /// A bounded tool or a background task is in flight.
+        case agentWorking(title: String)
+        /// A spoken answer, held as a notice so it can be read.
+        case agentReply(String)
 
         var isHidden: Bool { self == .hidden }
 
@@ -70,6 +76,9 @@ final class IslandState {
             case .summarizing: "summarizing"
             case .notesReady(let id, _): "notes:\(id)"
             case .agentProposal(let proposal): "proposal:\(proposal.id)"
+            case .agentListening: "agent.listening"
+            case .agentWorking: "agent.working"
+            case .agentReply: "agent.reply"
             }
         }
 
@@ -78,7 +87,7 @@ final class IslandState {
         /// no use as a badge.
         var demandsAttention: Bool {
             switch self {
-            case .meetingArmed, .notesReady, .agentProposal: true
+            case .meetingArmed, .notesReady, .agentProposal, .agentListening, .agentWorking, .agentReply: true
             default: false
             }
         }
@@ -112,6 +121,9 @@ final class IslandState {
             case .diarizing: .solving
             case .summarizing: .composing
             case .agentProposal: .searching
+            case .agentListening: .listening
+            case .agentWorking: .searching
+            case .agentReply: .composing
             case .hidden, .notesReady: nil
             }
         }
@@ -132,6 +144,35 @@ final class IslandState {
     }
 
     var isExpanded: Bool { !kind.isHidden && (isHovered || kind.demandsAttention) }
+
+    // MARK: - Card copy
+
+    /// Words the expanded card shows.
+    ///
+    /// Kept on this type so `IslandView` never reaches into other MainActor objects from a
+    /// view-body getter. That path is `MainActor.assumeIsolated`, and it does not check the
+    /// claim — it asserts it and takes the process down. A meeting with no session, or an
+    /// agent that has not spoken yet, has to resolve here rather than through a singleton.
+    var cardTitle: String {
+        switch kind {
+        case .hidden: ""
+        case .dictating(_, _, let capturing): capturing ? "Dictating" : "Transcribing"
+        case .meetingArmed(let event): event.title
+        case .meetingRecording: meetings.session?.meeting.title ?? "Recording"
+        case .transcribing: MeetingStatus.transcribing.displayName
+        case .diarizing: MeetingStatus.diarizing.displayName
+        case .summarizing: MeetingStatus.summarizing.displayName
+        case .notesReady(_, let title): title
+        case .agentProposal(let proposal): proposal.title
+        case .agentListening, .agentWorking, .agentReply: "Next"
+        }
+    }
+
+    func listeningDetail(_ transcript: String) -> String {
+        if !transcript.isEmpty { return transcript }
+        let reply = AgentCaptureController.shared.lastReply
+        return reply.isEmpty ? "Listening\u{2026}" : reply
+    }
 
     // MARK: - Notices
 
@@ -226,8 +267,38 @@ final class IslandState {
         push(.agentProposal(proposal), for: DS.Motion.islandNotice)
     }
 
+    func showAgentListening(transcript: String, level: Float = 0) {
+        // Live, not a notice: the next buffer replaces this card.
+        notice = nil
+        kind = .agentListening(transcript: transcript, level: level)
+        cardIdentity = kind.identity
+    }
+
+    func showAgentWork(title: String) {
+        // Live, not a notice: Thinking used to expire after islandNotice (8 s) while
+        // `askModel` was still waiting, so the island went blank and the turn had nowhere
+        // to write the reply.
+        notice = nil
+        kind = .agentWorking(title: title)
+        cardIdentity = kind.identity
+    }
+
+    func showAgentReply(_ text: String) {
+        push(.agentReply(text), for: DS.Motion.islandNotice)
+    }
+
     func dismissNotice() {
         clearNotice()
+    }
+
+    /// Puts a card up without a live source. `--selftest-island` uses this to evaluate
+    /// `IslandView` for kinds that need a session or a microphone.
+    func apply(_ kind: Kind) {
+        notice = nil
+        expiry?.cancel()
+        expiry = nil
+        self.kind = kind
+        cardIdentity = kind.identity
     }
 
     // MARK: - Buttons
@@ -262,6 +333,14 @@ final class IslandState {
         AppDelegate.showMainWindow()
     }
 
+    func endAgentListen() {
+        Task { await AgentCaptureController.shared.endSession(source: .done) }
+    }
+
+    func cancelAgentWork() {
+        RealtimeAgent.shared.cancel()
+    }
+
     // MARK: - Recomputing
 
     /// Derives the live half of the state, and lets a notice win over it.
@@ -282,6 +361,16 @@ final class IslandState {
         // Dictation first among the live states: it lasts as long as a key is held, and its
         // whole job is to prove the app heard the words being said right now. A meeting
         // counter losing three seconds to it costs nothing.
+        if case .agentWorking = ActivationController.shared.mode {
+            let title = RealtimeAgent.shared.progressTitle
+            return .agentWorking(title: title.isEmpty ? "Thinking…" : title)
+        }
+        if case .agentListening = ActivationController.shared.mode {
+            return .agentListening(
+                transcript: AgentCaptureController.shared.transcript,
+                level: AgentCaptureController.shared.level
+            )
+        }
         if let dictation, dictation.state.shouldShowHUD,
            Settings.shared.hudPlacement == .notch {
             return .dictating(
@@ -322,6 +411,12 @@ final class IslandState {
             _ = meetings.session?.systemLevel
             _ = notes.steps
             _ = diarization.progress
+            _ = ActivationController.shared.mode
+            _ = AgentCaptureController.shared.transcript
+            _ = AgentCaptureController.shared.level
+            _ = AgentCaptureController.shared.lastReply
+            _ = RealtimeAgent.shared.progressTitle
+            _ = AgentActivityStore.shared.activities.first?.title
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }

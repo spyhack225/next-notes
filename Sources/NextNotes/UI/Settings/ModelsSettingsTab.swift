@@ -46,6 +46,15 @@ struct ModelsSettingsTab: View {
                 ) {
                     models.prepareDiarizer()
                 }
+
+                ModelStatusRow(
+                    title: "Wake phrase",
+                    detail: "Local sherpa-onnx keyword model · \(WakeWordModels.archive.displaySize)",
+                    state: models.wakeWordState,
+                    downloadTitle: "Download…"
+                ) {
+                    models.prepareWakeWord()
+                }
             } header: {
                 Text("On-device models")
             } footer: {

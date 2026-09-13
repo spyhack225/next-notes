@@ -222,7 +222,9 @@ Sources/NextNotes/
 │   ├── ScreenContextStore.swift    one walk per hold, started at key-down, awaited twice
 │   ├── AXHarvester.swift           the budgeted tree walk itself
 │   ├── AXAppAdapters.swift         the three editors, by bundle id, hand-tested
-│   └── ContextPrivacyFilter.swift  what is never read: secure fields, URL bars, finance apps
+│   ├── ContextPrivacyFilter.swift  what is never read: secure fields, URL bars, finance apps
+│   ├── ComputerContext.swift       front app, window, clipboard, project — as references
+│   └── ContextEngine.swift         meeting + computer context, resolved on demand
 ├── Dictionary/
 │   └── DictionaryStore.swift       the user's own corrections, and the ASR bias list
 ├── Formatting/
@@ -264,7 +266,10 @@ Sources/NextNotes/
 │   ├── DiarizationService.swift    owns the .diarizing → next transition, per meeting
 │   ├── NotesPrompts.swift          every prompt and the five headings
 │   ├── NotesGenerator.swift        single pass, or map/reduce when the transcript is long
-│   └── NotesService.swift          owns the .summarizing → .done transition
+│   ├── NotesService.swift          owns the .summarizing → .done transition
+│   ├── MeetingContext.swift        structured state: decisions, actions, candidates
+│   ├── MeetingContextExtractor.swift  transcript chunks → MeetingContext
+│   └── MeetingContextStore.swift   live context.json beside the meeting
 ├── Agent/
 │   ├── GoogleWorkspaceCLI.swift    locates `gws`, reads its auth state, runs it
 │   ├── WorkspaceTools.swift        the eleven-tool catalogue and its risk classes
@@ -273,7 +278,29 @@ Sources/NextNotes/
 │   ├── AgentPrompts.swift, AgentToolCall.swift, LLMProviderTools.swift
 │   ├── MeetingAgent.swift          plans over notes + transcript, returns proposals
 │   ├── AgentService.swift          files, announces, and executes approved proposals
-│   └── WorkspaceInstaller.swift    writes the .command scripts Terminal opens
+│   ├── WorkspaceInstaller.swift    writes the .command scripts Terminal opens
+│   ├── RealtimeAgent.swift         voice → answer, tool, or background task
+│   ├── AgentSession.swift          the conversation the Agent sidebar shows
+│   ├── Tools/                      AgentTool, registry, router, executor, catalogues
+│   ├── Permissions/                PermissionBroker above every executor
+│   ├── Tasks/                      AgentTask + manager; conversation stays free
+│   ├── Backend/                    AgentBackend, Local, ACP, harness router
+│   └── Activity/                   island activity + inspectable audit log
+├── Activation/
+│   ├── ActivationController.swift  shortcut + wake phrase → agent session
+│   ├── ShortcutActivation.swift    configurable ⇧⌘Space (not push-to-talk)
+│   ├── AgentCaptureController.swift  duplex session; VAD ends a turn, not Done
+│   └── WakeWord/                   phrase config, local keywords.txt, trainer
+├── Computer/
+│   ├── ComputerToolExecutor.swift  NSWorkspace + Accessibility, no screenshots
+│   ├── AccessibilitySnapshot.swift inspect_ui ids the click/set_text tools reuse
+│   └── BrowserToolExecutor.swift   snapshot → id → act → snapshot; stubs stay empty
+├── Shell/
+│   ├── FilesystemExecutor.swift    bounded search, read/write/trash
+│   └── ShellExecutor.swift         cancellable zsh, privileged commands refused
+├── Integrations/
+│   ├── MCP/MCPClient.swift         initialize + session id, stdio / HTTP, allowlists
+│   └── Composio/ComposioProvider.swift  optional MCP gateway; GWS stays native
 ├── UI/
 │   ├── DesignSystem.swift          every colour, size, radius, duration token
 │   ├── MainWindow.swift            NavigationSplitView shell
@@ -293,9 +320,11 @@ Sources/NextNotes/
 │   ├── Meetings/                   MeetingsView, MeetingLiveView, MeetingDetailView,
 │   │                               TranscriptView, MeetingActionsView,
 │   │                               ProposalArgumentsSheet, SpeakerNamesSheet
+│   ├── Agent/                      AgentView — conversation, tasks, audit history
 │   ├── Onboarding/                 PermissionsChecklist, OnboardingSheet
 │   └── Settings/                   SettingsWindow + one Form per tab: General, Dictation,
-│                                   Meetings, Calendar, Workspace, Models, Permissions
+│                                   Meetings, Calendar, Workspace, Agent, Integrations,
+│                                   Models, Permissions
 └── Support/
     ├── Settings.swift, LocalModelStore.swift, Permissions.swift, Log.swift
     ├── ModelDownloader.swift       one ModelSpec download path with progress + SHA-256
@@ -328,6 +357,18 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-dictation               # every way a hold can go wrong still ends at idle
 "$S" --selftest-context [bundle-id]     # harvest an editor's window: names, paths, ms,
 #                                         the grounding block, and what stopped the walk
+"$S" --selftest-tools                   # registry, native-first router, permission broker
+"$S" --selftest-wake                    # phrase spotting, authority split; loads the sherpa KWS model
+"$S" --selftest-tasks                   # submit / run / cancel without a model
+"$S" --selftest-meeting-context         # extract decisions and candidate actions
+"$S" --selftest-realtime                # context, capabilities, harness routing, duplex VAD
+"$S" --selftest-computer                # inspect/click/type on an owned window; stub trees stay empty
+"$S" --selftest-mcp                     # initialize + session + list + call against a local fixture
+"$S" --selftest-acp                     # ACP stdio session, subscribe, permission relay
+"$S" --selftest-activity                # tool runs project Inspecting… / Clicking… (no CoT)
+"$S" --selftest-fs                      # write/search/read a temp file; sudo is refused
+"$S" --selftest-browser                 # non-browser snapshot invents no elements
+"$S" --selftest-settings                # every Settings pane is listed; headings keep U+0020
 ```
 
 Each prints a single `<NAME>_OK` or `<NAME>_FAILED` line last, so they can be read by a

@@ -25,10 +25,19 @@ let package = Package(
             path: "Sources/NextNotesDictionary",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
+        // Thin C bridge around sherpa-onnx's keyword-spotter C API. The dylib is
+        // downloaded at runtime (same pattern as the wake model); this target only
+        // knows the ABI and dlopen.
+        .target(
+            name: "SherpaOnnxKWS",
+            path: "Sources/SherpaOnnxKWS",
+            publicHeadersPath: "include"
+        ),
         .executableTarget(
             name: "NextNotes",
             dependencies: [
                 "NextNotesDictionary",
+                "SherpaOnnxKWS",
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 "LlamaFramework",
             ],

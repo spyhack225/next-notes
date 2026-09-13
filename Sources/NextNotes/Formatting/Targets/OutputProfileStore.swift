@@ -115,6 +115,14 @@ final class OutputProfileStore {
         return capturedTarget
     }
 
+    /// Files a known target as if key-down had just happened.
+    ///
+    /// `captureTarget()` is the live path; this is the seam `--selftest-settings` uses
+    /// so a store that no longer keeps the target fails without needing a microphone.
+    func capture(_ target: OutputTarget) {
+        capturedTarget = target
+    }
+
     /// Forgets the captured target. Called once the text has been injected, so a stale
     /// target can never be reused by a later dictation that failed to capture.
     func clearCapturedTarget() {
@@ -414,5 +422,66 @@ final class OutputProfileStore {
         source.resume()
 
         watcher = source
+    }
+
+    /// What `--selftest-settings` asks of the store: a profile captured at key-down
+    /// still reaches the cleanup prompt, `parse(serialize)` is identity, and clearing
+    /// the target cannot leave a stale one. The unused-store bug was a Settings table
+    /// that wrote `formatting.txt` and a pipeline that never read it.
+    @MainActor
+    static func captureFailures() -> [String] {
+        var failures: [String] = []
+        let store = OutputProfileStore.shared
+
+        let original = OutputProfileDefaults.all
+        let cycled = parse(serialize(original))
+        if cycled != original {
+            failures.append("parse(serialize) is not identity")
+        }
+
+        let slackID = "com.tinyspeck.slackmacgap"
+        let target = OutputTarget(bundleID: slackID, displayName: "Slack")
+        store.capture(target)
+        if store.capturedTarget != target {
+            failures.append("capture did not keep the target")
+        }
+
+        let profile = store.capturedProfile
+        if profile.bundleID != slackID {
+            failures.append("capturedProfile is \(profile.bundleID.debugDescription), not Slack")
+        }
+
+        let rules = OutputFormatInstructions.rules(for: profile)
+        if rules.isEmpty {
+            failures.append("captured Slack profile produced no format rules")
+        }
+        if !rules.contains(where: { $0.contains("Slack") }) {
+            failures.append("format rules never name Slack")
+        }
+
+        let prompt = CleanupInstructions.system(
+            for: CleanupPreferences(tone: .balanced, formatsLists: true, context: .general),
+            fixesGrammar: true,
+            target: profile
+        )
+        for rule in rules where !prompt.contains(rule) {
+            failures.append("cleanup prompt dropped a format rule")
+            break
+        }
+
+        let live = store.captureTarget()
+        if live != store.capturedTarget {
+            failures.append("captureTarget did not store what it returned")
+        }
+
+        store.clearCapturedTarget()
+        if store.capturedTarget != nil {
+            failures.append("clearCapturedTarget left a stale target")
+        }
+        if store.capturedProfile.bundleID != "" {
+            failures.append("cleared capture still resolves a bundle identifier")
+        }
+
+        return failures
     }
 }
