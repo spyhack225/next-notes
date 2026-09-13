@@ -44,4 +44,5 @@ recent Apple silicon Macs.
 ## Links
 
 - Site: https://next-notes.com/
+- Download (macOS DMG): https://github.com/spyhack225/next-notes/releases/latest/download/NextNotes.dmg
 - Source and releases: https://github.com/spyhack225/next-notes
