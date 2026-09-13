@@ -1,15 +1,15 @@
 import AppKit
 import SwiftUI
 
-/// Settings, as a sidebar of panes and one grouped form.
+/// Settings, as a system `TabView` of grouped forms.
 ///
-/// A `TabView` of ten items in a `settingsWidth` window puts Integrations, Models and
-/// Permissions behind the system overflow chevron, and that chevron does not reliably
-/// list them. `NavigationSplitView` inside `SwiftUI.Settings` is the other failure:
-/// on macOS 26 the sidebar collapses to an unlabeled icon and the detail draws
-/// placeholder bars — which is why this is an `HStack` and a `List`, the same spine
-/// as the main window, not a split view and not a toolbar. The window is a fixed
-/// width and grows to whatever the tallest pane needs.
+/// The system draws the sidebar (`.sidebarAdaptable`). A hand-rolled `HStack` + `List`
+/// looked like the main window; `NavigationSplitView` collapsed to an unlabeled icon
+/// and placeholder bars; a toolbar `TabView` in a `settingsWidth` window put
+/// Integrations, Models and Permissions behind a chevron that did not list them.
+///
+/// The window's minimum size is sidebar plus form. Without that, macOS 26 opens
+/// Settings as a compact inspector — a Dictation-titled strip of names and no pane.
 struct SettingsWindow: View {
     @Bindable var controller: DictationController
 
@@ -18,56 +18,22 @@ struct SettingsWindow: View {
     @State private var navigation = NavigationState.shared
 
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            sidebar
-
-            Divider()
-
-            content(for: navigation.selectedSettingsTab)
-                .frame(minWidth: DS.Size.settingsWidth)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        TabView(selection: $navigation.selectedSettingsTab) {
+            ForEach(SettingsTab.allCases) { tab in
+                Tab(tab.title, systemImage: tab.systemImage, value: tab) {
+                    content(for: tab)
+                        .frame(minWidth: DS.Size.settingsWidth)
+                }
+            }
         }
-        .frame(minWidth: DS.Size.settingsWindowWidth)
-        .frame(minHeight: DS.Size.settingsMinHeight)
-        .navigationTitle(navigation.selectedSettingsTab.title)
-        .background(SettingsWindowTitle(title: navigation.selectedSettingsTab.title))
+        .tabViewStyle(.sidebarAdaptable)
+        .frame(minWidth: DS.Size.settingsWindowMinWidth)
+        .frame(minHeight: DS.Size.settingsWindowMinHeight)
+        .background(SettingsWindowFrame(minSize: SettingsTab.windowMinSize))
         .onAppear { models.refresh() }
     }
 
-    /// Every pane as a row, always. `id: \.self` so the selection type matches the tag —
-    /// ForEach's `Identifiable` id is a String, and a String-keyed list is how the first
-    /// six rows drew empty while Agent still highlighted over a Formatting form.
-    private var sidebar: some View {
-        ScrollViewReader { proxy in
-            List(selection: $navigation.selectedSettingsTab) {
-                ForEach(SettingsTab.allCases, id: \.self) { tab in
-                    Label(tab.title, systemImage: tab.systemImage)
-                        .tag(tab)
-                        .id(tab)
-                }
-            }
-            .listStyle(.sidebar)
-            .dottedField(
-                opacity: DS.Opacity.fieldFaint,
-                spacing: DS.Field.spacingTight,
-                fade: .top
-            )
-            .frame(
-                minWidth: DS.Size.settingsSidebarMin,
-                idealWidth: DS.Size.settingsSidebarIdeal,
-                maxWidth: DS.Size.settingsSidebarMax
-            )
-            .frame(maxHeight: .infinity)
-            .onAppear {
-                proxy.scrollTo(navigation.selectedSettingsTab, anchor: .center)
-            }
-            .onChange(of: navigation.selectedSettingsTab) { _, tab in
-                proxy.scrollTo(tab, anchor: .center)
-            }
-        }
-    }
-
-    /// Every pane gets the same band above it, so the rows read as one book with
+    /// Every tab gets the same band above it, so the ten of them read as one book with
     /// chapters rather than as unrelated forms that happen to share a window.
     private func content(for tab: SettingsTab) -> some View {
         SettingsPane(tab: tab) { pane(for: tab) }
@@ -90,10 +56,10 @@ struct SettingsWindow: View {
     }
 }
 
-/// The panes, in the order they appear in the sidebar.
+/// The panes, in the order they appear in the system sidebar.
 ///
 /// Adding one is a case here plus a `<Name>SettingsTab.swift` beside this file; the
-/// list is driven from `allCases`, so nothing else has to change.
+/// `TabView` is driven from `allCases`, so nothing else has to change.
 enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
     case general
     case dictation
@@ -181,12 +147,19 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// Panes the toolbar overflow hid, and panes a short HStack has clipped off the
-    /// top of the sidebar. `--selftest-settings` fails if any drop out of `allCases`.
+    /// Panes a toolbar overflow hid, and panes a compact Settings frame cropped off.
+    /// `--selftest-settings` fails if any drop out of `allCases`.
     static let requiredPanes: [SettingsTab] = [
         .general, .dictation, .formatting, .meetings, .calendar, .workspace,
         .agent, .integrations, .models, .permissions,
     ]
+
+    static var windowMinSize: NSSize {
+        NSSize(
+            width: DS.Size.settingsWindowMinWidth,
+            height: DS.Size.settingsWindowMinHeight
+        )
+    }
 
     /// What `--selftest-settings` answers: every pane is listed, Formatting is one of
     /// them, every heading still contains U+0020, letter-spacing is not collapsing
@@ -232,12 +205,11 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
             failures.append("word tracking \(DS.Font.wordTracking) is not the system default")
         }
 
-        let sidebarBudget = DS.Size.settingsMinHeight
-        let rowsHeight = CGFloat(allCases.count) * DS.Size.settingsSidebarRow
-        if rowsHeight > sidebarBudget {
+        if DS.Size.settingsWindowMinWidth < DS.Size.settingsSidebarWidth + DS.Size.settingsWidth {
             failures.append(
-                "\(allCases.count) sidebar rows need \(Int(rowsHeight))pt, "
-                    + "window is only \(Int(sidebarBudget))pt"
+                "window min width \(Int(DS.Size.settingsWindowMinWidth))pt is narrower than "
+                    + "sidebar \(Int(DS.Size.settingsSidebarWidth))pt plus form "
+                    + "\(Int(DS.Size.settingsWidth))pt"
             )
         }
 
@@ -247,16 +219,14 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
     }
 
     /// Hosts `SettingsWindow` on every pane. Fails if a body cannot be built — the
-    /// skeleton-bar window was a body that never produced the form.
+    /// skeleton-bar window was a body that never produced the form — or if the host
+    /// is only as wide as the sidebar, which is the cropped Dictation strip.
     @MainActor
     static func renderFailures(controller: DictationController) -> [String] {
         var failures: [String] = []
         let navigation = NavigationState.shared
         let previous = navigation.selectedSettingsTab
-        let size = NSSize(
-            width: DS.Size.settingsWindowWidth,
-            height: DS.Size.settingsMinHeight
-        )
+        let size = windowMinSize
 
         let panel = NSPanel(
             contentRect: NSRect(origin: .zero, size: size),
@@ -273,8 +243,11 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
             panel.contentView = hosting
             panel.layoutIfNeeded()
             hosting.layoutSubtreeIfNeeded()
-            if hosting.bounds.width < DS.Size.settingsSidebarMin {
-                failures.append("\(tab.rawValue) hosted narrower than the sidebar")
+            if hosting.bounds.width + 0.5 < DS.Size.settingsWindowMinWidth {
+                failures.append("\(tab.rawValue) hosted narrower than sidebar plus form")
+            }
+            if hosting.bounds.width + 0.5 < DS.Size.settingsWidth {
+                failures.append("\(tab.rawValue) hosted narrower than the form")
             }
             if hosting.bounds.isEmpty {
                 failures.append("\(tab.rawValue) hosted in an empty frame")

@@ -33,7 +33,7 @@ struct NextNotesApp: App {
         SwiftUI.Settings {
             SettingsWindow(controller: delegate.controller)
         }
-        .defaultSize(width: DS.Size.settingsWindowWidth, height: DS.Size.settingsMinHeight)
+        .defaultSize(width: DS.Size.settingsWindowWidth, height: DS.Size.settingsWindowMinHeight)
         .windowResizability(.contentMinSize)
 
         // Secondary now: status and the hotkey while you're working in another app.
@@ -2290,9 +2290,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// wrong is not a crash but a blank patch or a single dot in the corner — which nobody
     /// notices in a 20pt badge. This asks the four questions a screenshot would answer:
     /// are there dots, are they finite, are they inside the frame, and do they move.
-    /// `--selftest-settings` — every Settings pane is a sidebar row, and every heading
-    /// still contains U+0020. The last time this was a `TabView`, Integrations, Models and
-    /// Permissions sat behind a chevron that did not list them.
+    /// `--selftest-settings` — every Settings pane is reachable, and every heading
+    /// still contains U+0020. A toolbar `TabView` hid Integrations, Models and
+    /// Permissions behind a chevron; a compact Settings frame cropped the form off.
     private func runSettingsSelfTest() {
         Task { @MainActor in
             var failures = SettingsTab.catalogFailures()

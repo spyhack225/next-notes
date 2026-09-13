@@ -11,7 +11,7 @@ import SwiftUI
 
 /// A Settings tab: the band that says what it is for, then the form itself.
 ///
-/// The sidebar names the pane in one word; the band says which question the pane answers,
+/// The system sidebar names the pane in one word; the band says which question the pane answers,
 /// which is the thing a list row has nowhere to put. It sits *above* the form rather than
 /// inside it, so every row below is still a system-drawn `Form` row and nothing about the
 /// grouped style has to be reimplemented.
@@ -60,12 +60,13 @@ struct SettingsPane<Content: View>: View {
     }
 }
 
-/// Pushes the selected pane's name onto the Settings window.
+/// Pins the Settings window so it cannot open or be shrunk to sidebar-only.
 ///
-/// `SwiftUI.Settings` otherwise keeps "Next Notes Settings" for every pane, which is how
-/// a clipped sidebar and a Formatting form can look like they belong to Agent.
-struct SettingsWindowTitle: NSViewRepresentable {
-    let title: String
+/// `SwiftUI.Settings` on macOS 26 persists a compact inspector frame, and
+/// `frame(minWidth:)` on the view does not become `contentMinSize`. The crop
+/// that left a Dictation-titled strip of pane names is that frame.
+struct SettingsWindowFrame: NSViewRepresentable {
+    let minSize: NSSize
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
@@ -75,7 +76,15 @@ struct SettingsWindowTitle: NSViewRepresentable {
 
     func updateNSView(_ view: NSView, context: Context) {
         DispatchQueue.main.async {
-            view.window?.title = title
+            guard let window = view.window else { return }
+            window.contentMinSize = minSize
+            let content = window.contentView?.bounds.size ?? .zero
+            if content.width + 0.5 < minSize.width || content.height + 0.5 < minSize.height {
+                window.setContentSize(NSSize(
+                    width: max(content.width, minSize.width),
+                    height: max(content.height, minSize.height)
+                ))
+            }
         }
     }
 }
