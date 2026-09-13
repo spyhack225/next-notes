@@ -4,10 +4,10 @@ import Orb from "./Orb";
 /**
  * The app happening, around the headline.
  *
- * Not a screenshot and not a mockup of one. These are the four moments the app is actually
- * for — a sentence being cleaned up, a meeting being recorded, a follow-up being offered,
- * and the approved thing landing in Google — drawn in the page's own vocabulary and
- * surfacing on a slow loop so the hero is never still.
+ * Not a screenshot and not a mockup of one. These are the moments the app is actually
+ * for — a sentence being cleaned up, a question to the Mac, a meeting being recorded, a
+ * follow-up being offered, and the approved thing landing in Google — drawn in the page's
+ * own vocabulary and surfacing on a slow loop so the hero is never still.
  *
  * LAYOUT CONTRACT. Nothing here is hand-tuned to a viewport. The hero reserves a centre
  * column of `--hero-col` (index.css) for the type, and the decoration lives in lanes that
@@ -90,6 +90,31 @@ export default function HeroStage() {
           </p>
           <p className="text-sm text-foreground/90 leading-relaxed mt-2">
             So I need to send the report by Thursday.
+          </p>
+        </motion.div>
+      </div>
+
+      {/* 5 — Asking the Mac. Same gutter as dictation; it arrives after that card leaves. */}
+      <div
+        className="absolute inset-y-0 left-0 flex items-center justify-center px-4 2xl:px-8"
+        style={lane}
+      >
+        <motion.div
+          {...anim(CYCLE * 0.48)}
+          data-hero-card="agent"
+          className="w-full max-w-[300px] liquid-glass rounded-2xl p-4"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Orb state="searching" size={28} />
+            <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              Asking
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground/70 leading-relaxed">
+            What&rsquo;s on my calendar today?
+          </p>
+          <p className="text-sm text-foreground/90 leading-relaxed mt-2">
+            Cutover — Wednesday the 22nd, 10:00.
           </p>
         </motion.div>
       </div>

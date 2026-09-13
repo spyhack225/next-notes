@@ -8,7 +8,8 @@ import { fadeUp } from "../lib/motion";
  *
  * Deliberately not a feature list — that is the grid further down. Each step here is named
  * for the chore it removes, because nobody wants two-track audio capture; they want to stop
- * writing up meetings. The mechanism is the small print underneath.
+ * writing up meetings, or driving the Mac by hand. The mechanism is the small print
+ * underneath.
  */
 const STEPS: {
   n: string;
@@ -34,12 +35,19 @@ const STEPS: {
   {
     n: "03",
     orb: "searching",
+    value: "You stop driving the Mac",
+    body: "Ask what's on the calendar, what was just decided, or to click the button in front of you. Silence ends a turn; Done leaves the conversation.",
+    detail: "⇧⌘ Space, or “Hey Next”. Clicks, files and mail wait on a button.",
+  },
+  {
+    n: "04",
+    orb: "searching",
     value: "You stop chasing the admin",
     body: "The half hour after a meeting is where the work actually leaks away. The follow-ups are drafted before you have left the call.",
     detail: "It offers; you approve. Nothing is created or sent on its own.",
   },
   {
-    n: "04",
+    n: "05",
     orb: "connecting",
     value: "You stop switching tools",
     body: "It lands where the work already lives, so there is no second inbox to check and nothing to copy across in the morning.",
@@ -65,11 +73,11 @@ export default function HowItWorks() {
           {...fadeUp(0.1)}
           className="text-4xl md:text-6xl font-medium tracking-[-1.5px] text-center mt-6 leading-[1.05]"
         >
-          Four things you no longer{" "}
+          What you no longer{" "}
           <span className="font-serif italic font-normal">have to do.</span>
         </motion.h2>
 
-        <div className="mt-20 grid gap-12 md:gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-20 grid gap-12 md:gap-8 md:grid-cols-2 lg:grid-cols-3">
           {STEPS.map((s, i) => (
             <motion.div key={s.n} {...fadeUp(0.15 + i * 0.08)} className="flex flex-col">
               <div className="flex items-center gap-3 mb-6">

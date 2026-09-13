@@ -6,7 +6,7 @@ const PARAGRAPH_ONE =
   "Most of what you write in a day is short and unglamorous. Most of what you say in a meeting is worth keeping. Typing the first and transcribing the second is the part you should never have been doing.";
 
 const PARAGRAPH_TWO =
-  "Hold a key and talk. Walk into a meeting empty-handed. The machine in front of you is fast enough to do the rest.";
+  "Hold a key and talk. Walk into a meeting empty-handed. Ask the Mac the rest. The machine in front of you is fast enough.";
 
 /** The words carrying the argument stay white; everything else settles a shade back. */
 const HIGHLIGHTS = new Set(["short", "unglamorous", "worth", "keeping"]);

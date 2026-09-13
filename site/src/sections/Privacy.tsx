@@ -42,8 +42,8 @@ export default function Privacy() {
           className="text-muted-foreground text-lg max-w-2xl mx-auto mb-24 mt-7 text-center leading-relaxed"
         >
           Next Notes does the listening, the transcribing and the writing on the Mac in front
-          of you. No account, no subscription, and no bot joining your call to take notes on
-          everyone's behalf.
+          of you. Asking it something stays here too. No account, no subscription, and no bot
+          joining your call to take notes on everyone's behalf.
         </motion.p>
 
         <div className="grid md:grid-cols-3 gap-12 md:gap-8 mb-20">
