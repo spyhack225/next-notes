@@ -65,6 +65,14 @@ struct MeetingEvent: Identifiable, Sendable, Hashable {
     /// a shared id would silently apply one calendar's "never record this" to another's.
     var overrideKey: String { "\(providerID.rawValue):\(id)" }
 
+    /// Still on the clock — in progress or not yet started — and not an all-day block.
+    ///
+    /// The menu bar's "next" and the Meetings list both use this: an all-day entry is
+    /// not something to arm, and a meeting that has already ended is not next.
+    func isCurrent(at now: Date) -> Bool {
+        end > now && !isAllDay
+    }
+
     /// What dedupe matches on: the same meeting seen through two accounts has the same
     /// title and the same start minute, but rarely the same id.
     var identityKey: String {

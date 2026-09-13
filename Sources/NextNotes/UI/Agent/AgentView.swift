@@ -81,14 +81,34 @@ struct AgentView: View {
             Text(request.detail)
                 .font(DS.Font.callout)
                 .foregroundStyle(DS.Color.textSecondary)
+            if request.scope.kind != .any {
+                Text(request.scope.displayName)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+            }
             HStack(spacing: DS.Space.s) {
                 Button("Dismiss") {
                     PermissionGate.shared.respond(id: request.id, approved: false)
                 }
                 Button("Approve") {
-                    PermissionGate.shared.respond(id: request.id, approved: true)
+                    PermissionGate.shared.respond(
+                        id: request.id,
+                        approved: true,
+                        duration: .once,
+                        scope: request.scope
+                    )
                 }
                 .buttonStyle(.borderedProminent)
+                if request.scope.kind != .any {
+                    Button(request.scope.alwaysLabel) {
+                        PermissionGate.shared.respond(
+                            id: request.id,
+                            approved: true,
+                            duration: .alwaysThisAction,
+                            scope: request.scope
+                        )
+                    }
+                }
             }
         }
         .padding(DS.Space.cardTight)

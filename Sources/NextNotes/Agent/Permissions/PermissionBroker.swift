@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// Sits above every executor. MCP annotations, Composio metadata and an ACP backend's own
 /// permission prompt are not enforcement — this is.
@@ -13,10 +14,16 @@ actor PermissionBroker {
         _ tool: AgentTool,
         arguments: [String: String],
         policy: PermissionPolicy,
+        scope: PermissionScope = .any,
         meetingID: UUID? = nil,
         taskID: String? = nil
     ) -> PermissionDecision {
-        if let grant = policy.existingGrant(for: tool.id, meetingID: meetingID, taskID: taskID) {
+        if let grant = policy.existingGrant(
+            for: tool.id,
+            scope: scope,
+            meetingID: meetingID,
+            taskID: taskID
+        ) {
             Log.agent.info("permission grant \(grant.duration.rawValue, privacy: .public) for \(tool.id, privacy: .public)")
             return .allow
         }
@@ -32,6 +39,7 @@ actor PermissionBroker {
                 detail: tool.preview(for: arguments) ?? tool.description,
                 risk: tool.risk,
                 arguments: arguments,
+                scope: scope,
                 meetingID: meetingID,
                 taskID: taskID
             )
@@ -44,6 +52,7 @@ actor PermissionBroker {
 
 /// Grants that outlive one process — "always allow this action" and "for this meeting".
 @MainActor
+@Observable
 final class PermissionGrantStore {
     static let shared = PermissionGrantStore()
 
@@ -60,7 +69,11 @@ final class PermissionGrantStore {
     func add(_ grant: PermissionGrant) {
         // Once is a one-shot on the in-memory policy, not a standing answer.
         guard grant.duration != .once else { return }
-        grants.removeAll { $0.toolID == grant.toolID && $0.duration == grant.duration }
+        grants.removeAll {
+            $0.toolID == grant.toolID
+                && $0.duration == grant.duration
+                && $0.scope == grant.scope
+        }
         grants.append(grant)
         save()
     }

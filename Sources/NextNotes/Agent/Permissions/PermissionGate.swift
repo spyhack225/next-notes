@@ -35,7 +35,12 @@ final class PermissionGate {
 
     /// Returns true when this id was ours, so the island handler can stop.
     @discardableResult
-    func respond(id: String, approved: Bool) -> Bool {
+    func respond(
+        id: String,
+        approved: Bool,
+        duration: PermissionDuration = .once,
+        scope: PermissionScope? = nil
+    ) -> Bool {
         guard pending?.id == id else { return false }
         let request = pending
         pending = nil
@@ -43,7 +48,13 @@ final class PermissionGate {
         waiter = nil
         if approved, let request {
             PermissionGrantStore.shared.add(
-                PermissionGrant(toolID: request.toolID, duration: .once, meetingID: request.meetingID)
+                PermissionGrant(
+                    toolID: request.toolID,
+                    duration: duration,
+                    scope: scope ?? request.scope,
+                    meetingID: request.meetingID,
+                    taskID: request.taskID
+                )
             )
         }
         return true

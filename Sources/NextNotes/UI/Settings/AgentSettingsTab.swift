@@ -5,8 +5,8 @@ struct AgentSettingsTab: View {
     @State private var settings = Settings.shared
     @State private var models = LocalModelStore.shared
     @State private var harness = AgentHarnessRouter.shared
-    @State private var attempts: [WakeWordAttempt] = []
-    @State private var testTranscript = ""
+    @State private var calibrator = WakeWordCalibrator.shared
+    @State private var grants = PermissionGrantStore.shared
 
     var body: some View {
         Form {
@@ -15,9 +15,11 @@ struct AgentSettingsTab: View {
             wakeTest
             execution
             permissions
+            remembered
         }
         .formStyle(.grouped)
         .onAppear { models.refresh() }
+        .onDisappear { calibrator.stop() }
     }
 
     private var activation: some View {
@@ -72,39 +74,99 @@ struct AgentSettingsTab: View {
 
     private var wakeTest: some View {
         Section {
-            TextField("Say the phrase, then type what you said", text: $testTranscript)
-            Button("Score this attempt") {
-                var attempt = WakeWordTrainer.score(
-                    transcript: testTranscript,
-                    configuration: WakeWordConfiguration.current
-                )
-                attempt.index = attempts.count + 1
-                attempts.append(attempt)
-                testTranscript = ""
-            }
-            .disabled(testTranscript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            Text("Test “\(calibrator.phrase)”")
+                .font(DS.Font.headline)
 
-            ForEach(attempts, id: \.index) { attempt in
-                LabeledContent("Attempt \(attempt.index)") {
-                    Text(attempt.accepted
-                         ? String(format: "%.2f ✓", attempt.confidence)
-                         : String(format: "%.2f", attempt.confidence))
-                    .foregroundStyle(attempt.accepted ? DS.Color.success : DS.Color.textSecondary)
+            if calibrator.isRunning {
+                HStack(spacing: DS.Space.orbGap) {
+                    ThinkingOrb(state: .listening, size: DS.Size.orbSmall)
+                    VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                        Text("Listening…")
+                            .font(DS.Font.callout)
+                        Text(calibrator.prompt)
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
+                    }
+                }
+                LevelBar(level: calibrator.level, isActive: true)
+                Button("Stop") { calibrator.stop() }
+            } else {
+                Button(calibrator.phase == .finished ? "Test again" : "Start test") {
+                    calibrator.start()
+                }
+                .disabled(!settings.voiceWakeEnabled || !WakeWordModelManager.isReadyToLoad)
+            }
+
+            ForEach(calibrator.attempts, id: \.index) { attempt in
+                VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                    HStack {
+                        Text("Attempt \(attempt.index)")
+                        Spacer()
+                        Text(attempt.accepted
+                             ? String(format: "%.2f ✓", attempt.confidence)
+                             : String(format: "%.2f", attempt.confidence))
+                            .foregroundStyle(attempt.accepted ? DS.Color.success : DS.Color.textSecondary)
+                    }
+                    .font(DS.Font.callout)
+                    ProgressView(value: attempt.confidence)
                 }
             }
 
-            if WakeWordTrainer.shouldSave(attempts) {
-                Button("Use “\(WakeWordConfiguration.normalize(settings.wakePhrase))”") {
-                    try? WakeWordModelManager.writeKeywords(WakeWordConfiguration.current)
-                    attempts = []
+            if case .finished = calibrator.phase {
+                Text(calibrator.prompt)
+                    .font(DS.Font.callout)
+                    .foregroundStyle(
+                        WakeWordTrainer.shouldSave(calibrator.attempts)
+                            ? DS.Color.success
+                            : DS.Color.textSecondary
+                    )
+            }
+
+            if case .unavailable(let reason) = calibrator.phase {
+                Text(reason)
+                    .font(DS.Font.callout)
+                    .foregroundStyle(DS.Color.warning)
+            }
+
+            if WakeWordTrainer.shouldSave(calibrator.attempts) {
+                Button("Use “\(calibrator.phrase)”") {
+                    calibrator.commit()
                 }
             }
         } header: {
             Text("Test phrase")
         } footer: {
-            SettingsNote(text: WakeWordModelManager.isDownloaded
-                         ? "Keyword model is on disk."
-                         : WakeWordModelManager.unavailableReason)
+            SettingsNote(
+                text: WakeWordModelManager.isReadyToLoad
+                    ? "The same keyword detector that wakes the agent. Say the phrase — do not type it."
+                    : WakeWordModelManager.unavailableReason
+            )
+        }
+    }
+
+    private var remembered: some View {
+        Section {
+            if grants.grants.isEmpty {
+                Text("None yet")
+                    .foregroundStyle(DS.Color.textSecondary)
+            } else {
+                ForEach(grants.grants) { grant in
+                    LabeledContent(grant.toolID) {
+                        HStack(spacing: DS.Space.s) {
+                            Text(grant.scope.displayName)
+                                .foregroundStyle(DS.Color.textSecondary)
+                            Button("Revoke") {
+                                grants.revoke(id: grant.id)
+                            }
+                        }
+                    }
+                }
+            }
+        } header: {
+            Text("Remembered permissions")
+        } footer: {
+            SettingsNote(text: "A yes is scoped to an app, site, folder or project. "
+                         + "It is not a blanket allow.")
         }
     }
 

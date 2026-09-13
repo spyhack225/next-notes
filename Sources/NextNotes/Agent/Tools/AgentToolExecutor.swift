@@ -29,10 +29,12 @@ enum AgentToolExecutor {
             effective.autoObserve = true
         }
 
+        let scope = PermissionScopeResolver.inferred(tool: tool, arguments: arguments)
         let decision = await PermissionBroker.shared.authorize(
             tool,
             arguments: arguments,
             policy: effective,
+            scope: scope,
             meetingID: meetingID,
             taskID: taskID
         )
@@ -88,17 +90,19 @@ enum AgentToolExecutor {
                 autoApproveReads: false
             )
         }
+        let workspaceTool = AgentTool.workspace(proposal.definition ?? WorkspaceTool(
+            name: proposal.tool,
+            summary: proposal.rationale,
+            risk: proposal.risk,
+            parameters: [],
+            titleBuilder: { _ in proposal.tool },
+            previewBuilder: nil
+        ))
         let decision = await PermissionBroker.shared.authorize(
-            AgentTool.workspace(proposal.definition ?? WorkspaceTool(
-                name: proposal.tool,
-                summary: proposal.rationale,
-                risk: proposal.risk,
-                parameters: [],
-                titleBuilder: { _ in proposal.tool },
-                previewBuilder: nil
-            )),
+            workspaceTool,
             arguments: proposal.arguments,
             policy: policy ?? .fromSettings(),
+            scope: PermissionScopeResolver.inferred(tool: workspaceTool, arguments: proposal.arguments),
             meetingID: proposal.meetingID
         )
         switch decision {
@@ -146,7 +150,7 @@ enum AgentToolExecutor {
         case .shell:
             return try await ShellExecutor.run(tool, arguments: arguments)
         case .browser:
-            return try BrowserToolExecutor.run(tool, arguments: arguments)
+            return try await BrowserExecutor.run(tool, arguments: arguments)
         case .github, .notion, .slack, .mcp:
             throw AgentError.noIntegration(tool.id)
         }

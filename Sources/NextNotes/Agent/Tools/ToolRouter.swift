@@ -18,6 +18,11 @@ enum ToolRouter {
             return .tool(tool.id)
         }
 
+        let canonical = CanonicalToolName.resolve(raw: name, server: "").id
+        if canonical != name, let tool = registry.tool(named: canonical) {
+            return .tool(tool.id)
+        }
+
         let lowered = name.lowercased()
         if looksLikeWorkspace(lowered),
            let native = registry.tools(upTo: .privileged, namespace: .workspace)

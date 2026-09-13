@@ -51,7 +51,6 @@ final class WakeWordAudioMonitor {
         guard !isListening else { return }
         do {
             let threshold = Float(max(0.05, min(0.6, 0.45 - Settings.shared.wakeSensitivity * 0.3)))
-            spotter = try WakeWordModelManager.loadSpotter(threshold: threshold)
             guard let format = AVAudioFormat(
                 commonFormat: .pcmFormatFloat32,
                 sampleRate: 16_000,

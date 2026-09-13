@@ -137,22 +137,31 @@ final class MCPClientStore {
         for raw in listed {
             let name = raw.name
             let description = raw.description
+            let canonical = CanonicalToolName.resolve(raw: name, server: server.name)
+            let parameters = MCPInputSchema.parameters(fromJSON: raw.inputSchemaJSON)
+            let risk = MCPRiskHint.risk(name: canonical.id, annotations: raw.annotations)
             let tool = AgentTool(
-                id: "mcp.\(server.name).\(name)",
-                namespace: .mcp,
+                id: canonical.id,
+                namespace: canonical.namespace,
                 name: name,
                 description: description,
-                parameters: [],
-                risk: .send,
+                parameters: parameters,
+                risk: risk,
                 source: server.name == ComposioProvider.serverName ? .composio : .mcp,
-                executionMode: .task,
-                titleBuilder: { _ in name },
+                executionMode: risk <= .read ? .immediate : .task,
+                titleBuilder: { arguments in
+                    if let first = arguments.values.first(where: { !$0.isEmpty }) {
+                        return "\(canonical.id) \(first)"
+                    }
+                    return canonical.id
+                },
                 previewBuilder: nil
             )
             tools.append(tool)
             discovered[tool.id] = (server, tool)
             discovered[name] = (server, tool)
-            AgentToolRegistry.shared.register(tool, aliases: [name])
+            discovered["mcp.\(server.name).\(name)"] = (server, tool)
+            AgentToolRegistry.shared.register(tool, aliases: canonical.aliases)
         }
         return tools
     }

@@ -1,8 +1,8 @@
 # Next Notes
 
-Push-to-talk dictation for macOS. Hold a key, talk, release — cleaned-up text lands in the
-app you were already in. Meetings record themselves. ⇧⌘ Space talks to the Mac. A Wispr
-Flow-shaped app, built native and fully on-device.
+Talk to your Mac. Hold a key, talk, release — cleaned-up text lands in the app you were
+already in. Meetings record themselves. ⇧⌘ Space asks the same machine to click, search
+or follow through. A Wispr Flow-shaped app, built native and fully on-device.
 
 ![Next Notes turning a spoken false start into a finished sentence](site/public/demo-dictation.gif)
 
@@ -482,24 +482,52 @@ from a canned list and does not wait on a model. Open-ended chat needs Apple Int
 or Qwen in Settings ▸ Models.
 
 The same local LLM that writes notes can answer from meeting context and the calendar
-without a tool call. A longer job is handed to a background task. Settings ▸ Agent picks
-the default harness (local tools, or an ACP coding CLI: Claude Code, Codex, Qwen Code,
-OpenCode). Naming one in the utterance wins for that turn. Calendar, mail, Drive, Docs,
-click and type stay on this Mac unless you name a coding agent. A live CLI has to be on
-`PATH`; `--selftest-acp` speaks the session protocol to a local fixture.
+without a tool call. A longer job is handed to a background task. A task that is still
+queued or running when Next Notes quits is marked failed — the list survives as history,
+the work does not resume. Settings ▸ Agent picks the default harness (local tools, or an
+ACP coding CLI: Claude Code, Codex, Qwen Code, OpenCode). Naming one in the utterance
+wins for that turn. Calendar, mail, Drive, Docs, click and type stay on this Mac unless
+you name a coding agent. A live CLI has to be on `PATH`; `--selftest-acp` speaks the
+session protocol to a local fixture.
 
 **Computer, files, shell.** `inspect_ui` reads the frontmost window over Accessibility and
 returns ids. `click`, `type` and `set_text` reuse those ids — no screenshots. Inspecting is
 automatic; clicks and typing raise an **Approve** card unless Settings ▸ Agent ▸ *Click and
-type without asking* is on. Accessibility is required. Files are a bounded search, read,
-write, trash and reveal. The shell is a cancellable `zsh` with `sudo`, `su`, `osascript`
-and the rest of a short denylist refused. Sending, deleting and privileged commands always
-ask. There is no switch that allows everything.
+type without asking* is on, and a yes can be scoped to the current app. Accessibility is
+required. Files are a bounded search, read, write, trash and reveal. The shell is a
+cancellable `zsh` with `sudo`, `su`, `osascript` and the rest of a short denylist refused.
+Sending, deleting and privileged commands always ask. There is no switch that allows
+everything.
+
+**Browser.** Chrome, Edge and Brave use the local DevTools protocol when the browser was
+launched with `--remote-debugging-port`. Accessibility is the fallback, including Safari.
+This is not cloud computer vision.
 
 **Integrations.** MCP servers (stdio or HTTP) are added in Settings ▸ Integrations and
-pass the same permission broker. Composio is an optional gateway for the rest of its
-catalogue and needs an API key; without one it does nothing. A native `gws` tool wins when
-one exists.
+pass the same permission broker. Discovered tools keep their input schema and a risk
+hint from annotations and the tool name; the broker still decides. Composio is an optional
+gateway for the rest of its catalogue and needs an API key; without one it does nothing.
+A native `gws` tool wins when one exists. The model sees canonical names
+(`github.create_issue`) rather than `mcp.Composio.GITHUB_CREATE_ISSUE`.
+
+The implementation exists. Daily-driver validation is still catching up:
+
+| Capability | Implemented | Fixture-tested | Real-world tested |
+|---|---|---|---|
+| Realtime voice | ✓ | ✓ | TBD |
+| Multi-round tool loop | ✓ | ✓ | TBD |
+| Wake phrase | ✓ | ✓ | TBD |
+| Computer AX | ✓ | ✓ | TBD |
+| Shell | ✓ | ✓ | TBD |
+| Filesystem | ✓ | ✓ | TBD |
+| MCP stdio | ✓ | ✓ | TBD |
+| MCP HTTP | ✓ | ✓ | TBD |
+| MCP schema → parameters | ✓ | ✓ | TBD |
+| ACP Claude | ✓ | ✓ | TBD |
+| ACP Codex | ✓ | ✓ | TBD |
+| Browser AX fallback | ✓ | ✓ | TBD |
+| Browser CDP | ✓ | ✓ | TBD |
+| Composio | ✓ | TBD | TBD |
 
 ### Workspace
 
@@ -776,10 +804,12 @@ events) and confirmed via `/usr/bin/log show --predicate 'subsystem ==
 - The auto-record rules over invented events, and the agent's tool catalogue, parser and
   risk gate (`--selftest-calendar`, `--selftest-agent`) — both need no account.
 - The conversational agent: canned “what can you do”, duplex VAD, harness routing,
-  wake-phrase spotting, inspect/click/type on an owned window, filesystem search/read,
-  sudo refused, MCP and ACP handshakes against local fixtures
+  the inspect→click tool loop, wake-phrase spotting (including live-audio scoring
+  rules), inspect/click/type on an owned window, filesystem search/read, sudo refused,
+  MCP schema/risk mapping and ACP handshakes against local fixtures, CDP discovery
+  against a local `/json/list` fixture
   (`--selftest-realtime`, `--selftest-wake`, `--selftest-computer`, `--selftest-fs`,
-  `--selftest-mcp`, `--selftest-acp`, `--selftest-settings`).
+  `--selftest-mcp`, `--selftest-acp`, `--selftest-browser`, `--selftest-settings`).
 
 **Nobody has looked at the redesigned UI or the island on screen.** The self-tests prove
 geometry and behaviour, not appearance: hover-to-expand, the growth out of the notch, the
