@@ -13,4 +13,5 @@ enum Log {
     static let llm = Logger(subsystem: AppIdentity.bundleIdentifier, category: "llm")
     static let island = Logger(subsystem: AppIdentity.bundleIdentifier, category: "island")
     static let agent = Logger(subsystem: AppIdentity.bundleIdentifier, category: "agent")
+    static let metrics = Logger(subsystem: AppIdentity.bundleIdentifier, category: "metrics")
 }

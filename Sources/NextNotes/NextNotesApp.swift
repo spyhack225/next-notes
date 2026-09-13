@@ -362,6 +362,102 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runSettingsSelfTest()
             return true
         }
+        if arguments.contains("--selftest-metrics") {
+            _ = LatencyTrace.runSelfTest()
+            NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-cleanup-router") {
+            Task { @MainActor in
+                _ = await CleanupRouter.runSelfTest()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-live") {
+            _ = MeetingLiveAgent.runSelfTest()
+            NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-tts") {
+            _ = AgentSpeechPolicy.runSelfTest()
+            NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-tts-stream") {
+            _ = AgentSpeechPolicy.runStreamSelfTest()
+            NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-toolloop") {
+            Task { @MainActor in
+                await AgentToolLoop.runSelfTest()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-acp-confirm") {
+            ACPConfirmation.runSelfTest()
+            NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-scheduler") {
+            Task { @MainActor in
+                await ComputeScheduler.runSelfTest()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-capture") {
+            Task { @MainActor in
+                await AudioCaptureHub.runSelfTest()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-reconcile") {
+            _ = MeetingActionReconciler.runSelfTest()
+            NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-meeting-reconcile-llm") {
+            _ = MeetingContextReconciler.runSelfTest()
+            NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-stream") {
+            _ = StreamingASR.runSelfTest()
+            NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-transcript-bus") {
+            Task { @MainActor in
+                _ = await TranscriptBus.runSelfTest()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-duplex") {
+            Task { @MainActor in
+                await RealtimeAudioSession.runSelfTest()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-contention") {
+            Task { @MainActor in
+                await ContentionSelfTests.runSelfTest()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-residency") {
+            Task { @MainActor in
+                await ModelResidencyPolicy.runSelfTest()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-parakeet") {
             Task { @MainActor in
                 do {

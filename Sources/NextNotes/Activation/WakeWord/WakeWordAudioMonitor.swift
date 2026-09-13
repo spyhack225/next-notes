@@ -4,9 +4,9 @@ import Observation
 
 /// Keeps the microphone open while Next Notes is sleeping and runs the local KWS model.
 ///
-/// Yields the mic the moment dictation, a meeting or agent capture needs it — two
-/// `AVAudioEngine`s on the input node fight. Detection is microphone-only; system audio
-/// never reaches this path.
+/// Audio arrives through `AudioCaptureHub` as `.wake`, so a meeting or dictation
+/// can share the same input engine without stopping KWS. Detection is microphone-only;
+/// system audio never reaches this path.
 @MainActor
 @Observable
 final class WakeWordAudioMonitor {
@@ -14,31 +14,27 @@ final class WakeWordAudioMonitor {
 
     private(set) var isListening = false
     private(set) var lastError: String?
+    /// Legacy latch. Always zero: mic exclusivity lives on `AudioCaptureHub`, and
+    /// `beginHold()` no longer stops wake (meetings need KWS alive).
+    private(set) var holders = 0
 
-    private let capture = AudioCapture()
     private var spotter: SherpaKeywordSpotter?
-    private var holders = 0
     private var lastFire: Date?
 
     private init() {}
 
-    /// Someone else needs the microphone. Wake listening stops until `endHold()`.
-    func beginHold() {
-        holders += 1
-        stopCapture()
-    }
+    /// Someone else used to need the microphone exclusively. No-op: consumers
+    /// share `AudioCaptureHub`, and stopping wake here is what made meetings
+    /// kill "Hey Next".
+    func beginHold() {}
 
-    func endHold() {
-        holders = max(0, holders - 1)
-        sync()
-    }
+    func endHold() {}
 
     func sync() {
         let settings = Settings.shared
         let shouldListen = settings.voiceWakeEnabled
             && settings.listenWhileSleeping
             && WakeWordModelManager.isReadyToLoad
-            && holders == 0
             && ActivationController.shared.mode == .idle
         if shouldListen {
             startIfNeeded()
@@ -61,7 +57,7 @@ final class WakeWordAudioMonitor {
             }
             let loaded = try WakeWordModelManager.loadSpotter(threshold: threshold)
             spotter = loaded
-            try capture.start(outputFormat: format, onBuffer: { chunk in
+            try AudioCaptureHub.shared.subscribe(.wake, outputFormat: format, onBuffer: { chunk in
                 let samples = AudioConversion.samples(of: chunk.buffer)
                 guard !samples.isEmpty, let keyword = loaded.accept(samples: samples) else { return }
                 Task { @MainActor in
@@ -74,6 +70,7 @@ final class WakeWordAudioMonitor {
         } catch {
             lastError = error.localizedDescription
             spotter = nil
+            AudioCaptureHub.shared.unsubscribe(.wake)
             Log.agent.error("wake audio: \(error.localizedDescription, privacy: .public)")
         }
     }
@@ -83,7 +80,7 @@ final class WakeWordAudioMonitor {
             spotter = nil
             return
         }
-        capture.stop()
+        AudioCaptureHub.shared.unsubscribe(.wake)
         spotter = nil
         isListening = false
     }
@@ -92,6 +89,7 @@ final class WakeWordAudioMonitor {
         if let lastFire, Date().timeIntervalSince(lastFire) < 1.5 { return }
         lastFire = Date()
         Log.agent.info("wake audio · spotted \(keyword, privacy: .public)")
+        // ACK before ASR/LLM: beginAgent paints the listening island immediately.
         ActivationController.shared.beginAgent(source: "wake-audio")
     }
 }

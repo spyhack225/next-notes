@@ -408,6 +408,22 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-fs                      # write/search/read a temp file; sudo is refused
 "$S" --selftest-browser                 # non-browser snapshot invents no elements
 "$S" --selftest-settings                # every Settings pane is listed; headings keep U+0020
+"$S" --selftest-metrics                 # persist a fake span; fail if it is missing
+"$S" --selftest-cleanup-router          # short + clean stays off the model seam
+"$S" --selftest-meeting-live            # cadence, cards, and the authority split
+"$S" --selftest-tts                     # speech policy plus synthesizer interrupt
+"$S" --selftest-tts-stream              # clause-stream policy plus synthesizer stream queue
+"$S" --selftest-toolloop                # inspect → click must make both calls
+"$S" --selftest-acp-confirm             # a missing CLI asks before local tools
+"$S" --selftest-scheduler               # background yields when realtime ASR is queued
+"$S" --selftest-capture                 # one mic engine serves wake + meeting + dictation
+"$S" --selftest-meeting-reconcile       # live cards merge with review; discussion is not an action
+"$S" --selftest-meeting-reconcile-llm   # cadence, merge, and the authority split for LLM reconcile
+"$S" --selftest-stream                  # provisional ASR windows + partials-while-held
+"$S" --selftest-transcript-bus          # provisional → final replace on the transcript bus
+"$S" --selftest-duplex                  # barge-in, single mic engine, speaking state
+"$S" --selftest-contention              # hub share, scheduler yield, barge-in, ACP confirm
+"$S" --selftest-residency               # pressure unload order; background yields to realtime ASR
 ```
 
 Each prints a single `<NAME>_OK` or `<NAME>_FAILED` line last, so they can be read by a

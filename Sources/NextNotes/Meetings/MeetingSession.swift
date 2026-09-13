@@ -14,6 +14,11 @@ final class MeetingSession {
     private(set) var meeting: Meeting
     /// Both tracks merged and ordered by when they were spoken.
     private(set) var segments: [TranscriptSegment] = []
+    /// Latest provisional window text per track, for the live pane before finals land.
+    private(set) var provisionalText: [AudioSource: String] = [:]
+    /// `TranscriptEvent.provisionalID` still open per track — attached to the next final
+    /// so `TranscriptBus` can close the provisional.
+    private var openProvisionalIDs: [AudioSource: UUID] = [:]
     private(set) var micLevel: Float = 0
     private(set) var systemLevel: Float = 0
     private(set) var elapsed: TimeInterval = 0
@@ -29,7 +34,6 @@ final class MeetingSession {
     private(set) var systemAudioProblem: String?
 
     private let store: MeetingStore
-    private let micCapture = AudioCapture()
     private let systemCapture = SystemAudioCapture()
 
     private var micTranscriber: ChunkedTranscriber?
@@ -98,12 +102,27 @@ final class MeetingSession {
             }
         }
 
-        micTranscriber = ChunkedTranscriber(source: .mic) { [weak self] segment in
-            await self?.add(segment)
-        }
-        systemTranscriber = ChunkedTranscriber(source: .system) { [weak self] segment in
-            await self?.add(segment)
-        }
+        let meetingID = meeting.id
+        micTranscriber = ChunkedTranscriber(
+            source: .mic,
+            meetingID: meetingID,
+            onProvisional: { [weak self] event in
+                await self?.setProvisional(event)
+            },
+            onSegment: { [weak self] segment in
+                await self?.add(segment)
+            }
+        )
+        systemTranscriber = ChunkedTranscriber(
+            source: .system,
+            meetingID: meetingID,
+            onProvisional: { [weak self] event in
+                await self?.setProvisional(event)
+            },
+            onSegment: { [weak self] segment in
+                await self?.add(segment)
+            }
+        )
 
         // Ordered drains, for the same reason `DictationController` uses one: a task per
         // buffer has no ordering guarantee, and out-of-order audio transcribes as word salad.
@@ -129,14 +148,16 @@ final class MeetingSession {
         }
 
         do {
-            try micCapture.start(
+            // Mic via the shared hub so wake KWS stays subscribed. System audio
+            // stays on `SystemAudioCapture` — two tracks, two owners.
+            try AudioCaptureHub.shared.subscribe(
+                .meeting,
                 outputFormat: format,
                 onBuffer: { chunk in micContinuation.yield(AudioConversion.samples(of: chunk.buffer)) },
                 onLevel: { [weak self] level in
                     Task { @MainActor in self?.micLevel = level }
                 }
             )
-            WakeWordAudioMonitor.shared.beginHold()
         } catch {
             await abort(reason: error.localizedDescription)
             throw error
@@ -194,9 +215,8 @@ final class MeetingSession {
         guard !isStopping, meeting.status == .recording else { return }
         isStopping = true
 
-        micCapture.stop()
+        AudioCaptureHub.shared.unsubscribe(.meeting)
         systemCapture.stop()
-        WakeWordAudioMonitor.shared.endHold()
         clock?.cancel()
         clock = nil
         micLevel = 0
@@ -243,9 +263,8 @@ final class MeetingSession {
     func endAbruptly() {
         guard meeting.status == .recording else { return }
 
-        micCapture.stop()
+        AudioCaptureHub.shared.unsubscribe(.meeting)
         systemCapture.stop()
-        WakeWordAudioMonitor.shared.endHold()
         clock?.cancel()
         clock = nil
         micContinuation?.finish()
@@ -263,6 +282,23 @@ final class MeetingSession {
 
     // MARK: - Internals
 
+    /// Provisional window text for the live UI / `TranscriptBus`. Cleared when a final
+    /// segment from the same track arrives.
+    private func setProvisional(_ event: TranscriptEvent) {
+        provisionalText[event.source] = event.text
+        if let id = event.provisionalID {
+            openProvisionalIDs[event.source] = id
+        }
+        // Speech end (window `end` on the recording clock) → visible provisional.
+        let lag = max(0, Date().timeIntervalSince(startedAt) - event.end)
+        LatencyTrace.record(
+            .meetingSpeechToPartial,
+            seconds: lag,
+            note: event.source.rawValue
+        )
+        Task { await TranscriptBus.shared.publish(event) }
+    }
+
     /// Segments arrive from two transcribers, so they are inserted by time rather than
     /// appended: the system track can finish a window that started before one the mic track
     /// has already delivered.
@@ -271,17 +307,59 @@ final class MeetingSession {
         let incoming = ActivationController.shared.handleWake(in: segment)
         let index = segments.firstIndex { $0.start > incoming.start } ?? segments.endIndex
         segments.insert(incoming, at: index)
+        provisionalText[incoming.source] = nil
+        let provisionalID = openProvisionalIDs.removeValue(forKey: incoming.source)
+
+        let speechLag = max(0, Date().timeIntervalSince(startedAt) - incoming.end)
+        LatencyTrace.record(
+            .meetingSpeechToFinal,
+            seconds: speechLag,
+            note: incoming.source.rawValue
+        )
+
+        let candidatesBefore = MeetingContextStore.shared.current?.candidateActions.count ?? 0
+        let contextTrace = LatencyTrace.start(.meetingTranscriptToContext)
         MeetingContextStore.shared.ingest(segments, meeting: meeting)
+        contextTrace.end(note: incoming.source.rawValue)
+        let candidatesAfter = MeetingContextStore.shared.current?.candidateActions.count ?? 0
+        if candidatesAfter > candidatesBefore {
+            // Phrase → candidate, then candidate → card feed (Observation / live pane).
+            // The card view lives elsewhere; the store update is the hand-off this session owns.
+            let phraseLag = max(0, Date().timeIntervalSince(startedAt) - incoming.end)
+            LatencyTrace.record(
+                .meetingActionPhraseToCandidate,
+                seconds: phraseLag,
+                note: incoming.source.rawValue
+            )
+            LatencyTrace.record(
+                .meetingCandidateToCard,
+                seconds: 0,
+                note: "context-store"
+            )
+        }
+
         // Written on every segment rather than once at the end: a two-hour meeting that
         // loses everything because the app was force-quit at minute 118 is the failure
         // this feature can least afford, and the file is a few kilobytes.
         store.saveTranscript(segments, for: meeting.id)
+        Task {
+            await TranscriptBus.shared.publish(
+                TranscriptEvent(
+                    meetingID: meeting.id,
+                    source: incoming.source,
+                    text: incoming.text,
+                    start: incoming.start,
+                    end: incoming.end,
+                    isFinal: true,
+                    provisionalID: provisionalID
+                )
+            )
+        }
     }
 
     private func abort(reason: String) async {
-        micCapture.stop()
+        AudioCaptureHub.shared.unsubscribe(.meeting)
         systemCapture.stop()
-        WakeWordAudioMonitor.shared.endHold()
         clock?.cancel()
         clock = nil
         micContinuation?.finish()

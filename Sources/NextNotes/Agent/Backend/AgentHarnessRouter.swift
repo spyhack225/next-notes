@@ -54,12 +54,15 @@ struct AgentHarnessChoice: Equatable, Sendable {
     var id: AgentHarnessID
     var source: AgentHarnessSource
     var available: Bool
-    var fallbackToLocal: Bool
+    /// Kept so existing memberwise inits still compile. The router never sets this
+    /// — a missing CLI is `needsACPConfirmation`, not a silent local run.
+    var fallbackToLocal: Bool = false
+    var needsACPConfirmation: Bool = false
     var note: String
 
-    var backend: AgentBackendKind { fallbackToLocal ? .local : id.backend }
-    var acpCLI: String { fallbackToLocal ? "" : id.acpCLI }
-    var usingLine: String { fallbackToLocal ? AgentHarnessID.local.usingLine : id.usingLine }
+    var backend: AgentBackendKind { id.backend }
+    var acpCLI: String { id.acpCLI }
+    var usingLine: String { id.usingLine }
 }
 
 struct AgentHarnessMemory: Codable, Sendable, Equatable {
@@ -80,6 +83,9 @@ final class AgentHarnessRouter {
     private var entries: [AgentHarnessMemory] = []
     private var lastCodingID: AgentHarnessID?
     private var persistEnabled = true
+    /// Self-tests inject a PATH answer so a missing CLI can be simulated on a
+    /// machine that already has one installed.
+    var availabilityProbe: ((String) -> Bool)?
 
     private static var fileURL: URL {
         AppIdentity.applicationSupportDirectory.appendingPathComponent("agent-harness-history.json")
@@ -115,6 +121,9 @@ final class AgentHarnessRouter {
         if choice.id != .local {
             record(choice, snippet: text, intent: intent == .stayLocal ? .coding : intent)
         }
+        if choice.needsACPConfirmation {
+            ACPConfirmationGate.shared.offer(choice, utterance: text)
+        }
         return choice
     }
 
@@ -139,10 +148,13 @@ final class AgentHarnessRouter {
         entries = []
         lastChoice = nil
         lastCodingID = nil
+        availabilityProbe = nil
+        ACPConfirmationGate.shared.resetForTesting()
     }
 
     func restorePersistence() {
         persistEnabled = true
+        availabilityProbe = nil
         entries = Self.load()
     }
 
@@ -192,15 +204,16 @@ final class AgentHarnessRouter {
             lastChoice = choice
             return choice
         }
-        let available = ACPAgentBackend.isOnPATH(id.acpCLI)
+        let available = availabilityProbe?(id.acpCLI) ?? ACPAgentBackend.isOnPATH(id.acpCLI)
         let note = available
             ? ""
-            : "\(id.displayName) isn’t installed, so I used local tools. Install it or pick another coding agent in Settings ▸ Agent."
+            : "\(id.displayName) isn’t installed. Run once with local tools, or cancel."
         let choice = AgentHarnessChoice(
             id: id,
             source: source,
             available: available,
-            fallbackToLocal: !available,
+            fallbackToLocal: false,
+            needsACPConfirmation: !available,
             note: note
         )
         lastChoice = choice
@@ -237,7 +250,7 @@ final class AgentHarnessRouter {
         return entries
     }
 
-    private static let stayLocalMarks = [
+    static let stayLocalMarks = [
         "calendar", "agenda", "what’s on", "whats on",
         "gmail", "inbox", "email", "mail",
         "google drive", "drive file", "google docs", "google doc",

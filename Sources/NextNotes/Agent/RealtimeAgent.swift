@@ -52,21 +52,64 @@ final class RealtimeAgent {
 
         generation += 1
         let mine = generation
-        AgentSession.shared.recordUser(text)
         Log.agent.info("realtime · heard \(text, privacy: .public)")
+        // Utterance arrives already transcribed; clock transcript → first reply text.
+        let replyTrace = LatencyTrace.start(.agentTranscriptToFirstToken)
 
         let choice = AgentHarnessRouter.shared.choose(for: text)
+        switch await waitForACPConfirmation(choice, utterance: text, source: source) {
+        case .continueHandle:
+            break
+        case .cancelled:
+            guard isCurrent(mine) else {
+                replyTrace.end(note: "superseded")
+                return AgentTurn(reply: lastReply, delegated: false)
+            }
+            AgentSession.shared.recordUser(text)
+            replyTrace.end(note: "acp-cancel")
+            return conclude(mine, "Cancelled.", route: "acp-cancel")
+        case .finished(let turn):
+            // `runWithLocalToolsOnce` already wrote the session + island card.
+            // Voice still needs lastReply, capture note and TTS — without a
+            // second `recordAssistant` from `finish`.
+            guard isCurrent(mine) else {
+                replyTrace.end(note: "superseded")
+                return AgentTurn(reply: lastReply, delegated: false)
+            }
+            replyTrace.end(note: "acp-once")
+            lastReply = turn.reply
+            isThinking = false
+            progressTitle = ""
+            Log.agent.info("realtime · acp-once")
+            AgentAuditLog.shared.record(kind: .reply, title: turn.reply)
+            AgentCaptureController.shared.noteAssistantReply(turn.reply)
+            if AgentCaptureController.shared.isSessionActive {
+                let tts = LatencyTrace.start(.agentFirstTokenToFirstTTS)
+                // No live token stream on this path — feed through the buffer seam.
+                RealtimeAudioSession.shared.speak(turn.reply)
+                tts.end(note: "acp-once")
+                ActivationController.shared.markListening()
+                IslandState.shared.showAgentListening(transcript: "", level: 0)
+            }
+            return turn
+        }
+
+        AgentSession.shared.recordUser(text)
         let intent = AgentTurnIntent.resolve(text, choice: choice)
 
         switch intent {
         case .capabilities:
+            replyTrace.end(note: "capabilities")
             return conclude(mine, Self.capabilitiesReply(for: text) ?? Self.unknownReply, route: "capabilities")
         case .reply(let answer):
+            replyTrace.end(note: "context")
             return conclude(mine, answer, route: "context")
         case .unknown:
+            replyTrace.end(note: "unknown")
             return conclude(mine, Self.unknownReply, route: "unknown")
         case .delegate:
             applyHarness(choice)
+            replyTrace.end(note: "task")
             return conclude(
                 mine,
                 delegate(text, source: source, choice: choice),
@@ -75,16 +118,22 @@ final class RealtimeAgent {
             )
         case .calendar, .mail, .files, .drive, .computer:
             beginWork(title: intent.progressTitle)
+            let toolTrace = LatencyTrace.start(.agentToolCallToResult)
             let boxed = await withBoundedWait(Limits.tool) {
                 await RealtimeAgent.shared.perform(intent)
             }
+            toolTrace.end(note: boxed == nil ? "timeout" : intent.progressTitle)
             if !isCurrent(mine) {
+                // Superseded — do not leave an open transcript→token span.
+                replyTrace.end(note: "superseded")
                 return AgentTurn(reply: lastReply, delegated: false)
             }
             if let reply = boxed {
+                replyTrace.end(note: "tool")
                 return conclude(mine, reply, route: "tool")
             }
             Log.agent.error("realtime · tool timed out")
+            replyTrace.end(note: "timeout")
             return conclude(
                 mine,
                 "That took too long, so I stopped waiting. Ask again, or ask “what can you do”.",
@@ -104,8 +153,13 @@ final class RealtimeAgent {
 
     /// Barge-in: drop the in-flight tool so the new speech can become the next turn.
     /// Always leaves a line — silent interrupt is how three user messages stacked
-    /// with no reply.
+    /// with no reply. TTS stops even when nothing is thinking, so a spoken reply
+    /// can be cut off the moment the user starts talking.
     func interrupt() {
+        RealtimeAudioSession.shared.noteUserSpeech()
+        if let seconds = RealtimeAudioSession.shared.lastBargeInStopSeconds {
+            LatencyTrace.record(.agentBargeInToTTSStopped, seconds: seconds)
+        }
         guard isThinking else { return }
         generation += 1
         PermissionGate.shared.cancelPending()
@@ -201,106 +255,22 @@ final class RealtimeAgent {
         AgentAuditLog.shared.record(kind: .reply, title: reply)
         AgentCaptureController.shared.noteAssistantReply(reply)
         if AgentCaptureController.shared.isSessionActive {
+            // Speak-replies is on for the open session only. Wave 2 can make this
+            // a Settings toggle. The agent loop does not wait for the utterance.
+            //
+            // No Foundation Models / local token stream on this path today —
+            // producers must call `appendSpokenReply` as chunks arrive when one
+            // exists. `speak` feeds the finished string through
+            // begin → append → finalize so clause TTS is ready for a stream.
+            let tts = LatencyTrace.start(.agentFirstTokenToFirstTTS)
+            RealtimeAudioSession.shared.speak(reply)
+            tts.end()
             ActivationController.shared.markListening()
             IslandState.shared.showAgentListening(transcript: "", level: 0)
         } else {
             IslandState.shared.showAgentReply(reply)
             ActivationController.shared.finishAgent()
         }
-    }
-
-    private func perform(_ intent: AgentTurnIntent) async -> String {
-        switch intent {
-        case .calendar(let date):
-            return await runTool(
-                "get_agenda",
-                arguments: ["date": date],
-                progress: intent.progressTitle
-            )
-        case .mail(let query):
-            return await runTool(
-                "search_email",
-                arguments: ["query": query],
-                progress: intent.progressTitle
-            )
-        case .files(let query):
-            return await runTool(
-                "filesystem.search",
-                arguments: ["query": query],
-                progress: intent.progressTitle
-            )
-        case .drive(let query):
-            return await runTool(
-                "find_drive_files",
-                arguments: ["query": query],
-                progress: intent.progressTitle
-            )
-        case .computer(let computer):
-            return await performComputer(computer) ?? "I couldn’t do that."
-        case .capabilities, .reply, .delegate, .unknown:
-            return Self.unknownReply
-        }
-    }
-
-    /// A failed read is still an answer. Returning `nil` used to fall through to a
-    /// model that never named the tool.
-    private func runTool(
-        _ name: String,
-        arguments: [String: String],
-        progress: String
-    ) async -> String {
-        progressTitle = progress
-        IslandState.shared.showAgentWork(title: progress)
-        do {
-            let result = try await AgentToolExecutor.run(
-                name,
-                arguments: arguments,
-                policy: .fromSettings(),
-                autoApproveReads: true
-            )
-            return result.summary
-        } catch {
-            return error.localizedDescription
-        }
-    }
-
-    private func performComputer(_ intent: ComputerIntent) async -> String? {
-        if !Permissions.hasAccessibility {
-            _ = Permissions.promptForAccessibility()
-        }
-        do {
-            switch intent {
-            case .activeApp:
-                return try await runComputer("computer.active_app", arguments: [:])
-            case .inspect:
-                return try await runComputer("computer.inspect_ui", arguments: [:])
-            case .open(let name):
-                return try await runComputer("computer.open_app", arguments: ["name": name])
-            case .click(let query):
-                _ = try await runComputer("computer.inspect_ui", arguments: [:])
-                if let id = AccessibilitySnapshot.id(matching: query) {
-                    return try await runComputer("computer.click", arguments: ["id": id])
-                }
-                return "I couldn’t find “\(query)” in the focused window. Try inspect first."
-            case .type(let text):
-                return try await runComputer("computer.type", arguments: ["text": text])
-            case .press(let key):
-                return try await runComputer("computer.press_key", arguments: ["key": key])
-            }
-        } catch {
-            return error.localizedDescription
-        }
-    }
-
-    private func runComputer(_ name: String, arguments: [String: String]) async throws -> String {
-        let result = try await AgentToolExecutor.run(
-            name,
-            arguments: arguments,
-            policy: .fromSettings(),
-            autoApproveReads: true,
-            promptIfNeeded: true
-        )
-        return result.summary
     }
 }
 

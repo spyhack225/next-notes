@@ -41,7 +41,6 @@ final class AgentCaptureController {
     /// What closed the last turn. `--selftest-realtime` fails unless a reply came from `vad`.
     private(set) var lastEndpoint: EndpointSource = .none
 
-    private let capture = AudioCapture()
     private var engine: (any TranscriptionEngine)?
     private var consumeTask: Task<Void, Never>?
     private var vadTask: Task<Void, Never>?
@@ -60,11 +59,11 @@ final class AgentCaptureController {
         if isSessionActive { return }
         self.captureAudio = captureAudio
         isSessionActive = true
+        RealtimeAudioSession.shared.begin()
         ActivationController.shared.markListening()
         lastEndpoint = .none
         lastReply = ""
         resetTurn()
-        WakeWordAudioMonitor.shared.beginHold()
         IslandState.shared.showAgentListening(transcript: "", level: 0)
 
         if captureAudio {
@@ -89,9 +88,9 @@ final class AgentCaptureController {
         guard isSessionActive else { return }
         isSessionActive = false
         lastEndpoint = source
+        RealtimeAudioSession.shared.end()
         stopVAD()
         await stopEngine()
-        WakeWordAudioMonitor.shared.endHold()
         let leftover = pendingTurn()
         if source == .done, leftover.count >= Limits.minCharacters {
             await emitTurn(leftover, source: .done, continueSession: false)
@@ -113,6 +112,7 @@ final class AgentCaptureController {
 
     /// Self-test / wake remainder: speech then silence, no Done.
     func simulateSpeech(_ text: String, level: Float = 0.3) {
+        RealtimeAudioSession.shared.noteUserSpeech()
         self.level = level
         heardSpeech = true
         if speechBeganAt == nil { speechBeganAt = Date().addingTimeInterval(-Limits.minSpeech - 0.05) }
@@ -156,7 +156,7 @@ final class AgentCaptureController {
                 Log.agent.error("agent capture: \(error.localizedDescription, privacy: .public)")
             }
         }
-        try capture.start(outputFormat: format, onBuffer: { chunk in
+        try AudioCaptureHub.shared.subscribe(.agent, outputFormat: format, onBuffer: { chunk in
             Task { await engine.feed(chunk) }
         }, onLevel: { level in
             Task { @MainActor in
@@ -166,7 +166,7 @@ final class AgentCaptureController {
     }
 
     private func stopEngine() async {
-        capture.stop()
+        AudioCaptureHub.shared.unsubscribe(.agent)
         let finishing = engine
         engine = nil
         consumeTask?.cancel()
@@ -197,6 +197,9 @@ final class AgentCaptureController {
         self.level = level
         guard isSessionActive else { return }
         if level >= Limits.speechLevel {
+            // Duplex barge-in: stop TTS on the shared session first (<100 ms),
+            // then cancel an in-flight tool if one is running.
+            RealtimeAudioSession.shared.noteUserSpeech()
             if ActivationController.shared.mode == .agentWorking {
                 RealtimeAgent.shared.interrupt()
             }
@@ -223,10 +226,10 @@ final class AgentCaptureController {
             if text.count >= Limits.minCharacters {
                 if Self.isGoodbye(text) {
                     isSessionActive = false
+                    RealtimeAudioSession.shared.end()
                     await emitTurn(text, source: .goodbye, continueSession: false)
                     stopVAD()
                     await stopEngine()
-                    WakeWordAudioMonitor.shared.endHold()
                 } else {
                     await emitTurn(text, source: .vad, continueSession: true)
                 }

@@ -40,8 +40,9 @@ struct HUDView: View {
         .glassEffect(DS.Material.hudGlass, in: .rect(cornerRadius: DS.Radius.hud))
     }
 
-    /// Which orb the capsule shows. Parakeet resolves on release rather than while you
-    /// speak, so the wait after letting go is real work and says so with `working`.
+    /// Which orb the capsule shows. While listening the orb stays `listening` even when
+    /// Parakeet is already painting partials into the label; after release the wait is
+    /// real work (finalize + cleanup) and says so with `working`.
     private var orb: OrbGeometry.State {
         controller.state == .listening ? .listening : .working
     }
@@ -57,8 +58,7 @@ struct HUDView: View {
         // Parakeet that is eleven seconds of the HUD claiming to hear you.
         case .starting: "Getting ready…"
         case .listening: controller.transcript.isEmpty ? "Listening…" : controller.transcript
-        // Parakeet transcribes in one pass on release, so there's nothing to show until
-        // it lands — say what's happening instead of leaving an empty pill.
+        // Prefer live / stabilized text when the engine already filled it during the hold.
         case .finishing: controller.transcript.isEmpty ? "Transcribing…" : controller.transcript
         case .error(let message): message
         case .idle: ""

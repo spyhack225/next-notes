@@ -70,6 +70,13 @@ actor LlamaBackend {
     /// S1-mini's context must not be *loaded* at the same instant. Both models running is
     /// fine; both loading is where the machine starts swapping, and the dictation pass is
     /// the one with a person waiting on it.
+    ///
+    /// **One-directional.** Notes (`NotesModelRuntime`) and the compute scheduler call
+    /// `awaitCleanupIdle()` so a load waits for cleanup. They must never call
+    /// `beginCleanup()`. Closing the cycle — beginCleanup from a path that then awaits
+    /// this same runtime — deadlocks Qwen cleanup (`QwenCleanupFormatter`).
+    /// `ComputeScheduler` and `ModelResidencyPolicy` cooperate by yielding / unloading;
+    /// they do not reverse this gate.
     func beginCleanup() {
         cleanupsInFlight += 1
     }
@@ -83,6 +90,10 @@ actor LlamaBackend {
     }
 
     /// Suspends until no dictation cleanup is in flight. Returns immediately when none is.
+    ///
+    /// The only notes → cleanup wait. Scheduler preemption of notes for ASR is a
+    /// separate, parallel mechanism (`ComputeScheduler`); do not merge them into a
+    /// bidirectional lock.
     func awaitCleanupIdle() async {
         guard cleanupsInFlight > 0 else { return }
         await withCheckedContinuation { continuation in
