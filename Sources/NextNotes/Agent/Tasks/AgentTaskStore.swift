@@ -1,7 +1,7 @@
 import Foundation
 
-/// Tasks that outlive the process — a 30-second Drive upload must still be visible after
-/// a quit, the same way unanswered proposals are.
+/// Tasks persist as history. A queued or running task is marked failed on relaunch
+/// ("Next Notes quit while this task was running") — they are not durable workflows.
 @MainActor
 final class AgentTaskStore {
     static let shared = AgentTaskStore()

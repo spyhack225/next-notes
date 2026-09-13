@@ -14,6 +14,10 @@ enum AgentStdioFixtures {
         try write(name: "nextnotes-acp-fixture.py", contents: acp)
     }
 
+    static func writeCDP() throws -> URL {
+        try write(name: "nextnotes-cdp-fixture.py", contents: cdp)
+    }
+
     private static func write(name: String, contents: String) throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
         try contents.write(to: url, atomically: true, encoding: .utf8)
@@ -59,6 +63,13 @@ enum AgentStdioFixtures {
                             "name": "echo",
                             "description": "Echo text",
                             "annotations": {"readOnlyHint": True, "title": "Echo"},
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "text": {"type": "string", "description": "Text to echo"}
+                                },
+                                "required": ["text"],
+                            },
                         }],
                     },
                 })
@@ -156,5 +167,47 @@ enum AgentStdioFixtures {
                 send({"jsonrpc": "2.0", "id": mid, "result": {}})
             elif mid is not None:
                 send({"jsonrpc": "2.0", "id": mid, "error": {"code": -32601, "message": method}})
+        """
+
+    /// Local Chromium `/json/version` + `/json/list` so `--selftest-browser` can prove
+    /// CDP discovery without launching Chrome with a debug port.
+    static let cdp = """
+        #!/usr/bin/env python3
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        import json, sys
+
+        port = int(sys.argv[1]) if len(sys.argv) > 1 else 0
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                bound = self.server.server_address[1]
+                if self.path.startswith("/json/version"):
+                    body = json.dumps({
+                        "Browser": "Chrome/fixture",
+                        "webSocketDebuggerUrl": "ws://127.0.0.1:%d/devtools" % bound,
+                    })
+                elif self.path.startswith("/json"):
+                    body = json.dumps([{
+                        "id": "1",
+                        "type": "page",
+                        "title": "Example",
+                        "url": "https://example.com/",
+                        "webSocketDebuggerUrl": "ws://127.0.0.1:%d/devtools" % bound,
+                    }])
+                else:
+                    self.send_error(404)
+                    return
+                data = body.encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            def log_message(self, *args):
+                pass
+
+        httpd = HTTPServer(("127.0.0.1", port), Handler)
+        print(httpd.server_address[1], flush=True)
+        httpd.serve_forever()
         """
 }

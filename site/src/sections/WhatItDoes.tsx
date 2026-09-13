@@ -22,12 +22,12 @@ const features: { title: string; body: string; orb: OrbState }[] = [
   {
     orb: "searching",
     title: "Ask the Mac",
-    body: "⇧⌘ Space, or say “Hey Next”. Silence ends a turn; Done leaves the conversation. Ask “what can you do” and it answers without a model. Longer work can go to a coding agent you already have installed.",
+    body: "⇧⌘ Space, or say “Hey Next” — tested against the live keyword detector, not a typed transcript. Silence ends a turn; Done leaves. Ask “what can you do” and it answers without a model. Longer work can go to a coding agent you already have installed.",
   },
   {
     orb: "searching",
     title: "Clicks, files, a command",
-    body: "It can read the frontmost window, click and type, search a folder and run a shell command — never sudo. Each of those raises an Approve card unless you already said it may.",
+    body: "It inspects the front window, then clicks and types in a second turn. Approvals can be scoped to an app, a site or a folder — not a blanket yes. Files and a shell command (never sudo) wait on the same card. Chrome can go through a local browser protocol when one is listening; Accessibility is the fallback.",
   },
   {
     orb: "searching",

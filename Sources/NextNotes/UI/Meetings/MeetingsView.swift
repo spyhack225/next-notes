@@ -86,7 +86,7 @@ struct MeetingsView: View {
     private var upcomingEvents: [MeetingEvent] {
         let now = Date()
         return calendar.upcoming.filter { event in
-            guard event.end > now, !event.isAllDay else { return false }
+            guard event.isCurrent(at: now) else { return false }
             // A calendar entry is a title and a time; there is nothing else in it to match,
             // so searching narrows it on the one field it has.
             return !isSearching || event.title.localizedCaseInsensitiveContains(query)

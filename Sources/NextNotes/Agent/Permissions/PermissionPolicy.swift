@@ -23,6 +23,7 @@ struct PermissionGrant: Sendable, Equatable, Codable, Identifiable {
     var id: String
     var toolID: String
     var duration: PermissionDuration
+    var scope: PermissionScope
     var meetingID: UUID?
     var taskID: String?
     var createdAt: Date
@@ -31,6 +32,7 @@ struct PermissionGrant: Sendable, Equatable, Codable, Identifiable {
         id: String = UUID().uuidString,
         toolID: String,
         duration: PermissionDuration,
+        scope: PermissionScope = .any,
         meetingID: UUID? = nil,
         taskID: String? = nil,
         createdAt: Date = Date()
@@ -38,9 +40,36 @@ struct PermissionGrant: Sendable, Equatable, Codable, Identifiable {
         self.id = id
         self.toolID = toolID
         self.duration = duration
+        self.scope = scope
         self.meetingID = meetingID
         self.taskID = taskID
         self.createdAt = createdAt
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, toolID, duration, scope, meetingID, taskID, createdAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        toolID = try container.decode(String.self, forKey: .toolID)
+        duration = try container.decode(PermissionDuration.self, forKey: .duration)
+        scope = try container.decodeIfPresent(PermissionScope.self, forKey: .scope) ?? .any
+        meetingID = try container.decodeIfPresent(UUID.self, forKey: .meetingID)
+        taskID = try container.decodeIfPresent(String.self, forKey: .taskID)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(toolID, forKey: .toolID)
+        try container.encode(duration, forKey: .duration)
+        try container.encode(scope, forKey: .scope)
+        try container.encodeIfPresent(meetingID, forKey: .meetingID)
+        try container.encodeIfPresent(taskID, forKey: .taskID)
+        try container.encode(createdAt, forKey: .createdAt)
     }
 }
 
@@ -88,11 +117,16 @@ struct PermissionPolicy: Sendable {
         }
     }
 
-    func existingGrant(for toolID: String, meetingID: UUID?, taskID: String?) -> PermissionGrant? {
+    func existingGrant(
+        for toolID: String,
+        scope: PermissionScope = .any,
+        meetingID: UUID?,
+        taskID: String?
+    ) -> PermissionGrant? {
         grants.first { grant in
-            grant.toolID == toolID && (
-                grant.duration == .once || grant.covers(meetingID: meetingID, taskID: taskID)
-            )
+            grant.toolID == toolID
+                && grant.scope.covers(scope)
+                && (grant.duration == .once || grant.covers(meetingID: meetingID, taskID: taskID))
         }
     }
 }

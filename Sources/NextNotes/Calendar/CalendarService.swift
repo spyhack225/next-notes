@@ -91,14 +91,32 @@ final class CalendarService {
 
     // MARK: - Reading
 
-    /// The soonest thing that hasn't started yet, for the menu bar.
+    /// The soonest timed meeting that has not ended yet, for the menu bar.
+    ///
+    /// Delegates to `nextEvent(in:)` rather than `upcoming.first { … }` here. That
+    /// predicate is compiled as an isolated closure, and `Sequence.first(where:)`
+    /// calls it without hopping onto the main actor. The menu-bar body runs on the
+    /// main *thread* but not always as a MainActor task; the executor check then
+    /// faults (`SerialExecutor._isSameExecutor`, EXC_BAD_ACCESS).
     var next: MeetingEvent? {
-        let now = Date()
-        return upcoming.first { $0.end > now && !$0.isAllDay }
+        Self.nextEvent(in: upcoming)
     }
 
     func event(withOverrideKey key: String) -> MeetingEvent? {
-        upcoming.first { $0.overrideKey == key }
+        // A `for` rather than `first(where:)`: same isolated-closure trap as `next`.
+        for event in upcoming where event.overrideKey == key {
+            return event
+        }
+        return nil
+    }
+
+    /// Pure so the menu bar and `--selftest-calendar` share one definition, and so
+    /// the walk is not isolated to the main actor.
+    nonisolated static func nextEvent(in events: [MeetingEvent], now: Date = Date()) -> MeetingEvent? {
+        for event in events {
+            if event.isCurrent(at: now) { return event }
+        }
+        return nil
     }
 
     /// Reads every enabled calendar, behind whatever read is already running.

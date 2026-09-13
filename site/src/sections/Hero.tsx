@@ -51,9 +51,7 @@ export default function Hero() {
           {...fadeUp(0)}
           className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-medium tracking-[-1px] sm:tracking-[-2px] leading-[1.02]"
         >
-          Stop <span className="font-serif italic font-normal">typing</span>.
-          <br />
-          Stop taking <span className="font-serif italic font-normal">notes</span>.
+          Talk to your <span className="font-serif italic font-normal">Mac</span>.
         </motion.h1>
 
         <motion.p
@@ -61,8 +59,8 @@ export default function Hero() {
           className="mt-6 sm:mt-7 text-base sm:text-lg max-w-xl leading-relaxed"
           style={{ color: "hsl(var(--hero-subtitle))" }}
         >
-          Speak into any app and the words appear. Sit in any meeting and the notes write
-          themselves. Ask the Mac, and it answers on this machine.
+          Dictate into any app. Sit in any meeting and the notes write themselves. Then
+          ask the same Mac to click, search, or follow through — on this machine.
         </motion.p>
 
         <motion.div

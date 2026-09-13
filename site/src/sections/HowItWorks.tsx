@@ -36,8 +36,8 @@ const STEPS: {
     n: "03",
     orb: "searching",
     value: "You stop driving the Mac",
-    body: "Ask what's on the calendar, what was just decided, or to click the button in front of you. Silence ends a turn; Done leaves the conversation.",
-    detail: "⇧⌘ Space, or “Hey Next”. Clicks, files and mail wait on a button.",
+    body: "Ask what's on the calendar, what was just decided, or to click the button in front of you. It can look, then act, in more than one step. Silence ends a turn; Done leaves the conversation.",
+    detail: "⇧⌘ Space, or “Hey Next”. A yes can be scoped to an app, a site or a folder.",
   },
   {
     n: "04",

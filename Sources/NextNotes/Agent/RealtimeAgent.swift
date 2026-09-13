@@ -24,6 +24,8 @@ final class RealtimeAgent {
         /// cleanup path already logged `GenerationError error -1` on this machine — so the
         /// user's wait is bounded even when the CPU is not.
         static let turn: Duration = .seconds(25)
+        /// inspect_ui → click is at least two model rounds; four is the ceiling.
+        static let modelLoop: Duration = .seconds(50)
         static let captureFinish: Duration = .seconds(8)
     }
 
@@ -86,7 +88,7 @@ final class RealtimeAgent {
         }
 
         progressTitle = "Thinking…"
-        let modelReply = await withBoundedWait(Limits.turn) {
+        let modelReply = await withBoundedWait(Limits.modelLoop) {
             await RealtimeAgent.shared.askModel(text)
         }
         if !isCurrent(mine) {
@@ -356,38 +358,48 @@ final class RealtimeAgent {
             turned on computer control in Settings.
             \(context.promptBlock)
             """
+        let catalogue = tools.map {
+            WorkspaceTool(
+                name: $0.id,
+                summary: $0.description,
+                risk: $0.risk,
+                parameters: $0.parameters,
+                titleBuilder: $0.titleBuilder,
+                previewBuilder: $0.previewBuilder
+            )
+        }
         do {
-            let completion = try await provider.complete(
-                system: system,
+            let outcome = try await AgentToolLoop.run(
                 user: text,
-                maxTokens: 400,
-                tools: tools.map {
-                    WorkspaceTool(
-                        name: $0.id,
-                        summary: $0.description,
-                        risk: $0.risk,
-                        parameters: $0.parameters,
-                        titleBuilder: $0.titleBuilder,
-                        previewBuilder: $0.previewBuilder
+                maxRounds: AgentToolLoop.defaultMaxRounds,
+                complete: { user in
+                    let completion = try await provider.complete(
+                        system: system,
+                        user: user,
+                        maxTokens: 400,
+                        tools: catalogue
                     )
+                    return completion.text
+                },
+                execute: { call in
+                    do {
+                        let result = try await AgentToolExecutor.run(
+                            call.name,
+                            arguments: call.arguments,
+                            policy: .fromSettings(),
+                            autoApproveReads: true,
+                            promptIfNeeded: true
+                        )
+                        return result.summary
+                    } catch {
+                        return error.localizedDescription
+                    }
                 }
             )
-            let calls = AgentToolCallParser.calls(in: completion.text)
-            if let call = calls.first {
-                do {
-                    let result = try await AgentToolExecutor.run(
-                        call.name,
-                        arguments: call.arguments,
-                        policy: .fromSettings(),
-                        autoApproveReads: true,
-                        promptIfNeeded: true
-                    )
-                    return result.summary
-                } catch {
-                    return error.localizedDescription
-                }
-            }
-            let reply = completion.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            Log.agent.info(
+                "realtime loop · \(outcome.rounds, privacy: .public) round(s) · \(outcome.calls, privacy: .public) call(s)"
+            )
+            let reply = outcome.reply.trimmingCharacters(in: .whitespacesAndNewlines)
             return reply.isEmpty ? nil : reply
         } catch {
             Log.agent.error("realtime model: \(error.localizedDescription, privacy: .public)")

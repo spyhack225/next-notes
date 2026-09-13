@@ -3,6 +3,8 @@ import Foundation
 struct MCPToolListing: Sendable {
     var name: String
     var description: String
+    var inputSchemaJSON: String
+    var annotations: [String: String]
 }
 
 /// One MCP server connection: `initialize` + session id, then list/call on the same
@@ -40,9 +42,12 @@ actor MCPSession {
             guard let name = tool["name"] as? String else { continue }
             rememberAnnotations(name: name, raw: tool)
             if !allowlist.isEmpty, !allowlist.contains(name) { continue }
+            let schema = tool["inputSchema"] as? [String: Any]
             listed.append(MCPToolListing(
                 name: name,
-                description: tool["description"] as? String ?? name
+                description: tool["description"] as? String ?? name,
+                inputSchemaJSON: MCPInputSchema.jsonString(from: schema),
+                annotations: annotations[name] ?? [:]
             ))
         }
         return listed

@@ -111,10 +111,10 @@ export default function HeroStage() {
             </span>
           </div>
           <p className="text-xs text-muted-foreground/70 leading-relaxed">
-            What&rsquo;s on my calendar today?
+            Click Run in the front window.
           </p>
           <p className="text-sm text-foreground/90 leading-relaxed mt-2">
-            Cutover — Wednesday the 22nd, 10:00.
+            Clicked. Done.
           </p>
         </motion.div>
       </div>

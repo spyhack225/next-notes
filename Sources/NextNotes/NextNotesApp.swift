@@ -997,9 +997,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     """)
             }
 
-            let failures = Self.autoRecordDecisionFailures()
-            for failure in failures { writeSelfTest("  DECISION_WRONG: \(failure)") }
+            let decisionFailures = Self.autoRecordDecisionFailures()
+            let nextFailures = Self.nextEventSelectionFailures()
+            for failure in decisionFailures { writeSelfTest("  DECISION_WRONG: \(failure)") }
+            for failure in nextFailures { writeSelfTest("  NEXT_WRONG: \(failure)") }
 
+            let failures = decisionFailures + nextFailures
             if failures.isEmpty {
                 writeSelfTest("""
                     CALENDAR_OK: \(service.upcoming.count) upcoming event(s), \
@@ -1053,6 +1056,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 globallyEnabled: global,
                 override: override
             )
+            return actual == expected ? nil : name
+        }
+    }
+
+    /// What the menu bar calls "next": the soonest timed meeting that has not ended.
+    ///
+    /// Kept next to the auto-record cases so a filter that starts treating all-day
+    /// blocks or already-finished meetings as current is caught without a calendar.
+    private static func nextEventSelectionFailures() -> [String] {
+        let now = Date()
+        func event(
+            title: String,
+            startOffset: TimeInterval,
+            duration: TimeInterval,
+            allDay: Bool = false
+        ) -> MeetingEvent {
+            MeetingEvent(
+                id: title,
+                providerID: .fake,
+                title: title,
+                start: now.addingTimeInterval(startOffset),
+                end: now.addingTimeInterval(startOffset + duration),
+                attendees: [],
+                isOrganizerOrSelfAccepted: true,
+                conferenceURL: nil,
+                calendarName: "Test",
+                isAllDay: allDay
+            )
+        }
+
+        let ended = event(title: "Ended", startOffset: -3600, duration: 1800)
+        let current = event(title: "Current", startOffset: -600, duration: 1800)
+        let future = event(title: "Future", startOffset: 3600, duration: 1800)
+        let allDay = event(title: "All day", startOffset: 0, duration: 86400, allDay: true)
+
+        let cases: [(String, MeetingEvent?, [MeetingEvent])] = [
+            ("empty list is nothing", nil, []),
+            ("ended and all-day are skipped", nil, [ended, allDay]),
+            ("an in-progress meeting is next", current, [ended, current, future]),
+            ("all-day is skipped in favour of a timed meeting", future, [allDay, future]),
+        ]
+
+        return cases.compactMap { name, expected, events in
+            let actual = CalendarService.nextEvent(in: events, now: now)
             return actual == expected ? nil : name
         }
     }
@@ -2720,6 +2767,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 meetingID: UUID(), tool: "delete_everything", arguments: [:], rationale: ""
             ).risk == .send)
 
+            let click = registry.tool(named: "computer.click")!
+            let chrome = PermissionScope(kind: .application, value: "com.google.Chrome")
+            let safari = PermissionScope(kind: .application, value: "com.apple.Safari")
+            var scoped = PermissionPolicy.denyMutations
+            scoped.grants = [
+                PermissionGrant(toolID: click.id, duration: .alwaysThisAction, scope: chrome)
+            ]
+            let chromeOK = await PermissionBroker.shared.authorize(
+                click,
+                arguments: ["app": "com.google.Chrome"],
+                policy: scoped,
+                scope: chrome
+            )
+            let safariHeld = await PermissionBroker.shared.authorize(
+                click,
+                arguments: ["app": "com.apple.Safari"],
+                policy: scoped,
+                scope: safari
+            )
+            check("a Chrome grant did not cover Chrome", chromeOK == .allow)
+            if case .ask = safariHeld {
+                // Expected — Safari is a different app.
+            } else {
+                failures.append("a Chrome grant covered Safari")
+            }
+
+            check(
+                "canonical github mapping",
+                CanonicalToolName.resolve(raw: "GITHUB_CREATE_ISSUE", server: "Composio").id
+                    == "github.create_issue"
+            )
+            check(
+                "prefixed Composio mapping",
+                CanonicalToolName.resolve(raw: "mcp.Composio.GITHUB_CREATE_ISSUE", server: "Composio").id
+                    == "github.create_issue"
+            )
+            check(
+                "create_issue is not a write",
+                MCPRiskHint.risk(name: "github.create_issue", annotations: [:]) == .write
+            )
+            check(
+                "slack send is not communicate",
+                MCPRiskHint.risk(name: "slack.send_message", annotations: [:]) == .send
+            )
+            check(
+                "filesystem delete is not destructive",
+                MCPRiskHint.risk(name: "filesystem.delete", annotations: [:]) == .destructive
+            )
+            check(
+                "read_file is not a read",
+                MCPRiskHint.risk(name: "filesystem.read_file", annotations: [:]) == .read
+            )
+
             for failure in failures { writeSelfTest("  TOOLS_WRONG: \(failure)") }
             writeSelfTest(failures.isEmpty
                           ? "TOOLS_OK: registry, router and broker hold"
@@ -2761,6 +2861,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ]
             for index in attempts.indices { attempts[index].index = index + 1 }
             check("two good attempts were not enough", WakeWordTrainer.shouldSave(attempts))
+
+            let liveHit = WakeWordTrainer.score(
+                hit: true,
+                elapsed: 1.2,
+                timeout: 6,
+                peakLevel: 0.4,
+                index: 1
+            )
+            check("a live hit was rejected", liveHit.accepted)
+            check(
+                "a live miss was accepted",
+                !WakeWordTrainer.score(
+                    hit: false,
+                    elapsed: 6,
+                    timeout: 6,
+                    peakLevel: 0,
+                    index: 2
+                ).accepted
+            )
 
             if !WakeWordModelManager.isDownloaded {
                 for failure in failures { writeSelfTest("  WAKE_WRONG: \(failure)") }
@@ -2946,11 +3065,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             check("a VAD turn closed the session", AgentCaptureController.shared.isSessionActive)
             await AgentCaptureController.shared.endSession(source: .done)
 
+            do {
+                let loop = try await AgentToolLoop.run(
+                    user: "Click Run",
+                    maxRounds: 4,
+                    complete: { user in
+                        if user.contains("computer.click returned") {
+                            return "Done."
+                        }
+                        if user.contains("computer.inspect_ui returned") {
+                            return #"<tool_call>{"name":"computer.click","arguments":{"id":"12"},"rationale":"click"}</tool_call>"#
+                        }
+                        return #"<tool_call>{"name":"computer.inspect_ui","arguments":{},"rationale":"look"}</tool_call>"#
+                    },
+                    execute: { call in
+                        switch call.name {
+                        case "computer.inspect_ui": return "[12] Run\n[18] Search"
+                        case "computer.click": return "Clicked"
+                        default: return "unknown"
+                        }
+                    }
+                )
+                check("inspect→click loop did not finish in plain language", loop.reply == "Done.")
+                check("inspect→click loop used the wrong number of rounds", loop.rounds == 3)
+                check("inspect→click loop dropped a tool call", loop.calls == 2)
+            } catch {
+                failures.append("tool loop failed: \(error.localizedDescription)")
+            }
+
             MeetingContextStore.shared.reset()
 
             for failure in failures { writeSelfTest("  REALTIME_WRONG: \(failure)") }
             writeSelfTest(failures.isEmpty
-                          ? "REALTIME_OK: context, capabilities, harness routing and duplex VAD hold"
+                          ? "REALTIME_OK: context, capabilities, harness routing, duplex VAD and the tool loop hold"
                           : "REALTIME_FAILED: \(failures.count) rule(s) wrong")
             NSApp.terminate(nil)
         }
@@ -3075,6 +3222,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     "annotations were not stored as metadata",
                     MCPClientStore.shared.annotations(for: "echo")["readOnlyHint"] != nil
                 )
+                if let echoTool = tools.first(where: { $0.name == "echo" }) {
+                    check(
+                        "echo inputSchema was discarded",
+                        echoTool.parameters.contains { $0.name == "text" }
+                    )
+                    check("readOnlyHint did not become a read", echoTool.risk == .read)
+                } else {
+                    failures.append("echo vanished after refresh")
+                }
                 var policy = PermissionPolicy.selfTest
                 if let echoTool = AgentToolRegistry.shared.tool(named: "echo") {
                     policy.grants = [PermissionGrant(toolID: echoTool.id, duration: .alwaysThisAction)]
@@ -3263,12 +3419,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     arguments: ["id": "9.1"]
                 )
                 check("click ran without a real snapshot id", click.summary.contains("not a browser") || click.summary.contains("No snapshot id"))
+
+                let encoded = BrowserCDPClient.encode(
+                    method: "Page.navigate",
+                    params: ["url": "https://example.com"],
+                    id: 1
+                )
+                let object = (try? JSONSerialization.jsonObject(with: encoded)) as? [String: Any]
+                check("CDP encode is not JSON", object?["method"] as? String == "Page.navigate")
+                check(
+                    "a closed debug port reported a browser",
+                    await BrowserCDPClient.probe(host: "127.0.0.1", port: 9) == nil
+                )
+                check(
+                    "AX is not the fallback when CDP is down",
+                    await BrowserExecutor.preferredBackend(host: "127.0.0.1", port: 9) == .accessibility
+                )
+
+                let script = try AgentStdioFixtures.writeCDP()
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: AgentStdioFixtures.python)
+                process.arguments = [script.path, "0"]
+                let pipe = Pipe()
+                process.standardOutput = pipe
+                process.standardError = FileHandle.nullDevice
+                try process.run()
+                defer { process.terminate() }
+                var port = 0
+                let deadline = Date().addingTimeInterval(2)
+                while Date() < deadline, port == 0 {
+                    let data = pipe.fileHandleForReading.availableData
+                    if let line = String(data: data, encoding: .utf8)?
+                        .trimmingCharacters(in: .whitespacesAndNewlines),
+                       let value = Int(line) {
+                        port = value
+                    } else {
+                        try? await Task.sleep(for: .milliseconds(50))
+                    }
+                }
+                if port == 0 {
+                    failures.append("CDP fixture never printed a port")
+                } else {
+                    let base = URL(string: "http://127.0.0.1:\(port)")!
+                    let targets = try await BrowserCDPClient.listTargets(baseURL: base)
+                    check("fixture tab was missed", targets.contains { $0.url.contains("example.com") })
+                    check(
+                        "fixture probe failed",
+                        await BrowserCDPClient.probe(host: "127.0.0.1", port: port) != nil
+                    )
+                    check(
+                        "CDP was not preferred against the fixture",
+                        await BrowserExecutor.preferredBackend(host: "127.0.0.1", port: port) == .cdp
+                    )
+                }
             } catch {
                 failures.append(error.localizedDescription)
             }
             for failure in failures { writeSelfTest("  BROWSER_WRONG: \(failure)") }
             writeSelfTest(failures.isEmpty
-                          ? "BROWSER_OK: stub trees invent no elements; Eve loop needs a snapshot id"
+                          ? "BROWSER_OK: stub trees invent no elements; CDP probe and AX fallback hold"
                           : "BROWSER_FAILED: \(failures.count) rule(s) wrong")
             NSApp.terminate(nil)
         }
