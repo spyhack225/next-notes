@@ -37,6 +37,7 @@ final class RealtimeAgent {
     /// Same job as `DictationController.session`: a late tool must not write over a
     /// turn the user already stopped or barged in on.
     private var generation = 0
+    private var currentTurnSource: AgentUtteranceSource = .text
     /// The model answer owns a child task so barge-in cancels llama / provider work even
     /// while the VAD task remains free to endpoint the next utterance.
     private var localModelTask: Task<AgentTurn, Never>?
@@ -65,6 +66,7 @@ final class RealtimeAgent {
 
         generation += 1
         let mine = generation
+        currentTurnSource = source
         Log.agent.info("realtime · heard \(text, privacy: .public)")
         // Refresh the constrained local index before resolving a turn. This gives the
         // planner recent people, projects and vocabulary without ingesting transcript or
@@ -100,7 +102,7 @@ final class RealtimeAgent {
             Log.agent.info("realtime · acp-once")
             AgentAuditLog.shared.record(kind: .reply, title: turn.reply)
             AgentCaptureController.shared.noteAssistantReply(turn.reply)
-            if AgentCaptureController.shared.isSessionActive {
+            if source == .voice && AgentCaptureController.shared.isSessionActive {
                 speakWithFirstAudioTrace(turn.reply, turn: mine)
                 ActivationController.shared.markListening()
                 IslandState.shared.showAgentListening(transcript: "", level: 0)
@@ -173,7 +175,7 @@ final class RealtimeAgent {
         case .toolLoop:
             beginWork(title: intent.progressTitle)
             let toolTrace = LatencyTrace.start(.agentToolCallToResult)
-            let speech = AgentToolSpeechTracker(agent: self, turn: mine)
+            let speech = AgentToolSpeechTracker(agent: self, turn: mine, allowSpeech: source == .voice)
             let reply = await runGeneralToolLoop(text, speech: speech, voice: source == .voice)
             toolTrace.end(note: intent.progressTitle)
             guard isCurrent(mine) else {
@@ -426,7 +428,8 @@ final class RealtimeAgent {
             )
         }
 
-        let startedStreaming = AgentCaptureController.shared.isSessionActive
+        let startedStreaming = currentTurnSource == .voice
+            && AgentCaptureController.shared.isSessionActive
         if startedStreaming { RealtimeAudioSession.shared.beginSpokenReply() }
         var answer = ""
         do {
@@ -450,7 +453,7 @@ final class RealtimeAgent {
                 answer += chunk
                 lastReply = answer
                 AgentCaptureController.shared.noteAssistantReply(answer)
-                if AgentCaptureController.shared.isSessionActive {
+                if startedStreaming && AgentCaptureController.shared.isSessionActive {
                     RealtimeAudioSession.shared.appendSpokenReply(chunk)
                 } else {
                     IslandState.shared.showAgentReply(answer)
@@ -538,7 +541,7 @@ final class RealtimeAgent {
             // One-shot replies use `speak`; the explicit local-model path calls
             // `appendSpokenReply` as chunks arrive. `speak` feeds the finished string through
             // begin → append → finalize so clause TTS is ready for a stream.
-            if speak {
+            if speak && currentTurnSource == .voice {
                 speakWithFirstAudioTrace(spokenReply ?? reply, turn: generation)
             }
             ActivationController.shared.markListening()

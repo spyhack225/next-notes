@@ -44,9 +44,12 @@ enum AgentSpeechPolicy {
     /// the text conversation. This path runs no model and never reads an opaque
     /// identifier, URL, path, or multiline listing to the speaker.
     static func toolResultSummary(toolID: String, result: String) -> String? {
-        if !spokenForm(result).isEmpty { return result }
         let lines = result.split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        // A single raw result row may fit the ordinary short-answer budget but
+        // still contain an opaque mail ID, a file path, or a bullet.
+        if !lines.contains(where: { $0.hasPrefix("- ") }),
+           !spokenForm(result).isEmpty { return result }
         switch toolID {
         case "get_agenda":
             let events = lines.filter { $0.hasPrefix("- ") }.map { String($0.dropFirst(2)) }
@@ -67,13 +70,15 @@ enum AgentSpeechPolicy {
             let emails = lines.filter { $0.hasPrefix("- id ") }
             guard let first = emails.first else { break }
             let pieces = first.components(separatedBy: " — ")
-            guard pieces.count >= 3 else { return "I found \(emails.count) matching emails." }
+            let intro = "I found \(emails.count) matching "
+                + (emails.count == 1 ? "email" : "emails")
+            guard pieces.count >= 3 else { return intro + "." }
             let sender = pieces[1].replacingOccurrences(of: "from ", with: "")
             let subject = pieces[2]
-            let candidate = "I found \(emails.count) matching emails. The latest is from "
+            let candidate = intro + ". The latest is from "
                 + "\(String(sender.prefix(70))), about \(String(subject.prefix(100)))."
             return spokenForm(candidate).isEmpty
-                ? "I found \(emails.count) matching emails. The details are in the conversation."
+                ? intro + ". The details are in the conversation."
                 : candidate
         case "filesystem.search", "find_drive_files":
             let matches = lines.filter { $0.hasPrefix("- ") }
@@ -329,6 +334,15 @@ enum AgentSpeechPolicy {
         let unsafeAgenda = "On Monday:\n- 9:00 AM — https://example.com/private"
         if toolResultSummary(toolID: "get_agenda", result: unsafeAgenda)?.contains("https://") == true {
             failures.append("calendar voice answer spoke a URL")
+        }
+        let oneEvent = "On Monday:\n- 9:00 AM — Weekly plan"
+        if toolResultSummary(toolID: "get_agenda", result: oneEvent) != "I found 1 calendar event. It's 9:00 AM, Weekly plan." {
+            failures.append("single calendar row was read as a raw listing")
+        }
+        let oneMail = "- id opaque123 — from Alex — Project review"
+        let mailSummary = toolResultSummary(toolID: "search_email", result: oneMail) ?? ""
+        if mailSummary.contains("opaque123") || mailSummary != "I found 1 matching email. The latest is from Alex, about Project review." {
+            failures.append("single mail row exposed an opaque ID")
         }
 
         let short = "I found three files."

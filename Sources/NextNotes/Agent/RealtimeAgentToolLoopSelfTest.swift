@@ -96,6 +96,13 @@ enum RealtimeAgentToolLoopSelfTest {
         agent.toolLoopLimitForTesting = nil
         let recorder = RecordingSpeechBacking()
         AgentSpeechSynthesizer.shared.useTestingBacking(recorder)
+        agent.localModelProviderForTesting = ToolLoopTestProvider(
+            state: ToolLoopTestState(), firstCall: ""
+        )
+        await AgentCaptureController.shared.beginSession(captureAudio: false)
+        _ = await agent.handle("Explain this briefly", source: .text)
+        check("typed turn spoke while a voice session was open", recorder.spoken.isEmpty)
+        await AgentCaptureController.shared.endSession(source: .done)
         let voiceState = ToolLoopTestState()
         agent.localModelProviderForTesting = ToolLoopTestProvider(
             state: voiceState,

@@ -10,17 +10,19 @@ private enum GeneralToolStepError: Error, Sendable {
 final class AgentToolSpeechTracker {
     private let agent: RealtimeAgent
     private let turn: Int
+    private let allowSpeech: Bool
     private var sentCharacters = 0
     private(set) var didStreamSpeech = false
     private var lastVerifiedResult: (toolID: String, output: String)?
 
-    init(agent: RealtimeAgent, turn: Int) {
+    init(agent: RealtimeAgent, turn: Int, allowSpeech: Bool) {
         self.agent = agent
         self.turn = turn
+        self.allowSpeech = allowSpeech
     }
 
     func receive(_ snapshot: String) {
-        guard agent.isCurrent(turn), AgentCaptureController.shared.isSessionActive else { return }
+        guard allowSpeech, agent.isCurrent(turn), AgentCaptureController.shared.isSessionActive else { return }
         let leading = snapshot.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !leading.isEmpty else { return }
         if leading.hasPrefix("<") || leading.hasPrefix("{") { return }
