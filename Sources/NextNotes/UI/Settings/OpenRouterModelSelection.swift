@@ -66,7 +66,7 @@ struct OpenRouterModelSelection: View {
             }
         }
         .task {
-            if catalog.models.isEmpty && OpenRouterKeyStore.key != nil {
+            if !SelfTest.isRunning && catalog.models.isEmpty && OpenRouterKeyStore.hasKey {
                 await catalog.refresh()
             }
         }

@@ -14,8 +14,8 @@ protocol AgentSpeechBacking: AnyObject {
 /// one utterance at a time, never waits for the queue to drain, and is always
 /// interruptible — `stop()` cancels the current clause and clears the rest.
 ///
-/// Dictation never calls this. The optional Pocket backing only plays audio;
-/// neither backing attaches to the input node.
+/// Dictation never calls this. The optional Pocket and Kokoro backings only
+/// play audio; neither backing attaches to the input node.
 @MainActor
 final class AgentSpeechSynthesizer {
     static let shared = AgentSpeechSynthesizer()
@@ -23,6 +23,7 @@ final class AgentSpeechSynthesizer {
     private var backing: any AgentSpeechBacking
     private let systemBacking = AVSpeechBacking()
     private let pocketBacking = PocketSpeechBacking()
+    private let kokoroBacking = KokoroSpeechBacking()
     private var testingBacking = false
     /// Remaining clauses after the one currently speaking (or just enqueued).
     private var pendingClauses: [String] = []
@@ -63,8 +64,26 @@ final class AgentSpeechSynthesizer {
             self.backing = self.systemBacking
             self.systemBacking.speak(text, volume: volume, token: token)
         }
+        kokoroBacking.onUtteranceFinished = { [weak self] token in
+            self?.didFinishAudio(token: token)
+        }
+        kokoroBacking.onUtteranceStarted = { [weak self] token in
+            self?.didBeginAudio(token: token)
+        }
+        kokoroBacking.onFailure = { [weak self] text, volume, token in
+            guard let self, token == self.outputGeneration else { return }
+            Settings.shared.agentVoiceEngine = "apple"
+            self.backing = self.systemBacking
+            if !text.isEmpty { self.systemBacking.speak(text, volume: volume, token: token) }
+        }
         if Settings.shared.agentVoiceEngine == "pocket" {
             Task { await PocketAgentVoice.shared.prepare() }
+        } else if Settings.shared.agentVoiceEngine == "kokoro" {
+            if KokoroAgentVoice.isSupportedOS {
+                Task { await KokoroAgentVoice.shared.prepare() }
+            } else {
+                Settings.shared.agentVoiceEngine = "apple"
+            }
         }
     }
 
@@ -92,8 +111,14 @@ final class AgentSpeechSynthesizer {
             backing.stop()
         }
         if !testingBacking {
-            backing = Settings.shared.agentVoiceEngine == "pocket" && PocketAgentVoice.shared.isReady
-                ? pocketBacking : systemBacking
+            switch Settings.shared.agentVoiceEngine {
+            case "pocket" where PocketAgentVoice.shared.isReady:
+                backing = pocketBacking
+            case "kokoro" where KokoroAgentVoice.isSupportedOS:
+                backing = kokoroBacking
+            default:
+                backing = systemBacking
+            }
         }
     }
 

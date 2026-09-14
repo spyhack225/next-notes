@@ -124,6 +124,19 @@ input/output prices. Agent answers and meeting notes can use different cloud mod
 Qwen3.5-4B and Apple Foundation Model remain available as local choices. An OpenRouter
 selection with a missing key or model reports an error instead of silently changing providers.
 
+### Agent voice
+
+Settings ▸ Models ▸ Speech synthesis has one compact choice for macOS voices, Pocket TTS,
+or Kokoro 82M. Only the chosen engine's voice controls appear; one button previews the
+voice and changes to Stop preview while it plays. Pocket has four local voices and downloads
+its model when selected. Kokoro uses FluidAudio's Core ML model and its Heart voice; it is
+disabled on macOS 26.4–26.5 because Apple Core ML can crash during synthesis on those
+versions. It becomes selectable on macOS 26.6 and later. The older Kokoro ONNX files in
+`~/Library/Caches/NextNotesTTS/kokoro-model` were for a benchmark and are not the Core ML
+model used for Agent speech. Pocket TTS by [Kyutai](https://huggingface.co/kyutai/pocket-tts)
+is CC BY 4.0; [Kokoro 82M Core ML](https://huggingface.co/FluidInference/kokoro-82m-coreml)
+is Apache 2.0.
+
 ### How rebuilds affect grants
 
 TCC stores a *code-signing requirement* per entry, not just a path. An ad-hoc signature
@@ -429,6 +442,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-tts                     # speech policy plus synthesizer interrupt
 "$S" --selftest-tts-stream              # clause-stream policy plus synthesizer stream queue
 "$S" --selftest-tts-pocket              # download/load neural voice, synthesize WAV, play/interrupt
+"$S" --selftest-tts-kokoro              # supported OS only: load, synthesize twice, play/interrupt
 "$S" --selftest-local-model-stream      # opt-in model route, early TTS, interruption and timeout
 "$S" --selftest-openrouter-contract     # offline catalog/filter/SSE parsing contract
 "$S" --selftest-openrouter              # live key, catalog, chosen model, completion and stream
