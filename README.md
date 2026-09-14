@@ -537,14 +537,16 @@ ends*), and **Regenerate** rewrites them with either provider afterwards.
 
 Push-to-talk stays dictation. ⇧⌘ Space (Settings ▸ Agent; configurable) or the wake
 phrase — default “Hey Next”, after the keyword model is downloaded — opens a conversation.
-Silence ends a turn; **Done** on the island leaves the session. The Agent model chosen in
+Silence ends a turn; **Done** on the island leaves the session and discards unfinished speech. The Agent model chosen in
 Settings ▸ Agent decides whether each ordinary request needs a tool; no special wording
 is required to enable tools. Plain answers stream into speech one clause at a time.
 Earlier turns and tool answers are kept locally and supplied
 as bounded context for follow-up questions; **Clear history** in the Agent pane removes
 that conversation.
 
-The chosen Agent model can read meeting context and the calendar through tools.
+The chosen Agent model can read meeting context and the calendar through tools. Calendar
+requests for today use the Mac's local date even if the model proposes a stale one; a
+completed read remains available if a later model wording pass times out.
 Reads run through the permission policy; clicks, writes and sends require the app's
 review card and are checked against the resulting state. A longer job is handed to a background task. A task that is still
 queued or running when Next Notes quits is marked failed — the list survives as history,

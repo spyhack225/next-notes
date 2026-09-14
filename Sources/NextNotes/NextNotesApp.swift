@@ -3258,6 +3258,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AgentCaptureController.shared.turnHandlerForTesting = nil
             await AgentCaptureController.shared.endSession(source: .done)
 
+            // Done must discard a partly recognized tail, not launch another
+            // request after the user has closed the conversation.
+            await AgentCaptureController.shared.beginSession(captureAudio: false)
+            AgentCaptureController.shared.turnHandlerForTesting = { _ in starts += 1 }
+            AgentCaptureController.shared.simulateSpeech("calendar for today")
+            await AgentCaptureController.shared.endSession(source: .done)
+            check("Done submitted its leftover transcript", starts == 2)
+            AgentCaptureController.shared.turnHandlerForTesting = nil
+
             for failure in failures { writeSelfTest("  REALTIME_WRONG: \(failure)") }
             writeSelfTest(failures.isEmpty ? "REALTIME_OK" : "REALTIME_FAILED")
             NSApp.terminate(nil)

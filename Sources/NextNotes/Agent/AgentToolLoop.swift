@@ -44,6 +44,26 @@ enum AgentToolLoop {
             """
     }
 
+    /// A relative day in the current request is grounded by the device clock,
+    /// not by a small model's remembered training date. This validates an
+    /// already-selected calendar tool; it does not decide whether to call one.
+    static func groundedArguments(
+        for tool: String, proposed: [String: String], request: String,
+        now: Date = Date(), calendar: Calendar = .current
+    ) -> [String: String] {
+        guard tool == "get_agenda",
+              request.range(of: #"\btoday\b"#, options: [.regularExpression, .caseInsensitive]) != nil,
+              request.range(of: #"\b\d{4}-\d{2}-\d{2}\b"#, options: .regularExpression) == nil
+        else { return proposed }
+        var grounded = proposed
+        let components = calendar.dateComponents([.year, .month, .day], from: now)
+        guard let year = components.year, let month = components.month, let day = components.day else {
+            return proposed
+        }
+        grounded["date"] = String(format: "%04d-%02d-%02d", year, month, day)
+        return grounded
+    }
+
     @MainActor
     static func run(
         user original: String,

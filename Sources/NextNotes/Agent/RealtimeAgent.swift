@@ -231,10 +231,8 @@ final class RealtimeAgent {
         finish("Stopped.")
     }
 
-    /// Barge-in: drop the in-flight tool so the new speech can become the next turn.
-    /// Always leaves a line — silent interrupt is how three user messages stacked
-    /// with no reply. TTS stops even when nothing is thinking, so a spoken reply
-    /// can be cut off the moment the user starts talking.
+    /// Barge-in: drop the in-flight tool so the new speech can become the next
+    /// turn. Do not speak an acknowledgement into the still-open microphone.
     func interrupt() {
         RealtimeAudioSession.shared.noteUserSpeech()
         finishFirstTTSTrace(note: "barge-in")
@@ -247,7 +245,12 @@ final class RealtimeAgent {
         localModelTask = nil
         PermissionGate.shared.cancelPending()
         Log.agent.info("realtime · barge-in")
-        finish(Self.bargeInReply)
+        isThinking = false
+        progressTitle = ""
+        ActivationController.shared.markListening()
+        IslandState.shared.showAgentListening(
+            transcript: AgentCaptureController.shared.transcript, level: AgentCaptureController.shared.level
+        )
     }
 
     /// Capability / help questions must not wait on a 7 GB download.

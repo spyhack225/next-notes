@@ -276,7 +276,12 @@ extension RealtimeAgent {
             }.joined(separator: "; ")
             return "- \(tool.id) [\(tool.risk.rawValue)]: \(String(tool.description.prefix(85)))\(arguments.isEmpty ? "" : "; " + arguments)"
         }.joined(separator: "\n")
+        let localDate = AgentToolLoop.groundedArguments(
+            for: "get_agenda", proposed: [:], request: "today"
+        )["date"] ?? "unknown"
         let system = """
+            Today is \(localDate) in the user's local time zone (\(TimeZone.current.identifier)).
+            Use that date for requests about today; do not guess a date from prior context.
             You are Next Notes' Agent. Understand the latest user request in the context of
             prior turns and tool results. Decide whether a tool is needed; do not wait for
             magic phrases such as "use tools". For a tool step, emit exactly one Hermes call as
@@ -306,6 +311,7 @@ extension RealtimeAgent {
                 ? Duration.seconds(75) : Duration.seconds(18))
         let deadline = clock.now + duration
         var results: [String] = []
+        var lastVerifiedRead: String?
         var callsUsed = 0
         var completedCalls = Set<String>()
         let responsiveness = Settings.shared.agentResponsiveness
@@ -328,7 +334,7 @@ extension RealtimeAgent {
         for _ in 0..<maxRounds {
             guard !Task.isCancelled else { return "I stopped the tool plan." }
             guard clock.now < deadline else {
-                return "I stopped the tool plan because it took too long."
+                return lastVerifiedRead ?? "I stopped the tool plan because it took too long."
             }
             let user = AgentToolLoop.userMessage(original: groundedPrompt, results: results)
             let remaining = clock.now.duration(to: deadline)
@@ -351,7 +357,7 @@ extension RealtimeAgent {
             }
             guard let completion else {
                 speech?.cancel()
-                return "I stopped the tool plan because it took too long."
+                return lastVerifiedRead ?? "I stopped the tool plan because it took too long."
             }
             let completionText: String
             switch completion {
@@ -379,19 +385,22 @@ extension RealtimeAgent {
                 else {
                     return "The tool planner requested an unavailable tool; nothing else was run."
                 }
-                let signature = call.name + "|" + call.arguments.keys.sorted()
-                    .map { "\($0)=\(call.arguments[$0] ?? "")" }.joined(separator: "|")
+                let arguments = AgentToolLoop.groundedArguments(
+                    for: call.name, proposed: call.arguments, request: prompt
+                )
+                let signature = call.name + "|" + arguments.keys.sorted()
+                    .map { "\($0)=\(arguments[$0] ?? "")" }.joined(separator: "|")
                 guard completedCalls.insert(signature).inserted else {
-                    return results.last ?? "I already completed that step."
+                    return lastVerifiedRead ?? "I already completed that step."
                 }
                 guard clock.now < deadline else {
-                    return "I stopped the tool plan because it took too long."
+                    return lastVerifiedRead ?? "I stopped the tool plan because it took too long."
                 }
                 let policy = PermissionPolicy.fromSettings()
                 let execute: @Sendable () async -> Result<String, GeneralToolStepError> = {
                     do {
                         let result = try await AgentToolExecutor.run(
-                            call.name, arguments: call.arguments, policy: policy,
+                            call.name, arguments: arguments, policy: policy,
                             autoApproveReads: true, promptIfNeeded: true
                         )
                         return .success(result.summary)
@@ -408,7 +417,7 @@ extension RealtimeAgent {
                     execution = await withBoundedWait(callRemaining) { await execute() }
                 }
                 guard let execution else {
-                    return "I stopped the tool plan because it took too long."
+                    return lastVerifiedRead ?? "I stopped the tool plan because it took too long."
                 }
                 switch execution {
                 case .success(let output):
@@ -417,6 +426,7 @@ extension RealtimeAgent {
                     if tool.risk > .read {
                         return output
                     }
+                    lastVerifiedRead = output
                 case .failure(.message(let message)):
                     // Do not hand a denial/error back to the model for a possible
                     // optimistic rewrite. A failed tool ends this turn visibly.
@@ -424,7 +434,7 @@ extension RealtimeAgent {
                 }
             }
         }
-        return "I couldn’t finish the tool plan within the safe limit."
+        return lastVerifiedRead ?? "I couldn’t finish the tool plan within the safe limit."
     }
 
     private func executeComputerCall(_ call: AgentToolCall) async -> String {
