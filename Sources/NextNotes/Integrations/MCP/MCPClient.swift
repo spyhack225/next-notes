@@ -53,6 +53,15 @@ enum MCPJSONRPC {
         return (try? JSONSerialization.data(withJSONObject: envelope, options: [.sortedKeys])) ?? Data()
     }
 
+    static func notification(method: String, params: [String: Any] = [:]) -> Data {
+        var envelope: [String: Any] = [
+            "jsonrpc": "2.0",
+            "method": method,
+        ]
+        if !params.isEmpty { envelope["params"] = params }
+        return (try? JSONSerialization.data(withJSONObject: envelope, options: [.sortedKeys])) ?? Data()
+    }
+
     static func parseResult(_ data: Data) -> [String: Any]? {
         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return nil

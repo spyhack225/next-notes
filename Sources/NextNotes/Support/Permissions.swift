@@ -56,15 +56,19 @@ enum Permissions {
             interleaved: false
         ) else { return }
 
-        do {
-            try capture.start(outputFormat: format, onBuffer: { _ in }, onLevel: { _ in })
-        } catch {
-            Log.systemAudio.error("tap probe failed: \(error.localizedDescription, privacy: .public)")
-            return
+        // Startup runs off the main actor because the HAL can synchronously wait for a
+        // device. Keep the probe alive briefly after completion so macOS can raise its
+        // permission prompt, then tear down the private tap.
+        Task { @MainActor in
+            do {
+                try await capture.start(outputFormat: format, onBuffer: { _ in }, onLevel: { _ in })
+            } catch {
+                Log.systemAudio.error("tap probe failed: \(error.localizedDescription, privacy: .public)")
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(400))
+            capture.stop()
         }
-        // Long enough for the tap to exist and the prompt to be raised, short enough that
-        // nothing downstream has to care that it happened.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { capture.stop() }
     }
 
     /// Shows the system Accessibility prompt if the app isn't yet trusted.

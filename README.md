@@ -383,6 +383,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-s1                      # S1-mini cleanup through the shared llama.cpp backend
 "$S" --selftest-parakeet                # Parakeet loads and transcribes a silent second
 "$S" --selftest-systemaudio             # 3 s process tap: frames, format, peak, RMS
+"$S" --selftest-systemaudio-timeout     # bounded startup and late HAL cleanup probe
 "$S" --selftest-transcribe <wav>        # WAV → ChunkedTranscriber → segments JSON + RTF
 "$S" --selftest-calendar                # provider states, deduped events, auto-record rules
 "$S" --selftest-notes <wav> [--diarize] # transcribe → notes; prints tok/s and peak RSS
