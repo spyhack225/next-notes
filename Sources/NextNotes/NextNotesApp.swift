@@ -293,6 +293,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runSystemAudioSelfTest()
             return true
         }
+        if arguments.contains("--selftest-acoustic-measure") {
+            guard let path = SelfTest.value(after: "--selftest-acoustic-measure") else {
+                SelfTest.failed = true
+                writeSelfTest("ACOUSTIC_MEASURE_FAILED: supply a speech audio file path")
+                NSApp.terminate(nil)
+                return true
+            }
+            Task { @MainActor in
+                do {
+                    let result = try await AcousticEchoProbe.run(fileURL: URL(fileURLWithPath: path))
+                    writeSelfTest("ACOUSTIC_MEASURE_OK: \(result)")
+                } catch {
+                    SelfTest.failed = true
+                    writeSelfTest("ACOUSTIC_MEASURE_FAILED: \(error.localizedDescription)")
+                }
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-systemaudio-timeout") {
             Task { @MainActor in
                 SelfTest.failed = !(await SystemAudioCapture.runStartTimeoutSelfTest())
