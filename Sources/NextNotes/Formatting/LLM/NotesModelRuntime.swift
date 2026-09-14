@@ -63,6 +63,10 @@ actor NotesModelRuntime {
     private var loadTask: Task<Void, Error>?
     /// Token for the current load in `ModelRuntimeManager`.
     private var runtimeGeneration: UInt64?
+    /// Actor methods re-enter while a generation awaits a scheduler checkpoint.
+    /// A pressure callback must not free the native context during that gap.
+    private var activeOperations = 0
+    private var deferredShutdown = false
 
     init(spec: ModelSpec, gpuLayers: Int32) {
         self.spec = spec
@@ -88,8 +92,12 @@ actor NotesModelRuntime {
     /// The owner performs both operations; the registry observes the unload and
     /// the fresh generation created by the subsequent load.
     func recover() async throws {
-        shutdown()
-        try await prepare()
+        try await withBackgroundLane { jobID in
+            // The lane waits for any generation using these pointers to finish.
+            // Calling shutdown() before the wait could free its sampler/context.
+            shutdownNow()
+            try await loadIfNeeded(schedulerJobID: jobID)
+        }
     }
 
     func countTokens(_ text: String) async throws -> Int {
@@ -288,6 +296,11 @@ actor NotesModelRuntime {
     private func withBackgroundLane<T>(
         _ body: (UUID) async throws -> T
     ) async throws -> T {
+        activeOperations += 1
+        defer {
+            activeOperations -= 1
+            if activeOperations == 0 && deferredShutdown { shutdownNow() }
+        }
         let jobID = await ComputeScheduler.shared.acquire(.background)
         do {
             let result = try await body(jobID)
@@ -301,13 +314,26 @@ actor NotesModelRuntime {
 
     /// Frees the weights and the context if nothing has used them for `interval`.
     func unloadIfIdle(after interval: TimeInterval = NotesModelRuntime.idleUnload) {
-        guard model != nil, Date().timeIntervalSince(lastUse) >= interval else { return }
+        guard activeOperations == 0, model != nil,
+              Date().timeIntervalSince(lastUse) >= interval else { return }
         shutdown()
         Log.llm.info("\(self.spec.displayName, privacy: .public) unloaded after idling")
     }
 
     /// Releases model and context. The process-wide backend belongs to `LlamaBackend`.
-    func shutdown() {
+    @discardableResult
+    func shutdown() -> Bool {
+        guard activeOperations == 0 else {
+            deferredShutdown = true
+            return false
+        }
+        let wasLoaded = model != nil
+        shutdownNow()
+        return wasLoaded
+    }
+
+    private func shutdownNow() {
+        deferredShutdown = false
         idleTask?.cancel()
         idleTask = nil
         if let runtimeGeneration {
@@ -333,6 +359,29 @@ actor NotesModelRuntime {
             vocabulary = nil
             trainedContext = 0
         }
+    }
+
+    /// Exercise the actor re-entrancy seam without loading a GGUF. The same
+    /// background lane and public shutdown path are used by real generation
+    /// and the memory-pressure guardian.
+    static func shutdownDeferralSelfTest() async -> Bool {
+        let runtime = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: 0)
+        let gate = NotesShutdownProbeGate()
+        let work = Task {
+            try? await runtime.withBackgroundLane { _ in await gate.park() }
+        }
+        for _ in 0..<50 {
+            if await gate.started { break }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        let started = await gate.started
+        var refused = false
+        if started { refused = !(await runtime.shutdown()) }
+        let deferred = await runtime.deferredShutdown
+        await gate.release()
+        _ = await work.result
+        let stillDeferred = await runtime.deferredShutdown
+        return started && refused && deferred && !stillDeferred
     }
 
     // MARK: - Prompt
@@ -540,5 +589,23 @@ actor NotesModelRuntime {
             guard !Task.isCancelled else { return }
             await self?.unloadIfIdle()
         }
+    }
+}
+
+private actor NotesShutdownProbeGate {
+    private(set) var started = false
+    private var released = false
+    private var waiter: CheckedContinuation<Void, Never>?
+
+    func park() async {
+        started = true
+        if released { return }
+        await withCheckedContinuation { waiter = $0 }
+    }
+
+    func release() {
+        released = true
+        waiter?.resume()
+        waiter = nil
     }
 }
