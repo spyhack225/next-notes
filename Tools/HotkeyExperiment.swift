@@ -83,6 +83,12 @@ private struct KeySourceStats {
     var releases = 0
     var open = false
     var events = 0
+    /// CGEvent provenance fields. NSEvent monitors do not expose their backing CGEvent,
+    /// so those entries remain empty. Keeping the values in the report makes it possible
+    /// to spot injected events without pretending that the experiment can prove hardware
+    /// provenance from a session-level event tap alone.
+    var sourcePIDs: Set<Int64> = []
+    var sourceStateIDs: Set<Int64> = []
 
     var complete: Bool { presses > 0 && releases > 0 && !open }
 }
@@ -135,14 +141,26 @@ private final class HotkeyExperiment {
 
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in
             Task { @MainActor [weak self] in
-                self?.record(source: .nseventGlobal, keyCode: Int64(event.keyCode), flags: UInt64(event.modifierFlags.rawValue))
+                self?.record(
+                    source: .nseventGlobal,
+                    keyCode: Int64(event.keyCode),
+                    flags: UInt64(event.modifierFlags.rawValue),
+                    sourcePID: nil,
+                    sourceStateID: nil
+                )
             }
         }
         write("CAPABILITY nsevent-global=\(globalMonitor == nil ? "unavailable" : "registered") note=global monitor observes other applications only")
 
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
             Task { @MainActor [weak self] in
-                self?.record(source: .nseventLocal, keyCode: Int64(event.keyCode), flags: UInt64(event.modifierFlags.rawValue))
+                self?.record(
+                    source: .nseventLocal,
+                    keyCode: Int64(event.keyCode),
+                    flags: UInt64(event.modifierFlags.rawValue),
+                    sourcePID: nil,
+                    sourceStateID: nil
+                )
             }
             return event
         }
@@ -169,8 +187,16 @@ private final class HotkeyExperiment {
                 guard type == .flagsChanged else { return Unmanaged.passUnretained(event) }
                 let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
                 let flags = UInt64(event.flags.rawValue)
+                let sourcePID = event.getIntegerValueField(.eventSourceUnixProcessID)
+                let sourceStateID = event.getIntegerValueField(.eventSourceStateID)
                 Task { @MainActor [weak context] in
-                    context?.owner?.record(source: .cgEventTap, keyCode: keyCode, flags: flags)
+                    context?.owner?.record(
+                        source: .cgEventTap,
+                        keyCode: keyCode,
+                        flags: flags,
+                        sourcePID: sourcePID,
+                        sourceStateID: sourceStateID
+                    )
                 }
                 // Pass-through is deliberate: this experiment cannot change keyboard input.
                 return Unmanaged.passUnretained(event)
@@ -190,22 +216,31 @@ private final class HotkeyExperiment {
         write("CAPABILITY cg-event-tap=registered mode=defaultTap-pass-through")
     }
 
-    private func record(source: EventSource, keyCode: Int64, flags: UInt64) {
+    private func record(
+        source: EventSource,
+        keyCode: Int64,
+        flags: UInt64,
+        sourcePID: Int64?,
+        sourceStateID: Int64?
+    ) {
         guard !didFinish, let key = configuration.keys.first(where: { $0.keyCode == keyCode }) else { return }
         let phase = phase(for: key, flags: flags, source: source)
         let deviceIndependentMask = UInt64(NSEvent.ModifierFlags.deviceIndependentFlagsMask.rawValue)
         let deviceIndependent = flags & deviceIndependentMask
         let deviceDependent = flags & ~deviceIndependentMask
+        let provenance = "sourcePID=\(sourcePID.map(String.init) ?? "unavailable") sourceStateID=\(sourceStateID.map(String.init) ?? "unavailable")"
         let focus = "frontmost=\(frontmostBundle) appActive=\(NSApp.isActive)"
         eventCount += 1
 
         guard phase != .unchanged else {
-            write("EVENT source=\(source.rawValue) key=\(key.rawValue) phase=unchanged keycode=\(keyCode) flagsRaw=0x\(String(flags, radix: 16)) deviceIndependent=0x\(String(deviceIndependent, radix: 16)) deviceDependent=0x\(String(deviceDependent, radix: 16)) \(focus)")
+            write("EVENT source=\(source.rawValue) key=\(key.rawValue) phase=unchanged keycode=\(keyCode) flagsRaw=0x\(String(flags, radix: 16)) deviceIndependent=0x\(String(deviceIndependent, radix: 16)) deviceDependent=0x\(String(deviceDependent, radix: 16)) \(provenance) \(focus)")
             return
         }
 
         var sourceStats = stats[source]?[key] ?? KeySourceStats()
         sourceStats.events += 1
+        if let sourcePID { sourceStats.sourcePIDs.insert(sourcePID) }
+        if let sourceStateID { sourceStats.sourceStateIDs.insert(sourceStateID) }
         switch phase {
         case .press:
             sourceStats.presses += 1
@@ -218,7 +253,7 @@ private final class HotkeyExperiment {
         }
         stats[source]?[key] = sourceStats
 
-        write("EVENT source=\(source.rawValue) key=\(key.rawValue) phase=\(phase.rawValue) keycode=\(keyCode) flagsRaw=0x\(String(flags, radix: 16)) deviceIndependent=0x\(String(deviceIndependent, radix: 16)) deviceDependent=0x\(String(deviceDependent, radix: 16)) \(focus)")
+        write("EVENT source=\(source.rawValue) key=\(key.rawValue) phase=\(phase.rawValue) keycode=\(keyCode) flagsRaw=0x\(String(flags, radix: 16)) deviceIndependent=0x\(String(deviceIndependent, radix: 16)) deviceDependent=0x\(String(deviceDependent, radix: 16)) \(provenance) \(focus)")
     }
 
     private func phase(for key: ExperimentKey, flags: UInt64, source: EventSource) -> EventPhase {
@@ -250,27 +285,27 @@ private final class HotkeyExperiment {
             let global = stats[.nseventGlobal]?[key] ?? KeySourceStats()
             let local = stats[.nseventLocal]?[key] ?? KeySourceStats()
             let cg = stats[.cgEventTap]?[key] ?? KeySourceStats()
-            write("RESULT key=\(key.rawValue) nseventGlobal=press:\(global.presses),release:\(global.releases),open:\(global.open) nseventLocal=press:\(local.presses),release:\(local.releases),open:\(local.open) cgEventTap=press:\(cg.presses),release:\(cg.releases),open:\(cg.open)")
+            write("RESULT key=\(key.rawValue) nseventGlobal=press:\(global.presses),release:\(global.releases),open:\(global.open) nseventLocal=press:\(local.presses),release:\(local.releases),open:\(local.open) cgEventTap=press:\(cg.presses),release:\(cg.releases),open:\(cg.open),sourcePIDs:\(format(cg.sourcePIDs)),sourceStateIDs:\(format(cg.sourceStateIDs))")
         }
 
         let tapComplete = stats[.cgEventTap] != nil && configuration.keys.allSatisfy { stats[.cgEventTap]?[$0]?.complete == true }
         let nseventComplete = configuration.keys.allSatisfy { key in
             [EventSource.nseventGlobal, .nseventLocal].contains { stats[$0]?[key]?.complete == true }
         }
-        let hasPhysicalEvents = eventCount > 0
+        let hasObservedEvents = eventCount > 0
         let verdict: String
-        if hasPhysicalEvents && tapComplete && nseventComplete {
-            verdict = "HOTKEY_EXPERIMENT_OK reason=complete-press-release-observed-through-both-APIs"
+        if hasObservedEvents && tapComplete && nseventComplete {
+            verdict = "HOTKEY_EXPERIMENT_OK reason=complete-key-press-release-observed-through-both-APIs; hardware-provenance-requires-human-repeat"
             passed = true
-        } else if !hasPhysicalEvents {
-            verdict = "HOTKEY_EXPERIMENT_FAILED reason=NO_PHYSICAL_EVENTS; no requested key event was observed"
+        } else if !hasObservedEvents {
+            verdict = "HOTKEY_EXPERIMENT_FAILED reason=NO_KEY_EVENTS; no requested key event was observed"
         } else if !tapComplete {
             verdict = "HOTKEY_EXPERIMENT_FAILED reason=CG_EVENT_TAP_INCOMPLETE; check Accessibility permission and repeat the physical cycles"
         } else {
             verdict = "HOTKEY_EXPERIMENT_FAILED reason=NSEVENT_INCOMPLETE; NSEvent did not observe a complete cycle for every requested key"
         }
         write("LIMITS missed releases are reported as open=true; a release that never reaches either observer cannot be distinguished from a key still held")
-        write("LIMITS focus is a snapshot of NSWorkspace.frontmostApplication at delivery time; launch behavior and permissions still require a person to repeat this from the intended app context")
+        write("LIMITS focus is a snapshot of NSWorkspace.frontmostApplication at delivery time; source PID/state ID are diagnostic provenance fields, not proof of a physical key press. Hardware acceptance still requires a person to repeat this from the intended app context")
         write(verdict)
 
         if let outputPath = configuration.outputPath {
@@ -308,6 +343,10 @@ private final class HotkeyExperiment {
     private func write(_ line: String) {
         lines.append(line)
         print(line)
+    }
+
+    private func format(_ values: Set<Int64>) -> String {
+        values.sorted().map(String.init).joined(separator: ",")
     }
 }
 

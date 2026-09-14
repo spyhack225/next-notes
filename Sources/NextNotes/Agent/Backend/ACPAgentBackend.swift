@@ -6,6 +6,20 @@ import Foundation
 /// A CLI that never answers `initialize` is not ACP — we do not call that a session or
 /// silently reinterpret it as an opaque prompt command.
 struct ACPAgentBackend: AgentBackend {
+    /// The provider names are stable app settings. The process behind each name is
+    /// resolved here so selecting Codex or Claude can never accidentally launch their
+    /// ordinary, non-ACP CLIs. The adapter versions are pinned in the install guidance
+    /// because a moving package would make a release's protocol contract change beneath
+    /// the user.
+    static let codexAdapterPackage = "@agentclientprotocol/codex-acp@1.11.0"
+    static let claudeAdapterPackage = "@agentclientprotocol/claude-agent-acp@0.76.0"
+
+    struct Invocation: Equatable, Sendable {
+        let command: String
+        let arguments: [String]
+        let summary: String
+    }
+
     func describe() async -> AgentBackendDescription {
         AgentBackendDescription(
             id: AgentBackendKind.acp.rawValue,
@@ -18,10 +32,11 @@ struct ACPAgentBackend: AgentBackend {
 
     func health() async -> String {
         let preferred = await MainActor.run { Settings.shared.acpBackendID }
-        if let found = Self.installedCLI(preferring: preferred) {
-            return "ready (\(found))"
+        if let found = Self.installedCLI(preferring: preferred),
+           let invocation = Self.invocation(for: found) {
+            return "ready (\(found) · \(invocation.summary))"
         }
-        return "unavailable — no ACP agent is installed"
+        return "unavailable — \(Self.installationGuidance(for: preferred))"
     }
 
     func submit(_ task: AgentTask) async throws -> AgentTaskOutcome {
@@ -39,20 +54,23 @@ struct ACPAgentBackend: AgentBackend {
         }
         guard let cli = Self.installedCLI(preferring: preferred) else {
             throw AgentError.backendUnavailable(
-                "No ACP coding agent is installed. Install Claude Code, Codex or Qwen Code, "
-                    + "then pick it in Settings ▸ Agent."
+                Self.installationGuidance(for: preferred)
             )
+        }
+        guard let invocation = Self.invocation(for: cli) else {
+            throw AgentError.backendUnavailable(Self.installationGuidance(for: cli))
         }
         let directory = task.contextReferences.first(where: { $0.hasPrefix("project://") })
             .map { String($0.dropFirst("project://".count)) }
 
         do {
             return try await runSessionWithReceipt(
-                command: "/usr/bin/env",
-                arguments: [cli],
+                command: invocation.command,
+                arguments: invocation.arguments,
                 directory: directory,
                 task: task,
-                approvePermissions: false
+                approvePermissions: false,
+                compatibilityCLI: cli
             )
         } catch is CancellationError {
             throw CancellationError()
@@ -91,15 +109,157 @@ struct ACPAgentBackend: AgentBackend {
     }
 
     static func installedCLI(preferring preferred: String = "") -> String? {
-        let candidates = [preferred, "claude", "codex", "qwen", "opencode", "kimi"]
+        // An explicit setting is a choice, not a hint. Falling through to another
+        // provider would hide a missing adapter and could run the wrong account.
+        let candidates = preferred.isEmpty
+            ? ["claude", "codex", "qwen", "opencode", "kimi"]
+            : [preferred]
         for name in candidates where !name.isEmpty {
-            if which(name) != nil { return name }
+            if invocation(for: name) != nil { return name }
         }
         return nil
     }
 
     static func isOnPATH(_ name: String) -> Bool {
-        !name.isEmpty && which(name) != nil
+        !name.isEmpty && invocation(for: name) != nil
+    }
+
+    /// Resolve a provider name into an ACP-speaking process. A configured path or
+    /// executable name remains a direct custom ACP command; only the built-in names
+    /// receive provider-specific adapter arguments.
+    static func invocation(for name: String) -> Invocation? {
+        guard !name.isEmpty else { return nil }
+        switch name {
+        case "codex":
+            if let adapter = which("codex-acp") {
+                return Invocation(
+                    command: "/usr/bin/env", arguments: [adapter],
+                    summary: "codex-acp"
+                )
+            }
+            return nil
+        case "claude":
+            if let adapter = which("claude-agent-acp") {
+                return Invocation(
+                    command: "/usr/bin/env", arguments: [adapter],
+                    summary: "claude-agent-acp"
+                )
+            }
+            return nil
+        case "qwen":
+            guard let qwen = which("qwen") else { return nil }
+            return Invocation(
+                command: "/usr/bin/env", arguments: [qwen, "--acp"],
+                summary: "qwen --acp"
+            )
+        case "opencode":
+            guard let opencode = which("opencode") else { return nil }
+            return Invocation(
+                command: "/usr/bin/env", arguments: [opencode, "acp"],
+                summary: "opencode acp"
+            )
+        default:
+            guard let path = resolvedCLIPath(name) else { return nil }
+            return Invocation(
+                command: "/usr/bin/env", arguments: [path],
+                summary: path
+            )
+        }
+    }
+
+    static func installationGuidance(for name: String) -> String {
+        switch name {
+        case "codex":
+            return "Codex ACP is unavailable. Install \(codexAdapterPackage) globally, then retry."
+        case "claude":
+            return "Claude ACP is unavailable. Install \(claudeAdapterPackage) globally, then retry."
+        case "qwen":
+            return "Qwen Code is unavailable. Install Qwen Code with its --acp mode, then retry."
+        case "opencode":
+            return "OpenCode ACP is unavailable. Install OpenCode with its acp subcommand, then retry."
+        case "":
+            return "Install an ACP adapter for Claude Code or Codex, then pick it in Settings ▸ Agent."
+        default:
+            return "The configured ACP command \(name) is unavailable. Install it or choose another in Settings ▸ Agent."
+        }
+    }
+
+    static func statusText(for preferred: String) -> String {
+        guard let provider = installedCLI(preferring: preferred),
+              let invocation = invocation(for: provider) else {
+            return installationGuidance(for: preferred)
+        }
+        return "Ready · \(provider) via \(invocation.summary)"
+    }
+
+    /// Returns a compact, deterministic contract check for the built-in provider map.
+    /// It runs in the live ACP selftest without downloading packages.
+    static func resolutionSelfTest() -> [String] {
+        var failures: [String] = []
+        if let invocation = invocation(for: "codex"),
+           URL(fileURLWithPath: invocation.arguments.last ?? "").lastPathComponent != "codex-acp" {
+            failures.append("Codex does not resolve to the codex-acp executable")
+        }
+        if let invocation = invocation(for: "claude"),
+           URL(fileURLWithPath: invocation.arguments.last ?? "").lastPathComponent != "claude-agent-acp" {
+            failures.append("Claude does not resolve to the claude-agent-acp executable")
+        }
+        if let qwen = invocation(for: "qwen"),
+           qwen.arguments.count != 2 || !qwen.arguments.contains("--acp") {
+            failures.append("Qwen resolution omitted --acp")
+        }
+        if let opencode = invocation(for: "opencode"),
+           opencode.arguments.count != 2 || !opencode.arguments.contains("acp") {
+            failures.append("OpenCode resolution omitted acp")
+        }
+        return failures
+    }
+
+    /// Live provider smoke test for support and release acceptance. It uses a temporary
+    /// directory and a no-tool prompt; if no official adapter can be resolved, it fails
+    /// instead of passing through the ordinary provider CLI.
+    static func runLiveProviderSelfTest() async -> [String] {
+        let providers = ["codex", "claude"]
+        var failures: [String] = []
+        var exercised = 0
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("nextnotes-acp-live-\(UUID().uuidString)")
+        do {
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: root) }
+            for provider in providers {
+                guard let invocation = invocation(for: provider) else { continue }
+                exercised += 1
+                let session = ACPSession()
+                do {
+                    try await session.start(
+                        command: invocation.command,
+                        arguments: invocation.arguments,
+                        directory: root.path,
+                        taskID: "selftest-acp-live-\(provider)",
+                        approvePermissions: false
+                    )
+                    let reply = try await session.prompt(
+                        "Reply exactly NEXTNOTES_ACP_\(provider.uppercased())_OK. "
+                            + "Do not use tools, edit files, or access the network."
+                    )
+                    let initialized = await session.didInitialize
+                    let sessionID = await session.sessionID ?? ""
+                    if !initialized || sessionID.isEmpty || !reply.contains("NEXTNOTES_ACP_\(provider.uppercased())_OK") {
+                        failures.append("\(provider) adapter completed without a valid ACP reply")
+                    }
+                } catch {
+                    failures.append("\(provider) adapter: \(error.localizedDescription)")
+                }
+                await session.close()
+            }
+        } catch {
+            failures.append("could not create isolated ACP directory: \(error.localizedDescription)")
+        }
+        if exercised == 0 {
+            failures.append("no official Codex or Claude ACP adapter is available")
+        }
+        return failures
     }
 
     private func runSession(
@@ -184,7 +344,8 @@ struct ACPAgentBackend: AgentBackend {
         arguments: [String],
         directory: String? = nil,
         task: AgentTask,
-        approvePermissions: Bool
+        approvePermissions: Bool,
+        compatibilityCLI: String? = nil
     ) async throws -> AgentTaskOutcome {
         let tool = AgentTool.native(
             namespace: .mcp,
@@ -245,7 +406,7 @@ struct ACPAgentBackend: AgentBackend {
                         throw AgentError.acpHandshakeUnavailable(
                             Self.compatibilityRequest(
                                 task: task,
-                                cli: arguments.last ?? "",
+                                cli: compatibilityCLI ?? arguments.last ?? "",
                                 directory: directory
                             )
                         )
@@ -290,6 +451,9 @@ struct ACPAgentBackend: AgentBackend {
     static func resolvedCLIPath(_ name: String) -> String? { which(name) }
 
     private static func which(_ name: String) -> String? {
+        if name.contains("/") {
+            return FileManager.default.isExecutableFile(atPath: name) ? name : nil
+        }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
         process.arguments = [name]
@@ -298,10 +462,24 @@ struct ACPAgentBackend: AgentBackend {
         process.standardError = Pipe()
         do { try process.run() } catch { return nil }
         process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return nil }
-        let path = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return path.isEmpty ? nil : path
+        if process.terminationStatus == 0 {
+            let path = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !path.isEmpty { return path }
+        }
+        // LaunchServices does not inherit the interactive shell's PATH. Homebrew's
+        // global npm prefix is therefore searched explicitly so the installed official
+        // adapters work when Next Notes is launched from Finder or `open`.
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let directories = [
+            "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin",
+            "\(home)/.local/bin", "\(home)/Library/pnpm", "\(home)/.opencode/bin",
+        ]
+        for directory in directories {
+            let candidate = URL(fileURLWithPath: directory).appendingPathComponent(name).path
+            if FileManager.default.isExecutableFile(atPath: candidate) { return candidate }
+        }
+        return nil
     }
 }
 

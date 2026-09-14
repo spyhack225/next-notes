@@ -190,6 +190,9 @@ struct AgentSettingsTab: View {
                     Text("Qwen Code").tag("qwen")
                     Text("OpenCode").tag("opencode")
                 }
+                Text(ACPAgentBackend.statusText(for: settings.acpBackendID))
+                    .font(.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
             }
             if let last = harness.lastChoice {
                 LabeledContent("Last turn") {
@@ -205,7 +208,9 @@ struct AgentSettingsTab: View {
                          + "The backend is the default when there is no past request to learn "
                          + "from. Say “use Claude Code” or “do it locally” to pick for one "
                          + "turn. Calendar, mail, Drive, Docs, click and type stay on this "
-                         + "Mac unless you name a coding agent.")
+                         + "Mac unless you name a coding agent. Claude Code and Codex use "
+                         + "their official ACP adapter; the adapter must be installed before "
+                         + "the provider is marked ready.")
         }
     }
 

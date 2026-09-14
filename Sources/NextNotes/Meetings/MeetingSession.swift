@@ -166,14 +166,28 @@ final class MeetingSession {
         // The tap is the part that can be refused. Losing it costs the other half of the
         // conversation, not the recording.
         do {
-            try systemCapture.start(
+            try await systemCapture.start(
                 outputFormat: format,
                 onBuffer: { chunk in systemContinuation.yield(AudioConversion.samples(of: chunk.buffer)) },
                 onLevel: { [weak self] level in
                     Task { @MainActor in self?.systemLevel = level }
                 }
             )
+            // `stop()` can run while the bounded system-audio startup is suspended. A late
+            // successful HAL start belongs to that cancelled session and must be torn down
+            // instead of resurrecting its clock/model work.
+            guard !isStopping, meeting.status == .recording else {
+                systemCapture.stop()
+                throw MeetingError.startCancelled
+            }
         } catch {
+            if case MeetingError.startCancelled = error {
+                throw error
+            }
+            if isStopping || meeting.status != .recording {
+                systemCapture.stop()
+                throw MeetingError.startCancelled
+            }
             systemAudioProblem = error.localizedDescription
             Log.systemAudio.error("meeting continues on the microphone alone: \(error.localizedDescription, privacy: .public)")
         }
@@ -376,6 +390,7 @@ enum MeetingError: LocalizedError {
     case microphoneDenied
     case noAudioFormat
     case alreadyRecording
+    case startCancelled
 
     var errorDescription: String? {
         switch self {
@@ -385,6 +400,8 @@ enum MeetingError: LocalizedError {
             "No compatible audio format available for meeting capture."
         case .alreadyRecording:
             "A meeting is already being recorded."
+        case .startCancelled:
+            "Meeting recording startup was cancelled."
         }
     }
 }

@@ -143,7 +143,11 @@ final class ModelResidencyGuardian: @unchecked Sendable {
             switch model {
             case .notes:
                 await NotesModelRuntime.shared.shutdown()
-                _ = await ModelRuntimeManager.shared.markUnloaded(.notes)
+                // `shutdown()` records the unload with the runtime generation it
+                // actually released. Do not follow it with an unguarded registry
+                // write: a replacement load may begin while the actor is suspended,
+                // and a nil-generation mark would incorrectly turn that newer
+                // `.loading`/`.ready` entry back into `.unloaded`.
                 Log.llm.info("residency: unloaded notes under memory pressure")
             case .diarization:
                 await MeetingDiarizer.shared.unload()

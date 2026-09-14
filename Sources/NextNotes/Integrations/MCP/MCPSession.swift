@@ -16,6 +16,10 @@ actor MCPSession {
 
     private var client: JSONRPCStdioClient?
     private var http: MCPHTTPSession?
+    /// JSON Schema types are retained so the string based argument editor can still
+    /// produce the JSON values an external server validates (for example, numbers for
+    /// `get-sum` in the official Everything server).
+    private var argumentTypes: [String: [String: String]] = [:]
 
     func connect(_ server: MCPServerConfig) async throws {
         switch server.transport {
@@ -41,6 +45,7 @@ actor MCPSession {
         for tool in raw {
             guard let name = tool["name"] as? String else { continue }
             rememberAnnotations(name: name, raw: tool)
+            rememberArgumentTypes(name: name, raw: tool["inputSchema"] as? [String: Any])
             if !allowlist.isEmpty, !allowlist.contains(name) { continue }
             let schema = tool["inputSchema"] as? [String: Any]
             listed.append(MCPToolListing(
@@ -57,7 +62,12 @@ actor MCPSession {
         if !allowlist.isEmpty, !allowlist.contains(name) {
             throw AgentError.permissionDenied("\(name) is not on this server's allowlist.")
         }
-        let params: [String: Any] = ["name": name, "arguments": arguments]
+        let convertedArguments = try typedArguments(arguments, for: argumentTypes[name] ?? [:])
+        let convertedArgumentsJSON = try JSONSerialization.data(withJSONObject: convertedArguments)
+        let params: [String: Any] = [
+            "name": name,
+            "arguments": convertedArguments,
+        ]
         if let client {
             let data = try await client.request(method: "tools/call", params: params)
             let result = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
@@ -67,7 +77,7 @@ actor MCPSession {
             return String(decoding: data, as: UTF8.self)
         }
         if let http {
-            let result = try await http.call(name: name, arguments: arguments)
+            let result = try await http.call(name: name, argumentsJSON: convertedArgumentsJSON)
             if let content = result["content"] as? [[String: Any]] {
                 return content.compactMap { $0["text"] as? String }.joined(separator: "\n")
             }
@@ -119,6 +129,66 @@ actor MCPSession {
         }
         annotations[name] = mapped
     }
+
+    private func rememberArgumentTypes(name: String, raw: [String: Any]?) {
+        guard let properties = raw?["properties"] as? [String: Any] else { return }
+        var types: [String: String] = [:]
+        for (parameter, value) in properties {
+            guard let spec = value as? [String: Any] else { continue }
+            if let type = spec["type"] as? String {
+                types[parameter] = type.lowercased()
+            } else if let alternatives = spec["type"] as? [String],
+                      let type = alternatives.first(where: { $0.lowercased() != "null" }) {
+                types[parameter] = type.lowercased()
+            }
+        }
+        argumentTypes[name] = types
+    }
+
+    private func typedArguments(
+        _ arguments: [String: String],
+        for types: [String: String]
+    ) throws -> [String: Any] {
+        var converted: [String: Any] = [:]
+        for (name, value) in arguments {
+            switch types[name] {
+            case "integer":
+                guard let number = Int(value.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+                    throw JSONRPCError(message: "MCP argument \(name) must be an integer.")
+                }
+                converted[name] = number
+            case "number":
+                guard let number = Double(value.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+                    throw JSONRPCError(message: "MCP argument \(name) must be a number.")
+                }
+                converted[name] = number
+            case "boolean":
+                switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+                case "true", "1", "yes": converted[name] = true
+                case "false", "0", "no": converted[name] = false
+                default:
+                    throw JSONRPCError(message: "MCP argument \(name) must be true or false.")
+                }
+            case "array":
+                guard let data = value.data(using: .utf8),
+                      let decoded = try? JSONSerialization.jsonObject(with: data),
+                      let array = decoded as? [Any] else {
+                    throw JSONRPCError(message: "MCP argument \(name) must be a JSON array.")
+                }
+                converted[name] = array
+            case "object":
+                guard let data = value.data(using: .utf8),
+                      let decoded = try? JSONSerialization.jsonObject(with: data),
+                      let object = decoded as? [String: Any] else {
+                    throw JSONRPCError(message: "MCP argument \(name) must be a JSON object.")
+                }
+                converted[name] = object
+            default:
+                converted[name] = value
+            }
+        }
+        return converted
+    }
 }
 
 /// Streamable HTTP: initialize, then every later call carries `Mcp-Session-Id`.
@@ -145,7 +215,9 @@ final class MCPHTTPSession: @unchecked Sendable {
         guard MCPJSONRPC.parseResult(data) != nil else {
             throw AgentError.backendUnavailable("\(server.name) initialize failed.")
         }
-        let headerID = headers["Mcp-Session-Id"] ?? headers["mcp-session-id"] ?? ""
+        let headerID = headers.first {
+            $0.key.caseInsensitiveCompare("Mcp-Session-Id") == .orderedSame
+        }?.value ?? ""
         let body = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
         let bodyID = (body?["result"] as? [String: Any])?["sessionId"] as? String ?? ""
         sessionID = headerID.isEmpty ? bodyID : headerID
@@ -153,7 +225,7 @@ final class MCPHTTPSession: @unchecked Sendable {
             throw AgentError.backendUnavailable("\(server.name) returned no Mcp-Session-Id.")
         }
         _ = try await post(
-            MCPJSONRPC.request(id: 2, method: "notifications/initialized"),
+            MCPJSONRPC.notification(method: "notifications/initialized"),
             sessionID: sessionID
         )
         return sessionID
@@ -167,7 +239,10 @@ final class MCPHTTPSession: @unchecked Sendable {
         return (MCPJSONRPC.parseResult(data)?["tools"] as? [[String: Any]]) ?? []
     }
 
-    func call(name: String, arguments: [String: String]) async throws -> [String: Any] {
+    func call(name: String, argumentsJSON: Data) async throws -> [String: Any] {
+        guard let arguments = try JSONSerialization.jsonObject(with: argumentsJSON) as? [String: Any] else {
+            throw AgentError.backendUnavailable("MCP arguments were not a JSON object.")
+        }
         let (data, _) = try await post(
             MCPJSONRPC.request(
                 id: 4,
@@ -190,6 +265,10 @@ final class MCPHTTPSession: @unchecked Sendable {
         request.httpMethod = "POST"
         request.httpBody = body
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Streamable HTTP servers may answer with JSON or an SSE event stream. The
+        // protocol requires advertising both; omitting text/event-stream makes the
+        // official reference server reject the request with 406.
+        request.setValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
         if !sessionID.isEmpty {
             request.setValue(sessionID, forHTTPHeaderField: "Mcp-Session-Id")
         }
@@ -206,6 +285,46 @@ final class MCPHTTPSession: @unchecked Sendable {
                 headers[String(describing: key)] = String(describing: value)
             }
         }
-        return (data, headers)
+        let requestID = (try? JSONSerialization.jsonObject(with: body))
+            .flatMap { $0 as? [String: Any] }?["id"] as? Int
+        return (Self.responseEnvelope(from: data, matching: requestID), headers)
+    }
+
+    /// Streamable HTTP commonly wraps a JSON-RPC response in one `message` SSE event.
+    /// Keep the JSON path untouched for servers that answer directly with application/json.
+    private static func responseEnvelope(from data: Data, matching requestID: Int?) -> Data {
+        guard let text = String(data: data, encoding: .utf8),
+              text.contains("data:") else {
+            return data
+        }
+        var payloads: [String] = []
+        var dataLines: [String] = []
+        for rawLine in text.components(separatedBy: "\n") {
+            let line = rawLine.hasSuffix("\r") ? String(rawLine.dropLast()) : rawLine
+            if line.isEmpty {
+                if !dataLines.isEmpty {
+                    payloads.append(dataLines.joined(separator: "\n"))
+                    dataLines.removeAll(keepingCapacity: true)
+                }
+                continue
+            }
+            let value = line.trimmingCharacters(in: .whitespaces)
+            if value.hasPrefix("data:") {
+                dataLines.append(String(value.dropFirst(5)).trimmingCharacters(in: .whitespaces))
+            }
+        }
+        if !dataLines.isEmpty { payloads.append(dataLines.joined(separator: "\n")) }
+        for payload in payloads {
+            guard let payloadData = payload.data(using: .utf8),
+                  let object = try? JSONSerialization.jsonObject(with: payloadData),
+                  let envelope = object as? [String: Any] else { continue }
+            if let requestID,
+               let responseID = envelope["id"] as? Int,
+               responseID != requestID {
+                continue
+            }
+            return payloadData
+        }
+        return data
     }
 }

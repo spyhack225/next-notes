@@ -261,6 +261,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runSystemAudioSelfTest()
             return true
         }
+        if arguments.contains("--selftest-systemaudio-timeout") {
+            Task { @MainActor in
+                SelfTest.failed = !(await SystemAudioCapture.runStartTimeoutSelfTest())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-calendar") {
             runCalendarSelfTest()
             return true
@@ -364,6 +371,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-acp") {
             runACPSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-acp-live") {
+            runACPProviderSelfTest()
             return true
         }
         if arguments.contains("--selftest-activity") {
@@ -1049,7 +1060,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             let meter = SelfTestMeter()
             do {
-                try capture.start(
+                try await capture.start(
                     outputFormat: format,
                     onBuffer: { chunk in meter.add(AudioConversion.samples(of: chunk.buffer)) },
                     onLevel: { _ in }
@@ -3571,6 +3582,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             writeSelfTest(failures.isEmpty
                           ? "ACP_OK: initialize, session, subscribe and permission relay hold"
                           : "ACP_FAILED: \(failures.count) rule(s) wrong")
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// Exercises the real pinned Codex / Claude ACP adapters when they are installed.
+    /// Unlike the fixture test above, this intentionally fails when no provider adapter
+    /// can be resolved, so a release check cannot mistake a protocol fixture for a live
+    /// provider integration.
+    private func runACPProviderSelfTest() {
+        Task { @MainActor in
+            let resolutionFailures = ACPAgentBackend.resolutionSelfTest()
+            if !resolutionFailures.isEmpty {
+                for failure in resolutionFailures { writeSelfTest("  ACP_LIVE_WRONG: \(failure)") }
+                SelfTest.failed = true
+                writeSelfTest("ACP_LIVE_FAILED: provider resolution")
+                NSApp.terminate(nil)
+                return
+            }
+            let failures = await ACPAgentBackend.runLiveProviderSelfTest()
+            for failure in failures { writeSelfTest("  ACP_LIVE_WRONG: \(failure)") }
+            SelfTest.failed = !failures.isEmpty
+            writeSelfTest(failures.isEmpty
+                          ? "ACP_LIVE_OK: official adapter initialize, session/new and prompt hold"
+                          : "ACP_LIVE_FAILED: \(failures.count) provider check(s) wrong")
             NSApp.terminate(nil)
         }
     }
