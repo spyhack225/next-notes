@@ -105,7 +105,7 @@ extension RealtimeAgent {
             note: ""
         )
         let intent = AgentTurnIntent.resolve(text, choice: local)
-        AgentSession.shared.recordUser(text)
+        AgentSession.shared.recordUser(text, source: source)
         switch intent {
         case .calendar, .mail, .files, .drive, .computer, .toolLoop:
             let reply = await perform(intent)

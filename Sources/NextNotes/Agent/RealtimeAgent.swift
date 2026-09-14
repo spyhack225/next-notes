@@ -82,7 +82,7 @@ final class RealtimeAgent {
                 replyTrace.end(note: "superseded")
                 return AgentTurn(reply: lastReply, delegated: false)
             }
-            AgentSession.shared.recordUser(text)
+            AgentSession.shared.recordUser(text, source: source)
             replyTrace.end(note: "acp-cancel")
             return conclude(mine, "Cancelled.", route: "acp-cancel")
         case .finished(let turn):
@@ -117,7 +117,7 @@ final class RealtimeAgent {
             return AgentTurn(reply: lastReply, delegated: false)
         }
         AgentAuditLog.shared.record(kind: .request, title: String(text.prefix(300)), detail: source.rawValue)
-        AgentSession.shared.recordUser(text)
+        AgentSession.shared.recordUser(text, source: source)
         let intent = AgentTurnIntent.resolve(
             text, choice: choice,
             hasConversationContext: AgentSession.shared.hasPriorAssistantTurn
@@ -593,6 +593,8 @@ final class AgentSession {
         let text: String
         var contextKind: String? = nil
         var at = Date()
+        /// Nil for conversations saved before input sources were recorded.
+        var source: String? = nil
     }
 
     private static let maxMessages = 120
@@ -629,11 +631,11 @@ final class AgentSession {
         return selected.reversed().joined(separator: "\n\n")
     }
 
-    func recordUser(_ text: String) {
+    func recordUser(_ text: String, source: AgentUtteranceSource? = nil) {
         if lastSuppressedVoice?.text != Self.normalized(text) {
             lastSuppressedVoice = nil
         }
-        append(Message(role: "user", text: String(text.prefix(Self.maxStoredCharacters))))
+        append(Message(role: "user", text: String(text.prefix(Self.maxStoredCharacters)), source: source?.rawValue))
     }
 
     func recordAssistant(_ text: String, contextKind: String? = nil) {
@@ -710,15 +712,18 @@ final class AgentSession {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("nextnotes-agent-session-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: url) }
-        let sample = [Message(
-            role: "assistant", text: "The budget is 42.", contextKind: "files"
-        )]
+        let sample = [
+            Message(role: "user", text: "What's today?", source: "text"),
+            Message(role: "assistant", text: "The budget is 42.", contextKind: "files")
+        ]
         do {
             try save(sample, to: url)
             let loaded = load(from: url)
-            return loaded.count == 1 && loaded[0].id == sample[0].id
-                && loaded[0].text == sample[0].text
-                && loaded[0].contextKind == "files"
+            return loaded.count == 2 && loaded[0].id == sample[0].id
+                && loaded[0].source == "text"
+                && loaded[1].text == sample[1].text
+                && loaded[1].contextKind == "files"
+                && loaded[1].source == nil
         } catch { return false }
     }
 }
