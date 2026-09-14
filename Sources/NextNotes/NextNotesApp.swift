@@ -520,6 +520,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-tool-awareness") {
+            Task { @MainActor in
+                SelfTest.failed = !(await RealtimeAgentToolLoopSelfTest.runToolAwareness())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-acp-confirm") {
             SelfTest.failed = !ACPConfirmation.runSelfTest()
             NSApp.terminate(nil)
