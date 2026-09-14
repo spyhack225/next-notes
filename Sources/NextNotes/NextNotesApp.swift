@@ -4071,10 +4071,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// is how you read one back.
     private func writeSelfTest(_ line: String) {
         if line.split(whereSeparator: \.isNewline).contains(where: { part in
-            part.trimmingCharacters(in: .whitespaces).range(
-                of: #"^[A-Z][A-Z0-9_]*(?:_FAILED|_SILENT|_TIMEOUT|_MISSING)(?::|\b)"#,
-                options: .regularExpression
-            ) != nil
+            let trimmed = part.trimmingCharacters(in: .whitespaces)
+            let marker = trimmed.prefix {
+                $0.isASCII && ($0.isUppercase || $0.isNumber || $0 == "_")
+            }
+            guard marker.first?.isUppercase == true,
+                  ["_FAILED", "_SILENT", "_TIMEOUT", "_MISSING"].contains(where: marker.hasSuffix)
+            else { return false }
+            let following = trimmed.dropFirst(marker.count).first
+            guard let following else { return true }
+            return following == ":" || !(following.isLetter || following.isNumber || following == "_")
         }) {
             SelfTest.failed = true
         }
