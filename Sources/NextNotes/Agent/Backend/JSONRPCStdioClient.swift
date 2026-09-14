@@ -12,11 +12,17 @@ final class JSONRPCStdioClient: @unchecked Sendable {
     private let stdin: Pipe
     private let stdout: Pipe
     private let lock = NSLock()
+    /// JSON-RPC frames share one stdin stream. Keep writes separate from `lock`, since
+    /// ingest can synchronously complete a request while a frame is being emitted.
+    private let writeLock = NSLock()
     private var buffer = Data()
     private var nextID = 1
     private var pending: [Int: CheckedContinuation<Data, Error>] = [:]
     private var incomingHandler: (@Sendable ([String: String]) async -> [String: String])?
     private var notificationHandler: (@Sendable ([String: String]) async -> Void)?
+    /// Preserve wire order between notifications and the response that completes a
+    /// request. ACP commonly emits its final message immediately before end_turn.
+    private var notificationTail: Task<Void, Never>?
     private var closed = false
 
     init(command: String, arguments: [String], directory: String? = nil) throws {
@@ -67,16 +73,25 @@ final class JSONRPCStdioClient: @unchecked Sendable {
             nextID += 1
             return value
         }
-        try write([
-            "jsonrpc": "2.0",
-            "id": id,
-            "method": method,
-            "params": params,
-        ])
         return try await withCheckedThrowingContinuation { continuation in
             lock.lock()
             pending[id] = continuation
             lock.unlock()
+            do {
+                // Register before writing. A local stdio peer can answer synchronously;
+                // writing first lets its response race the pending-table insertion and
+                // leaves the request waiting for the timeout despite a valid reply.
+                try write([
+                    "jsonrpc": "2.0",
+                    "id": id,
+                    "method": method,
+                    "params": params,
+                ])
+            } catch {
+                let failed = lock.withLock { pending.removeValue(forKey: id) }
+                failed?.resume(throwing: error)
+                return
+            }
             DispatchQueue.global().asyncAfter(deadline: .now() + timeout) { [weak self] in
                 self?.fail(id, JSONRPCError(message: "JSON-RPC \(method) timed out."))
             }
@@ -108,7 +123,9 @@ final class JSONRPCStdioClient: @unchecked Sendable {
         lock.unlock()
         guard !already else { return }
         stdout.fileHandleForReading.readabilityHandler = nil
+        writeLock.lock()
         try? stdin.fileHandleForWriting.close()
+        writeLock.unlock()
         process.terminate()
         for (_, continuation) in leftover {
             continuation.resume(throwing: JSONRPCError(message: "Session closed."))
@@ -125,6 +142,8 @@ final class JSONRPCStdioClient: @unchecked Sendable {
         }
         var line = data
         line.append(contentsOf: [UInt8(10)])
+        writeLock.lock()
+        defer { writeLock.unlock() }
         try stdin.fileHandleForWriting.write(contentsOf: line)
     }
 
@@ -169,14 +188,26 @@ final class JSONRPCStdioClient: @unchecked Sendable {
 
     private func dispatch(_ message: [String: Any]) {
         if let id = Self.intID(message["id"]), message["method"] == nil {
-            let continuation = lock.withLock { pending.removeValue(forKey: id) }
+            let (continuation, precedingNotifications) = lock.withLock {
+                (pending.removeValue(forKey: id), notificationTail)
+            }
             if let error = message["error"] as? [String: Any] {
-                continuation?.resume(throwing: JSONRPCError(message: String(describing: error["message"] ?? error)))
+                let failure = JSONRPCError(message: String(describing: error["message"] ?? error))
+                Task {
+                    await precedingNotifications?.value
+                    continuation?.resume(throwing: failure)
+                }
             } else if let result = message["result"] {
                 let data = (try? JSONSerialization.data(withJSONObject: result)) ?? Data()
-                continuation?.resume(returning: data)
+                Task {
+                    await precedingNotifications?.value
+                    continuation?.resume(returning: data)
+                }
             } else {
-                continuation?.resume(returning: Data("{}".utf8))
+                Task {
+                    await precedingNotifications?.value
+                    continuation?.resume(returning: Data("{}".utf8))
+                }
             }
             return
         }
@@ -194,9 +225,15 @@ final class JSONRPCStdioClient: @unchecked Sendable {
         }
 
         if message["method"] != nil {
-            let handler = lock.withLock { notificationHandler }
             let flat = Self.flat(message)
-            Task { await handler?(flat) }
+            lock.lock()
+            let preceding = notificationTail
+            let handler = notificationHandler
+            notificationTail = Task {
+                await preceding?.value
+                await handler?(flat)
+            }
+            lock.unlock()
         }
     }
 
@@ -222,6 +259,11 @@ final class JSONRPCStdioClient: @unchecked Sendable {
             if let text = item as? String {
                 result[key] = text
             } else if let nested = item as? [String: Any] {
+                if key == "params",
+                   let encoded = try? JSONSerialization.data(withJSONObject: nested),
+                   let json = String(data: encoded, encoding: .utf8) {
+                    result["paramsJSON"] = json
+                }
                 let update = (nested["update"] as? [String: Any]) ?? nested
                 if let title = update["title"] as? String { result["title"] = title }
                 if let text = (update["content"] as? [String: Any])?["text"] as? String {

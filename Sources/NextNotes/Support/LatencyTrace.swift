@@ -124,10 +124,10 @@ enum LatencyBudget {
     }
 }
 
-/// Cheap host snapshot taken when a span closes.
-///
-/// `ProcessInfo` only — no IOReport, no private GPU / ANE sampling. Machine RAM
-/// and thermal state are what we can ask without lying about utilisation.
+/// Cheap host and process snapshot taken when a span closes. CPU values are cumulative
+/// process time; comparing snapshots gives the CPU spent between two stages. The optional
+/// fields keep older `metrics.jsonl` rows decodable after this instrumentation is added.
+/// GPU / ANE utilization is not inferred from CPU or memory measurements.
 struct ProcessSnapshot: Codable, Sendable, Equatable {
     var processorCount: Int
     var activeProcessorCount: Int
@@ -135,16 +135,38 @@ struct ProcessSnapshot: Codable, Sendable, Equatable {
     var thermalState: String
     var isLowPowerModeEnabled: Bool
     var hostUptime: TimeInterval
+    var residentMemoryBytes: UInt64?
+    var peakResidentMemoryBytes: UInt64?
+    var userCPUSeconds: Double?
+    var systemCPUSeconds: Double?
 
     static func current() -> ProcessSnapshot {
         let info = ProcessInfo.processInfo
+        var task = mach_task_basic_info_data_t()
+        var count = mach_msg_type_number_t(
+            MemoryLayout.size(ofValue: task) / MemoryLayout<integer_t>.size
+        )
+        let taskStatus = withUnsafeMutablePointer(to: &task) { pointer in
+            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            }
+        }
+        var usage = rusage()
+        let usageStatus = getrusage(RUSAGE_SELF, &usage)
+        func seconds(_ value: timeval) -> Double {
+            Double(value.tv_sec) + Double(value.tv_usec) / 1_000_000
+        }
         return ProcessSnapshot(
             processorCount: info.processorCount,
             activeProcessorCount: info.activeProcessorCount,
             physicalMemoryBytes: info.physicalMemory,
             thermalState: Self.label(info.thermalState),
             isLowPowerModeEnabled: info.isLowPowerModeEnabled,
-            hostUptime: info.systemUptime
+            hostUptime: info.systemUptime,
+            residentMemoryBytes: taskStatus == KERN_SUCCESS ? UInt64(task.resident_size) : nil,
+            peakResidentMemoryBytes: usageStatus == 0 ? UInt64(usage.ru_maxrss) : nil,
+            userCPUSeconds: usageStatus == 0 ? seconds(usage.ru_utime) : nil,
+            systemCPUSeconds: usageStatus == 0 ? seconds(usage.ru_stime) : nil
         )
     }
 
@@ -293,6 +315,13 @@ struct LatencyTrace: Sendable {
         let store = MetricsStore(directory: root)
         let marker = "selftest-\(UUID().uuidString)"
         let span = LatencyTrace.start(.dictationDrain).end(note: marker, store: store)
+
+        if span.process.residentMemoryBytes == nil || span.process.residentMemoryBytes == 0 {
+            failures.append("process resident memory was not sampled")
+        }
+        if span.process.userCPUSeconds == nil || span.process.systemCPUSeconds == nil {
+            failures.append("process CPU time was not sampled")
+        }
 
         if store.span(id: span.id) == nil {
             failures.append("fake span \(span.id.uuidString) missing from the in-memory ring")

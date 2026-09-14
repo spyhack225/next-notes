@@ -11,7 +11,9 @@ enum AgentToolExecutor {
         meetingID: UUID? = nil,
         taskID: String? = nil,
         autoApproveReads: Bool = false,
-        promptIfNeeded: Bool = false
+        promptIfNeeded: Bool = false,
+        authority: ActionAuthority? = nil,
+        permissionAlreadyGranted: Bool = false
     ) async throws -> AgentToolResult {
         guard let tool = AgentToolRegistry.shared.tool(named: name) else {
             throw AgentError.unknownTool(name)
@@ -43,6 +45,16 @@ enum AgentToolExecutor {
                 // through a permission prompt and the eventual action.
                 authorizedArguments["targetId"] = targetID
                 authorizedArguments["_browserBackend"] = "cdp"
+                if tool.name != "navigate" && tool.name != "download" {
+                    guard let pageURL = await BrowserCDPClient.targetURL(
+                        for: tool, arguments: authorizedArguments
+                    ), !pageURL.isEmpty else {
+                        throw AgentError.backendUnavailable(
+                            "The selected browser tab URL could not be identified. Snapshot again."
+                        )
+                    }
+                    authorizedArguments["_authorizedPageURL"] = pageURL
+                }
             } else {
                 guard authorizedArguments["targetId"] == nil else {
                     throw AgentError.backendUnavailable("The selected browser target is no longer available. Snapshot again.")
@@ -62,47 +74,61 @@ enum AgentToolExecutor {
                 "The active browser tab could not be identified, so \(tool.id) was not run."
             )
         }
-        let decision = await PermissionBroker.shared.authorize(
-            tool,
-            arguments: authorizedArguments,
-            policy: effective,
-            scope: scope,
-            meetingID: meetingID,
-            taskID: taskID
-        )
-        switch decision {
-        case .deny(let reason):
-            throw AgentError.permissionDenied(reason)
-        case .ask(let request):
-            if promptIfNeeded {
-                let approved = await PermissionGate.shared.ask(request)
-                if !approved {
-                    throw AgentError.permissionDenied("You dismissed \(request.title).")
-                }
-            } else {
-                throw AgentError.needsPermission(request.title)
-            }
-        case .allow:
-            break
-        }
-
         let publicTitle = AgentActivityProjector.title(for: tool, arguments: authorizedArguments)
-        AgentActivityStore.shared.update(
-            taskID: taskID ?? "",
-            kind: AgentActivityProjector.kind(for: tool),
-            title: publicTitle
+        let source: ActionSource = meetingID == nil ? .agent : .meeting
+        // A meeting-origin call is derived context unless the caller explicitly passes the
+        // user's approval. This prevents a future meeting mutation from inheriting authority
+        // merely because it used the generic executor API.
+        let actionAuthority = authority ?? (meetingID == nil ? .user : .systemDerived)
+        let intent = ActionIntent(
+            source: source,
+            authority: actionAuthority,
+            verb: tool.id,
+            target: scope.value.isEmpty ? nil : scope.value,
+            arguments: authorizedArguments,
+            evidence: [],
+            risk: tool.risk,
+            confidence: 1
         )
-        IslandState.shared.showAgentWork(title: publicTitle)
-        AgentAuditLog.shared.record(
-            kind: .tool,
+        return try await ActionOrchestrator.shared.execute(
+            intent: intent,
+            tool: tool,
             title: publicTitle,
-            detail: tool.id,
-            toolID: tool.id,
-            taskID: taskID,
-            meetingID: meetingID
+            preparedContent: PreparedContent(title: publicTitle, visiblePlan: tool.preview(for: authorizedArguments)),
+            routing: ActionRouting(
+                resource: scope.value.isEmpty ? nil : scope.value,
+                taskID: taskID,
+                meetingID: meetingID
+            ),
+            steps: [tool.id],
+            policy: effective,
+            promptIfNeeded: promptIfNeeded,
+            permissionAlreadyGranted: permissionAlreadyGranted,
+            allowUnverifiedResult: tool.namespace == .browser && tool.risk > .read,
+            fire: { prepared in
+                // A denied or waiting action must not appear as executed activity. These
+                // projections happen only after the orchestrator has received permission.
+                AgentActivityStore.shared.update(
+                    taskID: taskID ?? "",
+                    kind: AgentActivityProjector.kind(for: tool),
+                    title: publicTitle
+                )
+                if taskID == nil {
+                    IslandState.shared.showAgentWork(title: publicTitle)
+                } else {
+                    IslandState.shared.showBackgroundAgentWork(title: publicTitle)
+                }
+                AgentAuditLog.shared.record(
+                    kind: .tool,
+                    title: publicTitle,
+                    detail: tool.id,
+                    toolID: tool.id,
+                    taskID: taskID,
+                    meetingID: meetingID
+                )
+                return try await perform(tool, arguments: prepared.executionPlan.arguments)
+            }
         )
-
-        return try await perform(tool, arguments: authorizedArguments)
     }
 
     /// The Workspace runner, kept as the implementation for the eleven existing tools.
@@ -110,8 +136,15 @@ enum AgentToolExecutor {
     static func run(
         _ proposal: AgentProposal,
         policy: PermissionPolicy? = nil,
-        cli: GoogleWorkspaceCLI = .shared
+        cli: GoogleWorkspaceCLI = .shared,
+        approvedByUser: Bool = false
     ) async throws -> AgentToolResult {
+        // A persisted proposal is evidence of model intent, never approval. The only
+        // caller allowed to set this bit is the UI approval path; read lookups continue
+        // through the broker and may auto-run according to policy.
+        if proposal.risk >= .modify && !approvedByUser {
+            throw AgentError.permissionDenied("This action needs your approval before it can run.")
+        }
         if let tool = AgentToolRegistry.shared.tool(named: proposal.tool),
            tool.namespace != .workspace {
             return try await run(
@@ -119,8 +152,16 @@ enum AgentToolExecutor {
                 arguments: proposal.arguments,
                 policy: policy ?? .fromSettings(),
                 meetingID: proposal.meetingID,
-                autoApproveReads: false
+                autoApproveReads: false,
+                authority: approvedByUser ? .user : .systemDerived,
+                permissionAlreadyGranted: approvedByUser
             )
+        }
+        guard let definition = proposal.definition else {
+            throw AgentError.unknownTool(proposal.tool)
+        }
+        guard definition.risk == proposal.risk else {
+            throw AgentError.permissionDenied("The proposal risk no longer matches the Workspace tool catalogue.")
         }
         let workspaceTool = AgentTool.workspace(proposal.definition ?? WorkspaceTool(
             name: proposal.tool,
@@ -130,24 +171,39 @@ enum AgentToolExecutor {
             titleBuilder: { _ in proposal.tool },
             previewBuilder: nil
         ))
-        let decision = await PermissionBroker.shared.authorize(
-            workspaceTool,
+        let intent = ActionIntent(
+            source: .meeting,
+            authority: approvedByUser ? .user : .systemDerived,
+            verb: workspaceTool.id,
+            target: proposal.arguments["to"] ?? proposal.arguments["path"],
             arguments: proposal.arguments,
-            policy: policy ?? .fromSettings(),
-            scope: PermissionScopeResolver.inferred(tool: workspaceTool, arguments: proposal.arguments),
-            meetingID: proposal.meetingID
+            risk: workspaceTool.risk,
+            confidence: 1
         )
-        switch decision {
-        case .deny(let reason):
-            throw AgentError.permissionDenied(reason)
-        case .ask:
-            // An approved proposal *is* the person's yes. The broker still ran so a
-            // mutating tool cannot sneak through a path that never asked.
-            break
-        case .allow:
-            break
-        }
-        return try await WorkspaceToolRunner.run(proposal, cli: cli)
+        return try await ActionOrchestrator.shared.execute(
+            intent: intent,
+            tool: workspaceTool,
+            title: proposal.title,
+            preparedContent: PreparedContent(
+                title: proposal.title,
+                body: proposal.messagePreview,
+                visiblePlan: proposal.reviewPreview
+            ),
+            routing: ActionRouting(
+                integration: "Google Workspace",
+                resource: proposal.arguments["to"] ?? proposal.arguments["calendarId"],
+                meetingID: proposal.meetingID
+            ),
+            steps: [workspaceTool.id],
+            policy: policy ?? .fromSettings(),
+            promptIfNeeded: false,
+            permissionAlreadyGranted: approvedByUser,
+            fire: { prepared in
+                var frozen = proposal
+                frozen.arguments = prepared.executionPlan.arguments
+                return try await WorkspaceToolRunner.run(frozen, cli: cli)
+            }
+        )
     }
 
     @MainActor
@@ -182,7 +238,14 @@ enum AgentToolExecutor {
         case .shell:
             return try await ShellExecutor.run(tool, arguments: arguments)
         case .browser:
-            return try await BrowserExecutor.run(tool, arguments: arguments)
+            let result = try await BrowserExecutor.run(tool, arguments: arguments)
+            if tool.risk > .read {
+                let noAction = ["No snapshot", "Snapshot id", "Snapshot no longer", "Browser is not", "not a browser"]
+                if noAction.contains(where: { result.summary.localizedCaseInsensitiveContains($0) }) {
+                    throw AgentError.backendUnavailable(result.summary)
+                }
+            }
+            return result
         case .github, .notion, .slack, .mcp:
             throw AgentError.noIntegration(tool.id)
         }

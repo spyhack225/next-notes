@@ -122,7 +122,7 @@ enum PermissionScopeResolver {
            let host = host(of: raw) {
             return PermissionScope(kind: .domain, value: host)
         }
-        if arguments["_browserBackend"] == "accessibility",
+        if arguments["_browserBackend"] != nil,
            let raw = arguments["_authorizedPageURL"],
            let host = host(of: raw) {
             return PermissionScope(kind: .domain, value: host)

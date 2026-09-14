@@ -1,22 +1,28 @@
+import AppKit
 import Foundation
 
 /// Public titles for the island and sidebar. Never chain-of-thought.
 enum AgentActivityProjector {
+    @MainActor
     static func title(for tool: AgentTool, arguments: [String: String]) -> String {
         let label = firstLabel(in: arguments)
+        let app = NSWorkspace.shared.frontmostApplication?.localizedName
+            .flatMap { safeLabel($0) }
         switch (tool.namespace, tool.name) {
-        case (.computer, "inspect_ui"), (.browser, "snapshot"):
-            return "Inspecting…"
+        case (.computer, "inspect_ui"):
+            return app.map { "Looking at \($0)…" } ?? "Looking at the front window…"
+        case (.browser, "snapshot"):
+            return "Looking at the browser tab…"
         case (.computer, "click"), (.browser, "click"):
-            return label.isEmpty ? "Clicking…" : "Clicking \(label)"
+            return app.map { "Clicking in \($0)…" } ?? "Clicking…"
         case (.computer, "type"), (.computer, "set_text"), (.browser, "fill"):
-            return "Typing…"
+            return "Entering text…"
         case (.computer, "open_app"), (.computer, "focus"):
             return label.isEmpty ? "Opening…" : "Opening \(label)"
         case (.computer, "open_url"), (.browser, "navigate"):
             return "Opening a page…"
         case (.filesystem, "search"):
-            return label.isEmpty ? "Searching…" : "Searching \(label)"
+            return label.isEmpty ? "Finding files…" : "Finding files matching “\(label)”…"
         case (.filesystem, "read"):
             return "Reading a file…"
         case (.filesystem, "write"):
@@ -26,10 +32,10 @@ enum AgentActivityProjector {
         case (.meeting, _):
             return "Reading the meeting…"
         case (.workspace, _):
-            return tool.title(for: arguments)
-        default:
             let built = tool.title(for: arguments)
-            return built.isEmpty ? "Working…" : built
+            return isPublic(built) ? built : "Working in Google Workspace…"
+        default:
+            return "Working…"
         }
     }
 
@@ -50,11 +56,16 @@ enum AgentActivityProjector {
     }
 
     private static func firstLabel(in arguments: [String: String]) -> String {
-        let keys = ["name", "query", "title", "id", "text"]
+        let keys = ["name", "query", "title"]
         for key in keys {
             let value = arguments[key]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            if !value.isEmpty { return String(value.prefix(40)) }
+            if let label = safeLabel(value) { return label }
         }
         return ""
+    }
+
+    private static func safeLabel(_ value: String) -> String? {
+        let label = String(value.trimmingCharacters(in: .whitespacesAndNewlines).prefix(40))
+        return label.isEmpty || !isPublic(label) ? nil : label
     }
 }

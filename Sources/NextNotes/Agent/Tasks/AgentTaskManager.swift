@@ -9,6 +9,12 @@ final class AgentTaskManager {
 
     private(set) var tasks: [AgentTask] = []
     @ObservationIgnored private var running: [String: Task<Void, Never>] = [:]
+    /// A one-shot approval is intentionally not persisted as a standing grant. Keep the
+    /// approval long enough for the exact queued retry to hand it to ActionOrchestrator.
+    @ObservationIgnored private var approvedTaskIDs: Set<String> = []
+    /// A separate, in-memory one-shot token for the weaker ACP compatibility path.
+    /// It is never persisted or represented as a permission grant.
+    @ObservationIgnored private var approvedCompatibilityTaskIDs: Set<String> = []
 
     private init() {
         tasks = AgentTaskStore.shared.load().map { task in
@@ -49,7 +55,7 @@ final class AgentTaskManager {
         tasks.insert(task, at: 0)
         persist()
         AgentActivityStore.shared.begin(task: task, title: objective)
-        IslandState.shared.showAgentWork(title: objective)
+        IslandState.shared.showBackgroundAgentWork(title: objective)
         running[task.id] = Task { @MainActor [weak self] in
             await self?.execute(task.id)
         }
@@ -59,11 +65,30 @@ final class AgentTaskManager {
     func cancel(_ id: String) {
         running[id]?.cancel()
         running[id] = nil
+        approvedCompatibilityTaskIDs.remove(id)
         update(id) { task in
             task.status = .cancelled
             task.progress = "Cancelled"
         }
         AgentActivityStore.shared.finish(taskID: id, title: "Cancelled")
+    }
+
+    /// Approves exactly one already parked ACP handshake failure. The backend will consume
+    /// this token before entering ActionOrchestrator; it cannot authorize another run.
+    func approveCompatibilityCLI(taskID: String) {
+        guard let task = task(id: taskID),
+              task.status == .waitingForCompatibilityCLI,
+              ACPCompatibilityCLIBackend.request(for: task) != nil
+        else { return }
+        approvedCompatibilityTaskIDs.insert(taskID)
+        update(taskID) { item in
+            item.status = .queued
+            item.progress = "Starting compatibility CLI once · weaker progress and permissions than ACP"
+        }
+        running[taskID]?.cancel()
+        running[taskID] = Task { @MainActor [weak self] in
+            await self?.execute(taskID)
+        }
     }
 
     func respondPermission(taskID: String, approved: Bool, duration: PermissionDuration = .once) {
@@ -75,6 +100,7 @@ final class AgentTaskManager {
                 meetingID: task.meetingID,
                 taskID: taskID
             ))
+            approvedTaskIDs.insert(taskID)
             task.status = .queued
             updateRecord(task)
             running[taskID] = Task { @MainActor [weak self] in
@@ -86,6 +112,11 @@ final class AgentTaskManager {
                 item.failure = "Permission denied."
             }
         }
+    }
+
+    /// Consumed by the local backend immediately before the exact approved retry fires.
+    func consumePermissionApproval(taskID: String) -> Bool {
+        approvedTaskIDs.remove(taskID) != nil
     }
 
     func respondInput(taskID: String, text: String) {
@@ -100,13 +131,21 @@ final class AgentTaskManager {
 
     private func execute(_ id: String) async {
         guard var task = task(id: id) else { return }
+        guard !Task.isCancelled, task.status != .cancelled else { return }
         task.status = .running
         task.progress = "Starting…"
         updateRecord(task)
 
         do {
-            let backend = AgentBackendRegistry.shared.backend(named: task.backend)
-            let outcome = try await backend.submit(task)
+            let outcome: AgentTaskOutcome
+            if task.backend == AgentBackendKind.acp.rawValue,
+               approvedCompatibilityTaskIDs.remove(id) != nil {
+                outcome = try await ACPCompatibilityCLIBackend.submit(task, explicitApproval: true)
+            } else {
+                let backend = AgentBackendRegistry.shared.backend(named: task.backend)
+                outcome = try await backend.submit(task)
+            }
+            try Task.checkCancellation()
             update(id) { item in
                 item.status = outcome.status
                 item.progress = outcome.progress
@@ -127,6 +166,25 @@ final class AgentTaskManager {
             update(id) { $0.status = .cancelled }
             announce("Cancelled.")
         } catch let error as AgentError {
+            if case .acpHandshakeUnavailable(let request) = error {
+                update(id) { item in
+                    item.status = .waitingForCompatibilityCLI
+                    item.progress = "ACP unavailable · compatibility CLI is optional"
+                    item.failure = nil
+                    item.compatibilityCommand = request.command
+                    item.compatibilityCLI = request.cli
+                    item.compatibilityDirectory = request.directory
+                }
+                approvedCompatibilityTaskIDs.remove(id)
+                AgentActivityStore.shared.update(
+                    taskID: id,
+                    kind: .waiting,
+                    title: "ACP unavailable",
+                    detail: "Compatibility mode requires a one-shot approval and has weaker progress and permissions."
+                )
+                running[id] = nil
+                return
+            }
             if case .needsPermission(let title) = error {
                 update(id) { item in
                     item.status = .waitingForPermission
@@ -180,7 +238,7 @@ final class AgentTaskManager {
         guard !trimmed.isEmpty else { return }
         AgentSession.shared.recordAssistant(trimmed)
         AgentAuditLog.shared.record(kind: .reply, title: trimmed)
-        IslandState.shared.showAgentReply(trimmed)
+        IslandState.shared.showBackgroundAgentReply(trimmed)
     }
 }
 

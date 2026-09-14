@@ -172,6 +172,11 @@ struct AgentSettingsTab: View {
 
     private var execution: some View {
         Section {
+            Picker("Responsiveness", selection: $settings.agentResponsiveness) {
+                ForEach(AgentResponsiveness.allCases) { choice in
+                    Text(choice.displayName).tag(choice)
+                }
+            }
             Picker("Run work with", selection: $settings.agentBackend) {
                 ForEach(AgentBackendKind.allCases, id: \.self) { kind in
                     Text(kind.displayName).tag(kind)
@@ -195,7 +200,9 @@ struct AgentSettingsTab: View {
         } header: {
             Text("Execution")
         } footer: {
-            SettingsNote(text: "This is the default when there is no past request to learn "
+            SettingsNote(text: "Fast favors short answers and fewer checks; Deep allows "
+                         + "longer answers and more tool rounds. Dictation is unaffected. "
+                         + "The backend is the default when there is no past request to learn "
                          + "from. Say “use Claude Code” or “do it locally” to pick for one "
                          + "turn. Calendar, mail, Drive, Docs, click and type stay on this "
                          + "Mac unless you name a coding agent.")

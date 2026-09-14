@@ -5,6 +5,15 @@ import Foundation
 /// and one user message, so prior results are appended to the user side rather than
 /// sent as a tool-role turn.
 enum AgentToolLoop {
+    private final class CallbackBox<Value>: @unchecked Sendable {
+        let value: Value
+        init(_ value: Value) { self.value = value }
+    }
+
+    private enum CompletionFailure: Error, Sendable {
+        case message(String)
+    }
+
     static let defaultMaxRounds = 4
     static let minRounds = 4
     static let maxRoundsBound = 8
@@ -41,23 +50,42 @@ enum AgentToolLoop {
         maxRounds: Int = defaultMaxRounds,
         maxCalls: Int = defaultMaxCalls,
         maxWallTime: Duration = defaultMaxWallTime,
-        complete: (String) async throws -> String,
-        execute: (AgentToolCall) async -> String
+        complete: @escaping (String) async throws -> String,
+        execute: @escaping (AgentToolCall) async -> String
     ) async throws -> Outcome {
         var results: [String] = []
         var callCount = 0
         let rounds = clampedMaxRounds(maxRounds)
         let clock = ContinuousClock()
         let deadline = clock.now + maxWallTime
+        var completedRounds = 0
+        let completeBox = CallbackBox(complete)
+        let executeBox = CallbackBox(execute)
 
         for round in 0..<rounds {
             try Task.checkCancellation()
-            if clock.now >= deadline {
+            let remaining = clock.now.duration(to: deadline)
+            if remaining <= .zero {
                 break
             }
-            let completion = try await complete(userMessage(original: original, results: results))
+            let priorResults = results
+            let completionResult: Result<String, CompletionFailure>? = await withBoundedWait(remaining) {
+                do {
+                    return .success(try await completeBox.value(
+                        userMessage(original: original, results: priorResults)
+                    ))
+                } catch {
+                    return .failure(.message(error.localizedDescription))
+                }
+            }
+            guard let completionResult else { break }
+            if case .failure(.message(let message)) = completionResult {
+                throw AgentError.backendUnavailable("Tool loop completion failed: \(message)")
+            }
+            guard case .success(let completion) = completionResult else { break }
             let calls = AgentToolCallParser.calls(in: completion)
             if calls.isEmpty {
+                completedRounds = round + 1
                 let reply = completion.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !reply.isEmpty {
                     return Outcome(reply: reply, rounds: round + 1, calls: callCount)
@@ -72,18 +100,32 @@ enum AgentToolLoop {
                 return Outcome(reply: "", rounds: round + 1, calls: callCount)
             }
 
+            var roundTimedOut = false
             for call in calls {
-                if callCount >= maxCalls || clock.now >= deadline { break }
-                let output = await execute(call)
+                let callRemaining = clock.now.duration(to: deadline)
+                if callCount >= maxCalls || callRemaining <= .zero {
+                    roundTimedOut = callRemaining <= .zero
+                    break
+                }
+                guard let output = await withBoundedWait(callRemaining, {
+                    await executeBox.value(call)
+                }) else {
+                    roundTimedOut = true
+                    break
+                }
                 results.append(AgentPrompts.toolResult(name: call.name, output: output))
                 callCount += 1
             }
+            // A model response is only a completed round once its proposed tool calls
+            // have returned. Do not report a full round when the deadline abandoned an
+            // execute child that may still be unwinding.
+            if !roundTimedOut { completedRounds = round + 1 }
             if clock.now >= deadline { break }
         }
 
         return Outcome(
             reply: results.joined(separator: "\n"),
-            rounds: rounds,
+            rounds: completedRounds,
             calls: callCount
         )
     }
@@ -150,6 +192,41 @@ extension AgentToolLoop {
             check("a 20-round ask ran more than eight completions", roundsSeen == maxRoundsBound)
         } catch {
             failures.append("round cap failed: \(error.localizedDescription)")
+        }
+
+        do {
+            let bounded = try await AgentToolLoop.run(
+                user: "deadline",
+                maxWallTime: .milliseconds(20),
+                complete: { _ in
+                    try await Task.sleep(for: .milliseconds(200))
+                    return "too late"
+                },
+                execute: { _ in "unreachable" }
+            )
+            check("completion deadline was not enforced", bounded.rounds == 0 && bounded.calls == 0)
+        } catch {
+            failures.append("deadline fixture failed: \(error.localizedDescription)")
+        }
+
+        do {
+            let bounded = try await AgentToolLoop.run(
+                user: "tool deadline",
+                maxWallTime: .milliseconds(20),
+                complete: { _ in
+                    #"<tool_call>{"name":"computer.inspect_ui","arguments":{},"rationale":"look"}</tool_call>"#
+                },
+                execute: { _ in
+                    try? await Task.sleep(for: .milliseconds(200))
+                    return "too late"
+                }
+            )
+            check(
+                "tool execution deadline was not reflected in completed rounds",
+                bounded.rounds == 0 && bounded.calls == 0
+            )
+        } catch {
+            failures.append("tool deadline fixture failed: \(error.localizedDescription)")
         }
 
         for failure in failures {

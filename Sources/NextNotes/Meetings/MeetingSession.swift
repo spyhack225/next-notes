@@ -323,18 +323,13 @@ final class MeetingSession {
         contextTrace.end(note: incoming.source.rawValue)
         let candidatesAfter = MeetingContextStore.shared.current?.candidateActions.count ?? 0
         if candidatesAfter > candidatesBefore {
-            // Phrase → candidate, then candidate → card feed (Observation / live pane).
-            // The card view lives elsewhere; the store update is the hand-off this session owns.
+            // Phrase → candidate is measured here. Candidate → card is measured at the
+            // IslandState hand-off, after a card has actually been proposed.
             let phraseLag = max(0, Date().timeIntervalSince(startedAt) - incoming.end)
             LatencyTrace.record(
                 .meetingActionPhraseToCandidate,
                 seconds: phraseLag,
                 note: incoming.source.rawValue
-            )
-            LatencyTrace.record(
-                .meetingCandidateToCard,
-                seconds: 0,
-                note: "context-store"
             )
         }
 

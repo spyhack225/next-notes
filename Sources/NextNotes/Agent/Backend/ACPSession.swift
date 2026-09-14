@@ -83,6 +83,10 @@ actor ACPSession {
     }
 
     func cancel() async {
+        let cancelledTaskID = taskID
+        await MainActor.run {
+            PermissionGate.shared.cancelPending(taskID: cancelledTaskID)
+        }
         guard let client, let sessionID else { return }
         _ = try? await client.request(method: "session/cancel", params: ["sessionId": sessionID])
     }
@@ -98,6 +102,10 @@ actor ACPSession {
     }
 
     func close() async {
+        let closedTaskID = taskID
+        await MainActor.run {
+            PermissionGate.shared.cancelPending(taskID: closedTaskID)
+        }
         client?.close()
         client = nil
     }
@@ -106,8 +114,52 @@ actor ACPSession {
         let method = message["method"] ?? ""
         if method == "session/request_permission" || method.hasSuffix("request_permission") {
             permissionRelayed = true
-            publish(kind: "permission", title: "Permission required", detail: method)
-            return ["optionId": approvePermissions ? "allow-once" : "reject-once"]
+            let params = (message["paramsJSON"].flatMap { $0.data(using: .utf8) }
+                .flatMap { try? JSONSerialization.jsonObject(with: $0) }) as? [String: Any] ?? [:]
+            let options = params["options"] as? [[String: Any]] ?? []
+            let allow = options.first {
+                let kind = ($0["kind"] as? String ?? "").lowercased()
+                return kind == "allow_once" || kind == "allow-once"
+            }?["optionId"] as? String ?? "allow-once"
+            let reject = options.first {
+                let kind = ($0["kind"] as? String ?? "").lowercased()
+                return kind.contains("reject") || kind.contains("deny")
+            }?["optionId"] as? String ?? "reject-once"
+            let toolCall = params["toolCall"] as? [String: Any] ?? [:]
+            let title = (toolCall["title"] as? String ?? "ACP tool action")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let detailData = try? JSONSerialization.data(withJSONObject: toolCall, options: .sortedKeys)
+            let detail = detailData.flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+            publish(kind: "permission", title: "Permission required", detail: title)
+            if approvePermissions { return ["optionId": allow] }
+            // A very large or unparseable request cannot be reviewed faithfully in the
+            // Agent pane. Reject it instead of approving an abbreviated operation.
+            guard !toolCall.isEmpty, detail.utf8.count <= 8192 else {
+                return ["optionId": reject]
+            }
+            let tool = AgentTool.native(
+                namespace: .mcp,
+                name: "acp_nested_tool",
+                description: "ACP coding agent requested an operation",
+                risk: .privileged,
+                title: "ACP: \(String(title.prefix(120)))",
+                preview: { _ in detail }
+            )
+            let arguments = ["taskID": taskID, "toolCall": detail]
+            let policy = await MainActor.run { PermissionPolicy.fromSettings() }
+            let decision = await PermissionBroker.shared.authorize(
+                tool, arguments: arguments, policy: policy,
+                scope: .any, taskID: taskID
+            )
+            switch decision {
+            case .deny:
+                return ["optionId": reject]
+            case .allow:
+                return ["optionId": allow]
+            case .ask(let request):
+                let approved = await PermissionGate.shared.ask(request)
+                return ["optionId": approved ? allow : reject]
+            }
         }
         return [:]
     }

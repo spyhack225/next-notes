@@ -59,6 +59,38 @@ enum CleanupTone: String, CaseIterable, Sendable {
     }
 }
 
+/// Voice-agent effort only. Dictation and meeting recording never read this preference.
+enum AgentResponsiveness: String, CaseIterable, Sendable, Identifiable {
+    case fast
+    case balanced
+    case deep
+
+    var id: String { rawValue }
+    var displayName: String { rawValue.capitalized }
+
+    var localAnswerTokenBudget: Int {
+        switch self {
+        case .fast: 128
+        case .balanced: 256
+        case .deep: 500
+        }
+    }
+
+    var toolRoundLimit: Int {
+        switch self {
+        case .fast, .balanced: 4
+        case .deep: 8
+        }
+    }
+
+    var toolCallLimit: Int {
+        switch self {
+        case .fast: 4
+        case .balanced, .deep: 8
+        }
+    }
+}
+
 /// Where the app shows what it is hearing while you dictate.
 /// What to do when the user switches apps while a dictation is still being transcribed.
 ///
@@ -600,6 +632,10 @@ final class Settings {
         didSet { defaults.set(agentBackend.rawValue, forKey: Keys.agentBackend) }
     }
 
+    var agentResponsiveness: AgentResponsiveness {
+        didSet { defaults.set(agentResponsiveness.rawValue, forKey: Keys.agentResponsiveness) }
+    }
+
     var acpBackendID: String {
         didSet { defaults.set(acpBackendID, forKey: Keys.acpBackendID) }
     }
@@ -752,6 +788,7 @@ final class Settings {
         static let agentShortcutEnabled = "agentShortcutEnabled"
         static let agentShortcut = "agentShortcut"
         static let agentBackend = "agentBackend"
+        static let agentResponsiveness = "agentResponsiveness"
         static let acpBackendID = "acpBackendID"
         static let agentAutoSearchFiles = "agentAutoSearchFiles"
         static let agentAllowComputerControl = "agentAllowComputerControl"
@@ -842,6 +879,9 @@ final class Settings {
         agentShortcutEnabled = defaults.object(forKey: Keys.agentShortcutEnabled) as? Bool ?? true
         agentShortcut = AgentShortcut(rawValue: defaults.string(forKey: Keys.agentShortcut) ?? "") ?? .shiftCommandSpace
         agentBackend = AgentBackendKind(rawValue: defaults.string(forKey: Keys.agentBackend) ?? "") ?? .local
+        agentResponsiveness = AgentResponsiveness(
+            rawValue: defaults.string(forKey: Keys.agentResponsiveness) ?? ""
+        ) ?? .balanced
         acpBackendID = defaults.string(forKey: Keys.acpBackendID) ?? ""
         agentAutoSearchFiles = defaults.object(forKey: Keys.agentAutoSearchFiles) as? Bool ?? false
         agentAllowComputerControl = defaults.object(forKey: Keys.agentAllowComputerControl) as? Bool ?? false

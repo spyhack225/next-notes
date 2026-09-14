@@ -3,8 +3,8 @@ import Foundation
 /// Hands sustained coding work to an ACP stdio session (Claude Code, Codex, Qwen Code,
 /// OpenCode). Next Notes stays the voice, context and permission layer.
 ///
-/// A CLI that never answers `initialize` is not ACP — we do not call that a session.
-/// `cli -p` remains a last-resort execute seam and is labelled as such.
+/// A CLI that never answers `initialize` is not ACP — we do not call that a session or
+/// silently reinterpret it as an opaque prompt command.
 struct ACPAgentBackend: AgentBackend {
     func describe() async -> AgentBackendDescription {
         AgentBackendDescription(
@@ -26,7 +26,7 @@ struct ACPAgentBackend: AgentBackend {
 
     func submit(_ task: AgentTask) async throws -> AgentTaskOutcome {
         if let fixture = task.arguments["acpFixture"] {
-            return try await runSession(
+            return try await runSessionWithReceipt(
                 command: AgentStdioFixtures.python,
                 arguments: [fixture],
                 task: task,
@@ -47,16 +47,30 @@ struct ACPAgentBackend: AgentBackend {
             .map { String($0.dropFirst("project://".count)) }
 
         do {
-            return try await runSession(
+            return try await runSessionWithReceipt(
                 command: "/usr/bin/env",
                 arguments: [cli],
                 directory: directory,
                 task: task,
                 approvePermissions: false
             )
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as AgentError {
+            if case .acpHandshakeUnavailable = error { throw error }
+            Log.agent.error("ACP session failed: \(error.localizedDescription, privacy: .public)")
+            throw error
+        } catch is ACPHandshakeUnavailable {
+            throw AgentError.acpHandshakeUnavailable(Self.compatibilityRequest(
+                task: task, cli: cli, directory: Self.workingDirectory(for: task)
+            ))
         } catch {
             Log.agent.error("ACP session failed: \(error.localizedDescription, privacy: .public)")
-            return try promptFallback(cli: cli, directory: directory, task: task)
+            // ACP remains the authority boundary. A prompt failure after a successful
+            // handshake is not eligible for compatibility mode and stays an explicit error.
+            throw AgentError.backendUnavailable(
+                "ACP session failed for \(cli): \(error.localizedDescription)"
+            )
         }
     }
 
@@ -93,11 +107,21 @@ struct ACPAgentBackend: AgentBackend {
         arguments: [String],
         directory: String? = nil,
         task: AgentTask,
-        approvePermissions: Bool
+        approvePermissions: Bool,
+        actionID: UUID? = nil
     ) async throws -> AgentTaskOutcome {
         let session = ACPSession()
         let token = await session.subscribe { event in
             Task { @MainActor in
+                guard let current = AgentTaskManager.shared.task(id: task.id),
+                      current.status == .running else { return }
+                if event.kind == "permission", let actionID {
+                    ActionOrchestrator.shared.appendExternalEvent(
+                        actionID: actionID,
+                        stage: .waitingPermission,
+                        detail: event.detail
+                    )
+                }
                 if event.kind == "activity" {
                     AgentActivityStore.shared.update(
                         taskID: task.id,
@@ -105,11 +129,12 @@ struct ACPAgentBackend: AgentBackend {
                         title: event.title,
                         detail: event.detail
                     )
-                    IslandState.shared.showAgentWork(title: event.title)
+                    IslandState.shared.showBackgroundAgentWork(title: event.title)
                 }
             }
         }
         do {
+            try Task.checkCancellation()
             try await session.start(
                 command: command,
                 arguments: arguments,
@@ -117,7 +142,14 @@ struct ACPAgentBackend: AgentBackend {
                 taskID: task.id,
                 approvePermissions: approvePermissions
             )
-            let reply = try await session.prompt(task.objective)
+            try Task.checkCancellation()
+            let reply = try await withTaskCancellationHandler(operation: {
+                try Task.checkCancellation()
+                return try await session.prompt(task.objective)
+            }, onCancel: {
+                Task { await session.cancel() }
+            })
+            try Task.checkCancellation()
             let sessionID = await session.sessionID ?? ""
             let initialized = await session.didInitialize
             await session.unsubscribe(token)
@@ -125,45 +157,137 @@ struct ACPAgentBackend: AgentBackend {
             guard initialized, !sessionID.isEmpty else {
                 throw JSONRPCError(message: "ACP never started a session.")
             }
-            return .completed(reply)
-        } catch {
+            // ACP gives us a stable session identifier, useful for audit and support. It
+            // does not provide a resource id or diff proving what the coding agent changed.
+            return .completed(reply, artifacts: [sessionID])
+        } catch is CancellationError {
             await session.unsubscribe(token)
             await session.close()
+            throw CancellationError()
+        } catch {
+            let initialized = await session.didInitialize
+            await session.unsubscribe(token)
+            await session.close()
+            if !initialized {
+                throw ACPHandshakeUnavailable()
+            }
             throw error
         }
     }
 
-    private func promptFallback(
-        cli: String,
-        directory: String?,
-        task: AgentTask
-    ) throws -> AgentTaskOutcome {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = [cli, "-p", task.objective]
-        if let directory, !directory.isEmpty {
-            process.currentDirectoryURL = URL(fileURLWithPath: directory)
-        }
-        let stdout = Pipe()
-        let stderr = Pipe()
-        process.standardOutput = stdout
-        process.standardError = stderr
-        do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            throw AgentError.backendUnavailable(error.localizedDescription)
-        }
-        let output = String(decoding: stdout.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let err = String(decoding: stderr.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let note = "\(cli) did not start an ACP session, so this ran as \(cli) -p."
-        if process.terminationStatus != 0 {
-            return .failed(err.isEmpty ? "\(note) Exit \(process.terminationStatus)." : "\(note) \(err)")
-        }
-        return .completed(output.isEmpty ? note : "\(note)\n\(output)")
+    /// ACP has its own fine-grained permission requests, but the task submission itself must
+    /// still enter the shared action lifecycle. The receipt deliberately remains
+    /// `couldNotVerify` after a successful protocol reply: without a provider diff, retrying
+    /// the same objective could duplicate an already-applied edit.
+    private func runSessionWithReceipt(
+        command: String,
+        arguments: [String],
+        directory: String? = nil,
+        task: AgentTask,
+        approvePermissions: Bool
+    ) async throws -> AgentTaskOutcome {
+        let tool = AgentTool.native(
+            namespace: .mcp,
+            name: "acp_session",
+            description: "Run one sustained ACP coding session",
+            risk: .privileged,
+            executionMode: .task,
+            title: "Run ACP coding task"
+        )
+        let authority: ActionAuthority = task.source == "meeting" ? .systemDerived : .user
+        let intent = ActionIntent(
+            source: .background,
+            authority: authority,
+            verb: tool.id,
+            target: directory,
+            arguments: [
+                "objective": task.objective,
+                "command": command,
+                "arguments": arguments.joined(separator: " ")
+            ],
+            evidence: [ActionContextReference(kind: "task", value: task.id)],
+            risk: tool.risk,
+            confidence: 1
+        )
+        let result = try await ActionOrchestrator.shared.execute(
+                intent: intent,
+                tool: tool,
+                title: task.objective,
+                preparedContent: PreparedContent(
+                    title: task.objective,
+                    visiblePlan: "ACP session (command)"
+                ),
+                routing: ActionRouting(
+                    integration: "ACP",
+                    resource: directory,
+                    taskID: task.id
+                ),
+                steps: ["initialize", "session/new", "session/prompt"],
+                policy: .fromSettings(),
+                promptIfNeeded: false,
+                // Creating an ACP task is already an explicit user action. Meeting-origin
+                // tasks retain the broker boundary and cannot self-authorize mutations.
+                permissionAlreadyGranted: approvePermissions || task.source != "meeting",
+                allowUnverifiedResult: true,
+                fire: { [self] prepared in
+                    try Task.checkCancellation()
+                    let outcome: AgentTaskOutcome
+                    do {
+                        outcome = try await self.runSession(
+                            command: command,
+                            arguments: arguments,
+                            directory: directory,
+                            task: task,
+                            approvePermissions: approvePermissions,
+                            actionID: prepared.id
+                        )
+                    } catch is ACPHandshakeUnavailable {
+                        throw AgentError.acpHandshakeUnavailable(
+                            Self.compatibilityRequest(
+                                task: task,
+                                cli: arguments.last ?? "",
+                                directory: directory
+                            )
+                        )
+                    }
+                    guard outcome.status == .completed else {
+                        throw AgentError.backendUnavailable(
+                            outcome.failure ?? "ACP session did not complete."
+                        )
+                    }
+                    return AgentToolResult(
+                        summary: outcome.result ?? "ACP session completed.",
+                        reference: outcome.artifacts.first
+                    )
+                }
+        )
+        return .completed(result.summary, artifacts: result.reference.map { [$0] } ?? [])
     }
+
+    static func compatibilityPrompt(cli: String) -> String {
+        "ACP unavailable for \(cli); no compatibility CLI run was started."
+    }
+
+    static func workingDirectory(for task: AgentTask) -> String? {
+        task.contextReferences.first(where: { $0.hasPrefix("project://") })
+            .map { String($0.dropFirst("project://".count)) }
+    }
+
+    static func compatibilityRequest(
+        task: AgentTask, cli: String, directory: String?
+    ) -> ACPCompatibilityRequest {
+        let frozenCLI = resolvedCLIPath(cli) ?? cli
+        return ACPCompatibilityRequest(
+            cli: frozenCLI,
+            objective: task.objective,
+            directory: directory,
+            command: ACPCompatibilityCLIBackend.commandLine(
+                cli: frozenCLI, objective: task.objective
+            )
+        )
+    }
+
+    static func resolvedCLIPath(_ name: String) -> String? { which(name) }
 
     private static func which(_ name: String) -> String? {
         let process = Process()
@@ -180,3 +304,7 @@ struct ACPAgentBackend: AgentBackend {
         return path.isEmpty ? nil : path
     }
 }
+
+/// Raised only when ACP failed before `initialize` completed. Prompt/session failures do
+/// not offer compatibility mode because the ACP permission and progress contract existed.
+private struct ACPHandshakeUnavailable: Error {}

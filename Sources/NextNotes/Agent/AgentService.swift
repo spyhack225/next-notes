@@ -288,7 +288,11 @@ final class AgentService {
             guard let self else { return }
             defer { self.running.remove(proposal.id) }
             do {
-                let result = try await AgentToolExecutor.run(proposal, cli: self.cli)
+                let result = try await AgentToolExecutor.run(
+                    proposal,
+                    cli: self.cli,
+                    approvedByUser: true
+                )
                 self.record(
                     AgentActionRecord(
                         id: proposal.id,
@@ -543,6 +547,15 @@ final class AgentService {
         guard let card = fresh.last else { return }
         for next in fresh { announcedCandidates.insert(next.id) }
         IslandState.shared.propose(card)
+        if let candidate = context.candidateActions.first(where: { $0.id == card.id }) {
+            // The span ends at the IslandState hand-off. This measures the real candidate
+            // age seen by the card path; the context store cannot claim a card exists.
+            LatencyTrace.record(
+                .meetingCandidateToCard,
+                seconds: max(0, Date().timeIntervalSince(candidate.createdAt)),
+                note: "IslandState.propose handoff"
+            )
+        }
         revision += 1
     }
 

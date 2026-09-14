@@ -39,6 +39,11 @@ actor ParakeetEngine: TranscriptionEngine {
     /// suspended across `acquire` / model load can tell it was cancelled and
     /// release its own lane — actors are re-entrant at `await`.
     private var recognitionGeneration = 0
+    /// Lifecycle token in the shared model registry. Kept separate from the
+    /// engine generation because a stale model load may finish after a new
+    /// recognition session has already started.
+    private var runtimeGeneration: UInt64?
+    private var runtimeLoaded = false
 
     private let converter = AudioConverter()
 
@@ -87,20 +92,47 @@ actor ParakeetEngine: TranscriptionEngine {
             throw CancellationError()
         }
         schedulerJobID = jobID
+        let runtimeGeneration = await ModelRuntimeManager.shared.beginLoading(.parakeetASR)
+        self.runtimeGeneration = runtimeGeneration
+        runtimeLoaded = false
         do {
             // Force the (possibly very slow) first load to happen here rather than on release,
             // so the user waits before speaking instead of losing an utterance to a timeout.
             _ = try await ParakeetModels.shared.manager()
+            runtimeLoaded = true
+            _ = await ModelRuntimeManager.shared.markReady(
+                .parakeetASR,
+                generation: runtimeGeneration
+            )
         } catch {
+            _ = await ModelRuntimeManager.shared.markWedged(
+                .parakeetASR,
+                generation: runtimeGeneration,
+                error: error.localizedDescription
+            )
             await releaseSchedulerLane()
             throw error
         }
         guard recognitionGeneration == generation else {
+            // The model cache is process-wide. A superseded engine must not
+            // call it unloaded when another session (or the shared load task)
+            // still owns resident weights.
+            if await ParakeetModels.shared.isLoaded {
+                _ = await ModelRuntimeManager.shared.markReady(
+                    .parakeetASR,
+                    generation: runtimeGeneration
+                )
+            }
             await releaseSchedulerLane()
             continuation.finish()
             self.continuation = nil
             throw CancellationError()
         }
+
+        _ = await ModelRuntimeManager.shared.markBusy(
+            .parakeetASR,
+            generation: runtimeGeneration
+        )
 
         return stream
     }
@@ -131,6 +163,21 @@ actor ParakeetEngine: TranscriptionEngine {
         // audio, reuse, full pass, error — releases exactly once.
         let jobID = schedulerJobID
         schedulerJobID = nil
+
+        // ParakeetModels intentionally remains resident between turns. Reflect
+        // that truth in the registry; a cancelled start that never completed a
+        // load leaves the registry in loading state until the shared load task
+        // resolves, rather than falsely claiming the cache was unloaded.
+        if let runtimeGeneration {
+            if runtimeLoaded {
+                _ = await ModelRuntimeManager.shared.markReady(
+                    .parakeetASR,
+                    generation: runtimeGeneration
+                )
+            }
+            self.runtimeGeneration = nil
+            runtimeLoaded = false
+        }
 
         let activePartial = partialTask
         partialTask?.cancel()

@@ -194,6 +194,7 @@ extension RealtimeAudioSession {
         var failures: [String] = []
 
         failures += bargeInFailures()
+        failures += firstAudioCallbackFailures()
         failures += await singleInputEngineFailures()
         failures += speakingStateFailures()
         failures += dictationStaysSilentFailures()
@@ -282,6 +283,54 @@ extension RealtimeAudioSession {
             )
         }
 
+        return failures
+    }
+
+    /// First-audio timing must stay open after enqueue, and an interrupted
+    /// utterance's late delegate event must not close the next reply's span.
+    /// The recorder supplies deterministic backing while explicit tokens model
+    /// the AVSpeech delegate identity that production carries.
+    private static func firstAudioCallbackFailures() -> [String] {
+        var failures: [String] = []
+        let recorder = RecordingSpeechBacking()
+        let synth = AgentSpeechSynthesizer.shared
+        synth.useTestingBacking(recorder)
+        synth.onFirstAudio = nil
+        synth.onFirstAudioCancelled = nil
+        defer { synth.restoreSystemBacking() }
+
+        var callbackCount = 0
+        synth.onFirstAudio = { callbackCount += 1 }
+        synth.speak("First reply.")
+        let oldToken = synth.outputGeneration
+        if callbackCount != 0 {
+            failures.append("first-audio callback ran during enqueue")
+        }
+
+        synth.stop()
+        var cancelledCount = 0
+        synth.speak("Replacement reply.")
+        let newToken = synth.outputGeneration
+        synth.onFirstAudio = { callbackCount += 1 }
+        synth.onFirstAudioCancelled = { cancelledCount += 1 }
+        synth.notifyTestingFirstAudio(token: oldToken)
+        if callbackCount != 0 {
+            failures.append("stale first-audio callback closed the replacement reply")
+        }
+        synth.notifyTestingFirstAudio(token: newToken)
+        synth.notifyTestingFirstAudio(token: newToken)
+        if callbackCount != 1 {
+            failures.append("current first-audio callback fired \(callbackCount) times, expected once")
+        }
+
+        // A pending callback is closed exactly once when barge-in cancels it.
+        synth.speak("Cancelled reply.")
+        synth.onFirstAudio = { callbackCount += 1 }
+        synth.onFirstAudioCancelled = { cancelledCount += 1 }
+        synth.stop()
+        if cancelledCount != 1 {
+            failures.append("first-audio cancellation callback fired \(cancelledCount) times, expected once")
+        }
         return failures
     }
 

@@ -61,6 +61,8 @@ actor NotesModelRuntime {
     private var idleTask: Task<Void, Never>?
     /// The load in flight, so two callers share one.
     private var loadTask: Task<Void, Error>?
+    /// Token for the current load in `ModelRuntimeManager`.
+    private var runtimeGeneration: UInt64?
 
     init(spec: ModelSpec, gpuLayers: Int32) {
         self.spec = spec
@@ -80,6 +82,14 @@ actor NotesModelRuntime {
         try await withBackgroundLane { jobID in
             try await loadIfNeeded(schedulerJobID: jobID)
         }
+    }
+
+    /// Destroy and reload the notes owner after an unrecoverable runtime error.
+    /// The owner performs both operations; the registry observes the unload and
+    /// the fresh generation created by the subsequent load.
+    func recover() async throws {
+        shutdown()
+        try await prepare()
     }
 
     func countTokens(_ text: String) async throws -> Int {
@@ -300,6 +310,18 @@ actor NotesModelRuntime {
     func shutdown() {
         idleTask?.cancel()
         idleTask = nil
+        if let runtimeGeneration {
+            // The pointer teardown is synchronous, but the registry is an actor.
+            // The generation check makes this safe if a replacement load starts
+            // before this update runs.
+            Task {
+                _ = await ModelRuntimeManager.shared.markUnloaded(
+                    .notes,
+                    generation: runtimeGeneration
+                )
+            }
+            self.runtimeGeneration = nil
+        }
         if let context {
             llama_free(context)
             self.context = nil
@@ -391,10 +413,39 @@ actor NotesModelRuntime {
         let jobID = schedulerJobID
         let task = Task<Void, Error> {
             defer { self.loadTask = nil }
-            try await self.load(schedulerJobID: jobID)
+            let generation = await ModelRuntimeManager.shared.beginLoading(.notes)
+            self.setRuntimeGeneration(generation)
+            do {
+                try await self.load(schedulerJobID: jobID)
+                _ = await ModelRuntimeManager.shared.markReady(
+                    .notes,
+                    generation: generation
+                )
+            } catch {
+                if let llamaError = error as? LlamaError,
+                   case .modelMissing = llamaError {
+                    // A missing download is an expected configuration state,
+                    // not a wedged GPU/runtime. Leave the owner retryable.
+                    _ = await ModelRuntimeManager.shared.markUnloaded(
+                        .notes,
+                        generation: generation
+                    )
+                } else {
+                    _ = await ModelRuntimeManager.shared.markWedged(
+                        .notes,
+                        generation: generation,
+                        error: error.localizedDescription
+                    )
+                }
+                throw error
+            }
         }
         loadTask = task
         try await task.value
+    }
+
+    private func setRuntimeGeneration(_ generation: UInt64) {
+        runtimeGeneration = generation
     }
 
     private func load(schedulerJobID: UUID? = nil) async throws {
