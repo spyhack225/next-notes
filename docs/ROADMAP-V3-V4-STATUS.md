@@ -26,7 +26,7 @@ hardware under test.
 | 8. TTS | Apple system TTS and streaming baseline exist; `docs/tts-benchmark-2026-09-13.md` now compares Apple, Kokoro ONNX and Piper on this Mac. Release-build `--selftest-tts` and `--selftest-tts-stream` passed. | Kokoro/Piper remain benchmark-only; real speaker onset, acoustic interruption and comparative listening quality remain open. |
 | 9. Multi-round tools | Bounded model/tool/result loop and permissions exist. | Complete a real inspect → click → verify task with the intended apps. |
 | 10. Browser | Local CDP and AX fallback exist. Chrome 152 in an isolated profile passed target discovery, inspect, fill, click with state readback, and navigation against a local page in about 0.815 s. | Validate submit/download and AX fallback against intended real tabs. |
-| 11. ACP | Structured ACP client exists; nested permission requests reach a reviewable Agent card, and handshake failure offers a one-shot compatibility CLI card with an exact command. Local ACP fixture and production loop self-tests passed. Codex and Claude now resolve through pinned official ACP adapters instead of their ordinary CLIs; the fresh debug binary completed both providers' real `initialize` → `session/new` → prompt flow with `ACP_LIVE_OK`. | Rerun the live check from the final installed app; validate provider permission requests, cancellation and progress. Qwen Code is absent; an OpenCode ACP attempt did not finish `initialize` while stdin remained open. |
+| 11. ACP | Structured ACP client exists; nested permission requests reach a reviewable Agent card, and handshake failure offers a one-shot compatibility CLI card with an exact command. Local ACP fixture and production loop self-tests passed. Codex and Claude now resolve through pinned official ACP adapters instead of their ordinary CLIs; the final installed app completed both providers' real `initialize` → `session/new` → prompt flow with `ACP_LIVE_OK`. | Validate provider permission requests, cancellation and progress. Qwen Code is absent; an OpenCode ACP attempt did not finish `initialize` while stdin remained open. |
 
 ## v4 milestones
 
@@ -45,7 +45,7 @@ hardware under test.
 
 ## Cross-cutting acceptance still open
 
-The installed 0.2.4 candidate (build 73) on a MacBook Air M3, 16 GB, macOS 26.5.2
+The installed 0.2.4 build on a MacBook Air M3, 16 GB, macOS 26.5.2
 passed the local Workspace CLI signed-in check, the ACP/MCP/browser/tool-loop
 self-tests, and the model-backed Parakeet, Metal and notes probes. Live
 read-only Google Calendar and Gmail API calls succeeded with one result each.
@@ -53,13 +53,12 @@ These establish that the local dependencies load and the account can read;
 they do not execute a cloud write or a physical meeting scenario.
 
 Live UI validation exposed a main-actor freeze in `SystemAudioCapture.start` during
-`Record meeting now`. The corrected source passed `--selftest-systemaudio-timeout`,
-capture/stream/duplex/contention/meeting-live probes, and an installed-app
-eight-second Record → Stop cycle without hanging. Both shell and LaunchServices
+`Record meeting now`. The corrected installed app passed `--selftest-systemaudio-timeout`,
+capture/stream/duplex/contention/meeting-live probes, live Codex/Claude ACP and MCP
+self-tests, and an eight-second Record → Stop cycle without hanging. Both shell and LaunchServices
 system-audio probes captured roughly 48,000 zero samples and ended
 `SYSTEM_AUDIO_SILENT`; system-audio permission and nonzero playback remain
-unverified. The corrected source must be included in the final installed build
-and release artifact before this entry becomes a shipped claim.
+unverified.
 
 - v4 §37's `NSEvent.flagsChanged` vs `CGEventTap` hotkey experiment now has a
   bounded pass-through CLI in `Tools/HotkeyExperiment.swift`. It deliberately
