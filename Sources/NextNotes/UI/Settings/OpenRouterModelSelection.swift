@@ -88,8 +88,9 @@ struct OpenRouterModelSelection: View {
                 .foregroundStyle(DS.Color.textSecondary)
         }
         .task {
-            if !SelfTest.isRunning && catalog.models.isEmpty && OpenRouterKeyStore.hasKey {
-                await catalog.refresh()
+            if !SelfTest.isRunning && catalog.models.isEmpty {
+                let hasKey = await OpenRouterKeyStore.hasKeyAsync()
+                if hasKey { await catalog.refresh() }
             }
         }
         .task(id: visibleModels.map(\.id)) {

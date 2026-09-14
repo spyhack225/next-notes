@@ -15,7 +15,9 @@ struct ModelsSettingsTab: View {
     @State private var catalog = OpenRouterCatalog.shared
     @State private var openRouterKeyInput = ""
     @State private var openRouterKeyStatus: String?
-    @State private var hasOpenRouterKey = !SelfTest.isRunning && OpenRouterKeyStore.hasKey
+    @State private var hasOpenRouterKey = false
+    @State private var isCheckingOpenRouterKey = true
+    @State private var isChangingOpenRouterKey = false
 
     var body: some View {
         Form {
@@ -25,28 +27,45 @@ struct ModelsSettingsTab: View {
                     .textFieldStyle(.roundedBorder)
                 HStack(spacing: DS.Space.s) {
                     Button("Save key") {
-                        do {
-                            try OpenRouterKeyStore.save(openRouterKeyInput)
-                            openRouterKeyInput = ""
-                            hasOpenRouterKey = true
-                            openRouterKeyStatus = "Saved in Keychain"
-                            Task { await catalog.refresh() }
-                        } catch {
-                            openRouterKeyStatus = error.localizedDescription
+                        let value = openRouterKeyInput
+                        isChangingOpenRouterKey = true
+                        Task {
+                            defer { isChangingOpenRouterKey = false }
+                            do {
+                                try await OpenRouterKeyStore.saveAsync(value)
+                                OpenRouterKeyStore.invalidateCache()
+                                openRouterKeyInput = ""
+                                hasOpenRouterKey = true
+                                openRouterKeyStatus = "Saved in Keychain"
+                                await catalog.refresh()
+                            } catch {
+                                openRouterKeyStatus = error.localizedDescription
+                            }
                         }
                     }
-                    .disabled(openRouterKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(isChangingOpenRouterKey || openRouterKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     if hasOpenRouterKey {
                         Button("Remove key") {
-                            OpenRouterKeyStore.clear()
-                            catalog.clear()
-                            hasOpenRouterKey = false
-                            openRouterKeyStatus = "Key removed"
+                            isChangingOpenRouterKey = true
+                            Task {
+                                defer { isChangingOpenRouterKey = false }
+                                do {
+                                    try await OpenRouterKeyStore.clearAsync()
+                                    OpenRouterKeyStore.invalidateCache()
+                                    catalog.clear()
+                                    hasOpenRouterKey = false
+                                    openRouterKeyStatus = "Key removed"
+                                } catch {
+                                    openRouterKeyStatus = error.localizedDescription
+                                }
+                            }
                         }
+                        .disabled(isChangingOpenRouterKey)
                         Button("Refresh models") { Task { await catalog.refresh() } }
                     }
                 }
                 if let openRouterKeyStatus { Text(openRouterKeyStatus).font(DS.Font.caption) }
+                if isCheckingOpenRouterKey { Text("Checking saved key…").font(DS.Font.caption) }
                 if let problem = catalog.problem {
                     Text(problem).foregroundStyle(DS.Color.warning)
                 }
@@ -129,6 +148,13 @@ struct ModelsSettingsTab: View {
         .formStyle(.grouped)
         .onAppear {
             models.refresh()
+            Task {
+                if !SelfTest.isRunning {
+                    let found = await OpenRouterKeyStore.hasKeyAsync()
+                    if found { hasOpenRouterKey = true }
+                }
+                isCheckingOpenRouterKey = false
+            }
             if settings.agentVoiceEngine == "pocket" {
                 Task { await pocket.prepare() }
             } else if settings.agentVoiceEngine == "kokoro", KokoroAgentVoice.isSupportedOS {

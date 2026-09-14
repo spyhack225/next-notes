@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Observation
 import Security
 
@@ -8,14 +9,16 @@ enum OpenRouterError: LocalizedError {
     case invalidResponse
     case keychain(Int)
     case http(Int, String)
+    case speedProbe(String)
 
     var errorDescription: String? {
         return switch self {
-        case .missingKey: "Add an OpenRouter API key in Models settings."
+        case .missingKey: "Add or re-enter your OpenRouter API key in Models settings."
         case .missingModel: "Choose an OpenRouter model in Models settings."
         case .invalidResponse: "OpenRouter returned an unreadable response."
         case .keychain(let status): "Keychain error \(status). The API key was not saved."
         case .http(let status, let message): "OpenRouter HTTP \(status): \(message)"
+        case .speedProbe(let message): "OpenRouter speed check: \(message)"
         }
     }
 }
@@ -23,30 +26,110 @@ enum OpenRouterError: LocalizedError {
 enum OpenRouterKeyStore {
     private static let service = "ai.pivotstudio.nextnotes.openrouter"
     private static let account = "api-key"
-    private static var query: [String: Any] {
+    private static var legacyQuery: [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
          kSecAttrService as String: service,
          kSecAttrAccount as String: account]
     }
 
-    /// Existence-only lookup for Settings. Reading secret data here would ask
-    /// Keychain to authorize a new executable path just to draw the form.
-    static var hasKey: Bool {
-        var request = query
-        request[kSecReturnAttributes as String] = true
-        request[kSecMatchLimit as String] = kSecMatchLimitOne
-        var item: CFTypeRef?
-        return SecItemCopyMatching(request as CFDictionary, &item) == errSecSuccess
+    /// The data-protection keychain grants the same signed app access after an
+    /// update. Older builds stored this item in the legacy macOS keychain,
+    /// whose access prompt can block SecItemCopyMatching indefinitely.
+    private static var query: [String: Any] {
+        var request = legacyQuery
+        request[kSecUseDataProtectionKeychain as String] = true
+        return request
     }
 
-    static var key: String? {
-        var request = query
+    private static func read(_ base: [String: Any]) -> String? {
+        var request = base
         request[kSecReturnData as String] = true
         request[kSecMatchLimit as String] = kSecMatchLimitOne
+        let context = LAContext()
+        context.interactionNotAllowed = true
+        request[kSecUseAuthenticationContext as String] = context
         var item: CFTypeRef?
         guard SecItemCopyMatching(request as CFDictionary, &item) == errSecSuccess,
               let data = item as? Data else { return nil }
         return String(data: data, encoding: .utf8)
+    }
+
+    static var key: String? {
+        if let current = read(query) { return current }
+        guard let legacy = read(legacyQuery) else { return nil }
+        // Migrate silently only when this build is already allowed to read the
+        // old item. A denied legacy lookup never displays a Keychain prompt.
+        try? save(legacy)
+        return legacy
+    }
+
+    /// Security framework lookups can wait for keychain authorization even
+    /// when prompts are disabled. Run one off the UI actor and share its result
+    /// across catalog, speed and completion requests in this process.
+    @MainActor private static var cachedKey: String?
+    @MainActor private static var didReadKey = false
+    @MainActor private static var keyWaiters: [CheckedContinuation<String?, Never>] = []
+    @MainActor private static var keyGeneration = 0
+
+    @MainActor static func invalidateCache() {
+        keyGeneration &+= 1
+        cachedKey = nil
+        didReadKey = false
+        let waiters = keyWaiters
+        keyWaiters = []
+        for waiter in waiters { waiter.resume(returning: nil) }
+    }
+
+    @MainActor
+    static func keyAsync() async -> String? {
+        if didReadKey { return cachedKey }
+        return await withCheckedContinuation { waiter in
+            keyWaiters.append(waiter)
+            guard keyWaiters.count == 1 else { return }
+            let generation = keyGeneration
+            DispatchQueue.global(qos: .userInitiated).async {
+                let result = key
+                Task { @MainActor in
+                    guard keyGeneration == generation else { return }
+                    cachedKey = result
+                    didReadKey = true
+                    let waiters = keyWaiters
+                    keyWaiters = []
+                    for waiter in waiters { waiter.resume(returning: result) }
+                }
+            }
+        }
+    }
+
+    @MainActor
+    static func hasKeyAsync() async -> Bool {
+        await keyAsync() != nil
+    }
+
+    static func saveAsync(_ value: String) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    try save(value)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    static func clearAsync() async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    try clear()
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
     }
 
     static func save(_ value: String) throws {
@@ -65,7 +148,20 @@ enum OpenRouterKeyStore {
         }
     }
 
-    static func clear() { SecItemDelete(query as CFDictionary) }
+    static func clear() throws {
+        let current = SecItemDelete(query as CFDictionary)
+        guard current == errSecSuccess || current == errSecItemNotFound else {
+            throw OpenRouterError.keychain(Int(current))
+        }
+        var legacy = legacyQuery
+        let context = LAContext()
+        context.interactionNotAllowed = true
+        legacy[kSecUseAuthenticationContext as String] = context
+        let previous = SecItemDelete(legacy as CFDictionary)
+        guard previous == errSecSuccess || previous == errSecItemNotFound else {
+            throw OpenRouterError.keychain(Int(previous))
+        }
+    }
 }
 
 struct OpenRouterModel: Decodable, Identifiable, Sendable {
@@ -143,6 +239,7 @@ final class OpenRouterCatalog {
     private(set) var speeds: [String: OpenRouterModelSpeed] = [:]
     private(set) var checkedSpeedIDs: Set<String> = []
     private(set) var failedSpeedIDs: Set<String> = []
+    private(set) var speedFailure: String?
     private var loadingSpeedIDs: Set<String> = []
     private var speedGeneration: UInt64 = 0
 
@@ -155,6 +252,7 @@ final class OpenRouterCatalog {
         speeds = [:]
         checkedSpeedIDs = []
         failedSpeedIDs = []
+        speedFailure = nil
         loadingSpeedIDs = []
     }
 
@@ -163,7 +261,7 @@ final class OpenRouterCatalog {
         isLoading = true
         defer { isLoading = false }
         do {
-            guard let key = OpenRouterKeyStore.key else { throw OpenRouterError.missingKey }
+            guard let key = await OpenRouterKeyStore.keyAsync() else { throw OpenRouterError.missingKey }
             // OpenRouter ranks by recent p50 throughput. Its list response does
             // not include the numeric rate, which comes from endpoint details.
             var request = URLRequest(url: URL(string: "https://openrouter.ai/api/v1/models?output_modalities=text&sort=throughput-high-to-low")!)
@@ -171,13 +269,14 @@ final class OpenRouterCatalog {
             request.timeoutInterval = 30
             let (data, response) = try await URLSession.shared.data(for: request)
             try OpenRouterLLMProvider.validate(response, data: data)
-            guard OpenRouterKeyStore.key == key else { return }
+            guard await OpenRouterKeyStore.keyAsync() == key else { return }
             let decoded = try JSONDecoder().decode(ModelResponse.self, from: data)
             speedGeneration &+= 1
             models = decoded.data.filter(\.isTextModel)
             speeds = [:]
             checkedSpeedIDs = []
             failedSpeedIDs = []
+            speedFailure = nil
             loadingSpeedIDs = []
             problem = nil
         } catch {
@@ -189,7 +288,7 @@ final class OpenRouterCatalog {
     /// may contain hundreds of models; loading every endpoint on open would
     /// create hundreds of requests and delay the Settings screen.
     func loadSpeeds(for ids: [String]) async {
-        guard let key = OpenRouterKeyStore.key else { return }
+        guard let key = await OpenRouterKeyStore.keyAsync() else { return }
         let generation = speedGeneration
         var seen = Set<String>()
         let wanted = ids.filter {
@@ -197,31 +296,20 @@ final class OpenRouterCatalog {
                 && !loadingSpeedIDs.contains($0)
         }
         loadingSpeedIDs.formUnion(wanted)
-        for start in stride(from: 0, to: wanted.count, by: 4) {
+        for id in wanted {
             if Task.isCancelled || speedGeneration != generation { break }
-            let batch = Array(wanted[start..<min(start + 4, wanted.count)])
-            await withTaskGroup(of: (String, OpenRouterModelSpeed?, Bool).self) { group in
-                for id in batch {
-                    group.addTask {
-                        do {
-                            return (id, try await Self.fetchSpeed(for: id, key: key), true)
-                        } catch {
-                            return (id, nil, false)
-                        }
-                    }
-                }
-                for await (id, speed, succeeded) in group {
-                    guard speedGeneration == generation else { continue }
-                    loadingSpeedIDs.remove(id)
-                    if succeeded {
-                        failedSpeedIDs.remove(id)
-                        checkedSpeedIDs.insert(id)
-                        if let speed { speeds[id] = speed }
-                    } else {
-                        failedSpeedIDs.insert(id)
-                    }
-                }
+            do {
+                let speed = try await Self.fetchSpeed(for: id, key: key)
+                guard speedGeneration == generation else { break }
+                failedSpeedIDs.remove(id)
+                checkedSpeedIDs.insert(id)
+                if let speed { speeds[id] = speed }
+            } catch {
+                guard speedGeneration == generation else { break }
+                failedSpeedIDs.insert(id)
+                if speedFailure == nil { speedFailure = error.localizedDescription }
             }
+            loadingSpeedIDs.remove(id)
         }
         if speedGeneration == generation { loadingSpeedIDs.subtract(wanted) }
     }
@@ -278,7 +366,7 @@ struct OpenRouterLLMProvider: LLMProvider {
 
     var unavailableReason: String? {
         get async {
-            if OpenRouterKeyStore.key == nil { return OpenRouterError.missingKey.localizedDescription }
+            if await OpenRouterKeyStore.keyAsync() == nil { return OpenRouterError.missingKey.localizedDescription }
             if modelID.isEmpty { return OpenRouterError.missingModel.localizedDescription }
             return nil
         }
@@ -292,7 +380,7 @@ struct OpenRouterLLMProvider: LLMProvider {
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         let began = Date()
-        let request = try makeRequest(system: system, user: user, maxTokens: maxTokens, stream: false)
+        let request = try await makeRequest(system: system, user: user, maxTokens: maxTokens, stream: false)
         let (data, response) = try await URLSession.shared.data(for: request)
         try Self.validate(response, data: data)
         let decoded = try JSONDecoder().decode(CompletionResponse.self, from: data)
@@ -308,7 +396,7 @@ struct OpenRouterLLMProvider: LLMProvider {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    let request = try makeRequest(system: system, user: user, maxTokens: maxTokens, stream: true)
+                    let request = try await makeRequest(system: system, user: user, maxTokens: maxTokens, stream: true)
                     let (bytes, response) = try await URLSession.shared.bytes(for: request)
                     guard let http = response as? HTTPURLResponse else { throw OpenRouterError.invalidResponse }
                     guard (200..<300).contains(http.statusCode) else {
@@ -344,9 +432,9 @@ struct OpenRouterLLMProvider: LLMProvider {
         return event.choices?.first?.delta.content
     }
 
-    private func makeRequest(system: String, user: String, maxTokens: Int, stream: Bool) throws -> URLRequest {
+    private func makeRequest(system: String, user: String, maxTokens: Int, stream: Bool) async throws -> URLRequest {
         guard !modelID.isEmpty else { throw OpenRouterError.missingModel }
-        guard let key = OpenRouterKeyStore.key else { throw OpenRouterError.missingKey }
+        guard let key = await OpenRouterKeyStore.keyAsync() else { throw OpenRouterError.missingKey }
         var request = URLRequest(url: URL(string: "https://openrouter.ai/api/v1/chat/completions")!)
         request.httpMethod = "POST"
         request.timeoutInterval = stream ? 120 : 300
@@ -398,7 +486,7 @@ struct OpenRouterLLMProvider: LLMProvider {
 @MainActor
 enum OpenRouterSelfTest {
     static func run() async throws -> String {
-        guard let key = OpenRouterKeyStore.key else { throw OpenRouterError.missingKey }
+        guard let key = await OpenRouterKeyStore.keyAsync() else { throw OpenRouterError.missingKey }
         var request = URLRequest(url: URL(string: "https://openrouter.ai/api/v1/key")!)
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -429,16 +517,27 @@ enum OpenRouterSelfTest {
 @MainActor
 enum OpenRouterSpeedSelfTest {
     static func run() async throws -> String {
-        guard OpenRouterKeyStore.key != nil else { throw OpenRouterError.missingKey }
+        guard await OpenRouterKeyStore.keyAsync() != nil else { throw OpenRouterError.missingKey }
         let catalog = OpenRouterCatalog.shared
         await catalog.refresh()
         if let problem = catalog.problem { throw OpenRouterError.http(0, problem) }
         let ids = Array(catalog.models.prefix(12).map(\.id))
         guard !ids.isEmpty else { throw OpenRouterError.invalidResponse }
         await catalog.loadSpeeds(for: ids)
+        // A visible model picker may already be fetching these same IDs.
+        // loadSpeeds skips in-flight IDs, so wait for that shared work before
+        // judging the result instead of reporting a false failure.
+        for _ in 0..<60 {
+            if ids.allSatisfy({ catalog.checkedSpeedIDs.contains($0)
+                || catalog.failedSpeedIDs.contains($0) }) { break }
+            try await Task.sleep(for: .seconds(1))
+        }
         guard ids.allSatisfy({ catalog.checkedSpeedIDs.contains($0) }),
               ids.contains(where: { catalog.speeds[$0] != nil }) else {
-            throw OpenRouterError.invalidResponse
+            throw OpenRouterError.speedProbe(
+                "checked \(catalog.checkedSpeedIDs.count)/\(ids.count), "
+                    + "rates \(catalog.speeds.count), failed \(catalog.failedSpeedIDs.count). "
+                    + (catalog.speedFailure ?? "No endpoint error reported."))
         }
         return "checked \(ids.count) ranked models; \(catalog.speeds.count) reported recent tok/s"
     }
