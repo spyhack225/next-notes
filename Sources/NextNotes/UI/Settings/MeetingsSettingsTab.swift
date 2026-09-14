@@ -119,6 +119,12 @@ struct MeetingsSettingsTab: View {
                         action: { models.prepareNotesModel() }
                     )
                 }
+                if settings.notesProvider == .openRouter {
+                    OpenRouterModelSelection(
+                        modelID: $settings.openRouterNotesModelID,
+                        contextTokens: $settings.openRouterNotesContextTokens
+                    )
+                }
             } header: {
                 Text("Notes")
             } footer: {

@@ -57,6 +57,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-tts-stream
 --selftest-tts-pocket
 --selftest-local-model-stream
+--selftest-openrouter-contract --selftest-openrouter
 --selftest-toolloop  --selftest-acp-confirm --selftest-scheduler
 --selftest-toolloop-production
 --selftest-capture   --selftest-meeting-reconcile

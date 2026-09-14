@@ -214,7 +214,11 @@ final class AgentService {
                 self.thinking.remove(id)
                 self.tasks[id] = nil
             }
-            guard let provider = await LLMProviders.resolve(preferring: Settings.shared.notesProvider) else {
+            guard let provider = await LLMProviders.resolve(
+                preferring: Settings.shared.agentModelProvider,
+                modelID: Settings.shared.openRouterAgentModelID,
+                contextTokens: Settings.shared.openRouterAgentContextTokens
+            ) else {
                 self.problems[id] = AgentError.noProvider.localizedDescription
                 return
             }

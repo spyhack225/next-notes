@@ -8,6 +8,7 @@ import Foundation
 enum LLMProviderID: String, CaseIterable, Sendable, Codable, Identifiable {
     case qwen35_4b
     case appleFoundation
+    case openRouter
 
     var id: String { rawValue }
 
@@ -15,6 +16,7 @@ enum LLMProviderID: String, CaseIterable, Sendable, Codable, Identifiable {
         switch self {
         case .qwen35_4b: "Qwen3.5-4B"
         case .appleFoundation: "Apple Foundation Model"
+        case .openRouter: "OpenRouter"
         }
     }
 
@@ -27,6 +29,9 @@ enum LLMProviderID: String, CaseIterable, Sendable, Codable, Identifiable {
         case .appleFoundation:
             "Already on this Mac and fast, but its short context means a long meeting is "
                 + "summarised in pieces."
+        case .openRouter:
+            "Uses the cloud model selected here. Add the API key in Models settings. "
+                + "Transcript or Agent prompts are sent to OpenRouter and may incur charges."
         }
     }
 }
@@ -39,6 +44,7 @@ enum LLMProviderID: String, CaseIterable, Sendable, Codable, Identifiable {
 /// the provider's own business.
 protocol LLMProvider: Sendable {
     var id: LLMProviderID { get }
+    var displayModelName: String { get }
 
     /// The largest prompt this provider will accept, in tokens.
     var contextTokens: Int { get }
@@ -61,6 +67,7 @@ protocol LLMProvider: Sendable {
 }
 
 extension LLMProvider {
+    var displayModelName: String { id.displayName }
     func stream(
         system: String,
         user: String,
@@ -101,21 +108,41 @@ struct LLMCompletion: Sendable {
     }
 }
 
+@MainActor
 enum LLMProviders {
-    static func make(_ id: LLMProviderID) -> any LLMProvider {
+    static func make(
+        _ id: LLMProviderID,
+        modelID: String? = nil,
+        contextTokens: Int? = nil
+    ) -> any LLMProvider {
         switch id {
         case .qwen35_4b: LlamaLLMProvider()
         case .appleFoundation: FoundationModelLLMProvider()
+        case .openRouter:
+            OpenRouterLLMProvider(
+                modelID: modelID ?? Settings.shared.openRouterNotesModelID,
+                contextTokens: contextTokens ?? Settings.shared.openRouterNotesContextTokens
+            )
         }
     }
 
-    /// The configured provider when it can run, otherwise the other one when *it* can.
+    /// Local choices fall back to the other local provider when needed. An explicit
+    /// OpenRouter choice never falls back: doing so would hide a missing key or a cloud
+    /// failure from someone expecting that particular model.
     ///
     /// Falling back rather than failing is deliberate: a user who turned on automatic notes
     /// and then deleted the Qwen download should still get notes, and being told which model
     /// wrote them (`Meeting.notesModel`) is a better outcome than an empty Notes tab.
-    static func resolve(preferring preferred: LLMProviderID) async -> (any LLMProvider)? {
-        let ordered = [preferred] + LLMProviderID.allCases.filter { $0 != preferred }
+    static func resolve(
+        preferring preferred: LLMProviderID,
+        modelID: String? = nil,
+        contextTokens: Int? = nil
+    ) async -> (any LLMProvider)? {
+        if preferred == .openRouter {
+            let provider = make(preferred, modelID: modelID, contextTokens: contextTokens)
+            return await provider.unavailableReason == nil ? provider : nil
+        }
+        let ordered = [preferred] + LLMProviderID.allCases.filter { $0 != preferred && $0 != .openRouter }
         for id in ordered {
             let provider = make(id)
             if await provider.unavailableReason == nil { return provider }

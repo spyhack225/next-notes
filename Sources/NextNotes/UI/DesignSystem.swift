@@ -179,6 +179,8 @@ enum DS {
     // MARK: - Size
 
     enum Size {
+        /// Maximum catalog rows shown before a search or filter narrows the result.
+        static let openRouterVisibleModels = 25
         static let sidebarMin: CGFloat = 200
         static let sidebarIdeal: CGFloat = 230
         static let sidebarMax: CGFloat = 320

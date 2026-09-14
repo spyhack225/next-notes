@@ -101,7 +101,7 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
         case .workspace: "What Next Notes may do in your account"
         case .agent: "How you wake it and what it may do"
         case .integrations: "Other apps it can reach"
-        case .models: "What lives on this Mac"
+        case .models: "Local and cloud models"
         case .permissions: "What macOS has agreed to"
         }
     }

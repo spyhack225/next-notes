@@ -567,6 +567,21 @@ final class Settings {
     var notesProvider: LLMProviderID {
         didSet { defaults.set(notesProvider.rawValue, forKey: Keys.notesProvider) }
     }
+    var agentModelProvider: LLMProviderID {
+        didSet { defaults.set(agentModelProvider.rawValue, forKey: Keys.agentModelProvider) }
+    }
+    var openRouterNotesModelID: String {
+        didSet { defaults.set(openRouterNotesModelID, forKey: Keys.openRouterNotesModelID) }
+    }
+    var openRouterAgentModelID: String {
+        didSet { defaults.set(openRouterAgentModelID, forKey: Keys.openRouterAgentModelID) }
+    }
+    var openRouterNotesContextTokens: Int {
+        didSet { defaults.set(openRouterNotesContextTokens, forKey: Keys.openRouterNotesContextTokens) }
+    }
+    var openRouterAgentContextTokens: Int {
+        didSet { defaults.set(openRouterAgentContextTokens, forKey: Keys.openRouterAgentContextTokens) }
+    }
 
     /// Let the meeting agent propose follow-up actions in Google Workspace.
     ///
@@ -780,6 +795,11 @@ final class Settings {
         static let meetingsDeleteAudioAfterNotes = "meetingsDeleteAudioAfterNotes"
         static let notesAutoGenerate = "notesAutoGenerate"
         static let notesProvider = "notesProvider"
+        static let agentModelProvider = "agentModelProvider"
+        static let openRouterNotesModelID = "openRouterNotesModelID"
+        static let openRouterAgentModelID = "openRouterAgentModelID"
+        static let openRouterNotesContextTokens = "openRouterNotesContextTokens"
+        static let openRouterAgentContextTokens = "openRouterAgentContextTokens"
         static let meetingsAutoRecord = "meetingsAutoRecord"
         static let meetingLeadMinutes = "meetingLeadMinutes"
         static let meetingAutoRecordOverrides = "meetingAutoRecordOverrides"
@@ -870,6 +890,13 @@ final class Settings {
         notesProvider = LLMProviderID(
             rawValue: defaults.string(forKey: Keys.notesProvider) ?? ""
         ) ?? .qwen35_4b
+        agentModelProvider = LLMProviderID(
+            rawValue: defaults.string(forKey: Keys.agentModelProvider) ?? ""
+        ) ?? .qwen35_4b
+        openRouterNotesModelID = defaults.string(forKey: Keys.openRouterNotesModelID) ?? ""
+        openRouterAgentModelID = defaults.string(forKey: Keys.openRouterAgentModelID) ?? ""
+        openRouterNotesContextTokens = defaults.integer(forKey: Keys.openRouterNotesContextTokens)
+        openRouterAgentContextTokens = defaults.integer(forKey: Keys.openRouterAgentContextTokens)
         meetingsAutoRecord = defaults.object(forKey: Keys.meetingsAutoRecord) as? Bool ?? true
         // Clamped on read as well as on write: a hand-edited or corrupted default of 0 or
         // 4000 would either arm at the start time or arm every meeting of the week.

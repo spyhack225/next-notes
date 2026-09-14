@@ -201,10 +201,14 @@ extension RealtimeAgent {
         let provider: any LLMProvider
         if let testingProvider = localModelProviderForTesting {
             provider = testingProvider
-        } else if let resolvedProvider = await LLMProviders.resolve(preferring: Settings.shared.notesProvider) {
+        } else if let resolvedProvider = await LLMProviders.resolve(
+            preferring: Settings.shared.agentModelProvider,
+            modelID: Settings.shared.openRouterAgentModelID,
+            contextTokens: Settings.shared.openRouterAgentContextTokens
+        ) {
             provider = resolvedProvider
         } else {
-            return "I can’t use local tools because no local model is available."
+            return "I can’t plan tool use because the selected model is unavailable."
         }
 
         let schema = AgentToolRegistry.shared.schemaJSON(for: tools)
@@ -223,7 +227,10 @@ extension RealtimeAgent {
             Available tools:
             """ + schema
         let clock = ContinuousClock()
-        let deadline = clock.now + (toolLoopLimitForTesting ?? Duration.seconds(18))
+        let duration = toolLoopLimitForTesting
+            ?? (Settings.shared.agentModelProvider == .openRouter
+                ? Duration.seconds(75) : Duration.seconds(18))
+        let deadline = clock.now + duration
         var results: [String] = []
         var callsUsed = 0
         let responsiveness = Settings.shared.agentResponsiveness

@@ -26,6 +26,7 @@ final class RealtimeAgent {
         /// Workspace and file reads. A second path used to add 50 s of model time
         /// on top of this; that is gone.
         static let tool: Duration = .seconds(20)
+        static let cloudTool: Duration = .seconds(90)
         static let localModel: Duration = .seconds(90)
         static let captureFinish: Duration = .seconds(8)
     }
@@ -127,7 +128,12 @@ final class RealtimeAgent {
             beginWork(title: intent.progressTitle)
             let task = Task { @MainActor [weak self] in
                 guard let self else { return AgentTurn(reply: "", delegated: false) }
-                return await self.answerLocally(prompt, generation: mine, replyTrace: replyTrace)
+                return await self.answerLocally(
+                    prompt,
+                    forceOnDevice: AgentTurnIntent.explicitlyRequestsOnDeviceModel(text),
+                    generation: mine,
+                    replyTrace: replyTrace
+                )
             }
             localModelTask = task
             let turn = await withBoundedWait(localModelLimitForTesting ?? Limits.localModel) {
@@ -143,7 +149,7 @@ final class RealtimeAgent {
             // It may still unwind after a blocking model load returns.
             generation += 1
             RealtimeAudioSession.shared.noteUserSpeech()
-            let reply = "The local model took too long, so I stopped waiting."
+            let reply = "The model took too long, so I stopped waiting."
             finish(reply)
             return AgentTurn(reply: reply, delegated: false)
         case .unknown:
@@ -161,7 +167,13 @@ final class RealtimeAgent {
         case .calendar, .mail, .files, .drive, .computer, .toolLoop:
             beginWork(title: intent.progressTitle)
             let toolTrace = LatencyTrace.start(.agentToolCallToResult)
-            let boxed = await withBoundedWait(Limits.tool) {
+            let limit: Duration = if case .toolLoop = intent,
+                Settings.shared.agentModelProvider == .openRouter {
+                Limits.cloudTool
+            } else {
+                Limits.tool
+            }
+            let boxed = await withBoundedWait(limit) {
                 await RealtimeAgent.shared.perform(intent)
             }
             toolTrace.end(note: boxed == nil ? "timeout" : intent.progressTitle)
@@ -243,7 +255,7 @@ final class RealtimeAgent {
             • Search files and run a shell command, after you approve
             • Wake from sleep when you say “Hey Next”
             • Draft Gmail, Calendar, Drive and Docs actions if Workspace is connected
-            • Answer a question on-device when you say “ask the local model …”
+            • Answer a question with your chosen model when you say “ask the model …”
             • Plan several read-only checks when you say “use tools to …”
 
             Ask something specific — mail, calendar, this window, or a file.
@@ -338,6 +350,7 @@ final class RealtimeAgent {
 
     private func answerLocally(
         _ prompt: String,
+        forceOnDevice: Bool,
         generation mine: Int,
         replyTrace: LatencyTrace
     ) async -> AgentTurn {
@@ -355,8 +368,14 @@ final class RealtimeAgent {
         let provider: (any LLMProvider)?
         if let localModelProviderForTesting {
             provider = localModelProviderForTesting
+        } else if forceOnDevice {
+            provider = await LLMProviders.resolve(preferring: .qwen35_4b)
         } else {
-            provider = await LLMProviders.resolve(preferring: Settings.shared.notesProvider)
+            provider = await LLMProviders.resolve(
+                preferring: Settings.shared.agentModelProvider,
+                modelID: Settings.shared.openRouterAgentModelID,
+                contextTokens: Settings.shared.openRouterAgentContextTokens
+            )
         }
         // Provider discovery can suspend while a new voice turn starts. The old
         // turn must not reset the new turn's speech buffer after that await.
@@ -366,11 +385,17 @@ final class RealtimeAgent {
         }
         guard let provider else {
             endReplyTrace("local-model-unavailable")
-            let reason = (await LLMProviders.make(Settings.shared.notesProvider).unavailableReason)
-                ?? "no local model is available"
+            let reason = forceOnDevice
+                ? (await LLMProviders.make(.qwen35_4b).unavailableReason)
+                : (await LLMProviders.make(
+                    Settings.shared.agentModelProvider,
+                    modelID: Settings.shared.openRouterAgentModelID,
+                    contextTokens: Settings.shared.openRouterAgentContextTokens
+                ).unavailableReason)
+            let explanation = reason ?? "no model is available"
             return conclude(
                 mine,
-                "I can’t answer locally right now: \(reason)",
+                "I can’t answer right now: \(explanation)",
                 route: "local-model-unavailable"
             )
         }
