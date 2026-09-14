@@ -22,12 +22,16 @@ struct LocalAgentBackend: AgentBackend {
                     + "or ask me to check mail, the calendar, this window, or a file."
             )
         }
+        let permissionAlreadyGranted = await MainActor.run {
+            AgentTaskManager.shared.consumePermissionApproval(taskID: task.id)
+        }
         let result = try await AgentToolExecutor.run(
             tool,
             arguments: task.arguments,
             policy: await MainActor.run { PermissionPolicy.fromSettings() },
             meetingID: task.meetingID,
-            taskID: task.id
+            taskID: task.id,
+            permissionAlreadyGranted: permissionAlreadyGranted
         )
         var artifacts: [String] = []
         if let reference = result.reference { artifacts.append(reference) }

@@ -223,6 +223,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Touch the registry so native tools exist before the first utterance, then arm
         // the agent shortcut. Wake-word audio is not started until the user turns it on.
         _ = AgentToolRegistry.shared
+        NextMemory.shared.refreshFromActivity()
         ActivationController.shared.start()
         Task { await Notifications.shared.requestAuthorization() }
 
@@ -320,6 +321,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-tools") {
             runToolsSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-action-runtime") {
+            Task { @MainActor in
+                let ok = await ActionOrchestrator.runSelfTest()
+                writeSelfTest(ok ? "ACTION_RUNTIME_OK" : "ACTION_RUNTIME_FAILED: lifecycle")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-memory") {
+            Task { @MainActor in
+                SelfTest.failed = !NextMemory.runSelfTest()
+                NSApp.terminate(nil)
+            }
             return true
         }
         if arguments.contains("--selftest-wake") {
@@ -3503,6 +3519,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 check("public activity was missing", flags.sawActivity && publicTitle == "Inspecting fixture")
                 check("chain-of-thought leaked as activity", !flags.sawThought)
                 check("session produced no reply", reply.contains("ACP session finished"))
+
+                // Production does not set approvePermissions. Drive the actual broker
+                // and PermissionGate path with a fixture request, then answer it once.
+                // A relay that merely publishes a notice and auto-rejects would fail.
+                let gated = ACPSession()
+                try await gated.start(
+                    command: AgentStdioFixtures.python,
+                    arguments: [script.path],
+                    taskID: "selftest-acp-gate",
+                    approvePermissions: false
+                )
+                let answer = Task { @MainActor in
+                    for _ in 0..<100 {
+                        if let request = PermissionGate.shared.pending,
+                           request.taskID == "selftest-acp-gate" {
+                            let reviewed = request.detail.contains("Edit fixture")
+                                && request.risk == .privileged
+                            PermissionGate.shared.respond(id: request.id, approved: true)
+                            return reviewed
+                        }
+                        try? await Task.sleep(for: .milliseconds(25))
+                    }
+                    return false
+                }
+                let gatedReply = try await gated.prompt("investigate with permission")
+                let reviewed = await answer.value
+                await gated.close()
+                check("ACP request never reached a reviewable permission gate", reviewed)
+                check("approved ACP permission did not resume the session", gatedReply.contains("ACP session finished"))
+
+                let cancelledRequest = PermissionRequest(
+                    toolID: "mcp.acp_nested_tool", title: "Cancelled fixture",
+                    detail: "Must never be approved after cancellation", risk: .privileged,
+                    arguments: [:], taskID: "selftest-acp-cancel"
+                )
+                let pending = Task { await PermissionGate.shared.ask(cancelledRequest) }
+                for _ in 0..<40 where PermissionGate.shared.pending?.id != cancelledRequest.id {
+                    try? await Task.sleep(for: .milliseconds(10))
+                }
+                check("cancellation fixture never reached PermissionGate", PermissionGate.shared.pending?.id == cancelledRequest.id)
+                pending.cancel()
+                let cancelled = await withBoundedWait(.seconds(1)) { await pending.value }
+                check("cancelled ACP permission remained pending", cancelled == false && PermissionGate.shared.pending == nil)
+                PermissionGate.shared.cancelPending(id: cancelledRequest.id)
             } catch {
                 failures.append("ACP session failed: \(error.localizedDescription)")
             }
@@ -3534,7 +3594,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 )
                 let titles = AgentActivityStore.shared.activities.map(\.title)
                 check("a tool run emitted no public activity", titles.contains { AgentActivityProjector.isPublic($0) && !$0.isEmpty })
-                check("inspect did not project Inspecting…", titles.contains("Inspecting…"))
+                check(
+                    "inspect did not name the visible window",
+                    titles.contains { $0.hasPrefix("Looking at ") }
+                )
+                if let click = ComputerToolCatalogue.all.first(where: { $0.name == "click" }) {
+                    let clickTitle = AgentActivityProjector.title(
+                        for: click, arguments: ["id": "secret-element-id"]
+                    )
+                    check("element id leaked into activity", !clickTitle.contains("secret-element-id"))
+                } else {
+                    failures.append("click tool missing from catalogue")
+                }
+                if let search = FilesystemToolCatalogue.all.first(where: { $0.name == "search" }) {
+                    let searchTitle = AgentActivityProjector.title(
+                        for: search, arguments: ["query": "latest STEP"]
+                    )
+                    check("file search did not project a human title", searchTitle.contains("latest STEP"))
+                    let privateTitle = AgentActivityProjector.title(
+                        for: search, arguments: ["query": "secret chain of thought"]
+                    )
+                    check("private planner text leaked into activity", AgentActivityProjector.isPublic(privateTitle))
+                } else {
+                    failures.append("filesystem search tool missing from catalogue")
+                }
                 check(
                     "activity leaked chain-of-thought",
                     titles.allSatisfy { AgentActivityProjector.isPublic($0) }
@@ -3705,6 +3788,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         "CDP was not preferred against the fixture",
                         await BrowserExecutor.preferredBackend(host: "127.0.0.1", port: fixture.port) == .cdp
                     )
+                    let structured = try await BrowserCDPClient.run(
+                        AgentToolRegistry.shared.tool(named: "browser.snapshot")!,
+                        arguments: [:],
+                        host: "127.0.0.1",
+                        port: fixture.port
+                    )
+                    check(
+                        "CDP accessibility tree was not returned",
+                        structured.summary.contains("Accessibility:")
+                            && structured.summary.contains("button: OK")
+                    )
+                    if let target = targets.first {
+                        do {
+                            _ = try await BrowserCDPClient.run(
+                                AgentToolRegistry.shared.tool(named: "browser.click")!,
+                                arguments: [
+                                    "targetId": target.id,
+                                    "id": "1",
+                                    "_authorizedPageURL": "https://different.example/"
+                                ],
+                                host: "127.0.0.1",
+                                port: fixture.port
+                            )
+                            failures.append("CDP click acted after the authorized page changed")
+                        } catch {
+                            check(
+                                "changed CDP page failed for the wrong reason",
+                                error.localizedDescription.contains("authorized browser page changed")
+                            )
+                        }
+                    }
                 }
 
                 guard let ambiguous = await launchCDPFixture("ambiguous") else {

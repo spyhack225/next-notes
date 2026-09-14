@@ -122,16 +122,12 @@ actor ComputeScheduler: ComputeScheduling {
     }
 
     /// Completes the running job and starts the next: a parked (preempted)
-    /// job first, otherwise the head of the priority queue.
+    /// job resumes only when it is the highest-priority waiting work. A parked
+    /// background job must not jump ahead of a realtime job that arrived while
+    /// the preempting work was running.
     func finishCurrent() {
         running = nil
-        if let next = parked.first {
-            parked.removeFirst()
-            start(next)
-            return
-        }
-        if queued.isEmpty { return }
-        start(queued.removeFirst())
+        startNextIfAvailable()
     }
 
     func didYield(_ yielded: WorkClass, to winner: WorkClass) -> Bool {
@@ -215,6 +211,41 @@ actor ComputeScheduler: ComputeScheduling {
         recordedOrder.append(job.workClass)
         if let waiter = resumeWaiters.removeValue(forKey: job.id) {
             waiter.resume()
+        }
+    }
+
+    /// Select the most urgent waiting job across both queues. Parked jobs are
+    /// resumptions, not a priority override; otherwise a notes generation that
+    /// yielded to ASR could run before an already queued realtime-agent turn.
+    private func startNextIfAvailable() {
+        guard !parked.isEmpty || !queued.isEmpty else { return }
+
+        let parkedIndex = parked.indices.min { lhs, rhs in
+            parked[lhs].workClass.priority < parked[rhs].workClass.priority
+        }
+        let queuedIndex = queued.indices.min { lhs, rhs in
+            queued[lhs].workClass.priority < queued[rhs].workClass.priority
+        }
+
+        let useParked: Bool
+        switch (parkedIndex, queuedIndex) {
+        case let (parkedIndex?, queuedIndex?):
+            // Prefer a parked job only for an equal-priority tie so an active
+            // job can resume without starving newly queued work of the same class.
+            useParked = parked[parkedIndex].workClass.priority
+                <= queued[queuedIndex].workClass.priority
+        case (.some, .none):
+            useParked = true
+        case (.none, .some):
+            useParked = false
+        case (.none, .none):
+            return
+        }
+
+        if useParked, let index = parkedIndex {
+            start(parked.remove(at: index))
+        } else if let index = queuedIndex {
+            start(queued.remove(at: index))
         }
     }
 }
@@ -345,6 +376,28 @@ extension ComputeScheduler {
                 failures.append("occupancy still busy after simulated ASR hold released")
             }
         }
+
+        // A parked background job must not leapfrog a realtime job queued while
+        // ASR is running. This was previously hidden by `parked.first` winning
+        // over the priority queue in `finishCurrent()`.
+        let fairness = ComputeScheduler()
+        let backgroundID = await fairness.acquire(.background)
+        let asrID2 = await fairness.acquire(.realtimeASR)
+        let agent = Task { await fairness.acquire(.realtimeAgent) }
+        try? await Task.sleep(for: .milliseconds(20))
+        await fairness.release(asrID2)
+        try? await Task.sleep(for: .milliseconds(20))
+        let fairnessOrder = await fairness.recordedOrder
+        if fairnessOrder.last != .realtimeAgent {
+            failures.append(
+                "queued realtimeAgent ran after parked background: \(fairnessOrder.map(\.rawValue))"
+            )
+        }
+        // Release the test jobs so no waiter remains suspended if this probe is
+        // run in-process with other self-tests.
+        let agentID = await agent.value
+        await fairness.release(agentID)
+        await fairness.release(backgroundID)
 
         for failure in failures {
             print("SCHEDULER_WRONG: \(failure)")

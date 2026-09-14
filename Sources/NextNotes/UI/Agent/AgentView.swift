@@ -180,12 +180,18 @@ struct AgentView: View {
                 VStack(alignment: .leading, spacing: DS.Space.xxs) {
                     Text(task.objective)
                         .font(DS.Font.headline)
-                    Text(task.status.rawValue + (task.progress.isEmpty ? "" : " · \(task.progress)"))
+                    Text((task.status == .waitingForCompatibilityCLI
+                          ? "ACP unavailable · waiting for approval"
+                          : task.status.rawValue)
+                        + (task.progress.isEmpty ? "" : " · \(task.progress)"))
                         .font(DS.Font.caption)
                         .foregroundStyle(DS.Color.textSecondary)
                     if let result = task.result {
                         Text(result)
                             .font(DS.Font.callout)
+                    }
+                    if task.status == .waitingForCompatibilityCLI {
+                        compatibilityCLICard(for: task)
                     }
                     if task.status == .running {
                         Button("Cancel") { tasks.cancel(task.id) }
@@ -200,6 +206,35 @@ struct AgentView: View {
                     .foregroundStyle(DS.Color.textSecondary)
             }
         }
+    }
+
+    private func compatibilityCLICard(for task: AgentTask) -> some View {
+        VStack(alignment: .leading, spacing: DS.Space.xs) {
+            Text("ACP unavailable.")
+                .font(DS.Font.callout)
+            Text("Compatibility CLI mode has weaker progress and permission guarantees and runs only once after your approval.")
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+            if let command = task.compatibilityCommand {
+                Text("Command: \(command)")
+                    .font(DS.Font.caption)
+                    .textSelection(.enabled)
+            }
+            if let directory = task.compatibilityDirectory, !directory.isEmpty {
+                Text("Working directory: \(directory)")
+                    .font(DS.Font.caption)
+                    .textSelection(.enabled)
+            }
+            HStack(spacing: DS.Space.s) {
+                Button("Cancel") { tasks.cancel(task.id) }
+                Button("Run once in compatibility CLI mode") {
+                    tasks.approveCompatibilityCLI(taskID: task.id)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(DS.Space.s)
+        .glassSurface()
     }
 
     private var history: some View {

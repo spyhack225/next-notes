@@ -143,9 +143,11 @@ final class ModelResidencyGuardian: @unchecked Sendable {
             switch model {
             case .notes:
                 await NotesModelRuntime.shared.shutdown()
+                _ = await ModelRuntimeManager.shared.markUnloaded(.notes)
                 Log.llm.info("residency: unloaded notes under memory pressure")
             case .diarization:
                 await MeetingDiarizer.shared.unload()
+                _ = await ModelRuntimeManager.shared.markUnloaded(.diarization)
                 Log.meeting.info("residency: unloaded diarizer under memory pressure")
             case .asr, .wake:
                 // Unreachable while wakeNeeded/asrNeeded stay true; kept for exhaustiveness.
@@ -168,6 +170,12 @@ extension ModelResidencyPolicy {
     @discardableResult
     static func runSelfTest() async -> Bool {
         var failures: [String] = []
+
+        // Model lifecycle is part of residency correctness: a late Parakeet
+        // load must not resurrect a runtime that a newer recovery replaced.
+        if !(await ModelRuntimeManager.runSelfTest()) {
+            failures.append("model runtime lifecycle probe failed")
+        }
 
         // 1. Scheduler yield (same contract as ComputeScheduler.runSelfTest).
         let scheduler = ComputeScheduler()

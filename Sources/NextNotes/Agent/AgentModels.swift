@@ -217,6 +217,9 @@ enum AgentError: LocalizedError, Equatable {
     case noIntegration(String)
     case cancelled
     case backendUnavailable(String)
+    /// ACP failed before initializing. This is the only failure that may expose the
+    /// explicit compatibility CLI action in the task UI.
+    case acpHandshakeUnavailable(ACPCompatibilityRequest)
 
     var errorDescription: String? {
         switch self {
@@ -247,6 +250,8 @@ enum AgentError: LocalizedError, Equatable {
             "The task was cancelled."
         case .backendUnavailable(let reason):
             reason
+        case .acpHandshakeUnavailable(let request):
+            request.failureMessage
         }
     }
 }

@@ -268,6 +268,10 @@ extension ACPConfirmation {
             rationale: ""
         )
         check("an unknown tool isn't treated as the most dangerous class", unknown.risk == .send)
+        check(
+            "compatibility CLI fallback could run without explicit approval",
+            ACPCompatibilityCLIBackend.runSelfTest()
+        )
 
         AgentHarnessRouter.shared.restorePersistence()
         ACPConfirmationGate.shared.resetForTesting()

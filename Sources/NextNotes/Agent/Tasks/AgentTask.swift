@@ -4,6 +4,9 @@ enum AgentTaskStatus: String, Codable, Sendable, CaseIterable {
     case queued
     case running
     case waitingForPermission
+    /// ACP could not complete its protocol handshake. The task is parked until the
+    /// person explicitly chooses the weaker, one-shot compatibility CLI path.
+    case waitingForCompatibilityCLI
     case waitingForInput
     case completed
     case failed
@@ -28,6 +31,11 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
     var backend: String
     var failure: String?
     var acpCLI: String
+    /// Frozen at the ACP failure so the review card can show precisely what a one-shot
+    /// compatibility run would execute, even after a relaunch or settings change.
+    var compatibilityCommand: String?
+    var compatibilityCLI: String?
+    var compatibilityDirectory: String?
 
     init(
         id: String = UUID().uuidString,
@@ -44,7 +52,10 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         meetingID: UUID? = nil,
         backend: String = "local",
         failure: String? = nil,
-        acpCLI: String = ""
+        acpCLI: String = "",
+        compatibilityCommand: String? = nil,
+        compatibilityCLI: String? = nil,
+        compatibilityDirectory: String? = nil
     ) {
         self.id = id
         self.objective = objective
@@ -61,11 +72,15 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         self.backend = backend
         self.failure = failure
         self.acpCLI = acpCLI
+        self.compatibilityCommand = compatibilityCommand
+        self.compatibilityCLI = compatibilityCLI
+        self.compatibilityDirectory = compatibilityDirectory
     }
 
     enum CodingKeys: String, CodingKey {
         case id, objective, source, createdAt, contextReferences, status, progress
         case result, artifacts, tool, arguments, meetingID, backend, failure, acpCLI
+        case compatibilityCommand, compatibilityCLI, compatibilityDirectory
     }
 
     init(from decoder: Decoder) throws {
@@ -85,6 +100,9 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         backend = try container.decodeIfPresent(String.self, forKey: .backend) ?? "local"
         failure = try container.decodeIfPresent(String.self, forKey: .failure)
         acpCLI = try container.decodeIfPresent(String.self, forKey: .acpCLI) ?? ""
+        compatibilityCommand = try container.decodeIfPresent(String.self, forKey: .compatibilityCommand)
+        compatibilityCLI = try container.decodeIfPresent(String.self, forKey: .compatibilityCLI)
+        compatibilityDirectory = try container.decodeIfPresent(String.self, forKey: .compatibilityDirectory)
     }
 }
 

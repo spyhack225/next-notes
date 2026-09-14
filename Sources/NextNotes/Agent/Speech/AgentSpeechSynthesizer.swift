@@ -6,7 +6,7 @@ import Foundation
 @MainActor
 protocol AgentSpeechBacking: AnyObject {
     var isSpeaking: Bool { get }
-    func speak(_ text: String, volume: Float)
+    func speak(_ text: String, volume: Float, token: UInt64)
     func stop()
 }
 
@@ -28,14 +28,26 @@ final class AgentSpeechSynthesizer {
     private(set) var didStop = false
     /// Applied to each utterance. Duplex ducking lowers this while speaking.
     var utteranceVolume: Float = 1.0
+    /// Called when the system backing actually begins the first utterance. This
+    /// is intentionally separate from `enqueueClause`: enqueue latency is not
+    /// audible latency.
+    var onFirstAudio: (() -> Void)?
+    /// Called when a pending first-audio callback is cancelled by barge-in.
+    var onFirstAudioCancelled: (() -> Void)?
+    /// Monotonic output generation. A delegate callback from an interrupted
+    /// utterance carries its old token and cannot close a new reply's span.
+    private(set) var outputGeneration: UInt64 = 0
 
     /// Clauses waiting after the current utterance. Zero when idle or after stop.
     var pendingClauseCount: Int { pendingClauses.count }
 
     init(backing: (any AgentSpeechBacking)? = nil) {
         self.backing = backing ?? systemBacking
-        systemBacking.onUtteranceFinished = { [weak self] in
-            self?.advanceQueue()
+        systemBacking.onUtteranceFinished = { [weak self] token in
+            self?.didFinishAudio(token: token)
+        }
+        systemBacking.onUtteranceStarted = { [weak self] token in
+            self?.didBeginAudio(token: token)
         }
     }
 
@@ -50,12 +62,13 @@ final class AgentSpeechSynthesizer {
         guard !clauses.isEmpty else { return }
         prepareForStream()
         pendingClauses = Array(clauses.dropFirst())
-        backing.speak(clauses[0], volume: utteranceVolume)
+        backing.speak(clauses[0], volume: utteranceVolume, token: outputGeneration)
     }
 
     /// Clear prior playback so a streamed reply can enqueue clauses one by one.
     /// Called by `StreamingSpeechBuffer.begin` — does not set `didStop`.
     func prepareForStream() {
+        outputGeneration &+= 1
         didStop = false
         pendingClauses.removeAll()
         if backing.isSpeaking {
@@ -72,7 +85,7 @@ final class AgentSpeechSynthesizer {
         if backing.isSpeaking || !pendingClauses.isEmpty {
             pendingClauses.append(trimmed)
         } else {
-            backing.speak(trimmed, volume: utteranceVolume)
+            backing.speak(trimmed, volume: utteranceVolume, token: outputGeneration)
         }
     }
 
@@ -80,8 +93,12 @@ final class AgentSpeechSynthesizer {
     /// pending clause so mid-reply cut-off does not keep speaking the rest.
     /// Target <100 ms.
     func stop() {
+        outputGeneration &+= 1
+        let hadPendingAudio = onFirstAudio != nil
         didStop = true
         pendingClauses.removeAll()
+        onFirstAudio = nil
+        if hadPendingAudio { onFirstAudioCancelled?() }
         backing.stop()
     }
 
@@ -95,6 +112,26 @@ final class AgentSpeechSynthesizer {
         self.backing = systemBacking
         utteranceVolume = 1.0
         pendingClauses.removeAll()
+        onFirstAudio = nil
+        onFirstAudioCancelled = nil
+    }
+
+    private func didBeginAudio(token: UInt64) {
+        guard token == outputGeneration else { return }
+        let callback = onFirstAudio
+        onFirstAudio = nil
+        callback?()
+    }
+
+    private func didFinishAudio(token: UInt64) {
+        guard token == outputGeneration else { return }
+        advanceQueue()
+    }
+
+    /// Self-test seam for a fake backing. The token is explicit so the probe
+    /// can prove an old delegate callback cannot close a new span.
+    func notifyTestingFirstAudio(token: UInt64) {
+        didBeginAudio(token: token)
     }
 
     /// Next clause after the current utterance finishes. No-op after `stop()`
@@ -106,7 +143,7 @@ final class AgentSpeechSynthesizer {
             return
         }
         let next = pendingClauses.removeFirst()
-        backing.speak(next, volume: utteranceVolume)
+        backing.speak(next, volume: utteranceVolume, token: outputGeneration)
     }
 
     /// Fail unless `stop()` ran and cleared remaining clauses. Uses a recording
@@ -209,8 +246,12 @@ final class AgentSpeechSynthesizer {
 final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDelegate {
     private let synthesizer = AVSpeechSynthesizer()
     private var speaking = false
+    private var activeToken: UInt64?
     /// Wired by `AgentSpeechSynthesizer` to pump the next clause (or finish).
-    var onUtteranceFinished: (() -> Void)?
+    var onUtteranceFinished: ((UInt64) -> Void)?
+    /// Wired by `AgentSpeechSynthesizer` for truthful first-audio timing.
+    var onUtteranceStarted: ((UInt64) -> Void)?
+    private var tokens: [ObjectIdentifier: UInt64] = [:]
 
     override init() {
         super.init()
@@ -219,18 +260,21 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
 
     var isSpeaking: Bool { speaking || synthesizer.isSpeaking }
 
-    func speak(_ text: String, volume: Float) {
+    func speak(_ text: String, volume: Float, token: UInt64) {
         // Do not clear the AVSpeech queue here — clause streaming feeds one
         // utterance at a time after `didFinish`. A replacing reply calls `stop()`
         // first from `AgentSpeechSynthesizer.speak`.
         speaking = true
+        activeToken = token
         let utterance = AVSpeechUtterance(string: text)
         utterance.volume = max(0, min(1, volume))
+        tokens[ObjectIdentifier(utterance)] = token
         synthesizer.speak(utterance)
     }
 
     func stop() {
         speaking = false
+        activeToken = nil
         synthesizer.stopSpeaking(at: .immediate)
     }
 
@@ -238,9 +282,26 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
         _ synthesizer: AVSpeechSynthesizer,
         didFinish utterance: AVSpeechUtterance
     ) {
+        let utteranceID = ObjectIdentifier(utterance)
         Task { @MainActor in
+            guard let token = self.tokens[utteranceID] else { return }
+            self.tokens[utteranceID] = nil
+            guard self.activeToken == token else { return }
             self.speaking = false
-            self.onUtteranceFinished?()
+            self.activeToken = nil
+            self.onUtteranceFinished?(token)
+        }
+    }
+
+    nonisolated func speechSynthesizer(
+        _ synthesizer: AVSpeechSynthesizer,
+        didStart utterance: AVSpeechUtterance
+    ) {
+        let utteranceID = ObjectIdentifier(utterance)
+        Task { @MainActor in
+            if let token = self.tokens[utteranceID] {
+                self.onUtteranceStarted?(token)
+            }
         }
     }
 
@@ -248,8 +309,13 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
         _ synthesizer: AVSpeechSynthesizer,
         didCancel utterance: AVSpeechUtterance
     ) {
+        let utteranceID = ObjectIdentifier(utterance)
         Task { @MainActor in
+            guard let token = self.tokens[utteranceID] else { return }
+            self.tokens[utteranceID] = nil
+            guard self.activeToken == token else { return }
             self.speaking = false
+            self.activeToken = nil
             // Barge-in / stop already cleared pending clauses and session state.
         }
     }
@@ -264,7 +330,7 @@ final class RecordingSpeechBacking: AgentSpeechBacking {
 
     var isSpeaking: Bool { speaking }
 
-    func speak(_ text: String, volume: Float) {
+    func speak(_ text: String, volume: Float, token: UInt64) {
         spoken.append(text)
         volumes.append(volume)
         speaking = true

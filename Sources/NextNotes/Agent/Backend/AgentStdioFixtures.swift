@@ -174,7 +174,7 @@ enum AgentStdioFixtures {
     static let cdp = """
         #!/usr/bin/env python3
         from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-        import base64, hashlib, struct
+        import base64, hashlib, struct, time
         import json, sys
 
         port = int(sys.argv[1]) if len(sys.argv) > 1 else 0
@@ -273,7 +273,7 @@ enum AgentStdioFixtures {
                         payload = bytes(value ^ mask[index % 4] for index, value in enumerate(payload))
                     if opcode == 8:
                         return
-                    if opcode != 1:
+                    if opcode not in (1, 2):
                         continue
                     request = json.loads(payload.decode())
                     if mode == "unresponsive":
@@ -290,6 +290,23 @@ enum AgentStdioFixtures {
                         ])
                     elif method == "Page.navigate":
                         value = "navigated"
+                    elif method == "Accessibility.getFullAXTree":
+                        response = json.dumps({
+                            "id": request.get("id"),
+                            "result": {"nodes": [
+                                {"role": {"value": "button"}, "name": {"value": "OK"}},
+                                {"role": {"value": "textbox"}, "name": {"value": "Name"}},
+                            ]},
+                        }).encode()
+                        if len(response) < 126:
+                            frame = bytes([0x81, len(response)]) + response
+                        elif len(response) <= 65535:
+                            frame = b"\\x81\\x7e" + struct.pack("!H", len(response)) + response
+                        else:
+                            frame = b"\\x81\\x7f" + struct.pack("!Q", len(response)) + response
+                        self.wfile.write(frame)
+                        self.wfile.flush()
+                        continue
                     else:
                         value = "ok"
                     response = json.dumps({

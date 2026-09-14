@@ -25,11 +25,19 @@ final class PermissionGate {
                 id: request.id,
                 title: request.title,
                 detail: request.detail,
-                meetingID: request.meetingID
+                meetingID: request.meetingID,
+                needsReview: request.risk >= .modify
             )
         )
-        return await withCheckedContinuation { continuation in
-            waiter = continuation
+        let requestID = request.id
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                waiter = continuation
+            }
+        } onCancel: {
+            Task { @MainActor in
+                PermissionGate.shared.cancelPending(id: requestID)
+            }
         }
     }
 
@@ -66,5 +74,15 @@ final class PermissionGate {
         waiter?.resume(returning: false)
         waiter = nil
         IslandState.shared.dismissNotice()
+    }
+
+    func cancelPending(taskID: String) {
+        guard pending?.taskID == taskID else { return }
+        cancelPending()
+    }
+
+    func cancelPending(id: String) {
+        guard pending?.id == id else { return }
+        cancelPending()
     }
 }

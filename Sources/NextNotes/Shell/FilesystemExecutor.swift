@@ -96,7 +96,10 @@ enum FilesystemExecutor {
             throw AgentError.missingArgument(name: "from", tool: "filesystem.move")
         }
         try FileManager.default.moveItem(at: source, to: destination)
-        return AgentToolResult(summary: "Moved \(source.lastPathComponent) to \(destination.path).")
+        return AgentToolResult(
+            summary: "Moved \(source.lastPathComponent) to \(destination.path).",
+            reference: destination.path
+        )
     }
 
     private static func copy(from: String, to: String) throws -> AgentToolResult {
@@ -106,7 +109,10 @@ enum FilesystemExecutor {
             throw AgentError.missingArgument(name: "from", tool: "filesystem.copy")
         }
         try FileManager.default.copyItem(at: source, to: destination)
-        return AgentToolResult(summary: "Copied \(source.lastPathComponent) to \(destination.path).")
+        return AgentToolResult(
+            summary: "Copied \(source.lastPathComponent) to \(destination.path).",
+            reference: destination.path
+        )
     }
 
     private static func trash(path: String) throws -> AgentToolResult {
@@ -114,7 +120,10 @@ enum FilesystemExecutor {
         guard let url else { throw AgentError.missingArgument(name: "path", tool: "filesystem.delete") }
         var resulting: NSURL?
         try FileManager.default.trashItem(at: url, resultingItemURL: &resulting)
-        return AgentToolResult(summary: "Moved \(url.lastPathComponent) to the Trash.")
+        return AgentToolResult(
+            summary: "Moved \(url.lastPathComponent) to the Trash.",
+            reference: resulting?.path
+        )
     }
 
     @MainActor

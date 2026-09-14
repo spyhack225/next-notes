@@ -141,6 +141,13 @@ enum BrowserCDPClient {
             throw AgentError.backendUnavailable("No local browser debugger on port \(port).")
         }
         let target = try await resolveTarget(for: tool, arguments: arguments, from: probe.targets)
+        if tool.name != "navigate" && tool.name != "download",
+           let authorizedURL = arguments["_authorizedPageURL"],
+           target.url != authorizedURL {
+            throw AgentError.backendUnavailable(
+                "The authorized browser page changed. Snapshot again before acting."
+            )
+        }
         switch tool.name {
         case "navigate", "download":
             let url = arguments["url"] ?? ""
@@ -156,8 +163,14 @@ enum BrowserCDPClient {
                 target,
                 with: snapshotNodes(in: raw)
             )
+            let accessibility = try? await command(
+                "Accessibility.getFullAXTree",
+                params: [:],
+                webSocketURL: target.webSocketDebuggerURL
+            )
+            let accessibilityText = accessibilitySummary(accessibility)
             return AgentToolResult(
-                summary: "CDP targetId: \(target.id) \(target.title) \(target.url)\n\(raw)"
+                summary: "CDP targetId: \(target.id) \(target.title) \(target.url)\nDOM:\n\(raw)\nAccessibility:\n\(accessibilityText)"
             )
         case "click":
             return try await act(
@@ -418,6 +431,29 @@ enum BrowserCDPClient {
         }
     }
 
+    /// CDP exposes accessibility data as a large graph with backend node ids. Keep the
+    /// model-facing output compact and read-only while preserving roles and names that the
+    /// DOM selector snapshot cannot see (for example a custom combobox or menu item).
+    private static func accessibilitySummary(_ raw: String?) -> String {
+        guard let raw,
+              let data = raw.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let nodes = object["nodes"] as? [[String: Any]]
+        else { return "unavailable" }
+        let lines = nodes.prefix(80).compactMap { node -> String? in
+            let role = ((node["role"] as? [String: Any])?["value"] as? String) ?? ""
+            let name = ((node["name"] as? [String: Any])?["value"] as? String) ?? ""
+            let cleanRole = role.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanName = name
+                .split(whereSeparator: { $0.isNewline })
+                .joined(separator: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanRole.isEmpty || !cleanName.isEmpty else { return nil }
+            return [cleanRole, cleanName].filter { !$0.isEmpty }.joined(separator: ": ")
+        }
+        return lines.isEmpty ? "empty" : lines.joined(separator: "\n")
+    }
+
     private static func evaluate(_ expression: String, webSocketURL: String) async throws -> String {
         let raw = try await command(
             "Runtime.evaluate",
@@ -456,7 +492,10 @@ enum BrowserCDPClient {
         while Date() < deadline {
             // `receive()` itself has no deadline. A debugger that accepts the
             // socket but never replies must not park authorization forever.
-            let received = await withBoundedWait(.seconds(4)) { () -> URLSessionWebSocketTask.Message? in
+            let remaining = Duration.milliseconds(
+                Int64(max(1, deadline.timeIntervalSinceNow * 1_000))
+            )
+            let received = await withBoundedWait(remaining) { () -> URLSessionWebSocketTask.Message? in
                 try? await task.receive()
             }
             guard let message = received ?? nil else {

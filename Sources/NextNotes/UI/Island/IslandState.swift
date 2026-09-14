@@ -348,6 +348,11 @@ final class IslandState {
     /// only be answered where the whole message is on screen.
     func review(_ proposal: IslandProposal) {
         clearNotice()
+        if PermissionGate.shared.pending?.id == proposal.id {
+            NavigationState.shared.show(.agent)
+            AppDelegate.showMainWindow()
+            return
+        }
         guard let meetingID = proposal.meetingID else { return }
         NavigationState.shared.show(meeting: meetingID)
         AppDelegate.showMainWindow()
