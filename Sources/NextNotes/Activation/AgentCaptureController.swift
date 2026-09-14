@@ -56,6 +56,9 @@ final class AgentCaptureController {
     private var lastSpeechAt: Date?
     private var lastActivityAt: Date?
     private var committedPrefix = ""
+    /// Unfiltered SpeechAnalyzer turn. Keep this for cumulative-prefix tracking;
+    /// `transcript` is the person-only form shown and sent to the Agent.
+    private var rawTranscript = ""
     private var lastEmittedRequest = ""
     private var captureAudio = true
 
@@ -139,6 +142,7 @@ final class AgentCaptureController {
         lastSpeechAt = Date()
         lastActivityAt = Date()
         transcript = text
+        rawTranscript = text
         IslandState.shared.showAgentListening(transcript: text, level: level)
     }
 
@@ -165,22 +169,23 @@ final class AgentCaptureController {
                     guard let self, self.isSessionActive else { return }
                     let full = chunk.text
                     let turn = Self.pending(full: full, committed: self.committedPrefix)
-                    self.transcript = turn
+                    self.rawTranscript = turn
+                    let userTurn = RealtimeAudioSession.shared.userSpeechExcludingPlayback(turn)
+                    self.transcript = userTurn
                     // Energy alone is not a speech-start event: while the speaker
                     // plays TTS it regularly crosses the VAD threshold. Wait for
                     // a new ASR fragment that is not our own spoken reply before
                     // clearing playback and cancelling the in-flight turn.
                     if (RealtimeAudioSession.shared.isSpeaking || RealtimeAgent.shared.isThinking),
-                       turn.count >= Limits.minCharacters,
-                       !RealtimeAudioSession.shared.isLikelyPlaybackEcho(turn),
-                       !Self.isInFlightRepeat(turn, previous: self.lastEmittedRequest),
-                       !Self.isCommittedTranscriptRevision(turn, committed: self.committedPrefix),
+                       userTurn.count >= Limits.minCharacters,
+                       !Self.isInFlightRepeat(userTurn, previous: self.lastEmittedRequest),
+                       !Self.isCommittedTranscriptRevision(userTurn, committed: self.committedPrefix),
                        let began = self.speechBeganAt,
                        Date().timeIntervalSince(began) >= Limits.minSpeech {
                         RealtimeAgent.shared.interrupt()
                     }
-                    IslandState.shared.showAgentListening(transcript: turn, level: self.level)
-                    if chunk.isFinal, turn.count >= Limits.minCharacters {
+                    IslandState.shared.showAgentListening(transcript: userTurn, level: self.level)
+                    if chunk.isFinal, userTurn.count >= Limits.minCharacters {
                         self.heardSpeech = true
                         self.lastSpeechAt = Date().addingTimeInterval(-Limits.endpointSilence)
                     }
@@ -253,7 +258,16 @@ final class AgentCaptureController {
            now.timeIntervalSince(began) >= Limits.minSpeech,
            (level <= Limits.silenceLevel || force) {
             let text = pendingTurn()
+            if text.isEmpty, !rawTranscript.isEmpty {
+                Log.agent.info("realtime · discarded playback echo")
+                commitRawTurn()
+                resetTurn()
+                return true
+            }
             if text.count >= Limits.minCharacters {
+                if text != rawTranscript {
+                    Log.agent.info("realtime · removed playback from mixed turn")
+                }
                 if RealtimeAgent.shared.isThinking,
                    Self.isInFlightRepeat(text, previous: lastEmittedRequest) {
                     // A repeated question or its unfinished prefix is not a new
@@ -264,20 +278,19 @@ final class AgentCaptureController {
                         return false
                     }
                     Log.agent.info("realtime · ignored repeated in-flight request")
-                    committedPrefix = committedPrefix.isEmpty
-                        ? transcript : committedPrefix + " " + transcript
+                    commitRawTurn()
                     resetTurn()
                     return true
                 }
                 if RealtimeAudioSession.shared.isLikelyPlaybackEcho(text) {
                     Log.agent.info("realtime · discarded playback echo")
-                    committedPrefix = transcript
+                    commitRawTurn()
                     resetTurn()
                     return true
                 }
                 if Self.isCommittedTranscriptRevision(text, committed: committedPrefix) {
                     Log.agent.info("realtime · discarded revised transcript")
-                    committedPrefix = transcript
+                    commitRawTurn()
                     resetTurn()
                     return true
                 }
@@ -311,7 +324,7 @@ final class AgentCaptureController {
     ) async {
         lastEndpoint = source
         lastEmittedRequest = text
-        committedPrefix = committedPrefix.isEmpty ? transcript : committedPrefix + " " + text
+        commitRawTurn()
         resetTurn()
         // Release the VAD before `handle` so the next utterance can barge in while
         // a tool is running. Holding `isEndingTurn` across the whole turn is what
@@ -359,6 +372,7 @@ final class AgentCaptureController {
 
     private func resetTurn() {
         transcript = ""
+        rawTranscript = ""
         heardSpeech = false
         speechBeganAt = nil
         lastSpeechAt = nil
@@ -367,7 +381,14 @@ final class AgentCaptureController {
     }
 
     private func pendingTurn() -> String {
-        transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        RealtimeAudioSession.shared.userSpeechExcludingPlayback(rawTranscript)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func commitRawTurn() {
+        guard !rawTranscript.isEmpty else { return }
+        committedPrefix = committedPrefix.isEmpty
+            ? rawTranscript : committedPrefix + " " + rawTranscript
     }
 
     private static func pending(full: String, committed: String) -> String {
