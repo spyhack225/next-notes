@@ -12,6 +12,7 @@ final class AgentToolSpeechTracker {
     private let turn: Int
     private var sentCharacters = 0
     private(set) var didStreamSpeech = false
+    private var lastVerifiedResult: (toolID: String, output: String)?
 
     init(agent: RealtimeAgent, turn: Int) {
         self.agent = agent
@@ -49,6 +50,22 @@ final class AgentToolSpeechTracker {
         if didStreamSpeech { RealtimeAudioSession.shared.noteUserSpeech() }
         didStreamSpeech = false
         sentCharacters = 0
+    }
+
+    func recordVerifiedResult(toolID: String, output: String) {
+        lastVerifiedResult = (toolID, output)
+    }
+
+    func spokenFallback(for reply: String) -> String {
+        if let lastVerifiedResult,
+           let summary = AgentSpeechPolicy.toolResultSummary(
+               toolID: lastVerifiedResult.toolID, result: lastVerifiedResult.output
+           ) {
+            return summary
+        }
+        return AgentSpeechPolicy.spokenForm(reply).isEmpty
+            ? "I have the result, but its details are easier to read in the conversation."
+            : reply
     }
 }
 
@@ -232,7 +249,8 @@ extension RealtimeAgent {
     /// the exact write/click/send to the user and verifies the resulting state.
     func runGeneralToolLoop(
         _ prompt: String,
-        speech: AgentToolSpeechTracker? = nil
+        speech: AgentToolSpeechTracker? = nil,
+        voice: Bool = false
     ) async -> String {
         let allowedIDs: Set<String> = [
             "get_agenda", "search_email", "find_drive_files", "read_doc",
@@ -304,7 +322,15 @@ extension RealtimeAgent {
             clicks, supply expectedText when the new window content is known.
 
             Available tools:
-            """ + schema
+            """ + schema + (voice ? """
+
+            This request arrived by voice. After a tool result, answer in one or two
+            short natural sentences that can be heard easily. State the outcome first,
+            then the most useful count, time, or name from the result. Do not read a
+            bullet list, path, URL, opaque ID, or tool name aloud. Keep the final
+            answer under 220 characters and use no markup. Never omit a failure or
+            uncertainty. The detailed tool result remains visible in the feed.
+            """ : "")
         let clock = ContinuousClock()
         let duration = toolLoopLimitForTesting
             ?? (Settings.shared.agentModelProvider == .openRouter
@@ -422,6 +448,7 @@ extension RealtimeAgent {
                 switch execution {
                 case .success(let output):
                     results.append(AgentPrompts.toolResult(name: call.name, output: output))
+                    speech?.recordVerifiedResult(toolID: call.name, output: output)
                     callsUsed += 1
                     if tool.risk > .read {
                         return output

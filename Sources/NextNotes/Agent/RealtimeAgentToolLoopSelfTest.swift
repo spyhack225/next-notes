@@ -96,6 +96,22 @@ enum RealtimeAgentToolLoopSelfTest {
         agent.toolLoopLimitForTesting = nil
         let recorder = RecordingSpeechBacking()
         AgentSpeechSynthesizer.shared.useTestingBacking(recorder)
+        let voiceState = ToolLoopTestState()
+        agent.localModelProviderForTesting = ToolLoopTestProvider(
+            state: voiceState,
+            finalAnswer: "- /private/one\n- /private/two\n- /private/three\n- /private/four"
+        )
+        await AgentCaptureController.shared.beginSession(captureAudio: false)
+        let voiceTurn = await agent.handle("tell me which app is frontmost", source: .voice)
+        try? await Task.sleep(for: .milliseconds(100))
+        check("unspeakable tool listing was read aloud", recorder.spoken.allSatisfy {
+            !$0.contains("/private/")
+        })
+        check("verified tool result produced no voice fallback", !recorder.spoken.isEmpty)
+        check("voice turn lost the full text result", voiceTurn.reply.contains("/private/"))
+        check("voice summary added an extra model round", (await voiceState.rounds) == 2)
+        await AgentCaptureController.shared.endSession(source: .done)
+        recorder.reset()
         let answerState = ToolLoopTestState()
         agent.localModelProviderForTesting = ToolLoopTestProvider(
             state: answerState, firstCall: "", delay: .milliseconds(400)
@@ -144,15 +160,18 @@ private struct ToolLoopTestProvider: LLMProvider {
     let firstCall: String
     let delay: Duration
     let secondRoundDelay: Duration
+    let finalAnswer: String
     var contextTokens: Int { 4_096 }
     var unavailableReason: String? { get async { nil } }
 
     init(state: ToolLoopTestState, firstCall: String = "computer.active_app",
-         delay: Duration = .zero, secondRoundDelay: Duration = .zero) {
+         delay: Duration = .zero, secondRoundDelay: Duration = .zero,
+         finalAnswer: String = "The frontmost application is the one reported by the system.") {
         self.state = state
         self.firstCall = firstCall
         self.delay = delay
         self.secondRoundDelay = secondRoundDelay
+        self.finalAnswer = finalAnswer
     }
 
     func countTokens(_ text: String) async throws -> Int { text.count / 4 + 1 }
@@ -165,7 +184,7 @@ private struct ToolLoopTestProvider: LLMProvider {
         if round == 1 {
             text = "<tool_call>{\"name\":\"" + firstCall + "\",\"arguments\":{},\"rationale\":\"test\"}</tool_call>"
         } else {
-            text = "The frontmost application is the one reported by the system."
+            text = finalAnswer
         }
         return LLMCompletion(text: text, generatedTokens: text.count, duration: 0)
     }

@@ -174,16 +174,23 @@ final class RealtimeAgent {
             beginWork(title: intent.progressTitle)
             let toolTrace = LatencyTrace.start(.agentToolCallToResult)
             let speech = AgentToolSpeechTracker(agent: self, turn: mine)
-            let reply = await runGeneralToolLoop(text, speech: speech)
+            let reply = await runGeneralToolLoop(text, speech: speech, voice: source == .voice)
             toolTrace.end(note: intent.progressTitle)
             guard isCurrent(mine) else {
                 replyTrace.end(note: "superseded")
                 return AgentTurn(reply: lastReply, delegated: false)
             }
             replyTrace.end(note: "tool")
+            let speakable = !AgentSpeechPolicy.spokenClauses(reply).isEmpty
+            // A model may still return a listing despite the voice instruction.
+            // The verified tool output gives us a truthful, immediate fallback.
+            if source == .voice && !speakable { speech.cancel() }
             return conclude(
-                mine, reply, route: "model-tools", contextKind: "tools",
-                speak: !speech.didStreamSpeech
+                mine, reply, route: "model-tools",
+                spokenReply: source == .voice && !speakable
+                    ? speech.spokenFallback(for: reply) : nil,
+                contextKind: "tools",
+                speak: !speech.didStreamSpeech || !speakable
             )
         case .calendar, .mail, .files, .drive, .computer:
             beginWork(title: intent.progressTitle)
@@ -342,18 +349,18 @@ final class RealtimeAgent {
         return AgentTurn(reply: reply, delegated: delegated)
     }
 
-    /// Gmail's detailed result includes opaque IDs and is deliberately silent under
-    /// AgentSpeechPolicy. Speak a short overview while retaining the full list on the card.
+    /// A direct tool's full response stays in the feed; its voice form must be
+    /// conversational and safe to speak, with no extra model round-trip.
     static func spokenSummary(for intent: AgentTurnIntent, result: String) -> String? {
-        guard case .mail = intent else { return nil }
-        let lines = result.split(separator: "\n").filter { $0.hasPrefix("- id ") }
-        guard let first = lines.first else { return nil }
-        let pieces = first.components(separatedBy: " — ")
-        guard pieces.count >= 3 else { return "I found \(lines.count) matching emails." }
-        let sender = pieces[1].replacingOccurrences(of: "from ", with: "")
-        let subject = pieces[2]
-        return "I found \(lines.count) matching emails. The latest is from "
-            + "\(String(sender.prefix(70))), about \(String(subject.prefix(100)))."
+        let toolID: String = switch intent {
+        case .calendar: "get_agenda"
+        case .mail: "search_email"
+        case .files: "filesystem.search"
+        case .drive: "find_drive_files"
+        case .computer: "computer.inspect_ui"
+        default: ""
+        }
+        return AgentSpeechPolicy.toolResultSummary(toolID: toolID, result: result)
     }
 
     private static let localModelSystem = """
