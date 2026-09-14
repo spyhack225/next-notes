@@ -111,3 +111,9 @@ Acoustic speaker latency, naturalness/listener quality, and barge-in through the
 audio route still require a supervised device session. The alternative probes establish
 local generation metrics only; they do not claim that either engine can replace the
 shipping voice path without an adapter and an interruption test.
+
+The Models tab now lists Kokoro under Speech synthesis and identifies the local ONNX
+benchmark files when present. It does not offer them as a ready Agent voice. FluidAudio's
+[Kokoro Core ML documentation](https://github.com/FluidInference/FluidAudio/blob/main/Documentation/TTS/KokoroAne.md)
+reports an uncaught BNNS crash on macOS 26.4–26.5.x; this Mac runs 26.5.2. Revisit the
+in-process backend after updating macOS and proving repeated synthesis and barge-in.
