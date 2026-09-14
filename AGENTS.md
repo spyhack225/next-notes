@@ -62,6 +62,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-openrouter-speed
 --selftest-toolloop  --selftest-acp-confirm --selftest-scheduler
 --selftest-toolloop-production
+--selftest-voice-grounding
 --selftest-capture   --selftest-meeting-reconcile
 --selftest-meeting-reconcile-llm
 --selftest-stream    --selftest-transcript-bus

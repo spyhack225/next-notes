@@ -4,6 +4,76 @@ import Foundation
 /// provider only controls planning; `computer.active_app` still goes through the real
 /// registry, permission policy, and executor.
 enum RealtimeAgentToolLoopSelfTest {
+    /// Real Qwen probe for the 09:48 recording. This only asks a question of
+    /// the local model; it does not add a row to the user's Agent conversation.
+    @MainActor
+    static func runVoiceGrounding() async -> Bool {
+        let provider = LlamaLLMProvider()
+        if let reason = await provider.unavailableReason {
+            print("VOICE_GROUNDING_FAILED: \(reason)")
+            return false
+        }
+        let response: String? = await withBoundedWait(.seconds(90)) {
+            do {
+                var answer = ""
+                let stream = await provider.stream(
+                    system: RealtimeAgent.modelTurnSystem(voice: true),
+                    user: "Current user request:\nCan you hear me?",
+                    maxTokens: 96
+                )
+                for try await chunk in stream { answer += chunk }
+                return answer.trimmingCharacters(in: .whitespacesAndNewlines)
+            } catch {
+                return "ERROR: \(error.localizedDescription)"
+            }
+        }
+        let answer = response ?? ""
+        let lowered = answer.lowercased()
+        let correct = !answer.isEmpty && !lowered.hasPrefix("error:")
+            && !lowered.contains("can't hear") && !lowered.contains("cannot hear")
+            && !lowered.contains("don't have ears") && !lowered.contains("do not have ears")
+            && !lowered.contains("typed") && !lowered.contains("type")
+            && !answer.contains("<use_tools")
+        print("VOICE_GROUNDING_RESPONSE: \(String(answer.prefix(240)))")
+        let followUp: String? = await withBoundedWait(.seconds(90)) {
+            do {
+                var answer = ""
+                let stream = await provider.stream(
+                    system: RealtimeAgent.modelTurnSystem(voice: true),
+                    user: """
+                        Earlier conversation:
+                        User [voice]: Can you hear me?
+                        Assistant: Yes, I received your spoken words.
+                        User [voice]: Your voice keeps breaking mid-answer.
+
+                        Current user request:
+                        Why is he choppy?
+                        """,
+                    maxTokens: 96
+                )
+                for try await chunk in stream { answer += chunk }
+                return answer.trimmingCharacters(in: .whitespacesAndNewlines)
+            } catch {
+                return "ERROR: \(error.localizedDescription)"
+            }
+        }
+        let followUpAnswer = followUp ?? ""
+        let followUpLower = followUpAnswer.lowercased()
+        let understandsReferent = !followUpAnswer.isEmpty && !followUpLower.hasPrefix("error:")
+            && !followUpLower.contains("who he") && !followUpLower.contains("who 'he'")
+            && !followUpLower.contains("who \"he\"")
+            && !followUpLower.contains("clarify who")
+            && !followUpLower.contains("don't know who")
+            && !followUpLower.contains("audio connection")
+            && !followUpLower.contains("network connection")
+            && !followUpLower.contains("connection issue")
+            && !followUpLower.contains("microphone issue")
+            && !followUpLower.contains("restarting your device")
+        print("VOICE_FOLLOWUP_RESPONSE: \(String(followUpAnswer.prefix(240)))")
+        print(correct && understandsReferent ? "VOICE_GROUNDING_OK" : "VOICE_GROUNDING_FAILED")
+        return correct && understandsReferent
+    }
+
     @MainActor
     @discardableResult
     static func run() async -> Bool {
