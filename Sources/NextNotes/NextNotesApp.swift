@@ -3286,6 +3286,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             check("Done submitted its leftover transcript", starts == 2)
             AgentCaptureController.shared.turnHandlerForTesting = nil
 
+            await AgentCaptureController.shared.beginSession(captureAudio: false)
+            var cumulativeTurns: [String] = []
+            AgentCaptureController.shared.turnHandlerForTesting = {
+                cumulativeTurns.append($0)
+            }
+            AgentCaptureController.shared.simulateCumulativeSpeech("Check email.")
+            AgentCaptureController.shared.simulateSilence()
+            _ = await AgentCaptureController.shared.considerEndpoint()
+            await AgentCaptureController.shared.waitForActiveTurnForTesting()
+            AgentCaptureController.shared.simulateCumulativeSpeech("Check email. Open Safari now.")
+            AgentCaptureController.shared.simulateSilence()
+            _ = await AgentCaptureController.shared.considerEndpoint()
+            await AgentCaptureController.shared.waitForActiveTurnForTesting()
+            check(
+                "cumulative snapshots replayed an earlier turn",
+                cumulativeTurns == ["Check email.", "Open Safari now."]
+            )
+            AgentCaptureController.shared.turnHandlerForTesting = nil
+            await AgentCaptureController.shared.endSession(source: .done)
+
             for failure in failures { writeSelfTest("  REALTIME_WRONG: \(failure)") }
             writeSelfTest(failures.isEmpty ? "REALTIME_OK" : "REALTIME_FAILED")
             NSApp.terminate(nil)

@@ -70,7 +70,6 @@ final class RealtimeAudioSession {
     private var recentOutputs: [OutputReference] = []
     private var recordingOutput = false
     private static let echoWindow: TimeInterval = 15
-    private static let shortEchoWindow: TimeInterval = 3
     private static let maxEchoReferences = 3
     private static let wordPattern = try! NSRegularExpression(pattern: #"[\p{L}\p{N}]+"#)
 
@@ -186,7 +185,13 @@ final class RealtimeAudioSession {
                               heard[i + count].value == spoken[j + count].value {
                             count += 1
                         }
-                        if count >= 3, count > (best?.count ?? 0) {
+                        // The recognizer often releases a two-word echo such as
+                        // "How would...?" as a complete turn before a third word
+                        // arrives. Limit short matching to turn edges so an
+                        // interior common pair is less likely to erase a user.
+                        let shortEdge = count == 2
+                            && (heard.count == 2 || i == 0 || i + count == heard.count)
+                        if (count >= 3 || shortEdge), count > (best?.count ?? 0) {
                             best = (i, count)
                         }
                     }
@@ -210,7 +215,7 @@ final class RealtimeAudioSession {
         // preceding clause. Never let one become a fresh tool request while
         // playback or its delayed tail is still near the microphone.
         if residue.count == 1, recentOutputs.contains(where: {
-            (removedEcho || now.timeIntervalSince($0.at) < Self.shortEchoWindow)
+            (removedEcho || now.timeIntervalSince($0.at) < Self.echoWindow)
                 && Self.words(in: $0.text).contains { $0.value == residue[0].value }
         }) {
             return ""
@@ -425,6 +430,9 @@ extension RealtimeAudioSession {
         if session.userSpeechExcludingPlayback("I can help you manage your") != "" {
             failures.append("partial playback became user speech")
         }
+        if session.userSpeechExcludingPlayback("I can") != "" {
+            failures.append("two-word playback fragment became user speech")
+        }
         if session.userSpeechExcludingPlayback("Can you hear me? I can help you manage your")
             != "Can you hear me?" {
             failures.append("mixed user speech and playback were not separated")
@@ -439,10 +447,25 @@ extension RealtimeAudioSession {
         if session.userSpeechExcludingPlayback("Stop. Yes, I can hear you clearly") != "Stop." {
             failures.append("short novel barge-in was removed with playback")
         }
+        if session.userSpeechExcludingPlayback("How would...?") != "" {
+            failures.append("09:06 two-word reply tail became a user turn")
+        }
         if session.userSpeechExcludingPlayback("Open the calendar") != "Open the calendar" {
             failures.append("unrelated user request was removed as playback")
         }
         session.noteUserSpeech()
+        if session.userSpeechExcludingPlayback(
+            "calendar.", now: Date().addingTimeInterval(10)
+        ) != "" {
+            failures.append("late one-word reply revision became a user turn")
+        }
+        session.speak("I stopped the tool plan because it took too long.")
+        session.noteUserSpeech()
+        if session.userSpeechExcludingPlayback(
+            "long.", now: Date().addingTimeInterval(10)
+        ) != "" {
+            failures.append("09:07 revised reply tail became a user turn")
+        }
         if session.userSpeechExcludingPlayback("Yes, I can hear you clearly") != "" {
             failures.append("late playback tail survived after output stopped")
         }

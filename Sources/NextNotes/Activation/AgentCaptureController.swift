@@ -55,7 +55,10 @@ final class AgentCaptureController {
     private var speechBeganAt: Date?
     private var lastSpeechAt: Date?
     private var lastActivityAt: Date?
+    /// Last full SpeechAnalyzer snapshot accepted at an endpoint. Using the
+    /// full snapshot matters: the analyzer can revise its volatile tail later.
     private var committedPrefix = ""
+    private var latestFullTranscript = ""
     /// Unfiltered SpeechAnalyzer turn. Keep this for cumulative-prefix tracking;
     /// `transcript` is the person-only form shown and sent to the Agent.
     private var rawTranscript = ""
@@ -78,6 +81,8 @@ final class AgentCaptureController {
         lastEndpoint = .none
         lastReply = ""
         lastEmittedRequest = ""
+        committedPrefix = ""
+        latestFullTranscript = ""
         resetTurn()
         IslandState.shared.showAgentListening(transcript: "", level: 0)
 
@@ -143,7 +148,22 @@ final class AgentCaptureController {
         lastActivityAt = Date()
         transcript = text
         rawTranscript = text
+        latestFullTranscript = committedPrefix.isEmpty ? text : committedPrefix + " " + text
         IslandState.shared.showAgentListening(transcript: text, level: level)
+    }
+
+    /// Self-test seam for SpeechAnalyzer's cumulative snapshots. The normal
+    /// `simulateSpeech` helper supplies one fresh turn at a time.
+    func simulateCumulativeSpeech(_ full: String, level: Float = 0.3) {
+        RealtimeAudioSession.shared.noteUserSpeech()
+        self.level = level
+        heardSpeech = true
+        if speechBeganAt == nil { speechBeganAt = Date().addingTimeInterval(-Limits.minSpeech - 0.05) }
+        lastSpeechAt = Date()
+        lastActivityAt = Date()
+        latestFullTranscript = full
+        rawTranscript = Self.pending(full: full, committed: committedPrefix)
+        transcript = RealtimeAudioSession.shared.userSpeechExcludingPlayback(rawTranscript)
     }
 
     func simulateSilence() {
@@ -168,6 +188,7 @@ final class AgentCaptureController {
                 for try await chunk in stream {
                     guard let self, self.isSessionActive else { return }
                     let full = chunk.text
+                    self.latestFullTranscript = full
                     let turn = Self.pending(full: full, committed: self.committedPrefix)
                     self.rawTranscript = turn
                     let userTurn = RealtimeAudioSession.shared.userSpeechExcludingPlayback(turn)
@@ -373,6 +394,7 @@ final class AgentCaptureController {
     private func resetTurn() {
         transcript = ""
         rawTranscript = ""
+        latestFullTranscript = ""
         heardSpeech = false
         speechBeganAt = nil
         lastSpeechAt = nil
@@ -386,9 +408,8 @@ final class AgentCaptureController {
     }
 
     private func commitRawTurn() {
-        guard !rawTranscript.isEmpty else { return }
-        committedPrefix = committedPrefix.isEmpty
-            ? rawTranscript : committedPrefix + " " + rawTranscript
+        guard !latestFullTranscript.isEmpty else { return }
+        committedPrefix = latestFullTranscript
     }
 
     private static func pending(full: String, committed: String) -> String {
@@ -401,6 +422,7 @@ final class AgentCaptureController {
         let normalizedFull = normalized(trimmed)
         let normalizedCommitted = normalized(committed)
         if normalizedFull == normalizedCommitted { return "" }
+        if normalizedCommitted.hasPrefix(normalizedFull + " ") { return "" }
         if normalizedFull.hasPrefix(normalizedCommitted + " ") {
             // Use normalized words only to locate the boundary. Preserve the
             // original casing and punctuation of the newly spoken request.
@@ -415,7 +437,61 @@ final class AgentCaptureController {
                     .replacingOccurrences(of: #"^[\s\p{P}]+"#, with: "", options: .regularExpression)
             }
         }
+        if let revisedTail = pendingAfterRevisedPrefix(full: trimmed, committed: committed) {
+            return revisedTail
+        }
         return trimmed
+    }
+
+    /// A volatile SpeechAnalyzer phrase can change words already emitted at a
+    /// VAD endpoint. Match the tail of the prior full snapshot as a *sequence*
+    /// so an insertion such as "up the two" → "up the to two" does not replay
+    /// the entire conversation. This is bounded to the tail for live ASR cost.
+    private static func pendingAfterRevisedPrefix(full: String, committed: String) -> String? {
+        let pattern = try! NSRegularExpression(pattern: #"[\p{L}\p{N}]+"#)
+        func words(_ text: String) -> [(value: String, range: NSRange)] {
+            let source = text as NSString
+            return pattern.matches(in: text, range: NSRange(location: 0, length: source.length))
+                .map { (source.substring(with: $0.range).lowercased(), $0.range) }
+        }
+        let earlier = Array(words(committed).suffix(24))
+        let current = Array(words(full).suffix(48))
+        let m = earlier.count
+        let n = current.count
+        guard m >= 4, n >= m - 3 else { return nil }
+
+        let width = n + 1
+        var score = Array(repeating: 0, count: (m + 1) * width)
+        for i in stride(from: m - 1, through: 0, by: -1) {
+            for j in stride(from: n - 1, through: 0, by: -1) {
+                let index = i * width + j
+                score[index] = earlier[i].value == current[j].value
+                    ? 1 + score[(i + 1) * width + j + 1]
+                    : max(score[(i + 1) * width + j], score[i * width + j + 1])
+            }
+        }
+        guard score[0] >= max(3, m - 3) else { return nil }
+        var i = 0
+        var j = 0
+        var lastOld = -1
+        var lastNew = -1
+        while i < m, j < n {
+            if earlier[i].value == current[j].value,
+               score[i * width + j] == 1 + score[(i + 1) * width + j + 1] {
+                lastOld = i
+                lastNew = j
+                i += 1
+                j += 1
+            } else if score[(i + 1) * width + j] > score[i * width + j + 1] {
+                i += 1
+            } else {
+                j += 1
+            }
+        }
+        guard lastOld >= m - 4, lastNew >= 0 else { return nil }
+        let end = current[lastNew].range.location + current[lastNew].range.length
+        return (full as NSString).substring(from: end)
+            .replacingOccurrences(of: #"^[\s\p{P}]+"#, with: "", options: .regularExpression)
     }
 
     /// Apple SpeechAnalyzer publishes cumulative volatile text. A punctuation
@@ -465,6 +541,20 @@ final class AgentCaptureController {
         if pending(full: "Check email. Open Safari now.", committed: "check email")
             != "Open Safari now." {
             failures.append("a revised prefix changed the new request's casing")
+        }
+        let prior = "Can you hear me? Yes, I can hear you clearly. How would...? "
+            + "Why did you stop talking? I up the two"
+        let revised = "Can you hear me? Yes, I can hear you clearly. How would...? "
+            + "Why did you stop talking? I... I... up the to two long."
+        if pending(full: revised, committed: prior) != "long." {
+            failures.append("a revised ASR tail replayed the whole 09:07 conversation")
+        }
+        if pending(full: "Check email", committed: "Check email. Open Safari now.") != "" {
+            failures.append("a revoked cumulative tail became a new request")
+        }
+        if pending(full: revised + " Open my calendar.", committed: prior)
+            != "long. Open my calendar." {
+            failures.append("a new request after a revised ASR tail was lost")
         }
         if !isCommittedTranscriptRevision("check email", committed: "Check email.") {
             failures.append("the old request could be re-emitted")

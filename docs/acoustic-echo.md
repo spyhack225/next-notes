@@ -1,6 +1,6 @@
 # Acoustic echo measurement (2026-09-14)
 
-The 08:31 Agent log already showed Next's spoken reply returning through SpeechAnalyzer as a new user turn. The transcript filter in 0.2.17 prevents those reflected words from reaching the Agent, but it does not cancel them in the microphone signal. VAD still sees speaker energy.
+The 08:31 Agent log showed Next's spoken reply returning through SpeechAnalyzer as a new user turn. The 0.2.17 transcript filter reduced simple reflections but missed short two-word fragments and later revisions of SpeechAnalyzer's cumulative transcript. The 09:06–09:07 log still shows a reply fragment becoming a turn and the whole earlier conversation being submitted again. Version 0.2.19 adds those cases to the duplex and realtime self-tests and corrects the transcript boundary. None of this cancels speaker sound in the microphone signal; VAD still sees speaker energy.
 
 Apple's [voice-processing audio engine](https://developer.apple.com/videos/play/wwdc2019/510/) provides acoustic echo cancellation when enabled on an I/O node while the engine is stopped. It switches both I/O nodes. [AVSpeechSynthesizer can render PCM buffers](https://developer.apple.com/documentation/avfaudio/avspeechsynthesizer/write%28_%3Atobuffercallback%3A%29), so routing all voices through one managed graph is technically possible, but must be measured before changing the shared microphone engine.
 
