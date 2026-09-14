@@ -142,13 +142,17 @@ final class ModelResidencyGuardian: @unchecked Sendable {
         for model in plan {
             switch model {
             case .notes:
-                await NotesModelRuntime.shared.shutdown()
+                let unloaded = await NotesModelRuntime.shared.shutdown()
                 // `shutdown()` records the unload with the runtime generation it
                 // actually released. Do not follow it with an unguarded registry
                 // write: a replacement load may begin while the actor is suspended,
                 // and a nil-generation mark would incorrectly turn that newer
                 // `.loading`/`.ready` entry back into `.unloaded`.
-                Log.llm.info("residency: unloaded notes under memory pressure")
+                if unloaded {
+                    Log.llm.info("residency: unloaded notes under memory pressure")
+                } else {
+                    Log.llm.info("residency: notes unload deferred until generation completes")
+                }
             case .diarization:
                 await MeetingDiarizer.shared.unload()
                 _ = await ModelRuntimeManager.shared.markUnloaded(.diarization)
@@ -179,6 +183,9 @@ extension ModelResidencyPolicy {
         // load must not resurrect a runtime that a newer recovery replaced.
         if !(await ModelRuntimeManager.runSelfTest()) {
             failures.append("model runtime lifecycle probe failed")
+        }
+        if !(await NotesModelRuntime.shutdownDeferralSelfTest()) {
+            failures.append("notes shutdown was not deferred across an active background operation")
         }
 
         // 1. Scheduler yield (same contract as ComputeScheduler.runSelfTest).
