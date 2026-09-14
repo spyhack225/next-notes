@@ -442,6 +442,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return true
         }
+        if arguments.contains("--selftest-meeting-live-tools") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MeetingLiveToolSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-tts") {
             SelfTest.failed = !AgentSpeechPolicy.runSelfTest()
             NSApp.terminate(nil)
@@ -3200,215 +3207,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if !condition { failures.append(name) }
             }
 
-            var context = MeetingContext.empty(meetingID: UUID(), title: "Standup", participants: ["Sam"])
-            context.actionItems = [
-                MeetingContextItem(text: "Send the deck to Sam", source: .mic, confidence: "high")
-            ]
-            MeetingContextStore.shared.replace(context)
-
-            let turn = await RealtimeAgent.shared.handle("What action items do I have so far?", source: .text)
-            check("the agent did not answer from meeting context", turn.reply.contains("deck") || turn.reply.contains("Sam"))
-            check("a context question was delegated", !turn.delegated)
-
-            let help = await RealtimeAgent.shared.handle("what can you do", source: .text)
-            check("“what can you do” produced no assistant text", !help.reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            check(
-                "“what can you do” did not list capabilities",
-                help.reply.localizedCaseInsensitiveContains("calendar")
-                    && help.reply.localizedCaseInsensitiveContains("meeting")
+            let local = AgentHarnessChoice(
+                id: .local, source: .settings, available: true, note: ""
             )
-            check("a capabilities question was delegated", !help.delegated)
-            check(
-                "the sidebar was not given the assistant reply",
-                AgentSession.shared.messages.contains {
-                    $0.role == "assistant" && $0.text == help.reply
-                }
-            )
-
-            AgentHarnessRouter.shared.resetForTesting()
-            let named = AgentHarnessRouter.shared.choose(for: "use claude code to investigate this repo")
-            check(
-                "“use claude code to …” did not select the Claude/ACP harness",
-                named.id == .claude && named.backend == .acp
-            )
-            let namedTurn = await RealtimeAgent.shared.handle(
-                "use claude code to investigate this repo",
-                source: .text
-            )
-            check("a named harness turn produced no assistant text", !namedTurn.reply.isEmpty)
-            check("a named harness turn was not delegated", namedTurn.delegated)
-
-            let calendarPick = AgentHarnessRouter.shared.choose(for: "what's on my calendar")
-            check("“what’s on my calendar” selected a coding harness", calendarPick.id == .local)
-            check("“what’s on my calendar” selected ACP", calendarPick.backend == .local)
-
-            // Mail must take the bounded `search_email` path. The live failure was
-            // “check my email” falling through to the model, which never named the
-            // tool; the user cancelled after ~48 s with no reply.
-            let inboxAsk = MailIntent.parse(
-                "Can you check what's happening on my email, making sure that I didn't miss any emails"
-            )
-            check("an inbox check was not parsed as mail", inboxAsk != nil)
-            check(
-                "an inbox check did not search unread mail",
-                inboxAsk?.query == "is:unread"
-            )
-            let followUp = MailIntent.parse("Are you checking my email right now?")
-            check("“are you checking my email” was not parsed as mail", followUp != nil)
-            check(
-                "a status follow-up was treated as compose",
-                followUp != nil && MailIntent.parse("email the proposal") == nil
-            )
-            check("“test” was parsed as mail", MailIntent.parse("test") == nil)
-            check(
-                "a calendar ask was parsed as mail",
-                MailIntent.parse("what's on my calendar") == nil
-            )
-            check(
-                "a compose ask was parsed as a search",
-                MailIntent.parse("send an email to Sam") == nil
-            )
-
-            let localChoice = AgentHarnessChoice(
-                id: .local, source: .settings, available: true, fallbackToLocal: false, note: ""
-            )
-            check(
-                "mail still fell through as unknown",
-                AgentTurnIntent.resolve(
-                    "Can you check what's happening on my email, making sure that I didn't miss any emails",
-                    choice: localChoice
-                ) == .mail(query: "is:unread")
-            )
-            check(
-                "“what’s on my email” was treated as calendar",
-                AgentTurnIntent.resolve("what's on my email", choice: localChoice)
-                    == .mail(query: "in:inbox newer_than:2d")
-            )
-            check(
-                "“test” waited on a model instead of answering",
-                AgentTurnIntent.resolve("test", choice: localChoice) == .unknown
-            )
-            let unknown = await RealtimeAgent.shared.handle("test", source: .text)
-            check("an unknown ask did not acknowledge the heard words",
-                  unknown.reply == RealtimeAgent.clarificationReply(for: "test"))
-            check("an unknown ask was delegated", !unknown.delegated)
-            let mailSummary = RealtimeAgent.spokenSummary(
-                for: .mail(query: "is:unread"),
-                result: "- id opaque — from Alex — Project update\n- id opaque2 — from Sam — Meeting"
-            )
-            check("Gmail result did not produce a spoken overview",
-                  mailSummary == "I found 2 matching emails. The latest is from Alex, about Project update.")
-            check("Gmail overview was blocked by the speech policy",
-                  !(AgentSpeechPolicy.spokenClauses(mailSummary ?? "").isEmpty))
-            if case .localModel(let prompt) = AgentTurnIntent.resolve(
-                "Just summarize", choice: localChoice,
-                hasConversationContext: true
-            ) {
-                check("follow-up did not route to the contextual model", prompt == "Just summarize")
-            } else {
-                failures.append("summarize follow-up returned the repeated help line")
+            for request in [
+                "what can you do",
+                "check my email",
+                "are you checking my email?",
+                "just summarize",
+                "do that after the meeting",
+                "fix the failing build",
+            ] {
+                check(
+                    "a phrase routed around the model: \(request)",
+                    AgentTurnIntent.resolve(request, choice: local) == .toolLoop(prompt: request)
+                )
             }
-            check(
-                "ordinary question returned the repeated help line",
-                AgentTurnIntent.resolve("Why is the sky blue?", choice: localChoice)
-                    == .localModel(prompt: "Why is the sky blue?")
+            let named = AgentHarnessChoice(
+                id: .claude, source: .explicit, available: true, note: ""
             )
             check(
-                "agent microphone check returned the repeated help line",
-                AgentTurnIntent.resolve("Can you hear me?", choice: localChoice)
-                    == .reply("Yes, I can hear you.")
+                "an explicitly named harness was not delegated",
+                AgentTurnIntent.resolve("use Claude Code for this", choice: named) == .delegate
             )
-            check(
-                "“find the latest deck” was not a file search",
-                FileIntent.parse("find the latest deck") == .home(query: "deck")
-            )
-            check(
-                "a coding phrase without a named harness was delegated",
-                AgentTurnIntent.resolve("fix the failing build", choice: localChoice) == .unknown
-            )
+            failures += AgentCaptureController.transcriptBoundarySelfTestFailures()
 
-            let reuse = AgentHarnessRouter.shared.choose(for: "fix the failing build")
-            check(
-                "a second coding ask did not reuse the last coding harness from history",
-                reuse.id == .claude
-            )
-            AgentHarnessRouter.shared.restorePersistence()
-
+            // VAD and work are independent tasks: a suspended turn cannot block
+            // the next endpoint, and the capture session stays open across turns.
             await AgentCaptureController.shared.endSession(source: .done)
             await AgentCaptureController.shared.beginSession(captureAudio: false)
-            AgentCaptureController.shared.simulateSpeech("what can you do")
-            AgentCaptureController.shared.simulateSilence()
-            let endedByVAD = await AgentCaptureController.shared.considerEndpoint()
-            await AgentCaptureController.shared.waitForActiveTurnForTesting()
-            check("duplex still required Done to produce a reply", endedByVAD)
-            check(
-                "duplex endpoint was not VAD",
-                AgentCaptureController.shared.lastEndpoint == .vad
-            )
-            check(
-                "a VAD turn produced no assistant text",
-                !RealtimeAgent.shared.lastReply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            )
-            check("a VAD turn closed the session", AgentCaptureController.shared.isSessionActive)
-            await AgentCaptureController.shared.endSession(source: .done)
-
-            // A previous turn can be waiting on a tool or permission card.
-            // Another spoken turn must still reach its VAD endpoint promptly.
-            await AgentCaptureController.shared.beginSession(captureAudio: false)
-            var fakeTurnStarts = 0
+            var starts = 0
             AgentCaptureController.shared.turnHandlerForTesting = { _ in
-                fakeTurnStarts += 1
+                starts += 1
                 try? await Task.sleep(for: .seconds(5))
             }
             AgentCaptureController.shared.simulateSpeech("first turn")
             AgentCaptureController.shared.simulateSilence()
-            _ = await AgentCaptureController.shared.considerEndpoint()
+            let firstEnded = await AgentCaptureController.shared.considerEndpoint()
             await Task.yield()
             AgentCaptureController.shared.simulateSpeech("second turn")
             AgentCaptureController.shared.simulateSilence()
-            let secondBegan = ContinuousClock.now
+            let began = ContinuousClock.now
             let secondEnded = await AgentCaptureController.shared.considerEndpoint()
-            let secondDelay = secondBegan.duration(to: .now)
-            check("a waiting tool blocked the next VAD endpoint", secondEnded && secondDelay < .milliseconds(500))
+            let elapsed = began.duration(to: .now)
             await Task.yield()
-            check("the second utterance did not start a turn", fakeTurnStarts == 2)
-            await AgentCaptureController.shared.endSession(source: .done)
+            check("VAD did not endpoint both turns", firstEnded && secondEnded)
+            check("the second turn waited for the first", elapsed < .milliseconds(500))
+            check("the second turn was not delivered", starts == 2)
+            check("VAD closed the duplex session", AgentCaptureController.shared.isSessionActive)
             AgentCaptureController.shared.turnHandlerForTesting = nil
-
-            do {
-                let loop = try await AgentToolLoop.run(
-                    user: "Click Run",
-                    maxRounds: 4,
-                    complete: { user in
-                        if user.contains("computer.click returned") {
-                            return "Done."
-                        }
-                        if user.contains("computer.inspect_ui returned") {
-                            return #"<tool_call>{"name":"computer.click","arguments":{"id":"12"},"rationale":"click"}</tool_call>"#
-                        }
-                        return #"<tool_call>{"name":"computer.inspect_ui","arguments":{},"rationale":"look"}</tool_call>"#
-                    },
-                    execute: { call in
-                        switch call.name {
-                        case "computer.inspect_ui": return "[12] Run\n[18] Search"
-                        case "computer.click": return "Clicked"
-                        default: return "unknown"
-                        }
-                    }
-                )
-                check("inspect→click loop did not finish in plain language", loop.reply == "Done.")
-                check("inspect→click loop used the wrong number of rounds", loop.rounds == 3)
-                check("inspect→click loop dropped a tool call", loop.calls == 2)
-            } catch {
-                failures.append("tool loop failed: \(error.localizedDescription)")
-            }
-
-            MeetingContextStore.shared.reset()
+            await AgentCaptureController.shared.endSession(source: .done)
 
             for failure in failures { writeSelfTest("  REALTIME_WRONG: \(failure)") }
-            writeSelfTest(failures.isEmpty
-                          ? "REALTIME_OK: questions, follow-ups, tool speech, clarification, harness and duplex VAD hold"
-                          : "REALTIME_FAILED: \(failures.count) rule(s) wrong")
+            writeSelfTest(failures.isEmpty ? "REALTIME_OK" : "REALTIME_FAILED")
             NSApp.terminate(nil)
         }
     }

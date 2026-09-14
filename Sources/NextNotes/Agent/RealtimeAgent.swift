@@ -12,11 +12,8 @@ struct AgentTurn: Sendable {
     var delegated: Bool
 }
 
-/// Persistent conversational agent. One resolve, one action, always a visible reply.
-///
-/// Ordinary mail, calendar and computer requests stay on deterministic routes.
-/// Explicit “ask the local model” answers a question without tools; explicit
-/// “use tools to” runs a bounded, read-only model tool plan.
+/// Persistent conversational agent. Ordinary turns use the selected model to
+/// answer or choose a tool; explicit coding-harness requests are delegated.
 @MainActor
 @Observable
 final class RealtimeAgent {
@@ -32,8 +29,7 @@ final class RealtimeAgent {
     }
 
     static let bargeInReply = "Still listening."
-    static let unknownReply =
-        "Say what to do: check mail, the calendar, this window, or find a file."
+    static let unknownReply = "I couldn't complete that request."
     private(set) var lastReply = ""
     private(set) var isThinking = false
     private(set) var progressTitle = "Thinking…"
@@ -112,6 +108,15 @@ final class RealtimeAgent {
             return turn
         }
 
+        if source == .voice, AgentSession.shared.isRecentDuplicateVoiceTurn(text) {
+            replyTrace.end(note: "duplicate-voice")
+            Log.agent.info("realtime · suppressed duplicate voice turn")
+            AgentAuditLog.shared.record(
+                kind: .request, title: String(text.prefix(300)), detail: "duplicate voice suppressed"
+            )
+            return AgentTurn(reply: lastReply, delegated: false)
+        }
+        AgentAuditLog.shared.record(kind: .request, title: String(text.prefix(300)), detail: source.rawValue)
         AgentSession.shared.recordUser(text)
         let intent = AgentTurnIntent.resolve(
             text, choice: choice,
@@ -165,7 +170,22 @@ final class RealtimeAgent {
                 delegated: true,
                 route: "task"
             )
-        case .calendar, .mail, .files, .drive, .computer, .toolLoop:
+        case .toolLoop:
+            beginWork(title: intent.progressTitle)
+            let toolTrace = LatencyTrace.start(.agentToolCallToResult)
+            let speech = AgentToolSpeechTracker(agent: self, turn: mine)
+            let reply = await runGeneralToolLoop(text, speech: speech)
+            toolTrace.end(note: intent.progressTitle)
+            guard isCurrent(mine) else {
+                replyTrace.end(note: "superseded")
+                return AgentTurn(reply: lastReply, delegated: false)
+            }
+            replyTrace.end(note: "tool")
+            return conclude(
+                mine, reply, route: "model-tools", contextKind: "tools",
+                speak: !speech.didStreamSpeech
+            )
+        case .calendar, .mail, .files, .drive, .computer:
             beginWork(title: intent.progressTitle)
             let toolTrace = LatencyTrace.start(.agentToolCallToResult)
             let limit: Duration = if case .toolLoop = intent,
@@ -298,7 +318,7 @@ final class RealtimeAgent {
         IslandState.shared.showAgentWork(title: progressTitle)
     }
 
-    private func isCurrent(_ mine: Int) -> Bool {
+    func isCurrent(_ mine: Int) -> Bool {
         generation == mine && !Task.isCancelled
     }
 
@@ -308,13 +328,14 @@ final class RealtimeAgent {
         delegated: Bool = false,
         route: String,
         spokenReply: String? = nil,
-        contextKind: String? = nil
+        contextKind: String? = nil,
+        speak: Bool = true
     ) -> AgentTurn {
         guard isCurrent(mine) else {
             return AgentTurn(reply: lastReply, delegated: false)
         }
         Log.agent.info("realtime · \(route, privacy: .public)")
-        finish(reply, spokenReply: spokenReply, contextKind: contextKind)
+        finish(reply, speak: speak, spokenReply: spokenReply, contextKind: contextKind)
         return AgentTurn(reply: reply, delegated: delegated)
     }
 
@@ -468,7 +489,7 @@ final class RealtimeAgent {
     }
 
     private static func conversationGroundedPrompt(_ prompt: String) -> String {
-        let conversation = AgentSession.shared.contextForCurrentTurn()
+        let conversation = AgentSession.shared.contextForCurrentTurn(maxCharacters: 3_000)
         let grounding = NextMemory.shared.grounding(for: prompt)
         var sections: [String] = []
         if !conversation.isEmpty {
@@ -518,7 +539,7 @@ final class RealtimeAgent {
         }
     }
 
-    private func beginFirstTTSTrace(for turn: Int) {
+    func beginFirstTTSTrace(for turn: Int) {
         finishFirstTTSTrace(note: "superseded")
         pendingFirstTTSTrace = LatencyTrace.start(.agentFirstTokenToFirstTTS)
         pendingFirstTTSTurn = turn
@@ -577,6 +598,7 @@ final class AgentSession {
     private static let fileURL = AppIdentity.applicationSupportDirectory
         .appendingPathComponent("agent-conversation.json")
     private(set) var messages: [Message]
+    private var lastSuppressedVoice: (text: String, at: Date)?
 
     private init() {
         messages = Array(Self.load(from: Self.fileURL).suffix(Self.maxMessages))
@@ -588,15 +610,16 @@ final class AgentSession {
 
     /// The last user row is the active request; include only completed earlier turns.
     /// Fit whole turns from the tail so a long tool answer cannot erase its question.
-    func contextForCurrentTurn() -> String {
+    func contextForCurrentTurn(maxCharacters: Int? = nil) -> String {
         let earlier = messages.last?.role == "user" ? messages.dropLast() : messages[...]
-        var remaining = Self.contextCharacters
+        var remaining = min(Self.contextCharacters, max(0, maxCharacters ?? Self.contextCharacters))
         var selected: [String] = []
         for message in earlier.reversed() {
             let label = message.role == "user" ? "User"
                 : "Assistant\(message.contextKind.map { " [\($0) result]" } ?? "")"
-            let line = "\(label): \(String(message.text.prefix(3_000)))"
-            if line.count > remaining { break }
+            let room = min(1_800, remaining - label.count - 2)
+            guard room > 0 else { break }
+            let line = "\(label): \(String(message.text.prefix(room)))"
             selected.append(line)
             remaining -= line.count
         }
@@ -604,6 +627,9 @@ final class AgentSession {
     }
 
     func recordUser(_ text: String) {
+        if lastSuppressedVoice?.text != Self.normalized(text) {
+            lastSuppressedVoice = nil
+        }
         append(Message(role: "user", text: String(text.prefix(Self.maxStoredCharacters))))
     }
 
@@ -614,8 +640,36 @@ final class AgentSession {
         ))
     }
 
+    /// SpeechAnalyzer sometimes revises a cumulative snapshot after an endpoint.
+    /// Replaying that same voice text must not re-run a cloud search or write.
+    /// A text request remains repeatable; a voice request is deduped briefly.
+    func isRecentDuplicateVoiceTurn(_ text: String, now: Date = Date()) -> Bool {
+        let normalized = Self.normalized(text)
+        if let lastSuppressedVoice,
+           now.timeIntervalSince(lastSuppressedVoice.at) < 12,
+           lastSuppressedVoice.text == normalized {
+            self.lastSuppressedVoice = (normalized, now)
+            return true
+        }
+        guard messages.count >= 2 else { return false }
+        let last = messages[messages.count - 1]
+        let previous = messages[messages.count - 2]
+        guard last.role == "assistant", previous.role == "user",
+              now.timeIntervalSince(previous.at) < 12 else { return false }
+        guard Self.normalized(previous.text) == normalized else { return false }
+        lastSuppressedVoice = (normalized, now)
+        return true
+    }
+
+    private static func normalized(_ text: String) -> String {
+        text.lowercased()
+            .replacingOccurrences(of: #"[^\p{L}\p{N}]+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     func clear() {
         messages.removeAll()
+        lastSuppressedVoice = nil
         try? FileManager.default.removeItem(at: Self.fileURL)
     }
 

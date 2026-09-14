@@ -100,26 +100,20 @@ final class AgentHarnessRouter {
     }
 
     func choose(for text: String) -> AgentHarnessChoice {
-        let intent = Self.intent(for: text)
         let choice: AgentHarnessChoice
         if let named = Self.explicitHarness(in: text) {
             choice = finalize(named, source: .explicit)
-        } else if intent == .stayLocal {
-            choice = finalize(.local, source: .explicit)
-        } else if intent == .coding, let remembered = lastCodingFromHistory() {
-            choice = finalize(remembered, source: .history)
-        } else if intent == .coding, let session = lastCodingID {
-            choice = finalize(session, source: .session)
-        } else if intent == .coding, Settings.shared.agentBackend == .acp {
+        } else if Settings.shared.agentBackend == .acp {
             let id = Self.harness(forCLI: Settings.shared.acpBackendID) ?? .claude
             choice = finalize(id, source: .settings)
         } else {
             choice = finalize(.local, source: .settings)
         }
-        // Named / coding picks stay in memory even when the CLI is missing, so the
-        // next similar ask can reuse them. Local calendar/click never writes history.
-        if choice.id != .local {
-            record(choice, snippet: text, intent: intent == .stayLocal ? .coding : intent)
+        // A remembered phrase must not silently choose a coding harness for an
+        // unrelated voice request. Only the user's explicit name or Settings
+        // selects one; history remains an audit of those choices.
+        if choice.source == .explicit, choice.id != .local {
+            record(choice, snippet: text, intent: .coding)
         }
         if choice.needsACPConfirmation {
             ACPConfirmationGate.shared.offer(choice, utterance: text)
@@ -218,14 +212,6 @@ final class AgentHarnessRouter {
         )
         lastChoice = choice
         return choice
-    }
-
-    private func lastCodingFromHistory() -> AgentHarnessID? {
-        guard let last = entries.last(where: {
-            $0.intentClass == AgentIntentClass.coding.rawValue
-                && $0.harnessID != AgentHarnessID.local.rawValue
-        }) else { return nil }
-        return AgentHarnessID(rawValue: last.harnessID)
     }
 
     private static func harness(forCLI cli: String) -> AgentHarnessID? {
