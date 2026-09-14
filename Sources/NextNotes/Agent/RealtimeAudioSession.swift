@@ -14,8 +14,8 @@ import Foundation
 ///    immediately and clears every pending clause in the speak queue.
 /// 2. **Optional output ducking** — while speaking, utterance volume is lowered
 ///    so speaker→mic bleed is less likely to false-trigger VAD.
-/// 3. **Recent playback echo filtering** — cumulative ASR output that matches
-///    spoken text cannot become another Agent request.
+/// 3. **Recent playback echo filtering** — reflected words are removed from
+///    cumulative ASR, including a real interruption mixed with speaker bleed.
 ///
 /// ## Streaming spoken replies
 /// Prefer `beginSpokenReply` / `appendSpokenReply` / `finalizeSpokenReply` when
@@ -59,8 +59,20 @@ final class RealtimeAudioSession {
 
     /// Clause-by-clause flush while reply text is still growing.
     private let speechBuffer = StreamingSpeechBuffer()
-    private var recentOutputText = ""
-    private var recentOutputAt = Date.distantPast
+    private struct OutputReference {
+        var text: String
+        var at: Date
+    }
+    private struct Word {
+        var value: String
+        var range: Range<String.Index>
+    }
+    private var recentOutputs: [OutputReference] = []
+    private var recordingOutput = false
+    private static let echoWindow: TimeInterval = 15
+    private static let shortEchoWindow: TimeInterval = 3
+    private static let maxEchoReferences = 3
+    private static let wordPattern = try! NSRegularExpression(pattern: #"[\p{L}\p{N}]+"#)
 
     private init() {}
 
@@ -73,6 +85,8 @@ final class RealtimeAudioSession {
         isSpeaking = false
         phase = .listening
         speechBuffer.cancel()
+        recentOutputs.removeAll()
+        recordingOutput = false
         AgentSpeechSynthesizer.shared.utteranceVolume = Self.fullVolume
         lastBargeInStopSeconds = nil
         Log.agent.info("duplex · begin")
@@ -93,6 +107,7 @@ final class RealtimeAudioSession {
     /// Call `appendSpokenReply` as text grows, then `finalizeSpokenReply`.
     func beginSpokenReply() {
         speechBuffer.begin()
+        recordingOutput = false
         applySpeakingVolumeIfActive()
     }
 
@@ -100,15 +115,30 @@ final class RealtimeAudioSession {
     /// policy allows; silent forms (URL / listing / …) enqueue nothing.
     func appendSpokenReply(_ chunk: String) {
         speechBuffer.append(chunk)
-        recentOutputText = speechBuffer.accumulated
-        recentOutputAt = Date()
+        rememberEnqueuedOutput()
         noteEnqueueIfNeeded()
+    }
+
+    private func rememberEnqueuedOutput() {
+        guard speechBuffer.didEnqueue, !speechBuffer.accumulated.isEmpty else { return }
+        if recordingOutput, !recentOutputs.isEmpty {
+            recentOutputs[recentOutputs.count - 1] = OutputReference(
+                text: speechBuffer.accumulated, at: Date()
+            )
+        } else {
+            recentOutputs.append(OutputReference(text: speechBuffer.accumulated, at: Date()))
+            recordingOutput = true
+        }
+        if recentOutputs.count > Self.maxEchoReferences {
+            recentOutputs.removeFirst(recentOutputs.count - Self.maxEchoReferences)
+        }
     }
 
     /// Flush any trailing incomplete clause. Safe to call after a single
     /// full-string `appendSpokenReply`.
     func finalizeSpokenReply() {
         speechBuffer.finalize()
+        rememberEnqueuedOutput()
         noteEnqueueIfNeeded()
     }
 
@@ -123,27 +153,85 @@ final class RealtimeAudioSession {
         finalizeSpokenReply()
     }
 
-    /// Without the shared playback reference that Qwen's VoiceProcessingIO has,
-    /// ASR can hear our own speaker. Keep the last spoken text across barge-in
-    /// so a late transcript of that playback is discarded, not run as a turn.
+    /// Keep recent replies across barge-in: SpeechAnalyzer can deliver a delayed
+    /// cumulative revision after the speaker stops. This is transcript-level
+    /// isolation; the mic stays live so a person can interrupt the reply.
     func isLikelyPlaybackEcho(_ text: String) -> Bool {
-        guard Date().timeIntervalSince(recentOutputAt) < 15 else { return false }
-        let spoken = Self.normalized(recentOutputText)
-        let heard = Self.normalized(text)
-        guard heard.count >= 8, heard.contains(" "), !spoken.isEmpty else { return false }
-        return spoken.contains(heard) || (heard.count >= 12 && heard.contains(spoken))
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && userSpeechExcludingPlayback(text).isEmpty
     }
 
-    private static func normalized(_ text: String) -> String {
-        text.lowercased()
-            .replacingOccurrences(of: #"[^\p{L}\p{N}]+"#, with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+    /// Remove long contiguous spans present in our own recent replies. Preserve
+    /// new speech before or after a reflected span; a whole-string containment
+    /// test missed exactly that mixed case in the user's 08:31 transcript.
+    func userSpeechExcludingPlayback(_ text: String, now: Date = Date()) -> String {
+        var remainder = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let references = recentOutputs.filter {
+            isSpeaking || AgentSpeechSynthesizer.shared.isSpeaking
+                || now.timeIntervalSince($0.at) < Self.echoWindow
+        }
+        guard !references.isEmpty else { return remainder }
+        var removedEcho = false
+        for _ in 0..<Self.maxEchoReferences {
+            let heard = Self.words(in: remainder)
+            guard !heard.isEmpty else { return "" }
+            var best: (start: Int, count: Int)?
+            for reference in references {
+                let spoken = Self.words(in: reference.text)
+                guard !spoken.isEmpty else { continue }
+                for i in heard.indices {
+                    for j in spoken.indices where heard[i].value == spoken[j].value {
+                        var count = 0
+                        while i + count < heard.count, j + count < spoken.count,
+                              heard[i + count].value == spoken[j + count].value {
+                            count += 1
+                        }
+                        if count >= 3, count > (best?.count ?? 0) {
+                            best = (i, count)
+                        }
+                    }
+                }
+            }
+            guard let best else { break }
+            let begin = heard[best.start].range.lowerBound
+            let end = heard[best.start + best.count - 1].range.upperBound
+            let before = String(remainder[..<begin])
+            let after = String(remainder[end...])
+                .replacingOccurrences(of: #"^[\s\p{P}]+"#, with: "", options: .regularExpression)
+            remainder = [before, after]
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            removedEcho = true
+        }
+        let residue = Self.words(in: remainder)
+        if residue.isEmpty { return "" }
+        // One-word tails of a mixed echo are often ASR revisions of the
+        // preceding clause. Never let one become a fresh tool request while
+        // playback or its delayed tail is still near the microphone.
+        if residue.count == 1, recentOutputs.contains(where: {
+            (removedEcho || now.timeIntervalSince($0.at) < Self.shortEchoWindow)
+                && Self.words(in: $0.text).contains { $0.value == residue[0].value }
+        }) {
+            return ""
+        }
+        return remainder
+    }
+
+    private static func words(in text: String) -> [Word] {
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        return wordPattern.matches(in: text, range: range).compactMap { match in
+            guard let range = Range(match.range, in: text) else { return nil }
+            return Word(value: String(text[range]).lowercased(), range: range)
+        }
     }
 
     /// Last clause finished — keep phase honest when idle.
     func noteOutputFinished() {
         guard isSpeaking else { return }
         isSpeaking = false
+        if !recentOutputs.isEmpty { recentOutputs[recentOutputs.count - 1].at = Date() }
+        recordingOutput = false
         if isActive { phase = .listening }
         AgentSpeechSynthesizer.shared.utteranceVolume = Self.fullVolume
     }
@@ -157,6 +245,9 @@ final class RealtimeAudioSession {
     func noteUserSpeech() {
         let wasSpeaking = isSpeaking || AgentSpeechSynthesizer.shared.isSpeaking
         let started = ContinuousClock.now
+        if wasSpeaking, !recentOutputs.isEmpty {
+            recentOutputs[recentOutputs.count - 1].at = Date()
+        }
         stopOutput()
         if wasSpeaking {
             let elapsed = started.duration(to: .now)
@@ -217,10 +308,12 @@ extension RealtimeAudioSession {
         var failures: [String] = []
 
         failures += bargeInFailures()
+        failures += echoFilterFailures()
         failures += firstAudioCallbackFailures()
         failures += await singleInputEngineFailures()
         failures += speakingStateFailures()
         failures += dictationStaysSilentFailures()
+        failures += await captureEchoEndpointFailures()
 
         for failure in failures {
             print("DUPLEX_WRONG: \(failure)")
@@ -315,6 +408,82 @@ extension RealtimeAudioSession {
             )
         }
 
+        return failures
+    }
+
+    private static func echoFilterFailures() -> [String] {
+        var failures: [String] = []
+        let session = RealtimeAudioSession.shared
+        let synth = AgentSpeechSynthesizer.shared
+        synth.useTestingBacking(RecordingSpeechBacking())
+        defer {
+            session.end()
+            synth.restoreSystemBacking()
+        }
+        session.begin()
+        session.speak("I can help you manage your calendar, draft emails, and search your files.")
+        if session.userSpeechExcludingPlayback("I can help you manage your") != "" {
+            failures.append("partial playback became user speech")
+        }
+        if session.userSpeechExcludingPlayback("Can you hear me? I can help you manage your")
+            != "Can you hear me?" {
+            failures.append("mixed user speech and playback were not separated")
+        }
+        session.noteUserSpeech()
+        session.speak("Yes, I can hear you clearly. How would you like me to help you manage your calendar?")
+        if session.userSpeechExcludingPlayback(
+            "calendar. Yes, I can hear you clearly. How would you like me to help you manage"
+        ) != "" {
+            failures.append("echo tail from consecutive replies became a new request")
+        }
+        if session.userSpeechExcludingPlayback("Stop. Yes, I can hear you clearly") != "Stop." {
+            failures.append("short novel barge-in was removed with playback")
+        }
+        if session.userSpeechExcludingPlayback("Open the calendar") != "Open the calendar" {
+            failures.append("unrelated user request was removed as playback")
+        }
+        session.noteUserSpeech()
+        if session.userSpeechExcludingPlayback("Yes, I can hear you clearly") != "" {
+            failures.append("late playback tail survived after output stopped")
+        }
+        if session.userSpeechExcludingPlayback(
+            "Yes, I can hear you clearly",
+            now: Date().addingTimeInterval(Self.echoWindow + 1)
+        ) != "Yes, I can hear you clearly" {
+            failures.append("expired playback reference suppressed a new turn")
+        }
+        return failures
+    }
+
+    private static func captureEchoEndpointFailures() async -> [String] {
+        var failures: [String] = []
+        let capture = AgentCaptureController.shared
+        let session = RealtimeAudioSession.shared
+        let synth = AgentSpeechSynthesizer.shared
+        synth.useTestingBacking(RecordingSpeechBacking())
+        defer {
+            capture.turnHandlerForTesting = nil
+            session.end()
+            synth.restoreSystemBacking()
+        }
+        var forwarded: [String] = []
+        capture.turnHandlerForTesting = { forwarded.append($0) }
+        await capture.beginSession(captureAudio: false)
+        session.speak("I can help you manage your calendar and files.")
+        capture.simulateSpeech("I can help you manage your")
+        capture.simulateSilence()
+        _ = await capture.considerEndpoint()
+        if !forwarded.isEmpty { failures.append("reflected reply reached the Agent") }
+
+        session.speak("I can help you manage your calendar and files.")
+        capture.simulateSpeech("Can you hear me? I can help you manage your")
+        capture.simulateSilence()
+        _ = await capture.considerEndpoint()
+        await capture.waitForActiveTurnForTesting()
+        if forwarded != ["Can you hear me?"] {
+            failures.append("mixed turn was not forwarded as user speech only: \(forwarded)")
+        }
+        await capture.endSession(source: .done)
         return failures
     }
 
