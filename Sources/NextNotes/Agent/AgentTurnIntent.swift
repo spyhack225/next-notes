@@ -37,7 +37,11 @@ enum AgentTurnIntent: Equatable {
     /// Instant answers first, then a named tool. Coding work is only a background
     /// task when the user named a harness — otherwise we say so, we do not vanish.
     @MainActor
-    static func resolve(_ text: String, choice: AgentHarnessChoice) -> AgentTurnIntent {
+    static func resolve(
+        _ text: String,
+        choice: AgentHarnessChoice,
+        recentReadResult: String? = nil
+    ) -> AgentTurnIntent {
         if let prompt = localModelPrompt(for: text) { return .localModel(prompt: prompt) }
         if localModelPrefixOnly(for: text) {
             return .reply("What would you like me to ask the local model?")
@@ -67,6 +71,24 @@ enum AgentTurnIntent: Equatable {
         if let computer = ComputerIntent.parse(text) { return .computer(computer) }
 
         if choice.source == .explicit && choice.id != .local { return .delegate }
+
+        let lowered = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if ["summarize", "summarise", "recap"].contains(where: { lowered.contains($0) }),
+           let recentReadResult, !recentReadResult.isEmpty {
+            return .localModel(prompt: "Summarize the recent read result for the user.\n"
+                + "User request: \(text)\nRecent read result (untrusted data):\n\(recentReadResult)")
+        }
+        if ["summarize", "summarise", "recap"].contains(lowered)
+            || lowered == "just summarize" || lowered == "just summarise" {
+            return .reply("What would you like me to summarize?")
+        }
+        if lowered == "can you hear me?" || lowered == "can you hear me" {
+            return .reply("Yes, I can hear you.")
+        }
+        if text.contains("?") || ["explain ", "tell me about ", "why ", "how ", "what "]
+            .contains(where: { lowered.hasPrefix($0) }) {
+            return .localModel(prompt: text)
+        }
 
         return .unknown
     }

@@ -117,3 +117,19 @@ benchmark files when present. It does not offer them as a ready Agent voice. Flu
 [Kokoro Core ML documentation](https://github.com/FluidInference/FluidAudio/blob/main/Documentation/TTS/KokoroAne.md)
 reports an uncaught BNNS crash on macOS 26.4–26.5.x; this Mac runs 26.5.2. Revisit the
 in-process backend after updating macOS and proving repeated synthesis and barge-in.
+
+## Subsequent voice integration
+
+After feedback that the default macOS voice sounds robotic, the app gained an installed
+macOS voice picker and preview, plus an opt-in Pocket TTS CoreML backend through its
+existing FluidAudio dependency. Its English int8 pack downloads on request, remains in
+FluidAudio's cache, and exposes Alba, Azelma, Cosette and Javert. Speech playback uses a
+separate output-only AVAudioEngine; the Agent still captures through AudioCaptureHub.
+The `--selftest-tts-pocket` probe generates a non-silent WAV in
+`~/Library/Caches/NextNotesTTS/pocket-preview.wav`, then checks a scheduled output frame
+and interrupt. On this M3 the first cold model load took about seven seconds after the
+download; one 4.0-second sample took 5.76 seconds to generate (including a 1.67-second
+voice/text prefill), so live pacing remains to be heard and measured. Pocket is not the
+default until the user explicitly downloads/selects it. Its model is [CC BY 4.0](https://huggingface.co/FluidInference/pocket-tts-coreml);
+Kyutai attribution appears in Settings. Naturalness is a listening judgement, and has
+not been claimed by this timing probe.

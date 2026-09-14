@@ -14,14 +14,16 @@ protocol AgentSpeechBacking: AnyObject {
 /// one utterance at a time, never waits for the queue to drain, and is always
 /// interruptible — `stop()` cancels the current clause and clears the rest.
 ///
-/// Kokoro / Piper stay out of this wave. Dictation never calls this. A second
-/// `AVAudioEngine` on the input node is forbidden — this class only plays.
+/// Dictation never calls this. The optional Pocket backing only plays audio;
+/// neither backing attaches to the input node.
 @MainActor
 final class AgentSpeechSynthesizer {
     static let shared = AgentSpeechSynthesizer()
 
     private var backing: any AgentSpeechBacking
     private let systemBacking = AVSpeechBacking()
+    private let pocketBacking = PocketSpeechBacking()
+    private var testingBacking = false
     /// Remaining clauses after the one currently speaking (or just enqueued).
     private var pendingClauses: [String] = []
     /// Set by `stop()`. The interrupt self-test fails unless this path ran.
@@ -49,6 +51,21 @@ final class AgentSpeechSynthesizer {
         systemBacking.onUtteranceStarted = { [weak self] token in
             self?.didBeginAudio(token: token)
         }
+        pocketBacking.onUtteranceFinished = { [weak self] token in
+            self?.didFinishAudio(token: token)
+        }
+        pocketBacking.onUtteranceStarted = { [weak self] token in
+            self?.didBeginAudio(token: token)
+        }
+        pocketBacking.onFailure = { [weak self] text, volume, token in
+            guard let self, token == self.outputGeneration else { return }
+            Settings.shared.agentVoiceEngine = "apple"
+            self.backing = self.systemBacking
+            self.systemBacking.speak(text, volume: volume, token: token)
+        }
+        if Settings.shared.agentVoiceEngine == "pocket" {
+            Task { await PocketAgentVoice.shared.prepare() }
+        }
     }
 
     var isSpeaking: Bool { backing.isSpeaking || !pendingClauses.isEmpty }
@@ -73,6 +90,10 @@ final class AgentSpeechSynthesizer {
         pendingClauses.removeAll()
         if backing.isSpeaking {
             backing.stop()
+        }
+        if !testingBacking {
+            backing = Settings.shared.agentVoiceEngine == "pocket" && PocketAgentVoice.shared.isReady
+                ? pocketBacking : systemBacking
         }
     }
 
@@ -105,10 +126,12 @@ final class AgentSpeechSynthesizer {
     /// Self-test only. Restored by interrupt / stream self-tests so a later
     /// turn still uses the system voice.
     func useTestingBacking(_ backing: any AgentSpeechBacking) {
+        testingBacking = true
         self.backing = backing
     }
 
     func restoreSystemBacking() {
+        testingBacking = false
         self.backing = systemBacking
         utteranceVolume = 1.0
         pendingClauses.removeAll()
@@ -268,6 +291,9 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
         activeToken = token
         let utterance = AVSpeechUtterance(string: text)
         utterance.volume = max(0, min(1, volume))
+        if !Settings.shared.agentVoiceIdentifier.isEmpty {
+            utterance.voice = AVSpeechSynthesisVoice(identifier: Settings.shared.agentVoiceIdentifier)
+        }
         tokens[ObjectIdentifier(utterance)] = token
         synthesizer.speak(utterance)
     }

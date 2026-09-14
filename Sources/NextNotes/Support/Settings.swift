@@ -604,6 +604,20 @@ final class Settings {
         }
     }
 
+    /// Installed macOS voice identifier for Agent speech. Empty means system default.
+    var agentVoiceIdentifier: String {
+        didSet { defaults.set(agentVoiceIdentifier, forKey: Keys.agentVoiceIdentifier) }
+    }
+
+    /// Explicitly downloaded, local neural voice; system speech remains the default.
+    var agentVoiceEngine: String {
+        didSet { defaults.set(agentVoiceEngine, forKey: Keys.agentVoiceEngine) }
+    }
+
+    var agentPocketVoice: String {
+        didSet { defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice) }
+    }
+
     var wakePhrase: String {
         didSet { defaults.set(wakePhrase, forKey: Keys.wakePhrase) }
     }
@@ -782,6 +796,9 @@ final class Settings {
         static let agentAutoRunReadTools = "agentAutoRunReadTools"
         static let agentLiveDuringMeeting = "agentLiveDuringMeeting"
         static let voiceWakeEnabled = "voiceWakeEnabled"
+        static let agentVoiceIdentifier = "agentVoiceIdentifier"
+        static let agentVoiceEngine = "agentVoiceEngine"
+        static let agentPocketVoice = "agentPocketVoice"
         static let wakePhrase = "wakePhrase"
         static let wakeSensitivity = "wakeSensitivity"
         static let listenWhileSleeping = "listenWhileSleeping"
@@ -873,6 +890,9 @@ final class Settings {
         agentAutoRunReadTools = defaults.object(forKey: Keys.agentAutoRunReadTools) as? Bool ?? true
         agentLiveDuringMeeting = defaults.object(forKey: Keys.agentLiveDuringMeeting) as? Bool ?? false
         voiceWakeEnabled = defaults.object(forKey: Keys.voiceWakeEnabled) as? Bool ?? false
+        agentVoiceIdentifier = defaults.string(forKey: Keys.agentVoiceIdentifier) ?? ""
+        agentVoiceEngine = defaults.string(forKey: Keys.agentVoiceEngine) ?? "apple"
+        agentPocketVoice = defaults.string(forKey: Keys.agentPocketVoice) ?? "alba"
         wakePhrase = defaults.string(forKey: Keys.wakePhrase) ?? WakeWordConfiguration.defaultPhrase
         wakeSensitivity = defaults.object(forKey: Keys.wakeSensitivity) as? Double ?? 0.5
         listenWhileSleeping = defaults.object(forKey: Keys.listenWhileSleeping) as? Bool ?? true
