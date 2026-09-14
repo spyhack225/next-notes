@@ -4,6 +4,67 @@ import Foundation
 /// provider only controls planning; `computer.active_app` still goes through the real
 /// registry, permission policy, and executor.
 enum RealtimeAgentToolLoopSelfTest {
+    /// Ask the installed Qwen model for routing decisions without executing
+    /// tools or recording these fixtures in the user's conversation.
+    @MainActor
+    static func runToolAwareness() async -> Bool {
+        let provider = LlamaLLMProvider()
+        if let reason = await provider.unavailableReason {
+            print("TOOL_AWARENESS_FAILED: \(reason)")
+            return false
+        }
+        let system = RealtimeAgent.modelTurnSystem(voice: true)
+        let probes: [(name: String, prompt: String, conversation: String)] = [
+            ("CALENDAR", "What is on my calendar for today?", ""),
+            ("PRIOR_DENIAL", "Please check my calendar for today.", """
+                User [voice]: What is on my calendar today?
+                Assistant: I don't have access to your calendar.
+                """),
+            ("MEETING_ACTIONS", "What action items came from my last meeting?", ""),
+            ("CAPABILITIES", "Can you check your tools?", ""),
+            ("TODO", "What is on your to-do list for today?", ""),
+        ]
+        var failures: [String] = []
+        for probe in probes {
+            let response: String? = await withBoundedWait(.seconds(90)) {
+                do {
+                    var answer = ""
+                    let stream = await provider.stream(
+                        system: system,
+                        user: RealtimeAgent.modelTurnUser(
+                            probe.prompt, conversation: probe.conversation
+                        ),
+                        maxTokens: 96
+                    )
+                    for try await chunk in stream { answer += chunk }
+                    return answer.trimmingCharacters(in: .whitespacesAndNewlines)
+                } catch {
+                    return "ERROR: \(error.localizedDescription)"
+                }
+            }
+            let answer = response ?? ""
+            let lowered = answer.lowercased()
+            print("TOOL_AWARENESS_\(probe.name): \(String(answer.prefix(240)))")
+            if answer.isEmpty || lowered.hasPrefix("error:") {
+                failures.append("\(probe.name): no model answer")
+            } else if ["CALENDAR", "PRIOR_DENIAL", "MEETING_ACTIONS"].contains(probe.name),
+                      answer != "<use_tools/>" {
+                failures.append("\(probe.name): did not request a read tool")
+            } else if probe.name == "CAPABILITIES",
+                      answer == "<use_tools/>" || lowered.contains("don't have access")
+                        || !(lowered.contains("calendar") || lowered.contains("get_agenda")) {
+                failures.append("CAPABILITIES: denied or omitted the calendar tool")
+            } else if probe.name == "TODO",
+                      lowered.contains("don't have access to your calendar")
+                        || lowered.contains("don't have access to my tools") {
+                failures.append("TODO: invented a lack of listed capabilities")
+            }
+        }
+        for failure in failures { print("TOOL_AWARENESS_WRONG: \(failure)") }
+        print(failures.isEmpty ? "TOOL_AWARENESS_OK" : "TOOL_AWARENESS_FAILED")
+        return failures.isEmpty
+    }
+
     /// Real Qwen probe for the 09:48 recording. This only asks a question of
     /// the local model; it does not add a row to the user's Agent conversation.
     @MainActor
@@ -18,7 +79,7 @@ enum RealtimeAgentToolLoopSelfTest {
                 var answer = ""
                 let stream = await provider.stream(
                     system: RealtimeAgent.modelTurnSystem(voice: true),
-                    user: "Current user request:\nCan you hear me?",
+                    user: RealtimeAgent.modelTurnUser("Can you hear me?"),
                     maxTokens: 96
                 )
                 for try await chunk in stream { answer += chunk }
@@ -40,15 +101,11 @@ enum RealtimeAgentToolLoopSelfTest {
                 var answer = ""
                 let stream = await provider.stream(
                     system: RealtimeAgent.modelTurnSystem(voice: true),
-                    user: """
-                        Earlier conversation:
+                    user: RealtimeAgent.modelTurnUser("Why is he choppy?", conversation: """
                         User [voice]: Can you hear me?
                         Assistant: Yes, I received your spoken words.
                         User [voice]: Your voice keeps breaking mid-answer.
-
-                        Current user request:
-                        Why is he choppy?
-                        """,
+                        """),
                     maxTokens: 96
                 )
                 for try await chunk in stream { answer += chunk }
@@ -64,9 +121,17 @@ enum RealtimeAgentToolLoopSelfTest {
             && !followUpLower.contains("who \"he\"")
             && !followUpLower.contains("clarify who")
             && !followUpLower.contains("don't know who")
+            && !followUpLower.contains("his voice")
+            && !followUpLower.contains("not his")
+            && (followUpLower.contains("my voice") || followUpLower.contains("my speech")
+                || followUpLower.contains("my spoken") || followUpLower.contains("my output"))
             && !followUpLower.contains("audio connection")
             && !followUpLower.contains("network connection")
+            && !followUpLower.contains("network issue")
             && !followUpLower.contains("connection issue")
+            && !followUpLower.contains("connection stability")
+            && !followUpLower.contains("audio settings")
+            && !followUpLower.contains("your device")
             && !followUpLower.contains("microphone issue")
             && !followUpLower.contains("restarting your device")
         print("VOICE_FOLLOWUP_RESPONSE: \(String(followUpAnswer.prefix(240)))")
@@ -131,8 +196,11 @@ enum RealtimeAgentToolLoopSelfTest {
         let directRounds = await directState.rounds
         let firstPromptCharacters = await directState.firstSystemCharacters
         check("conversation entered tool planning (\(directRounds) rounds)", directRounds == 1)
+        let firstPrompt = RealtimeAgent.modelTurnSystem(voice: false)
+        let missing = RealtimeAgent.plannableTools().filter { !firstPrompt.contains($0.id) }
+        check("first pass omitted plannable tools: \(missing.map(\.id))", missing.isEmpty)
         check("conversation loaded the full tool schema (\(firstPromptCharacters) chars)",
-              firstPromptCharacters < 2_000)
+              firstPromptCharacters < 4_000)
 
         var utc = Calendar(identifier: .gregorian)
         utc.timeZone = TimeZone(secondsFromGMT: 0)!

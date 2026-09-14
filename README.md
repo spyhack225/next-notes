@@ -453,6 +453,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-toolloop                # inspect → click must make both calls
 "$S" --selftest-toolloop-production     # opt-in model → read tool → model route
 "$S" --selftest-voice-grounding         # real local model answers spoken input and contextual voice follow-up
+"$S" --selftest-tool-awareness          # real local model routes personal reads and knows listed capabilities
 "$S" --selftest-acp-confirm             # a missing CLI asks before local tools
 "$S" --selftest-scheduler               # background yields when realtime ASR is queued
 "$S" --selftest-capture                 # one mic engine serves wake + meeting + dictation
@@ -541,7 +542,9 @@ Push-to-talk stays dictation. ⇧⌘ Space (Settings ▸ Agent; configurable) or
 phrase — default “Hey Next”, after the keyword model is downloaded — opens a conversation.
 Silence ends a turn; **Done** on the island leaves the session and discards unfinished speech. The Agent model chosen in
 Settings ▸ Agent decides whether each ordinary request needs a tool; no special wording
-is required to enable tools. Plain answers stream into speech one clause at a time.
+is required to enable tools. The first model pass sees a compact list of available
+tool names; only a request for a tool result opens the full argument catalogue.
+Plain answers stream into speech one clause at a time.
 Earlier turns and tool answers are kept locally and supplied
 as bounded context for follow-up questions; **Clear history** in the Agent pane removes
 that conversation.
