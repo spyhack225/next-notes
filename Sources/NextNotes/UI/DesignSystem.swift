@@ -217,6 +217,9 @@ enum DS {
         /// enough to read an email without leaving the card, short enough that two proposals
         /// still fit on screen.
         static let messagePreviewHeight: CGFloat = 140
+        /// A conversation bubble stays readable on a wide desktop detail pane.
+        static let agentBubbleMaxWidth: CGFloat = 620
+        static let agentEventMaxWidth: CGFloat = 520
 
         /// A determinate progress bar in a detail pane. Wide enough to read as progress,
         /// narrow enough not to read as a divider.
