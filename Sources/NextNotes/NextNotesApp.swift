@@ -446,6 +446,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-tts-kokoro") {
+            Task { @MainActor in
+                SelfTest.failed = !(await KokoroAgentVoice.runSelfTest())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-local-model-stream") {
             Task { @MainActor in
                 SelfTest.failed = !(await RealtimeAgentLocalModelSelfTest.run())

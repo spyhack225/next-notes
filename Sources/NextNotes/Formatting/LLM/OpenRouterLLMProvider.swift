@@ -29,6 +29,16 @@ enum OpenRouterKeyStore {
          kSecAttrAccount as String: account]
     }
 
+    /// Existence-only lookup for Settings. Reading secret data here would ask
+    /// Keychain to authorize a new executable path just to draw the form.
+    static var hasKey: Bool {
+        var request = query
+        request[kSecReturnAttributes as String] = true
+        request[kSecMatchLimit as String] = kSecMatchLimitOne
+        var item: CFTypeRef?
+        return SecItemCopyMatching(request as CFDictionary, &item) == errSecSuccess
+    }
+
     static var key: String? {
         var request = query
         request[kSecReturnData as String] = true
