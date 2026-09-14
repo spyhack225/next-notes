@@ -94,7 +94,8 @@ actor MeetingAgent {
             provider: provider,
             policy: policy,
             tools: tools,
-            source: .review
+            source: .review,
+            transcript: fitted.transcript
         ) { results in
             AgentPrompts.review(
                 meeting: meeting,
@@ -132,7 +133,8 @@ actor MeetingAgent {
             provider: provider,
             policy: policy,
             tools: tools,
-            source: .live
+            source: .live,
+            transcript: fitted.transcript
         ) { _ in
             AgentPrompts.live(meeting: meeting, recent: fitted.transcript)
         }
@@ -153,6 +155,7 @@ actor MeetingAgent {
         policy: AgentPolicy,
         tools: [WorkspaceTool],
         source: AgentProposalSource,
+        transcript: String,
         user: @Sendable ([String]) -> String
     ) async throws -> [AgentProposal] {
         let system = AgentPrompts.system
@@ -186,7 +189,10 @@ actor MeetingAgent {
                 results = try await trimmed(results, provider: provider)
                 continue
             }
-            return proposals(from: calls, meeting: meeting, policy: policy, source: source)
+            return proposals(
+                from: calls, meeting: meeting, policy: policy,
+                source: source, transcript: transcript
+            )
         }
         return []
     }
@@ -226,7 +232,8 @@ actor MeetingAgent {
         from calls: [AgentToolCall],
         meeting: Meeting,
         policy: AgentPolicy,
-        source: AgentProposalSource
+        source: AgentProposalSource,
+        transcript: String
     ) -> [AgentProposal] {
         var seen: Set<String> = []
         var proposals: [AgentProposal] = []
@@ -252,6 +259,13 @@ actor MeetingAgent {
                     """)
                 continue
             }
+            if tool.risk > .read {
+                guard let quote = call.evidence,
+                      Self.isTranscriptEvidence(quote, in: transcript) else {
+                    Log.agent.info("Rejected ungrounded meeting proposal: \(call.name, privacy: .public)")
+                    continue
+                }
+            }
 
             let fingerprint = "\(tool.name)|\(call.arguments.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: "|"))"
             guard seen.insert(fingerprint).inserted else { continue }
@@ -261,11 +275,22 @@ actor MeetingAgent {
                 tool: tool.name,
                 arguments: call.arguments,
                 rationale: call.rationale.isEmpty ? tool.summary : call.rationale,
-                source: source
+                source: source,
+                evidence: call.evidence
             ))
             if proposals.count == AgentPrompts.maxProposals { break }
         }
         return proposals
+    }
+
+    /// Normalizing whitespace and case accommodates ASR line wrapping while still
+    /// requiring the model to point to words that actually appeared in the transcript.
+    static func isTranscriptEvidence(_ quote: String, in transcript: String) -> Bool {
+        let cleaned = quote.split(whereSeparator: { $0.isWhitespace })
+            .joined(separator: " ").lowercased()
+        let body = transcript.split(whereSeparator: { $0.isWhitespace })
+            .joined(separator: " ").lowercased()
+        return cleaned.count >= 12 && body.contains(cleaned)
     }
 
     // MARK: - Fitting

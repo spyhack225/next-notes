@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 /// The source of an action. Dictation deliberately has no case here: it is a one-way text
 /// pipeline and must never enter the action runtime.
@@ -478,7 +479,7 @@ final class ActionOrchestrator {
         // ACP confirms a protocol session, but exposes no provider resource or diff. Keep
         // that distinction explicit so a successful reply cannot be mistaken for proof that
         // a coding side effect landed.
-        if tool.id == "mcp.acp_session" { return nil }
+        if tool.id == "mcp.acp_session" { return result.verification }
         if tool.risk <= .read { return "Read result returned" }
 
         if tool.namespace == .filesystem {
@@ -524,31 +525,46 @@ final class ActionOrchestrator {
                expected.query == observed.query {
                 return "Browser destination read back"
             }
-            if arguments["_browserBackend"] == "accessibility",
-               summary.contains("\n---\n") {
-                return "Browser state read back after the action"
-            }
-            // A CDP click can trigger a remote write or navigation whose effect is not
-            // proved by a successful Runtime.evaluate acknowledgement or target URL.
-            // Preserve an unverified receipt and warn against blind retries.
-            return nil
+            // The browser executor compares a post-action DOM/URL to its pre-action
+            // snapshot, or reads the exact value of a filled control. An unchanged page
+            // is inconclusive even when Runtime.evaluate reported success.
+            return result.verification
         }
 
         if tool.namespace == .computer {
-            // Computer actions have no returned resource id. Read the structured UI after
-            // the action so an accessibility acknowledgement is not mistaken for success.
-            guard let inspect = ComputerToolCatalogue.all.first(where: { $0.name == "inspect_ui" }),
-                  let observed = try? ComputerToolExecutor.run(inspect, arguments: [:]),
-                  !observed.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            else { return nil }
-            return "Computer UI read back after the action"
+            // A generic successful AX press or a nonempty later tree proves nothing.
+            // set_text reads the target value; click compares the window state.
+            if tool.name == "focus" || tool.name == "open_app",
+               let name = arguments["name"], !name.isEmpty {
+                for attempt in 0..<4 {
+                    if attempt > 0 { try? await Task.sleep(for: .milliseconds(200)) }
+                    let matched: Bool
+                    if tool.name == "focus" {
+                        matched = NSWorkspace.shared.frontmostApplication.map {
+                            $0.localizedName?.localizedCaseInsensitiveContains(name) == true
+                                || $0.bundleIdentifier?.localizedCaseInsensitiveContains(name) == true
+                        } ?? false
+                    } else {
+                        matched = NSWorkspace.shared.runningApplications.contains {
+                            $0.localizedName?.localizedCaseInsensitiveContains(name) == true
+                                || $0.bundleIdentifier?.localizedCaseInsensitiveContains(name) == true
+                        }
+                    }
+                    if matched {
+                        return tool.name == "focus"
+                            ? "Requested application is frontmost"
+                            : "Requested application is running"
+                    }
+                }
+            }
+            return result.verification
         }
 
         if tool.namespace == .workspace {
-            // A human-readable gws response without a provider id is not proof that a
-            // message, event or document write was accepted.
-            guard result.reference != nil else { return nil }
-            return "Workspace returned a provider id"
+            guard let reference = result.reference, !reference.isEmpty else { return nil }
+            // The runner uses the same approved account to read back the exact
+            // message, event, file or document after the write.
+            return result.verification
         }
 
         if result.reference != nil || result.link != nil {
@@ -651,6 +667,34 @@ final class ActionOrchestrator {
             mutationReturned = false
         }
         let mutationReceipt = ActionReceiptStore.shared.receipt(forIntent: mutationIntent.id)
+        let workspaceWrite = AgentTool.native(
+            namespace: .workspace, name: "create_event", description: "test", risk: .write
+        )
+        let unverifiedWorkspace = await Self.verifyResult(
+            tool: workspaceWrite, arguments: [:],
+            result: AgentToolResult(summary: "Created event", reference: "event-1")
+        )
+        let verifiedWorkspace = await Self.verifyResult(
+            tool: workspaceWrite, arguments: [:],
+            result: AgentToolResult(
+                summary: "Created event", reference: "event-1",
+                verification: "Read back the event title and scheduled time"
+            )
+        )
+        let computerClick = AgentTool.native(
+            namespace: .computer, name: "click", description: "test", risk: .modify
+        )
+        let unverifiedClick = await Self.verifyResult(
+            tool: computerClick, arguments: ["id": "1.2"],
+            result: AgentToolResult(summary: "Clicked element 1.2")
+        )
+        let acpTool = AgentTool.native(
+            namespace: .mcp, name: "acp_session", description: "test", risk: .privileged
+        )
+        let unverifiedACP = await Self.verifyResult(
+            tool: acpTool, arguments: [:],
+            result: AgentToolResult(summary: "ACP completed", reference: "file.swift")
+        )
         let island = IslandState.shared
         island.apply(.agentListening(transcript: "foreground", level: 0))
         island.showBackgroundAgentWork(title: "background task")
@@ -663,6 +707,9 @@ final class ActionOrchestrator {
         island.apply(.hidden)
         let finalOK = denied && !deniedFireCalled && completed && frozenPlan
             && mutationReturned && mutationFired && mutationReceipt?.status == .couldNotVerify
+            && unverifiedWorkspace == nil && verifiedWorkspace != nil
+            && unverifiedClick == nil && unverifiedACP == nil
+            && ACPWorkspaceVerification.runSelfTest()
             && backgroundPreservedForeground
             && intent.authority != .user && routing.meetingID == meeting && tool.risk == .send
         return finalOK

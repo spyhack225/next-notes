@@ -121,22 +121,17 @@ enum MeetingActionReconciler {
 
     // MARK: - Inventions
 
-    /// `create_doc` with no explicit ask behind it. "We should write this up later" is a
-    /// mention, not a request, and the review prompt's "put the notes in a Doc" habit is
-    /// how the two-minute poll used to invent one every tick.
+    /// A generic notes Doc without transcript evidence is an invention. The model pass
+    /// now requires an exact quote, so this no longer depends on a list of English ask
+    /// phrases that would miss other wording or languages.
     static func isInventedSummaryDoc(
         _ proposal: AgentProposal,
         candidates: [MeetingCandidateAction],
         actionItems: [MeetingContextItem]
     ) -> Bool {
-        guard proposal.tool == "create_doc" else { return false }
-        if candidates.contains(where: { matches($0, proposal) && isDocumentAction($0) }) {
-            return false
-        }
-        if actionItems.contains(where: { isExplicitAsk($0.text) && mentionsDocument($0.text) }) {
-            return false
-        }
-        return true
+        _ = candidates
+        _ = actionItems
+        return proposal.tool == "create_doc" && proposal.evidence == nil
     }
 
     // MARK: - Marks
@@ -226,34 +221,6 @@ enum MeetingActionReconciler {
             .flatMap { $0.replacingOccurrences(of: " and ", with: ",").components(separatedBy: ",") }
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
-    }
-
-    private static func isDocumentAction(_ candidate: MeetingCandidateAction) -> Bool {
-        mentionsDocument([candidate.action, candidate.object ?? ""].joined(separator: " "))
-    }
-
-    private static func mentionsDocument(_ text: String) -> Bool {
-        let lowered = text.lowercased()
-        return ["doc", "notes", "summary", "write-up", "writeup"].contains { lowered.contains($0) }
-    }
-
-    /// The same ask shapes the live detector uses, plus "put that in a doc" — an explicit
-    /// request the review pass is allowed to keep a Doc for.
-    private static func isExplicitAsk(_ text: String) -> Bool {
-        let lowered = text.lowercased()
-        let asks = [
-            "can you", "could you", "would you",
-            "please send", "please share", "please email", "please put", "please write",
-            "send me", "share the", "send her", "send him", "send them",
-            "put that in", "put this in",
-        ]
-        guard asks.contains(where: lowered.contains) else { return false }
-        return !isDiscussionOnly(lowered)
-    }
-
-    private static func isDiscussionOnly(_ lowered: String) -> Bool {
-        let hedges = ["we should", "maybe we", "at some point", "sometime"]
-        return hedges.contains(where: lowered.contains) || lowered.contains(" later")
     }
 
     // MARK: - Self-test
@@ -441,6 +408,23 @@ enum MeetingActionReconciler {
         )
         check("a discussion became an action", discussed.isEmpty)
         check("an invented summary Doc survived", discussed.proposals.isEmpty)
+        check(
+            "a paraphrased model citation was accepted as transcript evidence",
+            !MeetingAgent.isTranscriptEvidence(
+                "Please distribute the revised plan", in: "Sam: Share the final deck with Alex."
+            )
+        )
+        check(
+            "an exact model citation was rejected",
+            MeetingAgent.isTranscriptEvidence(
+                "Share the final deck with Alex.",
+                in: "Sam: Share the final deck with Alex."
+            )
+        )
+        let parsedEvidence = AgentToolCallParser.calls(in: """
+            <tool_call>{"name":"create_doc","arguments":{"title":"Plan"},"rationale":"Requested","evidence":"Share the final deck with Alex."}</tool_call>
+            """)
+        check("tool parser lost the transcript quote", parsedEvidence.first?.evidence == "Share the final deck with Alex.")
         check(
             "acceptedProposals kept an invented Doc",
             acceptedProposals(

@@ -71,7 +71,8 @@ enum ComputerToolCatalogue {
             description: "Click an accessibility element by the id inspect_ui returned.",
             risk: .modify,
             parameters: [
-                .init(name: "id", description: "The element id from inspect_ui.")
+                .init(name: "id", description: "The element id from inspect_ui."),
+                .init(name: "expectedText", description: "Text expected in the window after clicking; required to verify the effect.", isRequired: false),
             ]
         ),
         .native(

@@ -69,7 +69,9 @@ enum BrowserToolExecutor {
         arguments: [String: String],
         act: ([String: String]) throws -> AgentToolResult
     ) throws -> AgentToolResult {
-        let before = snapshot()
+        // Re-capturing here would invalidate the element ids returned to the model by
+        // the preceding snapshot call. Compare against that frozen snapshot instead.
+        let before = AccessibilitySnapshot.lastSnapshot
         if AccessibilitySnapshot.isStub(before) || before.contains("not a browser") {
             return AgentToolResult(summary: before)
         }
@@ -78,8 +80,32 @@ enum BrowserToolExecutor {
             return AgentToolResult(summary: "No snapshot id \(id.isEmpty ? "(missing)" : id). Snapshot first. \(before)")
         }
         let acted = try act(arguments)
+        let observedValue = AccessibilitySnapshot.value(of: id)
         let after = snapshot()
-        return AgentToolResult(summary: "\(acted.summary)\n---\n\(after)")
+        let requestedValue = arguments["text"] ?? arguments["value"]
+        let verified: String?
+        if let requestedValue {
+            verified = observedValue == requestedValue
+                ? "Browser field value matches requested text" : nil
+        } else {
+            let changed = !AccessibilitySnapshot.isStub(after)
+                && AccessibilitySnapshot.stableContent(before) != AccessibilitySnapshot.stableContent(after)
+            let expectedText = arguments["expectedText"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let expectedURL = arguments["expectedURL"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let textMatches = expectedText.flatMap { $0.isEmpty ? nil : $0 }.map {
+                after.localizedCaseInsensitiveContains($0)
+            } ?? true
+            let urlMatches = expectedURL.flatMap { $0.isEmpty ? nil : $0 }.map {
+                currentURL() == $0
+            } ?? true
+            verified = changed
+                && (expectedText?.isEmpty == false || expectedURL?.isEmpty == false)
+                && textMatches && urlMatches
+                ? "Browser page reached the expected post-click state" : nil
+        }
+        return AgentToolResult(
+            summary: "\(acted.summary)\n---\n\(after)", verification: verified
+        )
     }
 
     @MainActor

@@ -152,8 +152,15 @@ struct AgentView: View {
 
     private var conversation: some View {
         VStack(alignment: .leading, spacing: DS.Space.s) {
-            Text("Conversation")
-                .font(DS.Font.sectionLabel)
+            HStack {
+                Text("Conversation")
+                    .font(DS.Font.sectionLabel)
+                Spacer()
+                Button("Clear history", systemImage: "trash") {
+                    session.clear()
+                }
+                .buttonStyle(.borderless)
+            }
             ForEach(session.messages.suffix(12)) { message in
                 VStack(alignment: .leading, spacing: DS.Space.xxs) {
                     Text(message.role == "user" ? "You" : "Next")

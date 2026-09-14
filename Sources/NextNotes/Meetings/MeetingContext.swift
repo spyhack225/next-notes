@@ -39,6 +39,9 @@ struct MeetingCandidateAction: Sendable, Equatable, Codable, Identifiable {
     var speaker: String?
     var source: AudioSource
     var confidence: String
+    /// Verbatim transcript words supporting this candidate. Older saved cards have nil.
+    var evidence: String?
+    var evidenceStart: TimeInterval?
     var createdAt: Date
 
     init(
@@ -49,6 +52,8 @@ struct MeetingCandidateAction: Sendable, Equatable, Codable, Identifiable {
         speaker: String? = nil,
         source: AudioSource,
         confidence: String = "medium",
+        evidence: String? = nil,
+        evidenceStart: TimeInterval? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -58,6 +63,8 @@ struct MeetingCandidateAction: Sendable, Equatable, Codable, Identifiable {
         self.speaker = speaker
         self.source = source
         self.confidence = confidence
+        self.evidence = evidence
+        self.evidenceStart = evidenceStart
         self.createdAt = createdAt
     }
 }

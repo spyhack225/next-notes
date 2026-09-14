@@ -104,7 +104,10 @@ enum AgentToolExecutor {
             policy: effective,
             promptIfNeeded: promptIfNeeded,
             permissionAlreadyGranted: permissionAlreadyGranted,
-            allowUnverifiedResult: tool.namespace == .browser && tool.risk > .read,
+            allowUnverifiedResult: (tool.namespace == .browser
+                                    || tool.namespace == .computer
+                                    || tool.namespace == .workspace)
+                && tool.risk > .read,
             fire: { prepared in
                 // A denied or waiting action must not appear as executed activity. These
                 // projections happen only after the orchestrator has received permission.
@@ -198,6 +201,7 @@ enum AgentToolExecutor {
             policy: policy ?? .fromSettings(),
             promptIfNeeded: false,
             permissionAlreadyGranted: approvedByUser,
+            allowUnverifiedResult: workspaceTool.risk > .read,
             fire: { prepared in
                 var frozen = proposal
                 frozen.arguments = prepared.executionPlan.arguments

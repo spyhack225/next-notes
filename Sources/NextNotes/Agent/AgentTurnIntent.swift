@@ -15,6 +15,18 @@ enum AgentTurnIntent: Equatable {
     case delegate
     case unknown
 
+    var contextKind: String? {
+        switch self {
+        case .calendar: "calendar"
+        case .mail: "mail"
+        case .files: "files"
+        case .drive: "drive"
+        case .computer: "computer"
+        case .toolLoop: "tools"
+        default: nil
+        }
+    }
+
     var progressTitle: String {
         switch self {
         case .capabilities, .reply, .unknown: ""
@@ -40,7 +52,7 @@ enum AgentTurnIntent: Equatable {
     static func resolve(
         _ text: String,
         choice: AgentHarnessChoice,
-        recentReadResult: String? = nil
+        hasConversationContext: Bool = false
     ) -> AgentTurnIntent {
         if let prompt = localModelPrompt(for: text) { return .localModel(prompt: prompt) }
         if localModelPrefixOnly(for: text) {
@@ -74,12 +86,10 @@ enum AgentTurnIntent: Equatable {
 
         let lowered = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if ["summarize", "summarise", "recap"].contains(where: { lowered.contains($0) }),
-           let recentReadResult, !recentReadResult.isEmpty {
-            return .localModel(prompt: "Summarize the recent read result for the user.\n"
-                + "User request: \(text)\nRecent read result (untrusted data):\n\(recentReadResult)")
+           hasConversationContext {
+            return .localModel(prompt: text)
         }
-        if ["summarize", "summarise", "recap"].contains(lowered)
-            || lowered == "just summarize" || lowered == "just summarise" {
+        if ["summarize", "summarise", "recap", "just summarize", "just summarise"].contains(lowered) {
             return .reply("What would you like me to summarize?")
         }
         if lowered == "can you hear me?" || lowered == "can you hear me" {

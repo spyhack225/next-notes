@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Hands sustained coding work to an ACP stdio session (Claude Code, Codex, Qwen Code,
 /// OpenCode). Next Notes stays the voice, context and permission layer.
@@ -337,8 +338,8 @@ struct ACPAgentBackend: AgentBackend {
 
     /// ACP has its own fine-grained permission requests, but the task submission itself must
     /// still enter the shared action lifecycle. The receipt deliberately remains
-    /// `couldNotVerify` after a successful protocol reply: without a provider diff, retrying
-    /// the same objective could duplicate an already-applied edit.
+    /// `couldNotVerify` after a successful protocol reply unless the checkout's contents
+    /// changed. A protocol success sentence alone cannot prove an edit landed.
     private func runSessionWithReceipt(
         command: String,
         arguments: [String],
@@ -392,6 +393,7 @@ struct ACPAgentBackend: AgentBackend {
                 allowUnverifiedResult: true,
                 fire: { [self] prepared in
                     try Task.checkCancellation()
+                    let before = directory.flatMap(ACPWorkspaceVerification.capture)
                     let outcome: AgentTaskOutcome
                     do {
                         outcome = try await self.runSession(
@@ -418,7 +420,13 @@ struct ACPAgentBackend: AgentBackend {
                     }
                     return AgentToolResult(
                         summary: outcome.result ?? "ACP session completed.",
-                        reference: outcome.artifacts.first
+                        reference: outcome.artifacts.first,
+                        verification: directory.flatMap { path in
+                            guard let before,
+                                  let after = ACPWorkspaceVerification.capture(path),
+                                  before != after else { return nil }
+                            return "ACP checkout content changed; review the edited files"
+                        }
                     )
                 }
         )
@@ -486,3 +494,58 @@ struct ACPAgentBackend: AgentBackend {
 /// Raised only when ACP failed before `initialize` completed. Prompt/session failures do
 /// not offer compatibility mode because the ACP permission and progress contract existed.
 private struct ACPHandshakeUnavailable: Error {}
+
+/// Snapshot the approved checkout's tracked diff and untracked file contents. Capturing
+/// both sides of the ACP session detects an actual edit even when a file was already dirty
+/// before the session began. A non-Git directory stays unverified.
+enum ACPWorkspaceVerification {
+    static func runSelfTest() -> Bool {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("nextnotes-acp-verification-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let file = directory.appendingPathComponent("example.txt")
+            try "before".write(to: file, atomically: true, encoding: .utf8)
+            guard git(["init", "-q"], in: directory.path) != nil,
+                  git(["add", "example.txt"], in: directory.path) != nil,
+                  git(["-c", "user.name=Next Notes Test", "-c", "user.email=test@nextnotes.invalid",
+                       "commit", "-qm", "baseline"], in: directory.path) != nil,
+                  let before = capture(directory.path) else { return false }
+            try "after".write(to: file, atomically: true, encoding: .utf8)
+            guard let after = capture(directory.path), after != before else { return false }
+            return capture(directory.path) == after
+        } catch { return false }
+    }
+
+    static func capture(_ directory: String) -> String? {
+        guard let head = git(["rev-parse", "HEAD"], in: directory),
+              let diff = git(["diff", "--binary", "HEAD", "--"], in: directory),
+              let untracked = git(["ls-files", "--others", "--exclude-standard", "-z"], in: directory)
+        else { return nil }
+        var digest = SHA256()
+        digest.update(data: head)
+        digest.update(data: diff)
+        for name in untracked.split(separator: 0) {
+            guard let path = String(data: Data(name), encoding: .utf8) else { continue }
+            digest.update(data: Data(name))
+            let url = URL(fileURLWithPath: directory).appendingPathComponent(path)
+            if let content = try? Data(contentsOf: url) { digest.update(data: content) }
+        }
+        return digest.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func git(_ arguments: [String], in directory: String) -> Data? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        process.currentDirectoryURL = URL(fileURLWithPath: directory)
+        process.arguments = arguments
+        let output = Pipe()
+        process.standardOutput = output
+        process.standardError = Pipe()
+        do { try process.run() } catch { return nil }
+        let data = output.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        return process.terminationStatus == 0 ? data : nil
+    }
+}

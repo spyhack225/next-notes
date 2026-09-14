@@ -11,17 +11,27 @@ import Foundation
 enum AccessibilitySnapshot {
     private static var last: [String: AXUIElement] = [:]
     private static var lastGeneration = 0
+    private(set) static var lastProcessID: pid_t?
+    private(set) static var lastSnapshot = ""
+
+    static func stableContent(_ snapshot: String) -> String {
+        snapshot.replacingOccurrences(
+            of: #"id: \d+\.\d+"#, with: "id:", options: .regularExpression
+        ).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     /// Honest report: a stub or empty tree says so and invents no controls.
     static func capture(processID: pid_t, limit: Int) -> String {
         last = [:]
+        lastProcessID = processID
         lastGeneration += 1
         let prefix = "\(lastGeneration)."
         let app = AXUIElementCreateApplication(processID)
         var windowRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &windowRef) == .success,
               let window = windowRef else {
-            return "no focused window. stub tree, 0 names. No elements were invented."
+            lastSnapshot = "no focused window. stub tree, 0 names. No elements were invented."
+            return lastSnapshot
         }
         var titleRef: CFTypeRef?
         AXUIElementCopyAttributeValue(window as! AXUIElement, kAXTitleAttribute as CFString, &titleRef)
@@ -29,9 +39,11 @@ enum AccessibilitySnapshot {
         var lines = ["Window: \(title)"]
         walk(window as! AXUIElement, depth: 0, remaining: limit, prefix: prefix, into: &lines)
         if last.isEmpty {
-            return "Window: \(title)\nstub tree, 0 names. No elements were invented."
+            lastSnapshot = "Window: \(title)\nstub tree, 0 names. No elements were invented."
+            return lastSnapshot
         }
-        return lines.joined(separator: "\n")
+        lastSnapshot = lines.joined(separator: "\n")
+        return lastSnapshot
     }
 
     static func isStub(_ snapshot: String) -> Bool {

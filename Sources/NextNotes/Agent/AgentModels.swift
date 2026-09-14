@@ -96,6 +96,9 @@ struct AgentProposal: Identifiable, Sendable, Equatable, Codable {
     var arguments: [String: String]
     /// The model's own sentence about why. Shown under the title; never acted on.
     let rationale: String
+    /// Exact words in the transcript that led to this proposal. Older saved proposals
+    /// decode with nil and remain visible for review.
+    let evidence: String?
     var createdAt: Date = Date()
     /// Which pass offered it. Optional because a proposal written by an older build has no
     /// such field, and one that failed to decode would take the whole file with it — nil
@@ -138,13 +141,15 @@ struct AgentProposal: Identifiable, Sendable, Equatable, Codable {
         arguments: [String: String],
         rationale: String,
         createdAt: Date = Date(),
-        source: AgentProposalSource? = nil
+        source: AgentProposalSource? = nil,
+        evidence: String? = nil
     ) {
         self.id = id
         self.meetingID = meetingID
         self.tool = tool
         self.arguments = arguments
         self.rationale = rationale
+        self.evidence = evidence
         self.createdAt = createdAt
         self.source = source
     }
@@ -158,11 +163,16 @@ struct WorkspaceToolResult: Sendable {
     let reference: String?
     /// Where the user can go and look at it.
     let link: URL?
+    /// A concrete postcondition checked by the native executor, separate from its
+    /// human-readable success sentence and provider-created identifier.
+    let verification: String?
 
-    init(summary: String, reference: String? = nil, link: URL? = nil) {
+    init(summary: String, reference: String? = nil, link: URL? = nil,
+         verification: String? = nil) {
         self.summary = summary
         self.reference = reference
         self.link = link
+        self.verification = verification
     }
 }
 

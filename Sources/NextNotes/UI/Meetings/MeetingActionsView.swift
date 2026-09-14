@@ -233,6 +233,13 @@ private struct CandidateActionCard: View {
                     .foregroundStyle(DS.Color.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
+                if let evidence = proposal?.evidence ?? candidate.evidence {
+                    Text("Transcript: “\(evidence)”")
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.textSecondary)
+                        .textSelection(.enabled)
+                }
+
                 if let preview = proposal?.reviewPreview, !preview.isEmpty {
                     ScrollView {
                         Text(preview)
@@ -322,6 +329,13 @@ private struct ProposalCard: View {
                 .font(DS.Font.callout)
                 .foregroundStyle(DS.Color.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if let evidence = proposal.evidence {
+                Text("Transcript: “\(evidence)”")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .textSelection(.enabled)
+            }
 
             if let preview = proposal.reviewPreview, !preview.isEmpty {
                 ScrollView {

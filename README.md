@@ -334,14 +334,13 @@ Sources/NextNotes/
 │   ├── MeetingAgent.swift          plans over notes + transcript, returns proposals
 │   ├── AgentService.swift          files, announces, and executes approved proposals
 │   ├── WorkspaceInstaller.swift    writes the .command scripts Terminal opens
-│   ├── RealtimeAgent.swift         routed tools and opt-in local-model answers
+│   ├── RealtimeAgent.swift         routed tools, model answers and durable conversation
 │   ├── RealtimeAgentLocalModelSelfTest.swift  streamed answer and interruption probe
 │   ├── RealtimeAgentToolLoopSelfTest.swift  opt-in read tool loop probe
 │   ├── AgentTurnIntent.swift       the single turn table, with explicit model opt-in
 │   ├── MailIntent.swift            inbox / unread parsed from an utterance
 │   ├── CalendarIntent.swift        agenda day parsed from an utterance
 │   ├── FileIntent.swift            home / Drive file search parsed from an utterance
-│   ├── AgentSession.swift          the conversation the Agent sidebar shows
 │   ├── Tools/                      AgentTool, registry, router, executor, catalogues
 │   ├── Permissions/                PermissionBroker above every executor
 │   ├── Tasks/                      AgentTask + manager; conversation stays free
@@ -541,7 +540,9 @@ Push-to-talk stays dictation. ⇧⌘ Space (Settings ▸ Agent; configurable) or
 phrase — default “Hey Next”, after the keyword model is downloaded — opens a conversation.
 Silence ends a turn; **Done** on the island leaves the session. “what can you do” answers
 from a canned list and does not wait on a model. Open-ended chat uses the Agent model
-chosen in Settings ▸ Agent.
+chosen in Settings ▸ Agent. Earlier turns and tool answers are kept locally and supplied
+as bounded context for follow-up questions; **Clear history** in the Agent pane removes
+that conversation.
 
 The chosen Agent model can answer from meeting context and the calendar
 without a tool call. A longer job is handed to a background task. A task that is still
@@ -563,7 +564,12 @@ everything.
 
 **Browser.** Chrome, Edge and Brave use the local DevTools protocol when the browser was
 launched with `--remote-debugging-port`. Accessibility is the fallback, including Safari.
-This is not cloud computer vision.
+This is not cloud computer vision. Click/submit needs expected text or a destination URL
+to be verified; the observed page must change and that postcondition must hold.
+Computer text edits read back the field value. ACP coding sessions compare checkout
+contents, and Workspace writes read back the created message, event, file or document.
+When a side effect ran but cannot be verified, its receipt says so and warns against a
+blind retry.
 
 **Integrations.** MCP servers (stdio or HTTP) are added in Settings ▸ Integrations and
 pass the same permission broker. Discovered tools keep their input schema and a risk
@@ -594,10 +600,11 @@ The implementation exists. Daily-driver validation is still catching up:
 ### Workspace
 
 Optional, off until you turn it on, and it is a proposer rather than an actor. After a
-meeting — and, if *Watch during the meeting* is on, every two minutes during one — the
-chosen Agent model reads the notes and transcript and returns proposals: create a Doc with the notes,
-email the action items to the people who were on the invite, put a dated follow-up on the
-calendar. They appear in the meeting's **Actions** tab, on the island, and as a notification.
+meeting, the chosen Agent model reads the notes and transcript and proposes only actions
+supported by an exact transcript quote. During a meeting it also extracts candidate
+actions from source-labelled speech in bounded passes; fixed request phrases are not used
+to decide what counts. A candidate from system audio remains a suggestion, never authority
+to execute. The Actions tab shows the quoted evidence before approval.
 
 Tools are performed by Google's [`gws` CLI](https://github.com/googleworkspace/cli), which
 Settings ▸ Workspace installs and signs in through Terminal — four states, each with the one
