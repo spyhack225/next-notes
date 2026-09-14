@@ -460,6 +460,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-stream                  # provisional ASR windows + partials-while-held
 "$S" --selftest-transcript-bus          # provisional → final replace on the transcript bus
 "$S" --selftest-duplex                  # barge-in, single mic engine, speaking state
+"$S" --selftest-acoustic-measure <audio-file> # speaker bleed vs voice-processing input; launch as the app
 "$S" --selftest-contention              # hub share, scheduler yield, barge-in, ACP confirm
 "$S" --selftest-residency               # pressure unload order; background yields to realtime ASR
 ```
