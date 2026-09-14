@@ -78,23 +78,21 @@ struct ModelsSettingsTab: View {
 
                 LabeledContent {
                     Label(
-                        kokoroBenchmarkFilesPresent ? "Benchmark files present" : "Benchmark only",
+                        kokoroBenchmarkFilesPresent ? "Benchmark files present" : "No benchmark files",
                         systemImage: "waveform"
                     )
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
                 } label: {
                     Text("Kokoro 82M")
-                    Text("Experimental local speech model · ONNX benchmark")
+                    Text("ONNX benchmark · not selectable for Agent speech")
                         .font(DS.Font.caption)
                         .foregroundStyle(DS.Color.textSecondary)
                 }
             } header: {
                 Text("Speech synthesis")
             } footer: {
-                SettingsNote(text: "Kokoro's benchmark files do not power Agent speech. "
-                             + "Its Core ML runtime can crash on macOS 26.5, so the "
-                             + "Apple system voice remains active on this Mac.")
+                SettingsNote(text: kokoroExplanation)
             }
 
             Section {
@@ -119,5 +117,17 @@ struct ModelsSettingsTab: View {
         ) && FileManager.default.fileExists(
             atPath: directory.appendingPathComponent("voices-v1.0.bin").path
         )
+    }
+
+    private var kokoroExplanation: String {
+        let version = ProcessInfo.processInfo.operatingSystemVersion
+        if version.majorVersion == 26 && (4...5).contains(version.minorVersion) {
+            return "These Kokoro files were downloaded for a separate benchmark and do not "
+                + "power Agent speech. Its Core ML runtime can crash on this macOS version. "
+                + "Apple system speech remains active."
+        }
+        return "These Kokoro files were downloaded for a separate benchmark and do not "
+            + "power Agent speech. Playback and interruption have not been integrated or "
+            + "validated in this app. Apple system speech remains active."
     }
 }
