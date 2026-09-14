@@ -68,10 +68,6 @@ final class RealtimeAgent {
         let mine = generation
         currentTurnSource = source
         Log.agent.info("realtime · heard \(text, privacy: .public)")
-        // Refresh the constrained local index before resolving a turn. This gives the
-        // planner recent people, projects and vocabulary without ingesting transcript or
-        // mail bodies into memory.
-        NextMemory.shared.refreshFromActivity()
         // Utterance arrives already transcribed; clock transcript → first reply text.
         let replyTrace = LatencyTrace.start(.agentTranscriptToFirstToken)
 
@@ -173,25 +169,26 @@ final class RealtimeAgent {
                 route: "task"
             )
         case .toolLoop:
-            beginWork(title: intent.progressTitle)
-            let toolTrace = LatencyTrace.start(.agentToolCallToResult)
+            // A conversational turn does not need the full tool catalogue. The
+            // model first answers or opts into tools; only the latter shows work.
+            beginWork(title: "Thinking…")
             let speech = AgentToolSpeechTracker(agent: self, turn: mine, allowSpeech: source == .voice)
-            let reply = await runGeneralToolLoop(text, speech: speech, voice: source == .voice)
-            toolTrace.end(note: intent.progressTitle)
+            let result = await runModelTurn(text, speech: speech, voice: source == .voice)
+            let reply = result.reply
             guard isCurrent(mine) else {
                 replyTrace.end(note: "superseded")
                 return AgentTurn(reply: lastReply, delegated: false)
             }
-            replyTrace.end(note: "tool")
+            replyTrace.end(note: result.usedTools ? "tool" : "answer")
             let speakable = !AgentSpeechPolicy.spokenClauses(reply).isEmpty
             // A model may still return a listing despite the voice instruction.
             // The verified tool output gives us a truthful, immediate fallback.
             if source == .voice && !speakable { speech.cancel() }
             return conclude(
-                mine, reply, route: "model-tools",
+                mine, reply, route: result.usedTools ? "model-tools" : "model-answer",
                 spokenReply: source == .voice && !speakable
                     ? speech.spokenFallback(for: reply) : nil,
-                contextKind: "tools",
+                contextKind: result.usedTools ? "tools" : nil,
                 speak: !speech.didStreamSpeech || !speakable
             )
         case .calendar, .mail, .files, .drive, .computer:
@@ -323,7 +320,7 @@ final class RealtimeAgent {
         return reply
     }
 
-    private func beginWork(title: String) {
+    func beginWork(title: String) {
         isThinking = true
         progressTitle = title.isEmpty ? "Working…" : title
         ActivationController.shared.markWorking()

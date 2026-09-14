@@ -67,10 +67,19 @@ func withBoundedWait<T: Sendable>(
         await gate.settle(nil)
     }
 
-    let result = await gate.value()
-    timer.cancel()
-    if result == nil { job.cancel() }
-    return result
+    return await withTaskCancellationHandler {
+        let result = await gate.value()
+        timer.cancel()
+        if result == nil { job.cancel() }
+        return result
+    } onCancel: {
+        // A new spoken turn cancels the old planner's parent task. Without
+        // forwarding that cancellation, its unstructured model job kept
+        // running until the deadline and competed with live ASR/TTS.
+        job.cancel()
+        timer.cancel()
+        Task { await gate.settle(nil) }
+    }
 }
 
 @MainActor

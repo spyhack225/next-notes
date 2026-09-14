@@ -42,12 +42,27 @@ enum RealtimeAgentToolLoopSelfTest {
                 )
             ) == .toolLoop(prompt: "tell me which app is frontmost")
         )
-        check("tool planner did not make a second model round", rounds >= 2)
+        check("tool request did not enter the separate planner", rounds >= 3)
         check("tool planner did not receive a real tool result", sawResult)
         check("tool catalogue crowded out the 4K model context (\(schemaCharacters) chars)",
               schemaCharacters < 8_000)
         check("tool loop returned no final answer", !turn.reply.isEmpty)
         check("tool loop leaked a tool tag to the user", !turn.reply.contains("<tool_call>"))
+
+        // A conversational turn stays in the short answer stream. The first
+        // model prompt must not include the full tool catalogue, and no second
+        // planner pass may run for a question that needs no external state.
+        let directState = ToolLoopTestState()
+        agent.localModelProviderForTesting = ToolLoopTestProvider(
+            state: directState, firstCall: ""
+        )
+        let direct = await agent.handle("Can you hear me?", source: .text)
+        check("conversation did not answer directly", direct.reply == "First answer. Second answer.")
+        let directRounds = await directState.rounds
+        let firstPromptCharacters = await directState.firstSystemCharacters
+        check("conversation entered tool planning (\(directRounds) rounds)", directRounds == 1)
+        check("conversation loaded the full tool schema (\(firstPromptCharacters) chars)",
+              firstPromptCharacters < 2_000)
 
         var utc = Calendar(identifier: .gregorian)
         utc.timeZone = TimeZone(secondsFromGMT: 0)!
@@ -116,7 +131,7 @@ enum RealtimeAgentToolLoopSelfTest {
         })
         check("verified tool result produced no voice fallback", !recorder.spoken.isEmpty)
         check("voice turn lost the full text result", voiceTurn.reply.contains("/private/"))
-        check("voice summary added an extra model round", (await voiceState.rounds) == 2)
+        check("voice summary added an extra model round", (await voiceState.rounds) == 3)
         await AgentCaptureController.shared.endSession(source: .done)
         recorder.reset()
         let answerState = ToolLoopTestState()
@@ -150,9 +165,11 @@ private actor ToolLoopTestState {
     var sawToolResult = false
     var completed = false
     var lastSystemCharacters = 0
+    var firstSystemCharacters = 0
 
     func next(user: String, system: String) -> Int {
         rounds += 1
+        if rounds == 1 { firstSystemCharacters = system.count }
         lastSystemCharacters = system.count
         if user.contains("computer.active_app returned") { sawToolResult = true }
         return rounds
@@ -184,11 +201,15 @@ private struct ToolLoopTestProvider: LLMProvider {
     func countTokens(_ text: String) async throws -> Int { text.count / 4 + 1 }
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
-        let round = await state.next(user: user, system: system)
-        let wait = round > 1 ? secondRoundDelay : delay
+        _ = await state.next(user: user, system: system)
+        let choosing = system.contains("<use_tools/>")
+        let afterTool = user.contains("computer.active_app returned")
+        let wait = afterTool ? secondRoundDelay : (choosing ? delay : .zero)
         if wait > .zero { try await Task.sleep(for: wait) }
         let text: String
-        if round == 1 {
+        if choosing {
+            text = "<use_tools/>"
+        } else if !afterTool {
             text = "<tool_call>{\"name\":\"" + firstCall + "\",\"arguments\":{},\"rationale\":\"test\"}</tool_call>"
         } else {
             text = finalAnswer

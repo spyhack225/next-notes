@@ -36,6 +36,9 @@ final class AgentCaptureController {
 
     private(set) var transcript = ""
     private(set) var level: Float = 0
+    /// VAD still tracks the mic while the model speaks. Keeping its 10 Hz meter
+    /// out of Observation avoids repainting the Agent view during generation.
+    @ObservationIgnored private var inputLevel: Float = 0
     private(set) var lastReply = ""
     private(set) var isSessionActive = false
     /// What closed the last turn. `--selftest-realtime` fails unless a reply came from `vad`.
@@ -142,6 +145,7 @@ final class AgentCaptureController {
     func simulateSpeech(_ text: String, level: Float = 0.3) {
         RealtimeAudioSession.shared.noteUserSpeech()
         self.level = level
+        inputLevel = level
         heardSpeech = true
         if speechBeganAt == nil { speechBeganAt = Date().addingTimeInterval(-Limits.minSpeech - 0.05) }
         lastSpeechAt = Date()
@@ -157,6 +161,7 @@ final class AgentCaptureController {
     func simulateCumulativeSpeech(_ full: String, level: Float = 0.3) {
         RealtimeAudioSession.shared.noteUserSpeech()
         self.level = level
+        inputLevel = level
         heardSpeech = true
         if speechBeganAt == nil { speechBeganAt = Date().addingTimeInterval(-Limits.minSpeech - 0.05) }
         lastSpeechAt = Date()
@@ -168,6 +173,7 @@ final class AgentCaptureController {
 
     func simulateSilence() {
         level = 0
+        inputLevel = 0
         lastSpeechAt = Date().addingTimeInterval(-Limits.endpointSilence - 0.05)
     }
 
@@ -205,7 +211,9 @@ final class AgentCaptureController {
                        Date().timeIntervalSince(began) >= Limits.minSpeech {
                         RealtimeAgent.shared.interrupt()
                     }
-                    IslandState.shared.showAgentListening(transcript: userTurn, level: self.level)
+                    if !RealtimeAgent.shared.isThinking && !RealtimeAudioSession.shared.isSpeaking {
+                        IslandState.shared.showAgentListening(transcript: userTurn, level: self.level)
+                    }
                     if chunk.isFinal, userTurn.count >= Limits.minCharacters {
                         self.heardSpeech = true
                         self.lastSpeechAt = Date().addingTimeInterval(-Limits.endpointSilence)
@@ -253,7 +261,7 @@ final class AgentCaptureController {
     }
 
     private func noteLevel(_ level: Float) {
-        self.level = level
+        inputLevel = level
         guard isSessionActive else { return }
         if level >= Limits.speechLevel {
             // A loud sample is not a user speech-start event, including while
@@ -264,7 +272,12 @@ final class AgentCaptureController {
             lastSpeechAt = Date()
             lastActivityAt = Date()
         }
-        IslandState.shared.showAgentListening(transcript: transcript, level: level)
+        // Mic levels continue arriving while the answer model or a tool runs.
+        // They must not replace the work/reply card on every audio buffer.
+        if !RealtimeAgent.shared.isThinking && !RealtimeAudioSession.shared.isSpeaking {
+            self.level = level
+            IslandState.shared.showAgentListening(transcript: transcript, level: level)
+        }
     }
 
     @discardableResult
@@ -277,7 +290,7 @@ final class AgentCaptureController {
            let began = speechBeganAt,
            now.timeIntervalSince(lastSpeechAt) >= Limits.endpointSilence,
            now.timeIntervalSince(began) >= Limits.minSpeech,
-           (level <= Limits.silenceLevel || force) {
+           (inputLevel <= Limits.silenceLevel || force) {
             let text = pendingTurn()
             if text.isEmpty, !rawTranscript.isEmpty {
                 Log.agent.info("realtime · discarded playback echo")
@@ -400,6 +413,7 @@ final class AgentCaptureController {
         lastSpeechAt = nil
         lastActivityAt = Date()
         level = 0
+        inputLevel = 0
     }
 
     private func pendingTurn() -> String {
