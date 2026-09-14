@@ -45,6 +45,7 @@ struct AgentAuditEntry: Identifiable, Sendable, Equatable, Codable {
         case permission
         case task
         case wake
+        case request
         case reply
     }
 

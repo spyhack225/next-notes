@@ -53,7 +53,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-computer  --selftest-mcp        --selftest-acp
 --selftest-activity  --selftest-fs         --selftest-browser
 --selftest-settings  --selftest-metrics    --selftest-cleanup-router
---selftest-meeting-live                    --selftest-tts
+--selftest-meeting-live --selftest-meeting-live-tools --selftest-tts
 --selftest-tts-stream
 --selftest-tts-pocket
 --selftest-tts-kokoro

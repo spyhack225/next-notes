@@ -5,23 +5,25 @@ import Foundation
 /// and user speech interrupts playback without waiting for the utterance to end.
 ///
 /// ## Echo / AEC
-/// Full acoustic echo cancellation needs voice processing on a shared
-/// `AVAudioEngine` that both captures and plays. Agent TTS uses
-/// `AVSpeechSynthesizer` or an output-only Pocket player, so true AEC is
-/// out of reach without private APIs or routing every utterance through the
-/// hub engine (Kokoro/Piper later). This session therefore does:
+/// Qwen routes input and output through one VoiceProcessingIO audio unit, so
+/// playback is a reference for acoustic echo cancellation. Agent TTS currently
+/// uses AVSpeechSynthesizer or a separate output player; this app does not yet
+/// have that shared reference. This session therefore does:
 ///
-/// 1. **Interrupt-on-VAD** — user speech stops TTS immediately (`.immediate`)
-///    and clears every pending clause in the speak queue.
+/// 1. **Transcript-confirmed interruption** — novel ASR text stops TTS
+///    immediately and clears every pending clause in the speak queue.
 /// 2. **Optional output ducking** — while speaking, utterance volume is lowered
 ///    so speaker→mic bleed is less likely to false-trigger VAD.
+/// 3. **Recent playback echo filtering** — cumulative ASR output that matches
+///    spoken text cannot become another Agent request.
 ///
 /// ## Streaming spoken replies
 /// Prefer `beginSpokenReply` / `appendSpokenReply` / `finalizeSpokenReply` when
 /// tokens arrive while generation is in flight. `speak(_:)` is the convenience
 /// for a finished string: one append + finalize through the same buffer.
 /// Producers with no token stream yet must still go through that path so the
-/// seam is exercised; when a real stream exists, call `append` per chunk.
+/// seam is exercised; the normal model-led tool loop now calls `append` as
+/// answer tokens arrive.
 ///
 /// Dictation never opens this session and never speaks. The agent tool loop
 /// does not await utterance completion — `speak` / first `append` that yields
@@ -57,6 +59,8 @@ final class RealtimeAudioSession {
 
     /// Clause-by-clause flush while reply text is still growing.
     private let speechBuffer = StreamingSpeechBuffer()
+    private var recentOutputText = ""
+    private var recentOutputAt = Date.distantPast
 
     private init() {}
 
@@ -96,6 +100,8 @@ final class RealtimeAudioSession {
     /// policy allows; silent forms (URL / listing / …) enqueue nothing.
     func appendSpokenReply(_ chunk: String) {
         speechBuffer.append(chunk)
+        recentOutputText = speechBuffer.accumulated
+        recentOutputAt = Date()
         noteEnqueueIfNeeded()
     }
 
@@ -115,6 +121,23 @@ final class RealtimeAudioSession {
         beginSpokenReply()
         appendSpokenReply(reply)
         finalizeSpokenReply()
+    }
+
+    /// Without the shared playback reference that Qwen's VoiceProcessingIO has,
+    /// ASR can hear our own speaker. Keep the last spoken text across barge-in
+    /// so a late transcript of that playback is discarded, not run as a turn.
+    func isLikelyPlaybackEcho(_ text: String) -> Bool {
+        guard Date().timeIntervalSince(recentOutputAt) < 15 else { return false }
+        let spoken = Self.normalized(recentOutputText)
+        let heard = Self.normalized(text)
+        guard heard.count >= 8, heard.contains(" "), !spoken.isEmpty else { return false }
+        return spoken.contains(heard) || (heard.count >= 12 && heard.contains(spoken))
+    }
+
+    private static func normalized(_ text: String) -> String {
+        text.lowercased()
+            .replacingOccurrences(of: #"[^\p{L}\p{N}]+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Last clause finished — keep phase honest when idle.
@@ -221,6 +244,12 @@ extension RealtimeAudioSession {
 
         session.begin()
         session.speak("I found three files.")
+        if !session.isLikelyPlaybackEcho("found three files") {
+            failures.append("speaker playback was not recognized as an echo")
+        }
+        if session.isLikelyPlaybackEcho("open the calendar") {
+            failures.append("new user speech was mistaken for playback echo")
+        }
         if !session.isSpeaking || session.phase != .speaking {
             failures.append("speak did not enter speaking phase")
         }
@@ -230,6 +259,9 @@ extension RealtimeAudioSession {
 
         let before = ContinuousClock.now
         session.noteUserSpeech()
+        if !session.isLikelyPlaybackEcho("found three files") {
+            failures.append("barge-in forgot the recent playback echo")
+        }
         let elapsed = before.duration(to: .now)
         let seconds = Double(elapsed.components.seconds)
             + Double(elapsed.components.attoseconds) / 1e18

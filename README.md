@@ -336,11 +336,9 @@ Sources/NextNotes/
 │   ├── WorkspaceInstaller.swift    writes the .command scripts Terminal opens
 │   ├── RealtimeAgent.swift         routed tools, model answers and durable conversation
 │   ├── RealtimeAgentLocalModelSelfTest.swift  streamed answer and interruption probe
-│   ├── RealtimeAgentToolLoopSelfTest.swift  opt-in read tool loop probe
-│   ├── AgentTurnIntent.swift       the single turn table, with explicit model opt-in
-│   ├── MailIntent.swift            inbox / unread parsed from an utterance
-│   ├── CalendarIntent.swift        agenda day parsed from an utterance
-│   ├── FileIntent.swift            home / Drive file search parsed from an utterance
+│   ├── RealtimeAgentToolLoopSelfTest.swift  model-selected tools and streamed speech probe
+│   ├── AgentTurnIntent.swift       ordinary turns use the selected Agent model
+│   ├── MeetingLiveToolSelfTest.swift  live model proposal and evidence probe
 │   ├── Tools/                      AgentTool, registry, router, executor, catalogues
 │   ├── Permissions/                PermissionBroker above every executor
 │   ├── Tasks/                      AgentTask + manager; conversation stays free
@@ -443,6 +441,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-metrics                 # persist a fake span; fail if it is missing
 "$S" --selftest-cleanup-router          # short + clean stays off the model seam
 "$S" --selftest-meeting-live            # cadence, cards, and the authority split
+"$S" --selftest-meeting-live-tools      # model tool proposals require exact live transcript evidence
 "$S" --selftest-tts                     # speech policy plus synthesizer interrupt
 "$S" --selftest-tts-stream              # clause-stream policy plus synthesizer stream queue
 "$S" --selftest-tts-pocket              # download/load neural voice, synthesize WAV, play/interrupt
@@ -538,19 +537,22 @@ ends*), and **Regenerate** rewrites them with either provider afterwards.
 
 Push-to-talk stays dictation. ⇧⌘ Space (Settings ▸ Agent; configurable) or the wake
 phrase — default “Hey Next”, after the keyword model is downloaded — opens a conversation.
-Silence ends a turn; **Done** on the island leaves the session. “what can you do” answers
-from a canned list and does not wait on a model. Open-ended chat uses the Agent model
-chosen in Settings ▸ Agent. Earlier turns and tool answers are kept locally and supplied
+Silence ends a turn; **Done** on the island leaves the session. The Agent model chosen in
+Settings ▸ Agent decides whether each ordinary request needs a tool; no special wording
+is required to enable tools. Plain answers stream into speech one clause at a time.
+Earlier turns and tool answers are kept locally and supplied
 as bounded context for follow-up questions; **Clear history** in the Agent pane removes
 that conversation.
 
-The chosen Agent model can answer from meeting context and the calendar
-without a tool call. A longer job is handed to a background task. A task that is still
+The chosen Agent model can read meeting context and the calendar through tools.
+Reads run through the permission policy; clicks, writes and sends require the app's
+review card and are checked against the resulting state. A longer job is handed to a background task. A task that is still
 queued or running when Next Notes quits is marked failed — the list survives as history,
 the work does not resume. Settings ▸ Agent picks the default harness (local tools, or an
 ACP coding CLI: Claude Code, Codex, Qwen Code, OpenCode). Naming one in the utterance
-wins for that turn. Calendar, mail, Drive, Docs, click and type stay on this Mac unless
-you name a coding agent. A live CLI has to be on `PATH`; `--selftest-acp` speaks the
+wins for that turn. A remembered keyword no longer switches to a coding harness.
+Calendar, mail, Drive, Docs, click and type stay on this Mac unless you choose an ACP
+backend. A live CLI has to be on `PATH`; `--selftest-acp` speaks the
 session protocol to a local fixture.
 
 **Computer, files, shell.** `inspect_ui` reads the frontmost window over Accessibility and
@@ -603,8 +605,10 @@ Optional, off until you turn it on, and it is a proposer rather than an actor. A
 meeting, the chosen Agent model reads the notes and transcript and proposes only actions
 supported by an exact transcript quote. During a meeting it also extracts candidate
 actions from source-labelled speech in bounded passes; fixed request phrases are not used
-to decide what counts. A candidate from system audio remains a suggestion, never authority
-to execute. The Actions tab shows the quoted evidence before approval.
+to decide what counts. A new live candidate starts a single evidence-checked model pass
+for a concrete Workspace tool proposal when Workspace is connected, with no periodic poll.
+A candidate from system audio remains a suggestion, never authority to execute. The Actions
+tab shows the quoted evidence before approval.
 
 Tools are performed by Google's [`gws` CLI](https://github.com/googleworkspace/cli), which
 Settings ▸ Workspace installs and signs in through Terminal — four states, each with the one

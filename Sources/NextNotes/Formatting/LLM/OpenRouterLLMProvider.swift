@@ -17,6 +17,7 @@ enum OpenRouterError: LocalizedError {
         case .missingModel: "Choose an OpenRouter model in Models settings."
         case .invalidResponse: "OpenRouter returned an unreadable response."
         case .keychain(let status): "Keychain error \(status). The API key was not saved."
+        case .http(429, _): "OpenRouter rate-limited this model. Choose another Agent model or try again later."
         case .http(let status, let message): "OpenRouter HTTP \(status): \(message)"
         case .speedProbe(let message): "OpenRouter speed check: \(message)"
         }

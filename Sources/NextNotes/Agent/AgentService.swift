@@ -46,6 +46,8 @@ final class AgentService {
     @ObservationIgnored private var lastLiveFingerprint: String?
     @ObservationIgnored private var announcedCandidates: Set<String> = []
     @ObservationIgnored private var dismissedCandidates: Set<String> = []
+    @ObservationIgnored private var liveProposalTask: Task<Void, Never>?
+    @ObservationIgnored private var plannedLiveCandidates: Set<String> = []
     @ObservationIgnored private var isStarted = false
 
     private let store: MeetingStore
@@ -470,13 +472,22 @@ final class AgentService {
             }
             existing = []
         }
-        existing.append(contentsOf: proposals)
+        let fresh = proposals.filter { proposal in
+            guard !replacing, let quote = proposal.evidence, !quote.isEmpty else {
+                return true
+            }
+            return !existing.contains {
+                $0.tool == proposal.tool && $0.evidence == quote
+            }
+        }
+        guard !fresh.isEmpty || replacing else { return }
+        existing.append(contentsOf: fresh)
         store.saveProposals(existing, for: id)
-        for proposal in proposals { owners[proposal.id] = id }
+        for proposal in fresh { owners[proposal.id] = id }
         revision += 1
 
-        guard announce, let first = proposals.first else { return }
-        let remaining = proposals.count - 1
+        guard announce, let first = fresh.first else { return }
+        let remaining = fresh.count - 1
         let detail = remaining > 0
             ? "\(first.rationale) (+\(remaining) more)"
             : first.rationale
@@ -540,8 +551,8 @@ final class AgentService {
         }
     }
 
-    /// Raises island cards for new candidates. Does not call `MeetingAgent.liveProposals`
-    /// — that path is what proposed a summary Doc every two minutes.
+    /// Raises candidate cards and asks the model for a concrete tool proposal only
+    /// when a new grounded candidate appears. There is no periodic transcript poll.
     private func handleLiveDelta() {
         guard Settings.shared.agentLiveDuringMeeting else { return }
         guard let context = MeetingContextStore.shared.current else { return }
@@ -556,6 +567,7 @@ final class AgentService {
         )
         guard let card = fresh.last else { return }
         for next in fresh { announcedCandidates.insert(next.id) }
+        planLiveCandidatesIfNeeded()
         IslandState.shared.propose(card)
         if let candidate = context.candidateActions.first(where: { $0.id == card.id }) {
             // The span ends at the IslandState hand-off. This measures the real candidate
@@ -567,6 +579,46 @@ final class AgentService {
             )
         }
         revision += 1
+    }
+
+    private func planLiveCandidatesIfNeeded() {
+        guard isReady, liveProposalTask == nil,
+              let context = MeetingContextStore.shared.current,
+              let meeting = store.meeting(id: context.meetingID) else { return }
+        let unplanned = context.candidateActions.filter {
+            !plannedLiveCandidates.contains($0.id)
+        }
+        guard !unplanned.isEmpty else { return }
+        let recent = MeetingContextStore.shared.recentEvidenceSegments(for: meeting.id)
+        guard !recent.isEmpty else { return }
+        for candidate in unplanned { plannedLiveCandidates.insert(candidate.id) }
+        liveProposalTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer {
+                self.liveProposalTask = nil
+                self.planLiveCandidatesIfNeeded()
+            }
+            guard let provider = await LLMProviders.resolve(
+                preferring: Settings.shared.agentModelProvider,
+                modelID: Settings.shared.openRouterAgentModelID,
+                contextTokens: Settings.shared.openRouterAgentContextTokens
+            ) else { return }
+            do {
+                let proposals = try await MeetingAgent.shared.liveProposals(
+                    for: meeting, recent: recent, provider: provider
+                )
+                guard self.store.meeting(id: meeting.id) != nil else { return }
+                let accepted = MeetingActionReconciler.acceptedProposals(
+                    from: proposals,
+                    candidates: context.candidateActions,
+                    mentioned: context.documentsMentioned,
+                    actionItems: context.actionItems
+                )
+                self.record(accepted, for: meeting.id, announce: true)
+            } catch {
+                Log.agent.info("live proposal skipped: \(error.localizedDescription, privacy: .public)")
+            }
+        }
     }
 
     private func decideCandidate(_ proposal: IslandProposal, approved: Bool) {

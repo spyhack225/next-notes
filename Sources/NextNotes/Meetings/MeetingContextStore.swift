@@ -155,6 +155,13 @@ final class MeetingContextStore {
             .plainText(speakerNames: session.meeting.speakerNames)
     }
 
+    /// Source-labelled finals for an event-driven live tool proposal. Unlike the
+    /// plain-text transcript, these preserve the mic/system authority boundary.
+    func recentEvidenceSegments(for meetingID: UUID) -> [TranscriptSegment] {
+        guard current?.meetingID == meetingID else { return [] }
+        return Array(recentSegments.suffix(32))
+    }
+
     func searchTranscript(_ query: String) -> String {
         let needle = query.lowercased()
         guard !needle.isEmpty else { return "" }

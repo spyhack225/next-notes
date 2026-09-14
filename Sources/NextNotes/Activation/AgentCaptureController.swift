@@ -163,6 +163,18 @@ final class AgentCaptureController {
                     let full = chunk.text
                     let turn = Self.pending(full: full, committed: self.committedPrefix)
                     self.transcript = turn
+                    // Energy alone is not a speech-start event: while the speaker
+                    // plays TTS it regularly crosses the VAD threshold. Wait for
+                    // a new ASR fragment that is not our own spoken reply before
+                    // clearing playback and cancelling the in-flight turn.
+                    if (RealtimeAudioSession.shared.isSpeaking || RealtimeAgent.shared.isThinking),
+                       turn.count >= Limits.minCharacters,
+                       !RealtimeAudioSession.shared.isLikelyPlaybackEcho(turn),
+                       !Self.isCommittedTranscriptRevision(turn, committed: self.committedPrefix),
+                       let began = self.speechBeganAt,
+                       Date().timeIntervalSince(began) >= Limits.minSpeech {
+                        RealtimeAgent.shared.interrupt()
+                    }
                     IslandState.shared.showAgentListening(transcript: turn, level: self.level)
                     if chunk.isFinal, turn.count >= Limits.minCharacters {
                         self.heardSpeech = true
@@ -214,12 +226,9 @@ final class AgentCaptureController {
         self.level = level
         guard isSessionActive else { return }
         if level >= Limits.speechLevel {
-            // Duplex barge-in: stop TTS on the shared session first (<100 ms),
-            // then cancel an in-flight tool if one is running.
-            RealtimeAudioSession.shared.noteUserSpeech()
-            if ActivationController.shared.mode == .agentWorking {
-                RealtimeAgent.shared.interrupt()
-            }
+            // A loud sample is not a user speech-start event, including while
+            // the model is thinking. Keep capture live and wait for a novel
+            // transcript fragment above before interrupting output or work.
             heardSpeech = true
             if speechBeganAt == nil { speechBeganAt = Date() }
             lastSpeechAt = Date()
@@ -241,6 +250,18 @@ final class AgentCaptureController {
            (level <= Limits.silenceLevel || force) {
             let text = pendingTurn()
             if text.count >= Limits.minCharacters {
+                if RealtimeAudioSession.shared.isLikelyPlaybackEcho(text) {
+                    Log.agent.info("realtime · discarded playback echo")
+                    committedPrefix = transcript
+                    resetTurn()
+                    return true
+                }
+                if Self.isCommittedTranscriptRevision(text, committed: committedPrefix) {
+                    Log.agent.info("realtime · discarded revised transcript")
+                    committedPrefix = transcript
+                    resetTurn()
+                    return true
+                }
                 if Self.isGoodbye(text) {
                     isSessionActive = false
                     RealtimeAudioSession.shared.end()
@@ -334,9 +355,64 @@ final class AgentCaptureController {
         if committed.isEmpty { return trimmed }
         if trimmed.hasPrefix(committed) {
             return String(trimmed.dropFirst(committed.count))
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: #"^[\s\p{P}]+"#, with: "", options: .regularExpression)
+        }
+        let normalizedFull = normalized(trimmed)
+        let normalizedCommitted = normalized(committed)
+        if normalizedFull == normalizedCommitted { return "" }
+        if normalizedFull.hasPrefix(normalizedCommitted + " ") {
+            // Use normalized words only to locate the boundary. Preserve the
+            // original casing and punctuation of the newly spoken request.
+            let wordCount = normalizedCommitted.split(separator: " ").count
+            let original = trimmed as NSString
+            let range = NSRange(location: 0, length: original.length)
+            let words = try? NSRegularExpression(pattern: #"[\p{L}\p{N}]+"#)
+                .matches(in: trimmed, range: range)
+            if let words, words.count >= wordCount, wordCount > 0 {
+                let last = words[wordCount - 1].range
+                return original.substring(from: last.location + last.length)
+                    .replacingOccurrences(of: #"^[\s\p{P}]+"#, with: "", options: .regularExpression)
+            }
         }
         return trimmed
+    }
+
+    /// Apple SpeechAnalyzer publishes cumulative volatile text. A punctuation
+    /// or casing revision of the just-committed turn must not become a second
+    /// tool request after `pending` can no longer strip an exact prefix.
+    private static func isCommittedTranscriptRevision(_ text: String, committed: String) -> Bool {
+        let heard = normalized(text)
+        let earlier = normalized(committed)
+        guard heard.count >= Limits.minCharacters, !earlier.isEmpty else { return false }
+        return earlier == heard || earlier.hasSuffix(" " + heard)
+    }
+
+    private static func normalized(_ text: String) -> String {
+        text.lowercased()
+            .replacingOccurrences(of: #"[^\p{L}\p{N}]+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    static func transcriptBoundarySelfTestFailures() -> [String] {
+        var failures: [String] = []
+        if pending(full: "Check email.", committed: "check email") != "" {
+            failures.append("a revised cumulative transcript became a new turn")
+        }
+        if pending(full: "Check email. What about the calendar?", committed: "Check email")
+            != "What about the calendar?" {
+            failures.append("a new turn was lost after a punctuation revision")
+        }
+        if pending(full: "Check email. Open Safari now.", committed: "check email")
+            != "Open Safari now." {
+            failures.append("a revised prefix changed the new request's casing")
+        }
+        if !isCommittedTranscriptRevision("check email", committed: "Check email.") {
+            failures.append("the old request could be re-emitted")
+        }
+        if isCommittedTranscriptRevision("what about the calendar", committed: "Check email") {
+            failures.append("a novel request was mistaken for an old revision")
+        }
+        return failures
     }
 
     private static func isGoodbye(_ text: String) -> Bool {
