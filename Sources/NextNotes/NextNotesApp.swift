@@ -420,6 +420,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return true
         }
+        if arguments.contains("--selftest-tts-pocket") {
+            Task { @MainActor in
+                SelfTest.failed = !(await PocketAgentVoice.runSelfTest())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-local-model-stream") {
             Task { @MainActor in
                 SelfTest.failed = !(await RealtimeAgentLocalModelSelfTest.run())
@@ -3236,8 +3243,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 AgentTurnIntent.resolve("test", choice: localChoice) == .unknown
             )
             let unknown = await RealtimeAgent.shared.handle("test", source: .text)
-            check("an unknown ask produced no reply", unknown.reply == RealtimeAgent.unknownReply)
+            check("an unknown ask did not acknowledge the heard words",
+                  unknown.reply == RealtimeAgent.clarificationReply(for: "test"))
             check("an unknown ask was delegated", !unknown.delegated)
+            let mailSummary = RealtimeAgent.spokenSummary(
+                for: .mail(query: "is:unread"),
+                result: "- id opaque — from Alex — Project update\n- id opaque2 — from Sam — Meeting"
+            )
+            check("Gmail result did not produce a spoken overview",
+                  mailSummary == "I found 2 matching emails. The latest is from Alex, about Project update.")
+            check("Gmail overview was blocked by the speech policy",
+                  !(AgentSpeechPolicy.spokenClauses(mailSummary ?? "").isEmpty))
+            if case .localModel(let prompt) = AgentTurnIntent.resolve(
+                "Just summarize", choice: localChoice,
+                recentReadResult: "- from Alex — Project update"
+            ) {
+                check("follow-up lost the prior read result", prompt.contains("Alex — Project update"))
+            } else {
+                failures.append("summarize follow-up returned the repeated help line")
+            }
+            check(
+                "ordinary question returned the repeated help line",
+                AgentTurnIntent.resolve("Why is the sky blue?", choice: localChoice)
+                    == .localModel(prompt: "Why is the sky blue?")
+            )
+            check(
+                "agent microphone check returned the repeated help line",
+                AgentTurnIntent.resolve("Can you hear me?", choice: localChoice)
+                    == .reply("Yes, I can hear you.")
+            )
             check(
                 "“find the latest deck” was not a file search",
                 FileIntent.parse("find the latest deck") == .home(query: "deck")
@@ -3327,7 +3361,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             for failure in failures { writeSelfTest("  REALTIME_WRONG: \(failure)") }
             writeSelfTest(failures.isEmpty
-                          ? "REALTIME_OK: one-path routing, unknown asks reply, harness, duplex VAD and the tool loop hold"
+                          ? "REALTIME_OK: questions, follow-ups, tool speech, clarification, harness and duplex VAD hold"
                           : "REALTIME_FAILED: \(failures.count) rule(s) wrong")
             NSApp.terminate(nil)
         }

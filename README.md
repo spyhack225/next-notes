@@ -404,7 +404,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-wake                    # phrase spotting, authority split; loads the sherpa KWS model
 "$S" --selftest-tasks                   # submit / run / cancel without a model
 "$S" --selftest-meeting-context         # extract decisions and candidate actions
-"$S" --selftest-realtime                # one-path routing, unknown asks reply, harness, duplex VAD
+"$S" --selftest-realtime                # question/follow-up routing, tool speech, harness, duplex VAD
 "$S" --selftest-computer                # inspect/click/type on an owned window; stub trees stay empty
 "$S" --selftest-mcp                     # initialize + session + list + call against a local fixture
 "$S" --selftest-acp                     # ACP stdio session, subscribe, permission relay
@@ -417,6 +417,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-meeting-live            # cadence, cards, and the authority split
 "$S" --selftest-tts                     # speech policy plus synthesizer interrupt
 "$S" --selftest-tts-stream              # clause-stream policy plus synthesizer stream queue
+"$S" --selftest-tts-pocket              # download/load neural voice, synthesize WAV, play/interrupt
 "$S" --selftest-local-model-stream      # opt-in model route, early TTS, interruption and timeout
 "$S" --selftest-toolloop                # inspect → click must make both calls
 "$S" --selftest-toolloop-production     # opt-in model → read tool → model route

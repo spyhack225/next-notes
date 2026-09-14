@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 
 /// Every model that lives on disk, in one place.
@@ -7,6 +8,7 @@ import SwiftUI
 struct ModelsSettingsTab: View {
     @State private var settings = Settings.shared
     @State private var models = LocalModelStore.shared
+    @State private var pocket = PocketAgentVoice.shared
 
     var body: some View {
         Form {
@@ -65,13 +67,64 @@ struct ModelsSettingsTab: View {
             }
 
             Section {
+                Picker("Speech engine", selection: $settings.agentVoiceEngine) {
+                    Text("macOS voices").tag("apple")
+                    Text("Pocket TTS · local neural voice").tag("pocket")
+                        .disabled(!pocket.isReady && settings.agentVoiceEngine != "pocket")
+                }
+                Picker("Agent voice", selection: $settings.agentVoiceIdentifier) {
+                    Text("System default").tag("")
+                    ForEach(availableVoices, id: \.identifier) { voice in
+                        Text("\(voice.name) · \(voice.language)\(qualityLabel(voice))")
+                            .tag(voice.identifier)
+                    }
+                }
+                .disabled(settings.agentVoiceEngine == "pocket")
+                if settings.agentVoiceEngine == "pocket" || pocket.isReady {
+                    Picker("Pocket voice", selection: $settings.agentPocketVoice) {
+                        Text("Alba").tag("alba")
+                        Text("Azelma").tag("azelma")
+                        Text("Cosette").tag("cosette")
+                        Text("Javert").tag("javert")
+                    }
+                }
+                if !pocket.isReady {
+                    Button(pocket.isPreparing ? "Preparing Pocket TTS…"
+                           : "Prepare Pocket TTS · about 550 MB on first use") {
+                        Task {
+                            await pocket.prepare()
+                            if pocket.isReady { settings.agentVoiceEngine = "pocket" }
+                        }
+                    }
+                    .disabled(pocket.isPreparing)
+                }
+                if let error = pocket.errorMessage {
+                    Text(error).foregroundStyle(DS.Color.warning)
+                }
+                Button("Preview voice") {
+                    AgentSpeechSynthesizer.shared.speak(
+                        "Hi, I'm Next. I can check your calendar and help with your notes."
+                    )
+                }
+                Button("Stop preview") { AgentSpeechSynthesizer.shared.stop() }
                 LabeledContent {
-                    Label("Active", systemImage: "checkmark.circle.fill")
+                    Label(settings.agentVoiceEngine == "apple" ? "Active" : "Available",
+                          systemImage: "checkmark.circle.fill")
                         .font(DS.Font.caption)
                         .foregroundStyle(DS.Color.success)
                 } label: {
                     Text("Apple system voice")
                     Text("Agent speech · built into macOS")
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.textSecondary)
+                }
+
+                LabeledContent {
+                    Label(pocket.isReady ? "Ready" : "Optional download", systemImage: "waveform")
+                        .font(DS.Font.caption)
+                } label: {
+                    Text("Pocket TTS")
+                    Text("Neural speech · FluidAudio · local, four voices")
                         .font(DS.Font.caption)
                         .foregroundStyle(DS.Color.textSecondary)
                 }
@@ -92,7 +145,10 @@ struct ModelsSettingsTab: View {
             } header: {
                 Text("Speech synthesis")
             } footer: {
-                SettingsNote(text: kokoroExplanation)
+                SettingsNote(text: "Choose and preview an installed macOS voice, or download "
+                    + "Pocket TTS for more natural local speech. Initial download is about "
+                    + "550 MB. Pocket TTS model by Kyutai, CC BY 4.0. "
+                    + kokoroExplanation)
             }
 
             Section {
@@ -106,7 +162,12 @@ struct ModelsSettingsTab: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { models.refresh() }
+        .onAppear {
+            models.refresh()
+            if settings.agentVoiceEngine == "pocket" {
+                Task { await pocket.prepare() }
+            }
+        }
     }
 
     private var kokoroBenchmarkFilesPresent: Bool {
@@ -119,15 +180,34 @@ struct ModelsSettingsTab: View {
         )
     }
 
+    private var availableVoices: [AVSpeechSynthesisVoice] {
+        AVSpeechSynthesisVoice.speechVoices()
+            .filter { $0.language.hasPrefix("en-") }
+            .sorted { lhs, rhs in
+                if lhs.quality != rhs.quality { return lhs.quality.rawValue > rhs.quality.rawValue }
+                return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+            }
+    }
+
+    private func qualityLabel(_ voice: AVSpeechSynthesisVoice) -> String {
+        switch voice.quality {
+        case .premium: " · Premium"
+        case .enhanced: " · Enhanced"
+        default: ""
+        }
+    }
+
     private var kokoroExplanation: String {
+        let activeEngine = settings.agentVoiceEngine == "pocket"
+            ? "Pocket TTS" : "Apple system speech"
         let version = ProcessInfo.processInfo.operatingSystemVersion
         if version.majorVersion == 26 && (4...5).contains(version.minorVersion) {
             return "These Kokoro files were downloaded for a separate benchmark and do not "
                 + "power Agent speech. Its Core ML runtime can crash on this macOS version. "
-                + "Apple system speech remains active."
+                + "\(activeEngine) remains active."
         }
         return "These Kokoro files were downloaded for a separate benchmark and do not "
             + "power Agent speech. Playback and interruption have not been integrated or "
-            + "validated in this app. Apple system speech remains active."
+            + "validated in this app. \(activeEngine) remains active."
     }
 }

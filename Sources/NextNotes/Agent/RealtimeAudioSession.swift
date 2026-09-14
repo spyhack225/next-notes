@@ -7,7 +7,7 @@ import Foundation
 /// ## Echo / AEC
 /// Full acoustic echo cancellation needs voice processing on a shared
 /// `AVAudioEngine` that both captures and plays. Agent TTS uses
-/// `AVSpeechSynthesizer`, which is a separate playback path, so true AEC is
+/// `AVSpeechSynthesizer` or an output-only Pocket player, so true AEC is
 /// out of reach without private APIs or routing every utterance through the
 /// hub engine (Kokoro/Piper later). This session therefore does:
 ///
