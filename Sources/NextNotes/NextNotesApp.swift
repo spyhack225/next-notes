@@ -257,6 +257,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-openrouter-speed") {
+            Task { @MainActor in
+                do {
+                    let details = try await OpenRouterSpeedSelfTest.run()
+                    writeSelfTest("OPENROUTER_SPEED_OK: \(details)")
+                } catch {
+                    SelfTest.failed = true
+                    writeSelfTest("OPENROUTER_SPEED_FAILED: \(error.localizedDescription)")
+                }
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-s1") {
             Task { @MainActor in
                 do {

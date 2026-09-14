@@ -123,6 +123,11 @@ reasoning, vision, free variants and provider; it shows context length and publi
 input/output prices. Agent answers and meeting notes can use different cloud models.
 Qwen3.5-4B and Apple Foundation Model remain available as local choices. An OpenRouter
 selection with a missing key or model reports an error instead of silently changing providers.
+The Agent and meeting model pickers offer an OpenRouter speed rank using its recent
+throughput ranking. Visible models show the fastest provider's reported 30-minute median
+output tokens per second when available; a dash means OpenRouter supplied no rate. These
+figures are estimates, not a guarantee for a particular request or provider route. The
+numeric rates can differ from the order of OpenRouter's routing-based model ranking.
 
 ### Agent voice
 
@@ -446,6 +451,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-local-model-stream      # opt-in model route, early TTS, interruption and timeout
 "$S" --selftest-openrouter-contract     # offline catalog/filter/SSE parsing contract
 "$S" --selftest-openrouter              # live key, catalog, chosen model, completion and stream
+"$S" --selftest-openrouter-speed        # live ranked catalog and endpoint throughput metrics
 "$S" --selftest-toolloop                # inspect → click must make both calls
 "$S" --selftest-toolloop-production     # opt-in model → read tool → model route
 "$S" --selftest-acp-confirm             # a missing CLI asks before local tools

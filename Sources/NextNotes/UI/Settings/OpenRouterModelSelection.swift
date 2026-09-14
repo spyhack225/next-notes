@@ -8,6 +8,13 @@ struct OpenRouterModelSelection: View {
     @State private var query = ""
     @State private var filter = OpenRouterModelFilter.all
     @State private var provider = "All providers"
+    @State private var sort = ModelSort.fastest
+
+    private enum ModelSort: String, CaseIterable, Identifiable {
+        case fastest = "OpenRouter speed rank"
+        case alphabetical = "Name A–Z"
+        var id: String { rawValue }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.s) {
@@ -29,6 +36,11 @@ struct OpenRouterModelSelection: View {
                 Text("All providers").tag("All providers")
                 ForEach(providerNames, id: \.self) { name in Text(name).tag(name) }
             }
+            Picker("Sort", selection: $sort) {
+                ForEach(ModelSort.allCases) { option in
+                    Text(option.rawValue).tag(option)
+                }
+            }
             if catalog.isLoading { ProgressView("Loading OpenRouter models…") }
             if let problem = catalog.problem {
                 Text(problem).foregroundStyle(DS.Color.warning)
@@ -36,7 +48,7 @@ struct OpenRouterModelSelection: View {
             if !catalog.isLoading && catalog.models.isEmpty {
                 Button("Load models") { Task { await catalog.refresh() } }
             }
-            ForEach(Array(matches.prefix(DS.Size.openRouterVisibleModels))) { model in
+            ForEach(visibleModels) { model in
                 Button {
                     modelID = model.id
                     contextTokens = model.context_length ?? 8_192
@@ -45,7 +57,14 @@ struct OpenRouterModelSelection: View {
                         Image(systemName: modelID == model.id ? "checkmark.circle.fill" : "circle")
                             .foregroundStyle(modelID == model.id ? DS.Color.success : DS.Color.textSecondary)
                         VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                            Text(model.name).font(DS.Font.callout)
+                            HStack(spacing: DS.Space.s) {
+                                Text(model.name).font(DS.Font.callout)
+                                Spacer(minLength: DS.Space.s)
+                                Text(speedLabel(for: model.id))
+                                    .font(DS.Font.caption)
+                                    .foregroundStyle(DS.Color.textSecondary)
+                                    .help(speedHelp(for: model.id))
+                            }
                             Text(model.id)
                                 .font(DS.Font.caption)
                                 .foregroundStyle(DS.Color.textSecondary)
@@ -64,10 +83,18 @@ struct OpenRouterModelSelection: View {
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
             }
+            Text("Rates are the fastest provider’s recent median output tok/s. OpenRouter’s speed rank uses its routing estimates, so it may differ from these rates. Actual speed varies with load; a dash means no rate was reported.")
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
         }
         .task {
             if !SelfTest.isRunning && catalog.models.isEmpty && OpenRouterKeyStore.hasKey {
                 await catalog.refresh()
+            }
+        }
+        .task(id: visibleModels.map(\.id)) {
+            if !SelfTest.isRunning {
+                await catalog.loadSpeeds(for: visibleModels.map(\.id))
             }
         }
     }
@@ -77,12 +104,40 @@ struct OpenRouterModelSelection: View {
     }
 
     private var matches: [OpenRouterModel] {
-        catalog.models.filter { model in
+        let filtered = catalog.models.filter { model in
             filter.includes(model)
                 && (provider == "All providers" || model.providerName == provider)
                 && (query.isEmpty || model.name.localizedCaseInsensitiveContains(query)
                     || model.id.localizedCaseInsensitiveContains(query)
                     || model.description?.localizedCaseInsensitiveContains(query) == true)
         }
+        if sort == .alphabetical {
+            return filtered.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        }
+        return filtered
+    }
+
+    private var visibleModels: [OpenRouterModel] {
+        Array(matches.prefix(DS.Size.openRouterVisibleModels))
+    }
+
+    private func speedLabel(for id: String) -> String {
+        if let speed = catalog.speeds[id] {
+            return String(format: "%.0f tok/s", speed.tokensPerSecond)
+        }
+        if catalog.failedSpeedIDs.contains(id) { return "Speed error" }
+        return catalog.checkedSpeedIDs.contains(id) ? "— tok/s" : "Checking…"
+    }
+
+    private func speedHelp(for id: String) -> String {
+        if let speed = catalog.speeds[id] {
+            return "\(speed.provider) · p50 output tokens per second over the last 30 minutes"
+        }
+        if catalog.failedSpeedIDs.contains(id) {
+            return "Could not load recent throughput. Change the filter or refresh models to try again."
+        }
+        return catalog.checkedSpeedIDs.contains(id)
+            ? "OpenRouter did not report a recent throughput rate for this model."
+            : "Loading recent throughput from OpenRouter."
     }
 }

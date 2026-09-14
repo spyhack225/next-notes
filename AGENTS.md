@@ -59,6 +59,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-tts-kokoro
 --selftest-local-model-stream
 --selftest-openrouter-contract --selftest-openrouter
+--selftest-openrouter-speed
 --selftest-toolloop  --selftest-acp-confirm --selftest-scheduler
 --selftest-toolloop-production
 --selftest-capture   --selftest-meeting-reconcile
