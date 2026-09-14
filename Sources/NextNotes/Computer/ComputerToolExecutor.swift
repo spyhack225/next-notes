@@ -29,7 +29,7 @@ enum ComputerToolExecutor {
         case "focus":
             return try focusApp(arguments["name"] ?? "")
         case "click":
-            return try click(id: arguments["id"] ?? "")
+            return try click(id: arguments["id"] ?? "", expectedText: arguments["expectedText"])
         case "press_key":
             return try pressKey(arguments["key"] ?? "", modifiers: arguments["modifiers"])
         case "set_text":
@@ -138,12 +138,32 @@ enum ComputerToolExecutor {
     }
 
     @MainActor
-    private static func click(id: String) throws -> AgentToolResult {
+    private static func click(id: String, expectedText: String?) throws -> AgentToolResult {
         guard Permissions.hasAccessibility || Permissions.promptForAccessibility() else {
             throw AgentError.permissionDenied("Accessibility is not granted.")
         }
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              AccessibilitySnapshot.lastProcessID == app.processIdentifier else {
+            throw AgentError.backendUnavailable("The inspected window is no longer frontmost. Inspect again.")
+        }
+        let before = AccessibilitySnapshot.lastSnapshot
         try AccessibilitySnapshot.perform(id: id, action: kAXPressAction as String)
-        return AgentToolResult(summary: "Clicked element \(id).")
+        let afterApp = NSWorkspace.shared.frontmostApplication ?? app
+        let after = AccessibilitySnapshot.capture(processID: afterApp.processIdentifier, limit: inspectLimit)
+        let changed = !AccessibilitySnapshot.isStub(before)
+            && !AccessibilitySnapshot.isStub(after)
+            && AccessibilitySnapshot.stableContent(before) != AccessibilitySnapshot.stableContent(after)
+        let expectedObserved = expectedText.flatMap { value in
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }.map {
+            after.localizedCaseInsensitiveContains($0)
+        } ?? false
+        return AgentToolResult(
+            summary: "Clicked element \(id).",
+            verification: changed && expectedObserved
+                ? "Computer window reached the expected post-click state" : nil
+        )
     }
 
     @MainActor
@@ -151,8 +171,16 @@ enum ComputerToolExecutor {
         guard Permissions.hasAccessibility || Permissions.promptForAccessibility() else {
             throw AgentError.permissionDenied("Accessibility is not granted.")
         }
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              AccessibilitySnapshot.lastProcessID == app.processIdentifier else {
+            throw AgentError.backendUnavailable("The inspected window is no longer frontmost. Inspect again.")
+        }
         try AccessibilitySnapshot.setValue(id: id, text: text)
-        return AgentToolResult(summary: "Set the text of element \(id).")
+        let observed = AccessibilitySnapshot.value(of: id)
+        return AgentToolResult(
+            summary: "Set the text of element \(id).",
+            verification: observed == text ? "Computer field value matches requested text" : nil
+        )
     }
 
     @MainActor

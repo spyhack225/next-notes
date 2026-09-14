@@ -60,7 +60,9 @@ enum BrowserToolCatalogue {
             description: "Click an element in the frontmost browser, by snapshot id.",
             risk: .modify,
             parameters: [
-                .init(name: "id", description: "The element id from snapshot.")
+                .init(name: "id", description: "The element id from snapshot."),
+                .init(name: "expectedText", description: "Text that must appear after this click or submit. Supply this or expectedURL for verification.", isRequired: false),
+                .init(name: "expectedURL", description: "Destination URL that must be reached after this click. Supply this or expectedText for verification.", isRequired: false),
             ]
         ),
         .native(

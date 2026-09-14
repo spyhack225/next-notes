@@ -22,15 +22,17 @@ enum AgentPrompts {
         the meeting details, the notes or the transcript.
         - Copy owners and dates from the notes exactly. If an action item has no owner, do \
         not guess one.
+        - Every proposed write or send must include an evidence field containing an exact,
+        contiguous quote from the transcript that asks for or commits to that action. Notes
+        alone are insufficient. If the transcript does not support it, emit no call.
         - Prefer draft_email to send_email whenever the meeting did not clearly ask for a \
         message to go out.
         - The user approves every action before it happens, so propose the useful thing \
         rather than the safe-looking one — but write each one as if it will be performed \
         exactly as written, because it will be.
 
-        Actions that usually fit, when the meeting supports them: put the notes in a Doc so \
-        the room can read them, email the action items to the people who were on the invite, \
-        and create an event for a follow-up that was given a date.
+        Find the participants' actual requests and commitments in the transcript, then
+        select the appropriate tool. Do not propose a generic meeting-summary document.
         """
 
     /// The tool catalogue and the shape a call takes, in the block Qwen3.5 was tuned to read.
@@ -46,7 +48,7 @@ enum AgentPrompts {
         </tools>
 
         For each action, emit one line of exactly this form and nothing else around it:
-        <tool_call>{"name": "<tool>", "arguments": {…}, "rationale": "<one sentence>"}</tool_call>
+        <tool_call>{"name": "<tool>", "arguments": {…}, "rationale": "<one sentence>", "evidence": "<exact transcript quote>"}</tool_call>
 
         Emit no tool calls at all when nothing needs doing. Do not explain yourself outside \
         the tags.
@@ -89,9 +91,9 @@ enum AgentPrompts {
 
         \(recent)
 
-        Propose an action only for an explicit request made in this excerpt — "send me the \
-        deck", "put that in a doc", "let's meet Thursday". Anything discussed rather than \
-        asked for is not a request. Emit no tool calls at all if nobody asked for anything.
+        Propose an action only when the excerpt contains an actual request or commitment.
+        Quote the exact words in the evidence field. Discussion and speculation are not
+        requests. Emit no tool calls if nobody asked for or committed to anything.
         """
     }
 

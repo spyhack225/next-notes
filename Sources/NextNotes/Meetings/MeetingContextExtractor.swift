@@ -2,16 +2,10 @@ import Foundation
 
 /// Turns transcript chunks into structured `MeetingContext`.
 ///
-/// Heuristic first, so a meeting has a usable state without a model. A later LLM pass can
-/// refine the same record. System-audio lines may create candidate actions; they never
-/// become authorised work.
+/// Cheap non-action context for a live meeting. Action recall is model-led in
+/// `MeetingContextReconciler` and requires transcript evidence.
 enum MeetingContextExtractor {
     private static let decisionMarks = ["we decided", "agreed to", "decision is", "we'll go with", "let's go with"]
-    private static let actionMarks = [
-        "can you", "could you", "would you", "please send", "please share", "please email",
-        "action item", "i'll send", "i will send", "i'll do", "follow up",
-        "send me", "share the", "send her", "send him", "send them",
-    ]
     private static let questionMarks = ["?"]
     private static let commitmentMarks = ["i'll", "i will", "i can take", "i'll own", "i'll handle"]
     private static let deadlineMarks = ["by friday", "by monday", "tomorrow", "next week", "eod", "end of day", "deadline"]
@@ -43,16 +37,6 @@ enum MeetingContextExtractor {
 
             if decisionMarks.contains(where: lowered.contains) {
                 append(item, to: &next.decisions)
-            }
-            if actionMarks.contains(where: lowered.contains) {
-                append(item, to: &next.actionItems)
-            }
-            // Candidates are detected independently of the action-item marks: "send me the
-            // deck" is a request even when it never said "can you".
-            if let candidate = MeetingIntentDetector.candidate(in: segment, speakerNames: speakerNames) {
-                if !next.candidateActions.contains(where: { Self.candidateFingerprint($0) == Self.candidateFingerprint(candidate) }) {
-                    next.candidateActions.append(candidate)
-                }
             }
             if questionMarks.contains(where: text.contains) {
                 append(item, to: &next.questions)
@@ -92,16 +76,6 @@ enum MeetingContextExtractor {
         if list.contains(where: { $0.text == item.text }) { return }
         list.append(item)
         if list.count > 40 { list.removeFirst(list.count - 40) }
-    }
-
-    private static func candidateFingerprint(_ candidate: MeetingCandidateAction) -> String {
-        [
-            candidate.action,
-            candidate.object ?? "",
-            candidate.source.rawValue,
-            candidate.recipient ?? "",
-            candidate.speaker ?? "",
-        ].map { normalize($0).lowercased() }.joined(separator: "|")
     }
 
     /// Prefer refined wording when it covers an existing item; otherwise append.
@@ -229,22 +203,11 @@ enum MeetingContextExtractor {
             open,
         ], to: context)
 
-        check("can you send the deck produced no candidate", context.candidateActions.contains {
-            $0.object == "deck" && $0.source == .system
-        })
+        check("fixed phrases still created actions without model evidence", context.candidateActions.isEmpty && context.actionItems.isEmpty)
         check("a decision was missed", context.decisions.contains { $0.text.contains("Friday") })
         check("a topic was missed", context.topics.contains { $0.text.localizedCaseInsensitiveContains("launch") })
         check("an unresolved item was missed", context.unresolvedItems.contains { $0.text.localizedCaseInsensitiveContains("date") })
         check("a mention was missed", context.documentsMentioned.contains { $0.text.localizedCaseInsensitiveContains("doc") })
-        check("system-only duplicate asks stayed as three separate entries", context.candidateActions.filter {
-            $0.action == "send" && $0.object == "deck" && $0.source == .system
-        }.count == 3)
-        check(
-            "an identical ask from the same source and recipient was still deduped",
-            context.candidateActions.filter {
-                $0.action == "send" && $0.object == "deck" && $0.source == .system && $0.recipient == "Sara"
-            }.count == 1
-        )
         check("an agent command polluted the notes text", !context.actionItems.contains { $0.text.contains("email the proposal") })
 
         check(
@@ -259,35 +222,46 @@ enum MeetingContextExtractor {
             "system audio became authority",
             !MeetingIntentDetector.mayExecute(source: .system)
         )
-        if let candidate = MeetingIntentDetector.candidate(in: deck) {
-            check("a system candidate reported as executable", !MeetingIntentDetector.mayAuthorizeExecute(candidate))
-        } else {
-            failures.append("can you send the deck produced no candidate")
-        }
-
-        let micAsk = TranscriptSegment(start: 20, end: 22, text: "Can you send the deck", source: .mic)
+        let micAsk = TranscriptSegment(start: 20, end: 22, text: "I will send the deck to you", source: .mic)
         check(
             "mic speech was refused authority",
             MeetingIntentDetector.mayAuthorizeExecute(micAsk)
         )
         context = apply([micAsk], to: context)
-        check(
-            "system and mic asks with the same object were treated as distinct entries",
-            context.candidateActions.filter { $0.action == "send" && $0.object == "deck" }.count == 4
+        let grounded = MeetingContextReconciler.Suggestion(proposedCandidates: [
+            MeetingCandidateAction(
+                action: "send", object: "deck", source: .mic,
+                evidence: "Can you send the deck?"
+            ),
+            MeetingCandidateAction(
+                action: "send", object: "deck", source: .system,
+                evidence: "I will send the deck to you"
+            ),
+            MeetingCandidateAction(
+                action: "invented", source: .mic,
+                evidence: "No one said this"
+            ),
+        ])
+        context = MeetingContextReconciler.apply(
+            grounded, to: context, recentSegments: [deck, micAsk]
         )
         check(
-            "mic confirmation was treated as separate from system ask",
-            context.candidateActions.contains(where: { $0.action == "send" && $0.object == "deck" && $0.source == .mic })
+            "model candidates were not grounded to source segments",
+            context.candidateActions.count == 2
         )
         check(
-            "distinct system speakers remained distinct",
-            context.candidateActions.filter { $0.action == "send" && $0.object == "deck" && $0.source == .system }.count == 3
+            "mic action was not represented separately",
+            context.candidateActions.contains(where: { $0.source == .mic })
         )
         check(
-            "system requests captured distinct recipients",
-            Set(context.candidateActions.filter {
-                $0.action == "send" && $0.object == "deck" && $0.source == .system
-            }.map { normalize($0.recipient ?? "").lowercased() }).count == 3
+            "system-audio evidence became executable",
+            context.candidateActions.filter { $0.source == .system }.allSatisfy {
+                !MeetingIntentDetector.mayAuthorizeExecute($0)
+            }
+        )
+        check(
+            "action items did not cite transcript evidence",
+            context.actionItems.count == 2
         )
 
         return failures
@@ -296,30 +270,6 @@ enum MeetingContextExtractor {
 
 /// The hard security invariant: system audio is context, the microphone is authority.
 enum MeetingIntentDetector {
-    static func candidate(
-        in segment: TranscriptSegment,
-        speakerNames: [String: String] = [:]
-    ) -> MeetingCandidateAction? {
-        let text = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return nil }
-        let lowered = text.lowercased()
-        let looksLikeAsk = [
-            "can you", "could you", "would you",
-            "please send", "please share", "please email",
-            "send me", "share the", "send her", "send him", "send them",
-        ].contains { lowered.contains($0) }
-        guard looksLikeAsk else { return nil }
-
-        return MeetingCandidateAction(
-            recipient: segment.source == .system ? (speakerNames[segment.displaySpeaker] ?? segment.displaySpeaker) : nil,
-            action: actionVerb(in: lowered),
-            object: object(in: text),
-            speaker: speakerNames[segment.displaySpeaker] ?? segment.displaySpeaker,
-            source: segment.source,
-            confidence: "high"
-        )
-    }
-
     /// Other people provide context, never authority.
     static func mayExecute(source: AudioSource) -> Bool {
         mayAuthorizeExecute(source: source)
@@ -342,16 +292,4 @@ enum MeetingIntentDetector {
         context.candidateActions.last
     }
 
-    private static func actionVerb(in lowered: String) -> String {
-        if lowered.contains("email") { return "email" }
-        if lowered.contains("share") { return "share" }
-        if lowered.contains("send") { return "send" }
-        return "share or send"
-    }
-
-    private static func object(in text: String) -> String? {
-        let markers = ["step", "stp", "cad", "deck", "doc", "file", "proposal", "spec", "pdf", "slide"]
-        let lowered = text.lowercased()
-        return markers.first { lowered.contains($0) }
-    }
 }

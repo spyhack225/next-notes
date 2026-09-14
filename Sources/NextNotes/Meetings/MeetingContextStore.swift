@@ -24,15 +24,18 @@ final class MeetingContextStore {
     @ObservationIgnored private var lastSegments = 0
     /// Dedupes Session ingest against bus finals (and bus against itself).
     @ObservationIgnored private var ingestedKeys: Set<String> = []
+    /// The model's short, source-labelled evidence window. Bounded independently of
+    /// the full meeting transcript and shared by session and transcript-bus ingest.
+    @ObservationIgnored private var recentSegments: [TranscriptSegment] = []
 
     /// Finals since the last reconcile attempt.
     @ObservationIgnored private var finalsSinceReconcile = 0
     /// Speech seconds (sum of segment durations) since the last reconcile attempt.
     @ObservationIgnored private var speechSecondsSinceReconcile: TimeInterval = 0
     @ObservationIgnored private var reconcileTask: Task<Void, Never>?
-    /// Injected for tests; production uses Foundation Models when available (else empty).
+    /// Injected for tests; production uses the selected Agent model.
     @ObservationIgnored private var completer: any MeetingContextCompleter =
-        MeetingContextReconciler.FoundationCompleter()
+        MeetingContextReconciler.ModelCompleter()
 
     private init() {
         MeetingContextBusBridge.start(store: self)
@@ -46,6 +49,7 @@ final class MeetingContextStore {
     func ingest(_ segments: [TranscriptSegment], meeting: Meeting) {
         if current?.meetingID != meeting.id {
             ingestedKeys.removeAll()
+            recentSegments.removeAll()
             lastSegments = 0
             resetReconcileCadence()
         }
@@ -139,6 +143,7 @@ final class MeetingContextStore {
         current = context
         lastSegments = 0
         ingestedKeys.removeAll()
+        recentSegments.removeAll()
         resetReconcileCadence()
     }
 
@@ -164,6 +169,10 @@ final class MeetingContextStore {
     // MARK: - Occasional reconcile
 
     private func noteIngest(_ segments: [TranscriptSegment]) {
+        recentSegments.append(contentsOf: segments.filter { $0.kind != .agentCommand })
+        if recentSegments.count > 80 {
+            recentSegments.removeFirst(recentSegments.count - 80)
+        }
         finalsSinceReconcile += segments.count
         speechSecondsSinceReconcile += segments.reduce(0) { partial, segment in
             partial + max(0, segment.end - segment.start)
@@ -199,7 +208,8 @@ final class MeetingContextStore {
 
         let snapshot = MeetingContextReconciler.Snapshot(
             context: context,
-            recentTranscript: recentTranscript(minutes: 3)
+            recentTranscript: recentTranscript(minutes: 3),
+            recentSegments: recentSegments
         )
         let suggestion = await completer.refine(snapshot)
         guard suggestion.hasRefinements else { return }
@@ -207,10 +217,13 @@ final class MeetingContextStore {
         // Drop the result if the live meeting moved on while we waited.
         guard current?.meetingID == context.meetingID else { return }
         let base = current ?? context
-        let refined = MeetingContextReconciler.apply(suggestion, to: base)
+        let refined = MeetingContextReconciler.apply(
+            suggestion, to: base, recentSegments: snapshot.recentSegments
+        )
         guard refined.topics != base.topics
             || refined.unresolvedItems != base.unresolvedItems
             || refined.candidateActions != base.candidateActions
+            || refined.actionItems != base.actionItems
         else { return }
 
         current = refined

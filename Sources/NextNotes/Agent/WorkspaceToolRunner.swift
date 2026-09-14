@@ -185,10 +185,18 @@ enum WorkspaceToolRunner {
         _ = try await cli.run([
             "docs", "+write", "--document", id, "--text", arguments["markdown"] ?? "",
         ])
+        let readback = try? await cli.run([
+            "docs", "documents", "get", "--params", json(["documentId": id]),
+        ])
+        let saved = readback.flatMap(dictionary(from:)) ?? [:]
+        let verified = string(saved, "documentId") == id
+            && string(saved, "title") == title
+            && documentText(in: try? readback?.json()).contains(arguments["markdown"] ?? "")
         return WorkspaceToolResult(
             summary: "Created the Doc \u{201c}\(title)\u{201d}.",
             reference: id,
-            link: documentURL(id)
+            link: documentURL(id),
+            verification: verified ? "Read back the created document's title and content" : nil
         )
     }
 
@@ -197,13 +205,28 @@ enum WorkspaceToolRunner {
         cli: GoogleWorkspaceCLI
     ) async throws -> WorkspaceToolResult {
         let id = arguments["document_id"] ?? ""
+        let before = try? await cli.run([
+            "docs", "documents", "get", "--params", json(["documentId": id]),
+        ])
+        let beforeText = documentText(in: try? before?.json())
         _ = try await cli.run([
             "docs", "+write", "--document", id, "--text", arguments["text"] ?? "",
         ])
+        let readback = try? await cli.run([
+            "docs", "documents", "get", "--params", json(["documentId": id]),
+        ])
+        let afterText = documentText(in: try? readback?.json())
+        let appended = arguments["text"] ?? ""
+        let verified = before != nil
+            && string(readback.flatMap(dictionary(from:)) ?? [:], "documentId") == id
+            && !appended.isEmpty
+            && afterText.count > beforeText.count
+            && afterText.contains(appended)
         return WorkspaceToolResult(
             summary: "Added to the Doc.",
             reference: id,
-            link: documentURL(id)
+            link: documentURL(id),
+            verification: verified ? "Read back the appended document text" : nil
         )
     }
 
@@ -222,10 +245,21 @@ enum WorkspaceToolRunner {
         let output = try await cli.run(command)
         let fields = dictionary(from: output) ?? [:]
         let id = string(fields, "id")
+        guard let id else { throw WorkspaceCLIError.badOutput }
+        let readback = try? await cli.run([
+            "drive", "files", "get", "--params", json(["fileId": id]),
+            "--fields", "id,name,trashed",
+        ])
+        let saved = readback.flatMap(dictionary(from:)) ?? [:]
+        let expectedName = arguments["name"] ?? URL(fileURLWithPath: path).lastPathComponent
+        let verified = string(saved, "id") == id
+            && string(saved, "name") == expectedName
+            && saved["trashed"] as? Bool != true
         return WorkspaceToolResult(
             summary: "Uploaded \(string(fields, "name") ?? URL(fileURLWithPath: path).lastPathComponent).",
             reference: id,
-            link: id.flatMap { URL(string: "https://drive.google.com/file/d/\($0)/view") }
+            link: URL(string: "https://drive.google.com/file/d/\(id)/view"),
+            verification: verified ? "Read back the uploaded Drive file and name" : nil
         )
     }
 
@@ -287,10 +321,22 @@ enum WorkspaceToolRunner {
         }
         let output = try await cli.run(command)
         let fields = dictionary(from: output) ?? [:]
+        guard let id = string(fields, "id") else { throw WorkspaceCLIError.badOutput }
+        let readback = try? await cli.run([
+            "calendar", "events", "get", "--params", json([
+                "calendarId": "primary", "eventId": id,
+            ]),
+        ])
+        let saved = readback.flatMap(dictionary(from:)) ?? [:]
+        let verified = string(saved, "id") == id
+            && string(saved, "summary") == arguments["title"]
+            && Self.sameInstant(saved["start"], rfc3339(arguments["start"] ?? ""))
+            && Self.sameInstant(saved["end"], rfc3339(arguments["end"] ?? ""))
         return WorkspaceToolResult(
             summary: "Created the event \u{201c}\(arguments["title"] ?? "")\u{201d}.",
-            reference: string(fields, "id"),
-            link: string(fields, "htmlLink").flatMap(URL.init(string:))
+            reference: id,
+            link: string(fields, "htmlLink").flatMap(URL.init(string:)),
+            verification: verified ? "Read back the event title and scheduled time" : nil
         )
     }
 
@@ -313,10 +359,29 @@ enum WorkspaceToolRunner {
         // A draft's response wraps the message; a send's is the message itself.
         let message = fields["message"] as? [String: Any] ?? fields
         let threadID = string(message, "threadId")
+        guard let id = string(fields, "id") ?? string(message, "id") else {
+            throw WorkspaceCLIError.badOutput
+        }
+        let readback = try? await cli.run(asDraft
+            ? ["gmail", "users", "drafts", "get", "--params", json(["userId": "me", "id": id])]
+            : ["gmail", "users", "messages", "get", "--params", json(["userId": "me", "id": id])]
+        )
+        let saved = readback.flatMap(dictionary(from:)) ?? [:]
+        let savedMessage = asDraft ? (saved["message"] as? [String: Any] ?? [:]) : saved
+        let recipients = WorkspaceTools.list(arguments["to"])
+        let savedTo = gmailHeader(savedMessage, "To") ?? ""
+        let verified = string(saved, "id") == id
+            && (asDraft || (saved["labelIds"] as? [String] ?? []).contains("SENT"))
+            && gmailHeader(savedMessage, "Subject") == arguments["subject"]
+            && !recipients.isEmpty
+            && recipients.allSatisfy { savedTo.localizedCaseInsensitiveContains($0) }
         return WorkspaceToolResult(
             summary: asDraft ? "Saved the draft." : "Sent the email.",
-            reference: string(fields, "id") ?? string(message, "id"),
-            link: threadID.flatMap { URL(string: "https://mail.google.com/mail/u/0/#all/\($0)") }
+            reference: id,
+            link: threadID.flatMap { URL(string: "https://mail.google.com/mail/u/0/#all/\($0)") },
+            verification: verified
+                ? (asDraft ? "Read back the saved Gmail draft" : "Read back the message with its SENT label")
+                : nil
         )
     }
 
@@ -331,11 +396,35 @@ enum WorkspaceToolRunner {
         ])
         let fields = dictionary(from: output) ?? [:]
         let threadID = string(fields, "threadId")
+        guard let id = string(fields, "id") else { throw WorkspaceCLIError.badOutput }
+        let readback = try? await cli.run([
+            "gmail", "users", "messages", "get", "--params", json(["userId": "me", "id": id]),
+        ])
+        let saved = readback.flatMap(dictionary(from:)) ?? [:]
+        let verified = string(saved, "id") == id
+            && (saved["labelIds"] as? [String] ?? []).contains("SENT")
+            && string(saved, "threadId") == threadID
         return WorkspaceToolResult(
             summary: "Sent the reply.",
-            reference: string(fields, "id"),
-            link: threadID.flatMap { URL(string: "https://mail.google.com/mail/u/0/#all/\($0)") }
+            reference: id,
+            link: threadID.flatMap { URL(string: "https://mail.google.com/mail/u/0/#all/\($0)") },
+            verification: verified ? "Read back the sent reply in its thread" : nil
         )
+    }
+
+    private static func sameInstant(_ calendarField: Any?, _ expected: String) -> Bool {
+        guard let field = calendarField as? [String: Any],
+              let actual = field["dateTime"] as? String else { return false }
+        func parse(_ value: String) -> Date? {
+            let parser = ISO8601DateFormatter()
+            parser.formatOptions = [.withInternetDateTime]
+            if let date = parser.date(from: value) { return date }
+            parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            return parser.date(from: value)
+        }
+        guard let actualDate = parse(actual),
+              let expectedDate = parse(expected) else { return false }
+        return abs(actualDate.timeIntervalSince(expectedDate)) < 1
     }
 
     // MARK: - JSON
@@ -364,6 +453,14 @@ enum WorkspaceToolRunner {
             if let value = string(fields, candidate) ?? string(nested, candidate) { return value }
         }
         return nil
+    }
+
+    private static func gmailHeader(_ message: [String: Any], _ name: String) -> String? {
+        let payload = message["payload"] as? [String: Any] ?? [:]
+        let headers = payload["headers"] as? [[String: Any]] ?? []
+        return headers.first {
+            ($0["name"] as? String)?.localizedCaseInsensitiveCompare(name) == .orderedSame
+        }?["value"] as? String
     }
 
     private static func string(_ object: [String: Any], _ key: String) -> String? {

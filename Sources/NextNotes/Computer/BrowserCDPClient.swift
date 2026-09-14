@@ -185,7 +185,7 @@ enum BrowserCDPClient {
         case "fill", "select":
             let text = arguments["text"] ?? arguments["value"] ?? ""
             let encoded = jsonStringLiteral(text)
-            return try await act(arguments: arguments, target: target) { id, socket in
+            return try await act(arguments: arguments, target: target, expectedValue: text) { id, socket in
                 try await evaluate(
                     """
                     (() => {
@@ -353,6 +353,29 @@ enum BrowserCDPClient {
         return trimmed.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "/").union(.whitespacesAndNewlines))
     }
 
+    static func verifiesClick(
+        beforeDOM: String, afterDOM: String?,
+        beforeURL: String, afterURL: String?,
+        expectedText: String?, expectedURL: String?
+    ) -> Bool {
+        let expectedText = expectedText?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let expectedURL = expectedURL?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard expectedText?.isEmpty == false || expectedURL?.isEmpty == false else { return false }
+        let changed = (afterDOM != nil && afterDOM != beforeDOM)
+            || (afterURL != nil && afterURL != beforeURL)
+        let textMatches = expectedText.flatMap { expected in
+            expected.isEmpty ? nil : expected
+        }.map { expected in
+            afterDOM?.localizedCaseInsensitiveContains(expected) == true
+        } ?? true
+        let urlMatches = expectedURL.flatMap { expected in
+            expected.isEmpty ? nil : expected
+        }.map { expected in
+            afterURL.map(normalize) == normalize(expected)
+        } ?? true
+        return changed && textMatches && urlMatches
+    }
+
     private static func first(_ arguments: [String: String], keys: [String]) -> String? {
         for key in keys {
             let value = arguments[key]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -380,6 +403,7 @@ enum BrowserCDPClient {
     private static func act(
         arguments: [String: String],
         target: BrowserCDPTarget,
+        expectedValue: String? = nil,
         body: (Int, String) async throws -> String
     ) async throws -> AgentToolResult {
         let rawID = arguments["id"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -412,6 +436,41 @@ enum BrowserCDPClient {
             return AgentToolResult(summary: "Snapshot id \(rawID) is stale for this tab. Snapshot first.")
         }
         let reply = try await body(id, target.webSocketDebuggerURL)
+        guard reply != "missing" else {
+            return AgentToolResult(summary: "Snapshot id \(rawID) disappeared before the action. Snapshot first.")
+        }
+        if let expectedValue {
+            let value = try? await evaluate(
+                "document.querySelectorAll('\(snapshotSelector)')[\(id - 1)]?.value ?? ''",
+                webSocketURL: target.webSocketDebuggerURL
+            )
+            return AgentToolResult(
+                summary: "CDP \(reply)",
+                verification: value == expectedValue ? "Browser field value matches requested text" : nil
+            )
+        }
+        // A click/submit acknowledgement says only that JavaScript ran. Read the same
+        // target again and require a changed page or destination; otherwise the receipt
+        // stays unverified so it is not blindly retried.
+        for attempt in 0..<4 {
+            if attempt > 0 { try? await Task.sleep(for: .milliseconds(250)) }
+            let afterRaw = try? await evaluate(
+                snapshotExpression, webSocketURL: target.webSocketDebuggerURL
+            )
+            let afterURL = await probe(host: defaultHost, port: defaultPort)?
+                .targets.first(where: { $0.id == target.id })?.url
+            if verifiesClick(
+                beforeDOM: currentRaw, afterDOM: afterRaw,
+                beforeURL: target.url, afterURL: afterURL,
+                expectedText: arguments["expectedText"],
+                expectedURL: arguments["expectedURL"]
+            ) {
+                return AgentToolResult(
+                    summary: "CDP \(reply)",
+                    verification: "Browser page reached the expected post-click state"
+                )
+            }
+        }
         return AgentToolResult(summary: "CDP \(reply)")
     }
 

@@ -5,6 +5,8 @@ struct AgentToolCall: Sendable, Equatable {
     let name: String
     let arguments: [String: String]
     let rationale: String
+    /// Verbatim transcript excerpt supporting a meeting proposal.
+    let evidence: String?
 }
 
 /// Reads tool calls out of a completion.
@@ -62,7 +64,12 @@ enum AgentToolCallParser {
         }
         let rationale = (object["rationale"] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return AgentToolCall(name: name, arguments: arguments, rationale: rationale)
+        let evidence = (object["evidence"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return AgentToolCall(
+            name: name, arguments: arguments, rationale: rationale,
+            evidence: evidence?.isEmpty == true ? nil : evidence
+        )
     }
 
     /// Everything reaches `gws` as a command-line argument, so every value is flattened to

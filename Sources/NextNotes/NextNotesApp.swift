@@ -3168,6 +3168,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             TranscriptSegment(start: 6, end: 8, text: "Hey Next, email the proposal", source: .mic, kind: .agentCommand),
         ]
         context = MeetingContextExtractor.apply(segments, to: context)
+        context = MeetingContextReconciler.apply(
+            .init(proposedCandidates: [MeetingCandidateAction(
+                action: "send", object: "STEP", source: .mic,
+                evidence: segments[0].text
+            )]),
+            to: context, recentSegments: segments
+        )
 
         check("a decision was missed", context.decisions.contains { $0.text.contains("Friday") })
         check("a candidate action was missed", context.candidateActions.contains { $0.source == .system })
@@ -3295,9 +3302,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                   !(AgentSpeechPolicy.spokenClauses(mailSummary ?? "").isEmpty))
             if case .localModel(let prompt) = AgentTurnIntent.resolve(
                 "Just summarize", choice: localChoice,
-                recentReadResult: "- from Alex — Project update"
+                hasConversationContext: true
             ) {
-                check("follow-up lost the prior read result", prompt.contains("Alex — Project update"))
+                check("follow-up did not route to the contextual model", prompt == "Just summarize")
             } else {
                 failures.append("summarize follow-up returned the repeated help line")
             }
@@ -4038,6 +4045,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 check(
                     "malicious newline payload is not escaped",
                     !encodedJSON.contains("\n") && encodedJSON.contains("\\n")
+                )
+                check(
+                    "unchanged browser page was treated as a verified click",
+                    !BrowserCDPClient.verifiesClick(
+                        beforeDOM: "Save", afterDOM: "Save",
+                        beforeURL: "https://example.com/form", afterURL: "https://example.com/form",
+                        expectedText: nil, expectedURL: nil
+                    )
+                )
+                check(
+                    "wrong submit confirmation was treated as verified",
+                    !BrowserCDPClient.verifiesClick(
+                        beforeDOM: "Save", afterDOM: "Error",
+                        beforeURL: "https://example.com/form", afterURL: "https://example.com/form",
+                        expectedText: "Saved successfully", expectedURL: nil
+                    )
+                )
+                check(
+                    "a generic page change without a stated postcondition was verified",
+                    !BrowserCDPClient.verifiesClick(
+                        beforeDOM: "Save", afterDOM: "Loading",
+                        beforeURL: "https://example.com/form", afterURL: "https://example.com/form",
+                        expectedText: nil, expectedURL: nil
+                    )
+                )
+                check(
+                    "matching browser destination was not verified",
+                    BrowserCDPClient.verifiesClick(
+                        beforeDOM: "Save", afterDOM: nil,
+                        beforeURL: "https://example.com/form", afterURL: "https://example.com/done",
+                        expectedText: nil, expectedURL: "https://example.com/done"
+                    )
                 )
                 BrowserCDPClient.removeSnapshotCache(for: staleTarget)
             } catch {

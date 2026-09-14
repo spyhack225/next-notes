@@ -27,6 +27,9 @@ enum RealtimeAgentLocalModelSelfTest {
         }
 
         let state = LocalAnswerTestState()
+        check("Agent history did not survive a disk round trip", AgentSession.persistenceSelfTest())
+        AgentSession.shared.recordUser("What was the project codename?")
+        AgentSession.shared.recordAssistant("The project codename is Silver Fern.")
         agent.localModelProviderForTesting = LocalAnswerTestProvider(
             chunks: ["The first answer.", " The second answer."],
             delay: .milliseconds(400),
@@ -39,6 +42,10 @@ enum RealtimeAgentLocalModelSelfTest {
         try? await Task.sleep(for: .milliseconds(100))
         check("first clause was not enqueued while generation was in flight", recorder.spoken == ["The first answer."])
         check("fake generation completed before first clause", !(await state.completed))
+        check(
+            "model prompt omitted the prior Agent turn",
+            (await state.lastPrompt).contains("The project codename is Silver Fern.")
+        )
 
         agent.interrupt()
         _ = await turn.value
@@ -103,8 +110,10 @@ enum RealtimeAgentLocalModelSelfTest {
 
 private actor LocalAnswerTestState {
     var completed = false
+    var lastPrompt = ""
 
     func markCompleted() { completed = true }
+    func recordPrompt(_ prompt: String) { lastPrompt = prompt }
 }
 
 private struct LocalAnswerTestProvider: LLMProvider {
@@ -124,6 +133,7 @@ private struct LocalAnswerTestProvider: LLMProvider {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
+                    await state.recordPrompt(user)
                     if initialDelay > .zero { try await Task.sleep(for: initialDelay) }
                     for (index, chunk) in chunks.enumerated() {
                         try Task.checkCancellation()

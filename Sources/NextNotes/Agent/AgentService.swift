@@ -297,6 +297,10 @@ final class AgentService {
                     cli: self.cli,
                     approvedByUser: true
                 )
+                let unverified = proposal.risk > .read && result.verification == nil
+                if unverified {
+                    self.problems[id] = "The action ran, but its effect could not be verified. Inspect the target before retrying."
+                }
                 self.record(
                     AgentActionRecord(
                         id: proposal.id,
@@ -305,8 +309,10 @@ final class AgentService {
                         performedAt: Date(),
                         reference: result.reference,
                         link: result.link,
-                        detail: proposal.risk == .read ? result.summary : nil,
-                        failure: nil,
+                        detail: proposal.risk == .read || unverified ? result.summary : nil,
+                        failure: unverified
+                            ? "Effect could not be verified; inspect the target before retrying."
+                            : nil,
                         source: proposal.source
                     ),
                     for: id
@@ -688,15 +694,13 @@ enum MeetingLiveAgent {
             source: .system,
             speaker: "Sarah"
         )
-        let mic = TranscriptSegment(start: 3, end: 5, text: "Can you send the deck", source: .mic)
         check("a .system segment authorised execute", !canAuthorizeExecute(source: system.source))
         check("a .system segment authorised execute", !MeetingIntentDetector.mayAuthorizeExecute(system))
 
-        guard let systemCandidate = MeetingIntentDetector.candidate(in: system) else {
-            failures.append("can you send the deck produced no candidate")
-            writeLine(failures)
-            return false
-        }
+        let systemCandidate = MeetingCandidateAction(
+            action: "send", object: "deck", source: .system,
+            evidence: "Can you send the deck"
+        )
         check("a system candidate authorised execute", !canAuthorizeExecute(systemCandidate))
 
         let meetingID = UUID()
@@ -705,13 +709,13 @@ enum MeetingLiveAgent {
         check("a system card skipped Prepare", systemCard.leadAction == .prepare)
         check("a system card was not marked as a candidate", systemCard.isCandidate)
 
-        if let micCandidate = MeetingIntentDetector.candidate(in: mic) {
-            check("mic speech was refused authority", canAuthorizeExecute(micCandidate))
-            let micCard = islandProposal(for: micCandidate, meetingID: meetingID)
-            check("a mic card hid Approve", micCard.canExecute && micCard.leadAction == .approve)
-        } else {
-            failures.append("mic can you send the deck produced no candidate")
-        }
+        let micCandidate = MeetingCandidateAction(
+            action: "send", object: "deck", source: .mic,
+            evidence: "Can you send the deck"
+        )
+        check("mic speech was refused authority", canAuthorizeExecute(micCandidate))
+        let micCard = islandProposal(for: micCandidate, meetingID: meetingID)
+        check("a mic card hid Approve", micCard.canExecute && micCard.leadAction == .approve)
 
         var context = MeetingContext.empty(meetingID: meetingID, title: "Standup", participants: ["Sam"])
         context = MeetingContextExtractor.apply(
@@ -723,7 +727,10 @@ enum MeetingLiveAgent {
             unannouncedCards(from: context, announced: []).isEmpty
         )
 
-        context = MeetingContextExtractor.apply([system], to: context)
+        context = MeetingContextReconciler.apply(
+            .init(proposedCandidates: [systemCandidate]),
+            to: context, recentSegments: [system]
+        )
         let cards = unannouncedCards(from: context, announced: [])
         check("a send-the-deck ask produced no card", !cards.isEmpty)
         check("the deck card could execute", cards.allSatisfy { !$0.canExecute })

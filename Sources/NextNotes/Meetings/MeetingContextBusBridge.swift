@@ -67,17 +67,19 @@ enum MeetingContextBusBridge {
         store.ingestFinal(ask)
 
         let afterFirst = store.current?.candidateActions.count ?? 0
+        let afterFirstUpdate = store.current?.updatedAt
         check(
-            "publishing a final ask produced no candidate",
-            afterFirst == 1
-                && (store.current?.candidateActions.first?.object == "deck")
+            "publishing a final did not update the evidence context",
+            afterFirst == 0
+                && store.current?.documentsMentioned.contains(where: { $0.text.contains("deck") }) == true
         )
 
         // Identical final again — Session+bus would deliver this shape.
         store.ingestFinal(ask)
         check(
-            "duplicate identical final duplicated candidates",
+            "duplicate identical final was ingested twice",
             (store.current?.candidateActions.count ?? 0) == afterFirst
+                && store.current?.updatedAt == afterFirstUpdate
         )
 
         // Non-final must not touch context.
