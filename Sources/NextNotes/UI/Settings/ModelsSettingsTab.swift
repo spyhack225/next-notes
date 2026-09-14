@@ -9,9 +9,54 @@ struct ModelsSettingsTab: View {
     @State private var settings = Settings.shared
     @State private var models = LocalModelStore.shared
     @State private var pocket = PocketAgentVoice.shared
+    @State private var catalog = OpenRouterCatalog.shared
+    @State private var openRouterKeyInput = ""
+    @State private var openRouterKeyStatus: String?
+    @State private var hasOpenRouterKey = OpenRouterKeyStore.key != nil
 
     var body: some View {
         Form {
+            Section {
+                Link("Get an OpenRouter API key", destination: URL(string: "https://openrouter.ai/settings/keys")!)
+                SecureField("OpenRouter API key", text: $openRouterKeyInput)
+                    .textFieldStyle(.roundedBorder)
+                HStack(spacing: DS.Space.s) {
+                    Button("Save key") {
+                        do {
+                            try OpenRouterKeyStore.save(openRouterKeyInput)
+                            openRouterKeyInput = ""
+                            hasOpenRouterKey = true
+                            openRouterKeyStatus = "Saved in Keychain"
+                            Task { await catalog.refresh() }
+                        } catch {
+                            openRouterKeyStatus = error.localizedDescription
+                        }
+                    }
+                    .disabled(openRouterKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    if hasOpenRouterKey {
+                        Button("Remove key") {
+                            OpenRouterKeyStore.clear()
+                            catalog.clear()
+                            hasOpenRouterKey = false
+                            openRouterKeyStatus = "Key removed"
+                        }
+                        Button("Refresh models") { Task { await catalog.refresh() } }
+                    }
+                }
+                if let openRouterKeyStatus { Text(openRouterKeyStatus).font(DS.Font.caption) }
+                if let problem = catalog.problem {
+                    Text(problem).foregroundStyle(DS.Color.warning)
+                }
+                LabeledContent("Catalog", value: "\(catalog.models.count) text models")
+            } header: {
+                Text("OpenRouter")
+            } footer: {
+                SettingsNote(text: "Optional cloud models for Agent answers and meeting notes. "
+                    + "Your key stays in this Mac’s Keychain. When selected, prompts and "
+                    + "meeting transcripts are sent to OpenRouter and may incur charges. "
+                    + "Capability tags come from OpenRouter model metadata.")
+            }
+
             Section {
                 ModelStatusRow(
                     title: "Parakeet",
@@ -33,7 +78,7 @@ struct ModelsSettingsTab: View {
 
                 ModelStatusRow(
                     title: NotesModels.spec.displayName,
-                    detail: "Meeting notes · \(NotesModels.spec.displaySize)",
+                    detail: "Meeting notes and Agent answers · \(NotesModels.spec.displaySize)",
                     state: models.notesModelState,
                     downloadTitle: "Download…"
                 ) {

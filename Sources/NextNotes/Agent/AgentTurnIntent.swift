@@ -18,7 +18,7 @@ enum AgentTurnIntent: Equatable {
     var progressTitle: String {
         switch self {
         case .capabilities, .reply, .unknown: ""
-        case .localModel: "Answering locally…"
+        case .localModel: "Answering…"
         case .toolLoop: "Working with tools…"
         case .calendar: "Checking the calendar…"
         case .mail: "Checking email…"
@@ -44,7 +44,7 @@ enum AgentTurnIntent: Equatable {
     ) -> AgentTurnIntent {
         if let prompt = localModelPrompt(for: text) { return .localModel(prompt: prompt) }
         if localModelPrefixOnly(for: text) {
-            return .reply("What would you like me to ask the local model?")
+            return .reply("What would you like me to ask the model?")
         }
         if let prompt = toolLoopPrompt(for: text) { return .toolLoop(prompt: prompt) }
         if toolLoopPrefixOnly(for: text) {
@@ -131,6 +131,7 @@ enum AgentTurnIntent: Equatable {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let lowered = trimmed.lowercased()
         let prefixes = [
+            "ask the model", "ask model", "use the model",
             "ask the local model", "ask local model",
             "ask the on-device model", "ask the on device model",
             "use the local model", "use local model", "ask qwen",
@@ -153,10 +154,18 @@ enum AgentTurnIntent: Equatable {
     private static func localModelPrefixOnly(for text: String) -> Bool {
         let lowered = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return [
+            "ask the model", "ask model", "use the model",
             "ask the local model", "ask local model",
             "ask the on-device model", "ask the on device model",
             "use the local model", "use local model", "ask qwen",
         ].contains(lowered)
+    }
+
+    static func explicitlyRequestsOnDeviceModel(_ text: String) -> Bool {
+        let lowered = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return ["ask the local model", "ask local model", "ask the on-device model",
+                "ask the on device model", "use the local model", "use local model", "ask qwen"]
+            .contains { lowered.hasPrefix($0) }
     }
 
     @MainActor

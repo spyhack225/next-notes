@@ -50,7 +50,8 @@ final class NotesService {
 
         let choice = preferred ?? Settings.shared.notesProvider
         guard let provider = await LLMProviders.resolve(preferring: choice) else {
-            problems[id] = NotesError.noProvider.localizedDescription
+            problems[id] = await LLMProviders.make(choice).unavailableReason
+                ?? NotesError.noProvider.localizedDescription
             Log.llm.info("no notes provider available for \"\(meeting.title, privacy: .public)\"")
             return nil
         }
@@ -77,7 +78,7 @@ final class NotesService {
                 \(Int(result.duration), privacy: .public)s\
                 \(result.usedMapReduce ? " (map-reduce)" : "", privacy: .public)
                 """)
-            return result.providerID.displayName
+            return provider.displayModelName
         } catch is CancellationError {
             return nil
         } catch {

@@ -14,12 +14,33 @@ struct AgentSettingsTab: View {
             wakeModel
             wakeTest
             execution
+            modelSection
             permissions
             remembered
         }
         .formStyle(.grouped)
         .onAppear { models.refresh() }
         .onDisappear { calibrator.stop() }
+    }
+
+    private var modelSection: some View {
+        Section {
+            Picker("Answers and tool planning", selection: $settings.agentModelProvider) {
+                ForEach(LLMProviderID.allCases) { model in
+                    Text(model.displayName).tag(model)
+                }
+            }
+            if settings.agentModelProvider == .openRouter {
+                OpenRouterModelSelection(
+                    modelID: $settings.openRouterAgentModelID,
+                    contextTokens: $settings.openRouterAgentContextTokens
+                )
+            }
+        } header: {
+            Text("Agent model")
+        } footer: {
+            SettingsNote(text: settings.agentModelProvider.summary)
+        }
     }
 
     private var activation: some View {

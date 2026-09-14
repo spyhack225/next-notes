@@ -238,6 +238,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard SelfTest.isRunning else { return false }
         startSelfTestWatchdog()
         let arguments = Set(CommandLine.arguments.dropFirst())
+        if arguments.contains("--selftest-openrouter-contract") {
+            SelfTest.failed = !OpenRouterContractSelfTest.run()
+            writeSelfTest(SelfTest.failed ? "OPENROUTER_CONTRACT_FAILED" : "OPENROUTER_CONTRACT_OK")
+            NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-openrouter") {
+            Task { @MainActor in
+                do {
+                    let details = try await OpenRouterSelfTest.run()
+                    writeSelfTest("OPENROUTER_OK: \(details)")
+                } catch {
+                    SelfTest.failed = true
+                    writeSelfTest("OPENROUTER_FAILED: \(error.localizedDescription)")
+                }
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-s1") {
             Task { @MainActor in
                 do {

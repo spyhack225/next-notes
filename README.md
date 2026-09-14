@@ -2,7 +2,7 @@
 
 Talk to your Mac. Hold a key, talk, release — cleaned-up text lands in the app you were
 already in. Meetings record themselves. ⇧⌘ Space asks the same machine to click, search
-or follow through. A Wispr Flow-shaped app, built native and fully on-device.
+or follow through. A Wispr Flow-shaped native app with on-device defaults and optional cloud models.
 
 ![Next Notes turning a spoken false start into a finished sentence](site/public/demo-dictation.gif)
 
@@ -14,15 +14,15 @@ working. It also records meetings: the
 microphone and the system's own output are captured as two separate tracks and transcribed
 separately, which is where the "You" and "Others" attribution in a meeting transcript comes
 from. A finished recording then walks itself the rest of the way — tell the speakers on the
-system track apart, write Granola-style notes with a local LLM, and offer follow-up actions
+system track apart, write Granola-style notes with a chosen local or OpenRouter model, and offer follow-up actions
 in Gmail, Calendar, Drive and Docs that only happen if you approve them. Separately, ⇧⌘ Space
 or “Hey Next” opens a conversation with the same Mac: silence ends a turn, Done leaves the
 session, and it can inspect the frontmost window, click and type after you approve, search
 files, run a shell command (never sudo), or hand longer work to a coding CLI you already
 have installed. Optional MCP servers and Composio sit behind the same permission broker;
-native Workspace tools stay on `gws`. Everything runs on this Mac; the only network traffic
-is a model download, your own calendar, a Workspace action you approved, and a coding agent
-or MCP server you chose to add. The Windows app is dictation only: it builds and is
+native Workspace tools stay on `gws`. OpenRouter is opt-in: when chosen for Agent or notes,
+the relevant prompts and transcripts are sent to its cloud API and may incur charges.
+The Windows app is dictation only: it builds and is
 exercised in CI, but has not yet been used for a real microphone/key/injection session on
 Windows hardware.
 
@@ -113,6 +113,16 @@ only symptom you will get. `--selftest-systemaudio` reports `SYSTEM_AUDIO_SILENT
 same reason, and `tccutil reset AudioCapture ai.pivotstudio.nextnotes` resets that one row.
 
 Restart Next Notes after granting Accessibility. Then hold **Right ⌥** and talk.
+
+### Optional OpenRouter models
+
+In Settings ▸ Models, enter an OpenRouter API key. It is stored in the macOS Keychain.
+Then choose OpenRouter separately in Settings ▸ Agent and Settings ▸ Meetings. Each model
+picker searches OpenRouter's live catalog and filters by text output, tool support,
+reasoning, vision, free variants and provider; it shows context length and published
+input/output prices. Agent answers and meeting notes can use different cloud models.
+Qwen3.5-4B and Apple Foundation Model remain available as local choices. An OpenRouter
+selection with a missing key or model reports an error instead of silently changing providers.
 
 ### How rebuilds affect grants
 
@@ -268,7 +278,8 @@ Sources/NextNotes/
 │       ├── NotesModels.swift       the Qwen3.5-4B ModelSpec
 │       ├── NotesModelRuntime.swift the notes model, Metal-offloaded, self-unloading
 │       ├── LlamaLLMProvider.swift  Qwen behind the protocol
-│       └── FoundationModelLLMProvider.swift   Apple's on-device model behind it
+│       ├── FoundationModelLLMProvider.swift   Apple's on-device model behind it
+│       └── OpenRouterLLMProvider.swift   optional cloud model, Keychain and catalog
 ├── Calendar/
 │   ├── CalendarProvider.swift      MeetingEvent + the protocol both accounts implement
 │   ├── CalendarService.swift       every enabled calendar merged, polled, deduped
@@ -419,6 +430,8 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-tts-stream              # clause-stream policy plus synthesizer stream queue
 "$S" --selftest-tts-pocket              # download/load neural voice, synthesize WAV, play/interrupt
 "$S" --selftest-local-model-stream      # opt-in model route, early TTS, interruption and timeout
+"$S" --selftest-openrouter-contract     # offline catalog/filter/SSE parsing contract
+"$S" --selftest-openrouter              # live key, catalog, chosen model, completion and stream
 "$S" --selftest-toolloop                # inspect → click must make both calls
 "$S" --selftest-toolloop-production     # opt-in model → read tool → model route
 "$S" --selftest-acp-confirm             # a missing CLI asks before local tools
@@ -507,10 +520,10 @@ ends*), and **Regenerate** rewrites them with either provider afterwards.
 Push-to-talk stays dictation. ⇧⌘ Space (Settings ▸ Agent; configurable) or the wake
 phrase — default “Hey Next”, after the keyword model is downloaded — opens a conversation.
 Silence ends a turn; **Done** on the island leaves the session. “what can you do” answers
-from a canned list and does not wait on a model. Open-ended chat needs Apple Intelligence
-or Qwen in Settings ▸ Models.
+from a canned list and does not wait on a model. Open-ended chat uses the Agent model
+chosen in Settings ▸ Agent.
 
-The same local LLM that writes notes can answer from meeting context and the calendar
+The chosen Agent model can answer from meeting context and the calendar
 without a tool call. A longer job is handed to a background task. A task that is still
 queued or running when Next Notes quits is marked failed — the list survives as history,
 the work does not resume. Settings ▸ Agent picks the default harness (local tools, or an
@@ -561,8 +574,8 @@ The implementation exists. Daily-driver validation is still catching up:
 ### Workspace
 
 Optional, off until you turn it on, and it is a proposer rather than an actor. After a
-meeting — and, if *Watch during the meeting* is on, every two minutes during one — the same
-local LLM reads the notes and transcript and returns proposals: create a Doc with the notes,
+meeting — and, if *Watch during the meeting* is on, every two minutes during one — the
+chosen Agent model reads the notes and transcript and returns proposals: create a Doc with the notes,
 email the action items to the people who were on the invite, put a dated follow-up on the
 calendar. They appear in the meeting's **Actions** tab, on the island, and as a notification.
 

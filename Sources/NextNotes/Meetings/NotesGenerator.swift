@@ -182,6 +182,7 @@ struct NotesGenerator: Sendable {
         switch provider.id {
         case .qwen35_4b: Self.qwenChunkTokens
         case .appleFoundation: Self.appleChunkTokens
+        case .openRouter: Self.qwenChunkTokens
         }
     }
 
