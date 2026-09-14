@@ -68,6 +68,20 @@ final class JSONRPCStdioClient: @unchecked Sendable {
         params: [String: Any] = [:],
         timeout: TimeInterval = 20
     ) async throws -> Data {
+        let encoded = try JSONSerialization.data(withJSONObject: params)
+        return try await request(method: method, paramsJSON: encoded, timeout: timeout)
+    }
+
+    /// Accept serialized parameters when the caller is an actor. `Data` is Sendable;
+    /// a dictionary containing `Any` cannot safely cross that async boundary in Swift 6.
+    func request(
+        method: String,
+        paramsJSON: Data,
+        timeout: TimeInterval = 20
+    ) async throws -> Data {
+        guard let params = try JSONSerialization.jsonObject(with: paramsJSON) as? [String: Any] else {
+            throw JSONRPCError(message: "JSON-RPC parameters must be a JSON object.")
+        }
         let id: Int = lock.withLock {
             let value = nextID
             nextID += 1
