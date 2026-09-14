@@ -54,17 +54,28 @@ final class PocketAgentVoice {
             let sample = directory.appendingPathComponent("pocket-preview.wav")
             try data.write(to: sample, options: .atomic)
             let playback = PocketSpeechBacking()
-            var heardFirstFrame = false
-            playback.onUtteranceStarted = { _ in heardFirstFrame = true }
-            playback.speak("This is a playback and interruption check.", volume: 0, token: 1)
-            for _ in 0..<150 where !heardFirstFrame {
+            var started = 0
+            var finished = 0
+            playback.onUtteranceStarted = { _ in started += 1 }
+            playback.onUtteranceFinished = { _ in finished += 1 }
+            playback.speak("Here is the first sentence.", volume: 0, token: 1)
+            for _ in 0..<200 where finished == 0 {
+                try await Task.sleep(for: .milliseconds(100))
+            }
+            guard started == 1, finished == 1, playback.isPlaybackEngineRunning else {
+                playback.stop()
+                print("POCKET_TTS_FAILED: first clause did not drain with the engine running")
+                return false
+            }
+            playback.speak("Here is the next sentence.", volume: 0, token: 1)
+            for _ in 0..<150 where started < 2 {
                 try await Task.sleep(for: .milliseconds(100))
             }
             let stoppedAt = ContinuousClock.now
             playback.stop()
-            guard heardFirstFrame, !playback.isSpeaking,
+            guard started == 2, !playback.isSpeaking,
                   stoppedAt.duration(to: .now) < .milliseconds(100) else {
-                print("POCKET_TTS_FAILED: playback did not start or stop promptly")
+                print("POCKET_TTS_FAILED: second clause did not start or stop promptly")
                 return false
             }
             print("Pocket TTS generated \(data.count) bytes at \(sample.path)")
@@ -100,19 +111,26 @@ final class PocketSpeechBacking: AgentSpeechBacking {
     }
 
     var isSpeaking: Bool { speaking }
+    var isPlaybackEngineRunning: Bool { engine.isRunning }
 
     func speak(_ text: String, volume: Float, token: UInt64) {
-        stop()
+        // Consecutive clauses of one reply share a token. The previous clause
+        // has already drained; restarting AVAudioEngine here inserts an audible
+        // gap before Pocket can synthesize the next sentence.
+        let continuing = generation == token && !speaking && producerFinished
+            && pendingFrames == 0 && engine.isRunning
+        if !continuing { stop() }
         generation = token
         speaking = true
         firstFramePlayed = false
+        producerFinished = false
         let voice = Settings.shared.agentPocketVoice
         task = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
                 engine.mainMixerNode.outputVolume = max(0, min(1, volume))
                 if !engine.isRunning { try engine.start() }
-                player.play()
+                if !player.isPlaying { player.play() }
                 let frames = try await PocketAgentVoice.shared.frames(for: text, voice: voice)
                 for try await frame in frames {
                     try Task.checkCancellation()

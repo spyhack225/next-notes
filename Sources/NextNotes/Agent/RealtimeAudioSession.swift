@@ -214,13 +214,38 @@ final class RealtimeAudioSession {
         // One-word tails of a mixed echo are often ASR revisions of the
         // preceding clause. Never let one become a fresh tool request while
         // playback or its delayed tail is still near the microphone.
-        if residue.count == 1, recentOutputs.contains(where: {
-            (removedEcho || now.timeIntervalSince($0.at) < Self.echoWindow)
-                && Self.words(in: $0.text).contains { $0.value == residue[0].value }
+        if residue.count == 1, recentOutputs.contains(where: { reference in
+            let age = now.timeIntervalSince(reference.at)
+            guard removedEcho || age < Self.echoWindow else { return false }
+            return Self.words(in: reference.text).contains { spoken in
+                spoken.value == residue[0].value
+                    // SpeechAnalyzer rendered Pocket's "audio" as "Audi." in
+                    // the 09:48 recording. Only tolerate a one-edit mismatch
+                    // while playback is active or its fresh tail is arriving.
+                    || (residue[0].value.count >= 4 && age < 3
+                        && Self.oneEditApart(residue[0].value, spoken.value))
+            }
         }) {
             return ""
         }
         return remainder
+    }
+
+    private static func oneEditApart(_ lhs: String, _ rhs: String) -> Bool {
+        let a = Array(lhs), b = Array(rhs)
+        guard abs(a.count - b.count) <= 1, a != b else { return false }
+        var i = 0, j = 0, edits = 0
+        while i < a.count && j < b.count {
+            if a[i] == b[j] {
+                i += 1; j += 1
+                continue
+            }
+            edits += 1
+            guard edits <= 1 else { return false }
+            if a.count >= b.count { i += 1 }
+            if b.count >= a.count { j += 1 }
+        }
+        return edits + (a.count - i) + (b.count - j) <= 1
     }
 
     private static func words(in text: String) -> [Word] {
@@ -474,6 +499,13 @@ extension RealtimeAudioSession {
             now: Date().addingTimeInterval(Self.echoWindow + 1)
         ) != "Yes, I can hear you clearly" {
             failures.append("expired playback reference suppressed a new turn")
+        }
+        session.speak("I don't have ears to hear audio.")
+        if session.userSpeechExcludingPlayback("Audi.") != "" {
+            failures.append("09:48 one-word audio echo became a user turn")
+        }
+        if session.userSpeechExcludingPlayback("Stop.") != "Stop." {
+            failures.append("a distinct one-word interruption was suppressed")
         }
         return failures
     }

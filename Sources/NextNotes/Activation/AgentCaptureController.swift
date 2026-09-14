@@ -19,6 +19,9 @@ final class AgentCaptureController {
         /// After speech, this much quiet commits the turn. Qwen's provider VAD is
         /// typically a sub-second endpoint; 900 ms is enough to finish a clause.
         static let endpointSilence: TimeInterval = 0.9
+        /// A volatile recognition snapshot can arrive after mic energy falls.
+        /// Give its last revision a brief chance to settle before submitting it.
+        static let transcriptSettle: TimeInterval = 0.35
         static let minSpeech: TimeInterval = 0.25
         static let minCharacters = 2
         /// No speech after a reply: go back to sleep, like Qwen's SleepController.
@@ -62,6 +65,7 @@ final class AgentCaptureController {
     /// full snapshot matters: the analyzer can revise its volatile tail later.
     private var committedPrefix = ""
     private var latestFullTranscript = ""
+    private var lastTranscriptChangeAt: Date?
     /// Unfiltered SpeechAnalyzer turn. Keep this for cumulative-prefix tracking;
     /// `transcript` is the person-only form shown and sent to the Agent.
     private var rawTranscript = ""
@@ -167,6 +171,7 @@ final class AgentCaptureController {
         lastSpeechAt = Date()
         lastActivityAt = Date()
         latestFullTranscript = full
+        lastTranscriptChangeAt = Date()
         rawTranscript = Self.pending(full: full, committed: committedPrefix)
         transcript = RealtimeAudioSession.shared.userSpeechExcludingPlayback(rawTranscript)
     }
@@ -175,6 +180,15 @@ final class AgentCaptureController {
         level = 0
         inputLevel = 0
         lastSpeechAt = Date().addingTimeInterval(-Limits.endpointSilence - 0.05)
+        lastTranscriptChangeAt = Date().addingTimeInterval(-Limits.transcriptSettle - 0.05)
+    }
+
+    func simulateLateTranscriptRevisionForTesting() {
+        lastTranscriptChangeAt = Date()
+    }
+
+    func simulateSettledTranscriptForTesting() {
+        lastTranscriptChangeAt = Date().addingTimeInterval(-Limits.transcriptSettle - 0.05)
     }
 
     @discardableResult
@@ -194,6 +208,9 @@ final class AgentCaptureController {
                 for try await chunk in stream {
                     guard let self, self.isSessionActive else { return }
                     let full = chunk.text
+                    if full != self.latestFullTranscript {
+                        self.lastTranscriptChangeAt = Date()
+                    }
                     self.latestFullTranscript = full
                     let turn = Self.pending(full: full, committed: self.committedPrefix)
                     self.rawTranscript = turn
@@ -290,6 +307,7 @@ final class AgentCaptureController {
            let began = speechBeganAt,
            now.timeIntervalSince(lastSpeechAt) >= Limits.endpointSilence,
            now.timeIntervalSince(began) >= Limits.minSpeech,
+           lastTranscriptChangeAt.map({ now.timeIntervalSince($0) >= Limits.transcriptSettle }) ?? true,
            (inputLevel <= Limits.silenceLevel || force) {
             let text = pendingTurn()
             if text.isEmpty, !rawTranscript.isEmpty {
@@ -408,6 +426,7 @@ final class AgentCaptureController {
         transcript = ""
         rawTranscript = ""
         latestFullTranscript = ""
+        lastTranscriptChangeAt = nil
         heardSpeech = false
         speechBeganAt = nil
         lastSpeechAt = nil

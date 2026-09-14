@@ -452,6 +452,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-openrouter-speed        # live ranked catalog and endpoint throughput metrics
 "$S" --selftest-toolloop                # inspect → click must make both calls
 "$S" --selftest-toolloop-production     # opt-in model → read tool → model route
+"$S" --selftest-voice-grounding         # real local model answers spoken input and contextual voice follow-up
 "$S" --selftest-acp-confirm             # a missing CLI asks before local tools
 "$S" --selftest-scheduler               # background yields when realtime ASR is queued
 "$S" --selftest-capture                 # one mic engine serves wake + meeting + dictation

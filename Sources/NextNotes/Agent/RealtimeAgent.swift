@@ -172,14 +172,16 @@ final class RealtimeAgent {
             // A conversational turn does not need the full tool catalogue. The
             // model first answers or opts into tools; only the latter shows work.
             beginWork(title: "Thinking…")
-            let speech = AgentToolSpeechTracker(agent: self, turn: mine, allowSpeech: source == .voice)
+            let speech = AgentToolSpeechTracker(
+                agent: self, turn: mine, allowSpeech: source == .voice,
+                firstTokenTrace: replyTrace
+            )
             let result = await runModelTurn(text, speech: speech, voice: source == .voice)
             let reply = result.reply
+            speech.finishPendingFirstTokenTrace(note: isCurrent(mine) ? "no-token" : "superseded")
             guard isCurrent(mine) else {
-                replyTrace.end(note: "superseded")
                 return AgentTurn(reply: lastReply, delegated: false)
             }
-            replyTrace.end(note: result.usedTools ? "tool" : "answer")
             let speakable = !AgentSpeechPolicy.spokenClauses(reply).isEmpty
             // A model may still return a listing despite the voice instruction.
             // The verified tool output gives us a truthful, immediate fallback.
@@ -627,8 +629,17 @@ final class AgentSession {
         var remaining = min(Self.contextCharacters, max(0, maxCharacters ?? Self.contextCharacters))
         var selected: [String] = []
         for message in earlier.reversed() {
-            let label = message.role == "user" ? "User"
-                : "Assistant\(message.contextKind.map { " [\($0) result]" } ?? "")"
+            let label: String
+            if message.role == "user" {
+                label = switch message.source {
+                case "voice": "User [voice]"
+                case "text": "User [typed]"
+                case "meeting": "User [meeting]"
+                default: "User"
+                }
+            } else {
+                label = "Assistant\(message.contextKind.map { " [\($0) result]" } ?? "")"
+            }
             let room = min(1_800, remaining - label.count - 2)
             guard room > 0 else { break }
             let line = "\(label): \(String(message.text.prefix(room)))"

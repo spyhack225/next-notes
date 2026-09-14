@@ -513,6 +513,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-voice-grounding") {
+            Task { @MainActor in
+                SelfTest.failed = !(await RealtimeAgentToolLoopSelfTest.runVoiceGrounding())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-acp-confirm") {
             SelfTest.failed = !ACPConfirmation.runSelfTest()
             NSApp.terminate(nil)
@@ -3293,6 +3300,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             AgentCaptureController.shared.simulateCumulativeSpeech("Check email.")
             AgentCaptureController.shared.simulateSilence()
+            AgentCaptureController.shared.simulateLateTranscriptRevisionForTesting()
+            let prematureEndpoint = await AgentCaptureController.shared.considerEndpoint()
+            check("a late volatile transcript was committed before it settled", !prematureEndpoint)
+            AgentCaptureController.shared.simulateSettledTranscriptForTesting()
             _ = await AgentCaptureController.shared.considerEndpoint()
             await AgentCaptureController.shared.waitForActiveTurnForTesting()
             AgentCaptureController.shared.simulateCumulativeSpeech("Check email. Open Safari now.")
