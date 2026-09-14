@@ -49,6 +49,32 @@ enum RealtimeAgentToolLoopSelfTest {
         check("tool loop returned no final answer", !turn.reply.isEmpty)
         check("tool loop leaked a tool tag to the user", !turn.reply.contains("<tool_call>"))
 
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(secondsFromGMT: 0)!
+        let knownDay = utc.date(from: DateComponents(year: 2026, month: 9, day: 14))!
+        let today = AgentToolLoop.groundedArguments(
+            for: "get_agenda", proposed: ["date": "2023-10-27"],
+            request: "What's on my calendar for today?", now: knownDay, calendar: utc
+        )
+        check("the model's stale calendar date was not grounded", today["date"] == "2026-09-14")
+        let historical = AgentToolLoop.groundedArguments(
+            for: "get_agenda", proposed: ["date": "2023-10-27"],
+            request: "What was booked on 2023-10-27?", now: knownDay, calendar: utc
+        )
+        check("an explicit historical calendar date was overwritten", historical["date"] == "2023-10-27")
+
+        // A successful read is a usable answer even when a second model pass
+        // runs past the turn's deadline. This was the missing calendar reply.
+        let fallbackState = ToolLoopTestState()
+        agent.toolLoopLimitForTesting = .seconds(2)
+        agent.localModelProviderForTesting = ToolLoopTestProvider(
+            state: fallbackState, secondRoundDelay: .seconds(4)
+        )
+        let fallback = await agent.handle("which app is frontmost?", source: .text)
+        check("a completed read was thrown away on model timeout",
+              !fallback.reply.isEmpty && !fallback.reply.contains("too long"))
+        check("the second model pass was never exercised", (await fallbackState.rounds) >= 2)
+
         // Mutations are available to the planner, but a malformed request must
         // fail at the executor before prompting or changing the user's UI.
         agent.localModelProviderForTesting = ToolLoopTestProvider(
@@ -117,20 +143,24 @@ private struct ToolLoopTestProvider: LLMProvider {
     let state: ToolLoopTestState
     let firstCall: String
     let delay: Duration
+    let secondRoundDelay: Duration
     var contextTokens: Int { 4_096 }
     var unavailableReason: String? { get async { nil } }
 
-    init(state: ToolLoopTestState, firstCall: String = "computer.active_app", delay: Duration = .zero) {
+    init(state: ToolLoopTestState, firstCall: String = "computer.active_app",
+         delay: Duration = .zero, secondRoundDelay: Duration = .zero) {
         self.state = state
         self.firstCall = firstCall
         self.delay = delay
+        self.secondRoundDelay = secondRoundDelay
     }
 
     func countTokens(_ text: String) async throws -> Int { text.count / 4 + 1 }
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         let round = await state.next(user: user, system: system)
-        if delay > .zero { try await Task.sleep(for: delay) }
+        let wait = round > 1 ? secondRoundDelay : delay
+        if wait > .zero { try await Task.sleep(for: wait) }
         let text: String
         if round == 1 {
             text = "<tool_call>{\"name\":\"" + firstCall + "\",\"arguments\":{},\"rationale\":\"test\"}</tool_call>"

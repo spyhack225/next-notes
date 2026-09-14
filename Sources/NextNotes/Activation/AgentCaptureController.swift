@@ -56,6 +56,7 @@ final class AgentCaptureController {
     private var lastSpeechAt: Date?
     private var lastActivityAt: Date?
     private var committedPrefix = ""
+    private var lastEmittedRequest = ""
     private var captureAudio = true
 
     func begin() async {
@@ -73,6 +74,7 @@ final class AgentCaptureController {
         ActivationController.shared.markListening()
         lastEndpoint = .none
         lastReply = ""
+        lastEmittedRequest = ""
         resetTurn()
         IslandState.shared.showAgentListening(transcript: "", level: 0)
 
@@ -108,10 +110,10 @@ final class AgentCaptureController {
         RealtimeAudioSession.shared.end()
         stopVAD()
         await stopEngine()
-        let leftover = pendingTurn()
-        if source == .done, leftover.count >= Limits.minCharacters {
-            await emitTurn(leftover, source: .done, continueSession: false)
-        } else if lastReply.isEmpty {
+        // Done closes the session. The VAD endpoint is the only path that
+        // submits speech; a cumulative ASR tail after Done is often playback
+        // or a revision of a request already in flight.
+        if lastReply.isEmpty {
             IslandState.shared.showAgentReply(source == .idle ? "Going quiet." : "Stopped.")
             ActivationController.shared.finishAgent()
         } else {
@@ -120,6 +122,7 @@ final class AgentCaptureController {
         }
         transcript = ""
         heardSpeech = false
+        lastEmittedRequest = ""
     }
 
     /// Old name: callers that meant “user pressed Done” now end the session.
@@ -170,6 +173,7 @@ final class AgentCaptureController {
                     if (RealtimeAudioSession.shared.isSpeaking || RealtimeAgent.shared.isThinking),
                        turn.count >= Limits.minCharacters,
                        !RealtimeAudioSession.shared.isLikelyPlaybackEcho(turn),
+                       !Self.isInFlightRepeat(turn, previous: self.lastEmittedRequest),
                        !Self.isCommittedTranscriptRevision(turn, committed: self.committedPrefix),
                        let began = self.speechBeganAt,
                        Date().timeIntervalSince(began) >= Limits.minSpeech {
@@ -250,6 +254,21 @@ final class AgentCaptureController {
            (level <= Limits.silenceLevel || force) {
             let text = pendingTurn()
             if text.count >= Limits.minCharacters {
+                if RealtimeAgent.shared.isThinking,
+                   Self.isInFlightRepeat(text, previous: lastEmittedRequest) {
+                    // A repeated question or its unfinished prefix is not a new
+                    // command. Keep listening briefly for a different ending;
+                    // otherwise absorb the duplicate without cancelling the read.
+                    if now.timeIntervalSince(lastSpeechAt) < 2.5,
+                       Self.isPartialRepeat(text, previous: lastEmittedRequest) {
+                        return false
+                    }
+                    Log.agent.info("realtime · ignored repeated in-flight request")
+                    committedPrefix = committedPrefix.isEmpty
+                        ? transcript : committedPrefix + " " + transcript
+                    resetTurn()
+                    return true
+                }
                 if RealtimeAudioSession.shared.isLikelyPlaybackEcho(text) {
                     Log.agent.info("realtime · discarded playback echo")
                     committedPrefix = transcript
@@ -291,6 +310,7 @@ final class AgentCaptureController {
         continueSession: Bool
     ) async {
         lastEndpoint = source
+        lastEmittedRequest = text
         committedPrefix = committedPrefix.isEmpty ? transcript : committedPrefix + " " + text
         resetTurn()
         // Release the VAD before `handle` so the next utterance can barge in while
@@ -393,6 +413,25 @@ final class AgentCaptureController {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private static func repeatWords(_ text: String) -> String {
+        normalized(text.lowercased()
+            .replacingOccurrences(of: "what's", with: "what is")
+            .replacingOccurrences(of: "what’s", with: "what is"))
+    }
+
+    private static func isPartialRepeat(_ text: String, previous: String) -> Bool {
+        let current = repeatWords(text)
+        let earlier = repeatWords(previous)
+        guard !earlier.isEmpty, current.split(separator: " ").count <= 3 else { return false }
+        return earlier.hasPrefix(current + " ")
+    }
+
+    private static func isInFlightRepeat(_ text: String, previous: String) -> Bool {
+        let current = repeatWords(text)
+        return !current.isEmpty &&
+            (current == repeatWords(previous) || isPartialRepeat(text, previous: previous))
+    }
+
     static func transcriptBoundarySelfTestFailures() -> [String] {
         var failures: [String] = []
         if pending(full: "Check email.", committed: "check email") != "" {
@@ -411,6 +450,12 @@ final class AgentCaptureController {
         }
         if isCommittedTranscriptRevision("what about the calendar", committed: "Check email") {
             failures.append("a novel request was mistaken for an old revision")
+        }
+        if !isInFlightRepeat("What is", previous: "What's the content of my calendar for today?") {
+            failures.append("a partial repeat interrupted its original calendar read")
+        }
+        if isInFlightRepeat("Open Safari", previous: "What's on my calendar?") {
+            failures.append("a different request was suppressed as a repeat")
         }
         return failures
     }

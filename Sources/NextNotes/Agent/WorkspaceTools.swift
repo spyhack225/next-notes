@@ -91,7 +91,8 @@ enum WorkspaceTools {
             parameters: [
                 .init(
                     name: "date",
-                    description: "The day to list, as YYYY-MM-DD.",
+                    description: "The day to list, as YYYY-MM-DD. Omit for today in the user's local time zone.",
+                    isRequired: false,
                     kind: .date
                 )
             ],
