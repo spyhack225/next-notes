@@ -109,6 +109,11 @@ struct OpenRouterModel: Decodable, Identifiable, Sendable {
     }
 }
 
+struct OpenRouterModelSpeed: Equatable, Sendable {
+    let tokensPerSecond: Double
+    let provider: String
+}
+
 enum OpenRouterModelFilter: String, CaseIterable, Identifiable {
     case all = "All text"
     case agent = "Agent tools"
@@ -135,12 +140,22 @@ final class OpenRouterCatalog {
     private(set) var models: [OpenRouterModel] = []
     private(set) var isLoading = false
     private(set) var problem: String?
+    private(set) var speeds: [String: OpenRouterModelSpeed] = [:]
+    private(set) var checkedSpeedIDs: Set<String> = []
+    private(set) var failedSpeedIDs: Set<String> = []
+    private var loadingSpeedIDs: Set<String> = []
+    private var speedGeneration: UInt64 = 0
 
     func model(id: String) -> OpenRouterModel? { models.first { $0.id == id } }
 
     func clear() {
+        speedGeneration &+= 1
         models = []
         problem = nil
+        speeds = [:]
+        checkedSpeedIDs = []
+        failedSpeedIDs = []
+        loadingSpeedIDs = []
     }
 
     func refresh() async {
@@ -149,20 +164,99 @@ final class OpenRouterCatalog {
         defer { isLoading = false }
         do {
             guard let key = OpenRouterKeyStore.key else { throw OpenRouterError.missingKey }
-            var request = URLRequest(url: URL(string: "https://openrouter.ai/api/v1/models?output_modalities=text")!)
+            // OpenRouter ranks by recent p50 throughput. Its list response does
+            // not include the numeric rate, which comes from endpoint details.
+            var request = URLRequest(url: URL(string: "https://openrouter.ai/api/v1/models?output_modalities=text&sort=throughput-high-to-low")!)
             request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
             request.timeoutInterval = 30
             let (data, response) = try await URLSession.shared.data(for: request)
             try OpenRouterLLMProvider.validate(response, data: data)
             guard OpenRouterKeyStore.key == key else { return }
             let decoded = try JSONDecoder().decode(ModelResponse.self, from: data)
-            models = decoded.data.filter(\.isTextModel).sorted {
-                $0.name.localizedStandardCompare($1.name) == .orderedAscending
-            }
+            speedGeneration &+= 1
+            models = decoded.data.filter(\.isTextModel)
+            speeds = [:]
+            checkedSpeedIDs = []
+            failedSpeedIDs = []
+            loadingSpeedIDs = []
             problem = nil
         } catch {
             problem = error.localizedDescription
         }
+    }
+
+    /// Fetch rates only for rows currently visible in the picker. The catalog
+    /// may contain hundreds of models; loading every endpoint on open would
+    /// create hundreds of requests and delay the Settings screen.
+    func loadSpeeds(for ids: [String]) async {
+        guard let key = OpenRouterKeyStore.key else { return }
+        let generation = speedGeneration
+        var seen = Set<String>()
+        let wanted = ids.filter {
+            seen.insert($0).inserted && !checkedSpeedIDs.contains($0)
+                && !loadingSpeedIDs.contains($0)
+        }
+        loadingSpeedIDs.formUnion(wanted)
+        for start in stride(from: 0, to: wanted.count, by: 4) {
+            if Task.isCancelled || speedGeneration != generation { break }
+            let batch = Array(wanted[start..<min(start + 4, wanted.count)])
+            await withTaskGroup(of: (String, OpenRouterModelSpeed?, Bool).self) { group in
+                for id in batch {
+                    group.addTask {
+                        do {
+                            return (id, try await Self.fetchSpeed(for: id, key: key), true)
+                        } catch {
+                            return (id, nil, false)
+                        }
+                    }
+                }
+                for await (id, speed, succeeded) in group {
+                    guard speedGeneration == generation else { continue }
+                    loadingSpeedIDs.remove(id)
+                    if succeeded {
+                        failedSpeedIDs.remove(id)
+                        checkedSpeedIDs.insert(id)
+                        if let speed { speeds[id] = speed }
+                    } else {
+                        failedSpeedIDs.insert(id)
+                    }
+                }
+            }
+        }
+        if speedGeneration == generation { loadingSpeedIDs.subtract(wanted) }
+    }
+
+    private nonisolated static func fetchSpeed(for id: String, key: String) async throws -> OpenRouterModelSpeed? {
+        var components = URLComponents(string: "https://openrouter.ai")!
+        components.path = "/api/v1/models/\(id)/endpoints"
+        guard let url = components.url else { throw OpenRouterError.invalidResponse }
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 15
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try OpenRouterLLMProvider.validate(response, data: data)
+        return try parseSpeed(data)
+    }
+
+    nonisolated static func parseSpeed(_ data: Data) throws -> OpenRouterModelSpeed? {
+        let response = try JSONDecoder().decode(EndpointResponse.self, from: data)
+        return response.data.endpoints.compactMap { endpoint in
+            guard let rate = endpoint.throughput_last_30m?.p50,
+                  rate.isFinite, rate > 0 else { return nil }
+            return OpenRouterModelSpeed(tokensPerSecond: rate, provider: endpoint.provider_name)
+        }.max { $0.tokensPerSecond < $1.tokensPerSecond }
+    }
+
+    private struct EndpointResponse: Decodable {
+        let data: ModelEndpoints
+    }
+    private struct ModelEndpoints: Decodable {
+        let endpoints: [ModelEndpoint]
+    }
+    private struct ModelEndpoint: Decodable {
+        struct Throughput: Decodable { let p50: Double? }
+        let provider_name: String
+        let throughput_last_30m: Throughput?
     }
 
     private struct ModelResponse: Decodable { let data: [OpenRouterModel] }
@@ -332,6 +426,24 @@ enum OpenRouterSelfTest {
     }
 }
 
+@MainActor
+enum OpenRouterSpeedSelfTest {
+    static func run() async throws -> String {
+        guard OpenRouterKeyStore.key != nil else { throw OpenRouterError.missingKey }
+        let catalog = OpenRouterCatalog.shared
+        await catalog.refresh()
+        if let problem = catalog.problem { throw OpenRouterError.http(0, problem) }
+        let ids = Array(catalog.models.prefix(12).map(\.id))
+        guard !ids.isEmpty else { throw OpenRouterError.invalidResponse }
+        await catalog.loadSpeeds(for: ids)
+        guard ids.allSatisfy({ catalog.checkedSpeedIDs.contains($0) }),
+              ids.contains(where: { catalog.speeds[$0] != nil }) else {
+            throw OpenRouterError.invalidResponse
+        }
+        return "checked \(ids.count) ranked models; \(catalog.speeds.count) reported recent tok/s"
+    }
+}
+
 enum OpenRouterContractSelfTest {
     static func run() -> Bool {
         let fixture = """
@@ -346,6 +458,15 @@ enum OpenRouterContractSelfTest {
               OpenRouterModelFilter.agent.includes(model),
               OpenRouterModelFilter.free.includes(model),
               model.priceLabel.contains("$0.00"),
+              let endpointData = """
+                  {"data":{"endpoints":[
+                    {"provider_name":"Slow","throughput_last_30m":{"p50":34.5}},
+                    {"provider_name":"Fast","throughput_last_30m":{"p50":102.3}},
+                    {"provider_name":"Unknown","throughput_last_30m":null}
+                  ]}}
+                  """.data(using: .utf8),
+              let speed = try? OpenRouterCatalog.parseSpeed(endpointData),
+              speed.provider == "Fast", speed.tokensPerSecond == 102.3,
               let chunk = try? OpenRouterLLMProvider.parseStreamLine(
                   "data: {\"choices\":[{\"delta\":{\"content\":\"OK\"}}]}"
               ), chunk == "OK",
