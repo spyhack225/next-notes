@@ -68,8 +68,9 @@ actor MCPSession {
             "name": name,
             "arguments": convertedArguments,
         ]
+        let paramsJSON = try JSONSerialization.data(withJSONObject: params)
         if let client {
-            let data = try await client.request(method: "tools/call", params: params)
+            let data = try await client.request(method: "tools/call", paramsJSON: paramsJSON)
             let result = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
             if let content = result["content"] as? [[String: Any]] {
                 return content.compactMap { $0["text"] as? String }.joined(separator: "\n")
