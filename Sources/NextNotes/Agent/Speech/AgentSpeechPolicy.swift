@@ -40,6 +40,52 @@ enum AgentSpeechPolicy {
         return splitIntoClauses(spoken)
     }
 
+    /// Immediate voice form of a verified tool result. The full result remains in
+    /// the text conversation. This path runs no model and never reads an opaque
+    /// identifier, URL, path, or multiline listing to the speaker.
+    static func toolResultSummary(toolID: String, result: String) -> String? {
+        if !spokenForm(result).isEmpty { return result }
+        let lines = result.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        switch toolID {
+        case "get_agenda":
+            let events = lines.filter { $0.hasPrefix("- ") }.map { String($0.dropFirst(2)) }
+            guard !events.isEmpty else { break }
+            let first = events[0].replacingOccurrences(of: " — ", with: ", ")
+            let intro = "I found \(events.count) calendar "
+                + (events.count == 1 ? "event" : "events")
+            let details = events.prefix(3).map {
+                String($0.replacingOccurrences(of: " — ", with: ", ").prefix(90))
+            }
+            let candidate = intro + ". " + (events.count == 1
+                ? "It's \(String(first.prefix(140)))."
+                : "They include \(details.joined(separator: "; ")).")
+            return spokenForm(candidate).isEmpty
+                ? "I found \(events.count) calendar events. The details are in the conversation."
+                : candidate
+        case "search_email":
+            let emails = lines.filter { $0.hasPrefix("- id ") }
+            guard let first = emails.first else { break }
+            let pieces = first.components(separatedBy: " — ")
+            guard pieces.count >= 3 else { return "I found \(emails.count) matching emails." }
+            let sender = pieces[1].replacingOccurrences(of: "from ", with: "")
+            let subject = pieces[2]
+            let candidate = "I found \(emails.count) matching emails. The latest is from "
+                + "\(String(sender.prefix(70))), about \(String(subject.prefix(100)))."
+            return spokenForm(candidate).isEmpty
+                ? "I found \(emails.count) matching emails. The details are in the conversation."
+                : candidate
+        case "filesystem.search", "find_drive_files":
+            let matches = lines.filter { $0.hasPrefix("- ") }
+            if !matches.isEmpty {
+                return "I found \(matches.count) matching files. The details are in the conversation."
+            }
+        default: break
+        }
+        return result.isEmpty ? nil
+            : "I have the result, but its details are easier to read in the conversation."
+    }
+
     /// Streaming guard used after a clause may already have started. Once unsafe
     /// content appears, queued speech is stopped so URLs, tool output and code never
     /// continue through the speaker.
@@ -265,6 +311,24 @@ enum AgentSpeechPolicy {
         let listingSpoken = spokenForm(listing)
         if !listingSpoken.isEmpty {
             failures.append("long listing should be silent, got “\(listingSpoken)”")
+        }
+
+        let agenda = """
+            On Monday, September 14, 2026:
+            - 9:00 AM — Weekly plan
+            - 10:00 AM — Design review
+            - 2:00 PM — Planning
+            """
+        let agendaSummary = toolResultSummary(toolID: "get_agenda", result: agenda) ?? ""
+        if agendaSummary != "I found 3 calendar events. They include 9:00 AM, Weekly plan; 10:00 AM, Design review; 2:00 PM, Planning." {
+            failures.append("calendar listing did not produce a concise voice answer: \(agendaSummary)")
+        }
+        if spokenForm(agendaSummary).isEmpty {
+            failures.append("calendar voice answer was not speakable")
+        }
+        let unsafeAgenda = "On Monday:\n- 9:00 AM — https://example.com/private"
+        if toolResultSummary(toolID: "get_agenda", result: unsafeAgenda)?.contains("https://") == true {
+            failures.append("calendar voice answer spoke a URL")
         }
 
         let short = "I found three files."
