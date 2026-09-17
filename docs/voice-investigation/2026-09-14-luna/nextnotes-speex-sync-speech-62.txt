@@ -1,0 +1,1 @@
+ECHO_SPEECH_OK: echo ERLE 20.7 dB, near correlation 0.87, near gain 0.73

@@ -28,7 +28,7 @@ enum RealtimeAgentLocalModelSelfTest {
 
         let state = LocalAnswerTestState()
         check("Agent history did not survive a disk round trip", AgentSession.persistenceSelfTest())
-        AgentSession.shared.recordUser("What was the project codename?")
+        AgentSession.shared.recordUser("What was the project codename?", source: .voice)
         AgentSession.shared.recordAssistant("The project codename is Silver Fern.")
         let duplicateStart = Date()
         check("voice duplicate was not detected",
@@ -43,6 +43,10 @@ enum RealtimeAgentLocalModelSelfTest {
               ))
         check("different voice request was suppressed",
               !AgentSession.shared.isRecentDuplicateVoiceTurn("Open the calendar"))
+        AgentSession.shared.recordUser("Typed check", source: .text)
+        AgentSession.shared.recordAssistant("I received the typed check.")
+        check("a matching typed request suppressed a new voice turn",
+              !AgentSession.shared.isRecentDuplicateVoiceTurn("Typed check"))
         agent.localModelProviderForTesting = LocalAnswerTestProvider(
             chunks: ["The first answer.", " The second answer."],
             delay: .milliseconds(400),

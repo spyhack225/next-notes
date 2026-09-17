@@ -33,11 +33,23 @@ let package = Package(
             path: "Sources/SherpaOnnxKWS",
             publicHeadersPath: "include"
         ),
+        // BSD-licensed Xiph SpeexDSP acoustic echo canceller, vendored from
+        // xiph/speexdsp. No Homebrew or runtime network dependency.
+        .target(
+            name: "SpeexEcho",
+            path: "Sources/SpeexEcho",
+            exclude: ["LICENSE"],
+            sources: ["mdf.c", "fftwrap.c", "kiss_fft.c", "kiss_fftr.c",
+                      "preprocess.c", "filterbank.c"],
+            publicHeadersPath: "include",
+            cSettings: [.headerSearchPath("."), .define("HAVE_CONFIG_H")]
+        ),
         .executableTarget(
             name: "NextNotes",
             dependencies: [
                 "NextNotesDictionary",
                 "SherpaOnnxKWS",
+                "SpeexEcho",
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 "LlamaFramework",
             ],

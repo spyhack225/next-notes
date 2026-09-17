@@ -1,0 +1,1 @@
+VOICE_ECHO_LIVE_FAILED: enqueued=4 started=4 completed=3 interrupted=1 userTurns=0 rawRMS=0.004887832516867436 baselineRMS=0.0018155996262148105 speakerExcess=0.004538116868287472 playbackWindowFrames=99839 reference=(rms: 0.05119032585568498, frames: 266560) asrFedFrames=266746 eouProcessed=true eouReady=true

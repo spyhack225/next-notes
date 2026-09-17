@@ -11,7 +11,7 @@ name: Release
 #
 # Signing follows the Makefile. A runner with no Developer ID produces an
 # ad-hoc signature, and Gatekeeper will refuse a downloaded copy until Phase 1
-# of docs/PAID-RELEASE.md lands the certificate in `DEVELOPER_ID_P12_*`.
+# of the paid-release plan (local roadmap/PAID-RELEASE.md) lands the certificate in `DEVELOPER_ID_P12_*`.
 # Notarization is the same story and is not attempted here.
 
 on:

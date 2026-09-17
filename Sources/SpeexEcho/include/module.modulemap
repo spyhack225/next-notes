@@ -1,0 +1,4 @@
+module SpeexEcho {
+    umbrella header "SpeexEcho.h"
+    export *
+}

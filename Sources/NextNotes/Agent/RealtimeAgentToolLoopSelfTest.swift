@@ -13,51 +13,49 @@ enum RealtimeAgentToolLoopSelfTest {
             print("TOOL_AWARENESS_FAILED: \(reason)")
             return false
         }
-        let system = RealtimeAgent.modelTurnSystem(voice: true)
-        let probes: [(name: String, prompt: String, conversation: String)] = [
-            ("CALENDAR", "What is on my calendar for today?", ""),
-            ("PRIOR_DENIAL", "Please check my calendar for today.", """
-                User [voice]: What is on my calendar today?
-                Assistant: I don't have access to your calendar.
-                """),
-            ("MEETING_ACTIONS", "What action items came from my last meeting?", ""),
-            ("CAPABILITIES", "Can you check your tools?", ""),
-            ("TODO", "What is on your to-do list for today?", ""),
+        let system = RealtimeAgent.voiceRoutingSystem(voice: true)
+        let probes: [(name: String, messages: [LLMChatMessage], expected: String)] = [
+            ("CALENDAR", [.init(role: .user, content: "What is on my calendar for today?")],
+             "<use_tools/>"),
+            ("PRIOR_DENIAL", [
+                .init(role: .user, content: "What is on my calendar today?"),
+                .init(role: .assistant, content: "I don't have access to your calendar."),
+                .init(role: .user, content: "Please check my calendar for today.")
+            ], "<use_tools/>"),
+            ("MEETING_ACTIONS", [
+                .init(role: .user, content: "What action items came from my last meeting?")
+            ], "<use_tools/>"),
+            ("CAPABILITIES", [.init(role: .user, content: "Can you check your tools?")],
+             "<answer/>"),
+            ("MY_TODO", [.init(role: .user, content: "What is on my to-do list for today?")],
+             "<use_tools/>"),
+            ("YOUR_TODO", [.init(role: .user, content: "What is on your to-do list for today?")],
+             "<answer/>"),
         ]
         var failures: [String] = []
         for probe in probes {
             let response: String? = await withBoundedWait(.seconds(90)) {
                 do {
                     var answer = ""
-                    let stream = await provider.stream(
-                        system: system,
-                        user: RealtimeAgent.modelTurnUser(
-                            probe.prompt, conversation: probe.conversation
-                        ),
-                        maxTokens: 96
+                    let stream = await provider.streamConversation(
+                        system: system, messages: probe.messages, maxTokens: 112
                     )
-                    for try await chunk in stream { answer += chunk }
+                    for try await chunk in stream {
+                        answer += chunk
+                        if VoiceResponseEnvelope.parse(answer) == .tools { return "<use_tools/>" }
+                    }
+                    if case .answer(let text) = VoiceResponseEnvelope.parse(answer), !text.isEmpty {
+                        return "<answer/>"
+                    }
                     return answer.trimmingCharacters(in: .whitespacesAndNewlines)
                 } catch {
                     return "ERROR: \(error.localizedDescription)"
                 }
             }
             let answer = response ?? ""
-            let lowered = answer.lowercased()
             print("TOOL_AWARENESS_\(probe.name): \(String(answer.prefix(240)))")
-            if answer.isEmpty || lowered.hasPrefix("error:") {
-                failures.append("\(probe.name): no model answer")
-            } else if ["CALENDAR", "PRIOR_DENIAL", "MEETING_ACTIONS"].contains(probe.name),
-                      answer != "<use_tools/>" {
-                failures.append("\(probe.name): did not request a read tool")
-            } else if probe.name == "CAPABILITIES",
-                      answer == "<use_tools/>" || lowered.contains("don't have access")
-                        || !(lowered.contains("calendar") || lowered.contains("get_agenda")) {
-                failures.append("CAPABILITIES: denied or omitted the calendar tool")
-            } else if probe.name == "TODO",
-                      lowered.contains("don't have access to your calendar")
-                        || lowered.contains("don't have access to my tools") {
-                failures.append("TODO: invented a lack of listed capabilities")
+            if answer != probe.expected {
+                failures.append("\(probe.name): expected \(probe.expected), got \(answer)")
             }
         }
         for failure in failures { print("TOOL_AWARENESS_WRONG: \(failure)") }
@@ -77,9 +75,9 @@ enum RealtimeAgentToolLoopSelfTest {
         let response: String? = await withBoundedWait(.seconds(90)) {
             do {
                 var answer = ""
-                let stream = await provider.stream(
+                let stream = await provider.streamConversation(
                     system: RealtimeAgent.modelTurnSystem(voice: true),
-                    user: RealtimeAgent.modelTurnUser("Can you hear me?"),
+                    messages: [.init(role: .user, content: "Can you hear me?")],
                     maxTokens: 96
                 )
                 for try await chunk in stream { answer += chunk }
@@ -99,13 +97,14 @@ enum RealtimeAgentToolLoopSelfTest {
         let followUp: String? = await withBoundedWait(.seconds(90)) {
             do {
                 var answer = ""
-                let stream = await provider.stream(
+                let stream = await provider.streamConversation(
                     system: RealtimeAgent.modelTurnSystem(voice: true),
-                    user: RealtimeAgent.modelTurnUser("Why is he choppy?", conversation: """
-                        User [voice]: Can you hear me?
-                        Assistant: Yes, I received your spoken words.
-                        User [voice]: Your voice keeps breaking mid-answer.
-                        """),
+                    messages: [
+                        .init(role: .user, content: "Can you hear me?"),
+                        .init(role: .assistant, content: "Yes, I received your spoken words."),
+                        .init(role: .user, content: "Your voice keeps breaking mid-answer."),
+                        .init(role: .user, content: "Why is he choppy?")
+                    ],
                     maxTokens: 96
                 )
                 for try await chunk in stream { answer += chunk }
@@ -135,8 +134,43 @@ enum RealtimeAgentToolLoopSelfTest {
             && !followUpLower.contains("microphone issue")
             && !followUpLower.contains("restarting your device")
         print("VOICE_FOLLOWUP_RESPONSE: \(String(followUpAnswer.prefix(240)))")
-        print(correct && understandsReferent ? "VOICE_GROUNDING_OK" : "VOICE_GROUNDING_FAILED")
-        return correct && understandsReferent
+        // September 14 recording: the previous answer about tools was repeated
+        // when the user changed the subject to the earlier model timeout.
+        let timeoutFollowUp: String? = await withBoundedWait(.seconds(90)) {
+            do {
+                var answer = ""
+                let stream = await provider.streamConversation(
+                    system: RealtimeAgent.modelTurnSystem(voice: true),
+                    messages: [
+                        .init(role: .user, content: "Can you hear me?"),
+                        .init(role: .assistant, content: "The model took too long to answer."),
+                        .init(role: .user, content: "Why did you use a tool? It was a simple question."),
+                        .init(role: .assistant, content: "I didn't use any tools; I answered directly."),
+                        .init(role: .user, content: "Why did it say the model took too long to answer?")
+                    ],
+                    maxTokens: 96
+                )
+                for try await chunk in stream { answer += chunk }
+                return answer.trimmingCharacters(in: .whitespacesAndNewlines)
+            } catch {
+                return "ERROR: \(error.localizedDescription)"
+            }
+        }
+        let timeoutAnswer = timeoutFollowUp ?? ""
+        let timeoutLower = timeoutAnswer.lowercased()
+        let addressesTimeout = !timeoutAnswer.isEmpty
+            && !timeoutLower.hasPrefix("error:")
+            && !timeoutAnswer.contains("<use_tools")
+            && (timeoutLower.contains("model") || timeoutLower.contains("timeout")
+                || timeoutLower.contains("timed out")
+                || (timeoutLower.contains("response generation")
+                    && timeoutLower.contains("longer")))
+            && !timeoutLower.contains("i didn't use any tools")
+            && !timeoutLower.contains("no delay")
+        print("VOICE_TIMEOUT_FOLLOWUP_RESPONSE: \(String(timeoutAnswer.prefix(240)))")
+        print(correct && understandsReferent && addressesTimeout
+            ? "VOICE_GROUNDING_OK" : "VOICE_GROUNDING_FAILED")
+        return correct && understandsReferent && addressesTimeout
     }
 
     @MainActor
@@ -184,9 +218,8 @@ enum RealtimeAgentToolLoopSelfTest {
         check("tool loop returned no final answer", !turn.reply.isEmpty)
         check("tool loop leaked a tool tag to the user", !turn.reply.contains("<tool_call>"))
 
-        // A conversational turn stays in the short answer stream. The first
-        // model prompt must not include the full tool catalogue, and no second
-        // planner pass may run for a question that needs no external state.
+        // A conversational answer streams in its routing pass. No second
+        // model prefill, and no full tool schema on the speech path.
         let directState = ToolLoopTestState()
         agent.localModelProviderForTesting = ToolLoopTestProvider(
             state: directState, firstCall: ""
@@ -196,11 +229,11 @@ enum RealtimeAgentToolLoopSelfTest {
         let directRounds = await directState.rounds
         let firstPromptCharacters = await directState.firstSystemCharacters
         check("conversation entered tool planning (\(directRounds) rounds)", directRounds == 1)
-        let firstPrompt = RealtimeAgent.modelTurnSystem(voice: false)
-        let missing = RealtimeAgent.plannableTools().filter { !firstPrompt.contains($0.id) }
-        check("first pass omitted plannable tools: \(missing.map(\.id))", missing.isEmpty)
-        check("conversation loaded the full tool schema (\(firstPromptCharacters) chars)",
-              firstPromptCharacters < 4_000)
+        let firstPrompt = RealtimeAgent.voiceRoutingSystem(voice: false)
+        check("first pass omitted the model tool decision", firstPrompt.contains("<use_tools/>"))
+        check("conversation prompt still carries the full tool roster (\(firstPromptCharacters) chars)",
+              firstPromptCharacters < 1_500)
+
 
         var utc = Calendar(identifier: .gregorian)
         utc.timeZone = TimeZone(secondsFromGMT: 0)!
@@ -225,7 +258,8 @@ enum RealtimeAgentToolLoopSelfTest {
         )
         let fallback = await agent.handle("which app is frontmost?", source: .text)
         check("a completed read was thrown away on model timeout",
-              !fallback.reply.isEmpty && !fallback.reply.contains("too long"))
+              fallback.reply.contains("Remaining steps are unfinished.")
+                  && fallback.reply.components(separatedBy: "\n").first?.isEmpty == false)
         check("the second model pass was never exercised", (await fallbackState.rounds) >= 2)
 
         // Mutations are available to the planner, but a malformed request must
@@ -361,7 +395,7 @@ private struct ToolLoopTestProvider: LLMProvider {
                 do {
                     if firstCall.isEmpty {
                         _ = await state.next(user: user, system: system)
-                        continuation.yield("First answer.")
+                        continuation.yield("<answer/>First answer.")
                         try await Task.sleep(for: delay)
                         continuation.yield(" Second answer.")
                     } else {

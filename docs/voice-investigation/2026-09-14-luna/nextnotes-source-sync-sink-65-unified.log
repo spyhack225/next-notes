@@ -1,0 +1,113 @@
+Timestamp               Ty Process[PID:TID]
+2026-09-14 20:08:49.220 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] duplex · begin
+2026-09-14 20:08:49.222 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789430929.225 token=1 backing=RecordingSpeechBacking characters=26
+2026-09-14 20:08:49.224 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] realtime · discarded speech activity without usable words
+2026-09-14 20:08:49.225 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789430929.228 token=2 backing=RecordingSpeechBacking characters=35
+2026-09-14 20:08:49.225 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] voice partial owner: local decoder caught up
+2026-09-14 20:08:49.225 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] realtime · discarded speech activity without usable words
+2026-09-14 20:08:49.226 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] realtime · removed playback from mixed turn
+2026-09-14 20:08:49.226 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] duplex · barge-in stop 0.0000s
+2026-09-14 20:08:49.227 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:metrics] span · agent.barge_in_to_tts_stopped · 0.000s
+2026-09-14 20:08:49.227 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] realtime · endpoint localEOU
+2026-09-14 20:08:49.277 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] duplex · end
+2026-09-14 20:08:49.282 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:island] island notice: agentReply("Stopped.")
+2026-09-14 20:08:49.282 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] duplex · begin
+2026-09-14 20:08:49.282 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789430929.285 token=3 backing=RecordingSpeechBacking characters=37
+2026-09-14 20:08:49.282 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] realtime · endpoint vad
+2026-09-14 20:08:49.283 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] duplex · barge-in stop 0.0000s
+2026-09-14 20:08:49.283 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:metrics] span · agent.barge_in_to_tts_stopped · 0.000s
+2026-09-14 20:08:49.283 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] realtime · endpoint vad
+2026-09-14 20:08:49.286 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789430929.289 token=4 backing=RecordingSpeechBacking characters=37
+2026-09-14 20:08:49.287 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] realtime · absorbed conversational acknowledgment
+2026-09-14 20:08:49.293 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] duplex · barge-in stop 0.0000s
+2026-09-14 20:08:49.293 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:metrics] span · agent.barge_in_to_tts_stopped · 0.000s
+2026-09-14 20:08:49.293 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] realtime · endpoint vad
+2026-09-14 20:08:49.300 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] realtime · discarded speech activity without usable words
+2026-09-14 20:08:49.300 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789430929.303 token=5 backing=RecordingSpeechBacking characters=37
+2026-09-14 20:08:49.301 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] realtime · removed playback from mixed turn
+2026-09-14 20:08:49.301 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] duplex · barge-in stop 0.0000s
+2026-09-14 20:08:49.301 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:metrics] span · agent.barge_in_to_tts_stopped · 0.000s
+2026-09-14 20:08:49.301 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] realtime · endpoint localEOU
+2026-09-14 20:08:49.301 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789430929.304 token=6 backing=RecordingSpeechBacking characters=37
+2026-09-14 20:08:49.302 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] voice partial owner: local decoder caught up
+2026-09-14 20:08:49.302 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] voice partial owner: local decoder caught up
+2026-09-14 20:08:49.302 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] voice partial owner: Apple fallback · self-test decoder failure
+2026-09-14 20:08:49.302 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] voice partial owner: local decoder caught up
+2026-09-14 20:08:49.303 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] duplex · end
+2026-09-14 20:08:49.303 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:island] island notice: agentReply("Stopped.")
+2026-09-14 20:08:49.303 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] duplex · begin
+2026-09-14 20:08:49.303 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789430929.306 token=7 backing=RecordingSpeechBacking characters=37
+2026-09-14 20:08:49.304 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] realtime · absorbed conversational acknowledgment
+2026-09-14 20:08:49.304 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] duplex · barge-in stop 0.0000s
+2026-09-14 20:08:49.305 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:metrics] span · agent.barge_in_to_tts_stopped · 0.000s
+2026-09-14 20:08:49.305 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] realtime · endpoint vad
+2026-09-14 20:08:49.305 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] duplex · end
+2026-09-14 20:08:49.305 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:island] island notice: agentReply("Stopped.")
+2026-09-14 20:08:49.305 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] duplex · begin
+2026-09-14 20:08:49.305 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789430929.308 token=8 backing=RecordingSpeechBacking characters=37
+2026-09-14 20:08:49.305 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:agent] duplex · end
+2026-09-14 20:08:49.305 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:island] island notice: agentReply("Stopped.")
+2026-09-14 20:08:49.306 I  NextNotes[70254:b2db9] [ai.pivotstudio.nextnotes:app] selftest · VOICE_TURNS_OK
+2026-09-14 20:09:08.415 I  NextNotes[70460:b3355] [ai.pivotstudio.nextnotes:hotkey] listening for <private>
+2026-09-14 20:09:08.420 I  NextNotes[70460:b3355] [ai.pivotstudio.nextnotes:hotkey] listening for <private>
+2026-09-14 20:09:08.421 I  NextNotes[70460:b3355] [ai.pivotstudio.nextnotes:meeting] meeting scheduler running
+2026-09-14 20:09:09.114 I  NextNotes[70460:b3355] [ai.pivotstudio.nextnotes:audio] capture hub started — native 48000.000000Hz · <private> shared input
+2026-09-14 20:09:09.114 I  NextNotes[70460:b3355] [ai.pivotstudio.nextnotes:agent] wake audio · listening for Hey Next
+2026-09-14 20:09:09.114 I  NextNotes[70460:b3355] [ai.pivotstudio.nextnotes:app] Next Notes ready — hold <private> to dictate
+2026-09-14 20:09:09.335 I  NextNotes[70460:b34b0] [ai.pivotstudio.nextnotes:speech] Parakeet: loading models from disk
+2026-09-14 20:09:09.342 I  NextNotes[70460:b3355] [ai.pivotstudio.nextnotes:calls] call detector running
+2026-09-14 20:09:09.386 I  NextNotes[70460:b34b1] [ai.pivotstudio.nextnotes:agent] gws auth status
+2026-09-14 20:09:10.216 I  NextNotes[70460:b34b1] [ai.pivotstudio.nextnotes:llm] llama.cpp backend initialized — metal <private>
+2026-09-14 20:09:10.237 I  NextNotes[70460:b34b0] [ai.pivotstudio.nextnotes:speech] Parakeet: ready in 0.9s
+2026-09-14 20:09:16.033 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] duplex · begin
+2026-09-14 20:09:16.548 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] voice capture format float32/16000 → Apple ASR 3/16000
+2026-09-14 20:09:16.562 I  NextNotes[70533:b384e] [ai.pivotstudio.nextnotes:speech] biasing with 6 dictionary phrase(s) + 0 screen name(s)
+2026-09-14 20:09:16.563 I  NextNotes[70533:b384e] [ai.pivotstudio.nextnotes:speech] SpeechAnalyzer started for <private>
+2026-09-14 20:09:16.926 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:audio] capture hub started — native 48000.000000Hz · <private> shared input
+2026-09-14 20:09:18.001 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] voice playback route selected=settings <private>
+2026-09-14 20:09:18.002 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789430958.005 token=1 backing=PocketSpeechBacking characters=35
+2026-09-14 20:09:18.002 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Pocket TTS clause submitted 1789430958.005 token=1 characters=35
+2026-09-14 20:09:19.956 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Pocket TTS first PCM 1789430959.958 token=1 synthesis=1.954s samples=1920
+2026-09-14 20:09:20.073 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Pocket TTS first played 1789430960.076 token=1 synthesis=1.954s render=0.118s firstSamples=1920
+2026-09-14 20:09:22.007 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789430962.010 token=2 backing=PocketSpeechBacking characters=29
+2026-09-14 20:09:22.008 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Pocket TTS clause submitted 1789430962.011 token=2 characters=29
+2026-09-14 20:09:22.132 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Pocket TTS first PCM 1789430962.134 token=2 synthesis=0.123s samples=1920
+2026-09-14 20:09:22.243 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Pocket TTS first played 1789430962.246 token=2 synthesis=0.123s render=0.111s firstSamples=1920
+2026-09-14 20:09:25.591 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] realtime · removed playback from mixed turn
+2026-09-14 20:09:25.603 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] duplex · barge-in stop 0.0092s
+2026-09-14 20:09:25.607 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:metrics] span · agent.barge_in_to_tts_stopped · 0.009s
+2026-09-14 20:09:25.609 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] realtime · endpoint vad
+2026-09-14 20:09:28.643 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] voice playback route selected=settings <private>
+2026-09-14 20:09:28.644 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789430968.646 token=3 backing=PocketSpeechBacking characters=26
+2026-09-14 20:09:28.644 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Pocket TTS clause submitted 1789430968.647 token=3 characters=26
+2026-09-14 20:09:28.733 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Pocket TTS first PCM 1789430968.735 token=3 synthesis=0.088s samples=1920
+2026-09-14 20:09:28.835 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Pocket TTS first played 1789430968.838 token=3 synthesis=0.088s render=0.102s firstSamples=1920
+2026-09-14 20:09:29.748 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] voice partial owner: local decoder caught up
+2026-09-14 20:09:32.141 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] realtime · discarded speech activity without usable words
+2026-09-14 20:09:32.141 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789430972.144 token=4 backing=PocketSpeechBacking characters=28
+2026-09-14 20:09:32.142 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Pocket TTS clause submitted 1789430972.145 token=4 characters=28
+2026-09-14 20:09:32.239 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Pocket TTS first PCM 1789430972.242 token=4 synthesis=0.097s samples=1920
+2026-09-14 20:09:32.351 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] Pocket TTS first played 1789430972.354 token=4 synthesis=0.097s render=0.112s firstSamples=1920
+2026-09-14 20:09:36.793 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] duplex · end
+2026-09-14 20:09:36.837 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:island] island notice: agentReply("Stopped.")
+2026-09-14 20:09:37.208 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:agent] wake audio · listening for Hey Next
+2026-09-14 20:09:37.210 I  NextNotes[70533:b3796] [ai.pivotstudio.nextnotes:app] selftest · VOICE_ECHO_LIVE_FAILED: enqueued=4 started=4 completed=3 interrupted=1 pausedPolls=40 userTurns=1 rawRMS=0.005065705839782786 baselineRMS=1.6723013168278512e-06 speakerExcess=0.005065705563750989 playbackWindowFrames=128037 reference=(rms: 0.05867922762366226, frames: 166400) asrFedFrames=316610 eouProcessed=true eouReady=true
+2026-09-14 20:10:08.023 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:agent] duplex · begin
+2026-09-14 20:10:08.633 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:agent] voice capture format float32/16000 → Apple ASR 3/16000
+2026-09-14 20:10:08.761 I  NextNotes[70944:b43eb] [ai.pivotstudio.nextnotes:speech] biasing with 6 dictionary phrase(s) + 0 screen name(s)
+2026-09-14 20:10:08.761 I  NextNotes[70944:b43eb] [ai.pivotstudio.nextnotes:speech] SpeechAnalyzer started for <private>
+2026-09-14 20:10:09.058 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:audio] capture hub started — native 48000.000000Hz · <private> shared input
+2026-09-14 20:10:09.071 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:agent] voice playback route selected=pocket-source
+2026-09-14 20:10:10.075 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:agent] voice playback route selected=persistent <private>
+2026-09-14 20:10:10.076 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789431010.078 token=1 backing=PocketSourceSpeechBacking characters=35
+2026-09-14 20:10:14.477 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789431014.480 token=2 backing=PocketSourceSpeechBacking characters=29
+2026-09-14 20:10:17.675 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:agent] realtime · discarded speech activity without usable words
+2026-09-14 20:10:20.547 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:agent] realtime · discarded speech activity without usable words
+2026-09-14 20:10:21.671 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:agent] voice playback route selected=persistent <private>
+2026-09-14 20:10:21.671 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789431021.674 token=3 backing=PocketSourceSpeechBacking characters=26
+2026-09-14 20:10:23.227 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789431023.230 token=4 backing=PocketSourceSpeechBacking characters=28
+2026-09-14 20:10:27.915 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:agent] duplex · end
+2026-09-14 20:10:27.923 E  NextNotes[70944:b42ff] [ai.pivotstudio.nextnotes:agent] local voice EOU unavailable: The operation couldn’t be completed. (Swift.CancellationError error 1.)
+2026-09-14 20:10:27.941 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:island] island notice: agentReply("Stopped.")
+2026-09-14 20:10:28.315 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:agent] wake audio · listening for Hey Next
+2026-09-14 20:10:28.316 I  NextNotes[70944:b427c] [ai.pivotstudio.nextnotes:app] selftest · VOICE_ECHO_LIVE_FAILED: enqueued=4 started=4 completed=4 interrupted=0 pausedPolls=26 userTurns=0 rawRMS=0.004819537609662276 baselineRMS=3.818701150064931e-07 speakerExcess=0.0048195375945337725 playbackWindowFrames=152918 reference=(rms: 0.04520328309081512, frames: 300480) asrFedFrames=300709 eouProcessed=true eouReady=true

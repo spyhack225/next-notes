@@ -9,6 +9,7 @@ import Speech
 /// run for a given locale may block briefly while `AssetInstallationRequest` completes.
 actor AppleSpeechEngine: TranscriptionEngine {
     private let locale: Locale
+    private let fastResults: Bool
 
     private var transcriber: SpeechTranscriber?
     private var analyzer: SpeechAnalyzer?
@@ -19,12 +20,13 @@ actor AppleSpeechEngine: TranscriptionEngine {
     /// but discarded as soon as a final result covering the same range arrives.
     private var finalizedText = ""
 
-    init(locale: Locale = Locale.current) {
+    init(locale: Locale = Locale.current, fastResults: Bool = false) {
         self.locale = locale
+        self.fastResults = fastResults
     }
 
     func preferredInputFormat() async -> AVAudioFormat? {
-        let module = transcriber ?? Self.makeTranscriber(locale: locale)
+        let module = transcriber ?? Self.makeTranscriber(locale: locale, fastResults: fastResults)
         return await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [module])
     }
 
@@ -36,7 +38,7 @@ actor AppleSpeechEngine: TranscriptionEngine {
         let resolvedLocale = await SpeechTranscriber.supportedLocale(equivalentTo: locale)
             ?? Locale(identifier: "en-US")
 
-        let transcriber = Self.makeTranscriber(locale: resolvedLocale)
+        let transcriber = Self.makeTranscriber(locale: resolvedLocale, fastResults: fastResults)
         self.transcriber = transcriber
 
         try await Self.ensureModelInstalled(for: transcriber)
@@ -140,7 +142,7 @@ actor AppleSpeechEngine: TranscriptionEngine {
     /// that claim, it asserts it, and takes the whole process down when it's false.
     /// `OutputProfileStore.startTrackingFrontmostApp` records the same reasoning.
     private static func context() async -> AnalysisContext? {
-        // Sixty milliseconds against the harvester's 120 ms budget, and short of it on purpose.
+        // Sixty milliseconds against the harvester's 250 ms budget, and short of it on purpose.
         // Contextual strings have to be set before the first audio buffer arrives, so this wait
         // sits in front of the recording: a bias name that misses the deadline is invisible,
         // while a late start costs the user the first word of their sentence. Timing out does
@@ -168,12 +170,13 @@ actor AppleSpeechEngine: TranscriptionEngine {
         return context
     }
 
-    private static func makeTranscriber(locale: Locale) -> SpeechTranscriber {
+    private static func makeTranscriber(locale: Locale, fastResults: Bool) -> SpeechTranscriber {
         SpeechTranscriber(
             locale: locale,
             transcriptionOptions: [],
-            // `.volatileResults` is what makes live text appear while you're still talking.
-            reportingOptions: [.volatileResults],
+            // Fast results trade some accuracy for responsiveness. Keep this
+            // opt-in for the agent comparison; dictation retains its setting.
+            reportingOptions: fastResults ? [.volatileResults, .fastResults] : [.volatileResults],
             attributeOptions: []
         )
     }

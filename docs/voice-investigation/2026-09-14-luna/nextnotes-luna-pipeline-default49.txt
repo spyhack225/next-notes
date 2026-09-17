@@ -1,0 +1,64 @@
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_FILE_FEED_CADENCE=10ms
+VOICE_APPLE_FIRST_RESULT=voice+1.074s text=Hello
+VOICE_PREPARE_PARTIAL=revision 1 text=Hello
+VOICE_PREPARE_PARTIAL=revision 2 text=Hello there
+VOICE_EOU_PREPARE=1.8156139850616455s
+VOICE_EOU_STARTUP_BUFFERED=182 chunks / 29120 frames
+VOICE_EOU_FIRST_PROCESS=7.033348083496094e-06s lag=1.8130240440368652s
+VOICE_MODEL_PARTIAL=voice+1.989s text=hello apple=true
+VOICE_MODEL_PARTIAL=voice+2.014s text=hello there apple=true
+VOICE_MODEL_PARTIAL=voice+2.123s text=hello there please apple=true
+VOICE_PREPARE_PARTIAL=revision 3 text=Hello there. please
+VOICE_PREPARE_PARTIAL=revision 4 text=Hello there. please tell
+VOICE_PREPARE_PARTIAL=revision 5 text=Hello there. please tell me
+VOICE_PREPARE_PARTIAL=revision 6 text=Hello there. please tell me bri
+VOICE_MODEL_PARTIAL=voice+2.194s text=hello there please tell apple=true
+VOICE_MODEL_PARTIAL=voice+2.244s text=hello there please tell me apple=true
+VOICE_MODEL_PARTIAL=voice+2.320s text=hello there please tell me brie apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brie near=false
+VOICE_PREPARE_PARTIAL=revision 7 text=hello there please tell me brie
+VOICE_MODEL_PARTIAL=voice+2.345s text=hello there please tell me brief apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brief near=false
+VOICE_PREPARE_PARTIAL=revision 8 text=hello there please tell me brief
+VOICE_MODEL_PARTIAL=voice+2.363s text=hello there please tell me briefly apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly near=false
+VOICE_PREPARE_PARTIAL=revision 9 text=hello there please tell me briefly
+VOICE_MODEL_PARTIAL=voice+2.414s text=hello there please tell me briefly what apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what near=false
+VOICE_PREPARE_PARTIAL=revision 10 text=hello there please tell me briefly what
+Voice speculation started revision=10
+VOICE_MODEL_PARTIAL=voice+2.654s text=hello there please tell me briefly what a apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a near=false
+VOICE_PREPARE_PARTIAL=revision 11 text=hello there please tell me briefly what a
+Voice speculation canceled revision=10
+VOICE_MODEL_PARTIAL=voice+2.725s text=hello there please tell me briefly what a haik apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haik near=false
+VOICE_PREPARE_PARTIAL=revision 12 text=hello there please tell me briefly what a haik
+VOICE_MODEL_PARTIAL=voice+2.893s text=hello there please tell me briefly what a haiku apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku near=false
+VOICE_PREPARE_PARTIAL=revision 13 text=hello there please tell me briefly what a haiku
+VOICE_MODEL_PARTIAL=voice+3.057s text=hello there please tell me briefly what a haiku is apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku is near=false
+VOICE_PREPARE_PARTIAL=revision 14 text=hello there please tell me briefly what a haiku is
+Voice speculation started revision=14
+VOICE_MODEL_EOU=sinceVoiceEnd 1.012s appleRevisionAge 1.022s text=hello there please tell me briefly what a haiku is
+VOICE_MODEL_EOU_TO_ENDPOINT=0.003571033477783203s
+Voice speculation hit revision=14 headstart=0.747s
+VOICE_FILE_MAX_PACING_LAG=0.013196292 seconds
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 1.199s model
+Voice clause start 1789424659.847 token=1 backing=PocketSpeechBacking characters=41
+Pocket TTS clause submitted 1789424659.848 token=1 characters=41
+Pocket TTS first PCM 1789424660.036 token=1 synthesis=0.189s samples=1920
+Pocket TTS first played 1789424660.154 token=1 synthesis=0.189s render=0.118s firstSamples=1920
+VOICE_PIPELINE_SPAN=agent.first_token_to_first_tts 0.617s first-audio
+VOICE_PIPELINE_TRANSCRIPT=hello there please tell me briefly what a haiku is
+VOICE_PIPELINE_REPLY=A haiku is a short poem with three lines—each line has five, seven, and five syllables, respectively—often focusing on nature or emotions.
+VOICE_PIPELINE_ASR_FEED=chunks 476, frames 76095, peak 0.7814636, results 17
+VOICE_PIPELINE_APPLE_MODE=fast true, firstResult 1.0741440057754517
+VOICE_PIPELINE_MODEL_PARTIALS=13, last hello there please tell me briefly what a haiku is
+VOICE_PIPELINE_EOU_QUEUE=firstProcess 7.033348083496094e-06, resets 0, drops 0
+VOICE_PIPELINE_VOICE_TO_ENDPOINT=1.015699028968811
+VOICE_PIPELINE_ENDPOINT_TO_FIRST_AUDIO=1.8253039121627808
+VOICE_PIPELINE_INPUT_TO_FIRST_AUDIO=5.852898001670837
+VOICE_PIPELINE_OK

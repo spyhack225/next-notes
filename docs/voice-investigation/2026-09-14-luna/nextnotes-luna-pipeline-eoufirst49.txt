@@ -1,0 +1,61 @@
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_FILE_FEED_CADENCE=10ms
+VOICE_APPLE_FIRST_RESULT=voice+1.072s text=Hello
+VOICE_PREPARE_PARTIAL=revision 1 text=Hello there
+VOICE_EOU_PREPARE=1.464501976966858s
+VOICE_EOU_STARTUP_BUFFERED=147 chunks / 23520 frames
+VOICE_EOU_FIRST_PROCESS=1.800060272216797e-05s lag=1.461514949798584s
+VOICE_MODEL_PARTIAL=voice+1.677s text=hello apple=true
+VOICE_MODEL_PARTIAL=voice+1.703s text=hello there apple=true
+VOICE_MODEL_PARTIAL=voice+1.839s text=hello there please apple=true
+VOICE_MODEL_PARTIAL=voice+1.918s text=hello there please tell apple=true
+VOICE_MODEL_PARTIAL=voice+1.976s text=hello there please tell me apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me near=false
+VOICE_PREPARE_PARTIAL=revision 2 text=hello there please tell me
+VOICE_MODEL_PARTIAL=voice+2.101s text=hello there please tell me brie apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brie near=false
+VOICE_PREPARE_PARTIAL=revision 3 text=hello there please tell me brie
+VOICE_MODEL_PARTIAL=voice+2.136s text=hello there please tell me brief apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brief near=false
+VOICE_PREPARE_PARTIAL=revision 4 text=hello there please tell me brief
+VOICE_MODEL_PARTIAL=voice+2.171s text=hello there please tell me briefly apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly near=false
+VOICE_PREPARE_PARTIAL=revision 5 text=hello there please tell me briefly
+VOICE_MODEL_PARTIAL=voice+2.247s text=hello there please tell me briefly what apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what near=false
+VOICE_PREPARE_PARTIAL=revision 6 text=hello there please tell me briefly what
+Voice speculation started revision=6
+VOICE_MODEL_PARTIAL=voice+2.640s text=hello there please tell me briefly what a apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a near=false
+VOICE_PREPARE_PARTIAL=revision 7 text=hello there please tell me briefly what a
+Voice speculation canceled revision=6
+VOICE_MODEL_PARTIAL=voice+2.726s text=hello there please tell me briefly what a haik apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haik near=false
+VOICE_PREPARE_PARTIAL=revision 8 text=hello there please tell me briefly what a haik
+VOICE_MODEL_PARTIAL=voice+2.881s text=hello there please tell me briefly what a haiku apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku near=false
+VOICE_PREPARE_PARTIAL=revision 9 text=hello there please tell me briefly what a haiku
+VOICE_MODEL_PARTIAL=voice+3.040s text=hello there please tell me briefly what a haiku is apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku is near=false
+VOICE_PREPARE_PARTIAL=revision 10 text=hello there please tell me briefly what a haiku is
+Voice speculation started revision=10
+VOICE_MODEL_EOU=sinceVoiceEnd 1.006s appleRevisionAge 0.025s text=hello there please tell me briefly what a haiku is
+VOICE_MODEL_EOU_TO_ENDPOINT=0.10283005237579346s
+Voice speculation hit revision=10 headstart=0.868s
+VOICE_FILE_MAX_PACING_LAG=0.324540709 seconds
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 2.365s model
+Voice clause start 1789424611.019 token=1 backing=PocketSpeechBacking characters=41
+Pocket TTS clause submitted 1789424611.020 token=1 characters=41
+Pocket TTS first PCM 1789424611.264 token=1 synthesis=0.244s samples=1920
+Pocket TTS first played 1789424611.366 token=1 synthesis=0.244s render=0.102s firstSamples=1920
+VOICE_PIPELINE_SPAN=agent.first_token_to_first_tts 0.668s first-audio
+VOICE_PIPELINE_TRANSCRIPT=hello there please tell me briefly what a haiku is
+VOICE_PIPELINE_REPLY=A haiku is a short poem with three lines—each line has five, seven, and five syllables, respectively—often focusing on nature or emotions.
+VOICE_PIPELINE_ASR_FEED=chunks 476, frames 76095, peak 0.7814636, results 17
+VOICE_PIPELINE_APPLE_MODE=fast true, firstResult 1.0722029209136963
+VOICE_PIPELINE_MODEL_PARTIALS=13, last hello there please tell me briefly what a haiku is
+VOICE_PIPELINE_EOU_QUEUE=firstProcess 1.800060272216797e-05, resets 0, drops 0
+VOICE_PIPELINE_VOICE_TO_ENDPOINT=1.1088930368423462
+VOICE_PIPELINE_ENDPOINT_TO_FIRST_AUDIO=3.058081030845642
+VOICE_PIPELINE_INPUT_TO_FIRST_AUDIO=7.178712010383606
+VOICE_PIPELINE_OK

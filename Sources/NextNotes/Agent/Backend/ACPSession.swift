@@ -171,12 +171,14 @@ actor ACPSession {
         if kind.contains("thought") {
             return
         }
-        var title = message["title"] ?? message["text"] ?? ""
-        title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !title.isEmpty else { return }
+        let raw = message["text"] ?? message["title"] ?? ""
         if kind.contains("message") {
-            lastReply += title
+            // ACP message chunks are deltas; their whitespace belongs to the
+            // sentence. Trimming each delta produced "Gotit…Whatwouldyou…".
+            lastReply += raw
         } else {
+            let title = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty else { return }
             lastPublicTitle = title
             publish(kind: "activity", title: title, detail: kind)
         }

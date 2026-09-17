@@ -343,7 +343,7 @@ final class Settings {
     /// to resolve a spoken file name. See `ScreenContextStore`, which owns the harvest itself
     /// and reads this through `isEnabled`.
     ///
-    /// On by default. The harvest costs 120 ms of a window in which the user is holding a key
+    /// On by default. The harvest costs up to 250 ms of a window in which the user is holding a key
     /// anyway, and it is scoped to three hand-tested editors — everywhere else the answer is
     /// already "no adapter", so the switch has nothing to turn off. Off is for somebody who does
     /// not want another application's window read at all, which is a position worth honouring

@@ -1,0 +1,21 @@
+Timestamp               Ty Process[PID:TID]
+2026-09-14 19:09:08.273 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:agent] voice playback route selected=pocket-source
+2026-09-14 19:09:08.273 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:agent] duplex · begin
+2026-09-14 19:09:08.785 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:agent] voice capture format float32/16000 → Apple ASR 3/16000
+2026-09-14 19:09:08.799 I  NextNotes[60341:95bb8] [ai.pivotstudio.nextnotes:speech] biasing with 6 dictionary phrase(s) + 0 screen name(s)
+2026-09-14 19:09:08.812 I  NextNotes[60341:95bb8] [ai.pivotstudio.nextnotes:speech] SpeechAnalyzer started for <private>
+2026-09-14 19:09:08.934 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:audio] capture hub started — native 48000.000000Hz · <private> shared input
+2026-09-14 19:09:09.937 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:agent] voice playback route selected=persistent <private>
+2026-09-14 19:09:09.937 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789427349.940 token=1 backing=PocketSourceSpeechBacking characters=35
+2026-09-14 19:09:10.318 E  NextNotes[60341:95bc5] [ai.pivotstudio.nextnotes:audio] capture delivery backlog full — dropped audio buffer
+2026-09-14 19:09:12.315 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:audio] capture hub configuration changed — rebuilding for 2 consumer(s)
+2026-09-14 19:09:15.476 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:audio] capture hub started — native 48000.000000Hz · <private> shared input
+2026-09-14 19:09:15.482 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:agent] realtime · discarded speech activity without usable words
+2026-09-14 19:09:15.612 E  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:agent] Pocket source playback failed token=1
+2026-09-14 19:09:41.769 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:agent] voice playback route selected=persistent <private>
+2026-09-14 19:09:41.770 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789427381.773 token=2 backing=PocketSourceSpeechBacking characters=26
+2026-09-14 19:09:41.919 E  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:agent] Pocket source playback failed token=2
+2026-09-14 19:10:10.357 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:agent] duplex · end
+2026-09-14 19:10:10.389 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:island] island notice: agentReply("Stopped.")
+2026-09-14 19:10:10.763 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:agent] wake audio · listening for Hey Next
+2026-09-14 19:10:10.765 I  NextNotes[60341:95a2f] [ai.pivotstudio.nextnotes:app] selftest · VOICE_ECHO_LIVE_FAILED: enqueued=4 started=0 completed=0 interrupted=4 userTurns=0 rawRMS=0.0018313547104221901 baselineRMS=0.0009151777483535328 speakerExcess=0.0015862880458176888 frames=910160 reference=(rms: 0.0, frames: 59520)

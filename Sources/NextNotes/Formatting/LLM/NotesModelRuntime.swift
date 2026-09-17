@@ -17,15 +17,16 @@ import llama
 ///   half an hour ago is 2.7 GB the rest of the Mac could be using.
 ///
 /// Compute residency (S4):
-/// - Load and generation run as `WorkClass.background` on `ComputeScheduler.shared`,
-///   so a queued `realtimeASR` job preempts them at the next `checkpoint`.
+/// - Meeting load/generation use `background`; interactive conversation uses
+///   `realtimeAgent`. The one native context is reserved for a whole generation,
+///   so a queued voice turn runs next but cannot corrupt an in-flight notes pass.
 /// - Before loading, this runtime still waits on `LlamaBackend.awaitCleanupIdle()`.
 ///   It must **never** call `beginCleanup()` — that closes the gate and deadlocks
 ///   Qwen cleanup (`QwenCleanupFormatter`).
 /// - Under memory pressure, `ModelResidencyPolicy` may call `shutdown()` before it
 ///   unloads diarization. Wake/KWS and Parakeet stay warm.
 actor NotesModelRuntime {
-    /// The notes model. Other instances exist only in `--selftest-llm-metal`, which loads a
+    /// The shared notes and voice model. Other instances exist only in `--selftest-llm-metal`, which loads a
     /// second, smaller GGUF on the GPU to prove Metal and CPU runtimes coexist.
     static let shared = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: NotesModelRuntime.allGPULayers)
 
@@ -59,6 +60,7 @@ actor NotesModelRuntime {
 
     private var lastUse = Date()
     private var idleTask: Task<Void, Never>?
+    private var conversationLeases: Set<UUID> = []
     /// The load in flight, so two callers share one.
     private var loadTask: Task<Void, Error>?
     /// Token for the current load in `ModelRuntimeManager`.
@@ -67,6 +69,14 @@ actor NotesModelRuntime {
     /// A pressure callback must not free the native context during that gap.
     private var activeOperations = 0
     private var deferredShutdown = false
+    private var nativeOwner = false
+    private var nativeWaiters: [(id: UUID, workClass: WorkClass, continuation: CheckedContinuation<Bool, Never>)] = []
+    /// Test-only signal after a real native prefill chunk has decoded.
+    private var prefillChunkObserverForTesting: (@Sendable () -> Void)?
+
+    func setPrefillChunkObserverForTesting(_ observer: (@Sendable () -> Void)?) {
+        prefillChunkObserverForTesting = observer
+    }
 
     init(spec: ModelSpec, gpuLayers: Int32) {
         self.spec = spec
@@ -86,6 +96,44 @@ actor NotesModelRuntime {
         try await withBackgroundLane { jobID in
             try await loadIfNeeded(schedulerJobID: jobID)
         }
+        // A prewarm can be the only use of this model. Give it the same idle
+        // eviction as a completed answer instead of pinning the weights.
+        lastUse = Date()
+        scheduleIdleUnload()
+    }
+
+    /// Warm the inference context and its first decode, not only the weight file.
+    /// The first reply otherwise still pays Metal/context initialization after
+    /// `prepare()` has reported success. Discard this synthetic token entirely.
+    func prepareForConversation(workClass: WorkClass = .realtimeAgent) async throws {
+        try await withLane(workClass) { jobID in
+            try await loadIfNeeded(schedulerJobID: jobID)
+            guard context == nil else { return }
+            try await streamWhileScheduled(
+                jobID: jobID,
+                prompt: Self.chatMLPrompt(
+                    system: RealtimeAgent.voiceRoutingSystem(voice: true), user: "Hello."),
+                maxTokens: 1, yield: { _ in })
+        }
+        lastUse = Date()
+        scheduleIdleUnload()
+    }
+
+    /// Keep the already selected on-device model resident while a voice session is open.
+    /// Memory-pressure shutdown can still unload it; a later turn reloads normally.
+    func beginConversationSession(_ sessionID: UUID) {
+        conversationLeases.insert(sessionID)
+        idleTask?.cancel()
+        idleTask = nil
+        // Conversation uses the independent frontend. Opening its microphone
+        // must not load and prefill a 4B worker before there is any work. The
+        // first real worker request owns loadIfNeeded; the lease then keeps it.
+    }
+
+    func endConversationSession(_ sessionID: UUID) {
+        conversationLeases.remove(sessionID)
+        lastUse = Date()
+        scheduleIdleUnload()
     }
 
     /// Destroy and reload the notes owner after an unrecoverable runtime error.
@@ -122,14 +170,41 @@ actor NotesModelRuntime {
         user: String,
         maxTokens: Int
     ) -> AsyncThrowingStream<String, Error> {
+        streamPrompt(Self.chatMLPrompt(system: system, user: user), maxTokens: maxTokens)
+    }
+
+    func streamConversation(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int
+    ) -> AsyncThrowingStream<String, Error> {
+        streamPrompt(Self.chatMLPrompt(system: system, messages: messages), maxTokens: maxTokens)
+    }
+
+    func streamInteractiveConversation(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int
+    ) -> AsyncThrowingStream<String, Error> {
+        streamPrompt(
+            Self.chatMLPrompt(system: system, messages: messages),
+            maxTokens: maxTokens,
+            workClass: .realtimeAgent
+        )
+    }
+
+    private func streamPrompt(
+        _ prompt: String,
+        maxTokens: Int,
+        workClass: WorkClass = .background
+    ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    try await self.withBackgroundLane { jobID in
+                    try await self.withLane(workClass) { jobID in
                         try await self.streamWhileScheduled(
                             jobID: jobID,
-                            system: system,
-                            user: user,
+                            prompt: prompt,
                             maxTokens: maxTokens,
                             yield: { piece in continuation.yield(piece) }
                         )
@@ -140,6 +215,32 @@ actor NotesModelRuntime {
                 }
             }
             continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
+    }
+
+    /// Prefill must yield too: a long tool prompt used to monopolize the GPU before
+    /// the first token checkpoint. The native-context reservation remains held across
+    /// these awaits, so another Qwen request cannot clear the in-flight KV cache.
+    private func decodePromptWhileScheduled(
+        _ tokens: [llama_token], context: OpaquePointer, jobID: UUID
+    ) async throws {
+        guard !tokens.isEmpty else { throw LlamaError.decodeFailed }
+        let chunk = min(128, Int(Self.batchTokens))
+        var batch = llama_batch_init(Int32(min(chunk, tokens.count)), 0, 1)
+        defer { llama_batch_free(batch) }
+        var index = 0
+        while index < tokens.count {
+            await ComputeScheduler.shared.checkpoint(jobID)
+            try Task.checkCancellation()
+            let end = min(index + chunk, tokens.count)
+            batch.n_tokens = 0
+            for position in index..<end {
+                LlamaHelpers.add(tokens[position], position: llama_pos(position),
+                    logits: position == tokens.count - 1, to: &batch)
+            }
+            guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
+            index = end
+            prefillChunkObserverForTesting?()
         }
     }
 
@@ -168,7 +269,7 @@ actor NotesModelRuntime {
 
         let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
         llama_memory_clear(llama_get_memory(context), true)
-        try LlamaHelpers.decodePrompt(promptTokens, context: context, chunk: Int(Self.batchTokens))
+        try await decodePromptWhileScheduled(promptTokens, context: context, jobID: jobID)
 
         guard let sampler = makeSampler(vocabulary: vocabulary) else {
             throw LlamaError.samplerFailed
@@ -219,11 +320,11 @@ actor NotesModelRuntime {
     /// the context is shared with notes generation and must never be touched concurrently.
     private func streamWhileScheduled(
         jobID: UUID,
-        system: String,
-        user: String,
+        prompt: String,
         maxTokens: Int,
         yield: @escaping @Sendable (String) -> Void
     ) async throws {
+        let firstTokenTrace = LatencyTrace.start(.modelFirstToken)
         try await loadIfNeeded(schedulerJobID: jobID)
         defer {
             lastUse = Date()
@@ -231,15 +332,19 @@ actor NotesModelRuntime {
         }
         guard let vocabulary else { throw LlamaError.notLoaded }
 
-        let prompt = Self.chatMLPrompt(system: system, user: user)
         let promptTokens = try LlamaHelpers.tokenize(prompt, vocabulary: vocabulary)
         guard promptTokens.count + maxTokens + Self.contextHeadroom <= contextTokens else {
             throw LlamaError.inputTooLong
         }
 
+        let contextTrace = LatencyTrace.start(.modelContext)
+        let hadContext = context != nil
         let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
+        contextTrace.end(note: "qwen35_4b had_context=\(hadContext) tokens=\(contextSize)")
+        let prefillTrace = LatencyTrace.start(.modelPrefill)
         llama_memory_clear(llama_get_memory(context), true)
-        try LlamaHelpers.decodePrompt(promptTokens, context: context, chunk: Int(Self.batchTokens))
+        try await decodePromptWhileScheduled(promptTokens, context: context, jobID: jobID)
+        prefillTrace.end(note: "qwen35_4b prompt_tokens=\(promptTokens.count)")
 
         guard let sampler = makeSampler(vocabulary: vocabulary) else {
             throw LlamaError.samplerFailed
@@ -249,6 +354,7 @@ actor NotesModelRuntime {
         var output = ""
         var pending = ""
         var generated = 0
+        var reportedFirstToken = false
         var position = llama_pos(promptTokens.count)
         var batch = llama_batch_init(1, 0, 1)
         defer { llama_batch_free(batch) }
@@ -260,6 +366,10 @@ actor NotesModelRuntime {
             let token = llama_sampler_sample(sampler, context, -1)
             if llama_vocab_is_eog(vocabulary, token) { break }
             let piece = LlamaHelpers.piece(token, vocabulary: vocabulary)
+            if !reportedFirstToken {
+                reportedFirstToken = true
+                firstTokenTrace.end(note: "qwen35_4b")
+            }
             output += piece
             generated += 1
             pending += piece
@@ -296,12 +406,27 @@ actor NotesModelRuntime {
     private func withBackgroundLane<T>(
         _ body: (UUID) async throws -> T
     ) async throws -> T {
+        try await withLane(.background, body)
+    }
+
+    private func withLane<T>(
+        _ workClass: WorkClass,
+        _ body: (UUID) async throws -> T
+    ) async throws -> T {
+        let queueTrace = LatencyTrace.start(.modelQueue)
+        guard await reserveNativeContext(for: workClass) else {
+            queueTrace.end(note: "qwen35_4b class=\(workClass.rawValue) canceled")
+            throw CancellationError()
+        }
+        defer { releaseNativeContext() }
+        try Task.checkCancellation()
         activeOperations += 1
         defer {
             activeOperations -= 1
             if activeOperations == 0 && deferredShutdown { shutdownNow() }
         }
-        let jobID = await ComputeScheduler.shared.acquire(.background)
+        let jobID = await ComputeScheduler.shared.acquire(workClass)
+        queueTrace.end(note: "qwen35_4b class=\(workClass.rawValue)")
         do {
             let result = try await body(jobID)
             await ComputeScheduler.shared.release(jobID)
@@ -312,9 +437,107 @@ actor NotesModelRuntime {
         }
     }
 
+    /// One llama context and sampler must have one owner even when the actor re-enters
+    /// at a scheduler checkpoint. Voice wins the next reservation after current work ends.
+    private func reserveNativeContext(for workClass: WorkClass) async -> Bool {
+        if !nativeOwner {
+            nativeOwner = true
+            return true
+        }
+        let waiterID = UUID()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                if Task.isCancelled {
+                    continuation.resume(returning: false)
+                } else {
+                    nativeWaiters.append((waiterID, workClass, continuation))
+                }
+            }
+        } onCancel: {
+            Task { await self.cancelNativeWaiter(waiterID) }
+        }
+    }
+
+    private func cancelNativeWaiter(_ id: UUID) {
+        guard let index = nativeWaiters.firstIndex(where: { $0.id == id }) else { return }
+        nativeWaiters.remove(at: index).continuation.resume(returning: false)
+    }
+
+    private var queuedNativeWaiters: Int { nativeWaiters.count }
+
+    /// Deterministic reservation probe; no GGUF, permissions, or user history.
+    static func conversationSchedulingSelfTest() async -> Bool {
+        let runtime = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: 0)
+        let lease = UUID()
+        await runtime.beginConversationSession(lease)
+        let cold = await !runtime.isLoaded
+        let active = await runtime.activeOperations
+        let ownsNativeContext = await runtime.nativeOwner
+        let retained = await runtime.conversationLeases.contains(lease)
+        await runtime.endConversationSession(lease)
+        let released = await runtime.conversationLeases.isEmpty
+        guard cold, active == 0, !ownsNativeContext, retained, released else { return false }
+        let gate = NotesShutdownProbeGate()
+        let order = NativeReservationProbe()
+        let current = Task {
+            try? await runtime.withLane(.background) { _ in
+                await gate.park()
+            }
+        }
+        for _ in 0..<50 {
+            if await gate.started { break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        guard await gate.started else {
+            current.cancel()
+            await gate.release()
+            return false
+        }
+        let background = Task {
+            try? await runtime.withLane(.background) { _ in
+                await order.append("background")
+            }
+        }
+        let canceled = Task {
+            try? await runtime.withLane(.background) { _ in
+                await order.append("canceled")
+            }
+        }
+        let voice = Task {
+            try? await runtime.withLane(.realtimeAgent) { _ in
+                await order.append("voice")
+            }
+        }
+        for _ in 0..<50 {
+            if await runtime.queuedNativeWaiters == 3 { break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        let allQueued = await runtime.queuedNativeWaiters == 3
+        canceled.cancel()
+        _ = await canceled.result
+        let canceledRemoved = await runtime.queuedNativeWaiters == 2
+        await gate.release()
+        _ = await current.result
+        _ = await voice.result
+        _ = await background.result
+        let observed = await order.values
+        return allQueued && canceledRemoved && observed == ["voice", "background"]
+    }
+
+    private func releaseNativeContext() {
+        guard !nativeWaiters.isEmpty else {
+            nativeOwner = false
+            return
+        }
+        let next = nativeWaiters.indices.min {
+            nativeWaiters[$0].workClass.priority < nativeWaiters[$1].workClass.priority
+        }!
+        nativeWaiters.remove(at: next).continuation.resume(returning: true)
+    }
+
     /// Frees the weights and the context if nothing has used them for `interval`.
     func unloadIfIdle(after interval: TimeInterval = NotesModelRuntime.idleUnload) {
-        guard activeOperations == 0, model != nil,
+        guard conversationLeases.isEmpty, activeOperations == 0, model != nil,
               Date().timeIntervalSince(lastUse) >= interval else { return }
         shutdown()
         Log.llm.info("\(self.spec.displayName, privacy: .public) unloaded after idling")
@@ -394,17 +617,21 @@ actor NotesModelRuntime {
     /// Supplying an already-closed, empty think block is the documented way to start the
     /// answer immediately.
     static func chatMLPrompt(system: String, user: String) -> String {
-        """
-        <|im_start|>system
-        \(system)<|im_end|>
-        <|im_start|>user
-        \(user)<|im_end|>
-        <|im_start|>assistant
-        <think>
+        chatMLPrompt(system: system, messages: [.init(role: .user, content: user)])
+    }
 
-        </think>
-
-        """
+    static func chatMLPrompt(system: String, messages: [LLMChatMessage]) -> String {
+        func safe(_ text: String) -> String {
+            text.replacingOccurrences(of: "<|", with: "< |")
+                .replacingOccurrences(of: "|>", with: "| >")
+        }
+        var prompt = "<|im_start|>system\n\(safe(system))<|im_end|>\n"
+        for message in messages {
+            prompt += "<|im_start|>\(message.role.rawValue)\n"
+                + safe(message.content) + "<|im_end|>\n"
+        }
+        prompt += "<|im_start|>assistant\n<think>\n\n</think>\n\n"
+        return prompt
     }
 
     private static let turnEnd = "<|im_end|>"
@@ -462,15 +689,18 @@ actor NotesModelRuntime {
         let jobID = schedulerJobID
         let task = Task<Void, Error> {
             defer { self.loadTask = nil }
+            let loadTrace = LatencyTrace.start(.modelLoad)
             let generation = await ModelRuntimeManager.shared.beginLoading(.notes)
             self.setRuntimeGeneration(generation)
             do {
                 try await self.load(schedulerJobID: jobID)
+                loadTrace.end(note: "qwen35_4b")
                 _ = await ModelRuntimeManager.shared.markReady(
                     .notes,
                     generation: generation
                 )
             } catch {
+                loadTrace.end(note: "qwen35_4b failed")
                 if let llamaError = error as? LlamaError,
                    case .modelMissing = llamaError {
                     // A missing download is an expected configuration state,
@@ -608,4 +838,9 @@ private actor NotesShutdownProbeGate {
         waiter?.resume()
         waiter = nil
     }
+}
+
+private actor NativeReservationProbe {
+    private(set) var values: [String] = []
+    func append(_ value: String) { values.append(value) }
 }

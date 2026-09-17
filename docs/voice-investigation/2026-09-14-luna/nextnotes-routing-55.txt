@@ -1,0 +1,33 @@
+VOICE_FRONTEND_FAILED
+voice frontend prewarm 1.06060975 seconds
+VOICE_SPLIT_ROUTE intent=answerQuestion task=0
+voice frontend first_text=1.412s first_clause=1.413s clause=I'm fine, thanks for asking. speech=Hi, how are you? output=<answer/>I'm fine, thanks for asking. How can I help you today? classified=true
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+voice frontend first_text=0.785s first_clause=nones clause=none speech=While you check my calendar, tell me what you are doing. output=<capabilities/> classified=false
+VOICE_SPLIT_ROUTE intent=startExternalTask task=0
+voice frontend first_text=0.736s first_clause=nones clause=none speech=Open Chrome and inspect my Claude sessions. output=<use_tools/> classified=true
+VOICE_SPLIT_ROUTE intent=reviseRunningTask task=1
+voice frontend first_text=0.766s first_clause=nones clause=none speech=I meant Claude, not cloud code. Continue the original task. output=<revise id="1"/> classified=true
+VOICE_SPLIT_ROUTE intent=cancelRunningTask task=1
+voice frontend first_text=0.712s first_clause=nones clause=none speech=Cancel that task. output=<cancel id="1"/> classified=true
+VOICE_SPLIT_ROUTE intent=answerQuestion task=0
+voice frontend first_text=1.303s first_clause=1.570s clause=A haiku is a short poem with three lines, each having a different number of syllables— speech=Hello there. Please tell me briefly what a haiku is. output=<answer/>A haiku is a short poem with three lines, each having a different number of syllables—five in the first, seven in the second, and five in the third. classified=true
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+voice frontend first_text=0.756s first_clause=nones clause=none speech=Explain full duplex conversation in plain language. output=<capabilities/> classified=false
+VOICE_SPLIT_ROUTE intent=answerQuestion task=0
+voice frontend first_text=1.293s first_clause=2.229s clause=A good structure for meeting notes includes a clear heading for the date and time, a summary of the main topics discussed, action items with assigned responsibilities, decisions made, and a list of attendees. speech=What is a good structure for meeting notes? output=<answer/>A good structure for meeting notes includes a clear heading for the date and time, a summary of the main topics discussed, action items with assigned responsibilities, decisions made, and a list of attendees. It helps keep everything organized and easy to follow. classified=true
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+voice frontend first_text=0.746s first_clause=nones clause=none speech=What can this app help me with? output=<capabilities/> classified=true
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+voice frontend first_text=0.741s first_clause=nones clause=none speech=List the tools you support. output=<capabilities/> classified=true
+VOICE_SPLIT_ROUTE intent=startExternalTask task=0
+voice frontend first_text=0.748s first_clause=nones clause=none speech=Use your tools to open Safari. output=<use_tools/> classified=true
+VOICE_SPLIT_ROUTE intent=startExternalTask task=0
+voice frontend first_text=0.724s first_clause=nones clause=none speech=Can you check my calendar for today? output=<use_tools/> classified=true
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+voice frontend first_text=0.746s first_clause=nones clause=none speech=Do you support calendars? output=<capabilities/> classified=false
+VOICE_SPLIT_ROUTE intent=answerQuestion task=0
+voice frontend first_text=1.435s first_clause=1.531s clause=You need approval for changes, commands and sending emails. speech=Can you send emails without approval? output=<answer/>You need approval for changes, commands and sending emails. classified=true
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+voice frontend first_text=0.805s first_clause=nones clause=none speech=What does full duplex mean? output=<capabilities/> classified=false
+VOICE_FRONTEND_FAILED: 4 routing cases

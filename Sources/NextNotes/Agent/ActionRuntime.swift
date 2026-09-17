@@ -342,6 +342,7 @@ final class ActionOrchestrator {
         promptIfNeeded: Bool,
         permissionAlreadyGranted: Bool = false,
         allowUnverifiedResult: Bool = false,
+        isStillValid: (@MainActor @Sendable () async -> Bool)? = nil,
         fire: @escaping @MainActor (PreparedAction) async throws -> AgentToolResult
     ) async throws -> AgentToolResult {
         let preparedID = UUID()
@@ -421,6 +422,8 @@ final class ActionOrchestrator {
             // A timed-out tool loop cancels its child without waiting for it to unwind. Do
             // this check after every permission await so a late approval cannot fire a stale
             // prepared action after the caller has moved on.
+            try Task.checkCancellation()
+            if let isStillValid, !(await isStillValid()) { throw CancellationError() }
             try Task.checkCancellation()
             guard add(.fired, title) else {
                 throw AgentError.backendUnavailable("Could not save action execution; it was not run.")
@@ -730,13 +733,13 @@ extension IslandState {
 
     @MainActor
     func showBackgroundAgentWork(title: String) {
-        guard !hasForegroundVoiceActivity else { return }
+        guard !hasForegroundVoiceActivity, PermissionGate.shared.pending == nil else { return }
         showAgentWork(title: title)
     }
 
     @MainActor
     func showBackgroundAgentReply(_ text: String) {
-        guard !hasForegroundVoiceActivity else { return }
+        guard !hasForegroundVoiceActivity, PermissionGate.shared.pending == nil else { return }
         showAgentReply(text)
     }
 }

@@ -26,6 +26,7 @@ STAGE    := $(HOME)/Library/Caches/NextNotesBuild
 APPNAME  := Next Notes.app
 BUNDLE   := $(STAGE)/$(APPNAME)
 CONTENTS := $(BUNDLE)/Contents
+WEBRTC_LIB_DIR := $(STAGE)/webrtc/current
 
 ## TCC keys the Accessibility grant to the code signature, so an ad-hoc signature — which
 ## changes on every build — makes the user re-grant after every `make`. Signing with a
@@ -84,11 +85,15 @@ DMG_STAGE    := $(STAGE)/dmg-root
 DMG          := $(STAGE)/NextNotes-$(VERSION).dmg
 DMG_STABLE   := $(STAGE)/NextNotes.dmg
 
-.PHONY: all build test app run install clean icon signing-cert release dmg
+.PHONY: all build test app run install clean icon signing-cert release dmg webrtc-audio
 
 all: app
 
-build:
+webrtc-audio:
+	@mkdir -p "$(STAGE)"
+	@NEXTNOTES_WEBRTC_CACHE="$(STAGE)/webrtc" bash Tools/build-webrtc-audio.sh > "$(STAGE)/webrtc-build.log" 2>&1 || { cat "$(STAGE)/webrtc-build.log"; exit 1; }
+
+build: webrtc-audio
 	swift build -c $(CONFIG) --scratch-path "$(SCRATCH)"
 
 ## Two suites, named explicitly rather than matched by one regex.
@@ -121,12 +126,17 @@ app: build
 	@mkdir -p "$(CONTENTS)/MacOS" "$(CONTENTS)/Resources" "$(CONTENTS)/Frameworks"
 	@cp $(BUILD) "$(CONTENTS)/MacOS/$(EXEC)"
 	@cp -R "$(LLAMA_FRAMEWORK)" "$(CONTENTS)/Frameworks/"
+	@cp "$(WEBRTC_LIB_DIR)/libNextNotesAEC.dylib" "$(WEBRTC_LIB_DIR)/libwebrtc-audio-processing-2.1.dylib" "$(CONTENTS)/Frameworks/"
+	@mkdir -p "$(CONTENTS)/Resources/WebRTCAudio"
+	@cp "$(WEBRTC_LIB_DIR)"/*LICENSE "$(WEBRTC_LIB_DIR)"/*PATENTS "$(CONTENTS)/Resources/WebRTCAudio/"
+	@cp Vendor/WebRTCAudio/THIRD-PARTY-LICENSE "$(CONTENTS)/Resources/WebRTCAudio/"
 	@cp Resources/Info.plist "$(CONTENTS)/Info.plist"
 	@if [ -f Resources/AppIcon.icns ]; then cp Resources/AppIcon.icns "$(CONTENTS)/Resources/"; fi
 	@# The Workspace CLI installer the Settings tab opens in Terminal. A resource rather
 	@# than a string in Swift so the commands the user is asked to run are reviewable as a
 	@# script; the app falls back to a one-line equivalent when running outside a bundle.
 	@cp Resources/install-gws.sh "$(CONTENTS)/Resources/"
+	@cp Sources/SpeexEcho/LICENSE "$(CONTENTS)/Resources/SpeexDSP-LICENSE.txt"
 	@chmod +x "$(CONTENTS)/Resources/install-gws.sh"
 	@printf 'APPL????' > "$(CONTENTS)/PkgInfo"
 	@# Belt and braces: the staging dir isn't synced, but the copied binary can still carry
@@ -140,6 +150,8 @@ app: build
 	fi
 	@codesign --force --sign "$(SIGN_ID)" --options runtime $(TIMESTAMP) \
 		"$(CONTENTS)/Frameworks/llama.framework"
+	@codesign --force --sign "$(SIGN_ID)" --options runtime $(TIMESTAMP) \
+		"$(CONTENTS)/Frameworks/libwebrtc-audio-processing-2.1.dylib" "$(CONTENTS)/Frameworks/libNextNotesAEC.dylib"
 	@codesign --force --sign "$(SIGN_ID)" \
 		--entitlements "$(ENTITLEMENTS)" \
 		--options runtime \
@@ -147,24 +159,28 @@ app: build
 		"$(BUNDLE)"
 	@echo "built $(BUNDLE)  [signed: $(SIGN_ID)]"
 
-## Only ever targets the Next Notes executable.
-run: app
-	@pkill -x $(EXEC) 2>/dev/null || true
-	@open "$(BUNDLE)"
+## Run the canonical installed copy, so LaunchServices never selects a stale
+## cache bundle with the same identifier.
+run: install
 
 ## Ad-hoc signatures change on every rebuild, which resets the Accessibility grant.
 ## Installing to /Applications keeps the path stable and makes re-granting a one-click fix.
 install: app
 	@pkill -x $(EXEC) 2>/dev/null || true
+	@# Old probe/rollback bundles in this dedicated cache also register with
+	@# LaunchServices and can be selected in place of the installed app.
+	@find "$(STAGE)" -maxdepth 1 -type d -name '*.app' ! -name "$(APPNAME)" -exec rm -rf {} +
+	@rm -rf "$(STAGE)/dmg-root/$(APPNAME)"
 	@# $(BUNDLE) is an absolute staging path — the destination must use $(APPNAME) alone.
 	@rm -rf "/Applications/$(APPNAME)"
 	@cp -R "$(BUNDLE)" "/Applications/$(APPNAME)"
+	@rm -rf "$(BUNDLE)"
 	@open "/Applications/$(APPNAME)"
 	@echo "installed to /Applications/$(APPNAME)"
 
 ## Release configuration of the same bundle `make app` builds. Stamps the version from
 ## the current git tag (or 0.1.0 if there isn't one). Does not pass `-DPAID_BUILD` —
-## that flag is the paid-product boundary in docs/PAID-RELEASE.md, and a source-built
+## that flag is the paid-product boundary in the local roadmap/PAID-RELEASE.md plan, and a source-built
 ## or GitHub-hosted DMG is still the free app.
 ##
 ## A Developer ID switches on a secure timestamp and drops `disable-library-validation`,

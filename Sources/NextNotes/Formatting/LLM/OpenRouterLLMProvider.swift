@@ -394,10 +394,26 @@ struct OpenRouterLLMProvider: LLMProvider {
     }
 
     func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
-        AsyncThrowingStream { continuation in
+        await streamConversation(
+            system: system,
+            messages: [.init(role: .user, content: user)],
+            maxTokens: maxTokens
+        )
+    }
+
+    func streamConversation(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        let requestMessages = [ChatRequest.Message(role: "system", content: system)]
+            + messages.map { ChatRequest.Message(role: $0.role.rawValue, content: $0.content) }
+        return AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    let request = try await makeRequest(system: system, user: user, maxTokens: maxTokens, stream: true)
+                    let request = try await makeRequest(
+                        messages: requestMessages, maxTokens: maxTokens, stream: true
+                    )
                     let (bytes, response) = try await URLSession.shared.bytes(for: request)
                     guard let http = response as? HTTPURLResponse else { throw OpenRouterError.invalidResponse }
                     guard (200..<300).contains(http.statusCode) else {
@@ -434,6 +450,15 @@ struct OpenRouterLLMProvider: LLMProvider {
     }
 
     private func makeRequest(system: String, user: String, maxTokens: Int, stream: Bool) async throws -> URLRequest {
+        try await makeRequest(
+            messages: [.init(role: "system", content: system), .init(role: "user", content: user)],
+            maxTokens: maxTokens, stream: stream
+        )
+    }
+
+    private func makeRequest(
+        messages: [ChatRequest.Message], maxTokens: Int, stream: Bool
+    ) async throws -> URLRequest {
         guard !modelID.isEmpty else { throw OpenRouterError.missingModel }
         guard let key = await OpenRouterKeyStore.keyAsync() else { throw OpenRouterError.missingKey }
         var request = URLRequest(url: URL(string: "https://openrouter.ai/api/v1/chat/completions")!)
@@ -443,7 +468,7 @@ struct OpenRouterLLMProvider: LLMProvider {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(ChatRequest(
             model: modelID,
-            messages: [.init(role: "system", content: system), .init(role: "user", content: user)],
+            messages: messages,
             max_tokens: maxTokens,
             stream: stream
         ))
@@ -460,7 +485,7 @@ struct OpenRouterLLMProvider: LLMProvider {
     }
 
     private struct ChatRequest: Encodable {
-        struct Message: Encodable { let role: String; let content: String }
+        struct Message: Encodable, Sendable { let role: String; let content: String }
         let model: String
         let messages: [Message]
         let max_tokens: Int

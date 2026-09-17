@@ -1,0 +1,36 @@
+options 0 echo_erle 26.99
+onset 0.1 level 0.02 first100_gain 0.004 full_gain 0.005 calibration_lag 128
+onset 0.1 level 0.1 first100_gain 0.009 full_gain 0.041 calibration_lag 128
+onset 1.5 level 0.02 first100_gain 0.259 full_gain 0.282 calibration_lag 128
+onset 1.5 level 0.1 first100_gain 0.195 full_gain 0.261 calibration_lag 128
+onset 4.0 level 0.02 first100_gain 0.45 full_gain 0.788 calibration_lag 128
+onset 4.0 level 0.1 first100_gain 0.694 full_gain 0.881 calibration_lag 128
+options 4 echo_erle 26.93
+onset 0.1 level 0.02 first100_gain 0.627 full_gain 0.343 calibration_lag 128
+onset 0.1 level 0.1 first100_gain 0.635 full_gain 0.4 calibration_lag 128
+onset 1.5 level 0.02 first100_gain 0.261 full_gain 0.29 calibration_lag 128
+onset 1.5 level 0.1 first100_gain 0.208 full_gain 0.283 calibration_lag 128
+onset 4.0 level 0.02 first100_gain 0.442 full_gain 0.774 calibration_lag 128
+onset 4.0 level 0.1 first100_gain 0.696 full_gain 0.869 calibration_lag 128
+options 8 echo_erle 27.08
+onset 0.1 level 0.02 first100_gain 0.005 full_gain 0.005 calibration_lag 128
+onset 0.1 level 0.1 first100_gain 0.008 full_gain 0.036 calibration_lag 128
+onset 1.5 level 0.02 first100_gain 0.261 full_gain 0.394 calibration_lag 128
+onset 1.5 level 0.1 first100_gain 0.208 full_gain 0.353 calibration_lag 128
+onset 4.0 level 0.02 first100_gain 0.462 full_gain 0.781 calibration_lag 128
+onset 4.0 level 0.1 first100_gain 0.696 full_gain 0.869 calibration_lag 128
+options 12 echo_erle 26.93
+onset 0.1 level 0.02 first100_gain 0.627 full_gain 0.343 calibration_lag 128
+onset 0.1 level 0.1 first100_gain 0.635 full_gain 0.4 calibration_lag 128
+onset 1.5 level 0.02 first100_gain 0.261 full_gain 0.394 calibration_lag 128
+onset 1.5 level 0.1 first100_gain 0.208 full_gain 0.353 calibration_lag 128
+onset 4.0 level 0.02 first100_gain 0.462 full_gain 0.781 calibration_lag 128
+onset 4.0 level 0.1 first100_gain 0.696 full_gain 0.869 calibration_lag 128
+options 16 echo_erle 27.08
+onset 0.1 level 0.02 first100_gain 0.005 full_gain 0.005 calibration_lag 128
+onset 0.1 level 0.1 first100_gain 0.008 full_gain 0.036 calibration_lag 128
+onset 1.5 level 0.02 first100_gain 0.261 full_gain 0.29 calibration_lag 128
+onset 1.5 level 0.1 first100_gain 0.208 full_gain 0.283 calibration_lag 128
+onset 4.0 level 0.02 first100_gain 0.416 full_gain 0.762 calibration_lag 128
+onset 4.0 level 0.1 first100_gain 0.696 full_gain 0.869 calibration_lag 128
+AEC_OPTIONS_REPLAY_COMPLETE: synthetic room path, not hardware acceptance

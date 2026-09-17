@@ -26,6 +26,10 @@ final class RealtimeAgent {
         static let cloudTool: Duration = .seconds(90)
         static let localModel: Duration = .seconds(90)
         static let captureFinish: Duration = .seconds(8)
+        /// A Qwen cold load took 18.1 s in the September 14 recording, before
+        /// its first token. Give an open voice session time to finish loading.
+        static let modelWarm: Duration = .seconds(18)
+        static let modelCold: Duration = .seconds(45)
     }
 
     static let bargeInReply = "Still listening."
@@ -37,7 +41,70 @@ final class RealtimeAgent {
     /// Same job as `DictationController.session`: a late tool must not write over a
     /// turn the user already stopped or barged in on.
     private var generation = 0
+    var currentGeneration: Int { generation }
     private var currentTurnSource: AgentUtteranceSource = .text
+    let isVoiceWorker: Bool
+    private(set) var voiceWork: VoiceConversationWork?
+    private(set) var voiceInputActive = false
+    /// Output has its own lifetime: yielding speech must not invalidate work.
+    private(set) var speechGeneration = 0
+
+    func userSpeechStarted() {
+        guard !voiceInputActive else { return }
+        voiceInputActive = true
+        if localModelProviderForTesting == nil { VoiceConversationCoordinator.shared.speechStarted() }
+        speechGeneration += 1
+        let wasSpeaking = RealtimeAudioSession.shared.isSpeaking || AgentSpeechSynthesizer.shared.isSpeaking
+        RealtimeAudioSession.shared.noteUserSpeech()
+        if wasSpeaking, let seconds = RealtimeAudioSession.shared.lastBargeInStopSeconds {
+            LatencyTrace.record(.agentBargeInToTTSStopped, seconds: seconds)
+        }
+        finishFirstTTSTrace(note: "yielded")
+    }
+
+    func userSpeechEnded() { voiceInputActive = false }
+
+    func discardVoiceInput() {
+        let interruptedResponse = voiceInputActive
+        voiceInputActive = false
+        if localModelProviderForTesting == nil {
+            VoiceConversationCoordinator.shared.discardInput()
+            if interruptedResponse { waitForVoiceContinuation() }
+        }
+    }
+
+    /// Capture delivers a settled follow-up without cancelling its execution task.
+    func appendVoiceFollowUp(_ text: String) -> Bool {
+        guard localModelProviderForTesting != nil, isThinking, let voiceWork else { return false }
+        if VoiceTurnPolicy.isHesitation(text) { return true }
+        if VoiceTurnPolicy.isExplicitWorkCancellation(text) {
+            AgentSession.shared.recordUser(text, source: .voice)
+            AgentAuditLog.shared.record(kind: .request, title: text,
+                                       detail: "voice work cancelled · work \(voiceWork.id)")
+            cancel()
+            return true
+        }
+        voiceWork.append(text)
+        if let pending = PermissionGate.shared.pending, pending.taskID == voiceWork.id.uuidString {
+            PermissionGate.shared.cancelPending(id: pending.id)
+        }
+        AgentSession.shared.recordUser(text, source: .voice)
+        AgentAuditLog.shared.record(kind: .request, title: text,
+                                   detail: "voice follow-up · work \(voiceWork.id) · revision \(voiceWork.revision)")
+        return true
+    }
+
+    /// No reply or newly planned effect may overtake unfinished user speech.
+    /// Session close/cancellation breaks the wait; the audio/VAD lane never awaits it.
+    func waitForVoiceInput() async {
+        if isVoiceWorker {
+            await VoiceConversationCoordinator.shared.waitForInputResolution()
+            return
+        }
+        while voiceInputActive && AgentCaptureController.shared.isSessionActive && !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+    }
     /// The model answer owns a child task so barge-in cancels llama / provider work even
     /// while the VAD task remains free to endpoint the next utterance.
     private var localModelTask: Task<AgentTurn, Never>?
@@ -53,9 +120,45 @@ final class RealtimeAgent {
     /// Only the production-route tool-loop self-test shortens the planner deadline.
     var toolLoopLimitForTesting: Duration?
 
-    private init() {}
+    private init() { isVoiceWorker = false }
+
+    init(voiceWorker: VoiceConversationWork) {
+        isVoiceWorker = true
+        voiceWork = voiceWorker
+    }
+
+    func runVoiceObjective() async -> String {
+        guard let voiceWork else { return "The work item is unavailable." }
+        return await runPlannedToolLoop(voiceWork.prompt, voice: true)
+    }
+
+    func cancelVoiceObjective() { generation += 1 }
+
+    func beginVoiceFrontend() -> Int {
+        generation += 1
+        currentTurnSource = .voice
+        beginWork(title: "Listening and thinking…")
+        return generation
+    }
+
+    func finishVoiceFrontend(_ text: String, turn: Int, streamed: Bool) -> AgentTurn {
+        conclude(turn, text, route: "on-device-frontend", speak: !streamed)
+    }
+
+    /// A hesitation has no answer to record or speak. Background work has its
+    /// own owners; clear only this conversational turn's busy presentation.
+    func waitForVoiceContinuation() {
+        guard currentTurnSource == .voice, !isVoiceWorker else { return }
+        isThinking = false
+        progressTitle = ""
+    }
 
     func handle(_ utterance: String, source: AgentUtteranceSource) async -> AgentTurn {
+        if source == .voice, localModelProviderForTesting == nil,
+           !SelfTest.isRunning || VoiceConversationCoordinator.shared.streamForTesting != nil
+                || CommandLine.arguments.contains("--selftest-voice-pipeline") {
+            return await VoiceConversationCoordinator.shared.handle(utterance)
+        }
         finishFirstTTSTrace(note: "superseded")
         let text = utterance.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
@@ -130,14 +233,22 @@ final class RealtimeAgent {
             return conclude(mine, answer, route: "context")
         case .localModel(let prompt):
             beginWork(title: intent.progressTitle)
+            let work = source == .voice ? VoiceConversationWork(prompt) : nil
+            voiceWork = work
+            defer { if voiceWork === work { voiceWork = nil } }
             let task = Task { @MainActor [weak self] in
                 guard let self else { return AgentTurn(reply: "", delegated: false) }
-                return await self.answerLocally(
-                    prompt,
-                    forceOnDevice: AgentTurnIntent.explicitlyRequestsOnDeviceModel(text),
-                    generation: mine,
-                    replyTrace: replyTrace
-                )
+                repeat {
+                    await self.waitForVoiceInput()
+                    let revision = work?.revision ?? 0
+                    let turn = await self.answerLocally(
+                        work?.prompt ?? prompt,
+                        forceOnDevice: AgentTurnIntent.explicitlyRequestsOnDeviceModel(text),
+                        generation: mine,
+                        replyTrace: replyTrace)
+                    if !self.isCurrent(mine) || revision == (work?.revision ?? 0) { return turn }
+                } while self.isCurrent(mine)
+                return AgentTurn(reply: self.lastReply, delegated: false)
             }
             localModelTask = task
             let turn = await withBoundedWait(localModelLimitForTesting ?? Limits.localModel) {
@@ -176,6 +287,9 @@ final class RealtimeAgent {
                 agent: self, turn: mine, allowSpeech: source == .voice,
                 firstTokenTrace: replyTrace
             )
+            let work = source == .voice ? VoiceConversationWork(text) : nil
+            voiceWork = work
+            defer { if voiceWork === work { voiceWork = nil } }
             let result = await runModelTurn(text, speech: speech, voice: source == .voice)
             let reply = result.reply
             speech.finishPendingFirstTokenTrace(note: isCurrent(mine) ? "no-token" : "superseded")
@@ -229,18 +343,27 @@ final class RealtimeAgent {
 
     /// Island Stop when there is no open session: cancel and leave a visible line.
     func cancel() {
+        if localModelProviderForTesting == nil && !isVoiceWorker {
+            VoiceConversationCoordinator.shared.closeSession()
+        }
         guard isThinking || ActivationController.shared.mode == .agentWorking else { return }
+        RealtimeAudioSession.shared.noteUserSpeech()
         finishFirstTTSTrace(note: "cancelled")
         generation += 1
+        voiceWork = nil
+        voiceInputActive = false
+        speechGeneration += 1
         localModelTask?.cancel()
         localModelTask = nil
-        PermissionGate.shared.cancelPending()
+        if localModelProviderForTesting != nil || currentTurnSource != .voice {
+            PermissionGate.shared.cancelPending()
+        }
         Log.agent.info("realtime · stopped")
         finish("Stopped.")
     }
 
-    /// Barge-in: drop the in-flight tool so the new speech can become the next
-    /// turn. Do not speak an acknowledgement into the still-open microphone.
+    /// Explicit interruption/supersession of work (Stop or another input owner).
+    /// Ordinary microphone speech uses userSpeechStarted and preserves work.
     func interrupt() {
         RealtimeAudioSession.shared.noteUserSpeech()
         finishFirstTTSTrace(note: "barge-in")
@@ -249,9 +372,14 @@ final class RealtimeAgent {
         }
         guard isThinking else { return }
         generation += 1
+        voiceWork = nil
+        voiceInputActive = false
+        speechGeneration += 1
         localModelTask?.cancel()
         localModelTask = nil
-        PermissionGate.shared.cancelPending()
+        if localModelProviderForTesting != nil || currentTurnSource != .voice {
+            PermissionGate.shared.cancelPending()
+        }
         Log.agent.info("realtime · barge-in")
         isThinking = false
         progressTitle = ""
@@ -395,7 +523,7 @@ final class RealtimeAgent {
         let provider: (any LLMProvider)?
         if let localModelProviderForTesting {
             provider = localModelProviderForTesting
-        } else if forceOnDevice {
+        } else if forceOnDevice || currentTurnSource == .voice {
             provider = await LLMProviders.resolve(preferring: .qwen35_4b)
         } else {
             provider = await LLMProviders.resolve(
@@ -429,14 +557,25 @@ final class RealtimeAgent {
 
         let startedStreaming = currentTurnSource == .voice
             && AgentCaptureController.shared.isSessionActive
-        if startedStreaming { RealtimeAudioSession.shared.beginSpokenReply() }
+        let work = voiceWork
+        let revision = work?.revision ?? 0
+        let speech = AgentToolSpeechTracker(agent: self, turn: mine, allowSpeech: startedStreaming)
+        speech.beginResponse()
         var answer = ""
         do {
-            let chunks = await provider.stream(
-                system: Self.localModelSystem,
-                user: Self.conversationGroundedPrompt(prompt),
-                maxTokens: Settings.shared.agentResponsiveness.localAnswerTokenBudget
-            )
+            let grounded = Self.conversationGroundedPrompt(prompt)
+            let chunks = if startedStreaming {
+                await LatencyCorrelation.$current.withValue(LatencyCorrelation(
+                    sessionID: AgentCaptureController.shared.sessionID, workID: work?.id,
+                    revision: work?.revision)) {
+                    await provider.streamInteractiveConversation(
+                        system: Self.localModelSystem, messages: [.init(role: .user, content: grounded)],
+                        maxTokens: Settings.shared.agentResponsiveness.localAnswerTokenBudget)
+                }
+            } else {
+                await provider.stream(system: Self.localModelSystem, user: grounded,
+                                      maxTokens: Settings.shared.agentResponsiveness.localAnswerTokenBudget)
+            }
             for try await chunk in chunks {
                 try Task.checkCancellation()
                 guard isCurrent(mine) else {
@@ -445,15 +584,12 @@ final class RealtimeAgent {
                 }
                 if !chunk.isEmpty {
                     endReplyTrace("local-model")
-                    if startedStreaming, pendingFirstTTSTrace == nil {
-                        beginFirstTTSTrace(for: mine)
-                    }
                 }
                 answer += chunk
                 lastReply = answer
                 AgentCaptureController.shared.noteAssistantReply(answer)
                 if startedStreaming && AgentCaptureController.shared.isSessionActive {
-                    RealtimeAudioSession.shared.appendSpokenReply(chunk)
+                    speech.receive(answer)
                 } else {
                     IslandState.shared.showAgentReply(answer)
                 }
@@ -463,16 +599,21 @@ final class RealtimeAgent {
                 endReplyTrace("superseded")
                 return AgentTurn(reply: lastReply, delegated: false)
             }
+            await waitForVoiceInput()
+            guard isCurrent(mine), revision == (work?.revision ?? 0) else {
+                speech.cancel()
+                return AgentTurn(reply: "", delegated: false)
+            }
             guard !answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 endReplyTrace("local-model-empty")
                 if startedStreaming {
-                    RealtimeAudioSession.shared.finalizeSpokenReply()
+                    speech.finish(hasToolCalls: false)
                     finishFirstTTSTrace(note: "policy-silent")
                 }
                 return conclude(mine, "The local model returned no answer.", route: "local-model-empty")
             }
             if startedStreaming {
-                RealtimeAudioSession.shared.finalizeSpokenReply()
+                speech.finish(hasToolCalls: false)
                 if AgentSpeechPolicy.spokenClauses(answer).isEmpty {
                     finishFirstTTSTrace(note: "policy-silent")
                 }
@@ -530,7 +671,9 @@ final class RealtimeAgent {
         lastReply = reply
         isThinking = false
         progressTitle = ""
-        AgentSession.shared.recordAssistant(reply, contextKind: contextKind)
+        let messageID = AgentSession.shared.recordAssistant(
+            reply, contextKind: contextKind,
+            source: currentTurnSource == .voice ? .voice : nil)
         AgentAuditLog.shared.record(kind: .reply, title: reply)
         AgentCaptureController.shared.noteAssistantReply(reply)
         if AgentCaptureController.shared.isSessionActive {
@@ -542,6 +685,9 @@ final class RealtimeAgent {
             // begin → append → finalize so clause TTS is ready for a stream.
             if speak && currentTurnSource == .voice {
                 speakWithFirstAudioTrace(spokenReply ?? reply, turn: generation)
+            }
+            if currentTurnSource == .voice {
+                VoicePlaybackDelivery.shared.bind(messageID: messageID, turn: generation)
             }
             ActivationController.shared.markListening()
             IslandState.shared.showAgentListening(transcript: "", level: 0)
@@ -604,6 +750,18 @@ final class AgentSession {
         var at = Date()
         /// Nil for conversations saved before input sources were recorded.
         var source: String? = nil
+        /// Optional so previously saved conversation rows still decode.
+        var speechDelivery: VoiceSpeechDelivery? = nil
+
+        var modelContextText: String {
+            guard let speechDelivery else { return text }
+            if speechDelivery.status == "completed", speechDelivery.completedText == text { return text }
+            let spoken = speechDelivery.completedText.isEmpty
+                ? "No complete spoken clause was acknowledged."
+                : "Completed spoken clauses: " + speechDelivery.completedText
+            return spoken + "\n[Voice delivery " + speechDelivery.status
+                + ". The following generated result remains available in the feed; do not assume the user heard it.]\n" + text
+        }
     }
 
     private static let maxMessages = 120
@@ -642,11 +800,46 @@ final class AgentSession {
             }
             let room = min(1_800, remaining - label.count - 2)
             guard room > 0 else { break }
-            let line = "\(label): \(String(message.text.prefix(room)))"
+            let line = "\(label): \(String(message.modelContextText.prefix(room)))"
             selected.append(line)
             remaining -= line.count
         }
         return selected.reversed().joined(separator: "\n\n")
+    }
+
+    /// Keep the speaker roles intact for chat models. The previous string
+    /// context put every past Assistant answer inside the current User message;
+    /// Qwen then copied a past answer when the person asked about an error.
+    func chatHistoryForCurrentTurn(maxCharacters: Int, excludingLastUser: Bool = true,
+                                  includeDeliveryNotes: Bool = true) -> [LLMChatMessage] {
+        let earlier = excludingLastUser && messages.last?.role == "user" ? messages.dropLast() : messages[...]
+        var remaining = max(0, maxCharacters)
+        var selected: [LLMChatMessage] = []
+        for message in earlier.reversed() {
+            guard message.role == "user" || message.role == "assistant" else { continue }
+            let room = min(1_800, remaining)
+            guard room > 0 else { break }
+            let content = String((includeDeliveryNotes ? message.modelContextText : message.text).prefix(room))
+            selected.append(LLMChatMessage(
+                role: message.role == "user" ? .user : .assistant,
+                content: content
+            ))
+            remaining -= content.count
+        }
+        return selected.reversed()
+    }
+
+    /// Delivery is application context, not words the assistant said. Keep it
+    /// separate from transcript roles so a model cannot imitate diagnostic prose.
+    var latestVoiceDeliveryContext: String {
+        guard let message = messages.last(where: { $0.role == "assistant" }),
+              let delivery = message.speechDelivery else { return "" }
+        if delivery.status == "completed" { return "The previous answer finished playing." }
+        if delivery.completedText.isEmpty {
+            return "The previous answer was not fully played; no complete sentence is confirmed heard."
+        }
+        return "The previous answer was not fully played. Confirmed heard text (data): "
+            + String(delivery.completedText.prefix(350))
     }
 
     func recordUser(_ text: String, source: AgentUtteranceSource? = nil) {
@@ -656,11 +849,24 @@ final class AgentSession {
         append(Message(role: "user", text: String(text.prefix(Self.maxStoredCharacters)), source: source?.rawValue))
     }
 
-    func recordAssistant(_ text: String, contextKind: String? = nil) {
-        append(Message(
+    @discardableResult
+    func recordAssistant(_ text: String, contextKind: String? = nil,
+                         source: AgentUtteranceSource? = nil) -> UUID {
+        let message = Message(
             role: "assistant", text: String(text.prefix(Self.maxStoredCharacters)),
-            contextKind: contextKind
-        ))
+            contextKind: contextKind, source: source?.rawValue,
+            speechDelivery: source == .voice ? VoiceSpeechDelivery() : nil)
+        append(message)
+        return message.id
+    }
+
+    func updateSpeech(messageID: UUID, delivery: VoiceSpeechDelivery) {
+        guard let index = messages.firstIndex(where: { $0.id == messageID }),
+              messages[index].speechDelivery != delivery else { return }
+        messages[index].speechDelivery = delivery
+        guard !SelfTest.isRunning else { return }
+        do { try Self.save(messages, to: Self.fileURL) }
+        catch { Log.agent.error("Could not save speech delivery: \(error.localizedDescription, privacy: .public)") }
     }
 
     /// SpeechAnalyzer sometimes revises a cumulative snapshot after an endpoint.
@@ -677,7 +883,7 @@ final class AgentSession {
         guard messages.count >= 2 else { return false }
         let last = messages[messages.count - 1]
         let previous = messages[messages.count - 2]
-        guard last.role == "assistant", previous.role == "user",
+        guard last.role == "assistant", previous.role == "user", previous.source == "voice",
               now.timeIntervalSince(previous.at) < 12 else { return false }
         guard Self.normalized(previous.text) == normalized else { return false }
         lastSuppressedVoice = (normalized, now)
@@ -693,7 +899,7 @@ final class AgentSession {
     func clear() {
         messages.removeAll()
         lastSuppressedVoice = nil
-        try? FileManager.default.removeItem(at: Self.fileURL)
+        if !SelfTest.isRunning { try? FileManager.default.removeItem(at: Self.fileURL) }
     }
 
     private func append(_ message: Message) {

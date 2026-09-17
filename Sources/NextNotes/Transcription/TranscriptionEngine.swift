@@ -9,6 +9,9 @@ import Foundation
 /// it again after handing it over — don't construct one of these around a borrowed buffer.
 struct AudioChunk: @unchecked Sendable {
     let buffer: AVAudioPCMBuffer
+    /// Host-clock timestamp of the first captured sample, retained across the
+    /// delivery queue and sample-rate conversion. File/generated audio has none.
+    var captureHostTime: UInt64? = nil
 }
 
 /// A snapshot of the running transcript.

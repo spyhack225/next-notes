@@ -63,8 +63,20 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-toolloop  --selftest-acp-confirm --selftest-scheduler
 --selftest-toolloop-production
 --selftest-voice-grounding
+--selftest-voice-conversation --selftest-voice-local
+--selftest-voice-turns --selftest-voice-work-lifecycle --selftest-voice-delivery
+--selftest-playback-ledger --selftest-voice-scheduling
+--selftest-concurrent-voice --selftest-voice-frontend --selftest-voice-eou <wav>
+--selftest-acoustic-replay --selftest-acoustic-speech <far-wav> <near-wav>
+--selftest-acoustic-live [apple|selected]
+--selftest-acoustic-aec3-speech <far-wav> <near-wav> --acoustic-aec3
+--selftest-voice-pipeline <wav> --selftest-voice-barge <wav>
+--selftest-voice-echo-live --selftest-pcm-reconfiguration
+--selftest-voice-rapid <first-wav> <second-wav>
+--selftest-voice-suspend --selftest-voice-suspend-live
+--selftest-tts-pocket-session
 --selftest-tool-awareness
---selftest-capture   --selftest-meeting-reconcile
+--selftest-capture   --selftest-microphone --selftest-meeting-reconcile
 --selftest-meeting-reconcile-llm
 --selftest-stream    --selftest-transcript-bus
 --selftest-duplex    --selftest-contention
@@ -805,19 +817,24 @@ development machine. Treat anything here as unproven, and do not describe it as 
 - **Every Workspace write.** `gws auth status` reports no credentials, so no proposal has
   ever been approved and `WorkspaceToolRunner` has never spoken to the API. Each tool's
   flags were checked against `gws <service> <helper> --help`, not against a live call.
-- **The screen-name harvest, against a real editor.** `Sources/NextNotes/Context/` reads the
+- **The screen-name harvest, beyond one Cursor window.** `Sources/NextNotes/Context/` reads the
   file, folder and tab names out of Cursor, Windsurf or VS Code at key-down so a spoken "the
-  login handler file" resolves to the real name. The walk needs the Accessibility grant, and
-  all three editors expose an empty tree until
-  `editor.accessibilitySupport` is set to `on` inside the editor itself — which is why
-  `--selftest-context [bundle-id]` fails rather than passes on a stub tree. **It has been run,
-  and it fails:** against the Cursor open on this machine on 2026-09-10 the walk came back with
-  zero names in 109 ms and `stub tree`, which is the accessibility setting being off, not a
-  defect — the same shape `--selftest-axreadback` records for reading text back out of Cursor.
-  Nobody has yet seen a harvest return real file names, so no spoken file name has ever been
-  resolved end to end. The shrunk-budget half of that self-test does pass (`node cap, depth
-  cap`), so the walk, the ceilings and the truncation reporting are exercised; and the scoring
-  half (`SpokenForms`) is the part CI tests.
+  login handler file" resolves to the real name. **It has now run against a real Cursor window
+  and works:** on 2026-09-16, with the Accessibility grant and `editor.accessibilitySupport` on,
+  `--selftest-context` returned 43 names — explorer files and folders with project-relative
+  paths, the open tabs, the project root — in 133–142 ms (optimized) and 141–143 ms (debug),
+  six runs each, with nothing truncated. The run on 2026-09-10 that came back with zero names
+  and `stub tree` was **not** the setting being off, as this entry used to say. It was the walk:
+  a depth limit of 12 in a tree whose names sit at depth 25–31, identifier matching on
+  `AXIdentifier` when Chromium only exposes `AXDOMIdentifier`, and a stub check that fired on
+  any walk its own limits had cut short. The comments at `AXHarvester.Budget` and
+  `domIdentifierAttribute` carry the measurements. What is still unproven: Windsurf and VS Code
+  have never been walked, so their adapter rows remain copies of Cursor's; nobody has checked
+  whether these editors really expose nothing with the setting off; and no spoken file name has
+  yet gone through a real dictation into the cleanup pass and out as a tag. One consequence of
+  the measured time is known rather than suspected: the speech engine waits only 60 ms for the
+  harvest (`AppleSpeechEngine.context()`), so in Cursor the harvested bias slice never arrives
+  and the engine is biased by the dictionary alone. The cleanup pass still gets every name.
 - **The redesigned UI, by eye.** Screenshots need Screen Recording and driving the UI needs
   Accessibility; neither can be granted non-interactively. Nobody has seen the sidebar, the
   onboarding sheet, or the island expand out of the notch.
@@ -835,3 +852,30 @@ On Windows, nobody has yet held the key and spoken. Specifically unverified:
 Everything those feed into is behind an interface and tested with fakes. The bindings
 themselves are not. **First real-hardware run should start with `--selftest`, then a single
 short dictation into Notepad.**
+
+**Voice work and output have separate lifetimes.** Provisional novel microphone recognition pauses the current reply reversibly;
+only a committed user turn calls `userSpeechStarted`, which stops output while retaining
+the work objective and completed results. Explicit cancellation invalidates work. Do not turn every acknowledgment into a
+cancellation. Model/read budgets exclude waiting for the user's floor or an approval.
+`VoicePlaybackDelivery` records output acknowledgements separately from generated results;
+a completed clause is not proof of physical audibility. Qwen's single native context must
+be reserved before acquiring its compute scheduler ticket, or actor reentry can corrupt
+its inference state and reverse lock order can deadlock. The voice lifecycle, delivery,
+and scheduling self-tests exercise these boundaries without a microphone.
+
+**Live conversation has a different model owner from tool work.**
+`VoiceConversationCoordinator` routes local Foundation Models responses and keeps separate
+Qwen workers alive. A microphone commit clears `RealtimeAgent.voiceInputActive` but must
+not clear the coordinator's effect barrier until the latest input has been classified.
+Otherwise a correction can allow an old effect, or an uncleared floor can deadlock the
+response. `--selftest-concurrent-voice` and `--selftest-voice-conversation` cover both.
+Qwen prefill must checkpoint between batches, and its background warmup must not acquire
+the same priority as the conversational frontend.
+
+**Echo suppression and EOU require the real producer.** Mixer PCM feeds SpeexDSP before
+Agent ASR/VAD. `SPEEX_PREPROCESS_SET_ECHO_STATE` takes the state pointer itself; disabling
+Speex denoise also bypasses residual echo suppression. Digital speech replay includes
+the documented DSP delay and must preserve a distinct overlapping voice. The physical
+`--selftest-acoustic-live` additionally requires audible speaker bleed and real mixer
+frames. Neither a fake playback callback nor a silent microphone passes. FluidAudio EOU
+operations must remain serialized across awaits; its actor can reenter during inference.

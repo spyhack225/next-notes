@@ -1,0 +1,13 @@
+swift build -c debug --scratch-path "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch"
+Building for debugging...
+[0/3] Write swift-version--58304C5D6DBC2206.txt
+Build complete! (0.15s)
+[cctools-port]: generating fake signature for '/Users/sergekadjo/Library/Caches/NextNotesBuild/Next Notes.app/Contents/MacOS/NextNotes'
+ldid.cpp(3332): _assert(): errno=2
+ldid.cpp(3332): _assert(): errno=2
+/Users/sergekadjo/Library/Caches/NextNotesBuild/Next Notes.app/Contents/Frameworks/llama.framework: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/Next Notes.app/Contents/Frameworks/libwebrtc-audio-processing-2.1.dylib: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/Next Notes.app/Contents/Frameworks/libNextNotesAEC.dylib: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/Next Notes.app: replacing existing signature
+built /Users/sergekadjo/Library/Caches/NextNotesBuild/Next Notes.app  [signed: Next Notes Local Signing]
+installed to /Applications/Next Notes.app

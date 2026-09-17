@@ -44,6 +44,25 @@ private actor RaceGate<T: Sendable> {
     }
 }
 
+/// Counts buffers that actually made it through the shared hub into this hold.
+/// The audio callback is off the main actor, while key-up reads the result there.
+private final class DictationAudioCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    func add(_ frames: Int) {
+        lock.lock()
+        count += frames
+        lock.unlock()
+    }
+
+    var frames: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return count
+    }
+}
+
 /// Runs `work` with a deadline. Returns `nil` — and abandons the work — if it overruns.
 ///
 /// Every await in the `endDictation` tail is behind this. Unbounded, any one of them
@@ -112,6 +131,7 @@ final class DictationController {
     private(set) var transcript = ""
     /// Smoothed 0…1 mic level for the waveform.
     private(set) var level: Float = 0
+    private var audioCounter: DictationAudioCounter?
     /// Open from `.listening` until the first non-empty ASR chunk — speech → first partial.
     private var firstPartialTrace: LatencyTrace?
     /// Open from key-down until hub subscribe succeeds — keyDown → capture started.
@@ -445,7 +465,7 @@ final class DictationController {
         //
         // The harvest reads the file, folder and tab names visible in that same app, and
         // belongs here for the reason the other two do — the user may switch away
-        // mid-utterance — plus one of its own: it is a tree walk with a 120 ms budget, and the
+        // mid-utterance — plus one of its own: it is a tree walk with a 250 ms budget, and the
         // only moment that time is free is while the key is still held. `beginCapture` returns
         // immediately and the walk runs off the main actor, so nothing here blocks.
         //
@@ -480,6 +500,7 @@ final class DictationController {
         )
         state = .starting
         transcript = ""
+        audioCounter = DictationAudioCounter()
         holdStarted = Date()
         keyDownToCaptureTrace = LatencyTrace.start(.dictationKeyDownToCapture)
         if case .dictation = intent {
@@ -604,10 +625,12 @@ final class DictationController {
                 // of a recording nobody asked for, and only closes it again a line later.
                 // Hub subscribe so wake KWS can stay on the same input engine.
                 do {
+                    let audioCounter = self.audioCounter
                     try AudioCaptureHub.shared.subscribe(
                         .dictation,
                         outputFormat: format,
                         onBuffer: { chunk in
+                            audioCounter?.add(Int(chunk.buffer.frameLength))
                             audioContinuation.yield(chunk)
                         },
                         onLevel: { [weak self] level in
@@ -689,6 +712,8 @@ final class DictationController {
         }
 
         state = .finishing
+        let capturedFrames = audioCounter?.frames ?? 0
+        audioCounter = nil
         AudioCaptureHub.shared.unsubscribe(.dictation)
         level = 0
         releasedAt = Date()
@@ -762,6 +787,10 @@ final class DictationController {
                 ? stabilized
                 : self.transcript
             guard !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                if capturedFrames == 0 {
+                    fail("No microphone audio reached dictation. Check the selected input device, then try again.")
+                    return
+                }
                 // A timed-out transcription leaves nothing to inject, and silence is the
                 // one thing the user must not be told it was.
                 if transcribed {
@@ -873,6 +902,7 @@ final class DictationController {
     /// The one way back to rest after a successful run.
     private func finishIdle() {
         AudioCaptureHub.shared.unsubscribe(.dictation)
+        audioCounter = nil
         level = 0
         state = .idle
         transcript = ""
@@ -928,6 +958,7 @@ final class DictationController {
         let releasing = session
         session &+= 1
         AudioCaptureHub.shared.unsubscribe(.dictation)
+        audioCounter = nil
         audioContinuation?.finish()
         audioContinuation = nil
         feedTask?.cancel()
@@ -1068,6 +1099,7 @@ final class DictationController {
         let releasing = session
         session &+= 1
         AudioCaptureHub.shared.unsubscribe(.dictation)
+        audioCounter = nil
         audioContinuation?.finish()
         audioContinuation = nil
         feedTask?.cancel()

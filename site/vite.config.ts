@@ -17,10 +17,11 @@ export default defineConfig({
     // publishing is a commit rather than a CI run, and what was previewed locally is
     // byte-for-byte what ships.
     outDir: "../docs",
-    // Deliberately NOT emptied. `docs/` also holds PARAKEET-WINDOWS.md and
-    // S1-MINI-WINDOWS.md, which are engineering notes linked from README.md, AGENTS.md and
-    // windows/README.md — wiping the directory would delete them and break four links. The
-    // build script removes `docs/assets` instead, which is the only part that accumulates.
+    // Deliberately NOT emptied. `docs/` also holds engineering notes — PARAKEET-WINDOWS.md,
+    // linked from README.md, AGENTS.md, windows/README.md and the Windows app itself, plus
+    // measurement records — and wiping the directory would delete them. Plans and roadmaps
+    // live in the local `roadmap/` folder, not here. The build script removes `docs/assets`
+    // instead, which is the only part that accumulates.
     emptyOutDir: false,
   },
   plugins: [react()],

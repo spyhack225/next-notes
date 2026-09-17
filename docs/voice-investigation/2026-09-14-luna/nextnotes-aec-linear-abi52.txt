@@ -1,0 +1,1 @@
+AEC_LINEAR_ABI_OK linear_mean_square=0.005003, expected≈0.005, frames=80

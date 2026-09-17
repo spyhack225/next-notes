@@ -1,0 +1,10 @@
+swift build -c debug --scratch-path "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch"
+Building for debugging...
+[0/4] Write sources
+[1/4] Write swift-version--58304C5D6DBC2206.txt
+[3/6] Compiling NextNotes AgentCaptureController.swift
+[4/6] Emitting module NextNotes
+[4/7] Write Objects.LinkFileList
+[5/7] Linking NextNotes
+[6/7] Applying NextNotes
+Build complete! (7.01s)

@@ -64,10 +64,42 @@ protocol LLMProvider: Sendable {
         user: String,
         maxTokens: Int
     ) async -> AsyncThrowingStream<String, Error>
+
+    func streamConversation(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error>
+
+    /// User-facing turns may use a higher compute priority than meeting notes.
+    func streamInteractiveConversation(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error>
 }
 
 extension LLMProvider {
     var displayModelName: String { id.displayName }
+
+    func streamInteractiveConversation(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        await streamConversation(system: system, messages: messages, maxTokens: maxTokens)
+    }
+
+    func streamConversation(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        let user = messages.map { "\($0.role.rawValue.capitalized): \($0.content)" }
+            .joined(separator: "\n\n")
+        return await stream(system: system, user: user, maxTokens: maxTokens)
+    }
+
     func stream(
         system: String,
         user: String,
@@ -106,6 +138,15 @@ struct LLMCompletion: Sendable {
     var tokensPerSecond: Double {
         duration > 0 ? Double(generatedTokens) / duration : 0
     }
+}
+
+/// Actual conversation roles for providers that support chat templates. Folding
+/// prior assistant turns into one user string made the small local model treat
+/// its own earlier answer as part of the current request.
+struct LLMChatMessage: Sendable {
+    enum Role: String, Sendable { case system, user, assistant }
+    let role: Role
+    let content: String
 }
 
 @MainActor

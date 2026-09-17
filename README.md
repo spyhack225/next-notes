@@ -142,6 +142,14 @@ model used for Agent speech. Pocket TTS by [Kyutai](https://huggingface.co/kyuta
 is CC BY 4.0; [Kokoro 82M Core ML](https://huggingface.co/FluidInference/kokoro-82m-coreml)
 is Apache 2.0.
 
+The Agent keeps listening while it speaks and accepts interruptions. Playback
+echo is filtered from recognized text, and rendered output PCM also feeds local
+SpeexDSP echo cancellation before recognition. Physical speaker-echo tests have
+passed on this Mac, but cold overlapping speech and reliable early interruption
+remain acceptance gates. The bundled WebRTC AEC3 path is an explicit self-test
+candidate until those gates pass. Measurements and limits are in
+`docs/acoustic-echo.md` and `docs/voice-conversation-analysis-2026-09-14.md`.
+
 ### How rebuilds affect grants
 
 TCC stores a *code-signing requirement* per entry, not just a path. An ad-hoc signature
@@ -230,6 +238,16 @@ Do not commit the DMG; it lives on the Release, not in `docs/`.
         Computer         Files / shell         WorkspaceToolRunner  ACP         MCP
         (AX ids)         (no sudo)             (gws, approved)     (optional)  (optional)
 ```
+
+The [September 14 voice analysis](docs/voice-conversation-analysis-2026-09-14.md)
+traces the latest conversation through the local model, work lifecycle, and playback.
+Apple Foundation Models handles local conversation independently of Qwen background
+workers. Side questions keep work intact; targeted corrections revise the relevant task.
+Announcements wait for a quiet interval and retry unfinished clauses after interruption.
+Local Parakeet EOU detects turn endings, and actual rendered PCM feeds SpeexDSP echo
+cancellation before Agent recognition. The measured speech replay and Apple speaker/mic
+probe pass; first-response latency under model contention and human double-talk quality
+remain explicit acceptance questions in that analysis.
 
 ### Decisions worth knowing
 
@@ -335,6 +353,11 @@ Sources/NextNotes/
 │   ├── AgentService.swift          files, announces, and executes approved proposals
 │   ├── WorkspaceInstaller.swift    writes the .command scripts Terminal opens
 │   ├── RealtimeAgent.swift         routed tools, model answers and durable conversation
+│   ├── VoiceConversationWork.swift  original objective + revisions survive speech turns
+│   ├── VoiceAnnouncementQueue.swift  background results wait/retry between turns
+│   ├── VoicePlaybackDelivery.swift   acknowledged speech separate from generated results
+│   ├── VoiceDeliverySelfTest.swift, VoiceWorkLifecycleSelfTest.swift
+│   ├── VoiceConversationSelfTest.swift  production interruption tests + local model benchmark
 │   ├── RealtimeAgentLocalModelSelfTest.swift  streamed answer and interruption probe
 │   ├── RealtimeAgentToolLoopSelfTest.swift  model-selected tools and streamed speech probe
 │   ├── AgentTurnIntent.swift       ordinary turns use the selected Agent model
@@ -451,12 +474,28 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-openrouter              # live key, catalog, chosen model, completion and stream
 "$S" --selftest-openrouter-speed        # live ranked catalog and endpoint throughput metrics
 "$S" --selftest-toolloop                # inspect → click must make both calls
-"$S" --selftest-toolloop-production     # opt-in model → read tool → model route
+"$S" --selftest-toolloop-production     # model → read tool → model, plus single-stream answers
+"$S" --selftest-voice-conversation      # corrections preserve work/results; stale effects cannot run
+"$S" --selftest-concurrent-voice        # independent conversation and multiple retained workers
+"$S" --selftest-voice-frontend          # real on-device conversation during Qwen decode/prefill
+"$S" --selftest-voice-eou speech.wav    # local EOU model, silence rejection and speech ending
+"$S" --selftest-acoustic-replay        # production DSP with generated overlapping signals
+"$S" --selftest-acoustic-speech far.wav near.wav # distinct speech overlap, echo/near quality gates
+open -n -a "Next Notes" --args --selftest-acoustic-live --selftest-out /tmp/nextnotes-echo.txt
+#                                        actual output PCM + mic; silence/headphones cannot pass
+"$S" --selftest-voice-local             # real local Qwen routing, prewarm and first-text timings
+"$S" --selftest-voice-turns             # overlapping acknowledgments and extended corrections
+"$S" --selftest-voice-work-lifecycle    # explicit cancel and model budget while holding the floor
+"$S" --selftest-voice-delivery          # interrupted announcements retry only unfinished clauses
+"$S" --selftest-playback-ledger         # per-clause callbacks reject stale/duplicate completions
+"$S" --selftest-voice-scheduling        # shared native context ownership, priority, cancelled waiters
 "$S" --selftest-voice-grounding         # real local model answers spoken input and contextual voice follow-up
 "$S" --selftest-tool-awareness          # real local model routes personal reads and knows listed capabilities
 "$S" --selftest-acp-confirm             # a missing CLI asks before local tools
 "$S" --selftest-scheduler               # background yields when realtime ASR is queued
 "$S" --selftest-capture                 # one mic engine serves wake + meeting + dictation
+open -n -a "Next Notes" --args --selftest-microphone --selftest-out /tmp/nextnotes-mic.txt
+#                                         real mic + 16 kHz delivery before and after engine restart
 "$S" --selftest-meeting-reconcile       # live cards merge with review; discussion is not an action
 "$S" --selftest-meeting-reconcile-llm   # cadence, merge, and the authority split for LLM reconcile
 "$S" --selftest-stream                  # provisional ASR windows + partials-while-held
@@ -540,11 +579,15 @@ ends*), and **Regenerate** rewrites them with either provider afterwards.
 
 Push-to-talk stays dictation. ⇧⌘ Space (Settings ▸ Agent; configurable) or the wake
 phrase — default “Hey Next”, after the keyword model is downloaded — opens a conversation.
-Silence ends a turn; **Done** on the island leaves the session and discards unfinished speech. The Agent model chosen in
-Settings ▸ Agent decides whether each ordinary request needs a tool; no special wording
-is required to enable tools. The first model pass sees a compact list of available
-tool names; only a request for a tool result opens the full argument catalogue.
-Plain answers stream into speech one clause at a time.
+A local streaming end-of-utterance model ends each spoken turn; **Done** on the
+island leaves the session and discards unfinished speech. Live voice uses Apple
+Foundation Models for on-device conversation and routing, independently of Qwen
+background tool workers. The Agent model picker applies to the regular text
+agent; it does not send live voice conversation to a cloud model. The frontend
+sees compact tool capabilities; requests needing tools open the full argument
+catalogue in a worker. Plain answers stream into speech one clause at a time.
+An interruption yields spoken output while background objectives continue; an
+explicit correction revises the corresponding objective.
 Earlier turns and tool answers are kept locally and supplied
 as bounded context for follow-up questions; **Clear history** in the Agent pane removes
 that conversation.
@@ -793,10 +836,11 @@ broken by something unrelated.
 Two details in `site/vite.config.ts` that look like oversights and are not. `base` is `"./"`
 and not `/` for the reason just given — next-notes.com is a domain root, but the same build
 still has to work under the old Pages subpath. And `emptyOutDir` is **false**: `docs/` also
-holds `PARAKEET-WINDOWS.md` and `S1-MINI-WINDOWS.md`, which are linked from this file,
-`AGENTS.md` and `windows/README.md`, so wiping the directory would delete them and break
-four links. The build script clears `docs/assets` instead, which is the only part that
-accumulates stale hashed bundles.
+holds engineering notes — `PARAKEET-WINDOWS.md`, linked from this file, `AGENTS.md`,
+`windows/README.md` and the Windows app, plus measurement records — so wiping the directory
+would delete them. The build script clears `docs/assets` instead, which is the only part that
+accumulates stale hashed bundles. Plans and roadmaps do not go in `docs/`, because everything
+there is published; they live in the git-ignored local `roadmap/` folder.
 
 The orb on the page is not a picture. `site/src/components/Orb.tsx` is the `listening`
 geometry ported from `OrbGeometry.swift` with the same preset resolved at the same size, so
@@ -813,7 +857,7 @@ this repository instead. If a release ever ships, the call to action is the thin
    server-backed higher-quality tier, but no credential storage, consent UI, or network path
    is present.
 2. **Windows local cleanup.** S1-mini by Superwhisper is a strong candidate; the integration
-   design and constraints are in [`docs/S1-MINI-WINDOWS.md`](docs/S1-MINI-WINDOWS.md).
+   design and constraints are in the local plan `roadmap/S1-MINI-WINDOWS.md` (not in the repo).
 3. **Notarization and Windows distribution signing.** Local macOS builds use a stable
    Developer ID when available, but neither platform has a complete distribution pipeline.
 4. **Meetings and the agent on Windows.** Everything from the process tap onwards is

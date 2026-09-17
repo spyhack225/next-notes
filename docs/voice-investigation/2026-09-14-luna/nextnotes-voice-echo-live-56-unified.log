@@ -1,0 +1,31 @@
+Timestamp               Ty Process[PID:TID]
+2026-09-14 19:06:08.178 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] duplex · begin
+2026-09-14 19:06:08.704 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] voice capture format float32/16000 → Apple ASR 3/16000
+2026-09-14 19:06:08.710 I  NextNotes[60073:9475c] [ai.pivotstudio.nextnotes:speech] biasing with 6 dictionary phrase(s) + 0 screen name(s)
+2026-09-14 19:06:08.710 I  NextNotes[60073:9475c] [ai.pivotstudio.nextnotes:speech] SpeechAnalyzer started for <private>
+2026-09-14 19:06:08.788 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:audio] capture hub started — native 48000.000000Hz · <private> shared input
+2026-09-14 19:06:09.800 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] voice playback route selected=settings <private>
+2026-09-14 19:06:09.800 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789427169.803 token=1 backing=PocketSpeechBacking characters=35
+2026-09-14 19:06:09.800 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] Pocket TTS clause submitted 1789427169.803 token=1 characters=35
+2026-09-14 19:06:11.831 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] Pocket TTS first PCM 1789427171.834 token=1 synthesis=2.031s samples=1920
+2026-09-14 19:06:11.934 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] Pocket TTS first played 1789427171.937 token=1 synthesis=2.031s render=0.103s firstSamples=1920
+2026-09-14 19:06:14.104 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789427174.107 token=2 backing=PocketSpeechBacking characters=29
+2026-09-14 19:06:14.108 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] Pocket TTS clause submitted 1789427174.111 token=2 characters=29
+2026-09-14 19:06:14.206 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] Pocket TTS first PCM 1789427174.209 token=2 synthesis=0.098s samples=1920
+2026-09-14 19:06:14.315 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] Pocket TTS first played 1789427174.318 token=2 synthesis=0.098s render=0.109s firstSamples=1920
+2026-09-14 19:06:14.721 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] duplex · barge-in stop 0.0087s
+2026-09-14 19:06:14.723 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:metrics] span · agent.barge_in_to_tts_stopped · 0.009s
+2026-09-14 19:06:15.009 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] voice partial owner: local decoder caught up
+2026-09-14 19:06:15.738 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] realtime · removed playback from mixed turn
+2026-09-14 19:06:15.739 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] realtime · endpoint localEOU
+2026-09-14 19:06:17.789 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] voice playback route selected=settings <private>
+2026-09-14 19:06:17.790 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789427177.793 token=3 backing=PocketSpeechBacking characters=26
+2026-09-14 19:06:17.795 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] Pocket TTS clause submitted 1789427177.798 token=3 characters=26
+2026-09-14 19:06:17.918 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] Pocket TTS first PCM 1789427177.921 token=3 synthesis=0.124s samples=1920
+2026-09-14 19:06:18.027 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] Pocket TTS first played 1789427178.030 token=3 synthesis=0.124s render=0.109s firstSamples=1920
+2026-09-14 19:06:18.602 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] duplex · barge-in stop 0.0250s
+2026-09-14 19:06:18.602 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:metrics] span · agent.barge_in_to_tts_stopped · 0.025s
+2026-09-14 19:06:21.663 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] duplex · end
+2026-09-14 19:06:21.704 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:island] island notice: agentReply("Stopped.")
+2026-09-14 19:06:22.057 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:agent] wake audio · listening for Hey Next
+2026-09-14 19:06:22.058 I  NextNotes[60073:94725] [ai.pivotstudio.nextnotes:app] selftest · VOICE_ECHO_LIVE_FAILED: enqueued=4 started=3 completed=1 interrupted=3 userTurns=1 rawRMS=0.00687218485881935 baselineRMS=1.3208668320001197e-06 speakerExcess=0.006872184731880885 frames=188877 reference=(rms: 0.06050890285310305, frames: 86400)

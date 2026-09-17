@@ -13,7 +13,8 @@ enum AgentToolExecutor {
         autoApproveReads: Bool = false,
         promptIfNeeded: Bool = false,
         authority: ActionAuthority? = nil,
-        permissionAlreadyGranted: Bool = false
+        permissionAlreadyGranted: Bool = false,
+        isStillValid: (@MainActor @Sendable () async -> Bool)? = nil
     ) async throws -> AgentToolResult {
         guard let tool = AgentToolRegistry.shared.tool(named: name) else {
             throw AgentError.unknownTool(name)
@@ -108,6 +109,7 @@ enum AgentToolExecutor {
                                     || tool.namespace == .computer
                                     || tool.namespace == .workspace)
                 && tool.risk > .read,
+            isStillValid: isStillValid,
             fire: { prepared in
                 // A denied or waiting action must not appear as executed activity. These
                 // projections happen only after the orchestrator has received permission.

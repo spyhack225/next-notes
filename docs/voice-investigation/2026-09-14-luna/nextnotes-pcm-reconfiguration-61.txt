@@ -1,0 +1,2 @@
+PCM_RECONFIGURATION_OK
+PCM_RECONFIGURATION_RECEIPTS first=[1, 2] failures=[(1, "The voice output graph changed configuration during playback.")] drained=[2]

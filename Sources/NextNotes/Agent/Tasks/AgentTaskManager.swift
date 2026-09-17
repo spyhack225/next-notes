@@ -62,7 +62,40 @@ final class AgentTaskManager {
         return task
     }
 
+    func beginVoiceObjective(id: UUID, objective: String) {
+        let task = AgentTask(id: id.uuidString, objective: objective, source: "voice",
+                             status: .running, progress: "Working locally")
+        tasks.insert(task, at: 0)
+        guard !SelfTest.isRunning else { return }
+        persist()
+        AgentActivityStore.shared.begin(task: task, title: objective)
+        IslandState.shared.showBackgroundAgentWork(title: objective)
+    }
+
+    func finishVoiceObjective(id: UUID, result: String) {
+        update(id.uuidString) { task in
+            task.status = .completed
+            task.progress = "Finished"
+            task.result = result
+        }
+        if !SelfTest.isRunning { AgentActivityStore.shared.finish(taskID: id.uuidString, title: result) }
+        announce(result)
+    }
+
+    func cancelVoiceObjective(id: UUID) {
+        update(id.uuidString) { task in
+            task.status = .cancelled
+            task.progress = "Cancelled"
+        }
+        if !SelfTest.isRunning { AgentActivityStore.shared.finish(taskID: id.uuidString, title: "Cancelled") }
+    }
+
     func cancel(_ id: String) {
+        if let uuid = UUID(uuidString: id),
+           VoiceConversationCoordinator.shared.jobs.contains(where: { $0.id == uuid && $0.status == "running" }) {
+            VoiceConversationCoordinator.shared.cancel(uuid)
+            return
+        }
         running[id]?.cancel()
         running[id] = nil
         approvedCompatibilityTaskIDs.remove(id)
@@ -228,6 +261,7 @@ final class AgentTaskManager {
     }
 
     private func persist() {
+        guard !SelfTest.isRunning else { return }
         AgentTaskStore.shared.save(tasks)
     }
 
@@ -239,6 +273,7 @@ final class AgentTaskManager {
         AgentSession.shared.recordAssistant(trimmed)
         AgentAuditLog.shared.record(kind: .reply, title: trimmed)
         IslandState.shared.showBackgroundAgentReply(trimmed)
+        VoiceAnnouncementQueue.shared.enqueue(trimmed)
     }
 }
 

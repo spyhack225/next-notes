@@ -19,10 +19,16 @@ import Foundation
 enum AXHarvester {
     /// Every ceiling in one value so a caller can shrink them all for a self-test.
     struct Budget: Sendable, Hashable {
-        /// Wall clock for the entire walk. 120 ms is the number the design is priced at: the
-        /// user is holding a key and recording has already started, so this is free — but
-        /// only while it stays this size.
-        var deadline: Duration = .milliseconds(120)
+        /// Wall clock for the entire walk. The user is holding a key and recording has already
+        /// started, so this is free — but only while it stays near what a walk really takes.
+        ///
+        /// Measured, not chosen: an optimized build walking a real Cursor window (explorer
+        /// open, three tabs, about 700 nodes) finished in 133–177 ms over six runs on
+        /// 2026-09-16, and returned 42 names. The earlier value of 120 ms stopped every one of
+        /// those walks before the end. Nothing waits on the difference: the speech engine's
+        /// bias wait is its own 60 ms, and the cleanup pass waits up to a second after the key
+        /// is released. A debug build runs roughly twice as long and still hits this.
+        var deadline: Duration = .milliseconds(250)
         /// Per-AX-call ceiling, via `AXUIElementSetMessagingTimeout`. Without this the
         /// deadline above is decorative: one wedged Electron renderer blocks a single
         /// `AXUIElementCopyAttributeValue` for the process default — measured at about 1.5 s on
@@ -31,7 +37,14 @@ enum AXHarvester {
         /// the call site.
         var perCallTimeout: Float = 0.025
         var maxNodes = 1_500
-        var maxDepth = 12
+        /// Deep because the workbench is deep, not because the walk wants to wander. Measured
+        /// in Cursor on 2026-09-16: from the focused window, the explorer's rows sit at depth 25
+        /// and the open tabs at 28–29, underneath a stack of split-view containers, and the
+        /// window's deepest node is at 38. The old value of 12 stopped at the split views, so
+        /// every harvest came back with the window title and nothing else. Splitting the editor
+        /// adds a few more levels per split, which is the headroom above 38. Time and node
+        /// count are the real bounds; this only has to not be the one that fires first.
+        var maxDepth = 40
         var maxCandidates = 200
         static let `default` = Budget()
     }
@@ -93,7 +106,7 @@ enum AXHarvester {
         // Measured against a SIGSTOPped app: with the timeout on the app element alone, a read
         // of the app answered in 30 ms while a read of its window took 1504 ms, which is this
         // machine's process default. Since `isOutOfTime` is only consulted *between* calls, one
-        // wedged renderer would then blow a 120 ms budget by ten seconds over the eight or so
+        // wedged renderer would then blow a 250 ms budget by ten seconds over the eight or so
         // attribute reads a single `visit` makes.
         //
         // Setting it per element is not the round trip the previous comment here claimed:
@@ -118,7 +131,14 @@ enum AXHarvester {
         // no names at all, is the "editor.accessibilitySupport" symptom rather than an empty
         // project. A false positive costs one hint in Settings; a false negative costs a
         // feature that silently does nothing, which is why the floor is set generously.
-        if adapter.needsAccessibilitySupportSetting,
+        //
+        // Only a walk that ran to completion can be read that way. A walk stopped by one of its
+        // own limits came back small because of the limit, and calling that a stub tells the
+        // user to change an editor setting they may already have on — which is exactly what
+        // happened while the depth limit was 12: Cursor's tree was complete, the harvest saw
+        // two names, and the hint blamed Cursor.
+        let stoppedByOwnLimit = !walker.truncation.isDisjoint(with: [.depthCap, .nodeCap, .timeBudget])
+        if adapter.needsAccessibilitySupportSetting, !stoppedByOwnLimit,
            walker.nodes < stubNodeFloor || candidates.isEmpty {
             truncation.insert(.stubTree)
         }
@@ -144,6 +164,18 @@ enum AXHarvester {
     /// window with accessibility support off still answers with its title bar and its window
     /// chrome, and those alone come to more than a dozen nodes.
     private static let stubNodeFloor = 24
+
+    /// Where Chromium puts an element's HTML `id`, and therefore where the workbench part ids
+    /// the adapters match on actually arrive.
+    ///
+    /// Not `kAXIdentifierAttribute`. That is the native AppKit identifier, and a Chromium web
+    /// area never sets it: a walk of Cursor's focused window on 2026-09-16 found zero
+    /// `AXIdentifier` values across 629 nodes, and 48 `AXDOMIdentifier` values including
+    /// `workbench.parts.editor` and `workbench.view.explorer`. Reading the native attribute
+    /// meant every identifier test in this file silently matched nothing — the named-region
+    /// filter never engaged, the ignored regions were walked anyway, and the privacy filter's
+    /// DOM-id check for password and token fields never saw an id to check.
+    private static let domIdentifierAttribute = "AXDOMIdentifier"
 
     /// How many children of one element are ever asked for.
     ///
@@ -202,6 +234,13 @@ enum AXHarvester {
         private var found: [String: Found] = [:]
         private var perKind: [CandidateKind: Int] = [:]
         private var sawNamedRegion = false
+        /// Project-relative paths read off tooltips, keyed like `found`. Applied in `harvest`
+        /// rather than as they are read, because a tooltip can be walked before or after the
+        /// name it belongs to.
+        private var tooltipPaths: [String: String] = [:]
+        /// Names whose tooltips disagreed — two README.md files in different folders. They go
+        /// out with no path: a bare name the user can correct beats a confident wrong one.
+        private var ambiguousTooltipPaths: Set<String> = []
         private var breadcrumbParts: [String] = []
         /// True once a breadcrumb strip has been entered, so a second one can be told apart
         /// from the first. See `flushBreadcrumb` for why only the first is used.
@@ -232,9 +271,16 @@ enum AXHarvester {
         /// requiring one would make this feature depend on the least stable thing in the
         /// window. Degrading to a noisier list is survivable; degrading to nothing is not.
         func harvest() -> [CandidateName] {
-            found.values
-                .filter { !sawNamedRegion || $0.insideNamedRegion }
-                .map(\.candidate)
+            found
+                .filter { !sawNamedRegion || $0.value.insideNamedRegion }
+                .map { key, entry in
+                    let candidate = entry.candidate
+                    guard candidate.path == nil,
+                          !ambiguousTooltipPaths.contains(key),
+                          let path = tooltipPaths[key]
+                    else { return candidate }
+                    return CandidateName(text: candidate.text, path: path, kind: candidate.kind, rank: candidate.rank)
+                }
         }
 
         private var isOutOfTime: Bool { clock.now >= deadline }
@@ -259,7 +305,7 @@ enum AXHarvester {
 
             let role = string(element, kAXRoleAttribute) ?? ""
             let subrole = string(element, kAXSubroleAttribute)
-            let identifier = string(element, kAXIdentifierAttribute)
+            let identifier = string(element, AXHarvester.domIdentifierAttribute)
 
             if let identifier, adapter.ignoredIdentifiers.contains(where: { identifier.contains($0) }) {
                 return
@@ -328,8 +374,15 @@ enum AXHarvester {
                 // file-versus-folder signal in the tree: the row's text is just a word, and
                 // "src" and "src.ts" being different kinds of thing is not something the
                 // string can be asked about.
-                let disclosing = AXHarvester.flag(element, kAXDisclosingAttribute)
-                return .sidebarRow(isFolder: disclosing != nil)
+                //
+                // "Can be expanded" is whether the row *lists* `AXExpanded`, not what it or
+                // `AXDisclosing` reads. Measured over 32 rows of Cursor's explorer on
+                // 2026-09-16: every row, file or folder, supports `AXDisclosing`, and every
+                // file answers a read of `AXExpanded` with 0 just as a collapsed folder does.
+                // Only the attribute list differs — folders carry `AXExpanded`, files do not.
+                // Testing `AXDisclosing` for presence called every row a folder, which is how
+                // `.gitignore` and `Makefile` came out as directories.
+                return .sidebarRow(isFolder: AXHarvester.lists(element, attribute: "AXExpanded"))
             default:
                 return zone
             }
@@ -351,12 +404,33 @@ enum AXHarvester {
 
             switch zone {
             case .tabs:
-                guard let name = label(of: element) else { return }
+                // A tab is a small tree, and most of it is not the file. Measured in Cursor: the
+                // tab's own label is "login.ts, preview, Editor Group 1", its close button and
+                // actions menu sit inside it as "Close (⌘W)" and "Tab actions", and its tooltip
+                // is the absolute path. Every element here inherits the tab zone, so every one of
+                // those arrived as a tab name until the label had to look like a file to count.
+                var name: String?
+                for text in labels(of: element) {
+                    if notePath(text) { continue }
+                    if name == nil { name = AXHarvester.tabFileName(from: text) }
+                }
+                guard let name else { return }
                 let kind: CandidateKind = AXHarvester.isSelected(element) ? .activeTab : .inactiveTab
                 add(name, path: nil, kind: kind, position: position, insideNamedRegion: insideNamedRegion)
 
             case .sidebarRow(let isFolder):
-                guard let name = label(of: element) else { return }
+                // Only the row itself names a file. Below it are the row's furniture — git's "M",
+                // the twistie, and a tooltip reading "~/…/login.ts • Modified" — which is useful
+                // for its path and wrong as a name. All three labels are read rather than the
+                // first, because which attribute carries the name and which the tooltip is the
+                // widget's choice, and taking the first would hand back the tooltip on a build
+                // that puts it in the value.
+                var rowName: String?
+                for text in labels(of: element) {
+                    if notePath(text) { continue }
+                    if rowName == nil { rowName = AXHarvester.stripDecoration(text) }
+                }
+                guard role == kAXRowRole, let name = rowName else { return }
                 // A row with an extension is a file whatever the disclosure attribute says —
                 // a collapsed folder and a file both answer the same way in some builds, and
                 // "login.ts" is not a directory.
@@ -366,9 +440,12 @@ enum AXHarvester {
                 add(name, path: nil, kind: kind, position: position, insideNamedRegion: insideNamedRegion)
 
             case .sidebar:
-                guard let name = label(of: element) else { return }
-                let kind: CandidateKind = CandidateName.hasFileExtension(name) ? .sidebarFile : .sidebarFolder
-                add(name, path: nil, kind: kind, position: position, insideNamedRegion: insideNamedRegion)
+                // Outside a row the explorer is furniture: the outline's own "Files Explorer",
+                // the "Explorer Section: myproject" header, and the collapsed OUTLINE and
+                // TIMELINE panes. All of those were being offered as folders. File and folder
+                // names in Cursor's explorer are rows, measured, so a name that is not in a row
+                // is not one.
+                return
 
             case .breadcrumb:
                 guard !breadcrumbClosed, breadcrumbParts.count < 12, let name = label(of: element) else {
@@ -396,18 +473,23 @@ enum AXHarvester {
         /// unambiguously.
         private mutating func collectWindow(_ window: AXUIElement) {
             let parts = string(window, kAXTitleAttribute).map(AXHarvester.titleComponents) ?? []
-            // The project is the tail of "login.ts — myproject", which is how all three
-            // editors title their windows. Taken from the title rather than from the open
-            // file's path because the title is what the app decided to display, and a path we
-            // walked up ourselves would be a filesystem claim this feature does not make.
-            if parts.count >= 2 { projectRoot = parts.last }
+            let path = string(window, kAXDocumentAttribute).flatMap(AXHarvester.filePath(fromDocument:))
+            // The project is a part of the title, "login.ts — myproject", because that is what
+            // the app decided to display; a path we walked up ourselves would be a filesystem
+            // claim this feature does not make. It is *not* reliably the last part: Cursor
+            // appends the open file's git state, so an untracked file titles its window
+            // "login.ts — myproject — Untracked" and the tail named the project "Untracked".
+            // When the open file's path is known, the project is the title part that is also a
+            // directory in that path; the part after the file name is the fallback.
+            if parts.count >= 2 {
+                let directories = Set(path.map { $0.split(separator: "/").dropLast().map(String.init) } ?? [])
+                projectRoot = parts.dropFirst().first(where: directories.contains) ?? parts[1]
+            }
             for (index, part) in parts.prefix(2).enumerated() {
                 add(part, path: nil, kind: .windowTitle, position: index, insideNamedRegion: true)
             }
 
-            guard let document = string(window, kAXDocumentAttribute),
-                  let path = AXHarvester.filePath(fromDocument: document)
-            else { return }
+            guard let path else { return }
             let name = path.split(separator: "/").last.map(String.init) ?? path
             add(
                 name,
@@ -439,6 +521,41 @@ enum AXHarvester {
             return nil
         }
 
+        /// Every displayed text of an element that passes the same filters as `label(of:)`, in
+        /// the same order. For the widgets that split a name and its tooltip across attributes.
+        private func labels(of element: AXUIElement) -> [String] {
+            let placeholder = string(element, kAXPlaceholderValueAttribute)
+            return [kAXTitleAttribute, kAXValueAttribute, kAXDescriptionAttribute].compactMap { attribute in
+                guard let text = string(element, attribute),
+                      !ContextPrivacyFilter.isPlaceholder(value: text, placeholder: placeholder),
+                      ContextPrivacyFilter.allows(value: text)
+                else { return nil }
+                return text
+            }
+        }
+
+        /// Takes a label that is a filesystem path rather than a name, and says whether it was.
+        ///
+        /// Cursor's tabs and explorer rows carry the file's absolute path, home-relative and
+        /// decorated — "~/Code/myproject/src/login.ts • Modified". That is the only place in the
+        /// tree a sidebar file's folder is written down, so it is kept as a path below the
+        /// project root for the name it ends in. It is never kept as itself: an absolute path in
+        /// a prompt is the contract `ScreenContext.projectRoot` rules out, and it was reaching
+        /// the grounding block verbatim before this existed.
+        private mutating func notePath(_ label: String) -> Bool {
+            let bare = AXHarvester.stripDecoration(label)
+            guard bare.hasPrefix("~/") || bare.hasPrefix("/") else { return false }
+            guard let name = bare.split(separator: "/").last.map(String.init),
+                  let relative = AXHarvester.relativePath(of: bare, under: projectRoot)
+            else { return true }
+            let key = name.lowercased()
+            if let earlier = tooltipPaths[key], earlier != relative {
+                ambiguousTooltipPaths.insert(key)
+            }
+            tooltipPaths[key] = relative
+            return true
+        }
+
         private mutating func add(
             _ text: String,
             path: String?,
@@ -447,6 +564,10 @@ enum AXHarvester {
             insideNamedRegion: Bool
         ) {
             guard ContextPrivacyFilter.allows(value: text) else { return }
+            // Whatever a widget does with its labels, an absolute or home-relative path never
+            // becomes a candidate. `notePath` is where such labels are meant to go; this is the
+            // guarantee for the ones a future widget routes somewhere else.
+            guard !text.hasPrefix("~/"), !text.hasPrefix("/") else { return }
 
             // The position is clamped before it is added, because the gaps between kinds are
             // only ten wide: unclamped, a sidebar row thirty rows down would score worse than
@@ -565,6 +686,17 @@ enum AXHarvester {
         return nil
     }
 
+    /// Whether an element advertises an attribute, as distinct from answering a read of it —
+    /// Chromium answers reads of attributes an element does not list. One call per row, and
+    /// only rows ask.
+    private static func lists(_ element: AXUIElement, attribute: String) -> Bool {
+        var names: CFArray?
+        guard AXUIElementCopyAttributeNames(element, &names) == .success,
+              let names = names as? [String]
+        else { return false }
+        return names.contains(attribute)
+    }
+
     private static func string(_ element: AXUIElement, _ attribute: String) -> String? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success,
@@ -657,6 +789,25 @@ enum AXHarvester {
 
     /// Splits a window title into its parts. Every dash the three editors use, because they
     /// do not agree and the em dash is invisible in a diff.
+    /// A label without the status the editor appends after a bullet: "login.ts • Modified",
+    /// "src • Contains emphasized items".
+    private static func stripDecoration(_ label: String) -> String {
+        (label.components(separatedBy: " • ").first ?? label).trimmingCharacters(in: .whitespaces)
+    }
+
+    /// The file name in a tab label, or nil when the label is not a file.
+    ///
+    /// The name is the first comma-separated part, because the editor appends the tab's state
+    /// and group after it: "login.ts, preview, Editor Group 1". A label without an extension is
+    /// refused, which is what keeps "Close (⌘W)", "Tab actions" and the Settings and Welcome
+    /// tabs out. The cost is an extensionless file open in a tab — a Makefile — which the
+    /// explorer row for it still offers.
+    private static func tabFileName(from label: String) -> String? {
+        let name = (stripDecoration(label).components(separatedBy: ", ").first ?? "")
+            .trimmingCharacters(in: .whitespaces)
+        return CandidateName.hasFileExtension(name) ? name : nil
+    }
+
     private static func titleComponents(_ title: String) -> [String] {
         let separators = [" — ", " – ", " - ", " · "]
         var parts = [title]
@@ -695,7 +846,7 @@ enum AXHarvester {
     /// The file-shaped tokens in a run of visible text.
     ///
     /// Scanned scalar by scalar rather than with `NSRegularExpression`: this runs inside a
-    /// 120 ms budget on strings that can be a whole line of source, and compiling a pattern
+    /// 250 ms budget on strings that can be a whole line of source, and compiling a pattern
     /// per element is the kind of cost that turns a free harvest into a stalled one.
     private static func fileTokens(in text: String) -> [String] {
         var tokens: [String] = []

@@ -40,6 +40,10 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
 
     // Milestone 1 also asked for model-load timing. One span, the model name in `note`.
     case modelLoad = "model.load"
+    case modelQueue = "model.queue"
+    case modelContext = "model.context"
+    case modelPrefill = "model.prefill"
+    case modelFirstToken = "model.first_token"
 
     var pipeline: LatencyPipeline {
         switch self {
@@ -55,7 +59,7 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
              .agentTranscriptToFirstToken, .agentFirstTokenToFirstTTS,
              .agentToolCallToResult, .agentBargeInToTTSStopped:
             return .agent
-        case .modelLoad:
+        case .modelLoad, .modelQueue, .modelContext, .modelPrefill, .modelFirstToken:
             return .model
         }
     }
@@ -86,6 +90,22 @@ enum LatencyPipeline: String, Codable, Sendable {
     case meeting
     case agent
     case model
+}
+
+/// Optional identity propagated through child tasks for an interactive model turn.
+/// Callers wrap work with `LatencyCorrelation.$current.withValue(identity) { ... }`.
+struct LatencyCorrelation: Codable, Sendable, Equatable {
+    let sessionID: UUID?
+    let workID: UUID?
+    let revision: Int?
+
+    @TaskLocal static var current: LatencyCorrelation?
+
+    init(sessionID: UUID? = nil, workID: UUID? = nil, revision: Int? = nil) {
+        self.sessionID = sessionID
+        self.workID = workID
+        self.revision = revision
+    }
 }
 
 /// Engineering targets from roadmap §36. Not hard promises, and not asserted on
@@ -192,6 +212,7 @@ struct LatencySpan: Codable, Sendable, Identifiable, Equatable {
     var durationSeconds: Double
     var process: ProcessSnapshot
     var note: String?
+    var correlation: LatencyCorrelation?
 
     init(
         id: UUID = UUID(),
@@ -200,7 +221,8 @@ struct LatencySpan: Codable, Sendable, Identifiable, Equatable {
         endedAt: Date,
         durationSeconds: Double,
         process: ProcessSnapshot = .current(),
-        note: String? = nil
+        note: String? = nil,
+        correlation: LatencyCorrelation? = LatencyCorrelation.current
     ) {
         self.id = id
         self.name = name
@@ -210,6 +232,7 @@ struct LatencySpan: Codable, Sendable, Identifiable, Equatable {
         self.durationSeconds = durationSeconds
         self.process = process
         self.note = note
+        self.correlation = correlation
     }
 }
 
@@ -276,6 +299,11 @@ struct LatencyTrace: Sendable {
     @discardableResult
     static func persist(_ span: LatencySpan, to store: MetricsStore = .shared) -> LatencySpan {
         store.record(span)
+        if SelfTest.requested == "--selftest-voice-pipeline" {
+            Task { @MainActor in
+                SelfTest.diagnostic("VOICE_PIPELINE_SPAN=\(span.name.rawValue) \(String(format: "%.3f", span.durationSeconds))s \(span.note ?? "")")
+            }
+        }
         Log.metrics.info(
             "span · \(span.name.rawValue, privacy: .public) · \(span.durationSeconds, format: .fixed(precision: 3))s"
         )
@@ -314,7 +342,15 @@ struct LatencyTrace: Sendable {
 
         let store = MetricsStore(directory: root)
         let marker = "selftest-\(UUID().uuidString)"
-        let span = LatencyTrace.start(.dictationDrain).end(note: marker, store: store)
+        let correlation = LatencyCorrelation(
+            sessionID: UUID(), workID: UUID(), revision: 2
+        )
+        let span = LatencyCorrelation.$current.withValue(correlation) {
+            LatencyTrace.start(.dictationDrain).end(note: marker, store: store)
+        }
+        if span.correlation != correlation {
+            failures.append("TaskLocal correlation did not reach the persisted span")
+        }
 
         if span.process.residentMemoryBytes == nil || span.process.residentMemoryBytes == 0 {
             failures.append("process resident memory was not sampled")
@@ -348,6 +384,23 @@ struct LatencyTrace: Sendable {
         }
         if fromDisk.contains(where: { $0.note == marker }) == false {
             failures.append("fake span note \(marker) missing from metrics.jsonl")
+        }
+        if fromDisk.first(where: { $0.id == span.id })?.correlation != correlation {
+            failures.append("correlation missing from metrics.jsonl")
+        }
+        if let encoded = try? JSONEncoder().encode(span),
+           var legacy = (try? JSONSerialization.jsonObject(with: encoded)) as? [String: Any] {
+            legacy.removeValue(forKey: "correlation")
+            if let legacyData = try? JSONSerialization.data(withJSONObject: legacy),
+               let decoded = try? JSONDecoder().decode(LatencySpan.self, from: legacyData) {
+                if decoded.correlation != nil {
+                    failures.append("legacy span unexpectedly acquired correlation")
+                }
+            } else {
+                failures.append("legacy span without correlation did not decode")
+            }
+        } else {
+            failures.append("could not construct legacy span fixture")
         }
 
         let reloaded = MetricsStore(directory: root)

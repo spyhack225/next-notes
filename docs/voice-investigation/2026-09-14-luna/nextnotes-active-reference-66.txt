@@ -1,0 +1,1 @@
+ECHO_ACTIVE_REFERENCE_OK: startup observed=38400 adapted=0 gain=1.00; stopped recent=false adapted=12800 gain=1.00; sparse underflow=true adapted=9600 active=false gain=1.00

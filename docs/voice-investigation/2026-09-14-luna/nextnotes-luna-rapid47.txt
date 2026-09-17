@@ -1,0 +1,46 @@
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_FILE_FEED_CADENCE=80ms
+VOICE_EOU_PREPARE=0.5308820009231567s
+VOICE_EOU_STARTUP_BUFFERED=7 chunks / 8960 frames
+VOICE_EOU_FIRST_PROCESS=1.0967254638671875e-05s lag=0.525488018989563s
+VOICE_MODEL_PARTIAL=voice+0.719s text=hello apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello near=false
+VOICE_MODEL_PARTIAL=voice+0.749s text=hello there apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there near=false
+VOICE_APPLE_FIRST_RESULT=voice+0.983s text=Hello
+VOICE_MODEL_PARTIAL=voice+1.155s text=hello there please apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please near=false
+VOICE_MODEL_PARTIAL=voice+1.410s text=hello there please tell apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell near=false
+VOICE_MODEL_PARTIAL=voice+1.561s text=hello there please tell me apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me near=false
+VOICE_MODEL_PARTIAL=voice+1.884s text=hello there please tell me brie apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brie near=false
+VOICE_MODEL_PARTIAL=voice+1.961s text=hello there please tell me brief apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brief near=false
+VOICE_MODEL_PARTIAL=voice+2.027s text=hello there please tell me briefly apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly near=false
+VOICE_MODEL_PARTIAL=voice+2.189s text=hello there please tell me briefly what apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what near=false
+VOICE_MODEL_PARTIAL=voice+2.596s text=hello there please tell me briefly what a apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a near=false
+VOICE_MODEL_PARTIAL=voice+2.685s text=hello there please tell me briefly what a haik apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haik near=false
+VOICE_MODEL_PARTIAL=voice+2.846s text=hello there please tell me briefly what a haiku apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku near=false
+VOICE_MODEL_PARTIAL=voice+3.008s text=hello there please tell me briefly what a haiku is apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku is near=false
+VOICE_MODEL_EOU=sinceVoiceEnd 1.025s appleRevisionAge 0.045s text=hello there please tell me briefly what a haiku is
+VOICE_MODEL_EOU_TO_ENDPOINT=0.01031196117401123s
+VOICE_MODEL_PARTIAL=voice+4.847s text=please apple=true
+VOICE_MODEL_PARTIAL_FILTERED=please near=false
+VOICE_MODEL_PARTIAL=voice+5.488s text=please stop apple=true
+VOICE_MODEL_PARTIAL_FILTERED=please stop near=false
+VOICE_MODEL_PARTIAL=voice+5.725s text=please stop speaking apple=true
+VOICE_MODEL_PARTIAL_FILTERED=please stop speaking near=false
+VOICE_MODEL_EOU=sinceVoiceEnd 0.445s appleRevisionAge 0.428s text=please stop speaking
+VOICE_MODEL_EOU_TO_ENDPOINT=0.09686100482940674s
+VOICE_FILE_MAX_PACING_LAG=0.0076085 seconds
+VOICE_RAPID_TURNS=["localEOU:hello there please tell me briefly what a haiku is", "localEOU:please stop speaking"] eouResets=0 drops=0
+VOICE_RAPID_COMMIT_TO_SECOND_SAMPLE=0.006643056869506836s
+VOICE_RAPID_OK

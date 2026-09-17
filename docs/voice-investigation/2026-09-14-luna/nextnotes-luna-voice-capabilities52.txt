@@ -1,0 +1,3 @@
+VOICE_CAPABILITY_FAILURE: model-error voice_frontend_failure code=modelError shape=empty length=0 error=NextNotes.(unknown context at $1062593e4).VoiceC#0
+VOICE_CAPABILITY_FAILURE: malformed voice_frontend_failure code=malformedEnvelope shape=malformedTag length=12
+VOICE_CAPABILITIES_OK

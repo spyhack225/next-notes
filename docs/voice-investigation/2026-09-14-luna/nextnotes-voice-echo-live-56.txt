@@ -1,0 +1,2 @@
+VOICE_ECHO_LIVE_UNEXPECTED_TURN=you haven't
+VOICE_ECHO_LIVE_FAILED: enqueued=4 started=3 completed=1 interrupted=3 userTurns=1 rawRMS=0.00687218485881935 baselineRMS=1.3208668320001197e-06 speakerExcess=0.006872184731880885 frames=188877 reference=(rms: 0.06050890285310305, frames: 86400)

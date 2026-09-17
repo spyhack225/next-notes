@@ -1,0 +1,14 @@
+VOICE_CAPABILITIES_OK
+VOICE_CAPABILITY_LIVE_HISTORY: polluted interrupted conversation
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+VOICE_SPLIT_ROUTE intent=answerQuestion task=0
+VOICE_CAPABILITY_LIVE_CASE: live-1 elapsed=0.713s text_only=true output=I can read meeting transcripts and notes, check your calendar, search email, find Drive files, read Google documents, inspect and control Mac apps, inspect and interact with browser pages, read and write local files, run approved shell commands. I can prepare calendar events, documents, emails for approval. Google features require a connection that I haven't confirmed yet. Changes and sends wait for your approval.
+VOICE_CAPABILITY_LIVE_CASE: live-2 elapsed=0.000s text_only=true output=
+VOICE_CAPABILITY_LIVE_CASE: live-3 elapsed=0.678s text_only=true output=I can read meeting transcripts and notes, check your calendar, search email, find Drive files, read Google documents, inspect and control Mac apps, inspect and interact with browser pages, read and write local files, run approved shell commands. I can prepare calendar events, documents, emails for approval. Google features require a connection that I haven't confirmed yet. Changes and sends wait for your approval.
+VOICE_CAPABILITY_LIVE_CASE: live-4 elapsed=0.651s text_only=true output=I can read meeting transcripts and notes, check your calendar, search email, find Drive files, read Google documents, inspect and control Mac apps, inspect and interact with browser pages, read and write local files, run approved shell commands. I can prepare calendar events, documents, emails for approval. Google features require a connection that I haven't confirmed yet. Changes and sends wait for your approval.
+VOICE_CAPABILITY_LIVE_CASE: live-5 elapsed=0.681s text_only=true output=I can read meeting transcripts and notes, check your calendar, search email, find Drive files, read Google documents, inspect and control Mac apps, inspect and interact with browser pages, read and write local files, run approved shell commands. I can prepare calendar events, documents, emails for approval. Google features require a connection that I haven't confirmed yet. Changes and sends wait for your approval.
+VOICE_CAPABILITY_LIVE_CASE: ordinary-after-pollution elapsed=unknown text_only=true output=A haiku is a short poem with three lines, often about nature. It usually has five syllables in the first line, seven in the second, and five in the third.
+VOICE_CAPABILITY_LIVE_OK

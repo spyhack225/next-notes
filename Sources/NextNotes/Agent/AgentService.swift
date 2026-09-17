@@ -102,6 +102,8 @@ final class AgentService {
     private static let statusCacheLifetime: TimeInterval = 30
 
     @ObservationIgnored private var lastProbe: Date?
+    /// A default authState is not a measured account state.
+    var hasCachedAuthStatus: Bool { lastProbe != nil }
 
     /// Drops the cached answer, so the next probe actually runs.
     ///

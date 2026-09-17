@@ -1,0 +1,1 @@
+ECHO_EARLY_OK: first 100ms near correlation 0.89, gain 0.89, independent at 60ms

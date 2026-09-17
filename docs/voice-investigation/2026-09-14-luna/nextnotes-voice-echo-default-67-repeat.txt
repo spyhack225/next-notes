@@ -1,0 +1,50 @@
+VOICE_ECHO_EVENT=1789432451.5328898 epoch=1 local partial=can caughtUp=true
+VOICE_ECHO_EVENT=1789432451.640548 epoch=1 local partial=can help caughtUp=true
+VOICE_ECHO_EVENT=1789432451.8619761 epoch=1 local partial=can help with caughtUp=true
+VOICE_ECHO_EVENT=1789432451.951171 epoch=1 apple raw=I filtered=
+VOICE_ECHO_EVENT=1789432451.9516191 epoch=1 apple raw=I can filtered=
+VOICE_ECHO_EVENT=1789432451.951793 epoch=1 apple raw=I can help filtered=
+VOICE_ECHO_EVENT=1789432451.951942 epoch=1 apple raw=I can help with filtered=
+VOICE_ECHO_EVENT=1789432452.257698 epoch=1 local partial=can help with quest caughtUp=true
+VOICE_ECHO_EVENT=1789432452.345758 epoch=1 local partial=can help with questions caughtUp=true
+VOICE_ECHO_EVENT=1789432452.8560781 epoch=1 local partial=can help with questions or caughtUp=true
+VOICE_ECHO_EVENT=1789432452.954838 epoch=1 apple raw=I can help with questions filtered=
+VOICE_ECHO_EVENT=1789432452.955157 epoch=1 apple raw=I can help with questions or filtered=
+VOICE_ECHO_EVENT=1789432453.040824 epoch=1 local partial=can help with questions or tasks caughtUp=true
+VOICE_ECHO_EVENT=1789432453.85308 epoch=1 apple raw=I can help with questions or task filtered=
+VOICE_ECHO_EVENT=1789432453.853462 epoch=1 apple raw=I can help with questions or tasks filtered=
+VOICE_ECHO_EVENT=1789432453.853946 epoch=1 apple raw=I can help with questions or tasks. filtered=
+VOICE_ECHO_EVENT=1789432453.9833698 epoch=1 apple raw=I can help with questions or tasks. filtered=
+VOICE_ECHO_EVENT=1789432453.983643 epoch=1 apple raw=I can help with questions or tasks. Do filtered=
+VOICE_ECHO_EVENT=1789432453.9837708 epoch=1 apple raw=I can help with questions or tasks. Do you filtered=
+VOICE_ECHO_EVENT=1789432453.9838881 epoch=1 apple raw=I can help with questions or tasks. Do you have filtered=
+VOICE_ECHO_EVENT=1789432454.8429232 epoch=1 apple raw=I can help with questions or tasks. Do you have anything filtered=
+VOICE_ECHO_EVENT=1789432454.843587 epoch=1 apple raw=I can help with questions or tasks. Do you have anything in filtered=
+VOICE_ECHO_EVENT=1789432454.8440971 epoch=1 apple raw=I can help with questions or tasks. Do you have anything in mind filtered=
+VOICE_ECHO_EVENT=1789432455.540381 epoch=1 local endpoint=can help with questions or tasks wordlessEligible=false
+VOICE_ECHO_EVENT=1789432455.5769758 epoch=1 discard wordlessEndpoint=false
+VOICE_ECHO_EVENT=1789432455.738276 epoch=2 apple raw= filtered=
+VOICE_ECHO_EVENT=1789432455.777612 epoch=2 apple raw= filtered=
+VOICE_ECHO_EVENT=1789432458.648734 epoch=2 apple raw=I filtered=
+VOICE_ECHO_EVENT=1789432458.649119 epoch=2 apple raw=I can filtered=
+VOICE_ECHO_EVENT=1789432458.649352 epoch=2 apple raw=I can help filtered=
+VOICE_ECHO_EVENT=1789432459.635106 epoch=2 apple raw=I can help with filtered=
+VOICE_ECHO_EVENT=1789432459.635443 epoch=2 apple raw=I can help with questions filtered=
+VOICE_ECHO_EVENT=1789432459.952139 epoch=2 local partial=what caughtUp=true
+VOICE_ECHO_EVENT=1789432460.036236 epoch=2 local partial=what would caughtUp=true
+VOICE_ECHO_EVENT=1789432460.370306 epoch=2 local partial=what would you caughtUp=true
+VOICE_ECHO_EVENT=1789432460.38624 epoch=2 local partial=what would you like caughtUp=true
+VOICE_ECHO_EVENT=1789432460.446429 epoch=2 local partial=what would you like to caughtUp=true
+VOICE_ECHO_EVENT=1789432460.544853 epoch=2 apple raw=I can help with questions. filtered=
+VOICE_ECHO_EVENT=1789432460.550922 epoch=2 local partial=what would you like to know caughtUp=true
+VOICE_ECHO_EVENT=1789432460.573576 epoch=2 apple raw=I can help with questions. filtered=
+VOICE_ECHO_EVENT=1789432460.5739799 epoch=2 apple raw=I can help with questions. What filtered=
+VOICE_ECHO_EVENT=1789432460.574199 epoch=2 apple raw=I can help with questions. What would filtered=
+VOICE_ECHO_EVENT=1789432460.57442 epoch=2 apple raw=I can help with questions. What would you filtered=
+VOICE_ECHO_EVENT=1789432460.574657 epoch=2 apple raw=I can help with questions. What would you like filtered=
+VOICE_ECHO_EVENT=1789432460.574913 epoch=2 apple raw=I can help with questions. What would you like to filtered=
+VOICE_ECHO_EVENT=1789432460.575191 epoch=2 apple raw=I can help with questions. What would you like to know filtered=
+VOICE_ECHO_EVENT=1789432460.981704 epoch=2 discard wordlessEndpoint=false
+VOICE_ECHO_EVENT=1789432461.5407748 epoch=3 apple raw= filtered=
+VOICE_ECHO_EVENT=1789432461.5688171 epoch=3 apple raw= filtered=
+VOICE_ECHO_LIVE_OK: enqueued=4 started=4 completed=4 interrupted=0 pausedPolls=0 userTurns=0 rawRMS=0.005878960321526354 baselineRMS=1.0917287641502691e-07 speakerExcess=0.005878960320512679 playbackWindowFrames=95953 reference=(rms: 0.0673775099636243, frames: 118400) asrFedFrames=233371 eouProcessed=true eouReady=true

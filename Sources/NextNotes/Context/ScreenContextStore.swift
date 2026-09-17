@@ -5,7 +5,7 @@ import Observation
 ///
 /// This exists for the same reason `OutputProfileStore.captureTarget()` does, and is
 /// deliberately shaped like it. The names have to be read at key-down, because the user may
-/// switch away mid-utterance and because that is the one moment when a 120 ms tree walk costs
+/// switch away mid-utterance and because that is the one moment when a 250 ms tree walk costs
 /// nothing. But they are *needed* twice and at two very different times: the ASR bias list is
 /// wanted before the first audio buffer arrives, and the cleanup prompt is wanted seconds
 /// later. So the harvest is a task started once and awaited twice, with two different
@@ -86,7 +86,7 @@ final class ScreenContextStore {
 
         let bundleID = target.bundleID
         // `Task.detached`, not `Task {}`. A task started here would inherit the main actor —
-        // this class is `@MainActor` — and spend the whole 120 ms budget on the thread drawing
+        // this class is `@MainActor` — and spend the whole 250 ms budget on the thread drawing
         // the HUD's waveform, during the one window the user is watching it.
         inFlight = Task.detached(priority: .userInitiated) { [weak self] in
             let context = AXHarvester.harvest(bundleID: bundleID, processID: processID)
@@ -154,7 +154,7 @@ final class ScreenContextStore {
     }
 
     /// One line per harvest, carrying the elapsed time on purpose: the argument for doing this
-    /// at key-down is that 120 ms is free, and the only way anyone notices that stopped being
+    /// at key-down is that 250 ms is free, and the only way anyone notices that stopped being
     /// true is by being able to read what it actually took.
     private static func log(_ context: ScreenContext) {
         let reasons = context.truncation.reasons
@@ -177,7 +177,7 @@ extension Duration {
     /// `TimeInterval` because attoseconds are what this type is actually made of.
     ///
     /// Not private, because `--selftest-context` prints the same number for the same reason the
-    /// log line does: the argument for harvesting at key-down is that 120 ms is free, and both
+    /// log line does: the argument for harvesting at key-down is that 250 ms is free, and both
     /// places exist so somebody can check whether that is still true.
     var milliseconds: Int {
         let (seconds, attoseconds) = components

@@ -1,0 +1,11 @@
+VOICE_CAPABILITIES_OK
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+VOICE_CAPABILITY_LIVE_CASE: live-1 elapsed=0.795s text_only=true output=I can read meeting transcripts and notes, check your calendar, search email, find Drive files, read Google documents, inspect and control Mac apps, inspect and interact with browser pages, read and write local files, run approved shell commands. I can prepare calendar events, documents, emails for approval. Google features require a connection that I haven't confirmed yet. Changes and sends wait for your approval.
+VOICE_CAPABILITY_LIVE_CASE: live-2 elapsed=0.000s text_only=true output=
+VOICE_CAPABILITY_LIVE_CASE: live-3 elapsed=0.820s text_only=true output=I can read meeting transcripts and notes, check your calendar, search email, find Drive files, read Google documents, inspect and control Mac apps, inspect and interact with browser pages, read and write local files, run approved shell commands. I can prepare calendar events, documents, emails for approval. Google features require a connection that I haven't confirmed yet. Changes and sends wait for your approval.
+VOICE_CAPABILITY_LIVE_CASE: live-4 elapsed=0.902s text_only=true output=I can read meeting transcripts and notes, check your calendar, search email, find Drive files, read Google documents, inspect and control Mac apps, inspect and interact with browser pages, read and write local files, run approved shell commands. I can prepare calendar events, documents, emails for approval. Google features require a connection that I haven't confirmed yet. Changes and sends wait for your approval.
+VOICE_CAPABILITY_LIVE_CASE: live-5 elapsed=0.867s text_only=true output=I can read meeting transcripts and notes, check your calendar, search email, find Drive files, read Google documents, inspect and control Mac apps, inspect and interact with browser pages, read and write local files, run approved shell commands. I can prepare calendar events, documents, emails for approval. Google features require a connection that I haven't confirmed yet. Changes and sends wait for your approval.
+VOICE_CAPABILITY_LIVE_OK

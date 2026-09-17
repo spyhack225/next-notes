@@ -105,17 +105,18 @@ enum AgentStdioFixtures {
             method = msg.get("method")
             params = msg.get("params") or {}
             if mid == 900 and method is None:
-                send({
-                    "jsonrpc": "2.0",
-                    "method": "session/update",
-                    "params": {
-                        "sessionId": session,
-                        "update": {
-                            "sessionUpdate": "agent_message_chunk",
-                            "content": {"type": "text", "text": "ACP session finished."},
+                for chunk in ["ACP", " ", "session", " finished."]:
+                    send({
+                        "jsonrpc": "2.0",
+                        "method": "session/update",
+                        "params": {
+                            "sessionId": session,
+                            "update": {
+                                "sessionUpdate": "agent_message_chunk",
+                                "content": {"type": "text", "text": chunk},
+                            },
                         },
-                    },
-                })
+                    })
                 if waiting_prompt is not None:
                     send({"jsonrpc": "2.0", "id": waiting_prompt, "result": {"stopReason": "end_turn"}})
                     waiting_prompt = None

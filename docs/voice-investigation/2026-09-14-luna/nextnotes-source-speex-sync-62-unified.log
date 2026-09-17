@@ -1,0 +1,22 @@
+Timestamp               Ty Process[PID:TID]
+2026-09-14 19:48:41.972 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] duplex · begin
+2026-09-14 19:48:42.583 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] voice capture format float32/16000 → Apple ASR 3/16000
+2026-09-14 19:48:42.716 I  NextNotes[67463:a44b4] [ai.pivotstudio.nextnotes:speech] biasing with 6 dictionary phrase(s) + 0 screen name(s)
+2026-09-14 19:48:42.732 I  NextNotes[67463:a44b4] [ai.pivotstudio.nextnotes:speech] SpeechAnalyzer started for <private>
+2026-09-14 19:48:43.064 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:audio] capture hub started — native 48000.000000Hz · <private> shared input
+2026-09-14 19:48:43.080 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] voice playback route selected=pocket-source
+2026-09-14 19:48:44.085 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] voice playback route selected=persistent <private>
+2026-09-14 19:48:44.086 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789429724.087 token=1 backing=PocketSourceSpeechBacking characters=35
+2026-09-14 19:48:47.395 E  NextNotes[67463:a4479] [ai.pivotstudio.nextnotes:agent] local EOU startup catch-up lag 4.24s
+2026-09-14 19:48:52.224 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789429732.225 token=2 backing=PocketSourceSpeechBacking characters=29
+2026-09-14 19:48:52.755 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] duplex · barge-in stop 0.0000s
+2026-09-14 19:48:52.759 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:metrics] span · agent.barge_in_to_tts_stopped · 0.000s
+2026-09-14 19:48:55.453 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] realtime · discarded speech activity without usable words
+2026-09-14 19:48:55.773 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] voice playback route selected=persistent <private>
+2026-09-14 19:48:55.774 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789429735.775 token=3 backing=PocketSourceSpeechBacking characters=26
+2026-09-14 19:48:57.348 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] Voice clause start 1789429737.349 token=4 backing=PocketSourceSpeechBacking characters=28
+2026-09-14 19:49:00.363 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] realtime · discarded speech activity without usable words
+2026-09-14 19:49:01.852 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] duplex · end
+2026-09-14 19:49:01.943 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:island] island notice: agentReply("Stopped.")
+2026-09-14 19:49:02.870 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:agent] wake audio · listening for Hey Next
+2026-09-14 19:49:02.879 I  NextNotes[67463:a4464] [ai.pivotstudio.nextnotes:app] selftest · VOICE_ECHO_LIVE_FAILED: enqueued=4 started=4 completed=3 interrupted=1 userTurns=0 rawRMS=0.005337883185856548 baselineRMS=6.169055253333857e-07 speakerExcess=0.0053378831502082945 playbackWindowFrames=89596 reference=(rms: 0.03945089073470125, frames: 298400) asrFedFrames=297539 eouProcessed=true eouReady=true

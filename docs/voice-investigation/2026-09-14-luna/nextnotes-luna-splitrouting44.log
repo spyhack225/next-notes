@@ -1,0 +1,33 @@
+voice frontend prewarm 1.128970541 seconds
+VOICE_SPLIT_ROUTE intent=answerQuestion task=0
+voice frontend first_text=1.321s first_clause=1.322s clause=I am fine, thanks for asking. speech=Hi, how are you? output=<answer/>I am fine, thanks for asking. How can I help you today? classified=true
+VOICE_SPLIT_ROUTE intent=answerQuestion task=1
+voice frontend first_text=1.363s first_clause=1.413s clause=I am reading your task to check your calendar for today. speech=While you check my calendar, tell me what you are doing. output=<answer/>I am reading your task to check your calendar for today. classified=true
+VOICE_SPLIT_ROUTE intent=startExternalTask task=0
+voice frontend first_text=0.686s first_clause=nones clause=none speech=Open Chrome and inspect my Claude sessions. output=<use_tools/> classified=true
+VOICE_SPLIT_ROUTE intent=reviseRunningTask task=1
+voice frontend first_text=0.678s first_clause=nones clause=none speech=I meant Claude, not cloud code. Continue the original task. output=<revise id="1"/> classified=true
+VOICE_SPLIT_ROUTE intent=cancelRunningTask task=1
+voice frontend first_text=0.666s first_clause=nones clause=none speech=Cancel that task. output=<cancel id="1"/> classified=true
+VOICE_SPLIT_ROUTE intent=answerQuestion task=0
+voice frontend first_text=1.241s first_clause=1.506s clause=A haiku is a short poem with three lines, each having a different number of syllables— speech=Hello there. Please tell me briefly what a haiku is. output=<answer/>A haiku is a short poem with three lines, each having a different number of syllables—five in the first, seven in the second, and five in the third. It often focuses on nature or a moment in time. classified=true
+VOICE_SPLIT_ROUTE intent=answerQuestion task=0
+voice frontend first_text=1.339s first_clause=1.549s clause=Two people talk at the same time, each hearing the other instantly. speech=Explain full duplex conversation in plain language. output=<answer/>Two people talk at the same time, each hearing the other instantly. It’s like having a real-time chat where no delay happens. classified=true
+VOICE_SPLIT_ROUTE intent=answerQuestion task=0
+voice frontend first_text=1.279s first_clause=1.279s clause=A clear structure helps keep things organized. speech=What is a good structure for meeting notes? output=<answer/>A clear structure helps keep things organized. Start with a title, then list the main topics. Include who was present, key decisions, action items, and any important quotes or updates. Keep it simple so everyone can follow along. classified=true
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+voice frontend first_text=0.674s first_clause=nones clause=none speech=What can this app help me with? output=<capabilities/> classified=true
+VOICE_SPLIT_ROUTE intent=describeCapabilities task=0
+voice frontend first_text=0.680s first_clause=nones clause=none speech=List the tools you support. output=<capabilities/> classified=true
+VOICE_SPLIT_ROUTE intent=startExternalTask task=0
+voice frontend first_text=0.720s first_clause=nones clause=none speech=Use your tools to open Safari. output=<use_tools/> classified=true
+VOICE_SPLIT_ROUTE intent=startExternalTask task=0
+voice frontend first_text=0.690s first_clause=nones clause=none speech=Can you check my calendar for today? output=<use_tools/> classified=true
+VOICE_SPLIT_ROUTE intent=answerQuestion task=0
+voice frontend first_text=1.256s first_clause=1.582s clause=I can help with calendars if you use Google Workspace, but I haven't checked that connection yet. speech=Do you support calendars? output=<answer/>I can help with calendars if you use Google Workspace, but I haven't checked that connection yet. classified=true
+VOICE_SPLIT_ROUTE intent=answerQuestion task=0
+voice frontend first_text=1.348s first_clause=1.444s clause=You need approval for changes, commands and sending emails. speech=Can you send emails without approval? output=<answer/>You need approval for changes, commands and sending emails. classified=true
+VOICE_SPLIT_ROUTE intent=answerQuestion task=0
+voice frontend first_text=1.285s first_clause=1.553VOICE_FRONTEND_OK
+s clause=Full duplex means two people can talk at the same time without waiting for the other to finish speaking. speech=What does full duplex mean? output=<answer/>Full duplex means two people can talk at the same time without waiting for the other to finish speaking. classified=true
+VOICE_FRONTEND_OK

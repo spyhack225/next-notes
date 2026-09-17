@@ -1,0 +1,1 @@
+VOICE_ECHO_LIVE_OK: enqueued=4 started=4 completed=4 interrupted=0 userTurns=0 rawRMS=0.009694918804829832 baselineRMS=4.385872210820202e-08 speakerExcess=0.009694918804730624 frames=207948 reference=(rms: 0.07615320271276284, frames: 105600)

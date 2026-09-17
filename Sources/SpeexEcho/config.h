@@ -1,0 +1,8 @@
+#ifndef NEXTNOTES_SPEEX_CONFIG_H
+#define NEXTNOTES_SPEEX_CONFIG_H
+#define FLOATING_POINT 1
+#define USE_KISS_FFT 1
+#define VAR_ARRAYS 1
+#define HAVE_CONFIG_H 1
+#define EXPORT
+#endif

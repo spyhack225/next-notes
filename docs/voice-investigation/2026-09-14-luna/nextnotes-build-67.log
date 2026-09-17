@@ -1,0 +1,29 @@
+swift build -c debug --scratch-path "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch"
+[0/1] Planning build
+Building for debugging...
+[0/4] Write sources
+[1/4] Write swift-version--58304C5D6DBC2206.txt
+[3/7] Compiling NextNotes RealtimeAudioSession.swift
+[4/7] Emitting module NextNotes
+[5/7] Compiling NextNotes AgentCaptureController.swift
+[6/15] Compiling NextNotes VoiceEchoLiveProbe.swift
+[7/15] Compiling NextNotes AgentSpeechSynthesizer.swift
+[8/15] Compiling NextNotes VoiceAnnouncementQueue.swift
+[9/15] Compiling NextNotes RealtimeAgent.swift
+[10/15] Compiling NextNotes VoiceDeliverySelfTest.swift
+[11/15] Compiling NextNotes RealtimeAgent+ToolLoop.swift
+[12/15] Compiling NextNotes NextNotesApp.swift
+[13/15] Compiling NextNotes ContentionSelfTests.swift
+[14/24] Compiling NextNotes VoiceWorkLifecycleSelfTest.swift
+[15/24] Compiling NextNotes ActivationController.swift
+[16/24] Compiling NextNotes ConcurrentVoiceSelfTest.swift
+[17/24] Compiling NextNotes VoiceCapabilityConversationSelfTest.swift
+[18/24] Compiling NextNotes RealtimeAgentLocalModelSelfTest.swift
+[19/24] Compiling NextNotes VoiceConversationCoordinator.swift
+[20/24] Compiling NextNotes VoiceConversationSelfTest.swift
+[21/24] Compiling NextNotes RealtimeAgentToolLoopSelfTest.swift
+[22/24] Compiling NextNotes IslandState.swift
+[22/25] Write Objects.LinkFileList
+[23/25] Linking NextNotes
+[24/25] Applying NextNotes
+Build complete! (14.43s)

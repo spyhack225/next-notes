@@ -10,7 +10,10 @@ import Foundation
 /// Not `@MainActor`. Dictation, meetings and the agent will record from whatever
 /// isolation they already sit on; a lock keeps the ring and the file in step.
 final class MetricsStore: @unchecked Sendable {
-    static let shared = MetricsStore()
+    static let shared = MetricsStore(directory: SelfTest.isRunning
+        ? FileManager.default.temporaryDirectory
+            .appendingPathComponent("NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true)
+        : AppIdentity.applicationSupportDirectory)
 
     /// Enough for a day's dictation plus meetings without holding a growing array.
     static let defaultRingCapacity = 512

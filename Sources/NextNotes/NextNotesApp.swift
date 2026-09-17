@@ -69,6 +69,20 @@ enum SelfTest {
 
     static var isRunning: Bool { requested != nil }
 
+    /// Preserve model/audio probe detail when LaunchServices has no stdout.
+    @MainActor static func diagnostic(_ line: String) {
+        print(line)
+        guard isRunning, let path = outputPath else { return }
+        let text = line + "\n"
+        if let handle = FileHandle(forWritingAtPath: path) {
+            handle.seekToEndOfFile()
+            handle.write(Data(text.utf8))
+            try? handle.close()
+        } else {
+            try? text.write(toFile: path, atomically: true, encoding: .utf8)
+        }
+    }
+
     static let outputFlag = "--selftest-out"
     static let timeoutFlag = "--selftest-timeout"
 
@@ -506,6 +520,356 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-concurrent-voice") {
+            Task { @MainActor in
+                SelfTest.failed = !(await ConcurrentVoiceSelfTest.run())
+                writeSelfTest(SelfTest.failed ? "CONCURRENT_VOICE_FAILED" : "CONCURRENT_VOICE_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-prompt-probe") {
+            Task { @MainActor in
+                SelfTest.failed = !(await LocalVoicePromptProbe.run())
+                writeSelfTest(SelfTest.failed ? "VOICE_PROMPT_PROBE_FAILED" : "VOICE_PROMPT_PROBE_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-capabilities")
+            || arguments.contains("--selftest-voice-capabilities-live") {
+            Task { @MainActor in
+                let live = arguments.contains("--selftest-voice-capabilities-live")
+                let passed = live
+                    ? await VoiceCapabilityConversationSelfTest.runLive()
+                    : await VoiceCapabilityConversationSelfTest.run()
+                SelfTest.failed = SelfTest.failed || !passed
+                writeSelfTest(SelfTest.failed ? "VOICE_CAPABILITIES_FAILED" : "VOICE_CAPABILITIES_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-speculation") {
+            Task { @MainActor in
+                SelfTest.failed = !(await LocalVoiceFrontendSpeculationSelfTest.run())
+                writeSelfTest(SelfTest.failed ? "VOICE_SPECULATION_FAILED" : "VOICE_SPECULATION_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-tts-pocket-session") {
+            Task { @MainActor in
+                SelfTest.failed = !(await PocketTtsSessionSelfTest.run())
+                writeSelfTest(SelfTest.failed ? "POCKET_SESSION_FAILED" : "POCKET_SESSION_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-rapid") {
+            Task { @MainActor in
+                let args = CommandLine.arguments
+                guard let index = args.firstIndex(of: "--selftest-voice-rapid"),
+                      index + 2 < args.count,
+                      !args[index + 1].hasPrefix("--"), !args[index + 2].hasPrefix("--") else {
+                    SelfTest.failed = true
+                    writeSelfTest("VOICE_RAPID_FAILED: first and second WAV paths required")
+                    NSApp.terminate(nil)
+                    return
+                }
+                let failures = await AgentCaptureController.runVoiceRapidTurnsSelfTest(
+                    first: URL(fileURLWithPath: args[index + 1]),
+                    second: URL(fileURLWithPath: args[index + 2]))
+                for failure in failures { writeSelfTest("VOICE_RAPID_WRONG: \(failure)") }
+                SelfTest.failed = !failures.isEmpty
+                writeSelfTest(SelfTest.failed ? "VOICE_RAPID_FAILED" : "VOICE_RAPID_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-pcm-reconfiguration") {
+            Task { @MainActor in
+                let passed = await AgentPCMRenderer.runConfigurationRecoverySelfTest()
+                SelfTest.failed = SelfTest.failed || !passed
+                writeSelfTest(SelfTest.failed ? "PCM_RECONFIGURATION_FAILED" : "PCM_RECONFIGURATION_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-pcm-callback") {
+            Task { @MainActor in
+                SelfTest.failed = !(await AgentPCMRenderer.runReverseCallbackIsolationSelfTest())
+                writeSelfTest(SelfTest.failed ? "PCM_CALLBACK_FAILED" : "PCM_CALLBACK_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-pcm-source") {
+            Task { @MainActor in
+                guard let path = SelfTest.value(after: "--selftest-pcm-source") else {
+                    SelfTest.failed = true
+                    writeSelfTest("PCM_SOURCE_FAILED: far speech WAV required")
+                    NSApp.terminate(nil)
+                    return
+                }
+                let result = await AgentPCMSourceProbe.run(farURL: URL(fileURLWithPath: path))
+                SelfTest.failed = !result.0
+                writeSelfTest(result.1)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-acoustic-hybrid") {
+            Task { @MainActor in
+                guard let path = SelfTest.value(after: "--selftest-acoustic-hybrid") else {
+                    SelfTest.failed = true
+                    writeSelfTest("ECHO_HYBRID_FAILED: near speech WAV required")
+                    NSApp.terminate(nil)
+                    return
+                }
+                let result = await AcousticHybridProbe.run(voice: "selected", nearURL: URL(fileURLWithPath: path))
+                SelfTest.failed = !result.0
+                writeSelfTest(result.1)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-suspend") {
+            Task { @MainActor in
+                let failures = AgentSpeechSynthesizer.runSuspendSelfTest()
+                for failure in failures { writeSelfTest("VOICE_SUSPEND_WRONG: \(failure)") }
+                SelfTest.failed = !failures.isEmpty
+                writeSelfTest(SelfTest.failed ? "VOICE_SUSPEND_FAILED" : "VOICE_SUSPEND_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-suspend-live") {
+            Task { @MainActor in
+                let result = await AgentSpeechSynthesizer.runLiveSuspendSelfTest()
+                SelfTest.failed = !result.0
+                writeSelfTest(result.1)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-acoustic-int16") || arguments.contains("--selftest-acoustic-cold") {
+            Task { @MainActor in
+                let cold = arguments.contains("--selftest-acoustic-cold")
+                let flag = cold ? "--selftest-acoustic-cold" : "--selftest-acoustic-int16"
+                guard let path = SelfTest.value(after: flag) else {
+                    SelfTest.failed = true
+                    writeSelfTest("ECHO_INT16_FAILED: far WAV path required")
+                    NSApp.terminate(nil)
+                    return
+                }
+                let result = cold
+                    ? AcousticEchoProcessor.runColdFarOnlySelfTest(farURL: URL(fileURLWithPath: path))
+                    : AcousticEchoProcessor.runInt16ReplaySelfTest(farURL: URL(fileURLWithPath: path))
+                SelfTest.failed = !result.0
+                writeSelfTest(result.1)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-acoustic-live") {
+            Task { @MainActor in
+                let result = await AcousticLiveProbe.run(
+                    voice: SelfTest.value(after: "--selftest-acoustic-live") ?? "selected")
+                SelfTest.failed = !result.0
+                writeSelfTest(result.1)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-acoustic-speech") || arguments.contains("--selftest-acoustic-early")
+            || arguments.contains("--selftest-acoustic-speech-tail")
+            || arguments.contains("--selftest-acoustic-aec3-speech") {
+            Task { @MainActor in
+                let args = CommandLine.arguments
+                let early = args.contains("--selftest-acoustic-early")
+                let tail = args.contains("--selftest-acoustic-speech-tail")
+                let aec3 = args.contains("--selftest-acoustic-aec3-speech")
+                let flag = aec3 ? "--selftest-acoustic-aec3-speech" : tail ? "--selftest-acoustic-speech-tail"
+                    : (early ? "--selftest-acoustic-early" : "--selftest-acoustic-speech")
+                guard let index = args.firstIndex(of: flag), index + 2 < args.count,
+                      !args[index + 1].hasPrefix("--"), !args[index + 2].hasPrefix("--") else {
+                    SelfTest.failed = true
+                    writeSelfTest("ECHO_SPEECH_FAILED: far and near WAV paths required")
+                    NSApp.terminate(nil)
+                    return
+                }
+                let far = URL(fileURLWithPath: args[index + 1])
+                let near = URL(fileURLWithPath: args[index + 2])
+                let result = aec3
+                    ? AcousticEchoProcessor.runAEC3SpeechReplaySelfTest(farURL: far, nearURL: near)
+                    : (tail
+                        ? AcousticEchoProcessor.runSpeechTailSelfTest(farURL: far, nearURL: near)
+                        : (early
+                        ? AcousticEchoProcessor.runEarlyDoubleTalkSelfTest(farURL: far, nearURL: near)
+                        : AcousticEchoProcessor.runSpeechReplaySelfTest(farURL: far, nearURL: near)))
+                SelfTest.failed = !result.0
+                writeSelfTest(result.1)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-echo-live") {
+            Task { @MainActor in
+                let result = await VoiceEchoLiveProbe.run()
+                SelfTest.failed = SelfTest.failed || !result.0
+                writeSelfTest(result.1)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-frontend") {
+            Task { @MainActor in
+                SelfTest.failed = !(await LocalVoiceFrontendSelfTest.run())
+                writeSelfTest(SelfTest.failed ? "VOICE_FRONTEND_FAILED" : "VOICE_FRONTEND_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-barge") {
+            Task { @MainActor in
+                guard let path = SelfTest.value(after: "--selftest-voice-barge") else {
+                    SelfTest.failed = true
+                    writeSelfTest("VOICE_BARGE_FAILED: WAV path required")
+                    NSApp.terminate(nil)
+                    return
+                }
+                let failures = await AgentCaptureController.runVoiceBargeSelfTest(
+                    wav: URL(fileURLWithPath: path),
+                    appleFastResults: !arguments.contains("--voice-apple-standard"))
+                for failure in failures { writeSelfTest("VOICE_BARGE_WRONG: \(failure)") }
+                SelfTest.failed = SelfTest.failed || !failures.isEmpty
+                writeSelfTest(SelfTest.failed ? "VOICE_BARGE_FAILED" : "VOICE_BARGE_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-pipeline") {
+            Task { @MainActor in
+                guard let path = SelfTest.value(after: "--selftest-voice-pipeline") else {
+                    SelfTest.failed = true
+                    writeSelfTest("VOICE_PIPELINE_FAILED: WAV path required")
+                    NSApp.terminate(nil)
+                    return
+                }
+                let failures = await AgentCaptureController.runVoicePipelineSelfTest(
+                    wav: URL(fileURLWithPath: path),
+                    appleFastResults: !arguments.contains("--voice-apple-standard"))
+                for failure in failures { writeSelfTest("VOICE_PIPELINE_WRONG: \(failure)") }
+                SelfTest.failed = SelfTest.failed || !failures.isEmpty
+                writeSelfTest(SelfTest.failed ? "VOICE_PIPELINE_FAILED" : "VOICE_PIPELINE_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-eou") {
+            Task { @MainActor in
+                guard let path = SelfTest.value(after: "--selftest-voice-eou") else {
+                    SelfTest.failed = true
+                    writeSelfTest("VOICE_EOU_FAILED: WAV path required")
+                    NSApp.terminate(nil)
+                    return
+                }
+                let failures = await LocalVoiceTurnDetector.selfTest(wav: URL(fileURLWithPath: path))
+                for failure in failures { writeSelfTest("VOICE_EOU_WRONG: \(failure)") }
+                SelfTest.failed = !failures.isEmpty
+                writeSelfTest(SelfTest.failed ? "VOICE_EOU_FAILED" : "VOICE_EOU_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-acoustic-tail") {
+            Task { @MainActor in
+                let result = AcousticEchoProcessor.runStopTailSelfTest()
+                SelfTest.failed = !result.0
+                writeSelfTest(result.1)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-acoustic-replay") {
+            Task { @MainActor in
+                let result = AcousticEchoProcessor.runReplaySelfTest()
+                SelfTest.failed = !result.0
+                writeSelfTest(result.1)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-conversation") {
+            Task { @MainActor in
+                SelfTest.failed = !(await VoiceConversationSelfTest.run())
+                if SelfTest.outputPath != nil {
+                    writeSelfTest(SelfTest.failed ? "VOICE_CONVERSATION_FAILED" : "VOICE_CONVERSATION_OK")
+                }
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-work-lifecycle") {
+            Task { @MainActor in
+                SelfTest.failed = !(await VoiceWorkLifecycleSelfTest.run())
+                if SelfTest.outputPath != nil {
+                    writeSelfTest(SelfTest.failed ? "VOICE_WORK_LIFECYCLE_FAILED" : "VOICE_WORK_LIFECYCLE_OK")
+                }
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-delivery") {
+            Task { @MainActor in
+                SelfTest.failed = !(await VoiceDeliverySelfTest.run())
+                if SelfTest.outputPath != nil {
+                    writeSelfTest(SelfTest.failed ? "VOICE_DELIVERY_FAILED" : "VOICE_DELIVERY_OK")
+                }
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-turns") {
+            Task { @MainActor in
+                var failures = AgentCaptureController.turnPolicySelfTestFailures()
+                failures += await AgentCaptureController.overlappingBackchannelSelfTestFailures()
+                failures += await AgentCaptureController.reversibleListeningSelfTestFailures()
+                for failure in failures { print("VOICE_TURNS_WRONG: \(failure)") }
+                SelfTest.failed = !failures.isEmpty
+                writeSelfTest(failures.isEmpty ? "VOICE_TURNS_OK" : "VOICE_TURNS_FAILED")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-playback-ledger") {
+            Task { @MainActor in
+                let failures = AgentSpeechSynthesizer.runPlaybackLedgerSelfTest()
+                for failure in failures { print("PLAYBACK_LEDGER_WRONG: \(failure)") }
+                SelfTest.failed = !failures.isEmpty
+                writeSelfTest(failures.isEmpty ? "PLAYBACK_LEDGER_OK" : "PLAYBACK_LEDGER_FAILED")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-scheduling") {
+            Task { @MainActor in
+                SelfTest.failed = !(await NotesModelRuntime.conversationSchedulingSelfTest())
+                writeSelfTest(SelfTest.failed ? "VOICE_SCHEDULING_FAILED" : "VOICE_SCHEDULING_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-local") {
+            Task { @MainActor in
+                SelfTest.failed = !(await VoiceConversationSelfTest.runLocalBenchmark())
+                if SelfTest.outputPath != nil {
+                    writeSelfTest(SelfTest.failed ? "VOICE_LOCAL_FAILED" : "VOICE_LOCAL_OK")
+                }
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-toolloop-production") {
             Task { @MainActor in
                 SelfTest.failed = !(await RealtimeAgentToolLoopSelfTest.run())
@@ -542,6 +906,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if arguments.contains("--selftest-capture") {
             Task { @MainActor in
                 SelfTest.failed = !(await AudioCaptureHub.runSelfTest())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-microphone") || arguments.contains("--selftest-microphone-sink") {
+            Task { @MainActor in
+                let (passed, report) = await AudioCaptureHub.runLiveMicrophoneSelfTest()
+                SelfTest.failed = !passed
+                writeSelfTest(report)
                 NSApp.terminate(nil)
             }
             return true

@@ -172,18 +172,22 @@ final class AgentHarnessRouter {
         ]
         if localMarks.contains(where: { lowered.contains($0) }) { return .local }
 
-        if lowered.contains("claude code") || lowered.contains("use claude")
-            || lowered.contains("ask claude") || lowered.contains("in claude") {
-            return .claude
+        // A name can be the subject of an inspection or a recognition correction.
+        // Only delegation language selects an execution backend.
+        let names: [(AgentHarnessID, String)] = [
+            (.claude, "claude(?: code)?"), (.qwen, "qwen(?: code)?"),
+            (.codex, "codex"), (.opencode, "open ?code")
+        ]
+        for (id, name) in names {
+            let instruction = #"(?:^|[.!?]\s+)(?:please\s+)?(?:use|ask|have)\s+(?:the\s+)?"#
+                + name + #"\b"#
+            let handoff = #"\b(?:delegate|hand off|hand this off|send this task)\s+to\s+"#
+                + name + #"\b"#
+            if lowered.range(of: instruction, options: .regularExpression) != nil
+                || lowered.range(of: handoff, options: .regularExpression) != nil {
+                return id
+            }
         }
-        if lowered.contains("qwen code") || lowered.contains("use qwen")
-            || lowered.contains("ask qwen") || lowered.contains("in qwen") {
-            return .qwen
-        }
-        if lowered.contains("opencode") || lowered.contains("open code") {
-            return .opencode
-        }
-        if lowered.contains("codex") { return .codex }
         return nil
     }
 

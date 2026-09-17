@@ -40,4 +40,24 @@ struct LlamaLLMProvider: LLMProvider {
             maxTokens: maxTokens
         )
     }
+
+    func streamConversation(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        await NotesModelRuntime.shared.streamConversation(
+            system: system, messages: messages, maxTokens: maxTokens
+        )
+    }
+
+    func streamInteractiveConversation(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        await NotesModelRuntime.shared.streamInteractiveConversation(
+            system: system, messages: messages, maxTokens: maxTokens
+        )
+    }
 }

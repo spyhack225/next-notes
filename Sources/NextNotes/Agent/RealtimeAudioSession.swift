@@ -5,13 +5,16 @@ import Foundation
 /// and user speech interrupts playback without waiting for the utterance to end.
 ///
 /// ## Echo / AEC
-/// Qwen routes input and output through one VoiceProcessingIO audio unit, so
-/// playback is a reference for acoustic echo cancellation. Agent TTS currently
-/// uses AVSpeechSynthesizer or a separate output player; this app does not yet
-/// have that shared reference. This session therefore does:
+/// The agent's output mixer supplies a render reference to
+/// `AcousticEchoProcessor`, which cleans the 16 kHz mic stream before ASR,
+/// local end-of-utterance detection and VAD. The reference is unavailable for
+/// some output paths, so transcript evidence still protects the turn. This
+/// session does:
 ///
-/// 1. **Transcript-confirmed interruption** — novel ASR text stops TTS
-///    immediately and clears every pending clause in the speak queue.
+/// 1. **Reversible provisional listening** — a novel ASR hypothesis pauses the
+///    current clause and preserves queued clauses; an echo or empty endpoint
+///    resumes that same token. A committed novel turn then stops TTS and clears
+///    the queue.
 /// 2. **Optional output ducking** — while speaking, utterance volume is lowered
 ///    so speaker→mic bleed is less likely to false-trigger VAD.
 /// 3. **Recent playback echo filtering** — reflected words are removed from
@@ -56,21 +59,47 @@ final class RealtimeAudioSession {
 
     /// Last barge-in → TTS stopped interval, for metrics / self-test.
     private(set) var lastBargeInStopSeconds: TimeInterval?
+    private(set) var lastListeningPauseAt: Date?
+    private struct ListeningHold {
+        let captureID: UUID
+        let outputGeneration: UInt64
+        let beganAt: Date
+        var lastNearAt: Date
+    }
+    private var listeningHold: ListeningHold?
+    private static let listeningQuietRelease: TimeInterval = 0.25
+    private static let listeningMaximumUnrecognizedHold: TimeInterval = 2.5
 
     /// Clause-by-clause flush while reply text is still growing.
     private let speechBuffer = StreamingSpeechBuffer()
+    struct EchoRecognitionState: Sendable {
+        fileprivate var words: [String] = []
+        fileprivate var echoMask: [Bool] = []
+
+        mutating func reset() {
+            words.removeAll()
+            echoMask.removeAll()
+        }
+    }
+
+    struct EchoRecognitionResult: Sendable {
+        let text: String
+        let words: [String]
+        let echoMask: [Bool]
+    }
+
     private struct OutputReference {
         var text: String
         var at: Date
+        var active: Bool
     }
     private struct Word {
         var value: String
         var range: Range<String.Index>
     }
     private var recentOutputs: [OutputReference] = []
-    private var recordingOutput = false
     private static let echoWindow: TimeInterval = 15
-    private static let maxEchoReferences = 3
+    private static let maxEchoReferences = 6
     private static let wordPattern = try! NSRegularExpression(pattern: #"[\p{L}\p{N}]+"#)
 
     private init() {}
@@ -80,20 +109,30 @@ final class RealtimeAudioSession {
     /// Agent listen opened. Capture still starts on the hub via
     /// `AgentCaptureController` — this only tracks duplex phase.
     func begin() {
+        AcousticEchoProcessor.shared.reset()
+        AgentSpeechSynthesizer.shared.onPlaybackEvent = { [weak self] event in
+            self?.receivePlaybackEvent(event)
+            VoicePlaybackDelivery.shared.receive(event)
+        }
         isActive = true
         isSpeaking = false
         phase = .listening
         speechBuffer.cancel()
         recentOutputs.removeAll()
-        recordingOutput = false
         AgentSpeechSynthesizer.shared.utteranceVolume = Self.fullVolume
         lastBargeInStopSeconds = nil
+        lastListeningPauseAt = nil
+        listeningHold = nil
         Log.agent.info("duplex · begin")
     }
 
     /// Session closed. Stops any in-flight utterance and clears pending clauses.
     func end() {
+        listeningHold = nil
         stopOutput()
+        AgentSpeechSynthesizer.shared.endPersistentPocketPlayback()
+        AcousticEchoProcessor.shared.reset()
+        VoicePlaybackDelivery.shared.endSession()
         isActive = false
         phase = .idle
         AgentSpeechSynthesizer.shared.utteranceVolume = Self.fullVolume
@@ -105,8 +144,8 @@ final class RealtimeAudioSession {
     /// Start a streamed spoken reply. Clears any prior utterance.
     /// Call `appendSpokenReply` as text grows, then `finalizeSpokenReply`.
     func beginSpokenReply() {
+        listeningHold = nil
         speechBuffer.begin()
-        recordingOutput = false
         applySpeakingVolumeIfActive()
     }
 
@@ -114,30 +153,13 @@ final class RealtimeAudioSession {
     /// policy allows; silent forms (URL / listing / …) enqueue nothing.
     func appendSpokenReply(_ chunk: String) {
         speechBuffer.append(chunk)
-        rememberEnqueuedOutput()
         noteEnqueueIfNeeded()
-    }
-
-    private func rememberEnqueuedOutput() {
-        guard speechBuffer.didEnqueue, !speechBuffer.accumulated.isEmpty else { return }
-        if recordingOutput, !recentOutputs.isEmpty {
-            recentOutputs[recentOutputs.count - 1] = OutputReference(
-                text: speechBuffer.accumulated, at: Date()
-            )
-        } else {
-            recentOutputs.append(OutputReference(text: speechBuffer.accumulated, at: Date()))
-            recordingOutput = true
-        }
-        if recentOutputs.count > Self.maxEchoReferences {
-            recentOutputs.removeFirst(recentOutputs.count - Self.maxEchoReferences)
-        }
     }
 
     /// Flush any trailing incomplete clause. Safe to call after a single
     /// full-string `appendSpokenReply`.
     func finalizeSpokenReply() {
         speechBuffer.finalize()
-        rememberEnqueuedOutput()
         noteEnqueueIfNeeded()
     }
 
@@ -163,72 +185,165 @@ final class RealtimeAudioSession {
     /// Remove long contiguous spans present in our own recent replies. Preserve
     /// new speech before or after a reflected span; a whole-string containment
     /// test missed exactly that mixed case in the user's 08:31 transcript.
-    func userSpeechExcludingPlayback(_ text: String, now: Date = Date()) -> String {
-        var remainder = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let references = recentOutputs.filter {
-            isSpeaking || AgentSpeechSynthesizer.shared.isSpeaking
-                || now.timeIntervalSince($0.at) < Self.echoWindow
+    func userSpeechExcludingPlayback(
+        _ text: String,
+        now: Date = Date()
+    ) -> String {
+        let heard = Self.words(in: text)
+        let mask = playbackEchoMask(for: heard, provisional: false, now: now)
+        return Self.removingEchoWords(from: text, words: heard, mask: mask)
+    }
+
+    /// Reconcile a cumulative recognizer snapshot without forgetting which
+    /// leading token positions were already identified as playback. The
+    /// caller owns one state per recognizer and resets it at turn/session or
+    /// decoder-discontinuity boundaries.
+    @discardableResult
+    func userSpeechExcludingPlayback(
+        _ text: String,
+        recognition: inout EchoRecognitionState,
+        provisional: Bool = false,
+        now: Date = Date()
+    ) -> EchoRecognitionResult {
+        let heard = Self.words(in: text)
+        let currentWords = heard.map(\.value)
+        var inherited = [Bool](repeating: false, count: heard.count)
+        let common = min(recognition.words.count, currentWords.count)
+        for index in 0..<common {
+            guard recognition.words[index] == currentWords[index] else { break }
+            if index < recognition.echoMask.count { inherited[index] = recognition.echoMask[index] }
         }
-        guard !references.isEmpty else { return remainder }
-        var removedEcho = false
-        for _ in 0..<Self.maxEchoReferences {
-            let heard = Self.words(in: remainder)
-            guard !heard.isEmpty else { return "" }
-            var best: (start: Int, count: Int)?
-            for reference in references {
-                let spoken = Self.words(in: reference.text)
-                guard !spoken.isEmpty else { continue }
-                for i in heard.indices {
-                    for j in spoken.indices where heard[i].value == spoken[j].value {
-                        var count = 0
-                        while i + count < heard.count, j + count < spoken.count,
-                              heard[i + count].value == spoken[j + count].value {
-                            count += 1
-                        }
-                        // The recognizer often releases a two-word echo such as
-                        // "How would...?" as a complete turn before a third word
-                        // arrives. Limit short matching to turn edges so an
-                        // interior common pair is less likely to erase a user.
-                        let shortEdge = count == 2
-                            && (heard.count == 2 || i == 0 || i + count == heard.count)
-                        if (count >= 3 || shortEdge), count > (best?.count ?? 0) {
-                            best = (i, count)
-                        }
+        // Apply retained positions before testing the remaining single word;
+        // otherwise a stale known echo plus a fresh fuzzy echo hides both from
+        // the one-word residual rule.
+        let mask = playbackEchoMask(for: heard, provisional: provisional,
+            now: now, inherited: inherited)
+        let retainedMask = playbackEchoMask(for: heard, provisional: false,
+            now: now, inherited: inherited)
+        recognition.words = currentWords
+        recognition.echoMask = retainedMask
+        return EchoRecognitionResult(
+            text: Self.removingEchoWords(from: text, words: heard, mask: mask),
+            words: currentWords,
+            echoMask: mask
+        )
+    }
+
+    private func playbackEchoMask(
+        for heard: [Word], provisional: Bool, now: Date, inherited: [Bool]? = nil
+    ) -> [Bool] {
+        var mask = inherited ?? [Bool](repeating: false, count: heard.count)
+        let references = recentOutputs.filter { $0.active
+            || now.timeIntervalSince($0.at) < Self.echoWindow }
+        for reference in references {
+            let spoken = Self.words(in: reference.text)
+            guard !spoken.isEmpty else { continue }
+            for i in heard.indices {
+                for j in spoken.indices where heard[i].value == spoken[j].value {
+                    var count = 0
+                    while i + count < heard.count, j + count < spoken.count,
+                          heard[i + count].value == spoken[j + count].value {
+                        count += 1
                     }
+                    let shortEdge = count == 2
+                        && (heard.count == 2 || i == 0 || i + count == heard.count)
+                    if count >= 3 || shortEdge {
+                        for index in i..<(i + count) { mask[index] = true }
+                    }
+                    guard provisional, count >= 2,
+                          i + count == heard.count - 1, j + count < spoken.count else {
+                        continue
+                    }
+                    let partial = heard[heard.count - 1].value
+                    let next = spoken[j + count].value
+                    guard partial.count >= 2, partial != next,
+                          next.hasPrefix(partial) else { continue }
+                    for index in i..<heard.count { mask[index] = true }
                 }
             }
-            guard let best else { break }
-            let begin = heard[best.start].range.lowerBound
-            let end = heard[best.start + best.count - 1].range.upperBound
-            let before = String(remainder[..<begin])
-            let after = String(remainder[end...])
-                .replacingOccurrences(of: #"^[\s\p{P}]+"#, with: "", options: .regularExpression)
-            remainder = [before, after]
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .joined(separator: " ")
-            removedEcho = true
         }
-        let residue = Self.words(in: remainder)
-        if residue.isEmpty { return "" }
-        // One-word tails of a mixed echo are often ASR revisions of the
-        // preceding clause. Never let one become a fresh tool request while
-        // playback or its delayed tail is still near the microphone.
-        if residue.count == 1, recentOutputs.contains(where: { reference in
-            let age = now.timeIntervalSince(reference.at)
-            guard removedEcho || age < Self.echoWindow else { return false }
-            return Self.words(in: reference.text).contains { spoken in
-                spoken.value == residue[0].value
-                    // SpeechAnalyzer rendered Pocket's "audio" as "Audi." in
-                    // the 09:48 recording. Only tolerate a one-edit mismatch
-                    // while playback is active or its fresh tail is arriving.
-                    || (residue[0].value.count >= 4 && age < 3
-                        && Self.oneEditApart(residue[0].value, spoken.value))
+        // Span removal is complete across all references before we inspect its
+        // residue. Reference iteration order must not decide whether a tail
+        // can be matched against an earlier, still-fresh clause.
+        let residualIndices = heard.indices.filter { !mask[$0] }
+        if residualIndices.count == 1, let index = residualIndices.first {
+            for reference in references {
+                let age = now.timeIntervalSince(reference.at)
+                if Self.words(in: reference.text).contains(where: { spoken in
+                    spoken.value == heard[index].value
+                        || (heard[index].value.count >= 4 && (reference.active || age < 3)
+                            && Self.oneEditApart(heard[index].value, spoken.value))
+                }) {
+                    mask[index] = true
+                    break
+                }
             }
-        }) {
-            return ""
         }
-        return remainder
+        return mask
+    }
+
+    private static func removingEchoWords(
+        from text: String, words: [Word], mask: [Bool]
+    ) -> String {
+        guard !words.isEmpty else { return text.trimmingCharacters(in: .whitespacesAndNewlines) }
+        var runs: [(start: String.Index, end: String.Index)] = []
+        var index = 0
+        while index < words.count {
+            guard index < mask.count, mask[index] else {
+                index += 1
+                continue
+            }
+            let start = words[index].range.lowerBound
+            var end = words[index].range.upperBound
+            index += 1
+            while index < words.count, index < mask.count, mask[index] {
+                end = words[index].range.upperBound
+                index += 1
+            }
+            runs.append((start, end))
+        }
+        guard !runs.isEmpty else { return text.trimmingCharacters(in: .whitespacesAndNewlines) }
+        var pieces: [String] = []
+        var cursor = text.startIndex
+        func kept(_ part: Substring, afterEcho: Bool) -> String {
+            let value = afterEcho
+                ? part.drop(while: { $0.isWhitespace || $0.isPunctuation }) : part
+            return String(value).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        for run in runs {
+            let piece = kept(text[cursor..<run.start], afterEcho: cursor != text.startIndex)
+            if !piece.isEmpty { pieces.append(piece) }
+            cursor = run.end
+        }
+        let tail = kept(text[cursor...], afterEcho: true)
+        if !tail.isEmpty { pieces.append(tail) }
+        return pieces.joined(separator: " ")
+    }
+
+    /// Learn echo text only after the backing reports that this clause began
+    /// rendering. Queued text has no acoustic evidence and is never recorded.
+    private func receivePlaybackEvent(_ event: AgentSpeechSynthesizer.PlaybackEvent) {
+        switch event {
+        case .startAcknowledged(let text):
+            recentOutputs.append(OutputReference(text: text, at: Date(), active: true))
+            if recentOutputs.count > Self.maxEchoReferences {
+                recentOutputs.removeFirst(recentOutputs.count - Self.maxEchoReferences)
+            }
+        case .completed(let text):
+            finishPlaybackReference(text)
+        case .interrupted(let text, wasRendered: true):
+            finishPlaybackReference(text)
+        case .began, .enqueued, .interrupted(_, wasRendered: false):
+            break
+        }
+    }
+
+    private func finishPlaybackReference(_ text: String) {
+        guard let index = recentOutputs.lastIndex(where: {
+            $0.active && $0.text == text
+        }) else { return }
+        recentOutputs[index].active = false
+        recentOutputs[index].at = Date()
     }
 
     private static func oneEditApart(_ lhs: String, _ rhs: String) -> Bool {
@@ -259,25 +374,68 @@ final class RealtimeAudioSession {
     /// Last clause finished — keep phase honest when idle.
     func noteOutputFinished() {
         guard isSpeaking else { return }
+        listeningHold = nil
         isSpeaking = false
-        if !recentOutputs.isEmpty { recentOutputs[recentOutputs.count - 1].at = Date() }
-        recordingOutput = false
         if isActive { phase = .listening }
         AgentSpeechSynthesizer.shared.utteranceVolume = Self.fullVolume
     }
 
     // MARK: - Barge-in
 
+    /// A plausible near-mic candidate holds rendered speech in place. It does
+    /// not cancel the response task, current clause, or queued clauses. Only
+    /// recognized novel words take the hard-stop path below.
+    @discardableResult
+    func pauseForListening(captureID: UUID, now: Date = Date()) -> Bool {
+        let synth = AgentSpeechSynthesizer.shared
+        guard isActive, isSpeaking, synth.isSpeaking else { return false }
+        if var hold = listeningHold {
+            guard hold.captureID == captureID,
+                  hold.outputGeneration == synth.outputGeneration else { return false }
+            hold.lastNearAt = now
+            listeningHold = hold
+            return true
+        }
+        synth.pauseForListening()
+        guard synth.isPausedForListening else { return false }
+        listeningHold = ListeningHold(captureID: captureID,
+            outputGeneration: synth.outputGeneration, beganAt: now, lastNearAt: now)
+        lastListeningPauseAt = Date()
+        return true
+    }
+
+    /// A short nonlexical backchannel, false candidate, or unrecognized quiet
+    /// releases the same playback token. A new reply or session cannot inherit
+    /// an old candidate's delayed resume.
+    @discardableResult
+    func resumeAfterListening(captureID: UUID) -> Bool {
+        guard let hold = listeningHold, hold.captureID == captureID else { return false }
+        listeningHold = nil
+        let synth = AgentSpeechSynthesizer.shared
+        guard synth.outputGeneration == hold.outputGeneration,
+              synth.isPausedForListening else { return false }
+        synth.resumeAfterListening()
+        return !synth.isPausedForListening
+    }
+
+    func reviewListeningPause(captureID: UUID, nearSpeech: Bool,
+        recognizedSpeech: Bool, now: Date = Date()) {
+        guard var hold = listeningHold, hold.captureID == captureID else { return }
+        if recognizedSpeech { return }
+        if nearSpeech { hold.lastNearAt = now; listeningHold = hold }
+        if now.timeIntervalSince(hold.lastNearAt) >= Self.listeningQuietRelease
+            || now.timeIntervalSince(hold.beganAt) >= Self.listeningMaximumUnrecognizedHold {
+            _ = resumeAfterListening(captureID: captureID)
+        }
+    }
+
     /// User speech / `RealtimeAgent.interrupt`: stop TTS immediately and clear
-    /// every pending clause. Does not cancel an in-flight tool —
-    /// `AgentCaptureController` still calls `RealtimeAgent.interrupt()` when
-    /// the mode is `.agentWorking`.
+    /// every pending clause. Capture uses this through `userSpeechStarted`;
+    /// the work item and its result ledger survive the playback interruption.
     func noteUserSpeech() {
+        listeningHold = nil
         let wasSpeaking = isSpeaking || AgentSpeechSynthesizer.shared.isSpeaking
         let started = ContinuousClock.now
-        if wasSpeaking, !recentOutputs.isEmpty {
-            recentOutputs[recentOutputs.count - 1].at = Date()
-        }
         stopOutput()
         if wasSpeaking {
             let elapsed = started.duration(to: .now)
@@ -293,6 +451,7 @@ final class RealtimeAudioSession {
     }
 
     private func stopOutput() {
+        listeningHold = nil
         speechBuffer.cancel()
         AgentSpeechSynthesizer.shared.stop()
         isSpeaking = false
@@ -367,6 +526,7 @@ extension RealtimeAudioSession {
 
         session.begin()
         session.speak("I found three files.")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         if !session.isLikelyPlaybackEcho("found three files") {
             failures.append("speaker playback was not recognized as an echo")
         }
@@ -427,6 +587,9 @@ extension RealtimeAudioSession {
             )
         }
         session.noteUserSpeech()
+        if session.userSpeechExcludingPlayback("I found three files") != "I found three files" {
+            failures.append("unrendered queued clause was learned as playback")
+        }
         if synth.pendingClauseCount != 0 {
             failures.append(
                 "barge-in left \(synth.pendingClauseCount) pending clauses"
@@ -451,7 +614,124 @@ extension RealtimeAudioSession {
             synth.restoreSystemBacking()
         }
         session.begin()
+        var queuedRecognition = EchoRecognitionState()
+        session.speak("The opening sentence. Pending orchard description.")
+        let delayedToken = synth.currentPlaybackToken
+        if session.userSpeechExcludingPlayback(
+            "The opening sentence. Pending orchard description.",
+            recognition: &queuedRecognition
+        ).text != "The opening sentence. Pending orchard description." {
+            failures.append("delayed nonplaying clause was learned as playback")
+        }
+        synth.notifyTestingFirstAudio(token: delayedToken)
+        synth.notifyTestingAudioFinished(token: delayedToken)
+        let queuedToken = synth.currentPlaybackToken
+        if session.userSpeechExcludingPlayback(
+            "The opening sentence. Pending orchard description.",
+            recognition: &queuedRecognition
+        ).text != "Pending orchard description." {
+            failures.append("queued later clause was learned before rendering")
+        }
+        synth.notifyTestingFirstAudio(token: queuedToken)
+        if session.userSpeechExcludingPlayback(
+            "The opening sentence. Pending orchard description.",
+            recognition: &queuedRecognition
+        ).text != "" {
+            failures.append("queued clause was not learned after rendering")
+        }
+
+        session.begin()
+        session.speak("Do you have anything in mind?")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
+        var prefixRecognition = EchoRecognitionState()
+        if session.userSpeechExcludingPlayback(
+            "Do you have any", recognition: &prefixRecognition, provisional: true
+        ).text != "" {
+            failures.append("provisional partial playback was not withheld")
+        }
+        if session.userSpeechExcludingPlayback(
+            "Do you have any", recognition: &prefixRecognition, provisional: false
+        ).text != "any" {
+            failures.append("final partial token retained a temporary prefix label")
+        }
+        if session.userSpeechExcludingPlayback(
+            "Do you have anything please stop", recognition: &prefixRecognition,
+            provisional: false
+        ).text != "please stop" {
+            failures.append("final playback echo did not preserve new suffix")
+        }
+        session.noteUserSpeech()
+
+        session.begin()
+        session.speak("Do you have anything in mind?")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
+        var mineRecognition = EchoRecognitionState()
+        if session.userSpeechExcludingPlayback(
+            "Do you have anything in Mine?", recognition: &mineRecognition
+        ).text != "" {
+            failures.append("fresh one-edit playback tail was not filtered")
+        }
+        session.noteUserSpeech()
+        if session.userSpeechExcludingPlayback(
+            "Do you have anything in Mine? please stop",
+            recognition: &mineRecognition,
+            now: Date().addingTimeInterval(Self.echoWindow + 1)
+        ).text != "please stop" {
+            failures.append("expired Mine echo resurrected while new suffix was present")
+        }
+
+        session.begin()
+        session.speak("Green lantern closes.")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
+        var revisionRecognition = EchoRecognitionState()
+        _ = session.userSpeechExcludingPlayback(
+            "Green lantern closes.", recognition: &revisionRecognition
+        )
+        if session.userSpeechExcludingPlayback(
+            "Blue window opens.", recognition: &revisionRecognition
+        ).text != "Blue window opens." {
+            failures.append("revised cumulative prefix inherited stale echo labels")
+        }
+
+        session.begin()
+        session.speak("What do you have in mind?")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
+        var appleRevision = EchoRecognitionState()
+        _ = session.userSpeechExcludingPlayback("Mine?", recognition: &appleRevision)
+        session.noteUserSpeech()
+        let afterFuzzyTail = Date().addingTimeInterval(4)
+        session.speak("I can help with questions.")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
+        if session.userSpeechExcludingPlayback("Mine? I can help with question",
+            recognition: &appleRevision, provisional: true, now: afterFuzzyTail).text != "" {
+            failures.append("a retained old echo prevented filtering a fresh one-word residue")
+        }
+        if session.userSpeechExcludingPlayback("Mine? I can help with question please stop",
+            recognition: &appleRevision, now: afterFuzzyTail).text != "please stop" {
+            failures.append("a cumulative echo prefix swallowed newly appended user words")
+        }
+        var independentDecoder = EchoRecognitionState()
+        if session.userSpeechExcludingPlayback("Mine?", recognition: &independentDecoder,
+            now: afterFuzzyTail).text != "Mine?" {
+            failures.append("echo classification leaked between recognizers")
+        }
+        appleRevision.reset()
+        if session.userSpeechExcludingPlayback("Mine?", recognition: &appleRevision,
+            now: afterFuzzyTail).text != "Mine?" {
+            failures.append("recognizer reset retained expired echo labels")
+        }
+        session.begin()
+        session.speak("An echoed sentence.")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
+        if session.userSpeechExcludingPlayback(
+            "Écoute 👋. An echoed sentence. Stop! An echoed sentence. Merci."
+        ) != "Écoute 👋. Stop! Merci." {
+            failures.append("multiple echo spans damaged Unicode text or user punctuation")
+        }
+
+        session.begin()
         session.speak("I can help you manage your calendar, draft emails, and search your files.")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         if session.userSpeechExcludingPlayback("I can help you manage your") != "" {
             failures.append("partial playback became user speech")
         }
@@ -464,6 +744,9 @@ extension RealtimeAudioSession {
         }
         session.noteUserSpeech()
         session.speak("Yes, I can hear you clearly. How would you like me to help you manage your calendar?")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
+        synth.notifyTestingAudioFinished(token: synth.currentPlaybackToken)
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         if session.userSpeechExcludingPlayback(
             "calendar. Yes, I can hear you clearly. How would you like me to help you manage"
         ) != "" {
@@ -484,13 +767,6 @@ extension RealtimeAudioSession {
         ) != "" {
             failures.append("late one-word reply revision became a user turn")
         }
-        session.speak("I stopped the tool plan because it took too long.")
-        session.noteUserSpeech()
-        if session.userSpeechExcludingPlayback(
-            "long.", now: Date().addingTimeInterval(10)
-        ) != "" {
-            failures.append("09:07 revised reply tail became a user turn")
-        }
         if session.userSpeechExcludingPlayback("Yes, I can hear you clearly") != "" {
             failures.append("late playback tail survived after output stopped")
         }
@@ -500,7 +776,43 @@ extension RealtimeAudioSession {
         ) != "Yes, I can hear you clearly" {
             failures.append("expired playback reference suppressed a new turn")
         }
+        session.speak("I stopped the tool plan because it took too long.")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
+        session.noteUserSpeech()
+        if session.userSpeechExcludingPlayback(
+            "long.", now: Date().addingTimeInterval(10)
+        ) != "" {
+            failures.append("09:07 revised reply tail became a user turn")
+        }
         session.speak("I don't have ears to hear audio.")
+        let activeLongToken = synth.currentPlaybackToken
+        synth.notifyTestingFirstAudio(token: activeLongToken)
+        if session.userSpeechExcludingPlayback(
+            "Audi.", now: Date().addingTimeInterval(4)
+        ) != "" {
+            failures.append("active long clause let one-edit playback tail through")
+        }
+        synth.notifyTestingAudioFinished(token: activeLongToken)
+        if session.userSpeechExcludingPlayback(
+            "Audi.", now: Date().addingTimeInterval(4)
+        ) != "Audi." {
+            failures.append("completed one-edit reference did not expire independently")
+        }
+        session.speak("An older completed clause should expire on its own.")
+        let oldToken = synth.currentPlaybackToken
+        synth.notifyTestingFirstAudio(token: oldToken)
+        synth.notifyTestingAudioFinished(token: oldToken)
+        let completedAt = Date()
+        session.speak("A fresh active clause remains current.")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
+        if session.userSpeechExcludingPlayback(
+            "older completed clause", now: completedAt.addingTimeInterval(16)
+        ) != "older completed clause" {
+            failures.append("completed reference did not expire independently")
+        }
+        session.noteUserSpeech()
+        session.speak("I don't have ears to hear audio.")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         if session.userSpeechExcludingPlayback("Audi.") != "" {
             failures.append("09:48 one-word audio echo became a user turn")
         }
@@ -525,12 +837,14 @@ extension RealtimeAudioSession {
         capture.turnHandlerForTesting = { forwarded.append($0) }
         await capture.beginSession(captureAudio: false)
         session.speak("I can help you manage your calendar and files.")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         capture.simulateSpeech("I can help you manage your")
         capture.simulateSilence()
         _ = await capture.considerEndpoint()
         if !forwarded.isEmpty { failures.append("reflected reply reached the Agent") }
 
         session.speak("I can help you manage your calendar and files.")
+        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         capture.simulateSpeech("Can you hear me? I can help you manage your")
         capture.simulateSilence()
         _ = await capture.considerEndpoint()
@@ -558,7 +872,7 @@ extension RealtimeAudioSession {
         var callbackCount = 0
         synth.onFirstAudio = { callbackCount += 1 }
         synth.speak("First reply.")
-        let oldToken = synth.outputGeneration
+        let oldToken = synth.currentPlaybackToken
         if callbackCount != 0 {
             failures.append("first-audio callback ran during enqueue")
         }
@@ -566,7 +880,7 @@ extension RealtimeAudioSession {
         synth.stop()
         var cancelledCount = 0
         synth.speak("Replacement reply.")
-        let newToken = synth.outputGeneration
+        let newToken = synth.currentPlaybackToken
         synth.onFirstAudio = { callbackCount += 1 }
         synth.onFirstAudioCancelled = { cancelledCount += 1 }
         synth.notifyTestingFirstAudio(token: oldToken)

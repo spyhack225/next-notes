@@ -51,7 +51,7 @@ enum AXAppAdapters {
             needsAccessibilitySupportSetting: true,
             interestingIdentifiers: editorWorkbenchInteresting,
             ignoredIdentifiers: editorWorkbenchIgnored,
-            maxDepth: 12,
+            maxDepth: editorWorkbenchDepth,
             remediation: cursorRemediation
         ),
         "com.exafunction.windsurf": AXAppAdapter(
@@ -60,7 +60,7 @@ enum AXAppAdapters {
             needsAccessibilitySupportSetting: true,
             interestingIdentifiers: editorWorkbenchInteresting,
             ignoredIdentifiers: editorWorkbenchIgnored,
-            maxDepth: 12,
+            maxDepth: editorWorkbenchDepth,
             remediation: windsurfRemediation
         ),
         "com.microsoft.VSCode": AXAppAdapter(
@@ -69,12 +69,16 @@ enum AXAppAdapters {
             needsAccessibilitySupportSetting: true,
             interestingIdentifiers: editorWorkbenchInteresting,
             ignoredIdentifiers: editorWorkbenchIgnored,
-            maxDepth: 12,
+            maxDepth: editorWorkbenchDepth,
             remediation: vsCodeRemediation
         ),
     ]
 
     static func adapter(for bundleID: String) -> AXAppAdapter? { all[bundleID] }
+
+    /// How deep the three editors' workbench goes. Shared because the three are one widget
+    /// tree; see `AXHarvester.Budget.maxDepth` for the measurement it comes from.
+    private static let editorWorkbenchDepth = 40
 
     /// The editor, the file tree and the tab strip — the three regions that hold names the
     /// user says out loud.

@@ -1,0 +1,25 @@
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_EOU_PREPARE=1.667572021484375s
+VOICE_EOU_STARTUP_BUFFERED=0 chunks / 0 frames
+VOICE_FILE_FEED_CADENCE=80ms
+VOICE_EOU_FIRST_PROCESS=7.68899917602539e-05s lag=0.00019502639770507812s
+VOICE_MODEL_PARTIAL=voice+0.845s text=wait apple=false
+VOICE_MODEL_PARTIAL_FILTERED=wait
+VOICE_MODEL_PARTIAL=voice+0.929s text=wait please apple=false
+VOICE_MODEL_PARTIAL_FILTERED=wait please
+VOICE_APPLE_FIRST_RESULT=voice+0.992s text=Wait
+VOICE_MODEL_PARTIAL=voice+1.245s text=wait please stop apple=true
+VOICE_MODEL_PARTIAL_FILTERED=wait please stop
+VOICE_MODEL_PARTIAL=voice+1.571s text=wait please stop spea apple=true
+VOICE_MODEL_PARTIAL_FILTERED=wait please stop spea
+VOICE_MODEL_PARTIAL=voice+1.727s text=wait please stop speaking apple=true
+VOICE_MODEL_PARTIAL_FILTERED=wait please stop speaking
+VOICE_MODEL_EOU=sinceVoiceEnd 0.695s appleRevisionAge 0.513s text=wait please stop speaking
+VOICE_MODEL_EOU_TO_ENDPOINT=0.08820199966430664s
+VOICE_FILE_MAX_PACING_LAG=0.031735708 seconds
+VOICE_BARGE_DIAGNOSTIC=inputStarted:true appleFast:true firstVoice:true maxCleanedLevel:0.7541658 asrFeedChunks:45 asrFeedFrames:56494 asrFeedPeak:0.72787476 asrChunks:7 modelPartials:5 eouFirstProcess:7.68899917602539e-05 eouResets:0 eouDrops:0 lastModelPartial:wait please stop speaking raw:Wait, please stop speaking. filtered: emitted:wait please stop speaking
+VOICE_BARGE_VOICE_TO_STOP=2.5467480421066284
+VOICE_BARGE_ASR_TO_STOP=1.7004320621490479
+VOICE_BARGE_VOICE_TO_PAUSE=0.8463859558105469
+VOICE_BARGE_ASR_TO_PAUSE=6.99758529663086e-05
+VOICE_BARGE_OK

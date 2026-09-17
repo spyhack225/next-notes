@@ -112,23 +112,35 @@ private enum KokoroVoiceError: LocalizedError {
 /// stopped immediately when the user interrupts. The token guards late model
 /// completions so they cannot speak over a newer Agent turn.
 @MainActor
-final class KokoroSpeechBacking: NSObject, AgentSpeechBacking, AVAudioPlayerDelegate {
-    private var player: AVAudioPlayer?
+final class KokoroSpeechBacking: NSObject, AgentSpeechBacking {
+    private let playbackEngine = AVAudioEngine()
+    private let player = AVAudioPlayerNode()
     private var task: Task<Void, Never>?
     private var generation: UInt64 = 0
     private var speaking = false
+    private var pausedForListening = false
     private var currentText = ""
     private var currentVolume: Float = 1
+    private var temporaryWAV: URL?
     var onUtteranceStarted: ((UInt64) -> Void)?
     var onUtteranceFinished: ((UInt64) -> Void)?
     var onFailure: ((String, Float, UInt64) -> Void)?
 
     var isSpeaking: Bool { speaking }
 
+    override init() {
+        super.init()
+        playbackEngine.attach(player)
+        playbackEngine.connect(player, to: playbackEngine.mainMixerNode,
+                               format: AVAudioFormat(standardFormatWithSampleRate: 24_000, channels: 1)!)
+        VoicePlaybackReference.install(on: playbackEngine)
+    }
+
     func speak(_ text: String, volume: Float, token: UInt64) {
         stop()
         generation = token
         speaking = true
+        pausedForListening = false
         currentText = text
         currentVolume = volume
         task = Task { @MainActor [weak self] in
@@ -137,13 +149,60 @@ final class KokoroSpeechBacking: NSObject, AgentSpeechBacking, AVAudioPlayerDele
                 let data = try await KokoroAgentVoice.shared.wav(for: text)
                 try Task.checkCancellation()
                 guard generation == token else { return }
-                let audio = try AVAudioPlayer(data: data)
-                audio.delegate = self
-                audio.volume = max(0, min(1, volume))
-                audio.prepareToPlay()
-                guard audio.play() else { throw KokoroVoiceError.unavailable("Kokoro playback could not start.") }
-                player = audio
-                onUtteranceStarted?(token)
+                let path = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("nextnotes-kokoro-\(UUID().uuidString).wav")
+                try data.write(to: path, options: .atomic)
+                temporaryWAV = path
+                let file = try AVAudioFile(forReading: path)
+                guard file.length > 0, file.length <= AVAudioFramePosition(UInt32.max),
+                      let buffer = AVAudioPCMBuffer(
+                        pcmFormat: file.processingFormat,
+                        frameCapacity: AVAudioFrameCount(file.length)
+                      ) else { throw KokoroVoiceError.unavailable("Kokoro returned no playable samples.") }
+                try file.read(into: buffer)
+                playbackEngine.connect(player, to: playbackEngine.mainMixerNode,
+                                       format: file.processingFormat)
+                playbackEngine.mainMixerNode.outputVolume = max(0, min(1, volume))
+                if !playbackEngine.isRunning { try playbackEngine.start() }
+                let firstLength = min(Int(buffer.frameLength),
+                                      max(1, Int(file.processingFormat.sampleRate / 50)))
+                guard let first = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                                                  frameCapacity: AVAudioFrameCount(firstLength)),
+                      let source = buffer.floatChannelData,
+                      let target = first.floatChannelData else {
+                    throw KokoroVoiceError.unavailable("Kokoro PCM format unsupported.")
+                }
+                first.frameLength = AVAudioFrameCount(firstLength)
+                for channel in 0..<Int(file.processingFormat.channelCount) {
+                    target[channel].update(from: source[channel], count: firstLength)
+                }
+                let remaining = Int(buffer.frameLength) - firstLength
+                player.scheduleBuffer(first, completionCallbackType: .dataPlayedBack) {
+                    [weak self] _ in
+                    Task { @MainActor in
+                        guard let self, self.generation == token, self.speaking else { return }
+                        self.onUtteranceStarted?(token)
+                        if remaining == 0 { self.finishPlayback(token: token) }
+                    }
+                }
+                if remaining > 0 {
+                    guard let rest = AVAudioPCMBuffer(
+                        pcmFormat: file.processingFormat,
+                        frameCapacity: AVAudioFrameCount(remaining)
+                    ), let restChannels = rest.floatChannelData else {
+                        throw KokoroVoiceError.unavailable("Kokoro PCM buffer unavailable.")
+                    }
+                    rest.frameLength = AVAudioFrameCount(remaining)
+                    for channel in 0..<Int(file.processingFormat.channelCount) {
+                        restChannels[channel].update(from: source[channel] + firstLength,
+                                                     count: remaining)
+                    }
+                    player.scheduleBuffer(rest, completionCallbackType: .dataPlayedBack) {
+                        [weak self] _ in
+                        Task { @MainActor in self?.finishPlayback(token: token) }
+                    }
+                }
+                if !pausedForListening { player.play() }
             } catch is CancellationError {
                 // A newer reply or barge-in owns playback now.
             } catch {
@@ -158,26 +217,39 @@ final class KokoroSpeechBacking: NSObject, AgentSpeechBacking, AVAudioPlayerDele
     func stop() {
         task?.cancel()
         task = nil
-        player?.stop()
-        player?.delegate = nil
-        player = nil
+        player.stop()
+        playbackEngine.stop()
+        VoicePlaybackReference.stopped()
+        if let temporaryWAV { try? FileManager.default.removeItem(at: temporaryWAV) }
+        temporaryWAV = nil
         speaking = false
+        pausedForListening = false
         currentText = ""
         generation &+= 1
     }
 
-    nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        let identifier = ObjectIdentifier(player)
-        Task { @MainActor in
-            guard let current = self.player, ObjectIdentifier(current) == identifier else { return }
-            let token = self.generation
-            let text = self.currentText
-            let volume = self.currentVolume
-            self.player = nil
-            self.speaking = false
-            self.currentText = ""
-            if flag { self.onUtteranceFinished?(token) }
-            else { self.onFailure?(text, volume, token) }
-        }
+    func pauseForListening() {
+        guard speaking, !pausedForListening else { return }
+        pausedForListening = true
+        if player.isPlaying { player.pause() }
+    }
+
+    func resumeAfterListening() {
+        guard speaking, pausedForListening else { return }
+        pausedForListening = false
+        if playbackEngine.isRunning && !player.isPlaying { player.play() }
+    }
+
+    private func finishPlayback(token: UInt64) {
+        guard generation == token, speaking else { return }
+        speaking = false
+        pausedForListening = false
+        player.stop()
+        playbackEngine.stop()
+        VoicePlaybackReference.stopped()
+        currentText = ""
+        if let temporaryWAV { try? FileManager.default.removeItem(at: temporaryWAV) }
+        temporaryWAV = nil
+        onUtteranceFinished?(token)
     }
 }

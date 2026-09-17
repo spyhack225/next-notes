@@ -28,19 +28,154 @@ final class AudioCaptureHub {
     /// must not increment this above one until a full stop.
     private(set) var inputEngineStarts = 0
 
-    private let engine = AVAudioEngine()
+    private var engine = AVAudioEngine()
+    private var sinkNode: AVAudioSinkNode?
+    private var sinkRing: AudioSinkCaptureRing?
+    private var configurationObserver: NSObjectProtocol?
+    private var configurationGeneration = 0
     private let lock = NSLock()
     /// Read from the audio thread under `lock`; mutated only from MainActor under `lock`.
     private nonisolated(unsafe) var slots: [Consumer: Slot] = [:]
     /// When true, engine start/stop is bookkeeping only — used by `runSelfTest`.
     private let probe: Bool
+    /// Opt-in hardware-sized microphone callbacks. The existing input tap
+    /// remains the default until microphone, dictation, and rapid-turn probes
+    /// validate this graph on the machine's actual input route.
+    private var sinkSelected: Bool {
+        !probe && (CommandLine.arguments.contains("--capture-sink")
+            || CommandLine.arguments.contains("--selftest-microphone-sink"))
+    }
 
     private struct Slot {
-        let worker: AudioCaptureDeliveryWorker
+        let outputFormat: AVAudioFormat
+        let onBuffer: @Sendable (AudioChunk) -> Void
+        let onLevel: @Sendable (Float) -> Void
+        let onOverflow: @Sendable (Int) -> Void
+        var worker: AudioCaptureDeliveryWorker
     }
 
     init(probe: Bool = false) {
         self.probe = probe
+        if !probe { observeEngineConfiguration() }
+    }
+
+    private func observeEngineConfiguration() {
+        if let configurationObserver {
+            NotificationCenter.default.removeObserver(configurationObserver)
+        }
+        configurationGeneration &+= 1
+        let generation = configurationGeneration
+        configurationObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: engine,
+            queue: nil
+        ) { [weak self] _ in
+            // The notification can arrive on an internal audio queue. Apple warns not
+            // to destroy the engine synchronously in this callback.
+            Task { @MainActor [weak self] in
+                guard let self, self.configurationGeneration == generation else { return }
+                self.recoverAfterConfigurationChange()
+            }
+        }
+    }
+
+    private func recoverAfterConfigurationChange() {
+        let subscribers = activeConsumers.count
+        Log.audio.info("capture hub configuration changed — rebuilding for \(subscribers) consumer(s)")
+        if !probe {
+            engine.inputNode.removeTap(onBus: 0)
+            sinkRing?.stop()
+            engine.stop()
+            sinkRing = nil
+            sinkNode = nil
+        }
+        isRunning = false
+        engine = AVAudioEngine()
+        if !probe { observeEngineConfiguration() }
+        guard subscribers > 0 else { return }
+        restartSubscribers()
+    }
+
+    private func restartSubscribers() {
+        do {
+            try rebuildWorkers()
+            try startEngine()
+        } catch {
+            Log.audio.error("capture hub restart failed: \(error.localizedDescription, privacy: .public)")
+            let generation = configurationGeneration
+            Task { @MainActor [weak self] in
+                for delay in [0.5, 2.0, 5.0] {
+                    try? await Task.sleep(for: .seconds(delay))
+                    guard let self, self.configurationGeneration == generation,
+                          !self.activeConsumers.isEmpty, !self.isRunning else { return }
+                    do {
+                        try self.rebuildWorkers()
+                        try self.startEngine()
+                        return
+                    } catch {
+                        Log.audio.error("capture hub retry failed: \(error.localizedDescription, privacy: .public)")
+                    }
+                }
+            }
+        }
+    }
+
+    private func makeWorker(
+        outputFormat: AVAudioFormat,
+        onBuffer: @escaping @Sendable (AudioChunk) -> Void,
+        onLevel: @escaping @Sendable (Float) -> Void,
+        onOverflow: @escaping @Sendable (Int) -> Void
+    ) throws -> AudioCaptureDeliveryWorker {
+        let converter: AVAudioConverter?
+        if probe {
+            converter = nil
+        } else {
+            let native = engine.inputNode.outputFormat(forBus: 0)
+            guard native.sampleRate > 0, native.channelCount > 0 else {
+                throw TranscriptionError.noAudioFormat
+            }
+            if native == outputFormat {
+                converter = nil
+            } else {
+                guard let created = AVAudioConverter(from: native, to: outputFormat) else {
+                    throw TranscriptionError.noAudioFormat
+                }
+                converter = created
+            }
+        }
+        return AudioCaptureDeliveryWorker(
+            outputFormat: outputFormat,
+            converter: converter,
+            onBuffer: onBuffer,
+            onLevel: onLevel,
+            onOverflow: onOverflow
+        )
+    }
+
+    private func rebuildWorkers() throws {
+        lock.lock()
+        let previous = slots
+        lock.unlock()
+        var replacements: [Consumer: Slot] = [:]
+        for (consumer, slot) in previous {
+            let worker = try makeWorker(
+                outputFormat: slot.outputFormat,
+                onBuffer: slot.onBuffer,
+                onLevel: slot.onLevel,
+                onOverflow: slot.onOverflow
+            )
+            replacements[consumer] = Slot(
+                outputFormat: slot.outputFormat,
+                onBuffer: slot.onBuffer,
+                onLevel: slot.onLevel,
+                onOverflow: slot.onOverflow,
+                worker: worker
+            )
+        }
+        lock.lock()
+        for slot in slots.values { slot.worker.stop() }
+        slots = replacements
+        lock.unlock()
     }
 
     func isSubscribed(_ consumer: Consumer) -> Bool {
@@ -63,30 +198,31 @@ final class AudioCaptureHub {
         onLevel: @escaping @Sendable (Float) -> Void = { _ in },
         onOverflow: (@Sendable (Int) -> Void)? = nil
     ) throws {
-        let converter: AVAudioConverter?
-        if probe {
-            converter = nil
-        } else {
-            let native = engine.inputNode.outputFormat(forBus: 0)
-            converter = native == outputFormat
-                ? nil
-                : AVAudioConverter(from: native, to: outputFormat)
+        // A device change can stop AVAudioEngine before its notification is handled.
+        // Rebuild every existing converter before adding this new subscriber.
+        if !probe && !activeConsumers.isEmpty && !engine.isRunning {
+            recoverAfterConfigurationChange()
         }
-
-        let worker = AudioCaptureDeliveryWorker(
+        let overflow = onOverflow ?? { _ in
+            Log.audio.error("capture delivery backlog full — dropped audio buffer")
+        }
+        let worker = try makeWorker(
             outputFormat: outputFormat,
-            converter: converter,
             onBuffer: onBuffer,
             onLevel: onLevel,
-            onOverflow: onOverflow ?? { _ in
-                Log.audio.error("capture delivery backlog full — dropped audio buffer")
-            }
+            onOverflow: overflow
         )
 
         lock.lock()
         slots[consumer]?.worker.stop()
-        slots[consumer] = Slot(worker: worker)
-        let needsStart = !isRunning
+        slots[consumer] = Slot(
+            outputFormat: outputFormat,
+            onBuffer: onBuffer,
+            onLevel: onLevel,
+            onOverflow: overflow,
+            worker: worker
+        )
+        let needsStart = !isRunning || (!probe && !engine.isRunning)
         lock.unlock()
 
         if needsStart {
@@ -116,7 +252,7 @@ final class AudioCaptureHub {
     // MARK: - Engine
 
     private func startEngine() throws {
-        guard !isRunning else { return }
+        guard !isRunning || (!probe && !engine.isRunning) else { return }
         inputEngineStarts += 1
         if probe {
             isRunning = true
@@ -126,23 +262,48 @@ final class AudioCaptureHub {
         let input = engine.inputNode
         let native = input.outputFormat(forBus: 0)
         input.removeTap(onBus: 0)
-        input.installTap(
-            onBus: 0,
-            bufferSize: 2048,
-            format: native,
-            block: Self.makeTapCallback(for: self)
-        )
+        if sinkSelected {
+            guard let ring = AudioSinkCaptureRing(format: native,
+                deliver: Self.makeSinkDelivery(for: self),
+                overflow: Self.makeSinkOverflow(for: self)) else {
+                throw TranscriptionError.noAudioFormat
+            }
+            let sink = AVAudioSinkNode(receiverBlock: Self.makeSinkCallback(for: ring))
+            engine.attach(sink)
+            engine.connect(input, to: sink, format: native)
+            sinkRing = ring
+            sinkNode = sink
+        } else {
+            input.installTap(
+                onBus: 0,
+                bufferSize: 2048,
+                format: native,
+                block: Self.makeTapCallback(for: self)
+            )
+        }
         engine.prepare()
-        try engine.start()
+        do { try engine.start() }
+        catch {
+            sinkRing?.stop()
+            engine.stop()
+            if let sinkNode { engine.detach(sinkNode) }
+            sinkRing = nil
+            sinkNode = nil
+            throw error
+        }
         isRunning = true
-        Log.audio.info("capture hub started — native \(native.sampleRate)Hz · shared input")
+        Log.audio.info("capture hub started — native \(native.sampleRate)Hz · \(self.sinkSelected ? "sink" : "tap") shared input")
     }
 
     private func stopEngine() {
         guard isRunning else { return }
         if !probe {
             engine.inputNode.removeTap(onBus: 0)
+            sinkRing?.stop()
             engine.stop()
+            if let sinkNode { engine.detach(sinkNode) }
+            sinkRing = nil
+            sinkNode = nil
         }
         isRunning = false
         Log.audio.info("capture hub stopped")
@@ -156,12 +317,39 @@ final class AudioCaptureHub {
     nonisolated private static func makeTapCallback(
         for hub: AudioCaptureHub
     ) -> @Sendable (AVAudioPCMBuffer, AVAudioTime) -> Void {
-        { [weak hub] buffer, _ in hub?.fanOut(buffer) }
+        { [weak hub] buffer, time in
+            hub?.fanOut(buffer, captureHostTime: time.isHostTimeValid ? time.hostTime : nil)
+        }
+    }
+
+    /// AVAudioSinkNode calls this on Core Audio's realtime queue. Forming the
+    /// closure in startEngine() would inherit MainActor isolation and trap.
+    nonisolated private static func makeSinkCallback(
+        for ring: AudioSinkCaptureRing
+    ) -> AVAudioSinkNodeReceiverBlock {
+        { timestamp, frames, inputData in
+            ring.receive(timestamp, frames: frames, input: inputData)
+            return noErr
+        }
+    }
+
+    nonisolated private static func makeSinkDelivery(
+        for hub: AudioCaptureHub
+    ) -> @Sendable (AVAudioPCMBuffer, UInt64?) -> Void {
+        { [weak hub] buffer, hostTime in
+            hub?.fanOut(buffer, captureHostTime: hostTime)
+        }
+    }
+
+    nonisolated private static func makeSinkOverflow(
+        for hub: AudioCaptureHub
+    ) -> @Sendable (Int) -> Void {
+        { [weak hub] count in hub?.reportSourceOverflow(count) }
     }
 
     /// Copy the tap buffer, then convert/copy once per consumer. Model work stays
     /// off this thread — callbacks only enqueue.
-    nonisolated private func fanOut(_ buffer: AVAudioPCMBuffer) {
+    nonisolated private func fanOut(_ buffer: AVAudioPCMBuffer, captureHostTime: UInt64? = nil) {
         lock.lock()
         let snapshot = Array(slots.values)
         lock.unlock()
@@ -174,8 +362,15 @@ final class AudioCaptureHub {
         for slot in snapshot {
             // Conversion and consumer work are deliberately outside the tap callback. The
             // callback only makes one owned copy and performs a bounded, non-blocking enqueue.
-            _ = slot.worker.enqueue(source: ownedSource, level: level)
+            _ = slot.worker.enqueue(source: ownedSource, level: level, captureHostTime: captureHostTime)
         }
+    }
+
+    nonisolated private func reportSourceOverflow(_ count: Int) {
+        lock.lock()
+        let callbacks = slots.values.map(\.onOverflow)
+        lock.unlock()
+        for callback in callbacks { callback(count) }
     }
 }
 
@@ -194,6 +389,7 @@ private final class AudioCaptureDeliveryWorker: @unchecked Sendable {
     private struct Item: @unchecked Sendable {
         let source: AVAudioPCMBuffer
         let level: Float
+        let captureHostTime: UInt64?
     }
 
     private let queue = DispatchQueue(
@@ -226,7 +422,7 @@ private final class AudioCaptureDeliveryWorker: @unchecked Sendable {
     }
 
     /// Non-blocking from the audio callback. Returns false when this item was dropped.
-    func enqueue(source: AVAudioPCMBuffer, level: Float) -> Bool {
+    func enqueue(source: AVAudioPCMBuffer, level: Float, captureHostTime: UInt64? = nil) -> Bool {
         lock.lock()
         guard isActive else {
             lock.unlock()
@@ -253,7 +449,7 @@ private final class AudioCaptureDeliveryWorker: @unchecked Sendable {
         pending += 1
         lock.unlock()
 
-        let item = Item(source: source, level: level)
+        let item = Item(source: source, level: level, captureHostTime: captureHostTime)
         queue.async { [weak self] in
             self?.deliver(item)
         }
@@ -293,18 +489,66 @@ private final class AudioCaptureDeliveryWorker: @unchecked Sendable {
         lock.unlock()
         guard stillActive else { return }
         onLevel(item.level)
-        onBuffer(AudioChunk(buffer: delivered))
+        onBuffer(AudioChunk(buffer: delivered, captureHostTime: item.captureHostTime))
     }
 }
 
 extension AudioCaptureHub {
+    /// Checks the real input tap and its 16 kHz delivery independently. A model-only
+    /// capture probe cannot detect a microphone that stopped delivering after an OS or
+    /// default-input change. Run as an app through LaunchServices for the real TCC grant.
+    static func runLiveMicrophoneSelfTest() async -> (Bool, String) {
+        guard await Permissions.requestMicrophone() else {
+            return (false, "MICROPHONE_FAILED: microphone permission denied")
+        }
+        let native = shared.engine.inputNode.outputFormat(forBus: 0)
+        guard native.sampleRate > 0, native.channelCount > 0,
+              let target = AVAudioFormat(
+                commonFormat: .pcmFormatFloat32,
+                sampleRate: 16_000,
+                channels: 1,
+                interleaved: false
+              ) else {
+            return (false, "MICROPHONE_FAILED: input format unavailable")
+        }
+
+        let raw = LiveCaptureRecorder()
+        let converted = LiveCaptureRecorder()
+        let rawID = Consumer.client(UUID())
+        let convertedID = Consumer.client(UUID())
+        do {
+            try shared.subscribe(rawID, outputFormat: native, onBuffer: { raw.record($0) })
+            try shared.subscribe(convertedID, outputFormat: target, onBuffer: { converted.record($0) })
+        } catch {
+            shared.unsubscribe(rawID)
+            shared.unsubscribe(convertedID)
+            return (false, "MICROPHONE_FAILED: capture start: \(error.localizedDescription)")
+        }
+        try? await Task.sleep(for: .seconds(1))
+        let beforeRestart = (raw.snapshot(), converted.snapshot())
+        raw.reset()
+        converted.reset()
+        shared.recoverAfterConfigurationChange()
+        try? await Task.sleep(for: .seconds(2))
+        shared.unsubscribe(rawID)
+        shared.unsubscribe(convertedID)
+        let source = raw.snapshot()
+        let output = converted.snapshot()
+        let detail = "native \(Int(native.sampleRate))Hz \(source.buffers) buffers/\(source.samples) samples peak \(source.peak); 16kHz \(output.buffers) buffers/\(output.samples) samples peak \(output.peak)"
+        let passed = beforeRestart.0.samples > 0 && beforeRestart.1.samples > 0
+            && beforeRestart.0.peak > 0 && beforeRestart.1.peak > 0
+            && source.samples > 0 && output.samples > 0
+            && source.peak > 0 && output.peak > 0
+        return (passed, "MICROPHONE_\(passed ? "OK" : "FAILED"): \(detail)")
+    }
+
     /// Structural probe of the fan-out owner. Never calls `RunLog.record`.
     ///
     /// Exposed by `--selftest-capture` in `NextNotesApp.runRequestedSelfTest`.
     /// ```
     @discardableResult
     static func runSelfTest() async -> Bool {
-        var failures: [String] = []
+        var failures = AudioSinkCaptureRing.selfTestFailures()
 
         let format = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
@@ -345,7 +589,8 @@ extension AudioCaptureHub {
                 consumer,
                 outputFormat: format,
                 onBuffer: { chunk in
-                    delivered.append(AudioConversion.samples(of: chunk.buffer).first ?? -1)
+                    delivered.append(AudioConversion.samples(of: chunk.buffer).first ?? -1,
+                                     hostTime: chunk.captureHostTime)
                     Thread.sleep(forTimeInterval: 0.01)
                 },
                 onOverflow: { count in delivered.overflow(count) }
@@ -354,7 +599,7 @@ extension AudioCaptureHub {
                 guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 32) else { break }
                 buffer.frameLength = 32
                 buffer.floatChannelData?[0].initialize(repeating: Float(index), count: 32)
-                hub.fanOut(buffer)
+                hub.fanOut(buffer, captureHostTime: UInt64(index + 1000))
             }
             try? await Task.sleep(for: .milliseconds(250))
             let report = delivered.snapshot()
@@ -363,6 +608,9 @@ extension AudioCaptureHub {
             }
             if report.values != report.values.sorted() {
                 failures.append("delivery worker reordered buffers")
+            }
+            if report.hostTimes != report.values.map({ UInt64($0) + 1000 }) {
+                failures.append("delivery worker lost or reassigned microphone timestamps")
             }
             if report.overflow == 0 {
                 failures.append("delivery worker accepted an unbounded backlog")
@@ -402,6 +650,18 @@ extension AudioCaptureHub {
             )
         }
 
+        // A route change must preserve all active subscribers while opening a fresh
+        // engine. A cached isRunning flag used to leave wake alive on paper and dead
+        // on the microphone after macOS stopped AVAudioEngine.
+        hub.recoverAfterConfigurationChange()
+        if hub.inputEngineStarts != 2 {
+            failures.append("configuration change did not restart input engine")
+        }
+        if !hub.isSubscribed(.wake) || !hub.isSubscribed(.meeting)
+            || !hub.isSubscribed(.dictation) {
+            failures.append("configuration change lost a microphone subscriber")
+        }
+
         hub.unsubscribe(.dictation)
         hub.unsubscribe(.meeting)
         hub.unsubscribe(.wake)
@@ -415,15 +675,47 @@ extension AudioCaptureHub {
     }
 }
 
+private final class LiveCaptureRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var buffers = 0
+    private var samples = 0
+    private var peak: Float = 0
+
+    func record(_ chunk: AudioChunk) {
+        let values = AudioConversion.samples(of: chunk.buffer)
+        lock.lock()
+        buffers += 1
+        samples += values.count
+        for value in values { peak = max(peak, abs(value)) }
+        lock.unlock()
+    }
+
+    func snapshot() -> (buffers: Int, samples: Int, peak: Float) {
+        lock.lock()
+        defer { lock.unlock() }
+        return (buffers, samples, peak)
+    }
+
+    func reset() {
+        lock.lock()
+        buffers = 0
+        samples = 0
+        peak = 0
+        lock.unlock()
+    }
+}
+
 private final class CaptureSelfTestRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private var values: [Float] = []
+    private var hostTimes: [UInt64] = []
     private var overflowCount = 0
     private var latestOverflow = 0
 
-    func append(_ value: Float) {
+    func append(_ value: Float, hostTime: UInt64? = nil) {
         lock.lock()
         values.append(value)
+        hostTimes.append(hostTime ?? 0)
         lock.unlock()
     }
 
@@ -434,9 +726,9 @@ private final class CaptureSelfTestRecorder: @unchecked Sendable {
         lock.unlock()
     }
 
-    func snapshot() -> (values: [Float], overflow: Int) {
+    func snapshot() -> (values: [Float], overflow: Int, hostTimes: [UInt64]) {
         lock.lock()
         defer { lock.unlock() }
-        return (values, max(overflowCount, latestOverflow))
+        return (values, max(overflowCount, latestOverflow), hostTimes)
     }
 }
