@@ -94,6 +94,15 @@ confirms the platform layer loads and constructs. What has never happened is a p
 holding the key and speaking into a microphone. Describe it that way — not as "working",
 not as "unfinished".
 
+## Licence
+
+AGPL-3.0-or-later (`LICENSE`). Every file you add here inherits it — no per-file header
+is required, and none should be added unless the whole tree gets them. Before pulling in
+a new dependency, check it is not GPL-incompatible and not source-available-but-not-open
+(BSL, SSPL, Elastic, "free for non-commercial"): every current dependency is BSD, MIT,
+Apache-2.0, ISC or OFL, and `THIRD-PARTY-NOTICES.md` is the inventory to update when that
+changes. Models are downloaded at runtime, not distributed, and keep their own terms.
+
 ---
 
 ## The one rule that matters

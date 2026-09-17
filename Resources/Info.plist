@@ -17,6 +17,10 @@
 	     come back, and `AppIdentity` folds the old `ai.pivotstudio.speechify` defaults in. -->
 	<key>CFBundleIdentifier</key>
 	<string>ai.pivotstudio.nextnotes</string>
+	<!-- Shown in the About panel and in Finder's Get Info. AGPL-3.0-or-later: the full
+	     text ships beside it as Resources/LICENSE.txt. -->
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2026 Serge Kadjo. Licensed under the GNU Affero General Public License v3.0 or later.</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
