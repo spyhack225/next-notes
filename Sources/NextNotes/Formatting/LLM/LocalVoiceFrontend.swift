@@ -414,7 +414,7 @@ actor LocalVoiceFrontend {
                         var produced = false
                         if useSplitDecision {
                             produced = try await Self.streamSplitDecision(
-                                messages: messages, maxTokens: maxTokens, continuation: continuation,
+                                system: system, messages: messages, maxTokens: maxTokens, continuation: continuation,
                                 timing: timing
                             )
                         } else if useTypedResponse {
@@ -481,6 +481,7 @@ actor LocalVoiceFrontend {
     /// Resolve the two-stage route. The route is collected as a complete
     /// value before any answer text or control envelope is delivered.
     private static func streamSplitDecision(
+        system: String,
         messages: [LLMChatMessage],
         maxTokens: Int,
         continuation: AsyncThrowingStream<String, Error>.Continuation,
@@ -533,8 +534,8 @@ actor LocalVoiceFrontend {
             return true
         case .answerQuestion:
             try Task.checkCancellation()
-            guard let answerPlan = LocalVoicePrompt.plan(
-                system: LocalVoiceSplitResponse.answerInstructions, messages: messages
+            guard let answerPlan = LocalVoiceSplitResponse.answerPlan(
+                system: system, messages: messages
             ) else {
                 throw FrontendError.unavailable("split_answer_missing_latest_user")
             }

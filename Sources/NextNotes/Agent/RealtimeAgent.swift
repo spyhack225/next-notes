@@ -492,7 +492,12 @@ final class RealtimeAgent {
         return AgentSpeechPolicy.toolResultSummary(toolID: toolID, result: result)
     }
 
-    private static let localModelSystem = """
+    /// "Ask the local model": the full persona, then these rules, via `AgentPromptContext`.
+    nonisolated static var localModelSystem: String {
+        AgentPromptContext.assemble(.localModel, rules: localModelRules).system
+    }
+
+    nonisolated static let localModelRules = """
         You are the local, on-device answer model for Next Notes. Answer the user's question
         clearly and briefly in natural language. Use only the current request and provided
         conversation history as evidence; if needed facts are absent, say so.

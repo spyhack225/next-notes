@@ -643,6 +643,11 @@ final class Settings {
         didSet { defaults.set(agentVoiceEngine, forKey: Keys.agentVoiceEngine) }
     }
 
+    /// Whether Agent prompts start with `persona.md`. The file is kept either way.
+    var agentPersonaEnabled: Bool {
+        didSet { defaults.set(agentPersonaEnabled, forKey: Keys.agentPersonaEnabled) }
+    }
+
     var agentPocketVoice: String {
         didSet { defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice) }
     }
@@ -833,6 +838,7 @@ final class Settings {
         static let voiceWakeEnabled = "voiceWakeEnabled"
         static let agentVoiceIdentifier = "agentVoiceIdentifier"
         static let agentVoiceEngine = "agentVoiceEngine"
+        static let agentPersonaEnabled = PersonaStore.enabledDefaultsKey
         static let agentPocketVoice = "agentPocketVoice"
         static let wakePhrase = "wakePhrase"
         static let wakeSensitivity = "wakeSensitivity"
@@ -936,6 +942,7 @@ final class Settings {
         agentVoiceIdentifier = defaults.string(forKey: Keys.agentVoiceIdentifier) ?? ""
         agentVoiceEngine = defaults.string(forKey: Keys.agentVoiceEngine) ?? "apple"
         agentPocketVoice = defaults.string(forKey: Keys.agentPocketVoice) ?? "alba"
+        agentPersonaEnabled = defaults.object(forKey: Keys.agentPersonaEnabled) as? Bool ?? true
         wakePhrase = defaults.string(forKey: Keys.wakePhrase) ?? WakeWordConfiguration.defaultPhrase
         wakeSensitivity = defaults.object(forKey: Keys.wakeSensitivity) as? Double ?? 0.5
         listenWhileSleeping = defaults.object(forKey: Keys.listenWhileSleeping) as? Bool ?? true

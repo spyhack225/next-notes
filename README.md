@@ -452,6 +452,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-tools                   # registry, native-first router, permission broker
 "$S" --selftest-wake                    # phrase spotting, authority split; loads the sherpa KWS model
 "$S" --selftest-tasks                   # submit / run / cancel without a model
+"$S" --selftest-persona                 # every Agent prompt path: persona + memory chars against budget
 "$S" --selftest-meeting-context         # extract decisions and candidate actions
 "$S" --selftest-realtime                # question/follow-up routing, tool speech, harness, duplex VAD
 "$S" --selftest-computer                # inspect/click/type on an owned window; stub trees stay empty

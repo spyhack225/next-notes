@@ -8,9 +8,14 @@ enum AgentPrompts {
     /// ceiling writes a to-do list; three is what a person will actually read and answer.
     static let maxProposals = 3
 
-    /// The rules. The catalogue itself is appended by `LLMProvider.complete(…, tools:)`, so
-    /// there is one description of how a tool is called rather than one per prompt.
-    static let system = """
+    /// The persona, then the rules, via `AgentPromptContext`. The catalogue itself is
+    /// appended by `LLMProvider.complete(…, tools:)` — the capability section — so there is
+    /// one description of how a tool is called rather than one per prompt.
+    static var system: String {
+        AgentPromptContext.assemble(.meetingAssistant, rules: rules).system
+    }
+
+    static let rules = """
         You are the Next Notes meeting assistant. A meeting has just been recorded, transcribed \
         and summarised on the user's Mac. Your job is to propose the small number of \
         follow-up actions in the user's Google Workspace that the meeting actually asked for.

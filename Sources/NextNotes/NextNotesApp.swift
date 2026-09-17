@@ -417,6 +417,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-persona") {
+            Task { @MainActor in
+                SelfTest.failed = !PersonaSelfTest.run()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-wake") {
             runWakeSelfTest()
             return true

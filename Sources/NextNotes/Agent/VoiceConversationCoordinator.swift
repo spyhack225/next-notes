@@ -418,7 +418,19 @@ final class VoiceConversationCoordinator {
         responseDeadlineForTesting = nil
     }
 
-    nonisolated static let systemPrompt = """
+    /// The instructions every voice turn passes to `LocalVoiceFrontend`.
+    ///
+    /// This used to be the envelope prompt below, and the production route/answer path
+    /// silently ignored it — editing it changed nothing a user heard. It now *is* the
+    /// production answer prompt (persona short card + rules, via `AgentPromptContext`),
+    /// and the split answer stage uses what it is passed. The envelope prompt survives
+    /// only for the `--voice-legacy-envelope` comparison probes.
+    nonisolated static var systemPrompt: String {
+        LocalVoiceSplitResponse.isEnabled ? LocalVoiceSplitResponse.answerInstructions : legacyEnvelopePrompt
+    }
+
+    /// The single-call `<answer/>`/`<use_tools/>` envelope contract. Legacy probes only.
+    nonisolated static let legacyEnvelopePrompt = """
         You speak for the Next Notes application on this Mac. The supplied inventory
         describes this application's implemented features, including features needing
         a connection or permission. Explain those features when asked what you can do.

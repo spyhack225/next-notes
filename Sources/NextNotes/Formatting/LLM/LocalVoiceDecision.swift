@@ -95,7 +95,19 @@ enum LocalVoiceSplitResponse {
             latestUser: context.latestUser)
     }
 
-    static let routeInstructions = """
+    /// Assembled through `AgentPromptContext`: routing carries no persona and no memory.
+    static var routeInstructions: String {
+        AgentPromptContext.assemble(.voiceRoute, rules: routeRules).system
+    }
+
+    /// Answer-stage native plan. `system` is the instructions the coordinator passed, which
+    /// in production is `answerInstructions` — so the prompt the caller names is the prompt
+    /// the model hears.
+    static func answerPlan(system: String, messages: [LLMChatMessage]) -> LocalVoicePrompt.Plan? {
+        LocalVoicePrompt.plan(system: system, messages: messages)
+    }
+
+    static let routeRules = """
         You are the routing layer for Next Notes, an on-device voice assistant.
         Classify the latest user turn into exactly one route. Use the supplied
         latest work status as context for running tasks.
@@ -114,7 +126,13 @@ enum LocalVoiceSplitResponse {
         invent task numbers or perform any action.
         """
 
-    static let answerInstructions = """
+    /// The spoken answer: the persona's short card, then these rules, then (from the
+    /// caller's system messages) the capability facts. Memory is the profile only.
+    static var answerInstructions: String {
+        AgentPromptContext.assemble(.voiceAnswer, rules: answerRules).system
+    }
+
+    static let answerRules = """
         Answer the latest user question naturally and briefly. Use your general
         knowledge for ordinary questions and advice. Use the supplied application
         facts only when relevant to a question about Next Notes; a tool inventory

@@ -136,6 +136,9 @@ app: build
 	@# than a string in Swift so the commands the user is asked to run are reviewable as a
 	@# script; the app falls back to a one-line equivalent when running outside a bundle.
 	@cp Resources/install-gws.sh "$(CONTENTS)/Resources/"
+	@# The persona preset `persona.md` is seeded from. PersonaStore carries a compiled-in copy
+	@# for bare binaries, and --selftest-persona fails if the two drift.
+	@cp Resources/agent-persona-base.md "$(CONTENTS)/Resources/"
 	@cp Sources/SpeexEcho/LICENSE "$(CONTENTS)/Resources/SpeexDSP-LICENSE.txt"
 	@chmod +x "$(CONTENTS)/Resources/install-gws.sh"
 	@printf 'APPL????' > "$(CONTENTS)/PkgInfo"
