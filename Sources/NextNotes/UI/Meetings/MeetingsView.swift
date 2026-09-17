@@ -454,7 +454,7 @@ extension MeetingStatus {
         switch self {
         case .scheduled, .armed: DS.Color.info
         case .recording: DS.Color.record
-        case .transcribing, .diarizing, .summarizing: DS.Color.accent
+        case .transcribing, .diarizing, .summarizing, .extracting: DS.Color.accent
         case .done: DS.Color.success
         case .failed: DS.Color.warning
         }

@@ -175,8 +175,17 @@ actor NotesModelRuntime {
 
     /// One ChatML turn, generated greedily-but-not-quite (see the sampler below).
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+        try await complete(system: system, user: user, maxTokens: maxTokens, grammar: nil)
+    }
+
+    /// One ChatML turn whose output is constrained to `grammar`: every sampled token must keep
+    /// the text a prefix of a sentence the grammar accepts, and end-of-generation is only
+    /// allowed once it is a whole one. A grammar llama.cpp cannot parse throws
+    /// `LlamaError.grammarInvalid` before anything is decoded.
+    func complete(system: String, user: String, maxTokens: Int, grammar: GBNFGrammar?) async throws -> LLMCompletion {
         try await withBackgroundLane { jobID in
-            try await completeWhileScheduled(jobID: jobID, system: system, user: user, maxTokens: maxTokens)
+            try await completeWhileScheduled(
+                jobID: jobID, system: system, user: user, maxTokens: maxTokens, grammar: grammar)
         }
     }
 
@@ -266,7 +275,8 @@ actor NotesModelRuntime {
         jobID: UUID,
         system: String,
         user: String,
-        maxTokens: Int
+        maxTokens: Int,
+        grammar: GBNFGrammar? = nil
     ) async throws -> LLMCompletion {
         try await loadIfNeeded(schedulerJobID: jobID)
         // On every exit, not just the successful one: a transcript that was too long, a
@@ -286,12 +296,13 @@ actor NotesModelRuntime {
 
         let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
         llama_memory_clear(llama_get_memory(context), true)
-        try await decodePromptWhileScheduled(promptTokens, context: context, jobID: jobID)
-
-        guard let sampler = makeSampler(vocabulary: vocabulary) else {
+        // Built before the prefill, so a grammar the native parser refuses costs nothing.
+        guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: grammar) else {
             throw LlamaError.samplerFailed
         }
         defer { llama_sampler_free(sampler) }
+
+        try await decodePromptWhileScheduled(promptTokens, context: context, jobID: jobID)
 
         let began = Date()
         var output = ""
@@ -363,7 +374,7 @@ actor NotesModelRuntime {
         try await decodePromptWhileScheduled(promptTokens, context: context, jobID: jobID)
         prefillTrace.end(note: "qwen35_4b prompt_tokens=\(promptTokens.count)")
 
-        guard let sampler = makeSampler(vocabulary: vocabulary) else {
+        guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: nil) else {
             throw LlamaError.samplerFailed
         }
         defer { llama_sampler_free(sampler) }
@@ -660,10 +671,23 @@ actor NotesModelRuntime {
     /// items — "Action items" repeating one bullet until the token budget runs out — and the
     /// repetition penalty alone doesn't break the loop. The seed is fixed so that pressing
     /// Regenerate twice on an unchanged transcript is a diagnosis, not a dice roll.
-    private func makeSampler(vocabulary: OpaquePointer) -> UnsafeMutablePointer<llama_sampler>? {
+    ///
+    /// A grammar goes first in the chain: it masks every token that would leave the grammar,
+    /// and the samplers after it choose among what is left. The chain accepts each sampled
+    /// token into the grammar's state, so no separate bookkeeping is needed here.
+    private func makeSampler(
+        vocabulary: OpaquePointer, grammar: GBNFGrammar?
+    ) throws -> UnsafeMutablePointer<llama_sampler>? {
         var parameters = llama_sampler_chain_default_params()
         parameters.no_perf = true
         guard let chain = llama_sampler_chain_init(parameters) else { return nil }
+        if let grammar {
+            guard let constrained = llama_sampler_init_grammar(vocabulary, grammar.text, grammar.root) else {
+                llama_sampler_free(chain)
+                throw LlamaError.grammarInvalid
+            }
+            llama_sampler_chain_add(chain, constrained)
+        }
         llama_sampler_chain_add(
             chain,
             llama_sampler_init_penalties(

@@ -139,6 +139,9 @@ app: build
 	@# The persona preset `persona.md` is seeded from. PersonaStore carries a compiled-in copy
 	@# for bare binaries, and --selftest-persona fails if the two drift.
 	@cp Resources/agent-persona-base.md "$(CONTENTS)/Resources/"
+	@# The knowledge graph's ontology. Ontology.swift carries a compiled-in copy for bare
+	@# binaries, and --selftest-extract fails if the two drift.
+	@cp Resources/knowledge-ontology.yaml "$(CONTENTS)/Resources/"
 	@cp Sources/SpeexEcho/LICENSE "$(CONTENTS)/Resources/SpeexDSP-LICENSE.txt"
 	@chmod +x "$(CONTENTS)/Resources/install-gws.sh"
 	@printf 'APPL????' > "$(CONTENTS)/PkgInfo"

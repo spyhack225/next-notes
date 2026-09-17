@@ -24,6 +24,12 @@ struct KnowledgeSection: View {
 
             Toggle("Let the Agent search and answer from the index", isOn: $settings.knowledgeAgentToolsEnabled)
                 .disabled(!settings.knowledgeIndexEnabled)
+            Toggle("Extract decisions and action items from notes", isOn: $settings.knowledgeGraphEnabled)
+                .disabled(!settings.knowledgeIndexEnabled)
+            if settings.knowledgeGraphEnabled {
+                Toggle("Let a cloud model read decisions and action items", isOn: $settings.knowledgeGraphCloudConsent)
+                    .disabled(!settings.knowledgeIndexEnabled)
+            }
 
             Picker("Semantic search", selection: embedderChoice) {
                 ForEach(KnowledgeEmbedderChoice.allCases) { choice in
@@ -69,7 +75,12 @@ struct KnowledgeSection: View {
                     + "the passage each sentence came from. "
                     + "When a cloud model answers, the passages recall, search or Ask finds are sent with the prompt. "
                     + "Semantic search adds vectors computed on this Mac after you download a model; "
-                    + "it waits while anything is recording or the notes model is loaded.",
+                    + "it waits while anything is recording or the notes model is loaded. "
+                    + "Extracting reads each meeting's notes once more with the on-device model — never a cloud "
+                    + "one — and saves notes.json beside them: decisions you can follow across meetings, and "
+                    + "action items you own with a date, offered as reminders you confirm. Nothing is created "
+                    + "for you. What it extracts stays on this Mac: a cloud model the Agent, Ask or a routine "
+                    + "uses cannot read it unless you let it.",
                 orb: indexer.isIndexing ? .searching : nil
             )
         }

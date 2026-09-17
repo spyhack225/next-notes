@@ -234,7 +234,9 @@ final class ScheduledRunner: ScheduledRunning {
         let authority = ActionAuthority.scheduled(schedule.id)
         let loop: AgentToolLoop.Outcome
         do {
-            loop = try await AgentToolLoop.run(
+            // The graph answers a cloud route only with its own consent (`KnowledgeGraphScope`).
+            loop = try await KnowledgeGraphScope.$reader.withValue(route == .local ? .qwen35_4b : .openRouter) {
+                try await AgentToolLoop.run(
                 user: schedule.prompt,
                 maxRounds: AgentToolLoop.maxRoundsBound,
                 maxCalls: max(1, schedule.budget.maxToolCalls),
@@ -253,6 +255,7 @@ final class ScheduledRunner: ScheduledRunning {
                     return await self.execute(call, schedule: schedule, authority: authority,
                                               taskID: task.id, now: now, state: state)
                 })
+            }
         } catch {
             let reason = "The model failed: \(error.localizedDescription)"
             return finish(task, schedule: schedule, outcome: ScheduledRunOutcome(

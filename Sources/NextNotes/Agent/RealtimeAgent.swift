@@ -145,7 +145,7 @@ final class RealtimeAgent {
         let owner = currentGeneration
         let asker = KnowledgeAsker(context: context, model: ProviderKnowledgeAnswerModel(provider: provider))
         do {
-            let answer = try await asker.run(question)
+            let answer = try await KnowledgeGraphScope.$reader.withValue(provider.id) { try await asker.run(question) }
             guard isCurrent(owner) else { return "I stopped looking." }
             AgentAuditLog.shared.record(kind: .reply, title: "Answered from the knowledge index",
                                         detail: "\(answer.rounds) rounds · cites " + answer.citations.map(\.marker)

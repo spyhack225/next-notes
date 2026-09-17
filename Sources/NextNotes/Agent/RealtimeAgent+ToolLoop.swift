@@ -359,7 +359,16 @@ extension RealtimeAgent {
                 reply: "I can’t answer because the selected model is unavailable.", usedTools: false
             )
         }
+        // The knowledge graph reaches a cloud planner only with its own consent.
+        return await KnowledgeGraphScope.$reader.withValue(provider.id) {
+            await runModelTurn(prompt, speech: speech, voice: voice, owner: owner, work: work, provider: provider)
+        }
+    }
 
+    private func runModelTurn(
+        _ prompt: String, speech: AgentToolSpeechTracker?, voice: Bool, owner: Int,
+        work: VoiceConversationWork?, provider: any LLMProvider
+    ) async -> AgentModelTurnResult {
         guard isCurrent(owner) else {
             return AgentModelTurnResult(reply: "Stopped.", usedTools: false)
         }
@@ -638,7 +647,17 @@ extension RealtimeAgent {
         } else {
             return "I can’t plan tool use because the selected model is unavailable."
         }
+        // The knowledge graph reaches a cloud planner only with its own consent.
+        return await KnowledgeGraphScope.$reader.withValue(provider.id) {
+            await runPlannedToolLoop(prompt, speech: speech, voice: voice, owner: owner, background: background,
+                                     work: work, tools: tools, provider: provider)
+        }
+    }
 
+    private func runPlannedToolLoop(
+        _ prompt: String, speech: AgentToolSpeechTracker?, voice: Bool, owner: Int, background: Bool,
+        work: VoiceConversationWork?, tools: [AgentTool], provider: any LLMProvider
+    ) async -> String {
         let system = Self.plannerSystem(tools: tools, voice: voice)
         let clock = ContinuousClock()
         let duration = toolLoopLimitForTesting

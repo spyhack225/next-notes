@@ -111,6 +111,8 @@ enum LlamaError: LocalizedError {
     case inputTooLong
     case decodeFailed
     case samplerFailed
+    /// `llama_sampler_init_grammar` could not parse the GBNF.
+    case grammarInvalid
 
     var errorDescription: String? {
         switch self {
@@ -122,6 +124,7 @@ enum LlamaError: LocalizedError {
         case .inputTooLong: "The text is longer than the model's context."
         case .decodeFailed: "Inference failed."
         case .samplerFailed: "Decoding could not start."
+        case .grammarInvalid: "The output grammar could not be parsed."
         }
     }
 }

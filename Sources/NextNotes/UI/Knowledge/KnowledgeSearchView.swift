@@ -23,10 +23,12 @@ struct KnowledgeSearchView: View {
     @State private var hasSearched = false
     @State private var mode: Mode = .search
 
-    /// Search finds passages; Ask answers a question from them, with citations (Phase E).
+    /// Search finds passages; Ask answers a question from them, with citations (Phase E);
+    /// Decisions follows each extracted decision across meetings (Phase C).
     enum Mode: Hashable {
         case search
         case ask
+        case decisions
     }
 
     var body: some View {
@@ -44,6 +46,8 @@ struct KnowledgeSearchView: View {
                     .searchable(text: $query, prompt: Text("Search meetings, notes and conversations"))
                 case .ask:
                     AskView()
+                case .decisions:
+                    DecisionThreadView()
                 }
             } else {
                 OrbUnavailableView(
@@ -64,6 +68,9 @@ struct KnowledgeSearchView: View {
                     Picker("Mode", selection: $mode) {
                         Text("Search").tag(Mode.search)
                         Text("Ask").tag(Mode.ask)
+                        if settings.knowledgeGraphEnabled {
+                            Text("Decisions").tag(Mode.decisions)
+                        }
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()

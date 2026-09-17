@@ -724,6 +724,19 @@ final class Settings {
         didSet { defaults.set(knowledgeAgentToolsEnabled, forKey: Keys.knowledgeAgentToolsEnabled) }
     }
 
+    /// Whether finished meetings' notes are extracted into `notes.json` and the knowledge
+    /// graph — decisions, action items, open questions, people — with the on-device model.
+    /// Off by default; needs the index on as well.
+    var knowledgeGraphEnabled: Bool {
+        didSet { defaults.set(knowledgeGraphEnabled, forKey: Keys.knowledgeGraphEnabled) }
+    }
+
+    /// Whether a cloud model (OpenRouter) may read the knowledge graph through `expand_node`
+    /// and `timeline`. Off by default: separate, per-feature consent.
+    var knowledgeGraphCloudConsent: Bool {
+        didSet { defaults.set(knowledgeGraphCloudConsent, forKey: Keys.knowledgeGraphCloudConsent) }
+    }
+
     var agentPocketVoice: String {
         didSet { defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice) }
     }
@@ -929,6 +942,8 @@ final class Settings {
         static let knowledgeIncludeRoutines = KnowledgeIndexSettings.includeRoutinesKey
         static let knowledgeEmbedder = KnowledgeIndexSettings.embedderKey
         static let knowledgeAgentToolsEnabled = KnowledgeToolGate.enabledKey
+        static let knowledgeGraphEnabled = KnowledgeIndexSettings.graphKey
+        static let knowledgeGraphCloudConsent = KnowledgeIndexSettings.graphCloudConsentKey
         static let agentPocketVoice = "agentPocketVoice"
         static let wakePhrase = "wakePhrase"
         static let wakeSensitivity = "wakeSensitivity"
@@ -1049,6 +1064,8 @@ final class Settings {
         knowledgeIncludeRoutines = defaults.object(forKey: Keys.knowledgeIncludeRoutines) as? Bool ?? false
         knowledgeEmbedder = defaults.string(forKey: Keys.knowledgeEmbedder) ?? KnowledgeEmbedderChoice.none.rawValue
         knowledgeAgentToolsEnabled = defaults.object(forKey: Keys.knowledgeAgentToolsEnabled) as? Bool ?? false
+        knowledgeGraphEnabled = defaults.object(forKey: Keys.knowledgeGraphEnabled) as? Bool ?? false
+        knowledgeGraphCloudConsent = defaults.object(forKey: Keys.knowledgeGraphCloudConsent) as? Bool ?? false
         wakePhrase = defaults.string(forKey: Keys.wakePhrase) ?? WakeWordConfiguration.defaultPhrase
         wakeSensitivity = defaults.object(forKey: Keys.wakeSensitivity) as? Double ?? 0.5
         listenWhileSleeping = defaults.object(forKey: Keys.listenWhileSleeping) as? Bool ?? true

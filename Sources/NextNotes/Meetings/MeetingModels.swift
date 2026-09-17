@@ -89,12 +89,17 @@ enum MeetingStatus: Codable, Sendable, Equatable {
     case diarizing
     /// Notes are being generated.
     case summarizing
+    /// Decisions, action items, open questions and people are being extracted from the notes
+    /// into `notes.json` and the knowledge graph (Part 4, Phase C). Only while
+    /// `knowledgeGraphEnabled` is on. Persisted like every other state, so a crash during
+    /// extraction is visible as exactly that.
+    case extracting
     case done
     case failed(String)
 
     var isActive: Bool {
         switch self {
-        case .recording, .transcribing, .diarizing, .summarizing: true
+        case .recording, .transcribing, .diarizing, .summarizing, .extracting: true
         case .scheduled, .armed, .done, .failed: false
         }
     }
@@ -112,6 +117,7 @@ enum MeetingStatus: Codable, Sendable, Equatable {
         case .transcribing: "Transcribing"
         case .diarizing: "Identifying speakers"
         case .summarizing: "Writing notes"
+        case .extracting: "Extracting decisions"
         case .done: "Done"
         case .failed: "Failed"
         }
@@ -125,7 +131,7 @@ enum MeetingStatus: Codable, Sendable, Equatable {
     }
 
     private enum State: String, Codable {
-        case scheduled, armed, recording, transcribing, diarizing, summarizing, done, failed
+        case scheduled, armed, recording, transcribing, diarizing, summarizing, extracting, done, failed
     }
 
     init(from decoder: any Decoder) throws {
@@ -137,6 +143,7 @@ enum MeetingStatus: Codable, Sendable, Equatable {
         case .transcribing: self = .transcribing
         case .diarizing: self = .diarizing
         case .summarizing: self = .summarizing
+        case .extracting: self = .extracting
         case .done: self = .done
         case .failed:
             self = .failed(try container.decodeIfPresent(String.self, forKey: .reason) ?? "Unknown error")
@@ -152,6 +159,7 @@ enum MeetingStatus: Codable, Sendable, Equatable {
         case .transcribing: try container.encode(State.transcribing, forKey: .state)
         case .diarizing: try container.encode(State.diarizing, forKey: .state)
         case .summarizing: try container.encode(State.summarizing, forKey: .state)
+        case .extracting: try container.encode(State.extracting, forKey: .state)
         case .done: try container.encode(State.done, forKey: .state)
         case .failed(let reason):
             try container.encode(State.failed, forKey: .state)

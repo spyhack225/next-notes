@@ -1,0 +1,56 @@
+# The knowledge graph's ontology (Part 4, Phase C).
+#
+# Extraction validates every node and edge against this file and drops what does not fit:
+# an unknown type, a missing or unknown field, a value of the wrong shape, an edge between the
+# wrong types, or an edge without a source chunk. Node ids are assigned by code; the model
+# never names a node.
+#
+# Field types: string (200 chars), text (400), label (80), date (YYYY-MM-DD),
+# datetime (ISO 8601), bool, url (2000).
+#
+# Edges are bi-temporal: observed_at, valid_from, valid_to (null = still true) and
+# source_chunk, which is required on every edge.
+
+version: 1
+
+nodes:
+  Meeting:
+    source: meeting.json
+    fields: { title: string, start: datetime }
+    required: [title, start]
+  Person:
+    source: attendees, speaker names and action item owners
+    fields: { name: label }
+    required: [name]
+  Decision:
+    source: notes heading Decisions
+    fields: { text: text, subject: label, supersedes: bool, said_by: label }
+    required: [text, subject]
+  ActionItem:
+    source: notes heading Action items
+    fields: { text: text, owner: label, due: date }
+    required: [text]
+  OpenQuestion:
+    source: notes heading Open questions
+    fields: { text: text }
+    required: [text]
+  Artifact:
+    source: Meeting.agentActions
+    fields: { title: text, kind: label, url: url }
+    required: [title, kind]
+  Topic:
+    source: model extraction; speculative, so last and optional
+    optional: true
+    fields: { label: label }
+    required: [label]
+
+edges:
+  attended: { from: Person, to: Meeting }
+  decided_in: { from: Decision, to: Meeting }
+  supersedes: { from: Decision, to: Decision }
+  assigned_in: { from: ActionItem, to: Meeting }
+  owns: { from: Person, to: ActionItem }
+  raised_in: { from: OpenQuestion, to: Meeting }
+  produced: { from: Meeting, to: Artifact }
+  discussed: { from: Meeting, to: Topic }
+  about: { from: [Decision, ActionItem, OpenQuestion], to: Topic }

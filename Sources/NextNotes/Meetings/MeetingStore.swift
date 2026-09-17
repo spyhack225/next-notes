@@ -9,6 +9,7 @@ import Observation
 /// meeting.json     the small record; the only file this store keeps in memory
 /// transcript.json  every segment, loaded on demand
 /// notes.md         markdown, written by Phase 4
+/// notes.json       decisions, actions and questions extracted from notes.md (graph on only)
 /// proposals.json   what the agent has offered to do and nobody has answered yet
 /// audio.caf        two channels — L mic, R system — only when keep-audio is on
 /// ```
@@ -89,25 +90,51 @@ final class MeetingStore {
     /// that says "Recording" on a machine that is recording nothing is the kind of lie that
     /// makes a user stop trusting the whole feature. Called once at launch.
     func repairInterruptedMeetings() {
+        var interruptedExtractions: [UUID] = []
         for meeting in meetings where meeting.status.isActive {
             var repaired = meeting
-            // A meeting interrupted while diarising or summarising is not a lost meeting:
-            // the transcript was written before either started, so it is finished — just
-            // without speaker names or notes, which Regenerate can write whenever the user
-            // wants them.
-            let hadTranscript = meeting.status == .diarizing || meeting.status == .summarizing
-            repaired.status = hadTranscript
-                ? .done
-                : .failed("Next Notes quit while this meeting was recording.")
+            let hadTranscript = Self.hadTranscript(meeting.status)
+            repaired.status = Self.repairedStatus(meeting.status)
             if repaired.end == nil { repaired.end = Date() }
             save(repaired)
             // A meeting repaired to done is finished, and nothing will run on it again:
             // `MeetingPipeline` and `NotesService` only walk a meeting that is still on its
             // way to done. Without this, a recording written purely for a diarization pass
             // that the crash interrupted would sit under Application Support for good.
-            if hadTranscript { releaseAudio(for: repaired.id) }
+            // `.extracting` comes after the notes were written, so the recording goes the way
+            // it would have once notes were done.
+            if hadTranscript { releaseAudio(for: repaired.id, notesWritten: meeting.status == .extracting) }
+            if meeting.status == .extracting { interruptedExtractions.append(meeting.id) }
             Log.meeting.info("repaired interrupted meeting \"\(meeting.title, privacy: .public)\"")
         }
+        // Extraction is idempotent and queued: an interrupted one runs again once nothing in
+        // the foreground needs the machine, rather than waiting for *Extract past meetings*.
+        guard !interruptedExtractions.isEmpty else { return }
+        Task { @MainActor [weak self] in
+            for id in interruptedExtractions {
+                while LiveKnowledgeIndexEnvironment.isForegroundBusy || LiveKnowledgeIndexEnvironment.isVoiceBusy,
+                      !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(30))
+                }
+                guard let self, let meeting = self.meeting(id: id), meeting.status == .done,
+                      KnowledgeExtractionService.shared.isEnabled else { continue }
+                await KnowledgeExtractionService.shared.extract(meeting, directory: self.directory(for: id))
+            }
+        }
+    }
+
+    /// A meeting interrupted while diarising, summarising or extracting is not a lost meeting:
+    /// the transcript was written before any of them started, so it is finished — just
+    /// without speaker names, notes or a graph, which Regenerate can write whenever the user
+    /// wants them.
+    nonisolated static func hadTranscript(_ status: MeetingStatus) -> Bool {
+        status == .diarizing || status == .summarizing || status == .extracting
+    }
+
+    /// What an interrupted meeting becomes at launch. Inactive states are left alone.
+    nonisolated static func repairedStatus(_ status: MeetingStatus) -> MeetingStatus {
+        guard status.isActive else { return status }
+        return hadTranscript(status) ? .done : .failed("Next Notes quit while this meeting was recording.")
     }
 
     /// Writes the record and refreshes the list in place.
@@ -339,6 +366,9 @@ final class MeetingStore {
     nonisolated static let recordFile = "meeting.json"
     nonisolated static let transcriptFile = "transcript.json"
     nonisolated static let notesFile = "notes.md"
+    /// Decisions, action items and open questions extracted from `notes.md`, stamped with the
+    /// same generation as its chunks in the knowledge index (Part 4, Phase C).
+    nonisolated static let notesJSONFile = "notes.json"
     nonisolated static let proposalsFile = "proposals.json"
     nonisolated static let audioFile = "audio.caf"
 

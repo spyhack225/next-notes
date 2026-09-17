@@ -348,13 +348,31 @@ enum KnowledgeAskSelfTest {
             let graph = FakeKnowledgeGraph()
             var withGraph = context
             withGraph.graph = graph
-            let expanded = try await KnowledgeToolExecutor.run(
-                expand, arguments: ["node": "person:ana", "edges": "decided, owns", "depth": "9"], context: withGraph)
+            // A cloud reader, or one nobody declared, never sees the graph without consent.
+            for reader in [LLMProviderID.openRouter, nil] {
+                let cloud = try await KnowledgeGraphScope.$reader.withValue(reader) {
+                    try await KnowledgeToolExecutor.run(expand, arguments: ["node": "person:ana"], context: withGraph)
+                }
+                check("expand_node answered a \(reader?.rawValue ?? "undeclared") reader without consent",
+                      cloud.summary.contains("stays on this Mac") && !cloud.summary.contains("c42") && graph.expanded.isEmpty)
+            }
+            var consented = withGraph
+            consented.graphCloudConsent = true
+            let allowed = try await KnowledgeGraphScope.$reader.withValue(.openRouter) {
+                try await KnowledgeToolExecutor.run(timeline, arguments: ["entity": "person:ana"], context: consented)
+            }
+            check("timeline refused a cloud reader the user consented to", allowed.summary.contains("decision:ship"))
+            let expanded = try await KnowledgeGraphScope.$reader.withValue(.qwen35_4b) {
+                try await KnowledgeToolExecutor.run(
+                    expand, arguments: ["node": "person:ana", "edges": "decided, owns", "depth": "9"], context: withGraph)
+            }
             check("expand_node lost its source chunk", expanded.summary.contains("\"source_chunk\":\"c42\""))
             check("expand_node did not pass edges and clamp depth",
                   graph.expanded == ["person:ana|decided,owns|3"])
-            let entries = try await KnowledgeToolExecutor.run(
-                timeline, arguments: ["entity": "person:ana", "from": "2026-03-01", "to": "2026-03-31"], context: withGraph)
+            let entries = try await KnowledgeGraphScope.$reader.withValue(.appleFoundation) {
+                try await KnowledgeToolExecutor.run(
+                    timeline, arguments: ["entity": "person:ana", "from": "2026-03-01", "to": "2026-03-31"], context: withGraph)
+            }
             check("timeline lost its entries", entries.summary.contains("\"node\":\"decision:ship\""))
             check("timeline did not pass its date range", graph.timelineRanges == 1)
         } catch {

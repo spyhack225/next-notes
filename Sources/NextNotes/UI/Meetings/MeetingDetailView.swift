@@ -397,7 +397,9 @@ struct MeetingDetailView: View {
 
     private var isWritingNotes: Bool { notesService.isRunning(meeting.id) }
 
-    private var canWriteNotes: Bool { !isWritingNotes && !segments.isEmpty }
+    /// Not while extracting either: that pass still owns the meeting, and Regenerate would do
+    /// nothing until it finished.
+    private var canWriteNotes: Bool { !isWritingNotes && !segments.isEmpty && meeting.status != .extracting }
 
     /// Speakers can only be identified while the recording still exists — the transcript
     /// alone has nothing to cluster.

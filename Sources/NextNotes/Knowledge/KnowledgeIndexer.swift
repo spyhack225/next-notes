@@ -9,12 +9,20 @@ struct KnowledgeIndexSettings: Equatable, Sendable {
     var includeRoutines = false
     /// Which model writes vectors. `none` by default: search stays BM25 and nothing loads.
     var embedder: KnowledgeEmbedderChoice = .none
+    /// Whether finished meetings are extracted into `notes.json` and the graph (Phase C). Off
+    /// by default, and meaningless while the index is off: the graph lives in it.
+    var graph = false
+    /// Whether `expand_node` and `timeline` may answer a cloud model. Off by default: the
+    /// graph is local-only unless the user gives this separate consent.
+    var graphCloudConsent = false
 
     nonisolated static let enabledKey = "knowledgeIndexEnabled"
     nonisolated static let includeConversationsKey = "knowledgeIncludeConversations"
     nonisolated static let includeDictationKey = "knowledgeIncludeDictation"
     nonisolated static let includeRoutinesKey = "knowledgeIncludeRoutines"
     nonisolated static let embedderKey = "knowledgeEmbedder"
+    nonisolated static let graphKey = "knowledgeGraphEnabled"
+    nonisolated static let graphCloudConsentKey = "knowledgeGraphCloudConsent"
 
     static var fromDefaults: KnowledgeIndexSettings {
         let defaults = UserDefaults.standard
@@ -23,9 +31,14 @@ struct KnowledgeIndexSettings: Equatable, Sendable {
             includeConversations: defaults.object(forKey: includeConversationsKey) as? Bool ?? true,
             includeDictation: defaults.object(forKey: includeDictationKey) as? Bool ?? false,
             includeRoutines: defaults.object(forKey: includeRoutinesKey) as? Bool ?? false,
-            embedder: defaults.string(forKey: embedderKey).flatMap(KnowledgeEmbedderChoice.init(rawValue:)) ?? .none
+            embedder: defaults.string(forKey: embedderKey).flatMap(KnowledgeEmbedderChoice.init(rawValue:)) ?? .none,
+            graph: defaults.object(forKey: graphKey) as? Bool ?? false,
+            graphCloudConsent: defaults.object(forKey: graphCloudConsentKey) as? Bool ?? false
         )
     }
+
+    /// The graph is built only while both the index and the graph switch are on.
+    var graphEnabled: Bool { enabled && graph }
 
     func includes(_ kind: KnowledgeSourceKind) -> Bool {
         switch kind {
@@ -218,15 +231,23 @@ final class KnowledgeIndexer {
     }
 
     /// What the knowledge tools and Ask read, or nil while the index is off or has never
-    /// been built. The graph is empty until extraction exists (Phase C).
+    /// been built. `expand_node` and `timeline` read the graph only while it is switched on.
     var toolContext: KnowledgeToolContext? {
         guard settings.enabled, store.existsOnDisk else { return nil }
         let sources = self.sources
         return KnowledgeToolContext(
             searcher: searcher,
             sourceTitle: { sources.title(for: $0) },
-            meetingIDs: { sources.meetingIDs(matching: $0) }
+            meetingIDs: { sources.meetingIDs(matching: $0) },
+            graph: settings.graphEnabled ? GraphStore(store: store) : EmptyKnowledgeGraph(),
+            graphCloudConsent: settings.graphCloudConsent
         )
+    }
+
+    /// The graph, while it is switched on and the index exists.
+    var graph: GraphStore? {
+        guard settings.graphEnabled, store.existsOnDisk else { return nil }
+        return GraphStore(store: store)
     }
 
     // MARK: - Lifecycle
@@ -277,7 +298,18 @@ final class KnowledgeIndexer {
     private func settingsMayHaveChanged() {
         let current = settings
         guard current != lastSettings else { return }
+        let graphWasOn = lastSettings?.graphEnabled ?? false
         lastSettings = current
+        // The graph switched off: the derived graph goes; `notes.json` stays in each meeting
+        // folder, so switching it back on rebuilds without asking a model again.
+        if graphWasOn, !current.graphEnabled, store.existsOnDisk {
+            do {
+                try GraphStore(store: store).deleteAll()
+                changed()
+            } catch {
+                record(error)
+            }
+        }
         // Keywords only, or the index off: the vector matrix is dead weight.
         if !current.enabled || current.embedder == .none { vectorIndex.purge() }
         guard current.enabled else { return }
@@ -307,6 +339,8 @@ final class KnowledgeIndexer {
         do {
             try store.deleteSource(kind: .transcript, sourceID: id.uuidString)
             try store.deleteSource(kind: .notes, sourceID: id.uuidString)
+            // Its edges went with its chunks; its nodes and any person only it mentioned go now.
+            try GraphStore(store: store).deleteMeeting(id.uuidString)
             changed()
         } catch {
             record(error)
@@ -411,6 +445,12 @@ final class KnowledgeIndexer {
                 for id in try store.indexedSources(kind: kind).keys where !present.contains(id) {
                     try store.deleteSource(kind: kind, sourceID: id)
                 }
+            }
+            // Their graph too: owned nodes, the graph state, and the `valid_to` a reversal in
+            // the deleted meeting closed on an earlier decision.
+            let graph = GraphStore(store: store)
+            for id in try graph.extractedMeetings() where !present.contains(id) {
+                try graph.deleteMeeting(id)
             }
 
             if settings.includeConversations {
@@ -608,15 +648,23 @@ final class KnowledgeIndexer {
                             .init(removedCount: try store.deleteSource(kind: .notes, sourceID: id.uuidString)),
                         ]
                     case .ready(let transcript, let notes):
-                        return [
+                        let outcomes = [
                             try store.replace(kind: .transcript, sourceID: id.uuidString, chunks: transcript, now: now),
                             try store.replace(kind: .notes, sourceID: id.uuidString, chunks: notes, now: now),
                         ]
+                        // The graph follows the chunks from `notes.json` alone — never a model —
+                        // so a rebuilt index gets its graph back, and notes rewritten since the
+                        // last extraction take their stale graph with them.
+                        if settings.graphEnabled {
+                            _ = try KnowledgeExtractor(store: store).applyStored(meetingDirectory: directory, now: now)
+                        }
+                        return outcomes
                     }
                 }.value
                 if removedInFlight.contains(job) {
                     try store.deleteSource(kind: .transcript, sourceID: id.uuidString)
                     try store.deleteSource(kind: .notes, sourceID: id.uuidString)
+                    try GraphStore(store: store).deleteMeeting(id.uuidString)
                     pass.removed += 1
                 } else if let outcomes {
                     tally(outcomes, into: &pass)
@@ -828,7 +876,9 @@ final class LiveKnowledgeIndexEnvironment: KnowledgeIndexEnvironment {
     /// writing notes.
     static var isCapturing: Bool {
         MeetingController.shared.session != nil || (AppDelegate.current?.controller.state.isActive ?? false)
-            || MeetingStore.shared.meetings.contains { $0.status.isActive }
+            // Not `.extracting`: its notes are written, and extraction is background work
+            // on the model's background lane like the index's own.
+            || MeetingStore.shared.meetings.contains { $0.status.isActive && $0.status != .extracting }
     }
 
     /// A voice conversation open, or the Agent speaking. `RealtimeAgent.isThinking` turns

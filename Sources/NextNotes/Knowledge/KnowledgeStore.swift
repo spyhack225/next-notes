@@ -238,6 +238,10 @@ final class KnowledgeStore: @unchecked Sendable {
             } else if version != Int(Self.schemaVersion) {
                 throw KnowledgeStoreError.open("schema version \(version), expected \(Self.schemaVersion)")
             }
+            // The graph tables (Phase C) are additive and created on every connection, so an
+            // index built before extraction existed gains them without a rebuild — a rebuild
+            // would lose conversation turns older than the history the Agent keeps.
+            try Self.exec(handle, Self.graphSchema)
             // Touches every table, so a file that is not a database fails here rather than
             // on the first search.
             _ = try Self.int(handle, "SELECT count(*) FROM index_state")

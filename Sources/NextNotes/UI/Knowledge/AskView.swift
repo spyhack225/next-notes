@@ -69,18 +69,21 @@ final class KnowledgeAskSession {
         guard !Task.isCancelled else { return }
         let asker = KnowledgeAsker(context: context, model: ProviderKnowledgeAnswerModel(provider: provider))
         do {
-            let result = try await asker.run(text) { [weak self] event in
-                guard let self, !Task.isCancelled else { return }
-                switch event {
-                case .searching(let round, let query):
-                    phase = .searching(round: round, query: query)
-                case .retrieved(_, let found):
-                    passages += found
-                case .answering(let snapshot):
-                    phase = .answering
-                    partial = snapshot
-                case .finished:
-                    break
+            // The graph answers a cloud model only with its own consent (`KnowledgeGraphScope`).
+            let result = try await KnowledgeGraphScope.$reader.withValue(provider.id) {
+                try await asker.run(text) { [weak self] event in
+                    guard let self, !Task.isCancelled else { return }
+                    switch event {
+                    case .searching(let round, let query):
+                        phase = .searching(round: round, query: query)
+                    case .retrieved(_, let found):
+                        passages += found
+                    case .answering(let snapshot):
+                        phase = .answering
+                        partial = snapshot
+                    case .finished:
+                        break
+                    }
                 }
             }
             guard !Task.isCancelled else { return }
