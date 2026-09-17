@@ -41,7 +41,11 @@ enum CleanupReason: String, Sendable, Equatable {
     case grammar
     case unpunctuated
     case spokenList
-    /// Stage B was warranted but skipped because the machine is under load.
+    /// The transcript plausibly names a file, folder or tab visible in the target app, and the
+    /// engine takes instructions. Only a model can turn the spoken name into the reference.
+    case namesScreenItem
+    /// Stage B was warranted but skipped because the machine is under load and the user
+    /// asked for that (`Settings.cleanupSkipsModelWhenBusy`).
     case deferredUnderPressure
 
     var logLabel: String {
@@ -55,6 +59,7 @@ enum CleanupReason: String, Sendable, Equatable {
         case .grammar: "grammar"
         case .unpunctuated: "unpunctuated"
         case .spokenList: "spoken list"
+        case .namesScreenItem: "names something on screen"
         case .deferredUnderPressure: "deferred under compute pressure"
         }
     }

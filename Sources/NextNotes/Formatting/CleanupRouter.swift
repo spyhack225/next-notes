@@ -1,26 +1,34 @@
 import Foundation
 
-/// Two-stage dictation cleanup: deterministic rules first, a model only when gated.
+/// Two-stage dictation cleanup: deterministic rules first, then a model.
 ///
 /// Every utterance pays Stage A (`RuleBasedFormatter`). Stage B is the engine the user
-/// already picked in Settings — Apple, or S1-mini when grammar is off — and it runs only
-/// when the rules pass left something a model is for: a long hold, a false start, a
-/// stutter, broken agreement, a spoken list the target can actually render.
+/// picked in Settings — Apple, or S1-mini when grammar is off — and by default it runs on
+/// every transcript the rules pass leaves any text in.
 ///
-/// Short and already-clean text never touches a model. That is the whole point of this
-/// type: a four-word "The build is green." used to wait on Apple or S1 for work rules
-/// had already finished.
+/// It used to run only when the rules pass looked like it had left work behind, so a short,
+/// tidy-looking sentence never reached a model. On real dictation that shortcut produced
+/// text nobody could use: rules keep "acoustic dash echo dot md file" exactly as spoken,
+/// leave a repeated clause in, and cannot fix a misheard word — and a short command is
+/// precisely where one wrong word ruins it. So quality is the default and a four-word
+/// sentence waits on the model again. `reasons` still records what the rules pass noticed,
+/// so the log says why a model was needed even when it would have run anyway.
 ///
-/// Under compute pressure (memory warning, thermal / low-power, or live scheduler
-/// occupancy for realtime-ASR / notes `.background`) borderline and short-messy
-/// transcripts stay on rules so Stage B does not fight the live path for GPU. Idle
-/// keeps the user's Stage B engine. Qwen is never forced on.
+/// The one shortcut left is opt-in, `Settings.cleanupSkipsModelWhenBusy`. With it on, under
+/// compute pressure (memory warning, thermal / low-power, or live scheduler occupancy for
+/// realtime-ASR / notes `.background`) short and soft-only transcripts stay on rules so Stage
+/// B does not fight the live path for GPU; a long transcript needing a hard repair still
+/// reaches the engine. A transcript that names something on screen reaches an engine that
+/// takes instructions even then: rules cannot write a file reference at all, so skipping the
+/// model there loses the tag outright instead of merely roughening the text. Qwen is never
+/// forced on.
 ///
 /// S1-mini still takes no instructions. The router will not pretend a target profile or
 /// the screen-name harvest can reach it. Qwen is constructible as a seam and is never
 /// chosen from Settings; `QwenCleanupFormatter` must not call `beginCleanup()`.
 struct CleanupRouter: TextFormatter {
-    /// One spoken sentence, give or take. Above this, even tidy prose goes to Stage B.
+    /// One spoken sentence, give or take. Only the opt-in busy shortcut reads it: at or under
+    /// this, a transcript under pressure stays on rules when the user asked for speed.
     static let shortWordLimit = 20
 
     /// Reasons that are "hard" repairs: under pressure, a *short* transcript with only
@@ -34,6 +42,8 @@ struct CleanupRouter: TextFormatter {
     private let engine: CleanupSemanticEngine
     private let formatsLists: Bool
     private let targetRendersLists: Bool
+    private let mentionsScreenName: Bool
+    private let skipsModelWhenBusy: Bool
     private let pressureSample: @Sendable () async -> CleanupComputePressure
 
     init(
@@ -42,6 +52,8 @@ struct CleanupRouter: TextFormatter {
         rules: any TextFormatter = RuleBasedFormatter(),
         formatsLists: Bool = false,
         targetRendersLists: Bool = false,
+        mentionsScreenName: Bool = false,
+        skipsModelWhenBusy: Bool = false,
         pressureSample: @escaping @Sendable () async -> CleanupComputePressure = {
             await CleanupPressureProbe.sample()
         }
@@ -51,6 +63,8 @@ struct CleanupRouter: TextFormatter {
         self.engine = engine
         self.formatsLists = formatsLists
         self.targetRendersLists = targetRendersLists
+        self.mentionsScreenName = mentionsScreenName
+        self.skipsModelWhenBusy = skipsModelWhenBusy
         self.pressureSample = pressureSample
     }
 
@@ -65,6 +79,8 @@ struct CleanupRouter: TextFormatter {
             engine: engine,
             formatsLists: formatsLists,
             targetRendersLists: targetRendersLists,
+            mentionsScreenName: mentionsScreenName,
+            skipsModelWhenBusy: skipsModelWhenBusy,
             pressure: await pressureSample()
         )
         Log.speech.info("\(decision.logLine, privacy: .public)")
@@ -146,7 +162,8 @@ struct CleanupRouter: TextFormatter {
         preferences: CleanupPreferences,
         fixesGrammar: Bool,
         target: OutputProfile,
-        context: ScreenContext
+        context: ScreenContext,
+        skipsModelWhenBusy: Bool
     ) -> CleanupRouter {
         let engine = preferredEngine(choice: choice, fixesGrammar: fixesGrammar)
         let semantic = makeSemantic(
@@ -162,21 +179,27 @@ struct CleanupRouter: TextFormatter {
             semantic: semantic,
             engine: engine,
             formatsLists: preferences.formatsLists,
-            targetRendersLists: targetRendersLists
+            targetRendersLists: targetRendersLists,
+            mentionsScreenName: context.mentionCount > 0,
+            skipsModelWhenBusy: skipsModelWhenBusy
         )
     }
 
     /// Pure policy. `afterRules` is what would be injected if Stage B is skipped.
     ///
-    /// Under `pressure`, short-messy and soft-only ("borderline") transcripts stay on
-    /// rules. Long transcripts that still need a hard repair keep the caller's Stage B
-    /// engine — never Qwen, never a forced upgrade.
+    /// Stage B runs on anything with text left in it, unless `skipsModelWhenBusy` is on and
+    /// `pressure` is up: then short and soft-only ("borderline") transcripts stay on rules,
+    /// while long transcripts that still need a hard repair, and any transcript that names
+    /// something on screen, keep the caller's Stage B engine — never Qwen, never a forced
+    /// upgrade.
     static func decide(
         raw: String,
         afterRules: String,
         engine: CleanupSemanticEngine,
         formatsLists: Bool = false,
         targetRendersLists: Bool = false,
+        mentionsScreenName: Bool = false,
+        skipsModelWhenBusy: Bool = false,
         pressure: CleanupComputePressure = .idle
     ) -> CleanupDecision {
         let cleaned = afterRules.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -202,18 +225,21 @@ struct CleanupRouter: TextFormatter {
         if formatsLists, targetRendersLists, engine.acceptsInstructions, looksLikeSpokenList(cleaned) {
             issues.append(.spokenList)
         }
-
+        // Only for an engine that can be told the names. S1-mini has no prompt to put them in,
+        // so for it a mentioned name is not a reason for anything.
+        if mentionsScreenName, engine.acceptsInstructions {
+            issues.append(.namesScreenItem)
+        }
+        // Nothing the rules pass could see. Not a reason to skip the model any more — see the
+        // type's doc — but still the true description of the transcript for the log line.
         if issues.isEmpty {
-            return CleanupDecision(
-                stage: .rules,
-                engine: engine,
-                reasons: [.shortAndClean],
-                wordCount: wordCount,
-                pressure: pressure
-            )
+            issues = [.shortAndClean]
         }
 
-        if pressure.isUnderPressure, shouldDeferUnderPressure(issues: issues, wordCount: wordCount) {
+        if skipsModelWhenBusy,
+           pressure.isUnderPressure,
+           !issues.contains(.namesScreenItem),
+           shouldDeferUnderPressure(issues: issues, wordCount: wordCount) {
             var deferred = issues
             deferred.append(.deferredUnderPressure)
             return CleanupDecision(
@@ -253,8 +279,8 @@ extension CleanupRouter {
     /// Under simulated pressure, messy-but-short and soft-only borderline cases
     /// must also skip the model seam.
     ///
-    /// Not wired into `NextNotesApp.runRequestedSelfTest` this wave. Call this
-    /// directly, or later as `--selftest-cleanup-router`.
+    /// Runs as `--selftest-cleanup-router`. Pure policy plus a counting seam, so it needs no
+    /// model and no permission.
     @discardableResult
     static func runSelfTest() async -> Bool {
         var failures: [String] = []
@@ -287,9 +313,11 @@ extension CleanupRouter {
             let id: String
             let input: String
             let engine: CleanupSemanticEngine
-            let formatsLists: Bool
-            let targetRendersLists: Bool
-            let pressure: CleanupComputePressure
+            var formatsLists = false
+            var targetRendersLists = false
+            var mentionsScreenName = false
+            var skipsModelWhenBusy = false
+            var pressure: CleanupComputePressure = .idle
             let expectModel: Bool
         }
 
@@ -297,77 +325,70 @@ extension CleanupRouter {
         let notesPressure = CleanupComputePressure.simulated(notesBusy: true)
         let memoryPressure = CleanupComputePressure.simulated(memoryWarning: true)
 
+        let messyShort = "the tests is passing on my machine but they was failing in ci yesterday"
+        let longClean = "We finished the review this morning and everyone signed off on the plan. "
+            + "The release is scheduled for Friday afternoon as discussed."
+        let spokenList = "First milk. Second eggs. Third bread."
+        let namesFile = "Open the acoustic echo file."
+
         let cases: [Case] = [
-            Case(id: "short-clean", input: "The build is green.",
-                 engine: .apple, formatsLists: false, targetRendersLists: false,
-                 pressure: .idle, expectModel: false),
-            Case(id: "short-raw", input: "hello",
-                 engine: .apple, formatsLists: false, targetRendersLists: false,
-                 pressure: .idle, expectModel: false),
-            Case(id: "ship-it", input: "Ship it.",
-                 engine: .s1Mini, formatsLists: false, targetRendersLists: false,
-                 pressure: .idle, expectModel: false),
+            // Quality by default: an idle Mac sends short, tidy text to the model too.
+            Case(id: "short-clean", input: "The build is green.", engine: .apple, expectModel: true),
+            Case(id: "short-raw", input: "hello", engine: .apple, expectModel: true),
+            Case(id: "ship-it", input: "Ship it.", engine: .s1Mini, expectModel: true),
             Case(id: "question-stays-a-question", input: "what is the capital of france",
-                 engine: .apple, formatsLists: false, targetRendersLists: false,
-                 pressure: .idle, expectModel: false),
-            Case(id: "filler-only", input: "um uh",
-                 engine: .apple, formatsLists: false, targetRendersLists: false,
-                 pressure: .idle, expectModel: false),
-            Case(id: "agreement",
-                 input: "the tests is passing on my machine but they was failing in ci yesterday",
-                 engine: .apple, formatsLists: false, targetRendersLists: false,
-                 pressure: .idle, expectModel: true),
+                 engine: .apple, expectModel: true),
+            // Nothing left after the rules pass is still nothing to send.
+            Case(id: "filler-only", input: "um uh", engine: .apple, expectModel: false),
+            Case(id: "agreement", input: messyShort, engine: .apple, expectModel: true),
             Case(id: "self-correction",
                  input: "so um i need to send the report by friday no wait make that thursday",
-                 engine: .apple, formatsLists: false, targetRendersLists: false,
-                 pressure: .idle, expectModel: true),
-            Case(id: "stutter",
-                 input: "we we need to to check the the database connection again",
-                 engine: .s1Mini, formatsLists: false, targetRendersLists: false,
-                 pressure: .idle, expectModel: true),
-            Case(id: "long-clean",
-                 input: "We finished the review this morning and everyone signed off on the plan. "
-                    + "The release is scheduled for Friday afternoon as discussed.",
-                 engine: .apple, formatsLists: false, targetRendersLists: false,
-                 pressure: .idle, expectModel: true),
-            Case(id: "spoken-list",
-                 input: "First milk. Second eggs. Third bread.",
-                 engine: .apple, formatsLists: true, targetRendersLists: true,
-                 pressure: .idle, expectModel: true),
-            Case(id: "spoken-list-s1-cannot-format",
-                 input: "First milk. Second eggs. Third bread.",
-                 engine: .s1Mini, formatsLists: true, targetRendersLists: true,
-                 pressure: .idle, expectModel: false),
-            // Wave 3: under pressure, messy-but-short stays on rules.
-            Case(id: "pressure-messy-short-asr",
-                 input: "the tests is passing on my machine but they was failing in ci yesterday",
-                 engine: .apple, formatsLists: false, targetRendersLists: false,
-                 pressure: underPressure, expectModel: false),
-            Case(id: "pressure-messy-short-notes",
-                 input: "we we need to to check the the database connection again",
-                 engine: .apple, formatsLists: false, targetRendersLists: false,
-                 pressure: notesPressure, expectModel: false),
-            Case(id: "pressure-messy-short-memory",
-                 input: "so um i need to send the report by friday no wait make that thursday",
-                 engine: .apple, formatsLists: false, targetRendersLists: false,
-                 pressure: memoryPressure, expectModel: false),
-            // Soft-only / borderline under pressure → rules.
-            Case(id: "pressure-borderline-long-clean",
-                 input: "We finished the review this morning and everyone signed off on the plan. "
-                    + "The release is scheduled for Friday afternoon as discussed.",
-                 engine: .apple, formatsLists: false, targetRendersLists: false,
-                 pressure: underPressure, expectModel: false),
-            Case(id: "pressure-borderline-spoken-list",
-                 input: "First milk. Second eggs. Third bread.",
-                 engine: .apple, formatsLists: true, targetRendersLists: true,
-                 pressure: underPressure, expectModel: false),
-            // Long + hard under pressure still reaches the user's Stage B engine.
-            Case(id: "pressure-long-hard-still-semantic",
-                 input: "We finished the review this morning and everyone signed off on the plan. "
-                    + "The release is scheduled for Friday afternoon as discussed, but the tests is "
-                    + "still red on main and they was failing all morning.",
-                 engine: .apple, formatsLists: false, targetRendersLists: false,
+                 engine: .apple, expectModel: true),
+            Case(id: "stutter", input: "we we need to to check the the database connection again",
+                 engine: .s1Mini, expectModel: true),
+            Case(id: "long-clean", input: longClean, engine: .apple, expectModel: true),
+            Case(id: "spoken-list", input: spokenList, engine: .apple,
+                 formatsLists: true, targetRendersLists: true, expectModel: true),
+            Case(id: "spoken-list-s1-still-cleans", input: spokenList, engine: .s1Mini,
+                 formatsLists: true, targetRendersLists: true, expectModel: true),
+            Case(id: "names-screen-item", input: namesFile, engine: .apple,
+                 mentionsScreenName: true, expectModel: true),
+
+            // A busy Mac with the setting off — the default — skips nothing.
+            Case(id: "busy-setting-off-short-clean", input: "The build is green.", engine: .apple,
                  pressure: underPressure, expectModel: true),
+            Case(id: "busy-setting-off-messy-short", input: messyShort, engine: .apple,
+                 pressure: memoryPressure, expectModel: true),
+
+            // Setting on: short and soft-only stay on rules while the Mac is busy.
+            Case(id: "busy-short-clean", input: "The build is green.", engine: .apple,
+                 skipsModelWhenBusy: true, pressure: underPressure, expectModel: false),
+            Case(id: "busy-messy-short-asr", input: messyShort, engine: .apple,
+                 skipsModelWhenBusy: true, pressure: underPressure, expectModel: false),
+            Case(id: "busy-messy-short-notes",
+                 input: "we we need to to check the the database connection again", engine: .apple,
+                 skipsModelWhenBusy: true, pressure: notesPressure, expectModel: false),
+            Case(id: "busy-messy-short-memory",
+                 input: "so um i need to send the report by friday no wait make that thursday",
+                 engine: .apple, skipsModelWhenBusy: true, pressure: memoryPressure, expectModel: false),
+            Case(id: "busy-borderline-long-clean", input: longClean, engine: .apple,
+                 skipsModelWhenBusy: true, pressure: underPressure, expectModel: false),
+            Case(id: "busy-borderline-spoken-list", input: spokenList, engine: .apple,
+                 formatsLists: true, targetRendersLists: true,
+                 skipsModelWhenBusy: true, pressure: underPressure, expectModel: false),
+            // Setting on and busy: long + hard still reaches the user's Stage B engine.
+            Case(id: "busy-long-hard-still-semantic",
+                 input: longClean.replacingOccurrences(of: "as discussed.", with: "as discussed, but ")
+                    + "the tests is still red on main and they was failing all morning.",
+                 engine: .apple, skipsModelWhenBusy: true, pressure: underPressure, expectModel: true),
+            // Setting on and busy: a named file keeps the model, because rules cannot tag it.
+            Case(id: "busy-names-screen-item", input: namesFile, engine: .apple,
+                 mentionsScreenName: true, skipsModelWhenBusy: true, pressure: underPressure,
+                 expectModel: true),
+            // ...but S1-mini cannot use the names, so they buy it no exemption.
+            Case(id: "busy-names-screen-item-s1", input: namesFile, engine: .s1Mini,
+                 mentionsScreenName: true, skipsModelWhenBusy: true, pressure: underPressure,
+                 expectModel: false),
         ]
 
         let rules = RuleBasedFormatter()
@@ -379,8 +400,17 @@ extension CleanupRouter {
                 engine: test.engine,
                 formatsLists: test.formatsLists,
                 targetRendersLists: test.targetRendersLists,
+                mentionsScreenName: test.mentionsScreenName,
+                skipsModelWhenBusy: test.skipsModelWhenBusy,
                 pressure: test.pressure
             )
+            let expectsNameReason = test.mentionsScreenName && test.engine.acceptsInstructions
+            if decision.reasons.contains(.namesScreenItem) != expectsNameReason {
+                failures.append(
+                    "\(test.id): namesScreenItem reason was "
+                        + "\(decision.reasons.contains(.namesScreenItem)), expected \(expectsNameReason)"
+                )
+            }
             if decision.usesModel != test.expectModel {
                 failures.append(
                     "\(test.id): decide used model=\(decision.usesModel) "
@@ -395,6 +425,8 @@ extension CleanupRouter {
                     engine: test.engine,
                     formatsLists: test.formatsLists,
                     targetRendersLists: test.targetRendersLists,
+                    mentionsScreenName: test.mentionsScreenName,
+                    skipsModelWhenBusy: test.skipsModelWhenBusy,
                     pressure: .idle
                 ).usesModel
                 if idleWouldModel, !decision.reasons.contains(.deferredUnderPressure) {
@@ -412,6 +444,8 @@ extension CleanupRouter {
                 rules: rules,
                 formatsLists: test.formatsLists,
                 targetRendersLists: test.targetRendersLists,
+                mentionsScreenName: test.mentionsScreenName,
+                skipsModelWhenBusy: test.skipsModelWhenBusy,
                 pressureSample: { test.pressure }
             )
             _ = await router.format(test.input)

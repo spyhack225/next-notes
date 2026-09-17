@@ -339,6 +339,20 @@ final class Settings {
         didSet { defaults.set(cleanupContext.rawValue, forKey: Keys.cleanupContext) }
     }
 
+    /// Let short dictations skip the cleanup model while the Mac is busy — memory pressure, a
+    /// hot or Low Power Mac, or live transcription or meeting notes holding the model — and take
+    /// rule-based cleanup instead. `CleanupRouter` is where this is read.
+    ///
+    /// Off by default, because rule-based cleanup on its own is not good enough to type into
+    /// somebody's document: it keeps "acoustic dash echo dot md" as spoken, leaves repeated
+    /// clauses in, and cannot fix a misheard word. The switch is for somebody who would rather
+    /// have rough text immediately than good text a moment later when the machine is
+    /// struggling. A dictation that names something on screen still uses the model, because
+    /// rules cannot write the reference at all.
+    var cleanupSkipsModelWhenBusy: Bool {
+        didSet { defaults.set(cleanupSkipsModelWhenBusy, forKey: Keys.cleanupSkipsModelWhenBusy) }
+    }
+
     /// Read the file, folder and tab names visible in the app being dictated into, and use them
     /// to resolve a spoken file name. See `ScreenContextStore`, which owns the harvest itself
     /// and reads this through `isEnabled`.
@@ -778,6 +792,7 @@ final class Settings {
         static let cleanupTone = "cleanupTone"
         static let cleanupFormatsLists = "cleanupFormatsLists"
         static let cleanupContext = "cleanupContext"
+        static let cleanupSkipsModelWhenBusy = "cleanupSkipsModelWhenBusy"
         /// The key `ScreenContextStore` wrote before this moved onto `Settings`. Unchanged on
         /// purpose: a renamed key is a silently reset preference.
         static let screenContextEnabled = "screenContextEnabled"
@@ -847,6 +862,7 @@ final class Settings {
         engine = SpeechEngineChoice(rawValue: defaults.string(forKey: Keys.engine) ?? "") ?? .apple
         cleanupEnabled = defaults.object(forKey: Keys.cleanupEnabled) as? Bool ?? true
         cleanupFixesGrammar = defaults.object(forKey: Keys.cleanupFixesGrammar) as? Bool ?? true
+        cleanupSkipsModelWhenBusy = defaults.object(forKey: Keys.cleanupSkipsModelWhenBusy) as? Bool ?? false
         if let rawCleanupEngine = defaults.string(forKey: Keys.cleanupEngine) {
             cleanupEngine = CleanupEngineChoice(rawValue: rawCleanupEngine) ?? .apple
         } else {

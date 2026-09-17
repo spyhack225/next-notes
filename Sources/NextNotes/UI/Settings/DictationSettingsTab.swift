@@ -126,6 +126,20 @@ struct DictationSettingsTab: View {
                             Text(choice.displayName).tag(choice)
                         }
                     }
+                    // Said where the picker is, not only in the section footer. The two
+                    // controls combine silently — S1-mini plus grammar repair runs Apple's
+                    // model and not S1-mini at all — so a picker reading "S1-mini" with no
+                    // word beside it tells the user something untrue about their own Mac.
+                    if settings.cleanupEngine == .s1Mini, settings.cleanupFixesGrammar {
+                        Label(
+                            "Apple's on-device model is doing the cleanup, not S1-mini. S1-mini "
+                                + "can only add punctuation, so grammar repair runs on Apple. Turn "
+                                + "off “Fix grammar” below to use S1-mini.",
+                            systemImage: "info.circle"
+                        )
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.textSecondary)
+                    }
                     Picker("Tone", selection: $settings.cleanupTone) {
                         ForEach(CleanupTone.allCases, id: \.self) { tone in
                             Text(tone.displayName).tag(tone)
@@ -136,12 +150,20 @@ struct DictationSettingsTab: View {
                             Text(context.displayName).tag(context)
                         }
                     }
-                    Toggle("Fix grammar, not just punctuation", isOn: $settings.cleanupFixesGrammar)
+                    Toggle("Fix grammar, not just punctuation (uses Apple's model)",
+                           isOn: $settings.cleanupFixesGrammar)
                         .help("Repairs agreement, tense and word order — \"there is some "
                               + "lags\" becomes \"there are some lags\". Runs on Apple's "
                               + "on-device model; S1-mini cannot do this on its own.")
 
                     Toggle("Format spoken lists", isOn: $settings.cleanupFormatsLists)
+
+                    Toggle("Skip the cleanup model when the Mac is busy", isOn: $settings.cleanupSkipsModelWhenBusy)
+                        .help("While memory is low, the Mac is hot or in Low Power Mode, or live "
+                              + "transcription or meeting notes are using the model, short "
+                              + "dictations get quick rule-based cleanup instead of waiting. "
+                              + "Faster, but noticeably rougher. Dictations that name a file on "
+                              + "screen always use the model.")
                 }
             } header: {
                 Text("Cleanup")

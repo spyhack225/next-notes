@@ -263,10 +263,16 @@ final class OutputProfileStore {
             // pasting a corrected row underneath the old one means.
             let displayName = fields[1].isEmpty ? bundleID : fields[1]
             let capabilities = fields.count >= 3 ? parseCapabilities(fields[2]) : []
-            // Field four is optional on read, which is the whole of the upgrade story: a
-            // line written before this column existed has three fields and means "resolves
-            // nothing", which is exactly what `.plain` is.
-            let pathReference = fields.count >= 4 ? parsePathReference(fields[3]) : .plain
+            // Field four is optional on read. A line written before this column existed has
+            // three fields, and its silence is not a choice: the column did not exist when the
+            // user's file did. So a known app gets its built-in default, and only an app with
+            // no default reads as `.plain`. Reading every three-field line as `.plain` turned
+            // Cursor's `@path` tags off for everybody whose file predates the column — found
+            // on 2026-09-16, when a working harvest produced plain names in Cursor. Writing
+            // "plain" in the column is still how a user turns a default off.
+            let pathReference = fields.count >= 4
+                ? parsePathReference(fields[3])
+                : defaultPathReference(for: bundleID)
 
             let profile = OutputProfile(
                 bundleID: bundleID,
@@ -303,6 +309,10 @@ final class OutputProfileStore {
     /// grants nothing: writing `@src/auth/login.ts` into an app that does not resolve it
     /// leaves a literal @ in something already sent, while writing the name as words is
     /// never wrong in a way anyone can see.
+    private static func defaultPathReference(for bundleID: String) -> PathReferenceStyle {
+        OutputProfileDefaults.all.first { $0.bundleID == bundleID }?.pathReference ?? .plain
+    }
+
     private static func parsePathReference(_ field: String) -> PathReferenceStyle {
         let word = field.trimmingCharacters(in: .whitespaces).lowercased()
         return PathReferenceStyle(rawValue: word) ?? .plain

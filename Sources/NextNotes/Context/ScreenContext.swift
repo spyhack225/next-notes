@@ -134,6 +134,15 @@ struct ScreenContext: Sendable, Hashable {
     /// argument for doing this at key-down, and a number in the log is the only way anyone
     /// will notice it stopped being true.
     let elapsed: Duration
+    /// How many of `candidates` the transcript plausibly names, as scored by
+    /// `narrowed(toMentionsIn:)`. Zero on every other value, including a harvest that was
+    /// never narrowed.
+    ///
+    /// Kept because the narrowed list is not itself the answer: it is padded to its limit by
+    /// rank, so "the list has names in it" says nothing about whether the user said one. The
+    /// cleanup router needs exactly that fact — a short, tidy-looking command that names a
+    /// file is the one sentence rules cannot finish, because only a model writes the reference.
+    let mentionCount: Int
 
     init(
         bundleID: String,
@@ -154,7 +163,8 @@ struct ScreenContext: Sendable, Hashable {
             },
             projectRoot: projectRoot,
             truncation: truncation,
-            elapsed: elapsed
+            elapsed: elapsed,
+            mentionCount: 0
         )
     }
 
@@ -167,7 +177,8 @@ struct ScreenContext: Sendable, Hashable {
         ordered candidates: [CandidateName],
         projectRoot: String?,
         truncation: Truncation,
-        elapsed: Duration
+        elapsed: Duration,
+        mentionCount: Int = 0
     ) {
         self.bundleID = bundleID
         self.appName = appName
@@ -175,6 +186,7 @@ struct ScreenContext: Sendable, Hashable {
         self.projectRoot = projectRoot
         self.truncation = truncation
         self.elapsed = elapsed
+        self.mentionCount = mentionCount
     }
 
     static let empty = ScreenContext(
@@ -276,7 +288,8 @@ struct ScreenContext: Sendable, Hashable {
             ordered: kept,
             projectRoot: projectRoot,
             truncation: truncation.union(kept.count < candidates.count ? .candidateCap : []),
-            elapsed: elapsed
+            elapsed: elapsed,
+            mentionCount: min(plausible.count, limit)
         )
     }
 

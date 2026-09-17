@@ -373,6 +373,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runCleanupSelfTest(engine: SelfTest.value(after: "--selftest-cleanup") ?? "all")
             return true
         }
+        if arguments.contains("--selftest-cleanup-router") {
+            Task { @MainActor in
+                _ = await CleanupRouter.runSelfTest()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-learn") {
             runLearnSelfTest()
             return true

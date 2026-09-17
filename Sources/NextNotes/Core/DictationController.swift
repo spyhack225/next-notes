@@ -165,16 +165,17 @@ final class DictationController {
         // formatting a list as Slack bullets and then dropping it into Mail is worse than
         // not formatting at all.
         let target = OutputProfileStore.shared.capturedProfile
-        // Rules first, then the engine this hold already would have built. Short and
-        // already-clean text never reaches Apple or S1. The picker, the S1-takes-no-
-        // instructions rule, and "grammar on means Apple alone" all live on the router
-        // so this switch cannot drift from the policy.
+        // Rules first, then the engine this hold already would have built — on every
+        // transcript unless the user opted into skipping it while the Mac is busy. The
+        // picker, the S1-takes-no-instructions rule, "grammar on means Apple alone" and the
+        // busy shortcut all live on the router so this switch cannot drift from the policy.
         return CleanupRouter.production(
             choice: settings.cleanupEngine,
             preferences: settings.cleanupPreferences,
             fixesGrammar: settings.cleanupFixesGrammar,
             target: target,
-            context: context
+            context: context,
+            skipsModelWhenBusy: settings.cleanupSkipsModelWhenBusy
         )
     }
 
@@ -185,6 +186,47 @@ final class DictationController {
     /// guessed at: the injected `formatter` test seam ignores the context, and punctuation-only
     /// S1-mini takes no instructions — but S1-mini *with* grammar repair uses Apple, which
     /// does honour it, so the engine alone does not answer the question.
+    /// Rewrites the file names the speaker clearly said as the target app's reference syntax.
+    /// See `FileReferences` for what "clearly" means, and why this is code rather than a
+    /// prompt rule.
+    ///
+    /// Off the main actor, and with the loose match limited to the names narrowing already found
+    /// plausible. Both for the same measurement: a 344-word dictation against 67 names took
+    /// 1,986 ms in the debug build `make install` ships when every name could fall back to the
+    /// loose match, and 171 ms with that limited to five — the first is a frozen HUD, and the
+    /// second is still no business of the thread drawing it.
+    private func tagFileReferences(in text: String, screen: ScreenContext) async -> String {
+        guard tagsFileReferences, !screen.isEmpty else { return text }
+        let style: FileReferences.Style
+        switch OutputProfileStore.shared.capturedProfile.pathReference {
+        case .plain: return text
+        case .atRelative: style = .atPath
+        case .backtickPath: style = .backtickPath
+        }
+        // The harvest's own file-or-folder answer rather than a guess from the string: it is the
+        // only thing that knows `Makefile` is a file and `src` is not.
+        let candidates = screen.candidates.map {
+            FileReferences.Candidate(reference: $0.reference, isFile: $0.isFile)
+        }
+        let plausible = screen.mentionCount
+        let tagged = await Task.detached(priority: .userInitiated) {
+            FileReferences.tag(text, candidates: candidates, style: style, looseMatchLimit: plausible)
+        }.value
+        if !tagged.references.isEmpty {
+            Log.speech.info("file references · tagged \(tagged.references.count, privacy: .public)")
+        }
+        return tagged.text
+    }
+
+    /// Whether the app this hold is going into resolves file references, so a spoken file name
+    /// is worth rewriting as one after cleanup — whichever engine ran. `FileReferences` does
+    /// that in code, which is what lets S1-mini, with no prompt to carry the names, tag files
+    /// too. The test seam opts out for the same reason it does above.
+    private var tagsFileReferences: Bool {
+        if formatter != nil { return false }
+        return OutputProfileStore.shared.capturedProfile.resolvesPaths
+    }
+
     private var formatterUsesContext: Bool {
         if formatter != nil { return false }
         let settings = Settings.shared
@@ -217,7 +259,7 @@ final class DictationController {
     /// list whose ordering is an optimisation: rank order is what the ASR slice already uses,
     /// and it is a worse list rather than no list.
     private func screenNames(mentionedIn raw: String) async -> ScreenContext {
-        guard formatterUsesContext else { return .empty }
+        guard formatterUsesContext || tagsFileReferences else { return .empty }
 
         let harvested = await ScreenContextStore.shared.awaitCapture(within: .seconds(1))
         guard !harvested.isEmpty else { return harvested }
@@ -815,8 +857,10 @@ final class DictationController {
             // narrowing sends whoever reads it to the wrong machine entirely.
             var narrowedAt = transcribedAt
             var cleanupTimedOut = false
+            // Outside the cleanup block because the file tagging below reads it too.
+            var screen = ScreenContext.empty
             if Settings.shared.cleanupEnabled {
-                let screen = await screenNames(mentionedIn: raw)
+                screen = await screenNames(mentionedIn: raw)
                 narrowedAt = Date().timeIntervalSince(began)
                 guard self.session == session else { return }
                 let formatter = activeFormatter(context: screen)
@@ -857,10 +901,16 @@ final class DictationController {
             // The dictionary runs last, and runs regardless of the cleanup setting. Biasing
             // only raises the odds of the right word; this is the pass that guarantees it,
             // so it must not be something the user can accidentally switch off.
-            let (output, corrections) = DictionaryStore.shared.corrector.apply(to: cleaned)
+            let (corrected, corrections) = DictionaryStore.shared.corrector.apply(to: cleaned)
             if !corrections.isEmpty {
                 Log.speech.info("dictionary · \(corrections.count, privacy: .public) correction(s) applied")
             }
+
+            // Last text pass before injection: after the dictionary, so a correction can fix a
+            // misheard word inside a file name first, and with nothing after it that could
+            // rewrite the reference it writes.
+            let output = await tagFileReferences(in: corrected, screen: screen)
+            guard self.session == session else { return }
 
             // Recorded before injection, deliberately. If the text cannot be placed, the
             // Dictation list is the other way back to it, and an utterance that is hard to
