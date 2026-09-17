@@ -5,9 +5,9 @@ import Orb from "./Orb";
  * The app happening, around the headline.
  *
  * Not a screenshot and not a mockup of one. These are the moments the app is actually
- * for — a sentence being cleaned up, a question to the Mac, a meeting being recorded, a
- * follow-up being offered, and the approved thing landing in Google — drawn in the page's
- * own vocabulary and surfacing on a slow loop so the hero is never still.
+ * for — a voice ask, an approval, context on the machine, a follow-up landing where the
+ * work already lives — drawn in the page's own vocabulary and surfacing on a slow loop so
+ * the hero is never still.
  *
  * LAYOUT CONTRACT. Nothing here is hand-tuned to a viewport. The hero reserves a centre
  * column of `--hero-col` (index.css) for the type, and the decoration lives in lanes that
@@ -69,32 +69,32 @@ export default function HeroStage() {
       className="absolute inset-0 z-0 hidden min-[1440px]:block pointer-events-none select-none"
       aria-hidden="true"
     >
-      {/* 1 — Dictation. The line the app is best at: what you said, and what it wrote. */}
+      {/* 1 — A voice ask. The Mac already has the context; the agent answers from it. */}
       <div
         className="absolute inset-y-0 left-0 flex items-center justify-center px-4 2xl:px-8"
         style={lane}
       >
         <motion.div
           {...anim(0)}
-          data-hero-card="dictation"
+          data-hero-card="ask"
           className="w-full max-w-[300px] liquid-glass rounded-2xl p-4"
         >
           <div className="flex items-center gap-2 mb-3">
             <Orb state="listening" size={28} />
             <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-              Dictating
+              Asking
             </span>
           </div>
-          <p className="text-xs text-muted-foreground/70 leading-relaxed line-through decoration-muted-foreground/40">
-            um so i need to send the report by friday no wait make that thursday
+          <p className="text-xs text-muted-foreground/70 leading-relaxed">
+            What&apos;s on tomorrow after three?
           </p>
           <p className="text-sm text-foreground/90 leading-relaxed mt-2">
-            So I need to send the report by Thursday.
+            You&apos;re clear after three. Want me to draft a reply?
           </p>
         </motion.div>
       </div>
 
-      {/* 5 — Asking the Mac. Same gutter as dictation; it arrives after that card leaves. */}
+      {/* 5 — Acting on the Mac. Same gutter; it arrives after that card leaves. */}
       <div
         className="absolute inset-y-0 left-0 flex items-center justify-center px-4 2xl:px-8"
         style={lane}
@@ -107,7 +107,7 @@ export default function HeroStage() {
           <div className="flex items-center gap-2 mb-3">
             <Orb state="searching" size={28} />
             <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-              Asking
+              Acting
             </span>
           </div>
           <p className="text-xs text-muted-foreground/70 leading-relaxed">
@@ -153,7 +153,7 @@ export default function HeroStage() {
 }
 
 /**
- * 2 — The island, as it actually looks at the notch: two tracks, not one mix.
+ * 2 — The island, as it actually looks at the notch: the agent present while you work.
  *
  * Small enough to be honest at 375px, so it is the one piece of the stage that survives all
  * the way down. Lives in the hero grid's top row; `overflow-hidden` on the row means a very
@@ -172,13 +172,11 @@ export function HeroStageIsland() {
         data-hero-card="island"
         className="liquid-glass rounded-full pl-3 pr-4 sm:pr-5 py-2 inline-flex items-center gap-2 sm:gap-3 max-w-full"
       >
-        <span className="w-2 h-2 rounded-full bg-[#e0483c] shrink-0" />
-        <span className="text-sm tabular-nums text-foreground/90">04:12</span>
-        <span className="flex flex-col gap-1 w-12 sm:w-16 shrink-0">
-          <span className="h-[3px] rounded-full bg-foreground/70" style={{ width: "72%" }} />
-          <span className="h-[3px] rounded-full bg-foreground/40" style={{ width: "45%" }} />
+        <Orb state="listening" size={22} />
+        <span className="text-sm text-foreground/90 whitespace-nowrap">Listening</span>
+        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+          just you · on this Mac
         </span>
-        <span className="text-[11px] text-muted-foreground whitespace-nowrap">You · Others</span>
       </motion.div>
     </div>
   );
@@ -205,7 +203,7 @@ export function HeroStageDestinations() {
         className="flex flex-wrap items-center justify-center gap-2 max-w-full"
       >
         <Orb state="connecting" size={28} />
-        {["Calendar — invite sent", "Gmail — draft ready", "Drive — notes saved"].map((t) => (
+        {["It remembers you", "It stays local", "It waits on you"].map((t) => (
           <span
             key={t}
             className="liquid-glass rounded-full px-4 py-2 text-[11px] text-muted-foreground whitespace-nowrap"

@@ -59,8 +59,9 @@ export default function Hero() {
           className="mt-6 sm:mt-7 text-base sm:text-lg max-w-xl leading-relaxed"
           style={{ color: "hsl(var(--hero-subtitle))" }}
         >
-          Dictate into any app. Sit in any meeting and the notes write themselves. Then
-          ask the same Mac to click, search, or follow through — on this machine.
+          It already knows you — your files, your calendar, the names you use, a model
+          that never leaves the desk. Next Notes turns that Mac into your default local
+          agent. Speak to it. It stays with you, end to end, on this machine.
         </motion.p>
 
         <motion.div

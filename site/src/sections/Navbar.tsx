@@ -5,8 +5,7 @@ import { DOWNLOAD_URL, REPO_URL } from "../lib/motion";
 
 const links = [
   { label: "How it works", href: "#how-it-works" },
-  { label: "Meetings", href: "#meetings" },
-  { label: "Ask", href: "#features" },
+  { label: "Agent", href: "#agent" },
   { label: "Privacy", href: "#privacy" },
 ];
 

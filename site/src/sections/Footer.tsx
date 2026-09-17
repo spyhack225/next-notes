@@ -6,7 +6,7 @@ export default function Footer() {
     <footer className="py-12 px-8 md:px-28 border-t border-border/30">
       <div className="flex items-center justify-between gap-6 flex-wrap">
         <p className="text-muted-foreground text-sm">
-          &copy; 2026 Next Notes. Runs entirely on your Mac.
+          &copy; 2026 Next Notes. It stays with you, on your Mac.
         </p>
         <div className="flex items-center gap-4">
           <a

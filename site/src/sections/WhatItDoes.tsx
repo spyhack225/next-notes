@@ -4,39 +4,38 @@ import type { OrbState } from "../components/orbGeometry";
 import { fadeUp } from "../lib/motion";
 
 /**
- * The orb over each card is the app's own binding, not decoration: dictation listens, a
- * meeting braids two tracks into one, the agent reads things it did not write, and
- * Workspace is two parties being wired together.
+ * The orb over each card is the app's own binding, not decoration — and the copy stays in
+ * the original register: you speak, it answers, it knows you, nothing leaves the desk.
  */
 const features: { title: string; body: string; orb: OrbState }[] = [
   {
     orb: "listening",
-    title: "Talk, in context",
-    body: "Hold one key, say the thing, let go. The cleaned-up sentence lands in the email, the terminal, the doc — wherever the cursor already was, even if you wandered off while it was thinking. It writes Markdown where Markdown renders and plain prose where it does not, and it learns the names and jargon you actually use, so it stops mangling them.",
+    title: "Talk, and it hears you",
+    body: "Hold one key, say the thing, let go — or ask it out loud. The cleaned-up sentence lands where the cursor already was. Silence ends a turn; Done leaves. Everything you say stays on this Mac.",
+  },
+  {
+    orb: "breathing",
+    title: "It already knows your names",
+    body: "It learns the people, products and jargon you actually use, so it stops mangling them. Meeting folders and what you approved last time stay local — the next ask starts from you, not from a blank box.",
   },
   {
     orb: "weaving",
-    title: "Meetings record themselves",
-    body: "It reads your calendar and starts when the meeting does, asking first. Your microphone and what comes out of your speakers are heard as two separate tracks, which is how the transcript knows who said what without anything joining the call.",
+    title: "It sits in the meeting with you",
+    body: "It reads your calendar and starts when the meeting does, asking first. Your microphone and what comes out of the speakers are two tracks — so it knows who said what without anything joining the call.",
   },
   {
     orb: "searching",
-    title: "Ask the Mac",
-    body: "⇧⌘ Space, or say “Hey Next” — tested against the live keyword detector, not a typed transcript. Silence ends a turn; Done leaves. Ask “what can you do” and it answers without a model. Longer work can go to a coding agent you already have installed.",
+    title: "Ask it. It looks, then acts",
+    body: "It inspects the front window, then clicks and types in a second turn. Approvals can be scoped to an app, a site or a folder — not a blanket yes. Files and a shell command (never sudo) wait on the same card.",
   },
   {
-    orb: "searching",
-    title: "Clicks, files, a command",
-    body: "It inspects the front window, then clicks and types in a second turn. Approvals can be scoped to an app, a site or a folder — not a blanket yes. Files and a shell command (never sudo) wait on the same card. Chrome can go through a local browser protocol when one is listening; Accessibility is the fallback.",
-  },
-  {
-    orb: "searching",
-    title: "Proposes while you talk",
+    orb: "composing",
+    title: "It offers; you decide",
     body: "It can listen for the asks as they happen — send me the deck, let\u2019s meet Thursday — and have the follow-up ready before the call ends. Everything it offers waits on a button you press, and shows you the message in full first.",
   },
   {
     orb: "connecting",
-    title: "Into your Google account",
+    title: "It lands where you already live",
     body: "Once approved, it writes the doc to Drive, puts the event on Calendar and sends the mail from Gmail — running as you, through Google\u2019s own command-line tool, so the app never holds credentials of its own.",
   },
 ];
@@ -59,11 +58,11 @@ export default function WhatItDoes() {
           {...fadeUp(0.1)}
           className="text-4xl md:text-6xl font-medium tracking-[-1.5px] text-center mt-6 leading-[1.05]"
         >
-          Talk. Meet. Ask. Then it{" "}
+          Ask. It knows you. Then it{" "}
           <span className="font-serif italic font-normal">follows through.</span>
         </motion.h2>
 
-        {/* The whole of the dictation pitch, in the only form that proves it. */}
+        {/* The whole of the personal pitch, in the only form that proves it. */}
         <motion.div
           {...fadeUp(0.2)}
           className="liquid-glass rounded-2xl mt-16 p-8 md:p-12 max-w-3xl mx-auto"
@@ -72,20 +71,21 @@ export default function WhatItDoes() {
             You said
           </p>
           <p className="text-lg md:text-xl mt-3 text-muted-foreground leading-relaxed">
-            um so i need to send the report by friday no wait make that thursday
+            What&apos;s on my calendar tomorrow — and draft a reply that I&apos;m free after
+            three.
           </p>
 
           <div className="h-px bg-border/50 my-8" />
 
           <p className="text-[11px] tracking-[2px] uppercase text-muted-foreground">
-            It wrote
+            It answered
           </p>
           <p className="text-lg md:text-xl mt-3 leading-relaxed">
-            So I need to send the report by Thursday.
+            Three meetings tomorrow. Draft ready — waiting on you.
           </p>
         </motion.div>
 
-        <div id="meetings" className="grid md:grid-cols-2 lg:grid-cols-3 gap-12 md:gap-8 mt-24 scroll-mt-28">
+        <div id="agent" className="grid md:grid-cols-2 lg:grid-cols-3 gap-12 md:gap-8 mt-24 scroll-mt-28">
           {features.map((feature, i) => (
             <motion.div key={feature.title} {...fadeUp(0.08 * i)}>
               <Orb state={feature.orb} size={64} className="-ml-1 mb-5" />

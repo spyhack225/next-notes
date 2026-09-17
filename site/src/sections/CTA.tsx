@@ -33,7 +33,7 @@ export default function CTA() {
         >
           Download the app, or clone the repo and run{" "}
           <code className="text-foreground/80">make install</code>. The disk image is small;
-          speech and notes models download on first use. The build is not notarized yet, so
+          speech and language models download on first use. The build is not notarized yet, so
           the first open is right-click the app and choose Open.
         </motion.p>
 

@@ -4,12 +4,10 @@ import type { OrbState } from "../components/orbGeometry";
 import { fadeUp } from "../lib/motion";
 
 /**
- * The sequence, told as what the user stops having to do.
+ * The sequence, told as what you stop having to do — and what “it” starts doing for you.
  *
- * Deliberately not a feature list — that is the grid further down. Each step here is named
- * for the chore it removes, because nobody wants two-track audio capture; they want to stop
- * writing up meetings, or driving the Mac by hand. The mechanism is the small print
- * underneath.
+ * Same personal register as the original page: short sentences, you / it, the chore named
+ * first. The agent positioning lives underneath, not as a positioning deck.
  */
 const STEPS: {
   n: string;
@@ -20,38 +18,38 @@ const STEPS: {
 }[] = [
   {
     n: "01",
-    orb: "listening",
-    value: "You stop typing",
-    body: "Most of what you write in a day is short and forgettable — a reply, a commit message, a note to yourself. Say it instead and carry on.",
-    detail: "Hold a key anywhere. The cleaned-up sentence appears at the cursor.",
+    orb: "breathing",
+    value: "You stop teaching a stranger",
+    body: "Your Mac already has your files, your calendar, the jargon you actually use. The best agent does not need a new home — it needs to live where you already are.",
+    detail: "Memory, storage and a local model — already on the machine in front of you.",
   },
   {
     n: "02",
-    orb: "weaving",
-    value: "You stop taking notes",
-    body: "Give the meeting your attention instead of your typing hand. Nothing joins the call, so nobody has to agree to a stranger in the room.",
-    detail: "Your calendar starts it. Your mic and the room are kept as separate tracks.",
+    orb: "listening",
+    value: "You stop typing everything",
+    body: "Hold a key. Say the thing. Ask it the next thing. Voice is how you reach an agent that already sits at your desk — and everything you say stays here.",
+    detail: "⇧⌘ Space, push-to-talk, or “Hey Next”. Silence ends a turn; Done leaves.",
   },
   {
     n: "03",
     orb: "searching",
-    value: "You stop driving the Mac",
-    body: "Ask what's on the calendar, what was just decided, or to click the button in front of you. It can look, then act, in more than one step. Silence ends a turn; Done leaves the conversation.",
-    detail: "⇧⌘ Space, or “Hey Next”. A yes can be scoped to an app, a site or a folder.",
+    value: "You stop driving the Mac by hand",
+    body: "Ask what’s on the calendar, what was just decided, or to click the button in front of you. It can look, then act, in more than one step. A yes can be scoped to an app, a site or a folder.",
+    detail: "Inspect, click, type, open a file, run a command. Never sudo. Never a blanket yes.",
   },
   {
     n: "04",
-    orb: "searching",
-    value: "You stop chasing the admin",
-    body: "The half hour after a meeting is where the work actually leaks away. The follow-ups are drafted before you have left the call.",
-    detail: "It offers; you approve. Nothing is created or sent on its own.",
+    orb: "composing",
+    value: "You stop repeating yourself",
+    body: "It keeps the thread — the meeting you were in, the name it learned last week, the draft you almost sent. The next ask starts from where you left off, not from a blank chat.",
+    detail: "One folder per meeting. A dictionary of your names. Proposals that wait on you.",
   },
   {
     n: "05",
     orb: "connecting",
-    value: "You stop switching tools",
-    body: "It lands where the work already lives, so there is no second inbox to check and nothing to copy across in the morning.",
-    detail: "Calendar, Gmail, Drive and Docs — in your own account, as you.",
+    value: "You stop chasing the follow-up",
+    body: "When you approve, it writes the doc, puts the event on Calendar and sends the mail — as you. Nothing is created or sent on its own.",
+    detail: "Gmail, Calendar, Drive and Docs — your account, your say.",
   },
 ];
 

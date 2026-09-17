@@ -3,13 +3,13 @@ import { motion, useScroll, useTransform, type MotionValue } from "framer-motion
 import Orb from "../components/Orb";
 
 const PARAGRAPH_ONE =
-  "Most of what you write in a day is short and unglamorous. Most of what you say in a meeting is worth keeping. Typing the first and transcribing the second is the part you should never have been doing.";
+  "Most of what you need an agent for is already on the machine in front of you. Your files. Your calendar. The names you say every day. A model that can run without leaving the desk.";
 
 const PARAGRAPH_TWO =
-  "Talk to your Mac. Hold a key. Walk into a meeting empty-handed. Ask it the rest. The machine in front of you is fast enough.";
+  "Talk to your Mac. Hold a key. Ask it the rest. It knows you — and everything you say stays here.";
 
 /** The words carrying the argument stay white; everything else settles a shade back. */
-const HIGHLIGHTS = new Set(["short", "unglamorous", "worth", "keeping"]);
+const HIGHLIGHTS = new Set(["already", "machine", "files", "calendar", "names", "knows", "stays"]);
 
 const strip = (word: string) => word.replace(/[^A-Za-z-]/g, "").toLowerCase();
 
@@ -84,9 +84,9 @@ export default function Mission() {
         className="flex justify-center pointer-events-none select-none"
         aria-hidden="true"
       >
-        {/* The two halves of the app — dictation and meetings — braided into one. */}
+        {/* Present and idle — waiting on you, on purpose. */}
         <div className="scale-[0.75] sm:scale-90 md:scale-100">
-          <Orb state="weaving" size={420} />
+          <Orb state="breathing" size={420} />
         </div>
       </div>
 
