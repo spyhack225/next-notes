@@ -108,6 +108,7 @@ enum PersonaSelfTest {
             ("tool planner, typed", .toolLoop, RealtimeAgent.plannerSystem(tools: tools, voice: false)),
             ("ask the local model", .localModel, RealtimeAgent.localModelSystem),
             ("meeting assistant", .meetingAssistant, AgentPrompts.system),
+            ("knowledge ask", .knowledgeAsk, KnowledgeAsker.systemPrompt),
         ]
         for entry in productionPaths {
             let budget = entry.path.budget

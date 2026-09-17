@@ -17,6 +17,8 @@ enum AgentToolNamespace: String, Codable, Sendable, CaseIterable {
     /// Reminders (Part 3): `schedule.list` / `create` / `update` / `pause` / `resume` /
     /// `remove` / `run_now`.
     case schedule
+    /// The knowledge index (Part 4): `search_knowledge` / `expand_node` / `timeline`. Read-class.
+    case knowledge
 }
 
 /// Where the implementation lives. The model is not told this — `ToolRouter` is.

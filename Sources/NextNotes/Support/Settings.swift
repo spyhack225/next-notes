@@ -718,6 +718,12 @@ final class Settings {
         didSet { defaults.set(knowledgeEmbedder, forKey: Keys.knowledgeEmbedder) }
     }
 
+    /// Whether the Agent may use `search_knowledge`, `expand_node` and `timeline`, and Ask
+    /// may answer from the index. Off by default; needs the index on as well.
+    var knowledgeAgentToolsEnabled: Bool {
+        didSet { defaults.set(knowledgeAgentToolsEnabled, forKey: Keys.knowledgeAgentToolsEnabled) }
+    }
+
     var agentPocketVoice: String {
         didSet { defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice) }
     }
@@ -922,6 +928,7 @@ final class Settings {
         static let knowledgeIncludeDictation = KnowledgeIndexSettings.includeDictationKey
         static let knowledgeIncludeRoutines = KnowledgeIndexSettings.includeRoutinesKey
         static let knowledgeEmbedder = KnowledgeIndexSettings.embedderKey
+        static let knowledgeAgentToolsEnabled = KnowledgeToolGate.enabledKey
         static let agentPocketVoice = "agentPocketVoice"
         static let wakePhrase = "wakePhrase"
         static let wakeSensitivity = "wakeSensitivity"
@@ -1041,6 +1048,7 @@ final class Settings {
         knowledgeIncludeDictation = defaults.object(forKey: Keys.knowledgeIncludeDictation) as? Bool ?? false
         knowledgeIncludeRoutines = defaults.object(forKey: Keys.knowledgeIncludeRoutines) as? Bool ?? false
         knowledgeEmbedder = defaults.string(forKey: Keys.knowledgeEmbedder) ?? KnowledgeEmbedderChoice.none.rawValue
+        knowledgeAgentToolsEnabled = defaults.object(forKey: Keys.knowledgeAgentToolsEnabled) as? Bool ?? false
         wakePhrase = defaults.string(forKey: Keys.wakePhrase) ?? WakeWordConfiguration.defaultPhrase
         wakeSensitivity = defaults.object(forKey: Keys.wakeSensitivity) as? Double ?? 0.5
         listenWhileSleeping = defaults.object(forKey: Keys.listenWhileSleeping) as? Bool ?? true

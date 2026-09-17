@@ -336,7 +336,7 @@ enum MemorySelfTest {
                 switch path {
                 case .voiceRoute, .acpAgent:
                     check("\(path.rawValue) carries memory", context.memory.isEmpty)
-                case .voiceAnswer, .meetingAssistant:
+                case .voiceAnswer, .meetingAssistant, .knowledgeAsk:
                     check("\(path.rawValue) lacks the profile", context.memory.contains("chess league number 6"))
                     check("\(path.rawValue) carries notes", !context.memory.contains("Standup"))
                 case .toolLoop, .localModel, .scheduledRun:

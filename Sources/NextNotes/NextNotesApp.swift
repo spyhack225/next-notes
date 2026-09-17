@@ -472,6 +472,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-ask") {
+            Task { @MainActor in
+                SelfTest.failed = !(await KnowledgeAskSelfTest.run(question: SelfTest.value(after: "--selftest-ask")))
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-persona") {
             Task { @MainActor in
                 SelfTest.failed = !PersonaSelfTest.run()

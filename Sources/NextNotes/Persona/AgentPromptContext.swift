@@ -19,6 +19,8 @@ enum AgentPromptPath: String, CaseIterable, Sendable {
     case meetingAssistant
     /// A routine run with nobody present (Part 3). No conversation section.
     case scheduledRun
+    /// `KnowledgeAsker.systemPrompt` — answers from the knowledge index with citations (Part 4).
+    case knowledgeAsk
     /// Claude Code, Codex, Qwen Code, OpenCode over ACP. Nothing personal crosses.
     case acpAgent
 
@@ -50,7 +52,7 @@ enum AgentPromptPath: String, CaseIterable, Sendable {
             // items travel in the user message, matched per request.
             Budget(persona: .full, personaLimit: PersonaStore.fullLimit,
                    memoryLimit: 3_400, memoryScope: "profile + notes + relevant activity")
-        case .meetingAssistant:
+        case .meetingAssistant, .knowledgeAsk:
             Budget(persona: .full, personaLimit: PersonaStore.fullLimit,
                    memoryLimit: 600, memoryScope: "profile")
         case .scheduledRun:

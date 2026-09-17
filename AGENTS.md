@@ -52,6 +52,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-persona   --selftest-memory     --selftest-schedule
 --selftest-routine-authority
 --selftest-index     --selftest-search [query] [--gold <path>]
+--selftest-ask [question]
 --selftest-embed [text] [--model potion|embeddinggemma]
 --selftest-memory-review [--model local|cloud] [--fixtures <path>]
 --selftest-meeting-context                 --selftest-realtime

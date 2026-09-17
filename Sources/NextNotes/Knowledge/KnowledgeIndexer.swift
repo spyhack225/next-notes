@@ -63,6 +63,15 @@ protocol KnowledgeSourceProviding: AnyObject {
     func routineRuns() -> [KnowledgeRoutineRun]
     /// A human name for a hit's source — a meeting title — or nil.
     func title(for hit: KnowledgeHit) -> String?
+    /// Meeting ids for `search_knowledge`'s `meeting` argument: the id itself, or every
+    /// meeting whose title contains it.
+    func meetingIDs(matching name: String) -> [String]
+}
+
+extension KnowledgeSourceProviding {
+    func meetingIDs(matching name: String) -> [String] {
+        UUID(uuidString: name) == nil ? [] : [name]
+    }
 }
 
 /// One unit of indexing work. A meeting job covers its transcript and its notes.
@@ -206,6 +215,18 @@ final class KnowledgeIndexer {
         guard settings.enabled, store.existsOnDisk else { return nil }
         let sources = self.sources
         return KnowledgeRecall(searcher: searcher, sourceTitle: { sources.title(for: $0) })
+    }
+
+    /// What the knowledge tools and Ask read, or nil while the index is off or has never
+    /// been built. The graph is empty until extraction exists (Phase C).
+    var toolContext: KnowledgeToolContext? {
+        guard settings.enabled, store.existsOnDisk else { return nil }
+        let sources = self.sources
+        return KnowledgeToolContext(
+            searcher: searcher,
+            sourceTitle: { sources.title(for: $0) },
+            meetingIDs: { sources.meetingIDs(matching: $0) }
+        )
     }
 
     // MARK: - Lifecycle
@@ -738,8 +759,10 @@ private extension KnowledgeStore.ReplaceOutcome {
 
 // MARK: - memory.recall
 
-/// Passages from the index for `memory.recall`, rendered as JSON data: transcripts and
-/// conversations are content other people said, and must never read as instructions.
+/// Passages from the index for `memory.recall`: a thin wrapper over `search_knowledge` — the
+/// same query, the same search and the same renderer, with a smaller limit and no filters.
+/// Rendered as JSON data: transcripts and conversations are content other people said, and
+/// must never read as instructions.
 @MainActor
 struct KnowledgeRecall {
     /// Heads the passages in `memory.recall`'s result. The tool loop looks for it: output
@@ -758,42 +781,36 @@ struct KnowledgeRecall {
         self.sourceTitle = sourceTitle
     }
 
+    private var context: KnowledgeToolContext {
+        KnowledgeToolContext(searcher: searcher, sourceTitle: sourceTitle)
+    }
+
+    /// `search_knowledge`'s arguments for a recall.
+    static func arguments(for query: String) -> [String: String] {
+        ["query": query, "limit": String(passageLimit)]
+    }
+
     /// Embeds the query ahead of the synchronous tool call, for an embedder behind an actor.
     mutating func prepare(for query: String) async {
         let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !KnowledgeFTSQuery.tokens(text).isEmpty else { return }
-        prepared = await searcher.prepare(KnowledgeQuery(text: text, limit: Self.passageLimit))
+        guard let request = try? KnowledgeToolExecutor.searchQuery(Self.arguments(for: text), context: context)
+        else { return }
+        prepared = await searcher.prepare(request)
     }
 
     /// Nil when the query is empty, nothing matches, or the search fails.
     func passages(for query: String) -> String? {
-        guard !KnowledgeFTSQuery.tokens(query).isEmpty else { return nil }
-        let request = prepared.flatMap { $0.text == query ? $0 : nil } ?? KnowledgeQuery(text: query, limit: Self.passageLimit)
-        guard let hits = try? searcher.search(request), !hits.isEmpty else { return nil }
+        guard let request = try? KnowledgeToolExecutor.searchQuery(Self.arguments(for: query), context: context)
+        else { return nil }
+        let prepared = self.prepared.flatMap { $0.text == request.text ? $0 : nil } ?? request
+        guard let hits = try? KnowledgeToolExecutor.search(prepared, context: context), !hits.isEmpty else {
+            return nil
+        }
         return render(hits)
     }
 
     func render(_ hits: [KnowledgeHit]) -> String {
-        // In the user's time zone, with its offset: a small model reads a bare "Z" time as
-        // local and misstates when a meeting was.
-        let formatter = ISO8601DateFormatter()
-        formatter.timeZone = .current
-        let rows: [[String: String]] = hits.map { hit in
-            var row = [
-                "kind": hit.kind.rawValue,
-                "when": formatter.string(from: hit.occurredAt),
-                "text": hit.text.count > Self.textLimit ? String(hit.text.prefix(Self.textLimit - 1)) + "…" : hit.text,
-            ]
-            if let title = sourceTitle(hit) { row["source"] = title }
-            if let start = hit.startTime { row["at"] = start.counterText }
-            if let speaker = hit.speaker { row["speaker"] = speaker }
-            if let heading = hit.heading { row["heading"] = heading }
-            return row
-        }
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-        guard let data = try? encoder.encode(rows), let json = String(data: data, encoding: .utf8) else { return "[]" }
-        return json
+        KnowledgeToolExecutor.render(hits, sourceTitle: sourceTitle, textLimit: Self.textLimit)
     }
 }
 
@@ -888,6 +905,12 @@ final class LiveKnowledgeSources: KnowledgeSourceProviding {
         case .conversation, .routine, .dictation:
             nil
         }
+    }
+
+    func meetingIDs(matching name: String) -> [String] {
+        if let id = UUID(uuidString: name) { return [id.uuidString] }
+        return MeetingStore.shared.meetings.filter { $0.title.localizedCaseInsensitiveContains(name) }
+            .map(\.id.uuidString)
     }
 }
 

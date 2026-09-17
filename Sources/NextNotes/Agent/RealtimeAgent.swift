@@ -129,7 +129,34 @@ final class RealtimeAgent {
 
     func runVoiceObjective() async -> String {
         guard let voiceWork else { return "The work item is unavailable." }
+        // A question about past meetings is answered from the index as this background job:
+        // the frontend has already said it is on it, and the answer is announced when done.
+        if voiceWork.followUps.isEmpty, KnowledgeAskRouting.isLibraryQuestion(voiceWork.original),
+           KnowledgeToolGate.isAvailable, let answer = await answerFromKnowledge(voiceWork.original) {
+            return answer
+        }
         return await runPlannedToolLoop(voiceWork.prompt, voice: true)
+    }
+
+    /// `KnowledgeAsker` on the voice model, or nil to fall back to the tool planner.
+    private func answerFromKnowledge(_ question: String) async -> String? {
+        guard let context = KnowledgeIndexer.shared.toolContext,
+              let provider = await LLMProviders.resolve(preferring: .qwen35_4b) else { return nil }
+        let owner = currentGeneration
+        let asker = KnowledgeAsker(context: context, model: ProviderKnowledgeAnswerModel(provider: provider))
+        do {
+            let answer = try await asker.run(question)
+            guard isCurrent(owner) else { return "I stopped looking." }
+            AgentAuditLog.shared.record(kind: .reply, title: "Answered from the knowledge index",
+                                        detail: "\(answer.rounds) rounds · cites " + answer.citations.map(\.marker)
+                                            .joined(separator: ", "))
+            return answer.spokenText
+        } catch is CancellationError {
+            return "I stopped looking."
+        } catch {
+            Log.agent.error("knowledge ask failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 
     func cancelVoiceObjective() { generation += 1 }

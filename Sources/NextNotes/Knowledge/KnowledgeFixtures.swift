@@ -175,4 +175,10 @@ final class FixtureKnowledgeSources: KnowledgeSourceProviding {
         default: nil
         }
     }
+
+    func meetingIDs(matching name: String) -> [String] {
+        if let id = UUID(uuidString: name) { return [id.uuidString] }
+        return [(KnowledgeFixtures.pricingID, "Pricing review"), (KnowledgeFixtures.hiringID, "Hiring sync")]
+            .filter { $0.1.localizedCaseInsensitiveContains(name) }.map(\.0.uuidString)
+    }
 }

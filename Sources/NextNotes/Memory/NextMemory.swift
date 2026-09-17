@@ -848,7 +848,7 @@ final class MemorySnapshotCache: @unchecked Sendable {
         lock.unlock()
         let includeNotes = switch path {
         case .toolLoop, .localModel, .scheduledRun: true
-        case .voiceAnswer, .voiceRoute, .meetingAssistant, .acpAgent: false
+        case .voiceAnswer, .voiceRoute, .meetingAssistant, .knowledgeAsk, .acpAgent: false
         }
         return Self.render(profile: profile, notes: includeNotes ? notes : [], limit: limit)
     }

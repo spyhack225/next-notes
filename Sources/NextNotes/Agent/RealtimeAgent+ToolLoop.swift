@@ -42,6 +42,7 @@ enum RealtimeToolSelection {
         "memory.remember", "memory.update", "memory.forget", "memory.recall",
         "schedule.list", "schedule.create", "schedule.update", "schedule.pause",
         "schedule.resume", "schedule.remove", "schedule.run_now",
+        "search_knowledge", "expand_node", "timeline",
     ]
 }
 
@@ -529,13 +530,16 @@ extension RealtimeAgent {
             """)
     }
 
-    static func plannableTools() -> [AgentTool] {
+    /// - Parameter knowledgeTools: whether `KnowledgeToolGate` lets the Agent see the
+    ///   knowledge tools; the self-test passes both values.
+    static func plannableTools(knowledgeTools: Bool = KnowledgeToolGate.isAvailable) -> [AgentTool] {
         let memoryEnabled = MemorySnapshotCache.shared.isEnabled
         let schedulesEnabled = Settings.shared.agentSchedulesEnabled
         return AgentToolRegistry.shared.tools(upTo: .send)
             .filter { RealtimeToolSelection.allowedIDs.contains($0.id) }
             .filter { memoryEnabled || $0.namespace != .memory }
             .filter { schedulesEnabled || $0.namespace != .schedule }
+            .filter { knowledgeTools || $0.namespace != .knowledge }
     }
 
     /// The tool planner's system prompt: persona, fixed rules (ending with the override

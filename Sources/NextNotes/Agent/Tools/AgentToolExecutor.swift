@@ -276,6 +276,13 @@ enum AgentToolExecutor {
             if tool.name == "recall" { await knowledge?.prepare(for: arguments["query"] ?? "") }
             return try MemoryToolExecutor.run(tool, arguments: arguments, provenance: MemoryProvenance.current,
                                               knowledge: knowledge)
+        case .knowledge:
+            // Checked at the call, not only when planning: a routine's allowed tools outlive
+            // the switch, and turning it off must stop the next run too.
+            guard KnowledgeToolGate.mayRun, let context = KnowledgeIndexer.shared.toolContext else {
+                throw KnowledgeToolError.off
+            }
+            return try await KnowledgeToolExecutor.run(tool, arguments: arguments, context: context)
         case .schedule:
             return try await ScheduleToolExecutor.run(
                 tool, arguments: arguments, sessionID: AgentSession.shared.sessionID)

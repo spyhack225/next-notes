@@ -8,7 +8,7 @@ import SwiftUI
 /// screen that is useful with two meetings in the library.
 ///
 /// A transcript passage jumps to its second in the meeting's transcript; a notes passage
-/// opens the meeting; a conversation opens the Agent.
+/// opens the meeting; a conversation opens the Agent. The toolbar switches to Ask.
 struct KnowledgeSearchView: View {
     @State private var settings = Settings.shared
     @State private var indexer = KnowledgeIndexer.shared
@@ -21,18 +21,30 @@ struct KnowledgeSearchView: View {
     @State private var facets = KnowledgeFacets()
     @State private var problem: String?
     @State private var hasSearched = false
+    @State private var mode: Mode = .search
+
+    /// Search finds passages; Ask answers a question from them, with citations (Phase E).
+    enum Mode: Hashable {
+        case search
+        case ask
+    }
 
     var body: some View {
         Group {
             if settings.knowledgeIndexEnabled {
-                HSplitView {
-                    rail
-                        .frame(minWidth: DS.Size.meetingListMin, idealWidth: DS.Size.meetingListMin,
-                               maxWidth: DS.Size.sidebarMax)
-                    results
-                        .frame(minWidth: DS.Size.meetingDetailMin, maxWidth: .infinity, maxHeight: .infinity)
+                switch mode {
+                case .search:
+                    HSplitView {
+                        rail
+                            .frame(minWidth: DS.Size.meetingListMin, idealWidth: DS.Size.meetingListMin,
+                                   maxWidth: DS.Size.sidebarMax)
+                        results
+                            .frame(minWidth: DS.Size.meetingDetailMin, maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                    .searchable(text: $query, prompt: Text("Search meetings, notes and conversations"))
+                case .ask:
+                    AskView()
                 }
-                .searchable(text: $query, prompt: Text("Search meetings, notes and conversations"))
             } else {
                 OrbUnavailableView(
                     .searching,
@@ -46,6 +58,18 @@ struct KnowledgeSearchView: View {
             }
         }
         .navigationTitle(SidebarSection.search.title)
+        .toolbar {
+            if settings.knowledgeIndexEnabled {
+                ToolbarItem(placement: .principal) {
+                    Picker("Mode", selection: $mode) {
+                        Text("Search").tag(Mode.search)
+                        Text("Ask").tag(Mode.ask)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
+            }
+        }
         .task(id: searchKey) { await runSearch() }
     }
 

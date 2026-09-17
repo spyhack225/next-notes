@@ -22,6 +22,9 @@ struct KnowledgeSection: View {
             Toggle("Include routine results", isOn: $settings.knowledgeIncludeRoutines)
                 .disabled(!settings.knowledgeIndexEnabled)
 
+            Toggle("Let the Agent search and answer from the index", isOn: $settings.knowledgeAgentToolsEnabled)
+                .disabled(!settings.knowledgeIndexEnabled)
+
             Picker("Semantic search", selection: embedderChoice) {
                 ForEach(KnowledgeEmbedderChoice.allCases) { choice in
                     Text(choice.title).tag(choice)
@@ -61,7 +64,10 @@ struct KnowledgeSection: View {
                     + "Indexing waits while anything is recording. Deleting a meeting, clearing the "
                     + "conversation or forgetting everything removes its passages. Rebuilding reads every "
                     + "meeting again; conversations older than the Agent's saved history cannot be re-read. "
-                    + "When a cloud model answers, the passages recall finds are sent with the prompt. "
+                    + "Letting the Agent use the index adds search_knowledge to what it can look up without "
+                    + "asking (when looking things up is allowed), to routines, and to Ask, whose answers cite "
+                    + "the passage each sentence came from. "
+                    + "When a cloud model answers, the passages recall, search or Ask finds are sent with the prompt. "
                     + "Semantic search adds vectors computed on this Mac after you download a model; "
                     + "it waits while anything is recording or the notes model is loaded.",
                 orb: indexer.isIndexing ? .searching : nil
