@@ -36,6 +36,18 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
     var compatibilityCommand: String?
     var compatibilityCLI: String?
     var compatibilityDirectory: String?
+    /// The routine a `"scheduled"` task ran for (Part 3).
+    var scheduleID: UUID?
+
+    static let scheduledSource = "scheduled"
+
+    /// Whether creating this task was the user's own explicit action, which an ACP backend
+    /// may treat as approval to start the session. Named sources, not "anything but a
+    /// meeting": a scheduled run has nobody present, and a source added later must not
+    /// inherit approval by default.
+    var isUserInitiated: Bool {
+        scheduleID == nil && ["user", "voice", "text", "selftest"].contains(source)
+    }
 
     init(
         id: String = UUID().uuidString,
@@ -55,8 +67,10 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         acpCLI: String = "",
         compatibilityCommand: String? = nil,
         compatibilityCLI: String? = nil,
-        compatibilityDirectory: String? = nil
+        compatibilityDirectory: String? = nil,
+        scheduleID: UUID? = nil
     ) {
+        self.scheduleID = scheduleID
         self.id = id
         self.objective = objective
         self.source = source
@@ -80,7 +94,7 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
     enum CodingKeys: String, CodingKey {
         case id, objective, source, createdAt, contextReferences, status, progress
         case result, artifacts, tool, arguments, meetingID, backend, failure, acpCLI
-        case compatibilityCommand, compatibilityCLI, compatibilityDirectory
+        case compatibilityCommand, compatibilityCLI, compatibilityDirectory, scheduleID
     }
 
     init(from decoder: Decoder) throws {
@@ -103,6 +117,7 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         compatibilityCommand = try container.decodeIfPresent(String.self, forKey: .compatibilityCommand)
         compatibilityCLI = try container.decodeIfPresent(String.self, forKey: .compatibilityCLI)
         compatibilityDirectory = try container.decodeIfPresent(String.self, forKey: .compatibilityDirectory)
+        scheduleID = try container.decodeIfPresent(UUID.self, forKey: .scheduleID)
     }
 }
 

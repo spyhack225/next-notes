@@ -685,6 +685,12 @@ final class Settings {
         didSet { defaults.set(agentRoutineSpeech, forKey: Keys.agentRoutineSpeech) }
     }
 
+    /// Open Next Notes at login, so routines keep running. Off by default; offered when the
+    /// first routine is created, and applied through `LaunchAtLogin` (`SMAppService`).
+    var agentLaunchAtLogin: Bool {
+        didSet { defaults.set(agentLaunchAtLogin, forKey: Keys.agentLaunchAtLogin) }
+    }
+
     var agentPocketVoice: String {
         didSet { defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice) }
     }
@@ -883,6 +889,7 @@ final class Settings {
         static let agentQuietHoursStart = "agentQuietHoursStart"
         static let agentQuietHoursEnd = "agentQuietHoursEnd"
         static let agentRoutineSpeech = "agentRoutineSpeech"
+        static let agentLaunchAtLogin = "agentLaunchAtLogin"
         static let agentPocketVoice = "agentPocketVoice"
         static let wakePhrase = "wakePhrase"
         static let wakeSensitivity = "wakeSensitivity"
@@ -996,6 +1003,7 @@ final class Settings {
         agentQuietHoursStart = defaults.string(forKey: Keys.agentQuietHoursStart) ?? "21:00"
         agentQuietHoursEnd = defaults.string(forKey: Keys.agentQuietHoursEnd) ?? "08:00"
         agentRoutineSpeech = defaults.string(forKey: Keys.agentRoutineSpeech) ?? "whenPresent"
+        agentLaunchAtLogin = defaults.object(forKey: Keys.agentLaunchAtLogin) as? Bool ?? false
         wakePhrase = defaults.string(forKey: Keys.wakePhrase) ?? WakeWordConfiguration.defaultPhrase
         wakeSensitivity = defaults.object(forKey: Keys.wakeSensitivity) as? Double ?? 0.5
         listenWhileSleeping = defaults.object(forKey: Keys.listenWhileSleeping) as? Bool ?? true

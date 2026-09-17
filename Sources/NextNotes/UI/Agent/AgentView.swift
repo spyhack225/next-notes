@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// The persistent agent: conversation, running tasks and the audit log.
+/// The persistent agent: conversation, running tasks and the audit log — and, in its own
+/// pane, the Routines view.
 struct AgentView: View {
+    @State private var navigation = NavigationState.shared
     @State private var session = AgentSession.shared
     @State private var agent = RealtimeAgent.shared
     @State private var tasks = AgentTaskManager.shared
@@ -72,6 +74,27 @@ struct AgentView: View {
     static let headingTitle = "Talk to your computer"
 
     var body: some View {
+        Group {
+            switch navigation.agentPane {
+            case .conversation: conversation
+            case .routines: RoutinesView()
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("Agent pane", selection: $navigation.agentPane) {
+                    ForEach(NavigationState.AgentPane.allCases) { pane in
+                        Text(pane.rawValue).tag(pane)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+        }
+        .navigationTitle("Agent")
+    }
+
+    private var conversation: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: DS.Space.l) {
@@ -146,7 +169,6 @@ struct AgentView: View {
             .padding(.top, DS.Space.s)
             .background(DS.Color.window)
         }
-        .navigationTitle("Agent")
     }
 
     private func permissionCard(_ request: PermissionRequest) -> some View {

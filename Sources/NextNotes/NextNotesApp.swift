@@ -441,6 +441,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-routine-authority") {
+            Task { @MainActor in
+                SelfTest.failed = !(await RoutineAuthoritySelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-persona") {
             Task { @MainActor in
                 SelfTest.failed = !PersonaSelfTest.run()

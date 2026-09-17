@@ -63,8 +63,9 @@ final class PermissionGrantStore {
         AppIdentity.applicationSupportDirectory.appendingPathComponent("permission-grants.json")
     }
 
+    /// A self-test neither reads nor writes the user's standing grants.
     private init() {
-        grants = Self.load()
+        grants = SelfTest.isRunning ? [] : Self.load()
     }
 
     func add(_ grant: PermissionGrant) {
@@ -90,6 +91,7 @@ final class PermissionGrantStore {
     }
 
     private func save() {
+        guard !SelfTest.isRunning else { return }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601

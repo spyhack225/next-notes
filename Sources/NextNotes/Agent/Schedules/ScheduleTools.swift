@@ -2,7 +2,7 @@ import Foundation
 
 /// `schedule.list` / `create` / `update` / `pause` / `resume` / `remove` / `run_now`.
 ///
-/// Reminders only in this phase. The model fills structured fields — a repeat word, a
+/// Reminders, and routines (R2). The model fills structured fields — a repeat word, a
 /// 24-hour time, a date, weekday names, a day of the month — and code turns them into a
 /// `ScheduleWhen`, renders the sentence the user hears, and leaves every scheduler-owned
 /// field to `AgentScheduler`. Nothing a model writes reaches `nextRunAt`.
@@ -45,24 +45,28 @@ enum ScheduleToolCatalogue {
         .native(
             namespace: .schedule,
             name: "list",
-            description: "List reminders with ids, next time and the current time. Call before creating one.",
+            description: "List reminders and routines with ids, next time and the current time. Call before creating one.",
             risk: .read,
-            title: "List reminders"
+            title: "List reminders and routines"
         ),
         .native(
             namespace: .schedule,
             name: "create",
-            description: "Create a reminder only after the user said yes to your one-sentence restatement "
-                + "of when and what. Call schedule.list first and update a matching reminder instead of "
-                + "making a near-duplicate. text must stand alone: it is read later with no conversation.",
+            description: "Create a reminder or routine only after the user said yes to your one-sentence "
+                + "restatement of when, what, and for a routine the tools it uses. Call schedule.list first "
+                + "and update a match instead of making a near-duplicate. text must stand alone: it runs "
+                + "later with no conversation and cannot ask questions. A routine is tested once at once.",
             risk: .modify,
             parameters: [
                 .init(name: "title", description: "a few words"),
-                .init(name: "text", description: "what to remind the user, standalone"),
+                .init(name: "text", description: "reminder: what to say; routine: standalone instructions"),
+                .init(name: "kind", description: "reminder (default) or routine", isRequired: false),
+                .init(name: "tools", description: "routine: comma-separated tool ids it may use", isRequired: false),
+                .init(name: "model", description: "routine: auto, local or cloud", isRequired: false),
                 .init(name: "plainEnglish", description: "the sentence the user agreed to", isRequired: false),
             ] + timingParameters,
             executionMode: .immediate,
-            title: "Set a reminder"
+            title: "Set a reminder or routine"
         ),
         .native(
             namespace: .schedule,
@@ -90,8 +94,9 @@ enum ScheduleToolCatalogue {
             risk: .modify, parameters: [idParameter], executionMode: .immediate, title: "Delete a reminder"
         ),
         .native(
-            namespace: .schedule, name: "run_now", description: "Deliver a reminder now, as a test.",
-            risk: .modify, parameters: [idParameter], executionMode: .immediate, title: "Run a reminder now"
+            namespace: .schedule, name: "run_now",
+            description: "Deliver a reminder, or run a routine with its own limited authority, now.",
+            risk: .modify, parameters: [idParameter], executionMode: .immediate, title: "Run a schedule now"
         ),
     ]
 }
@@ -104,7 +109,8 @@ enum ScheduleToolExecutor {
         scheduler: AgentScheduler = .shared,
         now: Date = Date(),
         timeZone: TimeZone = .current,
-        sessionID: UUID? = nil
+        sessionID: UUID? = nil,
+        availableTools: Set<String>? = nil
     ) async throws -> AgentToolResult {
         func argument(_ name: String) -> String {
             arguments[name]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -127,20 +133,53 @@ enum ScheduleToolExecutor {
 
         case "create":
             try refuseInexpressible(arguments)
-            let kind = argument("kind").lowercased()
-            if !kind.isEmpty, kind != "reminder" {
-                throw ScheduleError.notAvailable("Only reminders can be scheduled so far; routines and triggers come later.")
+            let kindWord = argument("kind").lowercased()
+            let kind: AgentSchedule.Kind
+            switch kindWord {
+            case "", "reminder": kind = .reminder
+            case "routine": kind = .routine
+            default:
+                throw ScheduleError.notAvailable("Only reminders and routines can be scheduled so far; triggers come later.")
             }
-            let text = firstNonEmpty(argument("text"), argument("prompt"), argument("title"))
-            guard !text.isEmpty else { throw ScheduleError.invalid("A reminder needs text: what to remind the user.") }
+            let text = kind == .reminder
+                ? firstNonEmpty(argument("text"), argument("prompt"), argument("title"))
+                : firstNonEmpty(argument("prompt"), argument("text"))
+            guard !text.isEmpty else {
+                throw ScheduleError.invalid(kind == .reminder
+                    ? "A reminder needs text: what to remind the user."
+                    : "A routine needs text: standalone instructions for each run.")
+            }
             let when = try parseWhen(arguments, base: nil, now: now, timeZone: timeZone)
+            var allowedTools: [String] = []
+            var model = AgentSchedule.ModelChoice.auto
+            if kind == .routine {
+                // The ceiling, fixed now: what the sentence named, within what this conversation
+                // can use, never a schedule tool or a memory write.
+                let requested = argument("tools").split(whereSeparator: { $0 == "," || $0 == " " }).map(String.init)
+                let available = availableTools ?? Set(RealtimeAgent.plannableTools().map(\.id))
+                let ceiling = RoutineToolCeiling.fix(requested: requested, available: available)
+                if !ceiling.refused.isEmpty {
+                    let reasons = ceiling.refused.keys.sorted().map { ceiling.refused[$0]! }
+                    throw ScheduleError.invalid("I can't give that routine those tools: "
+                        + reasons.joined(separator: "; ") + ". Nothing was saved.")
+                }
+                allowedTools = ceiling.allowed
+                if !argument("model").isEmpty {
+                    guard let choice = AgentSchedule.ModelChoice(rawValue: argument("model").lowercased()) else {
+                        throw ScheduleError.invalid("model must be auto, local or cloud.")
+                    }
+                    model = choice
+                }
+            }
             var schedule = AgentSchedule(
-                kind: .reminder,
+                kind: kind,
                 title: firstNonEmpty(argument("title"), String(text.prefix(40))),
                 plainEnglish: "",
                 prompt: text,
                 when: when,
                 endsAt: try parseEndsOn(argument("endsOn"), timeZone: timeZone) ?? nil,
+                allowedTools: allowedTools,
+                model: model,
                 delivery: isNo(argument("speak")) ? .notify : .notifyAndSpeak,
                 createdAt: now,
                 createdInSession: sessionID
@@ -153,7 +192,29 @@ enum ScheduleToolExecutor {
                         + "Use schedule.update to change it instead of creating another.")
             }
             let saved = try await scheduler.add(schedule, now: now)
-            return confirmation("Saved", saved, store: store, zone: timeZone)
+            guard saved.kind == .routine else {
+                return confirmation("Saved", saved, store: store, zone: timeZone)
+            }
+            // Routines run once immediately as a test. If it fails, say why and remove it: a
+            // routine saved broken fails silently every morning.
+            let test = try await scheduler.testRun(id: saved.id, now: now)
+            if test.status == .failed {
+                try? await scheduler.remove(id: saved.id)
+                throw ScheduleError.invalid("The test run failed: \(test.text) I removed the routine; nothing was saved.")
+            }
+            let tested: String = switch test.status {
+            case .reported: "Test run: \(test.text)"
+            case .nothingToReport: "Test run: it ran and had nothing to report."
+            case .skipped: "The test run was skipped (\(test.text)); the routine is saved and will try at its time."
+            case .failed: ""
+            }
+            let confirmed = confirmation("Saved", saved, store: store, zone: timeZone)
+            var summary = confirmed.summary + " " + tested
+            let routines = store.schedules.filter { $0.kind == .routine }.count
+            if let offer = LaunchAtLogin.offer(routineCount: routines, enabled: Settings.shared.agentLaunchAtLogin) {
+                summary += " " + offer
+            }
+            return AgentToolResult(summary: summary, reference: confirmed.reference, verification: confirmed.verification)
 
         case "update":
             let target = try resolve(argument("id"), in: store)
@@ -200,7 +261,7 @@ enum ScheduleToolExecutor {
                 throw ScheduleError.invalid("The test delivery failed: \(run.detail)")
             }
             return AgentToolResult(
-                summary: "Delivered now: \(target.prompt)",
+                summary: target.kind == .routine ? "Ran now: \(run.detail)" : "Delivered now: \(target.prompt)",
                 reference: target.id.uuidString,
                 verification: "Run recorded in agent-schedule-runs.jsonl")
 
@@ -218,6 +279,11 @@ enum ScheduleToolExecutor {
         text = text.prefix(1).uppercased() + text.dropFirst()
         let what = schedule.prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         var sentence = "\(text), I'll remind you: \(what)"
+        if schedule.kind == .routine {
+            let tools = schedule.allowedTools.isEmpty ? "no tools" : schedule.allowedTools.joined(separator: ", ")
+            sentence = "\(text), I'll \(what.prefix(1).lowercased() + what.dropFirst()) (using \(tools); "
+                + "anything that writes or sends waits for your approval)"
+        }
         if let ends = schedule.endsAt {
             sentence += " (until \(AgentScheduler.stamp(ends, zone: rule.calendar.timeZone)))"
         }

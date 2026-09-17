@@ -57,6 +57,8 @@ struct AgentAuditEntry: Identifiable, Sendable, Equatable, Codable {
     var toolID: String?
     var taskID: String?
     var meetingID: UUID?
+    /// The routine behind a scheduled run's entries (Part 3). Absent on older lines.
+    var scheduleID: UUID?
 
     init(
         id: String = UUID().uuidString,
@@ -66,8 +68,10 @@ struct AgentAuditEntry: Identifiable, Sendable, Equatable, Codable {
         detail: String = "",
         toolID: String? = nil,
         taskID: String? = nil,
-        meetingID: UUID? = nil
+        meetingID: UUID? = nil,
+        scheduleID: UUID? = nil
     ) {
+        self.scheduleID = scheduleID
         self.id = id
         self.at = at
         self.kind = kind

@@ -3,8 +3,8 @@ import SwiftUI
 /// Settings → Agent → Reminders.
 ///
 /// The switch, quiet hours and the speech rule, and every reminder the Agent has set with
-/// its sentence, next time and last result — paused, resumed or deleted from here. The full
-/// Routines view, with run history and drafts, arrives with routines (R2).
+/// its sentence, next time and last result — paused, resumed or deleted from here. Routines,
+/// with run history and drafts, live in Agent → Routines; *Open at login* is here and there.
 struct RemindersSection: View {
     @State private var settings = Settings.shared
     @State private var store = ScheduleStore.shared
@@ -33,10 +33,13 @@ struct RemindersSection: View {
                     .foregroundStyle(DS.Color.warning)
             }
 
-            Picker("Speak reminders", selection: $settings.agentRoutineSpeech) {
+            Picker("Speak reminders and routines", selection: $settings.agentRoutineSpeech) {
                 Text("When I'm at the Mac").tag("whenPresent")
                 Text("Never").tag("never")
             }
+
+            Toggle("Open Next Notes at login", isOn: $settings.agentLaunchAtLogin)
+                .onChange(of: settings.agentLaunchAtLogin) { _, on in error = LaunchAtLogin.apply(on) }
 
             let schedules = store.schedules.filter { $0.kind == .reminder }
             if schedules.isEmpty {
@@ -53,12 +56,13 @@ struct RemindersSection: View {
                     .foregroundStyle(DS.Color.warning)
             }
         } header: {
-            Text("Reminders")
+            Text("Reminders and routines")
         } footer: {
             SettingsNote(text: "Reminders are also handed to macOS, so they arrive while Next Notes is "
                          + "closed. Quiet hours hold a late reminder until they end. A reminder is spoken "
                          + "only when you have used the Mac in the last two minutes, nothing is recording "
-                         + "and no call is active.")
+                         + "and no call is active. Routines run only while Next Notes is open, and anything a "
+                         + "routine would write or send waits for your approval in Agent → Routines.")
         }
     }
 

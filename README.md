@@ -406,7 +406,8 @@ Sources/NextNotes/
 │   │                               TranscriptView, MeetingActionsView,
 │   │                               ProposalArgumentsSheet, SpeakerNamesSheet,
 │   │                               RenameMeetingSheet
-│   ├── Agent/                      AgentView — conversation, tasks, audit history
+│   ├── Agent/                      AgentView — conversation, tasks, audit history;
+│   │                               RoutinesView — schedules, run history, drafts
 │   ├── Onboarding/                 PermissionsChecklist, OnboardingSheet
 │   └── Settings/                   SettingsWindow + one Form per tab, ten panes:
 │                                   General, Dictation, Formatting, Meetings, Calendar,
@@ -455,7 +456,8 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-persona                 # every Agent prompt path: persona + memory chars against budget
 "$S" --selftest-memory                  # core memory: save, supersede, overflow, forget, injection and tool-output blocks; sessions and compaction
 "$S" --selftest-memory-review           # review on Tests/Fixtures/memory-review.json (precision >= 0.9, scripted model), never while recording, routine suggestions
-"$S" --selftest-schedule                # reminders: DST, month-end, grace, catch-up, Missed, backoff, endsAt, macOS hand-off, confirmation card
+"$S" --selftest-schedule                # reminders: DST, month-end, grace, catch-up, Missed, backoff, endsAt, macOS hand-off, confirmation card; routines: silence, skip retry, quiet hours, disable at 10, test run on creation
+"$S" --selftest-routine-authority       # unattended runs read, draft writes without executing, never ask PermissionGate, stop at budgets; scheduled ACP refused
 "$S" --selftest-meeting-context         # extract decisions and candidate actions
 "$S" --selftest-realtime                # question/follow-up routing, tool speech, harness, duplex VAD
 "$S" --selftest-computer                # inspect/click/type on an owned window; stub trees stay empty

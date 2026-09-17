@@ -29,6 +29,7 @@ enum ScheduleSelfTest {
         failures += recurrenceFailures()
         failures += await schedulerFailures(root: root)
         failures += await toolFailures(root: root)
+        failures += await routineFailures(root: root)
         failures += policyFailures()
 
         for failure in failures { print("SCHEDULE_CHECK_FAILED: \(failure)") }
@@ -653,9 +654,15 @@ enum ScheduleSelfTest {
                                            "plainEnglish": "every other Tuesday at 7"])?.contains("only repeat") == true)
             check("biweekly repeat was not refused",
                   await refused("create", ["title": "Pay", "text": "Payday.", "repeat": "biweekly", "time": "9:00"]) != nil)
-            check("a routine was accepted in the reminders phase",
-                  await refused("create", ["kind": "routine", "title": "Summary", "text": "Summarise.", "repeat": "daily", "time": "8:00"])?
-                    .contains("Only reminders") == true)
+            check("a trigger was accepted before R3",
+                  await refused("create", ["kind": "trigger", "title": "After", "text": "Summarise.", "repeat": "daily", "time": "8:00"])?
+                    .contains("Only reminders and routines") == true)
+            // This scheduler has no runner, so a routine's test run fails and it is removed.
+            let untestable = await refused("create", ["kind": "routine", "title": "Summary", "text": "Summarise.",
+                                                      "repeat": "daily", "time": "8:00"])
+            check("a routine whose test run failed was kept (\(untestable ?? "saved"))",
+                  untestable?.contains("test run failed") == true
+                    && !scheduler.store.schedules.contains { $0.kind == .routine })
             check("a past one-shot was accepted",
                   await refused("create", ["title": "Past", "text": "Too late.", "date": "2026-09-15", "time": "9:00"])?
                     .contains("already passed") == true)
@@ -707,6 +714,207 @@ enum ScheduleSelfTest {
         check("switched-off list refused",
               (try? await ScheduleToolExecutor.run(tool("list"), arguments: [:], scheduler: off, now: now, timeZone: newYork)) != nil)
         check("switched off still registered with macOS", offSystem.registered.isEmpty)
+        return failures
+    }
+
+    // MARK: - Routines under a fake clock
+
+    /// Routines through the scheduler, with a scripted runner: the silence token, a skip
+    /// retried within grace, quiet hours holding the result and not the run, one catch-up run,
+    /// failure escalation to one disable notification, and creation's test run.
+    private static func routineFailures(root: URL) async -> [String] {
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append("routines: \(name)") }
+        }
+        let system = FakeSystem()
+        let deliverer = FakeDeliverer()
+        let environment = FakeEnvironment()
+        let runner = ScriptedRunner()
+        var settings = ScheduleSettingsSnapshot(enabled: true, quietStart: nil, quietEnd: nil, speech: .whenPresent)
+        func makeScheduler(_ name: String) -> AgentScheduler {
+            AgentScheduler(
+                store: ScheduleStore(directory: root.appendingPathComponent(name, isDirectory: true)),
+                system: system, deliverer: deliverer, environment: environment,
+                settings: { settings }, timeZone: { newYork }, runner: runner)
+        }
+        func routine(_ h: Int, _ m: Int, created: Date) -> AgentSchedule {
+            let when = ScheduleWhen(repeatRule: .daily, time: ScheduleLocalTime(hour: h, minute: m),
+                                    timeZone: newYork.identifier)
+            return AgentSchedule(kind: .routine, title: "Inbox check", plainEnglish: "Every day at 08:00, check my inbox.",
+                                 prompt: "Tell me if anything in my inbox needs me.", when: when,
+                                 allowedTools: ["search_email", "schedule.create"], createdAt: created)
+        }
+
+        do {
+            let scheduler = makeScheduler("routine-daily")
+            let created = date(2026, 9, 16, 7, 0)
+            let saved = try await scheduler.add(routine(8, 0, created: created), now: created)
+            check("a routine was registered with macOS", system.registered[saved.id] == nil)
+            check("a schedule tool survived into a routine's allowed tools", saved.allowedTools == ["search_email"])
+
+            // Silence: ran, nothing delivered, recorded.
+            runner.queue = [ScheduledRunOutcome(status: .nothingToReport, text: "")]
+            await scheduler.runOnce(now: date(2026, 9, 16, 8, 0, 5))
+            check("NOTHING_TO_REPORT delivered something", deliverer.deliveries.isEmpty && runner.runs == 1)
+            check("nothing to report not recorded",
+                  scheduler.store.schedule(id: saved.id)?.lastRun?.outcome == .nothingToReport)
+
+            // Skipped for a busy model: retried a minute later within grace, and logged.
+            runner.queue = [.skipped("local model busy"),
+                            ScheduledRunOutcome(status: .reported, text: "Two emails need you.")]
+            await scheduler.runOnce(now: date(2026, 9, 17, 8, 0, 5))
+            let skippedRun = scheduler.store.runs(for: saved.id).last
+            check("a skip was not logged with its reason",
+                  skippedRun?.outcome == .skipped && skippedRun?.detail.contains("local model busy") == true)
+            check("a skip within grace was not retried a minute later",
+                  scheduler.store.schedule(id: saved.id)?.pendingDelivery?.notBefore == date(2026, 9, 17, 8, 1, 5))
+            await scheduler.runOnce(now: date(2026, 9, 17, 8, 1, 6))
+            check("the retried run did not deliver its result",
+                  deliverer.deliveries.count == 1 && deliverer.deliveries.last?.body == "Two emails need you."
+                    && deliverer.deliveries.last?.kind == .routine && deliverer.deliveries.last?.title == "Inbox check")
+            check("a delivered routine not recorded completed",
+                  scheduler.store.schedule(id: saved.id)?.lastRun?.outcome == .completed)
+
+            // Quiet hours hold the result, not the run.
+            settings.quietStart = ScheduleLocalTime(hour: 7, minute: 0)
+            settings.quietEnd = ScheduleLocalTime(hour: 9, minute: 0)
+            runner.queue = [ScheduledRunOutcome(status: .reported, text: "Summary ready.")]
+            let runsBefore = runner.runs
+            await scheduler.runOnce(now: date(2026, 9, 18, 8, 0, 5))
+            check("quiet hours held the run itself", runner.runs == runsBefore + 1)
+            check("quiet hours did not hold the result",
+                  deliverer.deliveries.count == 1
+                    && scheduler.store.schedule(id: saved.id)?.pendingDelivery?.text == "Summary ready.")
+            runner.queue = []
+            await scheduler.runOnce(now: date(2026, 9, 18, 9, 0, 5))
+            check("the held result was not delivered once quiet hours ended, without running again",
+                  deliverer.deliveries.count == 2 && deliverer.deliveries.last?.body == "Summary ready."
+                    && runner.runs == runsBefore + 1)
+            settings.quietStart = nil
+            settings.quietEnd = nil
+
+            // Days went by: one catch-up run, not one per slot.
+            runner.queue = [ScheduledRunOutcome(status: .nothingToReport, text: "")]
+            let beforeCatchUp = runner.runs
+            await scheduler.runOnce(now: date(2026, 9, 22, 12, 0))
+            check("a routine backlog did not collapse into one run", runner.runs == beforeCatchUp + 1)
+            check("routine catch-up did not log the skipped slots",
+                  scheduler.store.runs(for: saved.id).contains { $0.outcome == .skipped && $0.skippedSlots == 3 })
+
+            // Drafts are notified.
+            let draft = RoutineDraft(scheduleID: saved.id, taskID: "t", receiptID: UUID(), toolID: "send_email",
+                                     arguments: [:], title: "Reply to Sam", preview: nil, risk: .send,
+                                     createdAt: date(2026, 9, 23, 8, 0))
+            runner.queue = [ScheduledRunOutcome(status: .reported, text: "Ready for your approval: Reply to Sam.",
+                                                drafts: [draft])]
+            await scheduler.runOnce(now: date(2026, 9, 23, 8, 0, 5))
+            check("a draft was not notified for approval", deliverer.drafts.map(\.id) == [draft.id])
+        } catch {
+            failures.append("routines: daily fixture threw \(error.localizedDescription)")
+        }
+
+        // Failures: 1, 5, 15, 60 minutes; one notice at 3; disabled at 10 with one notice.
+        do {
+            deliverer.reset()
+            let scheduler = makeScheduler("routine-failures")
+            let created = date(2026, 9, 16, 7, 0)
+            let saved = try await scheduler.add(routine(8, 0, created: created), now: created)
+            runner.queue = []
+            runner.fallback = ScheduledRunOutcome(status: .failed, text: "OpenRouter returned 500.")
+            let before = runner.runs
+            var now = date(2026, 9, 16, 8, 0, 1)
+            var gaps: [TimeInterval] = []
+            await scheduler.runOnce(now: now)
+            for _ in 0..<12 {
+                guard let pending = scheduler.store.schedule(id: saved.id)?.pendingDelivery else { break }
+                gaps.append(pending.notBefore.timeIntervalSince(now))
+                now = pending.notBefore.addingTimeInterval(1)
+                await scheduler.runOnce(now: now)
+            }
+            print("SCHEDULE_ROUTINE_BACKOFF \(gaps.map { Int($0) })")
+            let final = scheduler.store.schedule(id: saved.id)
+            check("routine backoff is not 1, 5, 15, 60 minutes", Array(gaps.prefix(5)) == [60, 300, 900, 3_600, 3_600])
+            check("routine did not stop at 10 runs", runner.runs - before == 10 && final?.consecutiveFailures == 10)
+            check("routine did not disable itself after 10 failures", final?.enabled == false && final?.nextRunAt == nil)
+            let disables = deliverer.problems.filter { $0.contains("turned itself off") }
+            check("routine failure notifications are not one at 3 and one disable (\(deliverer.problems))",
+                  deliverer.problems.count == 2 && disables.count == 1
+                    && deliverer.problems.first?.hasPrefix("A routine keeps failing") == true)
+            await scheduler.runOnce(now: now.addingTimeInterval(86_400 * 2))
+            check("a disabled routine ran again", runner.runs - before == 10)
+            runner.fallback = nil
+        } catch {
+            failures.append("routines: failure fixture threw \(error.localizedDescription)")
+        }
+
+        // Creation: the ceiling, the test run, removal when it fails, the login offer.
+        do {
+            deliverer.reset()
+            let scheduler = makeScheduler("routine-tools")
+            let now = date(2026, 9, 16, 7, 0)
+            let createTool = ScheduleToolCatalogue.all.first { $0.name == "create" }!
+            let available: Set<String> = ["search_email", "send_email", "meeting.search", "schedule.create", "memory.remember"]
+            func create(_ arguments: [String: String]) async -> Result<AgentToolResult, Error> {
+                do {
+                    return .success(try await ScheduleToolExecutor.run(
+                        createTool, arguments: arguments, scheduler: scheduler, now: now, timeZone: newYork,
+                        availableTools: available))
+                } catch {
+                    return .failure(error)
+                }
+            }
+            let base = ["kind": "routine", "title": "Monday summary", "repeat": "weekly", "days": "monday", "time": "8:00",
+                        "text": "Summarise last week's meetings in three sentences."]
+
+            var withSchedule = base
+            withSchedule["tools"] = "meeting.search, schedule.create"
+            if case .failure(let error) = await create(withSchedule) {
+                check("a routine asking for schedule.create was not refused in words",
+                      error.localizedDescription.contains("cannot create or change schedules"))
+            } else {
+                failures.append("routines: a routine was saved with schedule.create")
+            }
+            var withMemory = base
+            withMemory["tools"] = "memory.remember"
+            if case .success = await create(withMemory) { failures.append("routines: a routine was saved with a memory write") }
+            var outside = base
+            outside["tools"] = "filesystem.write"
+            if case .success = await create(outside) {
+                failures.append("routines: a routine was saved with a tool the conversation could not use")
+            }
+            check("a refused routine left something saved", scheduler.store.schedules.isEmpty)
+
+            runner.queue = [ScheduledRunOutcome(status: .failed, text: "OpenRouter isn't reachable.")]
+            var good = base
+            good["tools"] = "meeting.search"
+            if case .failure(let error) = await create(good) {
+                check("a failed test run did not say why", error.localizedDescription.contains("OpenRouter isn't reachable"))
+            } else {
+                failures.append("routines: a routine whose test run failed was kept")
+            }
+            check("a routine whose test run failed was not removed", scheduler.store.schedules.isEmpty)
+
+            runner.queue = [ScheduledRunOutcome(status: .reported, text: "Three meetings last week.")]
+            switch await create(good) {
+            case .success(let result):
+                print("SCHEDULE_ROUTINE create -> \(result.summary)")
+                let stored = scheduler.store.schedules.first
+                check("a tested routine was not saved enabled with its ceiling",
+                      stored?.kind == .routine && stored?.enabled == true && stored?.allowedTools == ["meeting.search"])
+                check("the test run was not visible", deliverer.deliveries.last?.body == "Three meetings last week."
+                      && stored?.lastRun?.outcome == .ranNow)
+                check("the sentence does not name the tools and approval",
+                      stored?.plainEnglish.contains("meeting.search") == true
+                        && stored?.plainEnglish.contains("approval") == true)
+                check("the first routine did not offer Open at login", result.summary.contains("Open at login"))
+            case .failure(let error):
+                failures.append("routines: a good routine was refused: \(error.localizedDescription)")
+            }
+            check("the login offer is made for a second routine or with it on",
+                  LaunchAtLogin.offer(routineCount: 2, enabled: false) == nil
+                    && LaunchAtLogin.offer(routineCount: 1, enabled: true) == nil)
+        }
         return failures
     }
 
@@ -835,8 +1043,26 @@ enum ScheduleSelfTest {
             problems.append("\(title): \(body)")
         }
 
+        var drafts: [RoutineDraft] = []
+
+        func notifyDrafts(_ drafts: [RoutineDraft], scheduleTitle: String) {
+            self.drafts += drafts
+        }
+
         func openSchedules() {}
         func speak(_ text: String) {}
+    }
+
+    private final class ScriptedRunner: ScheduledRunning {
+        var queue: [ScheduledRunOutcome] = []
+        var fallback: ScheduledRunOutcome?
+        var runs = 0
+
+        func run(_ schedule: AgentSchedule, now: Date) async -> ScheduledRunOutcome {
+            runs += 1
+            if !queue.isEmpty { return queue.removeFirst() }
+            return fallback ?? ScheduledRunOutcome(status: .nothingToReport, text: "")
+        }
     }
 
     private final class FakeEnvironment: ScheduleEnvironment {

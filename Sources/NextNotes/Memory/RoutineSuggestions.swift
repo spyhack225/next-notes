@@ -17,6 +17,8 @@ struct RoutineSuggestion: Codable, Identifiable, Equatable, Sendable {
     let createdAt: Date
     var offeredAt: Date?
     var offeredInSession: UUID?
+    /// *Set it up* or *Dismiss* in the Routines view: it leaves the list and is never offered.
+    var resolvedAt: Date?
 
     /// "You've asked “what's on my calendar” on 3 different days, usually around 9:00. …"
     func offer(zone: TimeZone = .current) -> String {
@@ -165,6 +167,19 @@ final class MemoryReviewStateStore {
         suggestions[index].offeredInSession = sessionID
         persist()
         return suggestions[index].offer()
+    }
+
+    /// Suggestions still shown at the top of the Routines view.
+    var openSuggestions: [RoutineSuggestion] {
+        suggestions.filter { $0.resolvedAt == nil }
+    }
+
+    /// *Set it up* or *Dismiss*: either way it is done, and the Agent will not offer it again.
+    func resolveSuggestion(id: UUID, now: Date = Date()) {
+        guard let index = suggestions.firstIndex(where: { $0.id == id }) else { return }
+        suggestions[index].resolvedAt = now
+        if suggestions[index].offeredAt == nil { suggestions[index].offeredAt = now }
+        persist()
     }
 
     /// Seeds a suggestion directly, for `--selftest-memory-review`.

@@ -54,6 +54,15 @@ final class NavigationState {
     /// window that is usually closed, and reopening on General is the least surprising.
     var selectedSettingsTab: SettingsTab = .general
 
+    /// Which pane the Agent section shows. Not persisted: the conversation is home.
+    enum AgentPane: String, CaseIterable, Identifiable {
+        case conversation = "Conversation"
+        case routines = "Routines"
+        var id: String { rawValue }
+    }
+
+    var agentPane: AgentPane = .conversation
+
     private enum Keys {
         static let section = "navigation.section"
     }
@@ -65,6 +74,12 @@ final class NavigationState {
 
     func show(_ section: SidebarSection) {
         selectedSection = section
+    }
+
+    /// Agent → Routines, from a routine's notification.
+    func showRoutines() {
+        selectedSection = .agent
+        agentPane = .routines
     }
 
     func show(meeting id: UUID) {

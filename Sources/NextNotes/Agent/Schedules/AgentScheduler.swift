@@ -77,6 +77,8 @@ struct ScheduleDelivery: Sendable, Equatable {
     let speak: Bool
     /// What is said, when `speak`.
     let spoken: String
+    /// A routine's result is titled with the routine; a reminder says "Reminder".
+    var kind: AgentSchedule.Kind = .reminder
 }
 
 @MainActor
@@ -84,6 +86,9 @@ protocol ScheduleDelivering: AnyObject {
     func deliver(_ delivery: ScheduleDelivery) async throws
     /// One notification about a schedule that keeps failing, or turned itself off.
     func notifyProblem(scheduleID: UUID, title: String, body: String)
+    /// A routine prepared writes it did not run: one `agentRoutineApproval` notification
+    /// each, with Review and Approve.
+    func notifyDrafts(_ drafts: [RoutineDraft], scheduleTitle: String)
     func openSchedules()
     func speak(_ text: String)
 }
@@ -115,6 +120,8 @@ struct ScheduleEdit: Sendable {
     /// `.some(nil)` clears the end date.
     var endsAt: Date??
     var delivery: AgentSchedule.Delivery?
+    /// A routine's model: auto, local or cloud. From the Routines view's editor.
+    var model: AgentSchedule.ModelChoice?
 }
 
 /// Runs reminders on time, shaped exactly like `MeetingScheduler`.
@@ -136,7 +143,10 @@ struct ScheduleEdit: Sendable {
 /// - **Failures escalate.** Retry after 1, 5, 15, then 60 minutes; one notification at 3
 ///   consecutive failures; at 10 the schedule turns itself off and says so.
 ///
-/// Only reminders run in this phase. Routines and triggers are stored, never dispatched.
+/// Routines (R2) run here too, one at a time — there is one Metal GPU — through
+/// `ScheduledRunner`: quiet hours hold a routine's *result*, not its run; a skipped slot
+/// ("local model busy") is retried a minute later while still within grace; a failed run
+/// escalates exactly like a failed reminder. Triggers are stored, never dispatched.
 @MainActor
 @Observable
 final class AgentScheduler {
@@ -145,7 +155,12 @@ final class AgentScheduler {
         system: ScheduleNotifications.shared,
         deliverer: LiveScheduleDelivery(),
         environment: LiveScheduleEnvironment(),
-        settings: { .fromSettings() }
+        settings: { .fromSettings() },
+        runner: ScheduledRunner(
+            store: .shared,
+            environment: LiveScheduledRunEnvironment(),
+            tools: LiveScheduledToolRunner(),
+            recorder: LiveScheduledRunRecorder())
     )
 
     static let tickInterval: TimeInterval = 30
@@ -156,6 +171,9 @@ final class AgentScheduler {
     static let failureNotifyThreshold = 3
     static let failureDisableThreshold = 10
     static let snoozeInterval: TimeInterval = 10 * 60
+    /// A routine skipped for a busy model tries again this much later, while within grace.
+    static let skipRetryInterval: TimeInterval = 60
+    static let skipRetryReason = "skipped"
 
     let store: ScheduleStore
     private let system: ReminderSystemRegistering
@@ -163,6 +181,7 @@ final class AgentScheduler {
     private let environment: ScheduleEnvironment
     private let settingsProvider: @MainActor () -> ScheduleSettingsSnapshot
     private let zoneProvider: () -> TimeZone
+    private let runner: (any ScheduledRunning)?
 
     private var tick: Task<Void, Never>?
     /// Passes run one at a time: the loop, a wake, and a macOS reminder firing in the
@@ -182,8 +201,10 @@ final class AgentScheduler {
         deliverer: ScheduleDelivering,
         environment: ScheduleEnvironment,
         settings: @escaping @MainActor () -> ScheduleSettingsSnapshot,
-        timeZone: @escaping () -> TimeZone = { .current }
+        timeZone: @escaping () -> TimeZone = { .current },
+        runner: (any ScheduledRunning)? = nil
     ) {
+        self.runner = runner
         self.store = store
         self.system = system
         self.deliverer = deliverer
@@ -290,7 +311,9 @@ final class AgentScheduler {
         for original in store.schedules {
             var schedule = original
             if schedule.lastRun?.outcome == .started {
-                let detail = "Next Notes quit while this reminder was being delivered; it was not repeated."
+                let detail = schedule.kind == .reminder
+                    ? "Next Notes quit while this reminder was being delivered; it was not repeated."
+                    : "Next Notes quit while this routine was running; it was not repeated."
                 record(&schedule, slot: nil, at: now, outcome: .interrupted, detail: detail)
             }
             guard schedule.kind == .reminder else {
@@ -348,8 +371,8 @@ final class AgentScheduler {
     }
 
     private func process(_ original: AgentSchedule, now: Date, settings: ScheduleSettingsSnapshot) async {
-        // Routines and triggers arrive in later phases; they are stored, never dispatched.
-        guard original.kind == .reminder else { return }
+        // Triggers arrive in R3; they are stored, never dispatched.
+        guard original.kind != .trigger else { return }
         var schedule = original
         // A snooze the user pressed still goes out on a paused reminder; nothing else does.
         let snoozed = schedule.pendingDelivery?.reason == Self.snoozeReason
@@ -364,14 +387,18 @@ final class AgentScheduler {
 
         // 1. A delivery held back earlier.
         if let pending = schedule.pendingDelivery, pending.notBefore <= now {
-            if settings.isQuiet(now, zone: zoneProvider()), pending.reason != Self.snoozeReason {
+            // Quiet hours hold what would be shown — a reminder, or a routine's finished
+            // result — never a routine's retry, which only runs.
+            let holdsDelivery = schedule.kind == .reminder || pending.text != nil
+            if settings.isQuiet(now, zone: zoneProvider()), pending.reason != Self.snoozeReason, holdsDelivery {
                 schedule.pendingDelivery?.notBefore = settings.quietEnd(after: now, zone: zoneProvider())
                 store.save(schedule)
             } else {
                 schedule.pendingDelivery = nil
                 schedule.lastRun = ScheduleRunSummary(at: now, outcome: .started, detail: "Delivering")
                 guard store.save(schedule) else { return }
-                await dispatch(&schedule, slot: pending.slot, missed: pending.missed, now: now, settings: settings)
+                await dispatch(&schedule, slot: pending.slot, missed: pending.missed, now: now, settings: settings,
+                               heldText: pending.text, ignoreQuiet: pending.reason == Self.snoozeReason)
             }
         }
 
@@ -410,7 +437,8 @@ final class AgentScheduler {
         let horizon = min(now, schedule.endsAt ?? now)
         let slots = [due] + rule.occurrences(after: due, through: horizon)
         let deliveredSlot = slots[slots.count - 1]
-        let missed = now.timeIntervalSince(deliveredSlot) > rule.grace
+        // A routine's catch-up is one run of its work, not a *Missed* notice.
+        let missed = schedule.kind == .reminder && now.timeIntervalSince(deliveredSlot) > rule.grace
 
         // The hand-off pass was missed (the Mac slept, or App Nap held the timer) and macOS
         // already showed its registered banner: record that, advance, and do not show a copy.
@@ -445,9 +473,10 @@ final class AgentScheduler {
                    skippedSlots: slots.count - 1, summarize: false)
         }
 
-        // Quiet hours hold the delivery, unless the reminder was set for this very time.
+        // Quiet hours hold the delivery, unless the reminder was set for this very time. A
+        // routine runs regardless; `runRoutine` holds its result instead.
         let zone = zoneProvider()
-        if settings.isQuiet(now, zone: zone), !settings.isQuiet(deliveredSlot, zone: zone) {
+        if schedule.kind == .reminder, settings.isQuiet(now, zone: zone), !settings.isQuiet(deliveredSlot, zone: zone) {
             let resume = settings.quietEnd(after: now, zone: zone)
             // A retry or snooze already held keeps its place; one held delivery at a time.
             if schedule.pendingDelivery == nil {
@@ -474,8 +503,20 @@ final class AgentScheduler {
         now: Date,
         settings: ScheduleSettingsSnapshot,
         missedReason: String? = nil,
-        outcome: ScheduleRunRecord.Outcome? = nil
+        outcome: ScheduleRunRecord.Outcome? = nil,
+        heldText: String? = nil,
+        ignoreQuiet: Bool = false
     ) async {
+        if schedule.kind == .routine {
+            if let heldText {
+                await deliverRoutineResult(&schedule, text: heldText, slot: slot, now: now, settings: settings,
+                                           outcome: outcome ?? .completed, ignoreQuiet: ignoreQuiet)
+                store.save(schedule)
+            } else {
+                await runRoutine(&schedule, slot: slot, now: now, settings: settings, forced: outcome)
+            }
+            return
+        }
         let delivery = makeDelivery(for: schedule, slot: slot, missed: missed, now: now, settings: settings)
         do {
             try await deliverer.deliver(delivery)
@@ -492,7 +533,109 @@ final class AgentScheduler {
         store.save(schedule)
     }
 
+    // MARK: - Routines
+
+    /// Runs a routine through `ScheduledRunner`, delivers or holds what it found, notifies its
+    /// drafts, and saves. `forced` is `.ranNow` for *Run now* and the test on creation: those
+    /// are delivered at once and never escalate or retry.
+    @discardableResult
+    private func runRoutine(
+        _ schedule: inout AgentSchedule,
+        slot: Date?,
+        now: Date,
+        settings: ScheduleSettingsSnapshot,
+        forced: ScheduleRunRecord.Outcome? = nil
+    ) async -> ScheduledRunOutcome {
+        guard let runner else {
+            let result = ScheduledRunOutcome(status: .failed, text: "Routines can't run in this build.")
+            if forced == nil {
+                fail(&schedule, slot: slot, missed: false, now: now, error: result.text)
+            } else {
+                record(&schedule, slot: slot, at: now, outcome: .failed, detail: result.text)
+            }
+            store.save(schedule)
+            return result
+        }
+        let result = await runner.run(schedule, now: now)
+        if !result.drafts.isEmpty {
+            deliverer.notifyDrafts(result.drafts, scheduleTitle: schedule.title)
+        }
+        let draftNote = result.drafts.isEmpty ? ""
+            : " \(result.drafts.count) draft\(result.drafts.count == 1 ? "" : "s") awaiting approval."
+        let refusalNote = result.refusals.isEmpty ? "" : " Refused: " + result.refusals.joined(separator: " ")
+        switch result.status {
+        case .skipped:
+            let zone = schedule.when.flatMap { TimeZone(identifier: $0.timeZone) } ?? zoneProvider()
+            let retryAt = now.addingTimeInterval(Self.skipRetryInterval)
+            if forced == nil, schedule.enabled, let slot, let rule = schedule.when.flatMap(RecurrenceRule.init),
+               retryAt <= slot.addingTimeInterval(rule.grace) {
+                schedule.pendingDelivery = SchedulePendingDelivery(
+                    slot: slot, notBefore: retryAt, missed: false, reason: Self.skipRetryReason)
+                record(&schedule, slot: slot, at: now, outcome: .skipped,
+                       detail: "Skipped — \(result.text). Trying again at \(Self.stamp(retryAt, zone: zone)).",
+                       skippedSlots: 1)
+            } else {
+                record(&schedule, slot: slot, at: now, outcome: .skipped,
+                       detail: "Skipped — \(result.text).", skippedSlots: slot == nil ? 0 : 1)
+            }
+        case .failed:
+            if forced == nil {
+                fail(&schedule, slot: slot, missed: false, now: now, error: result.text + refusalNote)
+            } else {
+                record(&schedule, slot: slot, at: now, outcome: .failed, detail: result.text + refusalNote)
+            }
+        case .nothingToReport:
+            schedule.consecutiveFailures = forced == nil ? 0 : schedule.consecutiveFailures
+            record(&schedule, slot: slot, at: now, outcome: forced ?? .nothingToReport,
+                   detail: "Ran, nothing to report." + draftNote + refusalNote)
+        case .reported:
+            if forced == nil { schedule.consecutiveFailures = 0 }
+            await deliverRoutineResult(&schedule, text: result.text, slot: slot, now: now, settings: settings,
+                                       outcome: forced ?? .completed, ignoreQuiet: forced != nil,
+                                       note: draftNote + refusalNote)
+        }
+        store.save(schedule)
+        return result
+    }
+
+    /// Shows a routine's result — or holds it until quiet hours end: the summary is ready in
+    /// the morning.
+    private func deliverRoutineResult(
+        _ schedule: inout AgentSchedule,
+        text: String,
+        slot: Date?,
+        now: Date,
+        settings: ScheduleSettingsSnapshot,
+        outcome: ScheduleRunRecord.Outcome,
+        ignoreQuiet: Bool,
+        note: String = ""
+    ) async {
+        let zone = zoneProvider()
+        if !ignoreQuiet, settings.isQuiet(now, zone: zone) {
+            let resume = settings.quietEnd(after: now, zone: zone)
+            if schedule.pendingDelivery == nil {
+                schedule.pendingDelivery = SchedulePendingDelivery(
+                    slot: slot, notBefore: resume, missed: false, reason: "quiet hours", text: text)
+            }
+            record(&schedule, slot: slot, at: now, outcome: .deferred,
+                   detail: "Ran; quiet hours — the result is held until \(Self.stamp(resume, zone: zone))." + note)
+            return
+        }
+        let delivery = makeDelivery(for: schedule, slot: slot, missed: false, now: now, settings: settings, text: text)
+        do {
+            try await deliverer.deliver(delivery)
+            lastDeliveredText[schedule.id] = delivery.spoken
+            record(&schedule, slot: slot, at: now, outcome: outcome,
+                   detail: text + (delivery.speak ? " (spoken)" : "") + note)
+        } catch {
+            fail(&schedule, slot: slot, missed: false, now: now, error: error.localizedDescription)
+            // The run succeeded; the retry shows the same result rather than running again.
+            schedule.pendingDelivery?.text = text
+        }
+    }
+
     private func fail(_ schedule: inout AgentSchedule, slot: Date?, missed: Bool, now: Date, error: String) {
+        let noun = schedule.kind == .reminder ? "Reminder" : "Routine"
         schedule.consecutiveFailures += 1
         let failures = schedule.consecutiveFailures
         record(&schedule, slot: slot, at: now, outcome: .failed, detail: error)
@@ -506,7 +649,7 @@ final class AgentScheduler {
             }
             deliverer.notifyProblem(
                 scheduleID: schedule.id,
-                title: "Reminder turned off",
+                title: "\(noun) turned off",
                 body: "“\(schedule.title)” failed \(failures) times in a row and turned itself off. Last error: \(error)"
             )
             return
@@ -514,7 +657,7 @@ final class AgentScheduler {
         if failures == Self.failureNotifyThreshold {
             deliverer.notifyProblem(
                 scheduleID: schedule.id,
-                title: "A reminder keeps failing",
+                title: "A \(noun.lowercased()) keeps failing",
                 body: "“\(schedule.title)” failed \(failures) times in a row: \(error)"
             )
         }
@@ -528,13 +671,17 @@ final class AgentScheduler {
         slot: Date?,
         missed: Bool,
         now: Date,
-        settings: ScheduleSettingsSnapshot
+        settings: ScheduleSettingsSnapshot,
+        text routineText: String? = nil
     ) -> ScheduleDelivery {
-        let text = schedule.prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = (routineText ?? schedule.prompt).trimmingCharacters(in: .whitespacesAndNewlines)
         let zone = schedule.when.flatMap { TimeZone(identifier: $0.timeZone) } ?? zoneProvider()
         let body: String
         let spoken: String
-        if missed, let slot {
+        if schedule.kind == .routine {
+            body = text
+            spoken = "\(schedule.title): \(text)"
+        } else if missed, let slot {
             body = "Missed: \(text) (due \(Self.stamp(slot, zone: zone)))"
             spoken = "You missed a reminder: \(text)"
         } else {
@@ -550,8 +697,9 @@ final class AgentScheduler {
             && !environment.isAgentBusy
             && !settings.isQuiet(now, zone: zoneProvider())
         return ScheduleDelivery(
-            scheduleID: schedule.id, title: missed ? "Missed reminder" : "Reminder",
-            body: body, missed: missed, speak: speak, spoken: spoken)
+            scheduleID: schedule.id,
+            title: schedule.kind == .routine ? schedule.title : missed ? "Missed reminder" : "Reminder",
+            body: body, missed: missed, speak: speak, spoken: spoken, kind: schedule.kind)
     }
 
     /// Why slots went by undelivered: the only three things that stop a pass from running.
@@ -599,13 +747,16 @@ final class AgentScheduler {
     }
 
     private func addNow(_ draft: AgentSchedule, now: Date) async throws -> AgentSchedule {
-        guard draft.kind == .reminder else {
-            throw ScheduleError.notAvailable("Only reminders can be scheduled so far; routines and triggers come later.")
+        guard draft.kind != .trigger else {
+            throw ScheduleError.notAvailable("Triggers aren't available yet; reminders and routines are.")
         }
         guard let when = draft.when, let rule = RecurrenceRule(when) else {
-            throw ScheduleError.invalid("A reminder needs a time and a known time zone.")
+            throw ScheduleError.invalid("A schedule needs a time and a known time zone.")
         }
         var schedule = draft
+        // Runs cannot create schedules, whatever the caller built.
+        schedule.allowedTools.removeAll { $0.hasPrefix("schedule.") }
+        if schedule.kind == .reminder { schedule.allowedTools = [] }
         schedule.nextRunAt = bounded(rule.next(after: now), by: schedule.endsAt)
         schedule.lastRun = nil
         schedule.consecutiveFailures = 0
@@ -632,6 +783,7 @@ final class AgentScheduler {
         if let title = edit.title { schedule.title = title }
         if let prompt = edit.prompt { schedule.prompt = prompt }
         if let delivery = edit.delivery { schedule.delivery = delivery }
+        if let model = edit.model, schedule.kind == .routine { schedule.model = model }
         let timingChanged = edit.when != nil || edit.endsAt != nil
         if let when = edit.when { schedule.when = when }
         if let endsAt = edit.endsAt { schedule.endsAt = endsAt }
@@ -703,6 +855,7 @@ final class AgentScheduler {
             guard store.schedule(id: id) != nil else { throw ScheduleError.notFound(id.uuidString) }
             system.withdraw(scheduleID: id)
             guard store.remove(id: id) else { throw ScheduleError.couldNotSave }
+            store.removeDrafts(for: id)
             return true
         }
     }
@@ -718,15 +871,44 @@ final class AgentScheduler {
         }
     }
 
+    /// A routine's test run on creation: once, immediately and visibly, never escalating.
+    /// The caller removes the routine when this fails.
+    func testRun(id: UUID, now: Date) async throws -> ScheduledRunOutcome {
+        try await serialized { [self] in
+            store.reload()
+            guard var schedule = store.schedule(id: id) else { throw ScheduleError.notFound(id.uuidString) }
+            guard schedule.kind == .routine else {
+                return ScheduledRunOutcome(status: .nothingToReport, text: "")
+            }
+            return await runRoutine(&schedule, slot: nil, now: now, settings: settingsProvider(), forced: .ranNow)
+        }
+    }
+
+    /// Approving a draft is the user's authority; the action executes now.
+    @discardableResult
+    func approveDraft(id: UUID, now: Date = Date(),
+                      execute: RoutineDraftApproval.Executor = RoutineDraftApproval.liveExecutor) async throws -> RoutineDraft {
+        try await RoutineDraftApproval.approve(id: id, store: store, now: now, execute: execute)
+    }
+
+    func dismissDraft(id: UUID, now: Date = Date()) {
+        RoutineDraftApproval.dismiss(id: id, store: store, now: now)
+    }
+
     /// Holds the reminder for ten minutes, then delivers it again, quiet hours or not — and
     /// even if the reminder is paused or finished: the user pressed Snooze on this one.
     func snooze(id: UUID, now: Date) async {
         await enqueue { [self] in
             store.reload()
             guard var schedule = store.schedule(id: id) else { return }
+            // A routine's snooze shows its last result again; it does not re-run the work.
+            let held: String? = schedule.kind == .routine
+                ? (lastDeliveredText[id].map { $0.replacingOccurrences(of: "\(schedule.title): ", with: "") }
+                    ?? schedule.lastRun?.detail)
+                : nil
             schedule.pendingDelivery = SchedulePendingDelivery(
                 slot: nil, notBefore: now.addingTimeInterval(Self.snoozeInterval), missed: false,
-                reason: Self.snoozeReason)
+                reason: Self.snoozeReason, text: held)
             record(&schedule, slot: nil, at: now, outcome: .deferred, detail: "Snoozed for 10 minutes.")
             store.save(schedule)
         }
@@ -741,10 +923,19 @@ final class AgentScheduler {
         case .readScheduleAloud(let id):
             // Pressing the button is presence enough.
             let text = lastDeliveredText[id]
-                ?? store.schedule(id: id).map { "Reminder: \($0.prompt)" }
+                ?? store.schedule(id: id).map { $0.kind == .reminder ? "Reminder: \($0.prompt)" : "\($0.title): \($0.lastRun?.detail ?? "")" }
             if let text { deliverer.speak(text) }
-        case .openSchedule:
+        case .openSchedule, .reviewRoutineDraft:
             deliverer.openSchedules()
+        case .approveRoutineDraft(let id):
+            Task { @MainActor in
+                do {
+                    let draft = try await approveDraft(id: id)
+                    IslandState.shared.showAgentReply("Approved: \(draft.title)")
+                } catch {
+                    IslandState.shared.showAgentReply("That draft did not run: \(error.localizedDescription)")
+                }
+            }
         case .recordNow, .skip, .open, .approveProposal, .dismissProposal:
             break
         }
@@ -809,7 +1000,8 @@ final class LiveScheduleDelivery: ScheduleDelivering {
     func deliver(_ delivery: ScheduleDelivery) async throws {
         try await Notifications.shared.postAgentReminder(
             scheduleID: delivery.scheduleID, title: delivery.title, body: delivery.body)
-        IslandState.shared.showAgentReply(delivery.missed ? delivery.body : "Reminder: \(delivery.body)")
+        IslandState.shared.showAgentReply(delivery.kind == .routine || delivery.missed
+            ? "\(delivery.title): \(delivery.body)" : "Reminder: \(delivery.body)")
         if delivery.speak {
             // The synthesizer directly: no voice session, no microphone.
             AgentSpeechSynthesizer.shared.speak(delivery.spoken)
@@ -821,10 +1013,17 @@ final class LiveScheduleDelivery: ScheduleDelivering {
     }
 
     func openSchedules() {
+        NavigationState.shared.showRoutines()
         AppDelegate.showMainWindow()
     }
 
     func speak(_ text: String) {
         AgentSpeechSynthesizer.shared.speak(text)
+    }
+
+    func notifyDrafts(_ drafts: [RoutineDraft], scheduleTitle: String) {
+        for draft in drafts {
+            Notifications.shared.postRoutineDraft(draft, scheduleTitle: scheduleTitle)
+        }
     }
 }

@@ -27,18 +27,25 @@ final class ScheduleStore {
     static let fileName = "agent-schedules.json"
     static let historyFileName = "agent-schedule-runs.jsonl"
     static let historyLimit = 2_000
+    static let draftsFileName = "agent-routine-drafts.json"
+    /// Resolved drafts kept for the Routines view; awaiting ones are never trimmed.
+    static let resolvedDraftLimit = 200
 
     private(set) var schedules: [AgentSchedule] = []
+    /// Newest first.
+    private(set) var drafts: [RoutineDraft] = []
     /// Bumped on every save, so views can follow run history without reading the file.
     private(set) var revision = 0
 
     let directory: URL
     var fileURL: URL { directory.appendingPathComponent(Self.fileName) }
     var historyURL: URL { directory.appendingPathComponent(Self.historyFileName) }
+    var draftsURL: URL { directory.appendingPathComponent(Self.draftsFileName) }
 
     init(directory: URL) {
         self.directory = directory
         schedules = load()
+        drafts = loadDrafts()
     }
 
     // MARK: - Schedules
@@ -68,6 +75,7 @@ final class ScheduleStore {
     /// edit made elsewhere is seen on the next tick.
     func reload() {
         schedules = load()
+        drafts = loadDrafts()
     }
 
     private func load() -> [AgentSchedule] {
@@ -92,6 +100,65 @@ final class ScheduleStore {
             Log.app.error("couldn't save agent-schedules.json: \(error.localizedDescription, privacy: .public)")
             return false
         }
+    }
+
+    // MARK: - Drafts
+
+    func draft(id: UUID) -> RoutineDraft? {
+        drafts.first { $0.id == id }
+    }
+
+    func drafts(for scheduleID: UUID) -> [RoutineDraft] {
+        drafts.filter { $0.scheduleID == scheduleID }
+    }
+
+    var awaitingDrafts: [RoutineDraft] {
+        drafts.filter { $0.status == .awaitingApproval }
+    }
+
+    @discardableResult
+    func saveDraft(_ draft: RoutineDraft) -> Bool {
+        var next = drafts
+        if let index = next.firstIndex(where: { $0.id == draft.id }) {
+            next[index] = draft
+        } else {
+            next.insert(draft, at: 0)
+        }
+        let resolved = next.filter { $0.status != .awaitingApproval }
+        if resolved.count > Self.resolvedDraftLimit {
+            let dropped = Set(resolved.suffix(resolved.count - Self.resolvedDraftLimit).map(\.id))
+            next.removeAll { dropped.contains($0.id) }
+        }
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try Self.encoder.encode(next).write(to: draftsURL, options: .atomic)
+            drafts = next
+            revision += 1
+            return true
+        } catch {
+            Log.app.error("couldn't save agent-routine-drafts.json: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
+    /// Drafts of a deleted routine go with it; nothing can approve them any more.
+    @discardableResult
+    func removeDrafts(for scheduleID: UUID) -> Bool {
+        let kept = drafts.filter { $0.scheduleID != scheduleID }
+        guard kept.count != drafts.count else { return true }
+        do {
+            try Self.encoder.encode(kept).write(to: draftsURL, options: .atomic)
+            drafts = kept
+            revision += 1
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private func loadDrafts() -> [RoutineDraft] {
+        guard let data = try? Data(contentsOf: draftsURL) else { return [] }
+        return (try? Self.decoder.decode([RoutineDraft].self, from: data)) ?? []
     }
 
     // MARK: - Run history

@@ -32,6 +32,10 @@ final class Notifications {
         case openSchedule(id: UUID)
         case readScheduleAloud(id: UUID)
         case snoozeSchedule(id: UUID)
+        /// A routine's draft (Part 3): *Review* opens the Routines view, *Approve* runs it
+        /// under the user's authority. Carries the draft's id.
+        case reviewRoutineDraft(id: UUID)
+        case approveRoutineDraft(id: UUID)
     }
 
     /// Everything that wants to hear about a pressed button.
@@ -155,6 +159,24 @@ final class Notifications {
                         identifier: ActionID.snoozeSchedule,
                         title: "Snooze 10 minutes",
                         options: []
+                    ),
+                ],
+                intentIdentifiers: []
+            ),
+            // A routine prepared a write it may not run unattended. Approving from here is
+            // the user's authority and runs exactly the draft the body describes.
+            UNNotificationCategory(
+                identifier: Category.agentRoutineApproval,
+                actions: [
+                    UNNotificationAction(
+                        identifier: ActionID.reviewRoutineDraft,
+                        title: "Review\u{2026}",
+                        options: [.foreground]
+                    ),
+                    UNNotificationAction(
+                        identifier: ActionID.approveRoutineDraft,
+                        title: "Approve",
+                        options: [.authenticationRequired]
                     ),
                 ],
                 intentIdentifiers: []
@@ -289,6 +311,21 @@ final class Notifications {
         post(content, identifier: "agent-reminder-problem-\(scheduleID.uuidString)")
     }
 
+    /// "Your routine prepared this", with Review / Approve. One per draft, under the draft's
+    /// own identifier, so approving one never answers another.
+    func postRoutineDraft(_ draft: RoutineDraft, scheduleTitle: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "\(scheduleTitle): ready for your approval"
+        content.body = [draft.title, draft.preview].compactMap { $0 }.filter { !$0.isEmpty }
+            .joined(separator: "\n")
+        content.categoryIdentifier = Category.agentRoutineApproval
+        content.userInfo = [
+            UserInfoKey.scheduleID: draft.scheduleID.uuidString,
+            UserInfoKey.draftID: draft.id.uuidString,
+        ]
+        post(content, identifier: "agent-routine-draft-\(draft.id.uuidString)")
+    }
+
     enum NotificationPostError: LocalizedError {
         case unavailable
 
@@ -341,6 +378,8 @@ final class Notifications {
         static let agentReview = "agentReview"
         /// A reminder or a routine's result: Open, Read aloud, Snooze.
         static let agentRoutine = "agentRoutine"
+        /// A routine's draft: Review, Approve.
+        static let agentRoutineApproval = "agentRoutineApproval"
     }
 
     enum ActionID {
@@ -353,12 +392,15 @@ final class Notifications {
         static let openSchedule = "schedule.open"
         static let readScheduleAloud = "schedule.readAloud"
         static let snoozeSchedule = "schedule.snooze"
+        static let reviewRoutineDraft = "routine.reviewDraft"
+        static let approveRoutineDraft = "routine.approveDraft"
     }
 
     enum UserInfoKey {
         static let meetingID = "meetingID"
         static let proposalID = "proposalID"
         static let scheduleID = "scheduleID"
+        static let draftID = "draftID"
     }
 }
 
@@ -400,6 +442,8 @@ private final class NotificationRouter: NSObject, UNUserNotificationCenterDelega
             .flatMap(UUID.init(uuidString:))
         let meetingID = (userInfo[Notifications.UserInfoKey.meetingID] as? String)
             .flatMap(UUID.init(uuidString:))
+        let draftID = (userInfo[Notifications.UserInfoKey.draftID] as? String)
+            .flatMap(UUID.init(uuidString:))
 
         let action: Notifications.Action? = switch identifier {
         case Notifications.ActionID.recordNow: meetingID.map { .recordNow(meetingID: $0) }
@@ -415,6 +459,10 @@ private final class NotificationRouter: NSObject, UNUserNotificationCenterDelega
         case Notifications.ActionID.openSchedule: scheduleID.map { .openSchedule(id: $0) }
         case Notifications.ActionID.readScheduleAloud: scheduleID.map { .readScheduleAloud(id: $0) }
         case Notifications.ActionID.snoozeSchedule: scheduleID.map { .snoozeSchedule(id: $0) }
+        case Notifications.ActionID.reviewRoutineDraft: draftID.map { .reviewRoutineDraft(id: $0) }
+        case Notifications.ActionID.approveRoutineDraft: draftID.map { .approveRoutineDraft(id: $0) }
+        // A draft's body is Review, never Approve.
+        case UNNotificationDefaultActionIdentifier where draftID != nil: draftID.map { .reviewRoutineDraft(id: $0) }
         // A reminder's body has no meeting behind it.
         case UNNotificationDefaultActionIdentifier where scheduleID != nil: scheduleID.map { .openSchedule(id: $0) }
         // A proposal notification's body is not an approval — clicking through to the app

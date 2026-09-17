@@ -227,6 +227,9 @@ struct SchedulePendingDelivery: Codable, Equatable, Sendable {
     var notBefore: Date
     var missed: Bool
     var reason: String
+    /// A routine's finished result held back by quiet hours: delivered as is, never re-run.
+    /// Nil for a reminder, and for a routine retry, which runs again.
+    var text: String? = nil
 }
 
 /// One line of `agent-schedule-runs.jsonl`. Every slot leaves one, including the ones that
@@ -251,8 +254,12 @@ struct ScheduleRunRecord: Codable, Equatable, Sendable, Identifiable {
         case interrupted
         /// `endsAt` passed; the schedule disabled itself.
         case ended
-        /// `schedule.run_now`.
+        /// `schedule.run_now`, or a routine's test run on creation.
         case ranNow
+        /// A routine ran and delivered its result.
+        case completed
+        /// A routine ran and its answer was exactly `NOTHING_TO_REPORT`: nothing delivered.
+        case nothingToReport
     }
 
     let id: UUID
@@ -280,5 +287,55 @@ struct ScheduleRunRecord: Codable, Equatable, Sendable, Identifiable {
         self.outcome = outcome
         self.detail = detail
         self.skippedSlots = skippedSlots
+    }
+}
+
+/// A write a routine prepared and did not run (Part 3, authority 4).
+///
+/// Its receipt is in `waitingPermission`; the user approves it from the
+/// `agentRoutineApproval` notification or the Routines view, and that approval is user
+/// authority. Stored in `agent-routine-drafts.json` beside the schedules.
+struct RoutineDraft: Codable, Equatable, Sendable, Identifiable {
+    enum Status: String, Codable, Sendable {
+        case awaitingApproval
+        case approved
+        case dismissed
+        /// Approved, and the action then failed.
+        case failed
+    }
+
+    let id: UUID
+    let scheduleID: UUID
+    /// The scheduled `AgentTask` that prepared it.
+    let taskID: String
+    /// The `ActionReceipt` left in `waitingPermission`.
+    let receiptID: UUID
+    let toolID: String
+    let arguments: [String: String]
+    let title: String
+    let preview: String?
+    let risk: AgentRisk
+    let createdAt: Date
+    var status: Status
+    var result: String?
+    var resolvedAt: Date?
+
+    init(
+        id: UUID = UUID(), scheduleID: UUID, taskID: String, receiptID: UUID, toolID: String,
+        arguments: [String: String], title: String, preview: String?, risk: AgentRisk, createdAt: Date
+    ) {
+        self.id = id
+        self.scheduleID = scheduleID
+        self.taskID = taskID
+        self.receiptID = receiptID
+        self.toolID = toolID
+        self.arguments = arguments
+        self.title = title
+        self.preview = preview
+        self.risk = risk
+        self.createdAt = createdAt
+        status = .awaitingApproval
+        result = nil
+        resolvedAt = nil
     }
 }

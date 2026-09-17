@@ -520,7 +520,8 @@ final class MeetingScheduler {
         case .open(let id):
             NavigationState.shared.show(meeting: id)
             AppDelegate.showMainWindow()
-        case .approveProposal, .dismissProposal, .openSchedule, .readScheduleAloud, .snoozeSchedule:
+        case .approveProposal, .dismissProposal, .openSchedule, .readScheduleAloud, .snoozeSchedule,
+             .reviewRoutineDraft, .approveRoutineDraft:
             // Not the scheduler's business. Phase 7's agent registers its own observer.
             break
         }

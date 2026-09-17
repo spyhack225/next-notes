@@ -106,11 +106,17 @@ struct PermissionPolicy: Sendable {
         autoComputerControl: true
     )
 
-    /// - Parameter authority: who supplied the authority for this call. Only the `memory`
-    ///   and `schedule` namespaces look at it: memory writes save without a prompt (decision
+    /// - Parameter authority: who supplied the authority for this call. `.scheduled` never
+    ///   auto-runs anything above a read. Otherwise only the `memory` and `schedule`
+    ///   namespaces look at it: memory writes save without a prompt (decision
     ///   1), but only under the user's own conversation or the memory review; a confirmed
     ///   reminder skips the card only under the user's own authority. Every other tool ignores it.
     func allowsAutomatically(_ tool: AgentTool, authority: ActionAuthority? = nil) -> Bool {
+        // An unattended routine auto-runs observe and read tools only. Its writes are drafts
+        // (`ScheduledRunner`), and no standing setting widens that.
+        if authority?.isScheduled == true, tool.risk > .read {
+            return false
+        }
         if tool.namespace == .memory, tool.risk == .modify {
             return authority == .user || authority == .memoryReview
         }

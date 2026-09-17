@@ -161,7 +161,7 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
             (.filesystem, "Local files", "Search, read and manage files."),
             (.shell, "Shell", "Run approved local commands."),
             (.memory, "Memory", "Remember, update and forget facts the user states; saves need no approval."),
-            (.schedule, "Reminders", "Set, list, pause and delete reminders.")
+            (.schedule, "Reminders and routines", "Set, list, pause and delete them.")
         ]
         for (namespace, title, description) in categories {
             let names = orderedTools

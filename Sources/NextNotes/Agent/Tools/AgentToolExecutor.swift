@@ -76,11 +76,16 @@ enum AgentToolExecutor {
             )
         }
         let publicTitle = AgentActivityProjector.title(for: tool, arguments: authorizedArguments)
-        let source: ActionSource = meetingID == nil ? .agent : .meeting
         // A meeting-origin call is derived context unless the caller explicitly passes the
         // user's approval. This prevents a future meeting mutation from inheriting authority
         // merely because it used the generic executor API.
         let actionAuthority = authority ?? (meetingID == nil ? .user : .systemDerived)
+        let source: ActionSource = actionAuthority.isScheduled ? .scheduled : meetingID == nil ? .agent : .meeting
+        // Runs cannot create schedules — not even a read of them is in a run's ceiling, and a
+        // write would be a job making jobs.
+        if actionAuthority.isScheduled, tool.namespace == .schedule {
+            throw AgentError.permissionDenied("A routine run cannot use \(tool.id).")
+        }
         // The one auto-allowed write needs both halves: the authority the runtime checks, and
         // the provenance the code running the turn bound — never the model's arguments.
         if tool.namespace == .memory, tool.risk > .read {
@@ -125,8 +130,9 @@ enum AgentToolExecutor {
             ),
             steps: [tool.id],
             policy: effective,
-            promptIfNeeded: promptIfNeeded,
-            permissionAlreadyGranted: permissionAlreadyGranted,
+            // Nobody is there to answer a card for a scheduled run.
+            promptIfNeeded: promptIfNeeded && !actionAuthority.isScheduled,
+            permissionAlreadyGranted: permissionAlreadyGranted && !actionAuthority.isScheduled,
             allowUnverifiedResult: (tool.namespace == .browser
                                     || tool.namespace == .computer
                                     || tool.namespace == .workspace)
