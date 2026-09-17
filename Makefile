@@ -137,6 +137,10 @@ app: build
 	@# script; the app falls back to a one-line equivalent when running outside a bundle.
 	@cp Resources/install-gws.sh "$(CONTENTS)/Resources/"
 	@cp Sources/SpeexEcho/LICENSE "$(CONTENTS)/Resources/SpeexDSP-LICENSE.txt"
+	@# The app's own licence travels inside the bundle: an AGPL binary has to be able to
+	@# point whoever received it at the terms it came under.
+	@cp LICENSE "$(CONTENTS)/Resources/LICENSE.txt"
+	@cp THIRD-PARTY-NOTICES.md "$(CONTENTS)/Resources/THIRD-PARTY-NOTICES.md"
 	@chmod +x "$(CONTENTS)/Resources/install-gws.sh"
 	@printf 'APPL????' > "$(CONTENTS)/PkgInfo"
 	@# Belt and braces: the staging dir isn't synced, but the copied binary can still carry

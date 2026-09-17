@@ -6,6 +6,9 @@ or follow through. A Wispr Flow-shaped native app with on-device defaults and op
 
 ![Next Notes turning a spoken false start into a finished sentence](site/public/demo-dictation.gif)
 
+**Free software, [AGPL-3.0-or-later](LICENSE).** Read it, build it, fork it — modified
+versions stay open, including ones run as a service. See [License](#license).
+
 **Status:** the macOS app is in daily use. It supports Apple and Parakeet transcription,
 deterministic or on-device LLM cleanup, per-app output formatting, personal dictionary bias
 and corrections, and an opt-in voice Command Mode for editing selected text. Dictated text
@@ -945,3 +948,35 @@ faithfully they implement it. The implementation refuses to replace text when th
 selection cannot be revalidated.
 
 > `log` is shadowed in this shell — use `/usr/bin/log` explicitly or it returns nothing.
+
+---
+
+## License
+
+Next Notes is free software under the **GNU Affero General Public License, version 3 or
+later** ([`LICENSE`](LICENSE), SPDX `AGPL-3.0-or-later`). Copyright © 2026 Serge Kadjo.
+
+Read it, build it, run it, change it, and ship your changes — the one condition is that the
+changes stay as free as what they started from:
+
+- **Using it** — privately, at work, on as many Macs as you like — costs nothing and obliges
+  nothing. Local use is not distribution.
+- **Distributing it**, modified or not, means handing over the corresponding source under
+  this same licence: a DMG you hand someone, a fork you publish, a product you build on top.
+- **Running a modified version as a network service** means the same thing, to the people
+  using that service. That is the Affero clause, and it is the reason this is AGPL rather
+  than plain GPL: a hosted transcription or meeting-notes product built on this code owes
+  its users the source, exactly as a downloadable one does.
+- **Your own recordings, transcripts and notes are yours.** The licence covers the program,
+  never its output.
+
+The AGPL does not require you to publish anything you never hand to anyone else, and it does
+not reach the separate programs Next Notes merely talks to — a coding CLI over ACP, an MCP
+server, `gws`, OpenRouter.
+
+**Contributions** are accepted under the same licence: open a pull request and you are
+licensing that work under AGPL-3.0-or-later, with copyright staying yours. No CLA.
+
+Third-party code bundled or linked here is permissive (BSD, MIT, Apache-2.0, ISC, OFL) and
+compatible in this direction — see [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
+Models are downloaded at runtime under their own terms and are not covered by this licence.
