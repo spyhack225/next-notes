@@ -12,6 +12,8 @@ enum AgentToolNamespace: String, Codable, Sendable, CaseIterable {
     case notion
     case slack
     case mcp
+    /// Core memory: `memory.remember` / `update` / `forget` / `recall`.
+    case memory
 }
 
 /// Where the implementation lives. The model is not told this — `ToolRouter` is.

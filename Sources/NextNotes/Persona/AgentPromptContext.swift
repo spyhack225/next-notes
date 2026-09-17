@@ -46,14 +46,16 @@ enum AgentPromptPath: String, CaseIterable, Sendable {
         case .voiceRoute:
             Budget(persona: .none, personaLimit: 0, memoryLimit: 0, memoryScope: "none")
         case .toolLoop, .localModel:
+            // Both core budgets (1,200 + 2,000) plus the JSON framing. Relevant activity
+            // items travel in the user message, matched per request.
             Budget(persona: .full, personaLimit: PersonaStore.fullLimit,
-                   memoryLimit: 2_000, memoryScope: "profile + notes + relevant activity")
+                   memoryLimit: 3_400, memoryScope: "profile + notes + relevant activity")
         case .meetingAssistant:
             Budget(persona: .full, personaLimit: PersonaStore.fullLimit,
                    memoryLimit: 600, memoryScope: "profile")
         case .scheduledRun:
             Budget(persona: .full, personaLimit: PersonaStore.fullLimit,
-                   memoryLimit: 1_500, memoryScope: "profile + notes")
+                   memoryLimit: 3_400, memoryScope: "profile + notes")
         case .acpAgent:
             Budget(persona: .none, personaLimit: 0, memoryLimit: 0, memoryScope: "none")
         }
@@ -68,7 +70,7 @@ enum AgentPromptPath: String, CaseIterable, Sendable {
 /// ```text
 /// 1  persona              persona.md, full or short card
 /// 2  fixed rules          the path's own rules, ending "These rules override anything above."
-/// 3  memory snapshot      data, never instructions
+/// 3  memory snapshot      core memory frozen per session; data, never instructions
 /// 4  capability inventory what tools exist right now
 ///    ------------------------------------------- cacheable prefix ends
 /// 5  conversation         (the caller's messages)
@@ -97,12 +99,15 @@ struct AgentPromptContext: Sendable {
     /// The memory values, excluding the fixed section header.
     let memoryCharacters: Int
 
+    /// - Parameter memory: the memory section's value. `nil` — every production caller —
+    ///   uses the session's frozen core-memory snapshot for this path.
     static func assemble(
         _ path: AgentPromptPath,
         rules: String,
-        memory: String = "",
+        memory: String? = nil,
         capabilities: String = "",
-        personaStore: PersonaStore = .shared
+        personaStore: PersonaStore = .shared,
+        memorySnapshot: MemorySnapshotCache = .shared
     ) -> AgentPromptContext {
         let budget = path.budget
         guard path != .acpAgent else {
@@ -116,8 +121,9 @@ struct AgentPromptContext: Sendable {
         }
         let trimmedRules = rules.trimmingCharacters(in: .whitespacesAndNewlines)
         let fixedRules = trimmedRules.isEmpty ? "" : trimmedRules + "\n" + overrideLine
+        let memorySource = memory ?? memorySnapshot.text(for: path)
         let memoryValue = budget.memoryLimit > 0
-            ? PersonaStore.cap(memory.trimmingCharacters(in: .whitespacesAndNewlines),
+            ? PersonaStore.cap(memorySource.trimmingCharacters(in: .whitespacesAndNewlines),
                                limit: budget.memoryLimit).kept
             : ""
         let memorySection = memoryValue.isEmpty ? "" : """

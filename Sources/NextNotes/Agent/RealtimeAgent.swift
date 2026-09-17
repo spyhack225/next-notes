@@ -776,6 +776,9 @@ final class AgentSession {
         .appendingPathComponent("agent-conversation.json")
     private(set) var messages: [Message]
     private var lastSuppressedVoice: (text: String, at: Date)?
+    /// The conversation a memory saved now came from. New on launch and on *Clear
+    /// conversation*; idle session boundaries arrive with Part 2's M2.
+    private(set) var sessionID = UUID()
 
     private init() {
         messages = Array(Self.load(from: Self.fileURL).suffix(Self.maxMessages))
@@ -904,7 +907,27 @@ final class AgentSession {
     func clear() {
         messages.removeAll()
         lastSuppressedVoice = nil
+        sessionID = UUID()
+        // A new session: the core-memory snapshot is read again, picking up this session's saves.
+        NextMemory.shared.beginSession()
         if !SelfTest.isRunning { try? FileManager.default.removeItem(at: Self.fileURL) }
+    }
+
+    /// What the user said recently, for memory provenance. Meeting-sourced rows are left
+    /// out: a meeting transcript line is evidence, not the user talking to the Agent.
+    func recentUserTexts(limit: Int = 6) -> [String] {
+        messages.filter { $0.role == "user" && $0.source != "meeting" }
+            .suffix(limit)
+            .map(\.text)
+    }
+
+    /// Recent assistant turns. Every one may carry tool output (mail, files, calendar, a task
+    /// or voice-worker result), and not every path tags its reply, so memory provenance
+    /// treats them all as content the user did not write.
+    func recentAssistantTexts(limit: Int = 6) -> [String] {
+        messages.filter { $0.role == "assistant" }
+            .suffix(limit)
+            .map(\.text)
     }
 
     private func append(_ message: Message) {

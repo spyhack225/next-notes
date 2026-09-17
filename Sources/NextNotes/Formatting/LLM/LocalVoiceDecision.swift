@@ -116,7 +116,9 @@ enum LocalVoiceSplitResponse {
         for an overview of what the application supports or can do. Choose
         startExternalTask when the person asks the application to perform a NEW
         action, inspect or check something, or retrieve current information; a
-        request phrased as a question can still ask for action. A question about
+        request phrased as a question can still ask for action. Asking the
+        application to remember, change or forget something about the person is
+        startExternalTask. A question about
         the progress or purpose of an already running task is answerQuestion;
         it must not start the same task again. Choose
         reviseRunningTask for a correction to a referenced active task, and

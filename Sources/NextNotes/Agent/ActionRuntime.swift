@@ -17,6 +17,8 @@ enum ActionAuthority: String, Codable, Sendable, CaseIterable {
     case otherParticipant
     case systemDerived
     case background
+    /// The background memory review (Part 2). Authority for `memory.*` writes only.
+    case memoryReview
 }
 
 struct ActionContextReference: Codable, Equatable, Sendable, Identifiable {
@@ -373,7 +375,8 @@ final class ActionOrchestrator {
             guard intent.risk == tool.risk else {
                 throw AgentError.permissionDenied("The action risk changed before execution.")
             }
-            if tool.risk >= .modify, intent.authority != .user {
+            let memoryReviewWrite = tool.namespace == .memory && intent.authority == .memoryReview
+            if tool.risk >= .modify, intent.authority != .user, !memoryReviewWrite {
                 add(.denied, "Only the user's microphone or explicit approval can authorize a mutation.")
                 throw AgentError.permissionDenied("Only the user can authorize this action.")
             }
@@ -393,7 +396,8 @@ final class ActionOrchestrator {
             let decision = await PermissionBroker.shared.authorize(
                 tool, arguments: intent.arguments, policy: policy,
                 scope: await PermissionScopeResolver.inferredAsync(tool: tool, arguments: intent.arguments),
-                meetingID: routing.meetingID, taskID: routing.taskID
+                meetingID: routing.meetingID, taskID: routing.taskID,
+                authority: intent.authority
             )
             switch decision {
             case .deny(let reason):
@@ -484,6 +488,8 @@ final class ActionOrchestrator {
         // a coding side effect landed.
         if tool.id == "mcp.acp_session" { return result.verification }
         if tool.risk <= .read { return "Read result returned" }
+        // Memory writes read the entry back from the store before returning.
+        if tool.namespace == .memory { return result.verification }
 
         if tool.namespace == .filesystem {
             if tool.name == "delete" {

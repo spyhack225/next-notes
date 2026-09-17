@@ -80,6 +80,7 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
             features.append(ids.contains("filesystem.write") ? "read and write local files" : "read local files")
         } else if ids.contains("filesystem.search") { features.append("search local files") }
         if ids.contains("shell.run") { features.append("run approved shell commands") }
+        if ids.contains("memory.remember") { features.append("remember what you tell me about yourself") }
         guard !features.isEmpty else { return "No application tools are currently enabled." }
         var reply = "I can " + features.joined(separator: ", ") + "."
         var changes: [String] = []
@@ -99,7 +100,9 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
         if ids.contains("computer.click"), availability.accessibilityGranted != true {
             reply += " App control needs Accessibility permission."
         }
-        reply += " Changes and sends wait for your approval."
+        reply += ids.contains("memory.remember")
+            ? " Changes and sends wait for your approval; memories save as you tell me them, and you can forget any in Settings."
+            : " Changes and sends wait for your approval."
         return reply
     }
 
@@ -155,7 +158,8 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
             (.computer, "Frontmost Mac UI", "Inspect and control apps."),
             (.browser, "Browser pages", "Inspect and interact."),
             (.filesystem, "Local files", "Search, read and manage files."),
-            (.shell, "Shell", "Run approved local commands.")
+            (.shell, "Shell", "Run approved local commands."),
+            (.memory, "Memory", "Remember, update and forget facts the user states; saves need no approval.")
         ]
         for (namespace, title, description) in categories {
             let names = orderedTools
@@ -185,7 +189,10 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
             return SelfTestResult(passed: false, detail: "duplicate tool id")
         }
 
-        let allowed = RealtimeToolSelection.allowedIDs
+        // With memory turned off in Settings the planner roster leaves the memory tools out.
+        let allowed = MemorySnapshotCache.shared.isEnabled
+            ? RealtimeToolSelection.allowedIDs
+            : RealtimeToolSelection.allowedIDs.subtracting(MemoryToolCatalogue.ids)
         let missing = allowed.subtracting(uniqueIDs).sorted()
         guard missing.isEmpty else {
             return SelfTestResult(passed: false, detail: "missing allowed tools: \(missing.joined(separator: ", "))")

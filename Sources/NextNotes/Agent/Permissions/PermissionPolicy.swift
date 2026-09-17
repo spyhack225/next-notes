@@ -103,7 +103,13 @@ struct PermissionPolicy: Sendable {
         autoComputerControl: true
     )
 
-    func allowsAutomatically(_ tool: AgentTool) -> Bool {
+    /// - Parameter authority: who supplied the authority for this call. Only the `memory`
+    ///   namespace looks at it: memory writes save without a prompt (decision 1), but only
+    ///   under the user's own conversation or the memory review. Every other tool ignores it.
+    func allowsAutomatically(_ tool: AgentTool, authority: ActionAuthority? = nil) -> Bool {
+        if tool.namespace == .memory, tool.risk == .modify {
+            return authority == .user || authority == .memoryReview
+        }
         switch tool.risk {
         case .observe:
             return autoObserve

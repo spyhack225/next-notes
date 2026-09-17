@@ -648,6 +648,11 @@ final class Settings {
         didSet { defaults.set(agentPersonaEnabled, forKey: Keys.agentPersonaEnabled) }
     }
 
+    /// Whether the Agent keeps and uses core memory. Entries stay on disk either way.
+    var agentMemoryEnabled: Bool {
+        didSet { defaults.set(agentMemoryEnabled, forKey: Keys.agentMemoryEnabled) }
+    }
+
     var agentPocketVoice: String {
         didSet { defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice) }
     }
@@ -839,6 +844,7 @@ final class Settings {
         static let agentVoiceIdentifier = "agentVoiceIdentifier"
         static let agentVoiceEngine = "agentVoiceEngine"
         static let agentPersonaEnabled = PersonaStore.enabledDefaultsKey
+        static let agentMemoryEnabled = MemorySnapshotCache.enabledDefaultsKey
         static let agentPocketVoice = "agentPocketVoice"
         static let wakePhrase = "wakePhrase"
         static let wakeSensitivity = "wakeSensitivity"
@@ -943,6 +949,7 @@ final class Settings {
         agentVoiceEngine = defaults.string(forKey: Keys.agentVoiceEngine) ?? "apple"
         agentPocketVoice = defaults.string(forKey: Keys.agentPocketVoice) ?? "alba"
         agentPersonaEnabled = defaults.object(forKey: Keys.agentPersonaEnabled) as? Bool ?? true
+        agentMemoryEnabled = defaults.object(forKey: Keys.agentMemoryEnabled) as? Bool ?? true
         wakePhrase = defaults.string(forKey: Keys.wakePhrase) ?? WakeWordConfiguration.defaultPhrase
         wakeSensitivity = defaults.object(forKey: Keys.wakeSensitivity) as? Double ?? 0.5
         listenWhileSleeping = defaults.object(forKey: Keys.listenWhileSleeping) as? Bool ?? true

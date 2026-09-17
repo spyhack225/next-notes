@@ -412,7 +412,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-memory") {
             Task { @MainActor in
-                SelfTest.failed = !NextMemory.runSelfTest()
+                SelfTest.failed = !(await MemorySelfTest.run())
                 NSApp.terminate(nil)
             }
             return true

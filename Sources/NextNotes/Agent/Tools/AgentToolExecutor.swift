@@ -81,6 +81,15 @@ enum AgentToolExecutor {
         // user's approval. This prevents a future meeting mutation from inheriting authority
         // merely because it used the generic executor API.
         let actionAuthority = authority ?? (meetingID == nil ? .user : .systemDerived)
+        // The one auto-allowed write needs both halves: the authority the runtime checks, and
+        // the provenance the code running the turn bound — never the model's arguments.
+        if tool.namespace == .memory, tool.risk > .read {
+            let provenance = MemoryProvenance.current
+            guard meetingID == nil, let provenance, provenance.requiredAuthority == actionAuthority else {
+                throw MemoryWriteError.provenance(
+                    "memory can only be saved from what you say in a conversation with the Agent.")
+            }
+        }
         let intent = ActionIntent(
             source: source,
             authority: actionAuthority,
@@ -243,6 +252,8 @@ enum AgentToolExecutor {
             return try FilesystemExecutor.run(tool, arguments: arguments)
         case .shell:
             return try await ShellExecutor.run(tool, arguments: arguments)
+        case .memory:
+            return try MemoryToolExecutor.run(tool, arguments: arguments, provenance: MemoryProvenance.current)
         case .browser:
             let result = try await BrowserExecutor.run(tool, arguments: arguments)
             if tool.risk > .read {

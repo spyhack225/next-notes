@@ -16,7 +16,8 @@ actor PermissionBroker {
         policy: PermissionPolicy,
         scope: PermissionScope = .any,
         meetingID: UUID? = nil,
-        taskID: String? = nil
+        taskID: String? = nil,
+        authority: ActionAuthority? = nil
     ) -> PermissionDecision {
         if let grant = policy.existingGrant(
             for: tool.id,
@@ -28,7 +29,7 @@ actor PermissionBroker {
             return .allow
         }
 
-        if policy.allowsAutomatically(tool) {
+        if policy.allowsAutomatically(tool, authority: authority) {
             return .allow
         }
 
