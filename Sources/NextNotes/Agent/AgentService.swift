@@ -438,7 +438,7 @@ final class AgentService {
         switch action {
         case .approveProposal(let id): decide(proposalID: id, approved: true)
         case .dismissProposal(let id): decide(proposalID: id, approved: false)
-        case .recordNow, .skip, .open: break
+        case .recordNow, .skip, .open, .openSchedule, .readScheduleAloud, .snoozeSchedule: break
         }
     }
 

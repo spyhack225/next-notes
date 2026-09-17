@@ -81,6 +81,7 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
         } else if ids.contains("filesystem.search") { features.append("search local files") }
         if ids.contains("shell.run") { features.append("run approved shell commands") }
         if ids.contains("memory.remember") { features.append("remember what you tell me about yourself") }
+        if ids.contains("schedule.create") { features.append("set reminders") }
         guard !features.isEmpty else { return "No application tools are currently enabled." }
         var reply = "I can " + features.joined(separator: ", ") + "."
         var changes: [String] = []
@@ -159,7 +160,8 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
             (.browser, "Browser pages", "Inspect and interact."),
             (.filesystem, "Local files", "Search, read and manage files."),
             (.shell, "Shell", "Run approved local commands."),
-            (.memory, "Memory", "Remember, update and forget facts the user states; saves need no approval.")
+            (.memory, "Memory", "Remember, update and forget facts the user states; saves need no approval."),
+            (.schedule, "Reminders", "Set, list, pause and delete reminders.")
         ]
         for (namespace, title, description) in categories {
             let names = orderedTools
@@ -190,9 +192,13 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
         }
 
         // With memory turned off in Settings the planner roster leaves the memory tools out.
-        let allowed = MemorySnapshotCache.shared.isEnabled
+        var allowed = MemorySnapshotCache.shared.isEnabled
             ? RealtimeToolSelection.allowedIDs
             : RealtimeToolSelection.allowedIDs.subtracting(MemoryToolCatalogue.ids)
+        // Likewise the reminder tools when reminders are switched off.
+        if !ScheduleSettingsSnapshot.defaultsEnabled {
+            allowed.subtract(ScheduleToolCatalogue.ids)
+        }
         let missing = allowed.subtracting(uniqueIDs).sorted()
         guard missing.isEmpty else {
             return SelfTestResult(passed: false, detail: "missing allowed tools: \(missing.joined(separator: ", "))")

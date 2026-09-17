@@ -14,6 +14,9 @@ enum AgentToolNamespace: String, Codable, Sendable, CaseIterable {
     case mcp
     /// Core memory: `memory.remember` / `update` / `forget` / `recall`.
     case memory
+    /// Reminders (Part 3): `schedule.list` / `create` / `update` / `pause` / `resume` /
+    /// `remove` / `run_now`.
+    case schedule
 }
 
 /// Where the implementation lives. The model is not told this — `ToolRouter` is.

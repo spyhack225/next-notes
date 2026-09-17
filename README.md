@@ -454,6 +454,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-tasks                   # submit / run / cancel without a model
 "$S" --selftest-persona                 # every Agent prompt path: persona + memory chars against budget
 "$S" --selftest-memory                  # core memory: save, supersede, overflow, forget, injection and tool-output blocks
+"$S" --selftest-schedule                # reminders: DST, month-end, grace, catch-up, Missed, backoff, endsAt, macOS hand-off, confirmation card
 "$S" --selftest-meeting-context         # extract decisions and candidate actions
 "$S" --selftest-realtime                # question/follow-up routing, tool speech, harness, duplex VAD
 "$S" --selftest-computer                # inspect/click/type on an owned window; stub trees stay empty

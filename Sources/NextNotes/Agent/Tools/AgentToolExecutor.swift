@@ -90,6 +90,19 @@ enum AgentToolExecutor {
                     "memory can only be saved from what you say in a conversation with the Agent.")
             }
         }
+        // A reminder skips the card only with the user's checked yes behind it; otherwise
+        // the card, whose preview is the sentence, is the confirmation.
+        effective.confirmedScheduleWrite = false
+        if tool.namespace == .schedule, tool.risk > .read {
+            let problem = meetingID == nil && actionAuthority == .user
+                ? ScheduleConfirmation.problem(
+                    toolID: tool.id, arguments: authorizedArguments, provenance: MemoryProvenance.current)
+                : "not the user's own request."
+            effective.confirmedScheduleWrite = problem == nil
+            if let problem {
+                Log.agent.info("\(tool.id, privacy: .public) asks for permission: \(problem, privacy: .public)")
+            }
+        }
         let intent = ActionIntent(
             source: source,
             authority: actionAuthority,
@@ -254,6 +267,9 @@ enum AgentToolExecutor {
             return try await ShellExecutor.run(tool, arguments: arguments)
         case .memory:
             return try MemoryToolExecutor.run(tool, arguments: arguments, provenance: MemoryProvenance.current)
+        case .schedule:
+            return try await ScheduleToolExecutor.run(
+                tool, arguments: arguments, sessionID: AgentSession.shared.sessionID)
         case .browser:
             let result = try await BrowserExecutor.run(tool, arguments: arguments)
             if tool.risk > .read {

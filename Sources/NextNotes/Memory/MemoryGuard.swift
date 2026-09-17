@@ -20,6 +20,9 @@ struct MemoryProvenance: Sendable {
     /// Everything that is not the user's words and reached this turn: tool results, earlier
     /// tool-backed answers. Emails, pages, files and calendar descriptions all land here.
     let untrustedText: [String]
+    /// A tool outside `memory` and `schedule` returned output earlier in this turn. A
+    /// reminder written after that asks with a card (`ScheduleConfirmation`).
+    var readToolOutputThisTurn = false
 
     @TaskLocal static var current: MemoryProvenance?
 

@@ -653,6 +653,26 @@ final class Settings {
         didSet { defaults.set(agentMemoryEnabled, forKey: Keys.agentMemoryEnabled) }
     }
 
+    /// Whether reminders run. Off withdraws everything registered with macOS too.
+    var agentSchedulesEnabled: Bool {
+        didSet { defaults.set(agentSchedulesEnabled, forKey: Keys.agentSchedulesEnabled) }
+    }
+
+    /// Quiet hours, "HH:mm" in local time. Deliveries found inside them wait until they end.
+    var agentQuietHoursStart: String {
+        didSet { defaults.set(agentQuietHoursStart, forKey: Keys.agentQuietHoursStart) }
+    }
+
+    var agentQuietHoursEnd: String {
+        didSet { defaults.set(agentQuietHoursEnd, forKey: Keys.agentQuietHoursEnd) }
+    }
+
+    /// "whenPresent" speaks reminders only when the user is at the Mac, nothing is recording
+    /// and no call is active; "never" keeps them to notifications.
+    var agentRoutineSpeech: String {
+        didSet { defaults.set(agentRoutineSpeech, forKey: Keys.agentRoutineSpeech) }
+    }
+
     var agentPocketVoice: String {
         didSet { defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice) }
     }
@@ -845,6 +865,10 @@ final class Settings {
         static let agentVoiceEngine = "agentVoiceEngine"
         static let agentPersonaEnabled = PersonaStore.enabledDefaultsKey
         static let agentMemoryEnabled = MemorySnapshotCache.enabledDefaultsKey
+        static let agentSchedulesEnabled = "agentSchedulesEnabled"
+        static let agentQuietHoursStart = "agentQuietHoursStart"
+        static let agentQuietHoursEnd = "agentQuietHoursEnd"
+        static let agentRoutineSpeech = "agentRoutineSpeech"
         static let agentPocketVoice = "agentPocketVoice"
         static let wakePhrase = "wakePhrase"
         static let wakeSensitivity = "wakeSensitivity"
@@ -950,6 +974,10 @@ final class Settings {
         agentPocketVoice = defaults.string(forKey: Keys.agentPocketVoice) ?? "alba"
         agentPersonaEnabled = defaults.object(forKey: Keys.agentPersonaEnabled) as? Bool ?? true
         agentMemoryEnabled = defaults.object(forKey: Keys.agentMemoryEnabled) as? Bool ?? true
+        agentSchedulesEnabled = defaults.object(forKey: Keys.agentSchedulesEnabled) as? Bool ?? true
+        agentQuietHoursStart = defaults.string(forKey: Keys.agentQuietHoursStart) ?? "21:00"
+        agentQuietHoursEnd = defaults.string(forKey: Keys.agentQuietHoursEnd) ?? "08:00"
+        agentRoutineSpeech = defaults.string(forKey: Keys.agentRoutineSpeech) ?? "whenPresent"
         wakePhrase = defaults.string(forKey: Keys.wakePhrase) ?? WakeWordConfiguration.defaultPhrase
         wakeSensitivity = defaults.object(forKey: Keys.wakeSensitivity) as? Double ?? 0.5
         listenWhileSleeping = defaults.object(forKey: Keys.listenWhileSleeping) as? Bool ?? true

@@ -70,5 +70,6 @@ final class AgentToolRegistry {
         for tool in ShellToolCatalogue.all { register(tool) }
         for tool in BrowserToolCatalogue.all { register(tool) }
         for tool in MemoryToolCatalogue.all { register(tool) }
+        for tool in ScheduleToolCatalogue.all { register(tool) }
     }
 }

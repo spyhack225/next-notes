@@ -18,6 +18,7 @@ struct AgentSettingsTab: View {
             permissions
             remembered
             MemoriesSection()
+            RemindersSection()
         }
         .formStyle(.grouped)
         .onAppear { models.refresh() }

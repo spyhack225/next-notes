@@ -28,6 +28,10 @@ final class Notifications {
         /// proposal, and the two are not interchangeable.
         case approveProposal(id: String)
         case dismissProposal(id: String)
+        /// A reminder's notification (Part 3): its body, *Read aloud* and *Snooze*.
+        case openSchedule(id: UUID)
+        case readScheduleAloud(id: UUID)
+        case snoozeSchedule(id: UUID)
     }
 
     /// Everything that wants to hear about a pressed button.
@@ -131,6 +135,30 @@ final class Notifications {
                 ],
                 intentIdentifiers: []
             ),
+            // Reminders now, routine results in R2. The same category rides on the request
+            // handed to macOS for a reminder, so Snooze works on one delivered while the app
+            // was closed too.
+            UNNotificationCategory(
+                identifier: Category.agentRoutine,
+                actions: [
+                    UNNotificationAction(
+                        identifier: ActionID.openSchedule,
+                        title: "Open",
+                        options: [.foreground]
+                    ),
+                    UNNotificationAction(
+                        identifier: ActionID.readScheduleAloud,
+                        title: "Read aloud",
+                        options: []
+                    ),
+                    UNNotificationAction(
+                        identifier: ActionID.snoozeSchedule,
+                        title: "Snooze 10 minutes",
+                        options: []
+                    ),
+                ],
+                intentIdentifiers: []
+            ),
         ])
     }
 
@@ -229,6 +257,46 @@ final class Notifications {
         center.removeDeliveredNotifications(withIdentifiers: [identifier])
     }
 
+    /// A reminder, delivered now by the scheduler.
+    ///
+    /// Its identifier differs from the one the next occurrence is registered under with
+    /// macOS (`ScheduleNotifications.systemIdentifier`), so registering the next slot never
+    /// replaces the banner the user is reading.
+    ///
+    /// Throws when there is no notification center or macOS refuses the request, so the
+    /// scheduler counts it as a failed delivery rather than a delivered one.
+    func postAgentReminder(scheduleID: UUID, title: String, body: String) async throws {
+        guard let center = Self.center else { throw NotificationPostError.unavailable }
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.categoryIdentifier = Category.agentRoutine
+        content.userInfo = [UserInfoKey.scheduleID: scheduleID.uuidString]
+        content.sound = .default
+        let request = UNNotificationRequest(
+            identifier: "agent-reminder-delivered-\(scheduleID.uuidString)", content: content, trigger: nil)
+        try await center.add(request)
+    }
+
+    /// A reminder that keeps failing or turned itself off. Its own identifier, so it never
+    /// replaces the reminder's banner, and no Snooze or Read aloud: there is nothing to repeat.
+    /// Clicking it opens the reminders list.
+    func postAgentReminderProblem(scheduleID: UUID, title: String, body: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.userInfo = [UserInfoKey.scheduleID: scheduleID.uuidString]
+        post(content, identifier: "agent-reminder-problem-\(scheduleID.uuidString)")
+    }
+
+    enum NotificationPostError: LocalizedError {
+        case unavailable
+
+        var errorDescription: String? {
+            "Notifications are unavailable, so the reminder could not be shown."
+        }
+    }
+
     private func post(_ content: UNNotificationContent, identifier: String) {
         guard let center = Self.center else { return }
         // No trigger: deliver now. The scheduler already decided the moment.
@@ -271,6 +339,8 @@ final class Notifications {
         /// The same question, without an Approve button. Used for anything that would speak
         /// in the user's name, where the only honest answer from a banner is "come and look".
         static let agentReview = "agentReview"
+        /// A reminder or a routine's result: Open, Read aloud, Snooze.
+        static let agentRoutine = "agentRoutine"
     }
 
     enum ActionID {
@@ -280,11 +350,15 @@ final class Notifications {
         static let approveProposal = "agent.approve"
         static let dismissProposal = "agent.dismiss"
         static let reviewProposal = "agent.review"
+        static let openSchedule = "schedule.open"
+        static let readScheduleAloud = "schedule.readAloud"
+        static let snoozeSchedule = "schedule.snooze"
     }
 
     enum UserInfoKey {
         static let meetingID = "meetingID"
         static let proposalID = "proposalID"
+        static let scheduleID = "scheduleID"
     }
 }
 
@@ -300,6 +374,15 @@ private final class NotificationRouter: NSObject, UNUserNotificationCenterDelega
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        // A reminder registered with macOS for the closed-app case, firing while the app is
+        // running after all: the scheduler delivers it itself (so it can be spoken), and
+        // showing this copy too would put two banners up for one reminder.
+        let identifier = notification.request.identifier
+        if identifier.hasPrefix(ScheduleNotifications.systemIdentifierPrefix) {
+            completionHandler([])
+            Task { @MainActor in await AgentScheduler.shared.systemReminderFired(identifier: identifier) }
+            return
+        }
         // Shown even when Next Notes is frontmost: the user is usually looking at the
         // conferencing app, and "frontmost" is not the same as "watching this window".
         completionHandler([.banner, .sound])
@@ -313,6 +396,8 @@ private final class NotificationRouter: NSObject, UNUserNotificationCenterDelega
         let userInfo = response.notification.request.content.userInfo
         let identifier = response.actionIdentifier
         let proposalID = userInfo[Notifications.UserInfoKey.proposalID] as? String
+        let scheduleID = (userInfo[Notifications.UserInfoKey.scheduleID] as? String)
+            .flatMap(UUID.init(uuidString:))
         let meetingID = (userInfo[Notifications.UserInfoKey.meetingID] as? String)
             .flatMap(UUID.init(uuidString:))
 
@@ -327,6 +412,11 @@ private final class NotificationRouter: NSObject, UNUserNotificationCenterDelega
         case Notifications.ActionID.reviewProposal: meetingID.map { .open(meetingID: $0) }
         case Notifications.ActionID.approveProposal: proposalID.map { .approveProposal(id: $0) }
         case Notifications.ActionID.dismissProposal: proposalID.map { .dismissProposal(id: $0) }
+        case Notifications.ActionID.openSchedule: scheduleID.map { .openSchedule(id: $0) }
+        case Notifications.ActionID.readScheduleAloud: scheduleID.map { .readScheduleAloud(id: $0) }
+        case Notifications.ActionID.snoozeSchedule: scheduleID.map { .snoozeSchedule(id: $0) }
+        // A reminder's body has no meeting behind it.
+        case UNNotificationDefaultActionIdentifier where scheduleID != nil: scheduleID.map { .openSchedule(id: $0) }
         // A proposal notification's body is not an approval — clicking through to the app
         // is how the user goes and looks at what is being proposed.
         case UNNotificationDefaultActionIdentifier: meetingID.map { .open(meetingID: $0) }

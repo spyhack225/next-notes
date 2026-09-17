@@ -169,6 +169,9 @@ enum SelfTest {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let controller = DictationController()
+    /// The running delegate, for code that must read dictation state from outside the view
+    /// tree (the reminder presence rule). The SwiftUI adaptor hides it from `NSApp.delegate`.
+    private(set) static weak var current: AppDelegate?
     /// Meetings run from a singleton because the menu bar, the Meetings section and the
     /// scheduler all have to reach the same session. The delegate holds it so a running
     /// recording is closed out when the app quits.
@@ -180,6 +183,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var stateObservation: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Self.current = self
         // Before the self-test check: a notification the user actioned while Next Notes was
         // closed is delivered the instant the app launches, and a delegate installed after
         // that never sees it.
@@ -234,6 +238,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // registers a notification observer and the island's decision handler, and both of
         // those have to exist before a proposal from a previous session is delivered.
         AgentService.shared.start()
+        // Reminders start after the agent, for the same reason the agent starts after the
+        // meeting scheduler: its notification observer must exist before a Snooze pressed
+        // while the app was closed is delivered.
+        AgentScheduler.shared.start()
         // Touch the registry so native tools exist before the first utterance, then arm
         // the agent shortcut. Wake-word audio is not started until the user turns it on.
         _ = AgentToolRegistry.shared
@@ -413,6 +421,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if arguments.contains("--selftest-memory") {
             Task { @MainActor in
                 SelfTest.failed = !(await MemorySelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-schedule") {
+            Task { @MainActor in
+                SelfTest.failed = !(await ScheduleSelfTest.run())
                 NSApp.terminate(nil)
             }
             return true

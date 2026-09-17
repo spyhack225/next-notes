@@ -490,6 +490,8 @@ final class ActionOrchestrator {
         if tool.risk <= .read { return "Read result returned" }
         // Memory writes read the entry back from the store before returning.
         if tool.namespace == .memory { return result.verification }
+        // Schedule writes read the record back from agent-schedules.json.
+        if tool.namespace == .schedule { return result.verification }
 
         if tool.namespace == .filesystem {
             if tool.name == "delete" {
