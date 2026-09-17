@@ -1,7 +1,7 @@
 # TTS benchmark decision record
 
 This is a bounded local evaluation for v3 milestone 8 and v4 §§19–20. It does not
-change the production voice path. The harness is [Tools/tts_benchmark.swift](../Tools/tts_benchmark.swift)
+change the production voice path. The harness is [Tools/tts_benchmark.swift](../../Tools/tts_benchmark.swift)
 and has no package or model dependencies beyond macOS AVFoundation.
 
 ## Host and inventory

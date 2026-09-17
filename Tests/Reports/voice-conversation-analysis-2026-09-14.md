@@ -478,7 +478,7 @@ export; missing symbols, invalid explicit delay, and per-frame failures cannot
 silently count as a successful hybrid run.
 
 Primary evidence is preserved under
-[`docs/voice-investigation/2026-09-14-luna`](voice-investigation/2026-09-14-luna),
+[`Tests/Reports/voice-investigation/2026-09-14-luna`](voice-investigation/2026-09-14-luna),
 including the routing replay, baseline and instrumented pipelines, source A/B,
 echo-only linear failure, ABI check, regression results, and install output.
 Unmet acceptance: human speaker/microphone double-talk, stable subsecond response

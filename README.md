@@ -148,7 +148,7 @@ SpeexDSP echo cancellation before recognition. Physical speaker-echo tests have
 passed on this Mac, but cold overlapping speech and reliable early interruption
 remain acceptance gates. The bundled WebRTC AEC3 path is an explicit self-test
 candidate until those gates pass. Measurements and limits are in
-`docs/acoustic-echo.md` and `docs/voice-conversation-analysis-2026-09-14.md`.
+`Tests/Reports/acoustic-echo.md` and `Tests/Reports/voice-conversation-analysis-2026-09-14.md`.
 
 ### How rebuilds affect grants
 
@@ -239,7 +239,7 @@ Do not commit the DMG; it lives on the Release, not in `docs/`.
         (AX ids)         (no sudo)             (gws, approved)     (optional)  (optional)
 ```
 
-The [September 14 voice analysis](docs/voice-conversation-analysis-2026-09-14.md)
+The [September 14 voice analysis](Tests/Reports/voice-conversation-analysis-2026-09-14.md)
 traces the latest conversation through the local model, work lifecycle, and playback.
 Apple Foundation Models handles local conversation independently of Qwen background
 workers. Side questions keep work intact; targeted corrections revise the relevant task.
