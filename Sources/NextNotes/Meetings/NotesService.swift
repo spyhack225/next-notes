@@ -143,6 +143,9 @@ final class NotesService {
                 // the user presses Regenerate with the meeting open in front of them —
                 // telling them in the corner of the screen what they are already watching.
                 IslandState.shared.announceNotesReady(finished)
+                // "After every meeting…" triggers wait for exactly this: the automatic pass,
+                // with notes written. Regenerate is not a new meeting to act on.
+                AgentTriggerEvents.shared.notesReady(finished)
             }
         }
     }

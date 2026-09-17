@@ -116,6 +116,11 @@ final class MeetingScheduler {
         syncCallDetection()
         armDueEvents(now: now)
         await startArmedMeetings(now: now)
+        // Meeting-starting triggers, whether or not the meeting is recorded: each applies its
+        // own lead time, and an event seen on many ticks runs once. After the start above, so a
+        // trigger with no lead sees the recording it would otherwise compete with for the GPU,
+        // and runs on OpenRouter rather than Qwen.
+        AgentTriggerEvents.shared.meetingsUpcoming(calendar.upcoming, now: now)
         await stopFinishedMeeting(now: now)
     }
 
@@ -337,6 +342,16 @@ final class MeetingScheduler {
         handledCall = event
         guard let call, let event else { return }
         await answer(event, for: call, now: now)
+        // "When a call starts…" triggers hear about it only now, once the call has been armed
+        // or recorded, so a run sees that recording: Qwen is ruled out while it records and the
+        // run goes to OpenRouter, or is skipped with that reason when there is none. A call that settled within the detector's
+        // first moments was already under way — most often across a relaunch, when it gets a
+        // new `since` — and has had its run.
+        if !calls.settledAtStart(call) {
+            AgentTriggerEvents.shared.callStarted(call)
+        } else {
+            Log.calls.info("call settled right after detection started; call_started triggers not told")
+        }
     }
 
     /// Decides what to do about a call that has just settled, and does it.

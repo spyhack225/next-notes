@@ -7,7 +7,8 @@ import Foundation
 //   (`AgentToolLoop`). No conversation: persona, the core memory snapshot, fixed rules, the
 //   schedule's self-contained prompt, today's date and time zone.
 // - **Model.** `auto` probes Qwen first (loaded or loadable, nothing recording, not busy),
-//   then OpenRouter; if neither, the slot is skipped with a reason, never crashed.
+//   then OpenRouter; if neither, the slot is skipped with a reason, never crashed. Recording
+//   rules out only Qwen: a cloud routine still runs while a meeting records.
 // - **Budget.** `maxSeconds` and `maxToolCalls` are loop parameters, not prompt text; the
 //   run stops cleanly at either.
 // - **Silence.** A final answer of exactly `NOTHING_TO_REPORT` delivers nothing.
@@ -31,12 +32,17 @@ enum RoutineModelRouter {
         choice: AgentSchedule.ModelChoice, isRecording: Bool,
         local: MemoryReviewLocalState, cloudConfigured: Bool
     ) -> RoutineModelRoute {
-        if isRecording { return .skip("a meeting or dictation is recording") }
-        let localRunnable: Bool = switch local {
-        case .notLoaded, .idle: true
-        case .unavailable, .busy: false
-        }
-        let localReason = local == .unavailable ? "Qwen isn't downloaded" : "local model busy"
+        // Recording rules out only Qwen (it shares the machine with the live transcription);
+        // `auto` then falls back to OpenRouter, and a cloud routine runs as usual. A trigger on
+        // a call or a meeting start fires while that meeting records, so it must not wait.
+        let localRunnable: Bool = !isRecording && {
+            switch local {
+            case .notLoaded, .idle: return true
+            case .unavailable, .busy: return false
+            }
+        }()
+        let localReason = isRecording ? "a meeting or dictation is recording"
+            : local == .unavailable ? "Qwen isn't downloaded" : "local model busy"
         switch choice {
         case .auto:
             if localRunnable { return .local }

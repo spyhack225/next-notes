@@ -16,7 +16,7 @@ struct AgentSchedule: Codable, Identifiable, Equatable, Sendable {
         case reminder
         /// Runs the tool loop at a time. Part 3, phase R2.
         case routine
-        /// Runs the tool loop after an event. Part 3, phase R3.
+        /// Runs the tool loop after an event — notes ready, a meeting starting, a call. Phase R3.
         case trigger
     }
 
@@ -70,6 +70,13 @@ struct AgentSchedule: Codable, Identifiable, Equatable, Sendable {
     var systemRegisteredSlot: Date?
     /// A delivery held back by quiet hours or a snooze, delivered once `notBefore` passes.
     var pendingDelivery: SchedulePendingDelivery?
+    /// A trigger's further held items, behind `pendingDelivery`: two events close together
+    /// each keep their own held result or retry. Nil for reminders and routines, which hold
+    /// one item — and always nil while `pendingDelivery` is (see `pendingDeliveries`).
+    var queuedDeliveries: [SchedulePendingDelivery]?
+    /// A trigger's claimed events, newest last: an event published twice runs once. Optional
+    /// so schedules saved before triggers existed still decode.
+    var handledEventKeys: [String]?
 
     init(
         id: UUID = UUID(),
@@ -108,6 +115,18 @@ struct AgentSchedule: Codable, Identifiable, Equatable, Sendable {
         consecutiveFailures = 0
         systemRegisteredSlot = nil
         pendingDelivery = nil
+        queuedDeliveries = nil
+        handledEventKeys = nil
+    }
+
+    /// Everything held, oldest first: `pendingDelivery` then `queuedDeliveries`. Setting it
+    /// keeps the two in step, so `pendingDelivery == nil` still means nothing is held.
+    var pendingDeliveries: [SchedulePendingDelivery] {
+        get { (pendingDelivery.map { [$0] } ?? []) + (queuedDeliveries ?? []) }
+        set {
+            pendingDelivery = newValue.first
+            queuedDeliveries = newValue.count > 1 ? Array(newValue.dropFirst()) : nil
+        }
     }
 
     /// The short id the tools accept and `schedule.list` prints.
@@ -116,6 +135,21 @@ struct AgentSchedule: Codable, Identifiable, Equatable, Sendable {
     var isOneShot: Bool {
         if case .once = when?.repeatRule { return true }
         return false
+    }
+
+    /// How many claimed event keys a trigger keeps. Older ones are events long past.
+    static let handledEventLimit = 200
+
+    func hasHandled(_ key: String) -> Bool {
+        handledEventKeys?.contains(key) ?? false
+    }
+
+    mutating func markHandled(_ key: String) {
+        var keys = handledEventKeys ?? []
+        keys.removeAll { $0 == key }
+        keys.append(key)
+        if keys.count > Self.handledEventLimit { keys.removeFirst(keys.count - Self.handledEventLimit) }
+        handledEventKeys = keys
     }
 }
 
@@ -207,7 +241,8 @@ enum ScheduleWeekday: Int, Codable, Sendable, CaseIterable, Comparable {
     }
 }
 
-/// What a trigger waits for. Phase R3; stored now so the record does not change shape.
+/// What a trigger waits for (phase R3). The filter is plain text matched against the meeting
+/// title or attendees; `AgentTriggerEvents.swift` has the matching and the publishers.
 enum ScheduleTrigger: Codable, Equatable, Sendable {
     case meetingNotesReady(filter: String?)
     case meetingStarting(leadMinutes: Int, filter: String?)
@@ -230,6 +265,8 @@ struct SchedulePendingDelivery: Codable, Equatable, Sendable {
     /// A routine's finished result held back by quiet hours: delivered as is, never re-run.
     /// Nil for a reminder, and for a routine retry, which runs again.
     var text: String? = nil
+    /// A trigger's retry: the event it runs for again. Nil for everything else.
+    var occurrence: ScheduleTriggerOccurrence? = nil
 }
 
 /// One line of `agent-schedule-runs.jsonl`. Every slot leaves one, including the ones that

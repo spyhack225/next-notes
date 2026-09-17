@@ -4,7 +4,10 @@ import Foundation
 /// then `runOnce` under a fake clock for on-time and late delivery, grace, the collapsed
 /// catch-up, *Missed* one-shots, claim-before-dispatch, interrupted runs, backoff and
 /// disable, `endsAt`, quiet hours, the presence rule, the macOS hand-off and launch
-/// reconciliation, and the `schedule.*` tools.
+/// reconciliation, and the `schedule.*` tools. Then triggers (R3) with synthetic events: each
+/// fires exactly once per event — across repeats, ticks and a relaunch — within its lead time
+/// and filter, with a routine's silence, skip retry, quiet hours, drafts, failure escalation
+/// and end date, through the publishers and the tools.
 ///
 /// No model, no network, no microphone, no notification center. Every store lives in a
 /// temporary directory, and macOS registration, delivery and presence are recorders: the
@@ -30,6 +33,7 @@ enum ScheduleSelfTest {
         failures += await schedulerFailures(root: root)
         failures += await toolFailures(root: root)
         failures += await routineFailures(root: root)
+        failures += await triggerFailures(root: root)
         failures += policyFailures()
 
         for failure in failures { print("SCHEDULE_CHECK_FAILED: \(failure)") }
@@ -654,9 +658,11 @@ enum ScheduleSelfTest {
                                            "plainEnglish": "every other Tuesday at 7"])?.contains("only repeat") == true)
             check("biweekly repeat was not refused",
                   await refused("create", ["title": "Pay", "text": "Payday.", "repeat": "biweekly", "time": "9:00"]) != nil)
-            check("a trigger was accepted before R3",
+            check("a trigger without an event was accepted",
                   await refused("create", ["kind": "trigger", "title": "After", "text": "Summarise.", "repeat": "daily", "time": "8:00"])?
-                    .contains("Only reminders and routines") == true)
+                    .contains("notes_ready") == true)
+            check("an unknown kind was accepted",
+                  await refused("create", ["kind": "heartbeat", "title": "Pulse", "text": "Check.", "repeat": "daily", "time": "8:00"]) != nil)
             // This scheduler has no runner, so a routine's test run fails and it is removed.
             let untestable = await refused("create", ["kind": "routine", "title": "Summary", "text": "Summarise.",
                                                       "repeat": "daily", "time": "8:00"])
@@ -918,6 +924,511 @@ enum ScheduleSelfTest {
         return failures
     }
 
+    // MARK: - Triggers under a fake clock
+
+    /// Triggers with synthetic events: notes ready, a meeting starting with its lead time, and
+    /// a call starting. Exactly once per event, the filter, routine rules, the publishers.
+    private static func triggerFailures(root: URL) async -> [String] {
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append("triggers: \(name)") }
+        }
+        let system = FakeSystem()
+        let deliverer = FakeDeliverer()
+        let environment = FakeEnvironment()
+        let runner = ScriptedRunner()
+        let bus = AgentTriggerEvents()
+        var settings = ScheduleSettingsSnapshot(enabled: true, quietStart: nil, quietEnd: nil, speech: .whenPresent)
+        func makeScheduler(_ name: String) -> AgentScheduler {
+            AgentScheduler(
+                store: ScheduleStore(directory: root.appendingPathComponent(name, isDirectory: true)),
+                system: system, deliverer: deliverer, environment: environment,
+                settings: { settings }, timeZone: { newYork }, runner: runner, events: bus)
+        }
+        func trigger(_ event: ScheduleTrigger, created: Date, title: String = "Follow-up",
+                     endsAt: Date? = nil) -> AgentSchedule {
+            var schedule = AgentSchedule(kind: .trigger, title: title, plainEnglish: "",
+                                         prompt: "Draft the follow-up email for this meeting.", trigger: event,
+                                         endsAt: endsAt, allowedTools: ["meeting.search", "send_email", "schedule.create"],
+                                         createdAt: created)
+            schedule.plainEnglish = ScheduleToolExecutor.triggerSentence(for: schedule)
+            return schedule
+        }
+        func meeting(_ title: String, attendees: [String] = [], at start: Date) -> Meeting {
+            var meeting = Meeting(title: title, start: start)
+            meeting.end = start.addingTimeInterval(1_800)
+            meeting.attendees = attendees
+            return meeting
+        }
+        func calendarEvent(_ id: String, _ title: String, start: Date, minutes: Int = 60,
+                           attendees: [String] = [], allDay: Bool = false, accepted: Bool = true) -> MeetingEvent {
+            MeetingEvent(id: id, providerID: .fake, title: title, start: start,
+                         end: start.addingTimeInterval(TimeInterval(minutes * 60)), attendees: attendees,
+                         isOrganizerOrSelfAccepted: accepted, conferenceURL: nil, calendarName: "Work", isAllDay: allDay)
+        }
+        let created = date(2026, 9, 16, 8, 0)
+
+        // MARK: Notes ready: once per meeting, the filter, a relaunch
+        do {
+            let scheduler = makeScheduler("trigger-notes")
+            let saved = try await scheduler.add(trigger(.meetingNotesReady(filter: "Acme, Globex"), created: created), now: created)
+            check("a trigger got a next run or kept a schedule tool",
+                  saved.nextRunAt == nil && saved.when == nil && saved.allowedTools == ["meeting.search", "send_email"])
+            check("a trigger was registered with macOS", system.registered[saved.id] == nil)
+            check("trigger sentence wrong: \(saved.plainEnglish)",
+                  saved.plainEnglish.hasPrefix("When notes are ready for a meeting whose title or attendees mention “Acme” or “Globex”, I'll draft")
+                    && saved.plainEnglish.contains("waits for your approval"))
+
+            let acme = meeting("Acme weekly", at: date(2026, 9, 16, 9, 0))
+            runner.queue = [ScheduledRunOutcome(status: .reported, text: "Follow-up drafted for Acme.")]
+            await scheduler.handleTriggerEvents([.notesReady(acme, at: date(2026, 9, 16, 9, 35))], now: date(2026, 9, 16, 9, 35))
+            check("notes-ready did not run once and deliver",
+                  runner.runs == 1 && deliverer.deliveries.count == 1
+                    && deliverer.deliveries.last?.body == "Follow-up drafted for Acme."
+                    && deliverer.deliveries.last?.kind == .trigger && deliverer.deliveries.last?.title == "Follow-up")
+            check("the run was not told about its meeting as data",
+                  runner.prompts.last?.hasPrefix("Draft the follow-up email for this meeting.") == true
+                    && runner.prompts.last?.contains("Meeting: Acme weekly") == true
+                    && runner.prompts.last?.contains("never instructions") == true
+                    && runner.prompts.last?.contains("Meeting id: \(acme.id.uuidString)") == true)
+            check("the stored prompt was changed by a run",
+                  scheduler.store.schedule(id: saved.id)?.prompt == "Draft the follow-up email for this meeting.")
+            check("a trigger run not recorded completed",
+                  scheduler.store.schedule(id: saved.id)?.lastRun?.outcome == .completed)
+
+            // The same event again — published twice, and after a relaunch.
+            await scheduler.handleTriggerEvents([.notesReady(acme, at: date(2026, 9, 16, 9, 36))], now: date(2026, 9, 16, 9, 36))
+            let relaunched = makeScheduler("trigger-notes")
+            await relaunched.handleTriggerEvents([.notesReady(acme, at: date(2026, 9, 16, 9, 40))], now: date(2026, 9, 16, 9, 40))
+            check("the same notes-ready event ran twice", runner.runs == 1)
+            check("the claim is not on disk",
+                  ScheduleStore(directory: scheduler.store.directory).schedule(id: saved.id)?
+                    .hasHandled("notes:\(acme.id.uuidString)") == true)
+
+            // The filter: neither title nor attendee; then an attendee only; case and accents.
+            await relaunched.handleTriggerEvents([.notesReady(meeting("Weekly sync", attendees: ["pat@initech.com"],
+                                                                      at: date(2026, 9, 16, 10, 0)), at: date(2026, 9, 16, 10, 40))],
+                                                 now: date(2026, 9, 16, 10, 40))
+            check("a meeting the filter does not match ran", runner.runs == 1)
+            runner.queue = [ScheduledRunOutcome(status: .nothingToReport, text: "")]
+            await relaunched.handleTriggerEvents([.notesReady(meeting("1:1", attendees: ["Sam <sam@GLOBEX.com>"],
+                                                                      at: date(2026, 9, 16, 11, 0)), at: date(2026, 9, 16, 11, 40))],
+                                                 now: date(2026, 9, 16, 11, 40))
+            check("an attendee matching the filter did not run", runner.runs == 2)
+            check("NOTHING_TO_REPORT from a trigger delivered something",
+                  deliverer.deliveries.count == 1 && relaunched.store.schedule(id: saved.id)?.lastRun?.outcome == .nothingToReport)
+            check("filter is not case- and accent-insensitive",
+                  ScheduleTrigger.filter("acmé", matchesTitle: "ACME Board", attendees: [])
+                    && !ScheduleTrigger.filter("acme", matchesTitle: "Board", attendees: ["pat@initech.com"])
+                    && ScheduleTrigger.filter(nil, matchesTitle: "Anything", attendees: []))
+
+            // A batch with two events runs each once, in order.
+            runner.queue = [ScheduledRunOutcome(status: .nothingToReport, text: ""),
+                            ScheduledRunOutcome(status: .nothingToReport, text: "")]
+            let first = meeting("Acme pricing", at: date(2026, 9, 16, 13, 0))
+            let second = meeting("Globex renewal", at: date(2026, 9, 16, 14, 0))
+            let batch: [ScheduleTriggerOccurrence] = [.notesReady(first, at: date(2026, 9, 16, 15, 0)),
+                                                      .notesReady(second, at: date(2026, 9, 16, 15, 0)),
+                                                      .notesReady(first, at: date(2026, 9, 16, 15, 0))]
+            await relaunched.handleTriggerEvents(batch, now: date(2026, 9, 16, 15, 0))
+            check("a batch did not run each distinct event once", runner.runs == 4)
+
+            // Switched off: nothing runs, and nothing is claimed for later.
+            settings.enabled = false
+            let later = meeting("Acme retro", at: date(2026, 9, 16, 16, 0))
+            await relaunched.handleTriggerEvents([.notesReady(later, at: date(2026, 9, 16, 16, 40))], now: date(2026, 9, 16, 16, 40))
+            check("a trigger ran with schedules switched off", runner.runs == 4)
+            check("an event was claimed while switched off",
+                  relaunched.store.schedule(id: saved.id)?.hasHandled("notes:\(later.id.uuidString)") == false)
+            settings.enabled = true
+
+            // Paused: no run; resumed: the next event runs.
+            _ = try await relaunched.pause(id: saved.id, now: date(2026, 9, 16, 17, 0))
+            await relaunched.handleTriggerEvents([.notesReady(later, at: date(2026, 9, 16, 17, 1))], now: date(2026, 9, 16, 17, 1))
+            check("a paused trigger ran", runner.runs == 4)
+            _ = try await relaunched.resume(id: saved.id, now: date(2026, 9, 16, 17, 2))
+            runner.queue = [ScheduledRunOutcome(status: .nothingToReport, text: "")]
+            await relaunched.handleTriggerEvents([.notesReady(meeting("Acme again", at: date(2026, 9, 16, 17, 0)),
+                                                              at: date(2026, 9, 16, 17, 3))], now: date(2026, 9, 16, 17, 3))
+            check("a resumed trigger did not run", runner.runs == 5)
+        } catch {
+            failures.append("triggers: notes fixture threw \(error.localizedDescription)")
+        }
+
+        // MARK: Meeting starting: the lead time, repeated ticks, found too late
+        do {
+            deliverer.reset()
+            runner.queue = []
+            let scheduler = makeScheduler("trigger-starting")
+            let saved = try await scheduler.add(
+                trigger(.meetingStarting(leadMinutes: 10, filter: nil), created: created, title: "Prep"), now: created)
+            check("meeting-starting sentence wrong: \(saved.plainEnglish)",
+                  saved.plainEnglish.hasPrefix("10 minutes before a meeting starts, I'll"))
+            let standup = calendarEvent("evt-1", "Design review", start: date(2026, 9, 16, 10, 0), attendees: ["kim@acme.com"])
+            let before = runner.runs
+            for tick in [date(2026, 9, 16, 9, 40), date(2026, 9, 16, 9, 49, 50)] {
+                await scheduler.handleTriggerEvents([.meetingStarting(standup, at: tick)], now: tick)
+            }
+            check("ran before its lead time", runner.runs == before)
+            runner.queue = [ScheduledRunOutcome(status: .reported, text: "Kim's last notes are ready.")]
+            for tick in [date(2026, 9, 16, 9, 50, 10), date(2026, 9, 16, 9, 50, 40), date(2026, 9, 16, 9, 55), date(2026, 9, 16, 10, 1)] {
+                await scheduler.handleTriggerEvents([.meetingStarting(standup, at: tick)], now: tick)
+            }
+            check("meeting-starting did not run exactly once across ticks", runner.runs == before + 1)
+            check("the meeting-starting run lacks its attendees",
+                  runner.prompts.last?.contains("Attendees: kim@acme.com") == true
+                    && runner.prompts.last?.contains("about to start") == true)
+
+            // A moved meeting is a new event.
+            let moved = calendarEvent("evt-1", "Design review", start: date(2026, 9, 16, 15, 0))
+            runner.queue = [ScheduledRunOutcome(status: .nothingToReport, text: "")]
+            await scheduler.handleTriggerEvents([.meetingStarting(moved, at: date(2026, 9, 16, 14, 52))], now: date(2026, 9, 16, 14, 52))
+            check("a moved meeting did not run again", runner.runs == before + 2)
+
+            // Found after it had started (the app was not running): one skip line, no run.
+            let missed = calendarEvent("evt-2", "Board", start: date(2026, 9, 16, 11, 0))
+            for tick in [date(2026, 9, 16, 11, 20), date(2026, 9, 16, 11, 20, 30)] {
+                await scheduler.handleTriggerEvents([.meetingStarting(missed, at: tick)], now: tick)
+            }
+            let skips = scheduler.store.runs(for: saved.id).filter { $0.outcome == .skipped }
+            check("a meeting found after it started was run or not skipped once (\(skips.count))",
+                  runner.runs == before + 2 && skips.count == 1 && skips.first?.detail.contains("Board") == true)
+
+            // A meeting already under way when the trigger was created is not its business.
+            let earlier = calendarEvent("evt-0", "Early", start: date(2026, 9, 16, 7, 30), minutes: 120)
+            await scheduler.handleTriggerEvents([.meetingStarting(earlier, at: date(2026, 9, 16, 8, 1))], now: date(2026, 9, 16, 8, 1))
+            check("a meeting from before the trigger existed was run or logged",
+                  runner.runs == before + 2 && scheduler.store.runs(for: saved.id).filter { $0.outcome == .skipped }.count == 1)
+
+            // Skipped for a busy model near the start: retried a minute later, then not past grace.
+            let retro = calendarEvent("evt-3", "Retro", start: date(2026, 9, 16, 16, 0))
+            runner.queue = [.skipped("local model busy"), ScheduledRunOutcome(status: .reported, text: "Retro prep.")]
+            await scheduler.handleTriggerEvents([.meetingStarting(retro, at: date(2026, 9, 16, 15, 50, 5))], now: date(2026, 9, 16, 15, 50, 5))
+            let pending = scheduler.store.schedule(id: saved.id)?.pendingDelivery
+            check("a skipped trigger run was not held for a retry with its event",
+                  pending?.notBefore == date(2026, 9, 16, 15, 51, 5) && pending?.occurrence?.title == "Retro")
+            await scheduler.runOnce(now: date(2026, 9, 16, 15, 51, 6))
+            check("the retry did not run with its event and deliver",
+                  runner.runs == before + 4 && runner.prompts.last?.contains("Meeting: Retro") == true
+                    && deliverer.deliveries.last?.body == "Retro prep.")
+            let late = calendarEvent("evt-4", "Late one", start: date(2026, 9, 16, 17, 0))
+            runner.queue = [.skipped("local model busy")]
+            await scheduler.handleTriggerEvents([.meetingStarting(late, at: date(2026, 9, 16, 17, 4, 30))], now: date(2026, 9, 16, 17, 4, 30))
+            check("a skip was set to retry after the meeting's grace",
+                  scheduler.store.schedule(id: saved.id)?.pendingDelivery == nil
+                    && scheduler.store.runs(for: saved.id).last?.outcome == .skipped)
+
+            // Quiet hours hold the result, not the run.
+            settings.quietStart = ScheduleLocalTime(hour: 21, minute: 0)
+            settings.quietEnd = ScheduleLocalTime(hour: 8, minute: 0)
+            let evening = calendarEvent("evt-5", "Late call with Tokyo", start: date(2026, 9, 16, 22, 0))
+            runner.queue = [ScheduledRunOutcome(status: .reported, text: "Tokyo prep.")]
+            let runsBefore = runner.runs
+            let shown = deliverer.deliveries.count
+            await scheduler.handleTriggerEvents([.meetingStarting(evening, at: date(2026, 9, 16, 21, 52))], now: date(2026, 9, 16, 21, 52))
+            check("quiet hours held a trigger's run or showed its result",
+                  runner.runs == runsBefore + 1 && deliverer.deliveries.count == shown
+                    && scheduler.store.schedule(id: saved.id)?.pendingDelivery?.text == "Tokyo prep.")
+            await scheduler.runOnce(now: date(2026, 9, 17, 8, 0, 5))
+            check("a held trigger result was not shown when quiet hours ended, without running again",
+                  deliverer.deliveries.count == shown + 1 && deliverer.deliveries.last?.body == "Tokyo prep."
+                    && runner.runs == runsBefore + 1)
+            settings.quietStart = nil
+            settings.quietEnd = nil
+
+            // Drafts are notified for approval.
+            let draft = RoutineDraft(scheduleID: saved.id, taskID: "t", receiptID: UUID(), toolID: "send_email",
+                                     arguments: [:], title: "Agenda to Kim", preview: nil, risk: .send,
+                                     createdAt: date(2026, 9, 17, 9, 50))
+            runner.queue = [ScheduledRunOutcome(status: .reported, text: "Ready for your approval: Agenda to Kim.", drafts: [draft])]
+            await scheduler.handleTriggerEvents([.meetingStarting(calendarEvent("evt-6", "Kim", start: date(2026, 9, 17, 10, 0)),
+                                                                  at: date(2026, 9, 17, 9, 50))], now: date(2026, 9, 17, 9, 50))
+            check("a trigger's draft was not notified", deliverer.drafts.map(\.id) == [draft.id])
+
+            // End date: turned off by the pass, and no run after.
+            var ending = scheduler.store.schedule(id: saved.id)!
+            ending.endsAt = date(2026, 9, 18, 0, 0)
+            scheduler.store.save(ending)
+            await scheduler.runOnce(now: date(2026, 9, 18, 0, 1))
+            check("a trigger past its end date was not turned off",
+                  scheduler.store.schedule(id: saved.id)?.enabled == false
+                    && scheduler.store.schedule(id: saved.id)?.lastRun?.outcome == .ended)
+            let afterEnd = runner.runs
+            await scheduler.handleTriggerEvents([.meetingStarting(calendarEvent("evt-7", "After", start: date(2026, 9, 18, 10, 0)),
+                                                                  at: date(2026, 9, 18, 9, 55))], now: date(2026, 9, 18, 9, 55))
+            check("an ended trigger ran", runner.runs == afterEnd)
+        } catch {
+            failures.append("triggers: meeting-starting fixture threw \(error.localizedDescription)")
+        }
+
+        // MARK: Call started: once per call; failures escalate to one disable
+        do {
+            deliverer.reset()
+            runner.queue = []
+            let scheduler = makeScheduler("trigger-call")
+            let saved = try await scheduler.add(trigger(.callStarted, created: created, title: "Call notes"), now: created)
+            check("call sentence wrong: \(saved.plainEnglish)", saved.plainEnglish.hasPrefix("When a call starts, I'll"))
+            let zoom = CallDetector.CallActivity(bundleID: "us.zoom.xos", pid: 4_242, displayName: "Zoom",
+                                                 since: date(2026, 9, 16, 9, 0), hasInput: true, hasOutput: true)
+            runner.queue = [ScheduledRunOutcome(status: .nothingToReport, text: "")]
+            let before = runner.runs
+            await scheduler.handleTriggerEvents([.callStarted(zoom, at: date(2026, 9, 16, 9, 0, 5))], now: date(2026, 9, 16, 9, 0, 5))
+            await scheduler.handleTriggerEvents([.callStarted(zoom, at: date(2026, 9, 16, 9, 0, 35))], now: date(2026, 9, 16, 9, 0, 35))
+            check("a call did not run exactly once", runner.runs == before + 1
+                  && runner.prompts.last?.contains("App: Zoom") == true)
+            var teams = zoom
+            teams.pid = 5_151
+            teams.displayName = "Teams"
+            teams.since = date(2026, 9, 16, 11, 0)
+            runner.queue = [ScheduledRunOutcome(status: .nothingToReport, text: "")]
+            await scheduler.handleTriggerEvents([.callStarted(teams, at: date(2026, 9, 16, 11, 0, 5))], now: date(2026, 9, 16, 11, 0, 5))
+            check("a second call did not run", runner.runs == before + 2)
+
+            runner.fallback = ScheduledRunOutcome(status: .failed, text: "OpenRouter returned 500.")
+            var now = date(2026, 9, 17, 9, 0)
+            var retriesKept = 0
+            for index in 0..<15 {
+                guard scheduler.store.schedule(id: saved.id)?.enabled == true else { break }
+                var call = zoom
+                call.pid = pid_t(6_000 + index)
+                call.since = now
+                await scheduler.handleTriggerEvents([.callStarted(call, at: now)], now: now)
+                // Retries for this call while its window is open; none after it closes.
+                while let pending = scheduler.store.schedule(id: saved.id)?.pendingDelivery {
+                    check("a call's retry outlived its window",
+                          pending.notBefore <= now.addingTimeInterval(AgentScheduler.callStartedRetryWindow))
+                    retriesKept += 1
+                    await scheduler.runOnce(now: pending.notBefore.addingTimeInterval(1))
+                }
+                now = now.addingTimeInterval(3_600)
+            }
+            let final = scheduler.store.schedule(id: saved.id)
+            print("TRIGGER_FAILURES runs \(runner.runs - before - 2) retries \(retriesKept) failures \(final?.consecutiveFailures ?? -1)")
+            check("a failing trigger did not stop at 10 runs and disable",
+                  runner.runs - before - 2 == 10 && final?.consecutiveFailures == 10 && final?.enabled == false)
+            check("trigger failure notifications are not one at 3 and one disable (\(deliverer.problems))",
+                  deliverer.problems.count == 2 && deliverer.problems.first?.hasPrefix("A trigger keeps failing") == true
+                    && deliverer.problems.last?.contains("turned itself off") == true)
+            check("no failed call run was retried within its window", retriesKept > 0)
+            check("a failed call run given up for its window left no skip line",
+                  scheduler.store.runs(for: saved.id).contains {
+                      $0.outcome == .skipped && $0.detail.hasPrefix("Not retried for “Zoom”")
+                  })
+            runner.fallback = nil
+        } catch {
+            failures.append("triggers: call fixture threw \(error.localizedDescription)")
+        }
+
+        // MARK: Events close together: each keeps its own held result or retry
+        do {
+            deliverer.reset()
+            runner.queue = []
+            runner.fallback = nil
+            let scheduler = makeScheduler("trigger-queue")
+            let saved = try await scheduler.add(
+                trigger(.meetingNotesReady(filter: nil), created: created, title: "Recap"), now: created)
+            func held() -> [SchedulePendingDelivery] { scheduler.store.schedule(id: saved.id)?.pendingDeliveries ?? [] }
+
+            // Two evening meetings in quiet hours: both results wait for the morning.
+            let beforeEvening = runner.runs
+            settings.quietStart = ScheduleLocalTime(hour: 21, minute: 0)
+            settings.quietEnd = ScheduleLocalTime(hour: 8, minute: 0)
+            runner.queue = [ScheduledRunOutcome(status: .reported, text: "Recap A."),
+                            ScheduledRunOutcome(status: .reported, text: "Recap B.")]
+            await scheduler.handleTriggerEvents([.notesReady(meeting("Evening A", at: date(2026, 9, 16, 20, 0)),
+                                                             at: date(2026, 9, 16, 21, 40))], now: date(2026, 9, 16, 21, 40))
+            await scheduler.handleTriggerEvents([.notesReady(meeting("Evening B", at: date(2026, 9, 16, 21, 0)),
+                                                             at: date(2026, 9, 16, 22, 40))], now: date(2026, 9, 16, 22, 40))
+            check("two results in quiet hours were not both held (\(held().map { $0.text ?? "-" }))",
+                  runner.runs == beforeEvening + 2 && deliverer.deliveries.isEmpty && held().compactMap(\.text) == ["Recap A.", "Recap B."])
+            await scheduler.runOnce(now: date(2026, 9, 17, 3, 0))
+            check("held results were shown inside quiet hours", deliverer.deliveries.isEmpty && held().count == 2)
+            await scheduler.runOnce(now: date(2026, 9, 17, 8, 0, 5))
+            check("both held results were not shown at 08:00 (\(deliverer.deliveries.map(\.body)))",
+                  deliverer.deliveries.map(\.body) == ["Recap A.", "Recap B."] && runner.runs == beforeEvening + 2 && held().isEmpty)
+            settings.quietStart = nil
+            settings.quietEnd = nil
+
+            // Event A skipped and waiting to retry when event B's run fails: both are retried.
+            runner.queue = [.skipped("local model busy"), ScheduledRunOutcome(status: .failed, text: "OpenRouter returned 500.")]
+            await scheduler.handleTriggerEvents([.notesReady(meeting("Standup A", at: date(2026, 9, 17, 9, 0)),
+                                                             at: date(2026, 9, 17, 10, 0))], now: date(2026, 9, 17, 10, 0))
+            await scheduler.handleTriggerEvents([.notesReady(meeting("Standup B", at: date(2026, 9, 17, 9, 30)),
+                                                             at: date(2026, 9, 17, 10, 0, 20))], now: date(2026, 9, 17, 10, 0, 20))
+            check("one event's failure dropped another event's retry (\(held().map { $0.occurrence?.title ?? "-" }))",
+                  held().compactMap { $0.occurrence?.title } == ["Standup A", "Standup B"])
+            runner.queue = [ScheduledRunOutcome(status: .nothingToReport, text: ""),
+                            ScheduledRunOutcome(status: .nothingToReport, text: "")]
+            let beforeRetries = runner.runs
+            await scheduler.runOnce(now: date(2026, 9, 17, 10, 1, 25))
+            check("both events' retries did not run once each",
+                  runner.runs == beforeRetries + 2 && held().isEmpty
+                    && runner.prompts.suffix(2).first?.contains("Meeting: Standup A") == true
+                    && runner.prompts.last?.contains("Meeting: Standup B") == true)
+
+            // A snooze sits beside an event's retry, never in place of it.
+            runner.queue = [.skipped("local model busy")]
+            await scheduler.handleTriggerEvents([.notesReady(meeting("Planning", at: date(2026, 9, 17, 11, 0)),
+                                                             at: date(2026, 9, 17, 11, 40))], now: date(2026, 9, 17, 11, 40))
+            await scheduler.snooze(id: saved.id, now: date(2026, 9, 17, 11, 40, 10))
+            check("a snooze replaced an event's retry (\(held().map(\.reason)))",
+                  held().map(\.reason) == [AgentScheduler.skipRetryReason, AgentScheduler.snoozeReason])
+            runner.queue = [ScheduledRunOutcome(status: .nothingToReport, text: "")]
+            let beforeSnooze = runner.runs
+            await scheduler.runOnce(now: date(2026, 9, 17, 11, 41, 5))
+            check("the retry beside a snooze did not run",
+                  runner.runs == beforeSnooze + 1 && runner.prompts.last?.contains("Meeting: Planning") == true
+                    && held().map(\.reason) == [AgentScheduler.snoozeReason])
+            let shownBefore = deliverer.deliveries.count
+            await scheduler.runOnce(now: date(2026, 9, 17, 11, 50, 11))
+            check("the snooze did not show its result again without running",
+                  deliverer.deliveries.count == shownBefore + 1 && runner.runs == beforeSnooze + 1 && held().isEmpty)
+        } catch {
+            failures.append("triggers: queue fixture threw \(error.localizedDescription)")
+        }
+
+        // MARK: The publishers and the subscription
+        do {
+            var published: [ScheduleTriggerOccurrence] = []
+            let token = bus.subscribe { published += $0 }
+            let now = date(2026, 9, 16, 9, 0)
+            bus.meetingsUpcoming([
+                calendarEvent("a", "Soon", start: date(2026, 9, 16, 9, 30)),
+                calendarEvent("b", "Under way", start: date(2026, 9, 16, 8, 30)),
+                calendarEvent("c", "Ended", start: date(2026, 9, 16, 7, 0)),
+                calendarEvent("d", "Tomorrow", start: date(2026, 9, 17, 9, 0)),
+                calendarEvent("e", "Holiday", start: date(2026, 9, 16, 0, 0), minutes: 1_440, allDay: true),
+                calendarEvent("f", "Never answered", start: date(2026, 9, 16, 9, 15), accepted: false),
+            ], now: now)
+            check("upcoming meetings published the wrong events (\(published.map(\.title)))",
+                  published.map(\.title) == ["Soon", "Under way"])
+            let firstKeys = published.map(\.key)
+            published = []
+            bus.meetingsUpcoming([calendarEvent("a", "Soon", start: date(2026, 9, 16, 9, 30))], now: now.addingTimeInterval(30))
+            check("the same calendar event got a different key on the next tick", published.first?.key == firstKeys.first)
+            bus.unsubscribe(token)
+
+            // The scheduler hears the bus once it listens.
+            deliverer.reset()
+            let listening = makeScheduler("trigger-bus")
+            let realNow = Date()
+            _ = try await listening.add(trigger(.meetingNotesReady(filter: nil), created: realNow.addingTimeInterval(-60)),
+                                        now: realNow.addingTimeInterval(-60))
+            listening.listenForTriggerEvents()
+            listening.listenForTriggerEvents()
+            runner.queue = [ScheduledRunOutcome(status: .reported, text: "Heard it.")]
+            let before = runner.runs
+            bus.notesReady(meeting("Bus meeting", at: realNow.addingTimeInterval(-3_600)), now: realNow)
+            for _ in 0..<50 where runner.runs == before {
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+            await listening.handleTriggerEvents([], now: realNow)
+            check("the scheduler did not run a published event exactly once (listening twice)",
+                  runner.runs == before + 1 && deliverer.deliveries.last?.body == "Heard it.")
+            listening.stop()
+        } catch {
+            failures.append("triggers: bus fixture threw \(error.localizedDescription)")
+        }
+
+        // MARK: The tools
+        do {
+            deliverer.reset()
+            let scheduler = makeScheduler("trigger-tools")
+            let now = date(2026, 9, 16, 7, 0)
+            let createTool = ScheduleToolCatalogue.all.first { $0.name == "create" }!
+            let updateTool = ScheduleToolCatalogue.all.first { $0.name == "update" }!
+            let listTool = ScheduleToolCatalogue.all.first { $0.name == "list" }!
+            let available: Set<String> = ["meeting.search", "send_email", "schedule.create"]
+            func call(_ tool: AgentTool, _ arguments: [String: String]) async -> Result<AgentToolResult, Error> {
+                do {
+                    return .success(try await ScheduleToolExecutor.run(
+                        tool, arguments: arguments, scheduler: scheduler, now: now, timeZone: newYork,
+                        availableTools: available))
+                } catch {
+                    return .failure(error)
+                }
+            }
+            func refusal(_ arguments: [String: String]) async -> String? {
+                if case .failure(let error) = await call(createTool, arguments) { return error.localizedDescription }
+                return nil
+            }
+            let base = ["kind": "trigger", "title": "Acme prep", "text": "Pull up my last notes with them.",
+                        "tools": "meeting.search"]
+            var unknown = base
+            unknown["on"] = "sunset"
+            check("an unknown trigger event was accepted", await refusal(unknown)?.contains("meeting_starting") == true)
+            var farLead = base
+            farLead["on"] = "meeting_starting"
+            farLead["leadMinutes"] = "500"
+            check("a 500-minute lead was accepted", await refusal(farLead)?.contains("leadMinutes") == true)
+            var filteredCall = base
+            filteredCall["on"] = "call_started"
+            filteredCall["filter"] = "Acme"
+            check("a filtered call trigger was accepted", await refusal(filteredCall)?.contains("can't be filtered") == true)
+            var withSchedule = base
+            withSchedule["on"] = "notes_ready"
+            withSchedule["tools"] = "schedule.create"
+            check("a trigger with schedule.create was accepted",
+                  await refusal(withSchedule)?.contains("cannot create or change schedules") == true)
+
+            var good = base
+            good["on"] = "meeting starting"
+            good["filter"] = "Acme"
+            runner.queue = [ScheduledRunOutcome(status: .failed, text: "OpenRouter isn't reachable.")]
+            check("a trigger whose test run failed was kept",
+                  await refusal(good)?.contains("removed the trigger") == true && scheduler.store.schedules.isEmpty)
+            runner.queue = [ScheduledRunOutcome(status: .nothingToReport, text: "")]
+            let testRuns = runner.runs
+            switch await call(createTool, good) {
+            case .success(let result):
+                print("SCHEDULE_TRIGGER create -> \(result.summary)")
+                let stored = scheduler.store.schedules.first
+                check("the tool did not save a meeting-starting trigger with a 5-minute default lead",
+                      stored?.kind == .trigger && stored?.trigger == .meetingStarting(leadMinutes: 5, filter: "Acme")
+                        && stored?.allowedTools == ["meeting.search"] && stored?.enabled == true)
+                check("the trigger was not test-run once as a test",
+                      runner.runs == testRuns + 1 && runner.prompts.last?.contains("test run") == true
+                        && stored?.lastRun?.outcome == .ranNow)
+                check("the create sentence does not restate the event and filter",
+                      result.summary.contains("5 minutes before a meeting whose title or attendees mention “Acme” starts"))
+                check("a trigger did not offer Open at login", result.summary.contains("Open at login"))
+                check("a duplicate trigger was accepted", await refusal(good)?.contains("schedule.update") == true)
+                if let stored {
+                    let listed = try await ScheduleToolExecutor.run(listTool, arguments: [:], scheduler: scheduler,
+                                                                    now: now, timeZone: newYork)
+                    check("list does not say the trigger waits for its event",
+                          listed.summary.contains("[\(stored.shortID)]") && listed.summary.contains("waiting for its event"))
+                    if case .failure(let error) = await call(updateTool, ["id": stored.shortID, "on": "call_started"]) {
+                        check("switching a filtered trigger to calls did not name the filter it would drop",
+                              error.localizedDescription.contains("“Acme”")
+                                && scheduler.store.schedule(id: stored.id)?.trigger == .meetingStarting(leadMinutes: 5, filter: "Acme"))
+                    } else {
+                        failures.append("triggers: switching a filtered trigger to calls silently dropped its filter")
+                    }
+                    if case .success(let updated) = await call(updateTool, ["id": stored.shortID, "leadMinutes": "15", "filter": "none"]) {
+                        check("update did not change the lead and clear the filter (\(updated.summary))",
+                              scheduler.store.schedule(id: stored.id)?.trigger == .meetingStarting(leadMinutes: 15, filter: nil)
+                                && updated.summary.contains("15 minutes before a meeting starts"))
+                    } else {
+                        failures.append("triggers: updating a trigger's lead failed")
+                    }
+                    _ = try await scheduler.pause(id: stored.id, now: now)
+                    let resumed = try await scheduler.resume(id: stored.id, now: now.addingTimeInterval(60))
+                    check("a trigger did not resume", resumed.enabled && resumed.nextRunAt == nil)
+                    runner.queue = [ScheduledRunOutcome(status: .reported, text: "Ran by hand.")]
+                    let ran = try await scheduler.runNow(id: stored.id, now: now.addingTimeInterval(120))
+                    check("run_now on a trigger did not run as a test", ran?.outcome == .ranNow
+                          && runner.prompts.last?.contains("test run") == true)
+                }
+            case .failure(let error):
+                failures.append("triggers: a good trigger was refused: \(error.localizedDescription)")
+            }
+        } catch {
+            failures.append("triggers: tools fixture threw \(error.localizedDescription)")
+        }
+        return failures
+    }
+
     // MARK: - Permission
 
     private static func policyFailures() -> [String] {
@@ -1057,9 +1568,12 @@ enum ScheduleSelfTest {
         var queue: [ScheduledRunOutcome] = []
         var fallback: ScheduledRunOutcome?
         var runs = 0
+        /// The prompt each run was given — a trigger's carries its event.
+        var prompts: [String] = []
 
         func run(_ schedule: AgentSchedule, now: Date) async -> ScheduledRunOutcome {
             runs += 1
+            prompts.append(schedule.prompt)
             if !queue.isEmpty { return queue.removeFirst() }
             return fallback ?? ScheduledRunOutcome(status: .nothingToReport, text: "")
         }

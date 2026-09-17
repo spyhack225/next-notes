@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Agent → Routines (Part 3).
 ///
+/// Triggers (R3) are listed with the rest: the event they wait for instead of a next run.
 /// Every schedule with its plain-English sentence, next run, last result and a switch; open
 /// one for its run history — skipped slots and their reasons included — the drafts it left
 /// awaiting approval, *Run now*, *Edit* and *Delete*. Routine suggestions from the memory
@@ -133,7 +134,7 @@ struct RoutinesView: View {
         let isOpen = expanded.contains(schedule.id)
         return VStack(alignment: .leading, spacing: DS.Space.s) {
             HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
-                Image(systemName: schedule.kind == .routine ? "gearshape.2" : "bell")
+                Image(systemName: schedule.kind == .routine ? "gearshape.2" : schedule.kind == .trigger ? "bolt" : "bell")
                     .foregroundStyle(DS.Color.textSecondary)
                 VStack(alignment: .leading, spacing: DS.Space.xs) {
                     Text(schedule.plainEnglish)
@@ -182,7 +183,19 @@ struct RoutinesView: View {
                 perform(schedule.id) { try await AgentScheduler.shared.remove(id: schedule.id) }
             }
         }
-        if schedule.kind == .routine {
+        if let trigger = schedule.trigger, schedule.kind == .trigger {
+            Text("Runs once per event: \(trigger.describe())"
+                 + (schedule.endsAt.map { " · until " + $0.formatted(date: .abbreviated, time: .omitted) } ?? ""))
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+            if let note = ScheduleTrigger.callDetectionNote(
+                for: trigger, detectionEnabled: Settings.shared.callDetectionEnabled) {
+                Text(note)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.warning)
+            }
+        }
+        if schedule.kind != .reminder {
             Text("Allowed tools: \(schedule.allowedTools.isEmpty ? "none" : schedule.allowedTools.joined(separator: ", ")) · "
                  + "model: \(schedule.model.rawValue) · limit \(schedule.budget.maxSeconds / 60) min, \(schedule.budget.maxToolCalls) tool calls")
                 .font(DS.Font.caption)
@@ -221,7 +234,7 @@ struct RoutinesView: View {
                 .onChange(of: settings.agentLaunchAtLogin) { _, on in
                     message = LaunchAtLogin.apply(on)
                 }
-            Text("Routines run only while Next Notes is open. Reminders also reach you through macOS when it is closed.")
+            Text("Routines and triggers run only while Next Notes is open. Reminders also reach you through macOS when it is closed.")
                 .font(DS.Font.caption)
                 .foregroundStyle(DS.Color.textSecondary)
         }
@@ -233,6 +246,8 @@ struct RoutinesView: View {
         var parts: [String] = []
         if !schedule.enabled {
             parts.append(schedule.isOneShot && schedule.nextRunAt == nil ? "Done" : "Off")
+        } else if schedule.kind == .trigger {
+            parts.append("Waiting for its event")
         } else if let next = schedule.nextRunAt {
             parts.append("Next " + next.formatted(date: .abbreviated, time: .shortened))
         }
@@ -301,15 +316,15 @@ private struct RoutineEditor: View {
     var body: some View {
         Form {
             TextField("Title", text: $title)
-            TextField(schedule.kind == .routine ? "Instructions" : "Reminder", text: $prompt, axis: .vertical)
+            TextField(schedule.kind == .reminder ? "Reminder" : "Instructions", text: $prompt, axis: .vertical)
                 .lineLimit(3...8)
-            if schedule.kind == .routine {
+            if schedule.kind != .reminder {
                 Picker("Model", selection: $model) {
                     Text("Automatic").tag(AgentSchedule.ModelChoice.auto)
                     Text("Qwen on this Mac").tag(AgentSchedule.ModelChoice.local)
                     Text("OpenRouter").tag(AgentSchedule.ModelChoice.cloud)
                 }
-                Text("When a routine uses OpenRouter, your persona, memories and what the routine reads are sent to it.")
+                Text("When a \(schedule.kind.rawValue) uses OpenRouter, your persona, memories and what the routine reads are sent to it.")
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
             }

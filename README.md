@@ -456,8 +456,8 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-persona                 # every Agent prompt path: persona + memory chars against budget
 "$S" --selftest-memory                  # core memory: save, supersede, overflow, forget, injection and tool-output blocks; sessions and compaction
 "$S" --selftest-memory-review           # review on Tests/Fixtures/memory-review.json (precision >= 0.9, scripted model), never while recording, routine suggestions
-"$S" --selftest-schedule                # reminders: DST, month-end, grace, catch-up, Missed, backoff, endsAt, macOS hand-off, confirmation card; routines: silence, skip retry, quiet hours, disable at 10, test run on creation
-"$S" --selftest-routine-authority       # unattended runs read, draft writes without executing, never ask PermissionGate, stop at budgets; scheduled ACP refused
+"$S" --selftest-schedule                # reminders: DST, month-end, grace, catch-up, Missed, backoff, endsAt, macOS hand-off, confirmation card; routines: silence, skip retry, quiet hours, disable at 10, test run on creation; triggers: notes ready / meeting starting (lead time) / call started fire once per event from synthetic events, filter, retry window, publishers
+"$S" --selftest-routine-authority       # unattended runs read, draft writes without executing, never ask PermissionGate, stop at budgets; scheduled ACP refused; a trigger's event reaches the run as data under the same authority
 "$S" --selftest-index                   # knowledge.sqlite from fixture meetings and sessions: chunks, bytes, wall time; chunker cuts, foreign keys + cascade, FTS5 mirror, generations, yields to recording, resume, delete/clear/forget hooks, rebuild after rm or corruption
 "$S" --selftest-search [query]          # BM25 passages with timestamps, stemming, snippets, SQL filters, facets, hostile input, memory.recall over the index; a query prints the ranking
 "$S" --selftest-meeting-context         # extract decisions and candidate actions

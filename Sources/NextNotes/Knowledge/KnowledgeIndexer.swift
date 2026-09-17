@@ -705,12 +705,12 @@ final class LiveKnowledgeSources: KnowledgeSourceProviding {
         }
     }
 
-    /// A routine's delivered result — never a reminder's text, a failure or a skip.
+    /// A routine's or trigger's delivered result — never a reminder's text, a failure or a skip.
     func routineRuns() -> [KnowledgeRoutineRun] {
         let store = ScheduleStore.shared
-        let routines = Set(store.schedules.filter { $0.kind == .routine }.map(\.id))
+        let routines = Set(store.schedules.filter { $0.kind != .reminder }.map(\.id))
         return store.runs(limit: ScheduleStore.historyLimit).compactMap { record in
-            // `.completed` is only ever a routine's; `.ranNow` is shared with reminders.
+            // `.completed` is only ever a routine's or trigger's; `.ranNow` is shared with reminders.
             let delivered = record.outcome == .completed
                 || (record.outcome == .ranNow && routines.contains(record.scheduleID))
             guard delivered else { return nil }

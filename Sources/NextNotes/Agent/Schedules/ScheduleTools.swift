@@ -2,7 +2,7 @@ import Foundation
 
 /// `schedule.list` / `create` / `update` / `pause` / `resume` / `remove` / `run_now`.
 ///
-/// Reminders, and routines (R2). The model fills structured fields — a repeat word, a
+/// Reminders, routines (R2) and triggers (R3). The model fills structured fields — a repeat word, a
 /// 24-hour time, a date, weekday names, a day of the month — and code turns them into a
 /// `ScheduleWhen`, renders the sentence the user hears, and leaves every scheduler-owned
 /// field to `AgentScheduler`. Nothing a model writes reaches `nextRunAt`.
@@ -30,6 +30,12 @@ enum ScheduleToolCatalogue {
 
     private static let idParameter = WorkspaceTool.Parameter(name: "id", description: "the id from schedule.list")
 
+    private static let triggerParameters: [WorkspaceTool.Parameter] = [
+        .init(name: "on", description: "trigger: notes_ready, meeting_starting or call_started", isRequired: false),
+        .init(name: "leadMinutes", description: "meeting_starting: minutes before the start, 0-120", isRequired: false),
+        .init(name: "filter", description: "meetings: text the title or an attendee must contain", isRequired: false),
+    ]
+
     private static let timingParameters: [WorkspaceTool.Parameter] = [
         .init(name: "repeat", description: "once, daily, weekdays, weekly or monthly", isRequired: false),
         .init(name: "time", description: "24-hour HH:mm", isRequired: false),
@@ -45,41 +51,44 @@ enum ScheduleToolCatalogue {
         .native(
             namespace: .schedule,
             name: "list",
-            description: "List reminders and routines with ids, next time and the current time. Call before creating one.",
+            description: "List reminders, routines and triggers with ids, next time and the current time. Call before creating one.",
             risk: .read,
-            title: "List reminders and routines"
+            title: "List reminders, routines and triggers"
         ),
         .native(
             namespace: .schedule,
             name: "create",
-            description: "Create a reminder or routine only after the user said yes to your one-sentence "
-                + "restatement of when, what, and for a routine the tools it uses. Call schedule.list first "
-                + "and update a match instead of making a near-duplicate. text must stand alone: it runs "
-                + "later with no conversation and cannot ask questions. A routine is tested once at once.",
+            description: "Create a reminder, routine or trigger only after the user said yes to your one-sentence "
+                + "restatement of when (or after which event), what, and for a routine or trigger the tools it "
+                + "uses. Call schedule.list first and update a match instead of making a near-duplicate. text "
+                + "must stand alone: it runs later with no conversation and cannot ask questions. A trigger runs "
+                + "once per event: after meeting notes are ready, before a meeting starts, or when a call starts. "
+                + "Routines and triggers are tested once at once.",
             risk: .modify,
             parameters: [
                 .init(name: "title", description: "a few words"),
                 .init(name: "text", description: "reminder: what to say; routine: standalone instructions"),
-                .init(name: "kind", description: "reminder (default) or routine", isRequired: false),
-                .init(name: "tools", description: "routine: comma-separated tool ids it may use", isRequired: false),
-                .init(name: "model", description: "routine: auto, local or cloud", isRequired: false),
+                .init(name: "kind", description: "reminder (default), routine or trigger", isRequired: false),
+                .init(name: "tools", description: "routine or trigger: comma-separated tool ids it may use", isRequired: false),
+                .init(name: "model", description: "routine or trigger: auto, local or cloud", isRequired: false),
                 .init(name: "plainEnglish", description: "the sentence the user agreed to", isRequired: false),
-            ] + timingParameters,
+            ] + triggerParameters + timingParameters,
             executionMode: .immediate,
-            title: "Set a reminder or routine"
+            title: "Set a reminder, routine or trigger"
         ),
         .native(
             namespace: .schedule,
             name: "update",
-            description: "Change a reminder's text, time, repeat or end date after the user agreed.",
+            description: "Change a reminder's or routine's text, time, repeat or end date, or a trigger's event, "
+                + "lead or filter, after the user agreed.",
             risk: .modify,
             parameters: [
                 idParameter,
                 .init(name: "title", description: "a few words", isRequired: false),
                 .init(name: "text", description: "what to remind the user", isRequired: false),
-            ] + timingParameters,
+            ] + triggerParameters + timingParameters,
             executionMode: .immediate,
-            title: "Change a reminder"
+            title: "Change a schedule"
         ),
         .native(
             namespace: .schedule, name: "pause", description: "Pause a reminder without deleting it.",
@@ -95,7 +104,7 @@ enum ScheduleToolCatalogue {
         ),
         .native(
             namespace: .schedule, name: "run_now",
-            description: "Deliver a reminder, or run a routine with its own limited authority, now.",
+            description: "Deliver a reminder, or run a routine or trigger with its own limited authority, now.",
             risk: .modify, parameters: [idParameter], executionMode: .immediate, title: "Run a schedule now"
         ),
     ]
@@ -138,8 +147,9 @@ enum ScheduleToolExecutor {
             switch kindWord {
             case "", "reminder": kind = .reminder
             case "routine": kind = .routine
+            case "trigger": kind = .trigger
             default:
-                throw ScheduleError.notAvailable("Only reminders and routines can be scheduled so far; triggers come later.")
+                throw ScheduleError.invalid("kind must be reminder, routine or trigger.")
             }
             let text = kind == .reminder
                 ? firstNonEmpty(argument("text"), argument("prompt"), argument("title"))
@@ -149,10 +159,18 @@ enum ScheduleToolExecutor {
                     ? "A reminder needs text: what to remind the user."
                     : "A routine needs text: standalone instructions for each run.")
             }
-            let when = try parseWhen(arguments, base: nil, now: now, timeZone: timeZone)
+            let when: ScheduleWhen?
+            let trigger: ScheduleTrigger?
+            if kind == .trigger {
+                trigger = try parseTrigger(arguments, base: nil)
+                when = nil
+            } else {
+                when = try parseWhen(arguments, base: nil, now: now, timeZone: timeZone)
+                trigger = nil
+            }
             var allowedTools: [String] = []
             var model = AgentSchedule.ModelChoice.auto
-            if kind == .routine {
+            if kind != .reminder {
                 // The ceiling, fixed now: what the sentence named, within what this conversation
                 // can use, never a schedule tool or a memory write.
                 let requested = argument("tools").split(whereSeparator: { $0 == "," || $0 == " " }).map(String.init)
@@ -177,6 +195,7 @@ enum ScheduleToolExecutor {
                 plainEnglish: "",
                 prompt: text,
                 when: when,
+                trigger: trigger,
                 endsAt: try parseEndsOn(argument("endsOn"), timeZone: timeZone) ?? nil,
                 allowedTools: allowedTools,
                 model: model,
@@ -184,33 +203,39 @@ enum ScheduleToolExecutor {
                 createdAt: now,
                 createdInSession: sessionID
             )
-            guard let rule = RecurrenceRule(when) else { throw ScheduleError.invalid("Unknown time zone.") }
-            schedule.plainEnglish = sentence(for: schedule, rule: rule, currentZone: timeZone)
+            if kind == .trigger {
+                schedule.plainEnglish = triggerSentence(for: schedule)
+            } else {
+                guard let when, let rule = RecurrenceRule(when) else { throw ScheduleError.invalid("Unknown time zone.") }
+                schedule.plainEnglish = sentence(for: schedule, rule: rule, currentZone: timeZone)
+            }
             if let existing = duplicate(of: schedule, in: store.schedules) {
                 throw ScheduleError.invalid(
-                    "A matching reminder already exists [\(existing.shortID)]: \(existing.plainEnglish) "
+                    "A matching \(existing.kind.rawValue) already exists [\(existing.shortID)]: \(existing.plainEnglish) "
                         + "Use schedule.update to change it instead of creating another.")
             }
             let saved = try await scheduler.add(schedule, now: now)
-            guard saved.kind == .routine else {
+            guard saved.kind != .reminder else {
                 return confirmation("Saved", saved, store: store, zone: timeZone)
             }
-            // Routines run once immediately as a test. If it fails, say why and remove it: a
+            // Routines and triggers run once immediately as a test. If it fails, say why and remove it: a
             // routine saved broken fails silently every morning.
             let test = try await scheduler.testRun(id: saved.id, now: now)
             if test.status == .failed {
                 try? await scheduler.remove(id: saved.id)
-                throw ScheduleError.invalid("The test run failed: \(test.text) I removed the routine; nothing was saved.")
+                throw ScheduleError.invalid("The test run failed: \(test.text) I removed the \(saved.kind.rawValue); nothing was saved.")
             }
             let tested: String = switch test.status {
             case .reported: "Test run: \(test.text)"
             case .nothingToReport: "Test run: it ran and had nothing to report."
-            case .skipped: "The test run was skipped (\(test.text)); the routine is saved and will try at its time."
+            case .skipped: saved.kind == .trigger
+                ? "The test run was skipped (\(test.text)); the trigger is saved and will run at its next event."
+                : "The test run was skipped (\(test.text)); the routine is saved and will try at its time."
             case .failed: ""
             }
             let confirmed = confirmation("Saved", saved, store: store, zone: timeZone)
             var summary = confirmed.summary + " " + tested
-            let routines = store.schedules.filter { $0.kind == .routine }.count
+            let routines = store.schedules.filter { $0.kind != .reminder }.count
             if let offer = LaunchAtLogin.offer(routineCount: routines, enabled: Settings.shared.agentLaunchAtLogin) {
                 summary += " " + offer
             }
@@ -223,6 +248,15 @@ enum ScheduleToolExecutor {
             if !argument("title").isEmpty { edit.title = argument("title") }
             let text = firstNonEmpty(argument("text"), argument("prompt"))
             if !text.isEmpty { edit.prompt = text }
+            if target.kind == .trigger {
+                if ["on", "leadMinutes", "filter"].contains(where: { arguments[$0] != nil }) {
+                    edit.trigger = try parseTrigger(arguments, base: target.trigger)
+                }
+                if !argument("endsOn").isEmpty { edit.endsAt = try parseEndsOn(argument("endsOn"), timeZone: timeZone) }
+                if !argument("speak").isEmpty { edit.delivery = isNo(argument("speak")) ? .notify : .notifyAndSpeak }
+                let saved = try await scheduler.update(id: target.id, edit: edit, now: now)
+                return confirmation("Updated", saved, store: store, zone: timeZone)
+            }
             let timingKeys = ["repeat", "time", "date", "inMinutes", "days", "day"]
             if timingKeys.contains(where: { !argument($0).isEmpty }) {
                 edit.when = try parseWhen(arguments, base: target.when, now: now, timeZone: timeZone)
@@ -261,7 +295,7 @@ enum ScheduleToolExecutor {
                 throw ScheduleError.invalid("The test delivery failed: \(run.detail)")
             }
             return AgentToolResult(
-                summary: target.kind == .routine ? "Ran now: \(run.detail)" : "Delivered now: \(target.prompt)",
+                summary: target.kind != .reminder ? "Ran now: \(run.detail)" : "Delivered now: \(target.prompt)",
                 reference: target.id.uuidString,
                 verification: "Run recorded in agent-schedule-runs.jsonl")
 
@@ -291,22 +325,45 @@ enum ScheduleToolExecutor {
         return sentence
     }
 
+    /// "When notes are ready for a meeting whose title or attendees mention “Acme”, I'll draft
+    /// the follow-up (using email.draft; anything that writes or sends waits for your approval)."
+    static func triggerSentence(for schedule: AgentSchedule) -> String {
+        guard let trigger = schedule.trigger else { return schedule.prompt }
+        var text = trigger.describe()
+        text = text.prefix(1).uppercased() + text.dropFirst()
+        let what = schedule.prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tools = schedule.allowedTools.isEmpty ? "no tools" : schedule.allowedTools.joined(separator: ", ")
+        var sentence = "\(text), I'll \(what.prefix(1).lowercased() + what.dropFirst())"
+        while sentence.hasSuffix(".") { sentence.removeLast() }
+        sentence += " (using \(tools); anything that writes or sends waits for your approval)"
+        if let ends = schedule.endsAt {
+            sentence += " (until \(AgentScheduler.stamp(ends, zone: .current)))"
+        }
+        return sentence + "."
+    }
+
     @MainActor
     private static func confirmation(_ verb: String, _ saved: AgentSchedule, store: ScheduleStore, zone: TimeZone) -> AgentToolResult {
         let stored = store.schedule(id: saved.id)
         let next = saved.nextRunAt.map { " Next: \(AgentScheduler.stamp($0, zone: zone))." } ?? ""
+        let detection = ScheduleTrigger.callDetectionNote(
+            for: saved.trigger, detectionEnabled: Settings.shared.callDetectionEnabled).map { " " + $0 } ?? ""
         return AgentToolResult(
-            summary: "\(verb): \(saved.plainEnglish)\(next)",
+            summary: "\(verb): \(saved.plainEnglish)\(next)\(detection)",
             reference: saved.id.uuidString,
             verification: stored?.nextRunAt == saved.nextRunAt && stored != nil
                 ? "Schedule read back from agent-schedules.json" : nil)
     }
 
+    @MainActor
     private static func listLine(_ schedule: AgentSchedule, now: Date) -> String {
         let zone = schedule.when.flatMap { TimeZone(identifier: $0.timeZone) } ?? .current
         var parts = ["[\(schedule.shortID)] \(schedule.title) — \(schedule.plainEnglish)"]
         if !schedule.enabled {
             parts.append(schedule.isOneShot && schedule.nextRunAt == nil ? "done" : "paused")
+        } else if schedule.kind == .trigger {
+            parts.append(ScheduleTrigger.callDetectionNote(
+                for: schedule.trigger, detectionEnabled: Settings.shared.callDetectionEnabled) ?? "waiting for its event")
         } else if let next = schedule.nextRunAt {
             parts.append("next \(AgentScheduler.stamp(next, zone: zone))")
         }
@@ -456,6 +513,63 @@ enum ScheduleToolExecutor {
         }
     }
 
+    /// Builds a `ScheduleTrigger` from `on`, `leadMinutes` and `filter`; missing pieces come
+    /// from `base` on an update. An empty filter, or "none", clears it.
+    static func parseTrigger(_ arguments: [String: String], base: ScheduleTrigger?) throws -> ScheduleTrigger {
+        func argument(_ name: String) -> String {
+            arguments[name]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        }
+        let word = argument("on").lowercased()
+            .replacingOccurrences(of: "-", with: "_").replacingOccurrences(of: " ", with: "_")
+        let event: ScheduleTriggerOccurrence.Event
+        switch word {
+        case "":
+            guard let base else {
+                throw ScheduleError.invalid("A trigger needs on: notes_ready, meeting_starting or call_started.")
+            }
+            event = base.event
+        case "notes_ready", "meeting_notes_ready", "notesready", "meetingnotesready", "after_meeting", "meeting_ended":
+            event = .meetingNotesReady
+        case "meeting_starting", "meetingstarting", "meeting_start", "meeting_starts", "before_meeting":
+            event = .meetingStarting
+        case "call_started", "callstarted", "call_start", "call_starts", "call":
+            event = .callStarted
+        default:
+            throw ScheduleError.invalid(
+                "A trigger can wait for notes_ready, meeting_starting or call_started — not \"\(argument("on"))\".")
+        }
+        var filter = base?.filter
+        if arguments["filter"] != nil {
+            let raw = argument("filter")
+            filter = raw.isEmpty || ["none", "any", "all", "every"].contains(raw.lowercased()) ? nil : String(raw.prefix(120))
+        }
+        var lead = base?.leadMinutes ?? 0
+        if !argument("leadMinutes").isEmpty {
+            guard let value = Int(argument("leadMinutes")),
+                  (0...ScheduleTrigger.maxLeadMinutes).contains(value) else {
+                throw ScheduleError.invalid("leadMinutes must be a whole number from 0 to \(ScheduleTrigger.maxLeadMinutes).")
+            }
+            lead = value
+        } else if event == .meetingStarting, base?.event != .meetingStarting {
+            lead = 5
+        }
+        switch event {
+        case .meetingNotesReady:
+            return .meetingNotesReady(filter: filter)
+        case .meetingStarting:
+            return .meetingStarting(leadMinutes: lead, filter: filter)
+        case .callStarted:
+            if let filter {
+                // Never drop a filter the user confirmed without saying so: they clear it on purpose.
+                throw ScheduleError.invalid(arguments["filter"] != nil
+                    ? "A call trigger can't be filtered; meeting triggers can."
+                    : "A call trigger can't be filtered, and this one only runs for “\(filter)”. "
+                        + "To switch it to calls, pass filter \"none\" to drop that filter.")
+            }
+            return .callStarted
+        }
+    }
+
     private static func baseKind(_ base: ScheduleWhen?) -> String? {
         switch base?.repeatRule {
         case .once?: "once"
@@ -524,7 +638,7 @@ enum ScheduleToolExecutor {
         }
         return schedules.first { existing in
             existing.kind == candidate.kind && existing.enabled
-                && existing.when == candidate.when
+                && existing.when == candidate.when && existing.trigger == candidate.trigger
                 && (normal(existing.prompt) == normal(candidate.prompt)
                     || normal(existing.title) == normal(candidate.title))
         }
