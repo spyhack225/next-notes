@@ -270,7 +270,9 @@ final class AgentTaskManager {
     private func announce(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        AgentSession.shared.recordAssistant(trimmed)
+        // Tagged: a background result is content the user did not write, so the memory review
+        // and a compaction summary never read it as the Agent's own words.
+        AgentSession.shared.recordAssistant(trimmed, contextKind: AgentSession.backgroundTaskContextKind)
         AgentAuditLog.shared.record(kind: .reply, title: trimmed)
         IslandState.shared.showBackgroundAgentReply(trimmed)
         VoiceAnnouncementQueue.shared.enqueue(trimmed)

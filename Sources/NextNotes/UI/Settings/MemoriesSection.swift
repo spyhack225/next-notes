@@ -25,6 +25,18 @@ struct MemoriesSection: View {
         Section {
             Toggle("Remember what I tell the Agent", isOn: $settings.agentMemoryEnabled)
 
+            Picker("Review conversations with", selection: $settings.agentMemoryReviewModel) {
+                ForEach(MemoryReviewModelChoice.allCases) { choice in
+                    Text(choice.displayName).tag(choice.rawValue)
+                }
+            }
+            .disabled(!settings.agentMemoryEnabled)
+            SettingsNote(text: (MemoryReviewModelChoice(rawValue: settings.agentMemoryReviewModel) ?? .auto).summary
+                         + " It never runs while a meeting or dictation is recording.")
+
+            Stepper("New conversation after \(settings.agentSessionIdleMinutes) minutes of silence",
+                    value: $settings.agentSessionIdleMinutes, in: 5...240, step: 5)
+
             HStack(spacing: DS.Space.m) {
                 ForEach(MemoryEntry.Kind.allCases, id: \.self) { kind in
                     meter(kind)
@@ -95,7 +107,8 @@ struct MemoriesSection: View {
             Text("Memories")
         } footer: {
             SettingsNote(text: "The Agent saves facts you tell it about yourself and says out loud "
-                         + "what it saved. It never saves anything from email, web pages, files or "
+                         + "what it saved. When a conversation ends it reviews what you said and may "
+                         + "add a few more, marked New. It never saves anything from email, web pages, files or "
                          + "other tool results, and a memory never grants permission. Changes reach "
                          + "the Agent at its next conversation; Forget takes effect immediately. When "
                          + "OpenRouter is the Agent model, memories are sent with each request. "

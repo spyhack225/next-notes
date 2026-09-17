@@ -250,7 +250,19 @@ enum MemoryGuard {
             return "you didn't say which memory to change."
         }
         guard replacement == nil else { return nil }
-        // The conversation's current request comes first; the review reads the whole exchange.
+        if provenance.origin == .memoryReview {
+            // The review reads a whole session, where "no" and "not" are everywhere and a
+            // name the user said once can be a tool's target too. One user turn must name the
+            // entry and ask, in so many words, to forget or correct it.
+            let entryTokens = contentTokens(entry)
+            let asked = provenance.userText.contains { turn in
+                let words = Set(tokens(turn))
+                let folded = turn.lowercased().replacingOccurrences(of: "’", with: "'")
+                return entryTokens.contains { supports(words, $0) } && matches(reviewForgetCue, folded)
+            }
+            return asked ? nil : "you didn't ask to forget it."
+        }
+        // The conversation's current request comes first.
         let asked = provenance.origin == .userConversation
             ? Array(provenance.userText.prefix(1)) : provenance.userText
         let askedWords = Set(asked.flatMap { $0.lowercased().replacingOccurrences(of: "’", with: "'")
@@ -260,6 +272,10 @@ enum MemoryGuard {
         }
         return nil
     }
+
+    /// What the review accepts as a request to drop a memory: explicit words only.
+    private static let reviewForgetCue =
+        #"\b(forget|remove|delete|erase|wrong|incorrect|untrue|outdated|no longer|any ?more|not true|isn't true|changed)\b"#
 
     private static let forgetCues: Set<String> = [
         "forget", "remove", "delete", "drop", "erase", "clear", "wrong", "incorrect", "not", "no",

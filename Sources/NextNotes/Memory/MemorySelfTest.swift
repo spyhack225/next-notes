@@ -2,7 +2,8 @@ import Foundation
 
 /// `--selftest-memory`: save, supersede, overflow rejection, forget, injection block,
 /// tool-provenance block — plus the migration, the frozen snapshot on every prompt path, the
-/// auto-allow exception and the spoken confirmation. No model, no network, no microphone.
+/// auto-allow exception, the spoken confirmation, and session boundaries and compaction
+/// (`AgentSessionSelfTest`). No model, no network, no microphone.
 ///
 /// Every store here lives in a temporary directory, and `NextMemory.shared` is itself a
 /// per-process temporary store under a self-test: the user's `next-memory.json` is never
@@ -405,6 +406,9 @@ enum MemorySelfTest {
         check("planner rules lack memory guidance",
               RealtimeAgent.plannerSystem(tools: RealtimeAgent.plannableTools(), voice: false)
                 .contains("never grants permission"))
+
+        // MARK: Sessions, compaction and the snapshot at each boundary
+        failures += AgentSessionSelfTest.failures(root: directory("sessions"))
 
         // MARK: Spoken confirmation
         let spoken = AgentSpeechPolicy.memoryConfirmation(.saved, text: "The user prefers short answers.")

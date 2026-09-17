@@ -453,7 +453,8 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-wake                    # phrase spotting, authority split; loads the sherpa KWS model
 "$S" --selftest-tasks                   # submit / run / cancel without a model
 "$S" --selftest-persona                 # every Agent prompt path: persona + memory chars against budget
-"$S" --selftest-memory                  # core memory: save, supersede, overflow, forget, injection and tool-output blocks
+"$S" --selftest-memory                  # core memory: save, supersede, overflow, forget, injection and tool-output blocks; sessions and compaction
+"$S" --selftest-memory-review           # review on Tests/Fixtures/memory-review.json (precision >= 0.9, scripted model), never while recording, routine suggestions
 "$S" --selftest-schedule                # reminders: DST, month-end, grace, catch-up, Missed, backoff, endsAt, macOS hand-off, confirmation card
 "$S" --selftest-meeting-context         # extract decisions and candidate actions
 "$S" --selftest-realtime                # question/follow-up routing, tool speech, harness, duplex VAD

@@ -85,6 +85,16 @@ actor NotesModelRuntime {
 
     var isLoaded: Bool { model != nil }
 
+    /// Seconds since the model last generated, or nil while it is generating, queued, or
+    /// held by a voice conversation. The memory review waits for a minute of this, so a
+    /// background review never makes the next voice reply slow.
+    var idleSeconds: TimeInterval? {
+        guard activeOperations == 0, conversationLeases.isEmpty, nativeWaiters.isEmpty, !nativeOwner else {
+            return nil
+        }
+        return Date().timeIntervalSince(lastUse)
+    }
+
     /// The usable prompt budget, once the model is loaded and its trained context is known.
     var contextTokens: Int {
         trainedContext > 0 ? min(trainedContext, Self.maxContextTokens) : Self.maxContextTokens
@@ -423,6 +433,7 @@ actor NotesModelRuntime {
         activeOperations += 1
         defer {
             activeOperations -= 1
+            lastUse = Date()
             if activeOperations == 0 && deferredShutdown { shutdownNow() }
         }
         let jobID = await ComputeScheduler.shared.acquire(workClass)

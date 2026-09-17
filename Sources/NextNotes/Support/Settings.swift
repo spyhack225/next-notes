@@ -653,6 +653,18 @@ final class Settings {
         didSet { defaults.set(agentMemoryEnabled, forKey: Keys.agentMemoryEnabled) }
     }
 
+    /// Which model the background memory review uses: "auto" (Qwen when it is loaded and
+    /// idle and nothing is recording, else OpenRouter when configured, else wait), "local"
+    /// or "cloud".
+    var agentMemoryReviewModel: String {
+        didSet { defaults.set(agentMemoryReviewModel, forKey: Keys.agentMemoryReviewModel) }
+    }
+
+    /// Minutes of silence after which the next Agent message starts a new session.
+    var agentSessionIdleMinutes: Int {
+        didSet { defaults.set(agentSessionIdleMinutes, forKey: Keys.agentSessionIdleMinutes) }
+    }
+
     /// Whether reminders run. Off withdraws everything registered with macOS too.
     var agentSchedulesEnabled: Bool {
         didSet { defaults.set(agentSchedulesEnabled, forKey: Keys.agentSchedulesEnabled) }
@@ -865,6 +877,8 @@ final class Settings {
         static let agentVoiceEngine = "agentVoiceEngine"
         static let agentPersonaEnabled = PersonaStore.enabledDefaultsKey
         static let agentMemoryEnabled = MemorySnapshotCache.enabledDefaultsKey
+        static let agentMemoryReviewModel = MemoryReviewModelChoice.defaultsKey
+        static let agentSessionIdleMinutes = AgentSessionBoundary.idleDefaultsKey
         static let agentSchedulesEnabled = "agentSchedulesEnabled"
         static let agentQuietHoursStart = "agentQuietHoursStart"
         static let agentQuietHoursEnd = "agentQuietHoursEnd"
@@ -974,6 +988,10 @@ final class Settings {
         agentPocketVoice = defaults.string(forKey: Keys.agentPocketVoice) ?? "alba"
         agentPersonaEnabled = defaults.object(forKey: Keys.agentPersonaEnabled) as? Bool ?? true
         agentMemoryEnabled = defaults.object(forKey: Keys.agentMemoryEnabled) as? Bool ?? true
+        agentMemoryReviewModel = defaults.string(forKey: Keys.agentMemoryReviewModel)
+            ?? MemoryReviewModelChoice.auto.rawValue
+        agentSessionIdleMinutes = defaults.object(forKey: Keys.agentSessionIdleMinutes) as? Int
+            ?? AgentSessionBoundary.defaultIdleMinutes
         agentSchedulesEnabled = defaults.object(forKey: Keys.agentSchedulesEnabled) as? Bool ?? true
         agentQuietHoursStart = defaults.string(forKey: Keys.agentQuietHoursStart) ?? "21:00"
         agentQuietHoursEnd = defaults.string(forKey: Keys.agentQuietHoursEnd) ?? "08:00"

@@ -242,6 +242,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // meeting scheduler: its notification observer must exist before a Snooze pressed
         // while the app was closed is delivered.
         AgentScheduler.shared.start()
+        // Sessions end and are reviewed for memories in the background, never while recording.
+        MemoryReviewScheduler.shared.start()
         // Touch the registry so native tools exist before the first utterance, then arm
         // the agent shortcut. Wake-word audio is not started until the user turns it on.
         _ = AgentToolRegistry.shared
@@ -421,6 +423,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if arguments.contains("--selftest-memory") {
             Task { @MainActor in
                 SelfTest.failed = !(await MemorySelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-memory-review") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MemoryReviewSelfTest.run())
                 NSApp.terminate(nil)
             }
             return true
