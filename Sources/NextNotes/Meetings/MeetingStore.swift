@@ -126,6 +126,8 @@ final class MeetingStore {
             meetings.append(meeting)
             meetings.sort { $0.start > $1.start }
         }
+        // A finished meeting's speaker names or status changed what its chunks say.
+        if !meeting.status.isActive { KnowledgeIndexer.shared.meetingChanged(meeting.id) }
     }
 
     /// Changes the name a person sees in the list. Empty after trimming is refused, so a
@@ -157,6 +159,8 @@ final class MeetingStore {
         proposalCache[meeting.id] = nil
         searchCache[meeting.id] = nil
         searchInvalidated.insert(meeting.id)
+        // Or the index confidently cites a meeting that no longer exists.
+        KnowledgeIndexer.shared.removeMeeting(meeting.id)
     }
 
     // MARK: - Artefacts
@@ -182,6 +186,7 @@ final class MeetingStore {
         transcriptCache[id] = segments
         searchCache[id] = nil
         searchInvalidated.insert(id)
+        KnowledgeIndexer.shared.meetingChanged(id)
     }
 
     func notes(for id: UUID) -> String? {
@@ -198,6 +203,7 @@ final class MeetingStore {
         )
         searchCache[id] = nil
         searchInvalidated.insert(id)
+        KnowledgeIndexer.shared.meetingChanged(id)
     }
 
     /// What the agent has offered to do about this meeting and nobody has answered.

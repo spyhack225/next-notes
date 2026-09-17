@@ -72,7 +72,11 @@ struct MeetingsView: View {
             selection = controller.session?.meeting.id == id ? .live : .meeting(id)
         }
         .onChange(of: selection) { _, value in
-            if case .meeting(let id) = value { navigation.selectedMeetingID = id }
+            if case .meeting(let id) = value {
+                navigation.selectedMeetingID = id
+                // A search jump belongs to the meeting it was into.
+                if navigation.transcriptFocus?.meetingID != id { navigation.transcriptFocus = nil }
+            }
         }
         .onAppear {
             if selection == nil {

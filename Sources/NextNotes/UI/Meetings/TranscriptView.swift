@@ -7,15 +7,43 @@ import SwiftUI
 struct TranscriptView: View {
     let segments: [TranscriptSegment]
     var speakerNames: [String: String] = [:]
+    /// A second a search result jumped to: scrolled into view and marked.
+    var focus: NavigationState.TranscriptFocus? = nil
+    /// Called once the jump has scrolled, so the owner can clear the focus and a later visit
+    /// to the meeting does not jump again.
+    var onFocusHandled: (() -> Void)? = nil
+    /// The row the jump marked. Kept here so it stays marked after the focus is cleared.
+    @State private var highlightedID: UUID?
 
     var body: some View {
-        List(segments) { segment in
-            SegmentRow(segment: segment, name: name(for: segment), color: color(for: segment))
-                .id(segment.id)
-                .listRowSeparator(.hidden)
+        ScrollViewReader { proxy in
+            List(segments) { segment in
+                SegmentRow(segment: segment, name: name(for: segment), color: color(for: segment))
+                    .id(segment.id)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(segment.id == highlightedID
+                                       ? DS.Color.accent.opacity(0.12) : Color.clear)
+            }
+            .listStyle(.inset)
+            .textSelection(.enabled)
+            .onChange(of: focus, initial: true) { _, _ in
+                guard let id = focusedSegmentID else { return }
+                highlightedID = id
+                // After the list has laid out, or the scroll lands on rows that do not exist yet.
+                Task { @MainActor in
+                    withAnimation(DS.Motion.standard) { proxy.scrollTo(id, anchor: .top) }
+                    onFocusHandled?()
+                }
+            }
         }
-        .listStyle(.inset)
-        .textSelection(.enabled)
+    }
+
+    /// The segment that holds the focused second, or the first one after it.
+    private var focusedSegmentID: UUID? {
+        guard let time = focus?.time else { return nil }
+        return (segments.first { $0.start <= time && time < max($0.end, $0.start + 0.001) }
+            ?? segments.first { $0.start >= time }
+            ?? segments.last)?.id
     }
 
     private func name(for segment: TranscriptSegment) -> String {

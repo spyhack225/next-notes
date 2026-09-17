@@ -272,7 +272,8 @@ enum AgentToolExecutor {
         case .shell:
             return try await ShellExecutor.run(tool, arguments: arguments)
         case .memory:
-            return try MemoryToolExecutor.run(tool, arguments: arguments, provenance: MemoryProvenance.current)
+            return try MemoryToolExecutor.run(tool, arguments: arguments, provenance: MemoryProvenance.current,
+                                              knowledge: KnowledgeIndexer.shared.recall)
         case .schedule:
             return try await ScheduleToolExecutor.run(
                 tool, arguments: arguments, sessionID: AgentSession.shared.sessionID)

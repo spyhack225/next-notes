@@ -15,6 +15,17 @@ private enum QuickTurnResult: Sendable {
 /// One allowlist for both the first-pass capability roster and the planner.
 /// Showing a tool that the next pass cannot execute would be worse than omitting it.
 enum RealtimeToolSelection {
+    /// Whether a tool's output may carry words the user did not say. Memory and schedule
+    /// output is the user's own — except `memory.recall`'s indexed passages, which are
+    /// transcripts, conversation replies and routine output.
+    static func readsUntrustedOutput(namespace: AgentToolNamespace, output: String) -> Bool {
+        switch namespace {
+        case .schedule: false
+        case .memory: output.contains(KnowledgeRecall.sectionLabel)
+        default: true
+        }
+    }
+
     static let allowedIDs: Set<String> = [
         "get_agenda", "search_email", "find_drive_files", "read_doc",
         "create_doc", "append_doc", "upload_to_drive", "create_event",
@@ -656,8 +667,9 @@ extension RealtimeAgent {
         // Tool output this turn has seen, for memory provenance, and the one-sentence
         // confirmations of memory writes the reply must carry.
         var untrustedOutputs = AgentSession.shared.recentAssistantTexts()
-        // Any tool result outside memory and schedule this turn: a reminder written after it
-        // asks with a card, since the result may have supplied it.
+        // Any tool result outside memory and schedule this turn, or a recall that returned
+        // indexed passages: a reminder written after it asks with a card, since the result
+        // may have supplied it.
         var readToolOutput = false
         var memoryConfirmations: [String] = []
         func confirmed(_ reply: String) -> String {
@@ -818,7 +830,9 @@ extension RealtimeAgent {
                         if !sentence.isEmpty { memoryConfirmations.append(sentence) }
                     } else {
                         untrustedOutputs.append(output)
-                        if tool.namespace != .schedule, tool.namespace != .memory { readToolOutput = true }
+                        if RealtimeToolSelection.readsUntrustedOutput(namespace: tool.namespace, output: output) {
+                            readToolOutput = true
+                        }
                     }
                     // A mutation completes one step, not the user's whole
                     // objective. Keep its verified result and plan remaining work.

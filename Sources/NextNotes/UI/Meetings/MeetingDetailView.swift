@@ -15,6 +15,7 @@ struct MeetingDetailView: View {
     @State private var diarization = DiarizationService.shared
     @State private var agent = AgentService.shared
     @State private var settings = Settings.shared
+    @State private var navigation = NavigationState.shared
     @State private var tab = Tab.notes
     @State private var isConfirmingDelete = false
     @State private var isExporting = false
@@ -45,6 +46,11 @@ struct MeetingDetailView: View {
     private var segments: [TranscriptSegment] {
         _ = diarization.revision
         return store.transcript(for: meeting.id)
+    }
+
+    /// The jump a search result asked for, when it is into this meeting.
+    private var transcriptFocus: NavigationState.TranscriptFocus? {
+        navigation.transcriptFocus.flatMap { $0.meetingID == meeting.id ? $0 : nil }
     }
 
     /// The generated labels a rename sheet would list, in the order they were assigned.
@@ -104,6 +110,10 @@ struct MeetingDetailView: View {
         // Keyed on the revision as well as the meeting: `notes.md` is a file, so a
         // regeneration that rewrites it changes nothing this view observes.
         .task(id: notesKey) { notes = store.notes(for: meeting.id) }
+        // A search result that cites a second of this meeting opens the transcript there.
+        .onChange(of: transcriptFocus, initial: true) { _, focus in
+            if focus != nil { tab = .transcript }
+        }
         .confirmationDialog(
             "Delete \u{201c}\(meeting.title)\u{201d}?",
             isPresented: $isConfirmingDelete,
@@ -320,7 +330,8 @@ struct MeetingDetailView: View {
                     message: transcriptPlaceholder
                 )
             } else {
-                TranscriptView(segments: segments, speakerNames: meeting.speakerNames)
+                TranscriptView(segments: segments, speakerNames: meeting.speakerNames, focus: transcriptFocus,
+                               onFocusHandled: { navigation.transcriptFocus = nil })
             }
         case .actions:
             MeetingActionsView(meeting: meeting)

@@ -837,6 +837,11 @@ final class AgentSession {
     var onReviewRequest: ((ReviewRequest) -> Void)?
     /// A routine suggestion to offer once, in a session after the one that found it.
     var routineOfferProvider: ((UUID) -> String?)?
+    /// Receives a session that ended by idle time — never one ended by *Clear conversation*.
+    /// Set by `KnowledgeIndexer.connect`, which indexes ended sessions.
+    var onSessionEnded: ((ReviewRequest) -> Void)?
+    /// *Clear conversation* removed every row. `KnowledgeIndexer` removes its chunks.
+    var onConversationCleared: (() -> Void)?
 
     init(
         fileURL: URL?,
@@ -909,7 +914,10 @@ final class AgentSession {
     private func endSession(_ reason: ReviewReason) {
         let session = Array(currentSessionMessages)
         if !session.isEmpty {
-            onReviewRequest?(ReviewRequest(sessionID: sessionID, reason: reason, messages: session))
+            let request = ReviewRequest(sessionID: sessionID, reason: reason, messages: session)
+            onReviewRequest?(request)
+            // A cleared conversation is deleted, not indexed.
+            if reason != .cleared { onSessionEnded?(request) }
         }
         sessionID = UUID()
         compactedTailStartID = nil
@@ -1103,6 +1111,7 @@ final class AgentSession {
         messages.removeAll()
         lastSuppressedVoice = nil
         if let fileURL { try? FileManager.default.removeItem(at: fileURL) }
+        onConversationCleared?()
     }
 
     /// What the user said recently, for memory provenance. Meeting-sourced rows are left

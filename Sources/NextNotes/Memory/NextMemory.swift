@@ -506,8 +506,12 @@ final class NextMemory {
         }
     }
 
+    /// Called after *Forget everything*. `KnowledgeIndexer.connect` sets it on the shared
+    /// store, so the indexed conversations go with the memories.
+    @ObservationIgnored var onForgetEverything: (() -> Void)?
+
     /// Settings' *Forget everything*: every core entry, its history, and the activity index
-    /// (which rebuilds itself from app state).
+    /// (which rebuilds itself from app state) — and every indexed Agent conversation.
     func forgetEverything() throws {
         try commit { state in
             state.entries = []
@@ -516,6 +520,7 @@ final class NextMemory {
         }
         flagged = [:]
         freezeSnapshot()
+        onForgetEverything?()
     }
 
     /// Edit in place from Settings. The same guards as any other write apply, and the entry

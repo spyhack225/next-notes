@@ -244,6 +244,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AgentScheduler.shared.start()
         // Sessions end and are reviewed for memories in the background, never while recording.
         MemoryReviewScheduler.shared.start()
+        // After the review scheduler: both hook the conversation, and the indexer only reads
+        // what the review has already been handed. Does nothing until the index is turned on.
+        KnowledgeIndexer.shared.start()
         // Touch the registry so native tools exist before the first utterance, then arm
         // the agent shortcut. Wake-word audio is not started until the user turns it on.
         _ = AgentToolRegistry.shared
@@ -444,6 +447,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if arguments.contains("--selftest-routine-authority") {
             Task { @MainActor in
                 SelfTest.failed = !(await RoutineAuthoritySelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-index") {
+            Task { @MainActor in
+                SelfTest.failed = !(await KnowledgeIndexSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-search") {
+            Task { @MainActor in
+                SelfTest.failed = !(await KnowledgeSearchSelfTest.run(query: SelfTest.value(after: "--selftest-search")))
                 NSApp.terminate(nil)
             }
             return true

@@ -19,6 +19,7 @@ struct AgentSettingsTab: View {
             remembered
             MemoriesSection()
             RemindersSection()
+            KnowledgeSection()
         }
         .formStyle(.grouped)
         .onAppear { models.refresh() }

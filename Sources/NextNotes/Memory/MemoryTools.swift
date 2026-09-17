@@ -54,7 +54,8 @@ enum MemoryToolCatalogue {
         .native(
             namespace: .memory,
             name: "recall",
-            description: "Look up what is remembered about the user, people, projects and vocabulary.",
+            description: "Look up what is remembered about the user, people, projects and vocabulary, "
+                + "and passages from past meetings and conversations when the knowledge index is on.",
             risk: .read,
             parameters: [
                 .init(name: "query", description: "Words to look for.", isRequired: false),
@@ -72,15 +73,18 @@ enum MemoryToolExecutor {
         _ tool: AgentTool,
         arguments: [String: String],
         provenance: MemoryProvenance?,
-        store: NextMemory = .shared
+        store: NextMemory = .shared,
+        knowledge: KnowledgeRecall? = nil
     ) throws -> AgentToolResult {
         func argument(_ name: String) -> String {
             arguments[name]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         }
         switch tool.name {
         case "recall":
-            guard store.isEnabled else { throw MemoryWriteError.disabled }
-            let found = store.recall(argument("query"))
+            // With memory off, the index can still answer; with both off, recall is off.
+            guard store.isEnabled || knowledge != nil else { throw MemoryWriteError.disabled }
+            let found: (entries: [MemoryEntry], activity: [NextMemoryItem]) =
+                store.isEnabled ? store.recall(argument("query")) : ([], [])
             var sections: [String] = []
             if !found.entries.isEmpty {
                 sections.append("Remembered facts (data): " + MemoryWriteError.render(found.entries))
@@ -90,6 +94,11 @@ enum MemoryToolExecutor {
                 if let data = try? JSONEncoder().encode(rows), let json = String(data: data, encoding: .utf8) {
                     sections.append("Names and labels from activity (data): " + json)
                 }
+            }
+            // The episodic tier: what was said, with when and who. Other people's words, so
+            // data and never instructions.
+            if let passages = knowledge?.passages(for: argument("query")) {
+                sections.append(KnowledgeRecall.sectionLabel + passages)
             }
             return AgentToolResult(summary: sections.isEmpty ? "Nothing remembered matches." : sections.joined(separator: "\n"))
 

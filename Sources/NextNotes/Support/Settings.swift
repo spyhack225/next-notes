@@ -691,6 +691,27 @@ final class Settings {
         didSet { defaults.set(agentLaunchAtLogin, forKey: Keys.agentLaunchAtLogin) }
     }
 
+    /// Whether meetings, notes and (per the switches below) conversations are chunked into
+    /// `knowledge.sqlite` for Search and `memory.recall`. Off by default.
+    var knowledgeIndexEnabled: Bool {
+        didSet { defaults.set(knowledgeIndexEnabled, forKey: Keys.knowledgeIndexEnabled) }
+    }
+
+    /// Ended Agent conversations are indexed too.
+    var knowledgeIncludeConversations: Bool {
+        didSet { defaults.set(knowledgeIncludeConversations, forKey: Keys.knowledgeIncludeConversations) }
+    }
+
+    /// Every dictation is indexed too — high volume, low signal, so off by default.
+    var knowledgeIncludeDictation: Bool {
+        didSet { defaults.set(knowledgeIncludeDictation, forKey: Keys.knowledgeIncludeDictation) }
+    }
+
+    /// Each routine run's result is indexed too. Off by default.
+    var knowledgeIncludeRoutines: Bool {
+        didSet { defaults.set(knowledgeIncludeRoutines, forKey: Keys.knowledgeIncludeRoutines) }
+    }
+
     var agentPocketVoice: String {
         didSet { defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice) }
     }
@@ -890,6 +911,10 @@ final class Settings {
         static let agentQuietHoursEnd = "agentQuietHoursEnd"
         static let agentRoutineSpeech = "agentRoutineSpeech"
         static let agentLaunchAtLogin = "agentLaunchAtLogin"
+        static let knowledgeIndexEnabled = KnowledgeIndexSettings.enabledKey
+        static let knowledgeIncludeConversations = KnowledgeIndexSettings.includeConversationsKey
+        static let knowledgeIncludeDictation = KnowledgeIndexSettings.includeDictationKey
+        static let knowledgeIncludeRoutines = KnowledgeIndexSettings.includeRoutinesKey
         static let agentPocketVoice = "agentPocketVoice"
         static let wakePhrase = "wakePhrase"
         static let wakeSensitivity = "wakeSensitivity"
@@ -1004,6 +1029,10 @@ final class Settings {
         agentQuietHoursEnd = defaults.string(forKey: Keys.agentQuietHoursEnd) ?? "08:00"
         agentRoutineSpeech = defaults.string(forKey: Keys.agentRoutineSpeech) ?? "whenPresent"
         agentLaunchAtLogin = defaults.object(forKey: Keys.agentLaunchAtLogin) as? Bool ?? false
+        knowledgeIndexEnabled = defaults.object(forKey: Keys.knowledgeIndexEnabled) as? Bool ?? false
+        knowledgeIncludeConversations = defaults.object(forKey: Keys.knowledgeIncludeConversations) as? Bool ?? true
+        knowledgeIncludeDictation = defaults.object(forKey: Keys.knowledgeIncludeDictation) as? Bool ?? false
+        knowledgeIncludeRoutines = defaults.object(forKey: Keys.knowledgeIncludeRoutines) as? Bool ?? false
         wakePhrase = defaults.string(forKey: Keys.wakePhrase) ?? WakeWordConfiguration.defaultPhrase
         wakeSensitivity = defaults.object(forKey: Keys.wakeSensitivity) as? Double ?? 0.5
         listenWhileSleeping = defaults.object(forKey: Keys.listenWhileSleeping) as? Bool ?? true

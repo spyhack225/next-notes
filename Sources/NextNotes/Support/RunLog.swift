@@ -135,11 +135,14 @@ enum RunLog {
     /// Deletes every run in a comparison group — the engines all transcribed one utterance,
     /// so removing that utterance means removing all of its rows.
     static func deleteGroup(_ group: String) {
-        rewrite(load().filter { $0.group != group })
+        let runs = load()
+        rewrite(runs.filter { $0.group != group })
+        KnowledgeIndexer.shared.removeDictations(runs.filter { $0.group == group }.map(\.id))
     }
 
     static func delete(ids: Set<UUID>) {
         rewrite(load().filter { !ids.contains($0.id) })
+        KnowledgeIndexer.shared.removeDictations(Array(ids))
     }
 
     /// Persists an edit to one run.
@@ -152,6 +155,7 @@ enum RunLog {
 
     static func clear() {
         try? FileManager.default.removeItem(at: runsURL)
+        KnowledgeIndexer.shared.removeAllDictations()
         RunStore.shared.reload()
     }
 
