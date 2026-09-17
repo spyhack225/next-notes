@@ -712,6 +712,12 @@ final class Settings {
         didSet { defaults.set(knowledgeIncludeRoutines, forKey: Keys.knowledgeIncludeRoutines) }
     }
 
+    /// Which model gives the index dense vectors for hybrid search: `none`, `potion` or
+    /// `embeddinggemma` (`KnowledgeEmbedderChoice`). `none` by default — search stays BM25.
+    var knowledgeEmbedder: String {
+        didSet { defaults.set(knowledgeEmbedder, forKey: Keys.knowledgeEmbedder) }
+    }
+
     var agentPocketVoice: String {
         didSet { defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice) }
     }
@@ -915,6 +921,7 @@ final class Settings {
         static let knowledgeIncludeConversations = KnowledgeIndexSettings.includeConversationsKey
         static let knowledgeIncludeDictation = KnowledgeIndexSettings.includeDictationKey
         static let knowledgeIncludeRoutines = KnowledgeIndexSettings.includeRoutinesKey
+        static let knowledgeEmbedder = KnowledgeIndexSettings.embedderKey
         static let agentPocketVoice = "agentPocketVoice"
         static let wakePhrase = "wakePhrase"
         static let wakeSensitivity = "wakeSensitivity"
@@ -1033,6 +1040,7 @@ final class Settings {
         knowledgeIncludeConversations = defaults.object(forKey: Keys.knowledgeIncludeConversations) as? Bool ?? true
         knowledgeIncludeDictation = defaults.object(forKey: Keys.knowledgeIncludeDictation) as? Bool ?? false
         knowledgeIncludeRoutines = defaults.object(forKey: Keys.knowledgeIncludeRoutines) as? Bool ?? false
+        knowledgeEmbedder = defaults.string(forKey: Keys.knowledgeEmbedder) ?? KnowledgeEmbedderChoice.none.rawValue
         wakePhrase = defaults.string(forKey: Keys.wakePhrase) ?? WakeWordConfiguration.defaultPhrase
         wakeSensitivity = defaults.object(forKey: Keys.wakeSensitivity) as? Double ?? 0.5
         listenWhileSleeping = defaults.object(forKey: Keys.listenWhileSleeping) as? Bool ?? true

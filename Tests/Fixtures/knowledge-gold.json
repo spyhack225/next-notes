@@ -1,0 +1,127 @@
+{
+  "about": "Retrieval gold set scaffold for Phase B. A fixture library (meeting notes and Agent conversations) and questions whose answer is one passage, named by its source key and a phrase it contains. --selftest-search indexes it in a temporary directory and reports recall@10 and MRR for BM25, cosine and the fused ranking. Questions of kind vocabulary share no word with their answer, so BM25 cannot find them by construction. Written by hand; no real meeting is committed.",
+  "meetings": [
+    {
+      "key": "atlas-kickoff", "title": "Project Atlas kickoff", "start": "2026-01-05T15:00:00Z",
+      "notes": "## Summary\n\nProject Atlas replaces the legacy billing system by the end of Q2.\n\n## Key points\n\n- Priya Raman leads the Atlas migration team.\n- The old invoicing service is written in Perl and has no tests.\n\n## Decisions\n\n- Atlas will ship behind a feature flag to five percent of accounts first.\n- The team chose PostgreSQL over DynamoDB for the ledger.\n\n## Action items\n\n- **Marco** — draft the data migration runbook by January 16.\n\n## Open questions\n\n- Whether finance needs an audit trail export."
+    },
+    {
+      "key": "pricing-review", "title": "Pricing review", "start": "2026-01-12T14:00:00Z",
+      "notes": "## Summary\n\nThe team reviewed the new pricing page.\n\n## Key points\n\n- The annual plan discount moves from 15% to 20%.\n- Enterprise pricing stays on the contact form.\n\n## Decisions\n\n- Ship the new pricing page on Friday January 16.\n- Sam owns the launch ads budget of 4,000 dollars.\n\n## Action items\n\n- **Ana** — publish the pricing page and announce it in the newsletter.\n\n## Open questions\n\n- Should the starter tier include API access?"
+    },
+    {
+      "key": "hiring-sync", "title": "Hiring sync", "start": "2026-01-20T10:00:00Z",
+      "notes": "## Key points\n\n- Candidate Lena Ortiz passed the system design interview.\n- The interview loop drops the take-home assignment.\n- Salary bands for senior engineers get published internally in March.\n\n## Decisions\n\n- Open a second backend engineer role before the budget review.\n\n## Action items\n\n- **Dev** — write the job description for the data engineer opening."
+    },
+    {
+      "key": "incident-review", "title": "Checkout outage postmortem", "start": "2026-01-27T16:00:00Z",
+      "notes": "## Summary\n\nCheckout was down for 47 minutes on January 24 after a certificate expired.\n\n## Key points\n\n- Root cause: the TLS certificate renewal job had been disabled during the datacenter move.\n- About 1,200 orders failed during the incident.\n\n## Decisions\n\n- Certificate expiry alerts page the on-call engineer 14 days ahead.\n\n## Action items\n\n- **Kenji** — add a synthetic check for the payment flow."
+    },
+    {
+      "key": "q1-planning", "title": "Q1 planning", "start": "2026-02-02T15:00:00Z",
+      "notes": "## Key points\n\n- Revenue target for Q1 is 2.4 million.\n- Mobile app redesign slips to Q2 because the design lead is on parental leave.\n- Marketing spend shifts from paid search to partner webinars.\n\n## Decisions\n\n- Freeze new integrations until Atlas lands.\n\n## Open questions\n\n- Whether to hire a second product designer."
+    },
+    {
+      "key": "acme-renewal", "title": "Acme Corp renewal call", "start": "2026-02-09T17:00:00Z",
+      "notes": "## Key points\n\n- Acme wants single sign-on with Okta before renewing.\n- Their contract renews on April 30 for 120 seats.\n- Acme reported that exports time out above 50,000 rows.\n\n## Decisions\n\n- Offer Acme a two-month extension at the current rate.\n\n## Action items\n\n- **Ana** — send Acme the security questionnaire answers."
+    },
+    {
+      "key": "office-move", "title": "Office move", "start": "2026-02-16T09:30:00Z",
+      "notes": "## Key points\n\n- The Lisbon team moves to the new office on Rua Augusta on March 2.\n- Desks are unassigned; bookings go through the Robin app.\n- Parking is not included; the company reimburses public transport passes.\n\n## Decisions\n\n- Engineering laptops get upgraded to M4 MacBook Pros."
+    },
+    {
+      "key": "security-review", "title": "Security review", "start": "2026-02-23T13:00:00Z",
+      "notes": "## Key points\n\n- Password rotation every 90 days is dropped in favour of mandatory two-factor authentication.\n- A contractor laptop was lost in February; its disk was encrypted.\n- A penetration test with Cobalt is scheduled for April.\n\n## Decisions\n\n- All production database access goes through the bastion host.\n\n## Action items\n\n- **Kenji** — rotate the Stripe API keys by March 6."
+    },
+    {
+      "key": "offsite-planning", "title": "Offsite planning", "start": "2026-03-02T11:00:00Z",
+      "notes": "## Key points\n\n- The company offsite is in Porto from May 12 to May 14.\n- Budget for the offsite is 30,000 euros.\n\n## Decisions\n\n- No work sessions on the last day; it is a team activity day.\n\n## Action items\n\n- **Lena** — book the vans for the airport transfer."
+    },
+    {
+      "key": "churn-analysis", "title": "Churn analysis", "start": "2026-03-09T15:00:00Z",
+      "notes": "## Key points\n\n- Monthly churn rose to 3.1 percent in February.\n- Most cancellations cite the missing Xero integration.\n- Customers on the starter tier churn twice as often as annual customers.\n\n## Decisions\n\n- Build the Xero integration in Q2 despite the integrations freeze."
+    },
+    {
+      "key": "q2-roadmap", "title": "Q2 roadmap", "start": "2026-03-16T15:00:00Z",
+      "notes": "## Key points\n\n- Q2 themes: Atlas general availability, the Xero integration and the mobile redesign.\n\n## Decisions\n\n- The public API v2 is postponed to Q3.\n\n## Action items\n\n- **Priya** — present the roadmap at the all-hands on March 20.\n\n## Open questions\n\n- Whether the analytics dashboard rewrite fits in Q2."
+    },
+    {
+      "key": "people-policy", "title": "People policy update", "start": "2026-03-23T10:00:00Z",
+      "notes": "## Key points\n\n- Unlimited paid time off is replaced by 28 days of annual leave plus public holidays.\n- Unused leave carries over up to five days.\n- Parental leave is extended to 20 weeks for all parents.\n\n## Decisions\n\n- The office closes between Christmas and New Year."
+    }
+  ],
+  "conversations": [
+    {
+      "key": "board-note", "at": "2026-03-25T09:00:00Z",
+      "turns": [
+        { "role": "user", "text": "Draft a note to the board that the Atlas migration is on track for June." },
+        { "role": "assistant", "text": "Here is a draft: Atlas remains on track for a June go-live." }
+      ]
+    },
+    {
+      "key": "lisbon-wifi", "at": "2026-03-26T12:00:00Z",
+      "turns": [
+        { "role": "user", "text": "What's the wifi password at the Lisbon office?" },
+        { "role": "assistant", "text": "I don't have it. Rita, the office manager, keeps it." }
+      ]
+    }
+  ],
+  "questions": [
+    { "kind": "lexical", "question": "Who leads the Atlas migration team?", "source": "atlas-kickoff", "contains": "Priya Raman leads" },
+    { "kind": "lexical", "question": "Which database was chosen for the ledger?", "source": "atlas-kickoff", "contains": "PostgreSQL over DynamoDB" },
+    { "kind": "lexical", "question": "What is the annual plan discount now?", "source": "pricing-review", "contains": "annual plan discount" },
+    { "kind": "lexical", "question": "Who owns the launch ads budget?", "source": "pricing-review", "contains": "launch ads budget" },
+    { "kind": "lexical", "question": "Did Lena Ortiz pass the system design interview?", "source": "hiring-sync", "contains": "Lena Ortiz" },
+    { "kind": "lexical", "question": "How long was checkout down?", "source": "incident-review", "contains": "47 minutes" },
+    { "kind": "lexical", "question": "What is the Q1 revenue target?", "source": "q1-planning", "contains": "Revenue target" },
+    { "kind": "lexical", "question": "When does the Acme contract renew?", "source": "acme-renewal", "contains": "renews on April 30" },
+    { "kind": "lexical", "question": "Which street is the new Lisbon office on?", "source": "office-move", "contains": "Rua Augusta" },
+    { "kind": "lexical", "question": "When is the penetration test with Cobalt?", "source": "security-review", "contains": "Cobalt" },
+    { "kind": "lexical", "question": "Where is the company offsite?", "source": "offsite-planning", "contains": "Porto" },
+    { "kind": "lexical", "question": "What was monthly churn in February?", "source": "churn-analysis", "contains": "Monthly churn rose" },
+    { "kind": "lexical", "question": "When is the public API v2 planned?", "source": "q2-roadmap", "contains": "API v2" },
+    { "kind": "lexical", "question": "How many days of annual leave do we get?", "source": "people-policy", "contains": "28 days" },
+    { "kind": "lexical", "question": "How long is parental leave now?", "source": "people-policy", "contains": "20 weeks" },
+    { "kind": "lexical", "question": "Who rotates the Stripe API keys?", "source": "security-review", "contains": "Stripe API keys" },
+    { "kind": "lexical", "question": "Which app is used to book desks?", "source": "office-move", "contains": "Robin app" },
+    { "kind": "lexical", "question": "How many orders failed during the incident?", "source": "incident-review", "contains": "1,200 orders" },
+    { "kind": "lexical", "question": "Does Acme want single sign-on with Okta?", "source": "acme-renewal", "contains": "Okta" },
+    { "kind": "lexical", "question": "Who presents the roadmap at the all-hands?", "source": "q2-roadmap", "contains": "all-hands" },
+    { "kind": "paraphrase", "question": "When is the new pricing going live?", "source": "pricing-review", "contains": "Ship the new pricing page" },
+    { "kind": "paraphrase", "question": "Why did customers cancel?", "source": "churn-analysis", "contains": "cancellations cite" },
+    { "kind": "paraphrase", "question": "What broke the renewal of the TLS certificate?", "source": "incident-review", "contains": "Root cause" },
+    { "kind": "paraphrase", "question": "How much money is set aside for the team trip to Porto?", "source": "offsite-planning", "contains": "Budget for the offsite" },
+    { "kind": "paraphrase", "question": "Which engineering computers are being replaced?", "source": "office-move", "contains": "laptops get upgraded" },
+    { "kind": "paraphrase", "question": "Is the mobile redesign delayed?", "source": "q1-planning", "contains": "Mobile app redesign slips" },
+    { "kind": "paraphrase", "question": "Who is writing the posting for the data engineer role?", "source": "hiring-sync", "contains": "job description" },
+    { "kind": "paraphrase", "question": "What happens to vacation days we don't use?", "source": "people-policy", "contains": "Unused leave carries over" },
+    { "kind": "paraphrase", "question": "Is there parking at the new workplace?", "source": "office-move", "contains": "Parking is not included" },
+    { "kind": "paraphrase", "question": "How do engineers reach the production database now?", "source": "security-review", "contains": "bastion host" },
+    { "kind": "paraphrase", "question": "Did we lose any company computers?", "source": "security-review", "contains": "contractor laptop was lost" },
+    { "kind": "paraphrase", "question": "How early are we warned before a certificate expires?", "source": "incident-review", "contains": "Certificate expiry alerts" },
+    { "kind": "paraphrase", "question": "What deal are we offering Acme to keep them?", "source": "acme-renewal", "contains": "two-month extension" },
+    { "kind": "paraphrase", "question": "Which accounting integration do customers keep asking for?", "source": "churn-analysis", "contains": "missing Xero integration" },
+    { "kind": "paraphrase", "question": "Are we still building new integrations this quarter?", "source": "q1-planning", "contains": "Freeze new integrations" },
+    { "kind": "paraphrase", "question": "Where is the marketing money going instead of paid search?", "source": "q1-planning", "contains": "Marketing spend shifts" },
+    { "kind": "paraphrase", "question": "What replaces the old billing system?", "source": "atlas-kickoff", "contains": "Project Atlas replaces" },
+    { "kind": "paraphrase", "question": "How is the Atlas release being staged?", "source": "atlas-kickoff", "contains": "feature flag" },
+    { "kind": "paraphrase", "question": "What is wrong with the old invoicing code?", "source": "atlas-kickoff", "contains": "written in Perl" },
+    { "kind": "paraphrase", "question": "What are the big themes for next quarter?", "source": "q2-roadmap", "contains": "Q2 themes" },
+    { "kind": "paraphrase", "question": "Do customers on cheaper plans quit more often?", "source": "churn-analysis", "contains": "starter tier churn twice" },
+    { "kind": "paraphrase", "question": "Is the office shut over the Christmas holidays?", "source": "people-policy", "contains": "office closes between Christmas" },
+    { "kind": "paraphrase", "question": "What changed about password rules?", "source": "security-review", "contains": "Password rotation" },
+    { "kind": "paraphrase", "question": "Who sends Acme the security answers?", "source": "acme-renewal", "contains": "security questionnaire" },
+    { "kind": "paraphrase", "question": "Is there still a take-home test when we hire?", "source": "hiring-sync", "contains": "take-home assignment" },
+    { "kind": "paraphrase", "question": "When will senior salary ranges be shared?", "source": "hiring-sync", "contains": "Salary bands" },
+    { "kind": "paraphrase", "question": "What problem did Acme have with large exports?", "source": "acme-renewal", "contains": "exports time out" },
+    { "kind": "paraphrase", "question": "Who arranges transport from the airport for the offsite?", "source": "offsite-planning", "contains": "book the vans" },
+    { "kind": "vocabulary", "question": "What day do we release our cost sheet?", "source": "pricing-review", "contains": "Ship the new pricing page" },
+    { "kind": "vocabulary", "question": "Which vehicle takes us to our terminal?", "source": "offsite-planning", "contains": "book the vans" },
+    { "kind": "vocabulary", "question": "Why are clients quitting?", "source": "churn-analysis", "contains": "cancellations cite" },
+    { "kind": "vocabulary", "question": "Which new machines do developers receive?", "source": "office-move", "contains": "laptops get upgraded" },
+    { "kind": "vocabulary", "question": "Who holds money for promotion?", "source": "pricing-review", "contains": "launch ads budget" },
+    { "kind": "vocabulary", "question": "How much holiday do new mothers and fathers get?", "source": "people-policy", "contains": "Parental leave is extended" },
+    { "kind": "conversation", "question": "What did I ask the Agent to tell the board?", "source": "board-note", "contains": "board" },
+    { "kind": "conversation", "question": "Who knows the wifi password in Lisbon?", "source": "lisbon-wifi", "contains": "wifi password" }
+  ]
+}

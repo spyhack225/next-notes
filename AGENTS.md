@@ -51,7 +51,8 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-tools     --selftest-wake       --selftest-tasks
 --selftest-persona   --selftest-memory     --selftest-schedule
 --selftest-routine-authority
---selftest-index     --selftest-search [query]
+--selftest-index     --selftest-search [query] [--gold <path>]
+--selftest-embed [text] [--model potion|embeddinggemma]
 --selftest-memory-review [--model local|cloud] [--fixtures <path>]
 --selftest-meeting-context                 --selftest-realtime
 --selftest-computer  --selftest-mcp        --selftest-acp

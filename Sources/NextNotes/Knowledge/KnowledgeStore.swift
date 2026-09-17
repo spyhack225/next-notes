@@ -41,6 +41,8 @@ struct KnowledgeIndexStats: Equatable, Sendable {
     var chunks = 0
     var sources = 0
     var chunksByKind: [KnowledgeSourceKind: Int] = [:]
+    /// Chunks with a vector, from any model.
+    var embedded = 0
     /// The database file plus its write-ahead log.
     var bytes: Int64 = 0
 }
@@ -97,6 +99,16 @@ final class KnowledgeStore: @unchecked Sendable {
     /// with the app running: a connection whose file is gone (or replaced) is closed and a
     /// new file is created, so deletes, backfill and search never use an unlinked file.
     private var openedInode: UInt64?
+    /// Bumped by every write, under `lock`. The in-memory vector set compares it to know
+    /// when to reload, so a deleted chunk's vector never outlives the chunk in search.
+    private var mutations: UInt64 = 0
+
+    /// How many writes this store has seen. Read it before loading anything derived.
+    var mutationCount: UInt64 {
+        lock.lock()
+        defer { lock.unlock() }
+        return mutations
+    }
 
     init(directory: URL) {
         fileURL = directory.appendingPathComponent(Self.fileName)
@@ -122,6 +134,17 @@ final class KnowledgeStore: @unchecked Sendable {
         return try body(connection)
     }
 
+    /// `withConnection` for a body that writes.
+    func withWritingConnection<T>(_ body: (OpaquePointer) throws -> T) throws -> T {
+        lock.lock()
+        defer {
+            mutations &+= 1
+            lock.unlock()
+        }
+        let connection = try openLocked()
+        return try body(connection)
+    }
+
     /// Closes the connection; the next call reopens it.
     func close() {
         lock.lock()
@@ -135,6 +158,7 @@ final class KnowledgeStore: @unchecked Sendable {
         defer { lock.unlock() }
         closeLocked()
         removeFilesLocked()
+        mutations &+= 1
     }
 
     /// `PRAGMA foreign_keys` as the live connection reports it, for the self-test.
@@ -166,6 +190,7 @@ final class KnowledgeStore: @unchecked Sendable {
             if let inode = openedInode, Self.inode(atPath: fileURL.path) == inode { return db }
             Log.app.info("knowledge index file removed while open, reconnecting")
             closeLocked()
+            mutations &+= 1
             // The journal files belonged to the removed database; a new one must not adopt them.
             for suffix in ["-wal", "-shm", "-journal"] {
                 try? FileManager.default.removeItem(atPath: fileURL.path + suffix)
@@ -320,7 +345,7 @@ final class KnowledgeStore: @unchecked Sendable {
             return removed > 0 ? .removed : .unchanged
         }
         let generation = Self.generation(of: chunks)
-        return try withConnection { db in
+        return try withWritingConnection { db in
             try Self.exec(db, "BEGIN IMMEDIATE")
             do {
                 let current = try Self.optionalInt(
@@ -366,7 +391,7 @@ final class KnowledgeStore: @unchecked Sendable {
     /// Deletes one source's chunks and state. Returns the number of chunks removed.
     @discardableResult
     func deleteSource(kind: KnowledgeSourceKind, sourceID: String) throws -> Int {
-        try withConnection { db in
+        try withWritingConnection { db in
             try Self.transaction(db) {
                 try Self.run(db, "DELETE FROM chunk WHERE source_kind = ?1 AND source_id = ?2",
                              [.text(kind.rawValue), .text(sourceID)])
@@ -382,7 +407,7 @@ final class KnowledgeStore: @unchecked Sendable {
     /// kind the user has excluded. Returns the number of chunks removed.
     @discardableResult
     func deleteSources(kind: KnowledgeSourceKind) throws -> Int {
-        try withConnection { db in
+        try withWritingConnection { db in
             try Self.transaction(db) {
                 try Self.run(db, "DELETE FROM chunk WHERE source_kind = ?1", [.text(kind.rawValue)])
                 let removed = Int(sqlite3_changes(db))
@@ -448,6 +473,7 @@ final class KnowledgeStore: @unchecked Sendable {
                 stats.chunks += count
             }
             stats.sources = Int(try Self.int(db, "SELECT count(*) FROM index_state"))
+            stats.embedded = Int(try Self.int(db, "SELECT count(*) FROM embedding"))
             stats.bytes = ["", "-wal"].reduce(Int64(0)) { total, suffix in
                 let size = (try? FileManager.default.attributesOfItem(atPath: fileURL.path + suffix)[.size]) as? NSNumber
                 return total + (size?.int64Value ?? 0)
@@ -491,6 +517,7 @@ final class KnowledgeStore: @unchecked Sendable {
         case double(Double?)
         case text(String)
         case optionalText(String?)
+        case blob(Data)
     }
 
     private static let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
@@ -515,6 +542,10 @@ final class KnowledgeStore: @unchecked Sendable {
                 sqlite3_bind_text(statement, index, string, -1, transient)
             case .optionalText(let string):
                 if let string { sqlite3_bind_text(statement, index, string, -1, transient) } else { sqlite3_bind_null(statement, index) }
+            case .blob(let data):
+                data.withUnsafeBytes { raw in
+                    _ = sqlite3_bind_blob(statement, index, raw.baseAddress, Int32(raw.count), transient)
+                }
             }
         }
     }

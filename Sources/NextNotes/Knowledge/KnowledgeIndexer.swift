@@ -1,17 +1,20 @@
 import Foundation
 import Observation
 
-/// The four switches, read from defaults so the indexer and its self-test agree on keys.
+/// The switches, read from defaults so the indexer and its self-test agree on keys.
 struct KnowledgeIndexSettings: Equatable, Sendable {
     var enabled = false
     var includeConversations = true
     var includeDictation = false
     var includeRoutines = false
+    /// Which model writes vectors. `none` by default: search stays BM25 and nothing loads.
+    var embedder: KnowledgeEmbedderChoice = .none
 
     nonisolated static let enabledKey = "knowledgeIndexEnabled"
     nonisolated static let includeConversationsKey = "knowledgeIncludeConversations"
     nonisolated static let includeDictationKey = "knowledgeIncludeDictation"
     nonisolated static let includeRoutinesKey = "knowledgeIncludeRoutines"
+    nonisolated static let embedderKey = "knowledgeEmbedder"
 
     static var fromDefaults: KnowledgeIndexSettings {
         let defaults = UserDefaults.standard
@@ -19,7 +22,8 @@ struct KnowledgeIndexSettings: Equatable, Sendable {
             enabled: defaults.object(forKey: enabledKey) as? Bool ?? false,
             includeConversations: defaults.object(forKey: includeConversationsKey) as? Bool ?? true,
             includeDictation: defaults.object(forKey: includeDictationKey) as? Bool ?? false,
-            includeRoutines: defaults.object(forKey: includeRoutinesKey) as? Bool ?? false
+            includeRoutines: defaults.object(forKey: includeRoutinesKey) as? Bool ?? false,
+            embedder: defaults.string(forKey: embedderKey).flatMap(KnowledgeEmbedderChoice.init(rawValue:)) ?? .none
         )
     }
 
@@ -43,6 +47,10 @@ protocol KnowledgeIndexEnvironment: AnyObject {
     /// rebuild: conversation rows at or before it are never indexed again, although
     /// `agent-conversation.json` may still hold them.
     var conversationsForgottenAt: Date? { get set }
+    /// Why vectors cannot be computed right now — recording, a voice conversation open or
+    /// speaking, or the notes model loaded or working — or nil. Embedding is a backfill and
+    /// is never concurrent with any of them.
+    func embeddingBlocker() async -> String?
 }
 
 /// Where the source files are. Production reads the real stores; the self-tests hand in
@@ -76,6 +84,10 @@ struct KnowledgeIndexPass: Equatable, Sendable {
     /// Meetings still recording or writing notes, left for later.
     var deferred = 0
     var chunksWritten = 0
+    /// Vectors written by the embedding pass that followed the jobs.
+    var embedded = 0
+    /// Why the embedding pass stopped early, if it did.
+    var embeddingWaiting: String?
     var failures: [String] = []
     var seconds: Double = 0
 }
@@ -125,6 +137,9 @@ final class KnowledgeIndexer {
     /// A meeting that changed is indexed after this quiet period, so a burst of saves at the
     /// end of a recording is one job.
     static let changeDelay: Duration = .seconds(3)
+    /// Chunks per embedding call. Small, so a recording or a notes load that starts waits
+    /// for at most one batch.
+    nonisolated static let embeddingBatch = 16
 
     let store: KnowledgeStore
     private let sources: KnowledgeSourceProviding
@@ -133,6 +148,11 @@ final class KnowledgeIndexer {
     /// A change drains the queue after `changeDelay`. The self-test turns this off and
     /// drives `drain()` itself.
     private let drainsOnChange: Bool
+    /// The embedder a choice means right now. Production checks the downloads; the
+    /// self-tests hand in the fake.
+    private let embedders: (KnowledgeEmbedderChoice) -> (any KnowledgeEmbedder)?
+    /// The vector matrix search reads, shared across searches and reloaded after writes.
+    @ObservationIgnored let vectorIndex = KnowledgeVectorIndex()
 
     private(set) var pending: [KnowledgeJob] = []
     private(set) var isIndexing = false
@@ -155,8 +175,10 @@ final class KnowledgeIndexer {
     @ObservationIgnored private var lastSettings: KnowledgeIndexSettings?
 
     init(store: KnowledgeStore, sources: KnowledgeSourceProviding, environment: KnowledgeIndexEnvironment,
-         now: @escaping () -> Date = Date.init, drainsOnChange: Bool = true) {
+         now: @escaping () -> Date = Date.init, drainsOnChange: Bool = true,
+         embedders: @escaping (KnowledgeEmbedderChoice) -> (any KnowledgeEmbedder)? = { KnowledgeEmbedders.live($0) }) {
         self.drainsOnChange = drainsOnChange
+        self.embedders = embedders
         self.store = store
         self.sources = sources
         self.environment = environment
@@ -165,8 +187,19 @@ final class KnowledgeIndexer {
 
     var settings: KnowledgeIndexSettings { environment.settings }
 
-    /// The searcher every caller uses. Phase B swaps the implementation, not the callers.
-    var searcher: any KnowledgeSearching { KeywordKnowledgeSearch(store: store) }
+    /// The embedder the settings choose, when its files are there.
+    var embedder: (any KnowledgeEmbedder)? {
+        let settings = self.settings
+        guard settings.enabled else { return nil }
+        return embedders(settings.embedder)
+    }
+
+    /// The searcher every caller uses: hybrid BM25 + cosine when an embedder is chosen and
+    /// downloaded, BM25 alone otherwise. Callers never know which.
+    var searcher: any KnowledgeSearching {
+        guard let embedder else { return KeywordKnowledgeSearch(store: store) }
+        return HybridKnowledgeSearch(store: store, embedder: embedder, vectors: vectorIndex)
+    }
 
     /// What `memory.recall` reads, or nil while the index is off or has never been built.
     var recall: KnowledgeRecall? {
@@ -224,6 +257,8 @@ final class KnowledgeIndexer {
         let current = settings
         guard current != lastSettings else { return }
         lastSettings = current
+        // Keywords only, or the index off: the vector matrix is dead weight.
+        if !current.enabled || current.embedder == .none { vectorIndex.purge() }
         guard current.enabled else { return }
         // Turned on, or a source kind switched: backfill adds what is now included and
         // removes what is now excluded.
@@ -427,24 +462,106 @@ final class KnowledgeIndexer {
         let started = Date()
         var pass = KnowledgeIndexPass()
         var ran = 0
-        while let job = pending.first {
-            if let maxJobs, ran >= maxJobs { break }
-            if environment.isRecording {
-                pass.seconds = Date().timeIntervalSince(started)
-                finish(pass)
-                return .waiting("a meeting, dictation or Agent reply is in progress", pass)
+        // Chunk jobs, then vectors. A job that arrives during the embedding pass (a meeting
+        // that just ended, a rebuild) stops it at the next batch and runs in this same drain:
+        // a drain started for it meanwhile got `.alreadyRunning` and will not come back.
+        repeat {
+            while let job = pending.first {
+                if let maxJobs, ran >= maxJobs { break }
+                if environment.isRecording {
+                    pass.seconds = Date().timeIntervalSince(started)
+                    finish(pass)
+                    return .waiting("a meeting, dictation or Agent reply is in progress", pass)
+                }
+                pending.removeFirst()
+                inFlight = job
+                removedInFlight.remove(job)
+                await process(job, settings: settings, pass: &pass)
+                inFlight = nil
+                ran += 1
+                await Task.yield()
             }
-            pending.removeFirst()
-            inFlight = job
-            removedInFlight.remove(job)
-            await process(job, settings: settings, pass: &pass)
-            inFlight = nil
-            ran += 1
-            await Task.yield()
-        }
+            guard maxJobs == nil || pending.isEmpty else { break }
+            let embedding = await embedPending()
+            pass.embedded += embedding.embedded
+            pass.embeddingWaiting = embedding.waiting
+            pass.failures += embedding.failures
+        } while maxJobs == nil && !pending.isEmpty && !environment.isRecording
         pass.seconds = Date().timeIntervalSince(started)
         finish(pass)
         return .finished(pass)
+    }
+
+    // MARK: - Embeddings
+
+    /// Writes vectors for chunks the current embedder has not seen, in small batches, while
+    /// nothing is recording and the notes model is neither loaded nor working. Runs after
+    /// the chunk jobs in every drain; resumable for the same reason they are — each batch
+    /// asks which chunks still lack a vector.
+    ///
+    /// Vectors from another model are dropped first: they are a different space. When a pass
+    /// that embedded ends — finished or waiting — the embedder is released, so its weights are
+    /// never resident longer than the backfill that needed them. A pass with nothing to embed
+    /// leaves a model a search loaded to the runtime's idle timer.
+    func embedPending(maxBatches: Int? = nil) async -> (embedded: Int, waiting: String?, failures: [String]) {
+        guard settings.enabled, let embedder else { return (0, nil, []) }
+        let store = self.store
+        let model = embedder.model
+        let dimensions = embedder.dimensions
+        var embedded = 0
+        var waiting: String?
+        var failures: [String] = []
+        var usedEmbedder = false
+        defer { if embedded > 0 { changed() } }
+        do {
+            // The purge of an old model's vectors is background disk work too: it waits.
+            if let reason = await environment.embeddingBlocker() {
+                await embedder.release()
+                return (0, reason, [])
+            }
+            let dropped = try await Task.detached(priority: .utility) {
+                try store.deleteEmbeddings(exceptModel: model)
+            }.value
+            if dropped > 0 { vectorIndex.purge() }
+            var batches = 0
+            while maxBatches.map({ batches < $0 }) ?? true {
+                if let reason = await environment.embeddingBlocker() {
+                    waiting = reason
+                    break
+                }
+                // New chunk jobs (a meeting that just ended) go first: a long backfill must
+                // not keep a fresh meeting unsearchable. The next drain resumes here.
+                if !self.pending.isEmpty { break }
+                let pending = try await Task.detached(priority: .utility) {
+                    try store.chunksNeedingEmbedding(model: model, limit: Self.embeddingBatch)
+                }.value
+                guard !pending.isEmpty else { break }
+                let vectors: [[Float]]
+                usedEmbedder = true
+                do {
+                    vectors = try await embedder.embed(pending.map(\.text), purpose: .document)
+                } catch let error as KnowledgeEmbeddingError where error == .notesModelResident || error == .foregroundBusy {
+                    // The runtime's own gate, checked at its last suspension before a load:
+                    // recording or a voice conversation that began after the blocker above.
+                    waiting = error.localizedDescription
+                    break
+                }
+                guard vectors.count == pending.count else {
+                    throw KnowledgeEmbeddingError.wrongDimensions(expected: pending.count, actual: vectors.count)
+                }
+                let rows = zip(pending, vectors).map { (chunkID: $0.chunkID, vector: $1) }
+                embedded += try await Task.detached(priority: .utility) {
+                    try store.writeEmbeddings(rows, model: model, dimensions: dimensions)
+                }.value
+                batches += 1
+                await Task.yield()
+            }
+        } catch {
+            failures.append("embeddings: \(error.localizedDescription)")
+            record(error)
+        }
+        if usedEmbedder || waiting != nil { await embedder.release() }
+        return (embedded, waiting, failures)
     }
 
     private func finish(_ pass: KnowledgeIndexPass) {
@@ -633,12 +750,26 @@ struct KnowledgeRecall {
 
     let searcher: any KnowledgeSearching
     var sourceTitle: (KnowledgeHit) -> String? = { _ in nil }
+    /// The query with its embedding, computed by `prepare` where the caller could wait.
+    private(set) var prepared: KnowledgeQuery?
+
+    init(searcher: any KnowledgeSearching, sourceTitle: @escaping (KnowledgeHit) -> String? = { _ in nil }) {
+        self.searcher = searcher
+        self.sourceTitle = sourceTitle
+    }
+
+    /// Embeds the query ahead of the synchronous tool call, for an embedder behind an actor.
+    mutating func prepare(for query: String) async {
+        let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !KnowledgeFTSQuery.tokens(text).isEmpty else { return }
+        prepared = await searcher.prepare(KnowledgeQuery(text: text, limit: Self.passageLimit))
+    }
 
     /// Nil when the query is empty, nothing matches, or the search fails.
     func passages(for query: String) -> String? {
-        guard !KnowledgeFTSQuery.tokens(query).isEmpty,
-              let hits = try? searcher.search(KnowledgeQuery(text: query, limit: Self.passageLimit)),
-              !hits.isEmpty else { return nil }
+        guard !KnowledgeFTSQuery.tokens(query).isEmpty else { return nil }
+        let request = prepared.flatMap { $0.text == query ? $0 : nil } ?? KnowledgeQuery(text: query, limit: Self.passageLimit)
+        guard let hits = try? searcher.search(request), !hits.isEmpty else { return nil }
         return render(hits)
     }
 
@@ -672,13 +803,45 @@ struct KnowledgeRecall {
 final class LiveKnowledgeIndexEnvironment: KnowledgeIndexEnvironment {
     /// Recording, and the other foreground work background jobs give way to: an Agent reply
     /// in progress, and any meeting still transcribing, diarizing or writing notes.
-    var isRecording: Bool {
+    var isRecording: Bool { Self.isForegroundBusy }
+
+    static var isForegroundBusy: Bool { isCapturing || RealtimeAgent.shared.isThinking }
+
+    /// A meeting or dictation recording, or a meeting still transcribing, diarizing or
+    /// writing notes.
+    static var isCapturing: Bool {
         MeetingController.shared.session != nil || (AppDelegate.current?.controller.state.isActive ?? false)
-            || RealtimeAgent.shared.isThinking
             || MeetingStore.shared.meetings.contains { $0.status.isActive }
     }
 
+    /// A voice conversation open, or the Agent speaking. `RealtimeAgent.isThinking` turns
+    /// false before the reply is spoken, and the user's next turn follows: the embedder's
+    /// CPU threads would compete with TTS and ASR for the whole session. The same gate
+    /// `AgentScheduler` uses, plus the capture session itself.
+    static var isVoiceBusy: Bool {
+        AgentCaptureController.shared.isSessionActive || AgentSpeechSynthesizer.shared.isSpeaking
+            || RealtimeAudioSession.shared.isSpeaking || ActivationController.shared.mode != .idle
+    }
+
+    /// `EmbeddingRuntime`'s last check before a load. A document (the backfill) loads only
+    /// when nothing foreground holds; a query also waits for capture and voice, but not for
+    /// a typed Agent reply — that reply is what asks `memory.recall`, and a query embed is
+    /// tens of milliseconds.
+    static func mayLoadEmbedder(for purpose: EmbeddingPurpose) -> Bool {
+        switch purpose {
+        case .document: !isForegroundBusy && !isVoiceBusy
+        case .query: !isCapturing && !isVoiceBusy
+        }
+    }
+
     var settings: KnowledgeIndexSettings { .fromDefaults }
+
+    func embeddingBlocker() async -> String? {
+        if isRecording { return "a meeting, dictation or Agent reply is in progress" }
+        if Self.isVoiceBusy { return "a voice conversation is in progress" }
+        if await NotesModelRuntime.shared.isResidentOrBusy { return "the notes model is loaded" }
+        return nil
+    }
 
     nonisolated static let conversationsForgottenAtKey = "knowledgeConversationsForgottenAt"
 
@@ -748,6 +911,16 @@ final class FixedKnowledgeIndexEnvironment: KnowledgeIndexEnvironment {
     var isRecording = false
     var settings = KnowledgeIndexSettings()
     var conversationsForgottenAt: Date?
+    /// Stands in for "the notes model is loaded".
+    var notesModelBusy = false
+    /// Stands in for a voice conversation open or the Agent speaking.
+    var voiceSessionActive = false
+
+    func embeddingBlocker() async -> String? {
+        if isRecording { return "recording" }
+        if voiceSessionActive { return "a voice conversation is in progress" }
+        return notesModelBusy ? "the notes model is loaded" : nil
+    }
 
     init(settings: KnowledgeIndexSettings = KnowledgeIndexSettings()) {
         self.settings = settings

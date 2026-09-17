@@ -217,7 +217,9 @@ struct KnowledgeSearchView: View {
         try? await Task.sleep(for: .milliseconds(150))
         guard !Task.isCancelled else { return }
         let searcher = indexer.searcher
-        let request = KnowledgeQuery(text: query, filter: filter)
+        // Embedding the query may wait on a model; the search itself does not.
+        let request = await searcher.prepare(KnowledgeQuery(text: query, filter: filter))
+        guard !Task.isCancelled else { return }
         let result = await Task.detached(priority: .userInitiated) { () -> Result<([KnowledgeHit], KnowledgeFacets), Error> in
             Result { (try searcher.search(request), try searcher.facets(request)) }
         }.value

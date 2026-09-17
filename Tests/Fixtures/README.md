@@ -42,3 +42,25 @@ NextNotes --selftest-memory-review --fixtures path/to.json  # another labelled s
 ```
 
 The sessions are written by hand; no real conversation is committed.
+
+## knowledge-gold.json
+
+The retrieval gold set scaffold for hybrid search (Phase B). A small library — twelve
+meetings' notes and two Agent conversations — and fifty questions, each naming the one passage
+that answers it by its source key and a phrase the passage contains (chunk ids change with
+every rebuild, so they are never used). `kind` is `lexical` (the question shares the answer's
+words), `paraphrase` (it mostly does not) or `conversation`.
+
+`--selftest-search` indexes the library in a temporary directory, embeds it with the fake
+embedder, and prints recall@10 and MRR for BM25, cosine and the fused ranking, overall and by
+kind. The fake maps a handful of paraphrases onto shared features by hand, so these numbers
+test the pipeline — RRF, filters, recency — and say nothing about a real model. Comparing
+potion with EmbeddingGemma needs the same format written against a real library, and the
+models downloaded; both are pending.
+
+```bash
+NextNotes --selftest-search                              # fixture set, fake embedder
+NextNotes --selftest-search --gold path/to/other.json    # another labelled set
+```
+
+The questions and notes are written by hand; no real meeting is committed.

@@ -95,6 +95,13 @@ actor NotesModelRuntime {
         return Date().timeIntervalSince(lastUse)
     }
 
+    /// Loaded, loading, generating, queued or leased. The embedding runtime never loads
+    /// while this is true, so the notes model and the embedder are never resident together.
+    var isResidentOrBusy: Bool {
+        model != nil || loadTask != nil || activeOperations > 0 || nativeOwner || !nativeWaiters.isEmpty
+            || !conversationLeases.isEmpty
+    }
+
     /// The usable prompt budget, once the model is loaded and its trained context is known.
     var contextTokens: Int {
         trainedContext > 0 ? min(trainedContext, Self.maxContextTokens) : Self.maxContextTokens
@@ -755,6 +762,11 @@ actor NotesModelRuntime {
         if let schedulerJobID {
             await ComputeScheduler.shared.checkpoint(schedulerJobID)
         }
+
+        // Peak is never the sum: the embedder and the notes model are never loaded
+        // together. `loadTask` is already set, so the embedder refuses to load again
+        // until this model is gone.
+        await EmbeddingRuntime.shared.stopNow()
 
         var modelParameters = llama_model_default_params()
         modelParameters.n_gpu_layers = gpuLayers

@@ -458,6 +458,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-embed") {
+            Task { @MainActor in
+                SelfTest.failed = !(await KnowledgeEmbedSelfTest.run(text: SelfTest.value(after: "--selftest-embed")))
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-search") {
             Task { @MainActor in
                 SelfTest.failed = !(await KnowledgeSearchSelfTest.run(query: SelfTest.value(after: "--selftest-search")))

@@ -19,6 +19,26 @@ struct KnowledgeQuery: Equatable, Sendable {
     var text: String
     var filter = KnowledgeFilter()
     var limit = 50
+    /// The query's embedding, when a caller that can wait computed it (`prepare`). Nil
+    /// leaves hybrid search to an embedder that answers inline, or to BM25 alone.
+    var vector: [Float]? = nil
+    /// The vector set `prepare` loaded beside `vector`, so the synchronous search that follows
+    /// — on the main actor, for `memory.recall` — never rebuilds it from SQLite because a
+    /// write landed in between. Passages written since are missed for this one search;
+    /// passages deleted since are dropped when the hits are re-joined to `chunk`.
+    var preparedVectors: KnowledgePreparedVectors? = nil
+}
+
+/// A loaded vector set, compared by identity: two queries are equal when they carry the
+/// same load, and nothing compares 38 MB of floats.
+final class KnowledgePreparedVectors: Equatable, Sendable {
+    let set: KnowledgeVectorSet
+
+    init(_ set: KnowledgeVectorSet) {
+        self.set = set
+    }
+
+    static func == (lhs: KnowledgePreparedVectors, rhs: KnowledgePreparedVectors) -> Bool { lhs === rhs }
 }
 
 /// One ranked passage.
@@ -64,6 +84,13 @@ struct KnowledgeFacets: Equatable, Sendable {
 protocol KnowledgeSearching: Sendable {
     func search(_ query: KnowledgeQuery) throws -> [KnowledgeHit]
     func facets(_ query: KnowledgeQuery) throws -> KnowledgeFacets
+    /// Does whatever needs to wait before `search` — embedding the query text through a
+    /// model actor. Keyword search needs nothing.
+    func prepare(_ query: KnowledgeQuery) async -> KnowledgeQuery
+}
+
+extension KnowledgeSearching {
+    func prepare(_ query: KnowledgeQuery) async -> KnowledgeQuery { query }
 }
 
 /// Phase A: FTS5 BM25 alone, ranked, stemmed, with snippets.
@@ -137,6 +164,25 @@ struct KeywordKnowledgeSearch: KnowledgeSearching {
         return try hits(sql, values: values, snippetColumn: nil, scoreColumn: nil)
     }
 
+    /// Rows by id, under the same filters, for passages the vector leg found and BM25 did
+    /// not. No snippet markers: nothing matched a word.
+    func hits(ids: [Int64], filter: KnowledgeFilter) throws -> [KnowledgeHit] {
+        guard !ids.isEmpty else { return [] }
+        var values: [KnowledgeStore.SQLValue] = []
+        var placeholders: [String] = []
+        for id in ids {
+            values.append(.int(id))
+            placeholders.append("?\(values.count)")
+        }
+        let filters = Self.whereClause(filter, values: &values)
+        let sql = """
+            SELECT \(Self.columns)
+            FROM chunk c
+            WHERE c.id IN (\(placeholders.joined(separator: ", ")))\(filters)
+            """
+        return try hits(sql, values: values, snippetColumn: nil, scoreColumn: nil)
+    }
+
     private func hits(_ sql: String, values: [KnowledgeStore.SQLValue], snippetColumn: Int32?,
                       scoreColumn: Int32?) throws -> [KnowledgeHit] {
         try store.withConnection { db in
@@ -199,7 +245,7 @@ struct KeywordKnowledgeSearch: KnowledgeSearching {
     }
 
     /// ` AND …` clauses with their values appended to `values`, numbered to follow them.
-    private static func whereClause(_ filter: KnowledgeFilter, values: inout [KnowledgeStore.SQLValue]) -> String {
+    static func whereClause(_ filter: KnowledgeFilter, values: inout [KnowledgeStore.SQLValue]) -> String {
         var clause = ""
         func list(_ column: String, _ items: [String]) {
             guard !items.isEmpty else { return }

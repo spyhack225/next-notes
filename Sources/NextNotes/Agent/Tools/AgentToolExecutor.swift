@@ -272,8 +272,10 @@ enum AgentToolExecutor {
         case .shell:
             return try await ShellExecutor.run(tool, arguments: arguments)
         case .memory:
+            var knowledge = KnowledgeIndexer.shared.recall
+            if tool.name == "recall" { await knowledge?.prepare(for: arguments["query"] ?? "") }
             return try MemoryToolExecutor.run(tool, arguments: arguments, provenance: MemoryProvenance.current,
-                                              knowledge: KnowledgeIndexer.shared.recall)
+                                              knowledge: knowledge)
         case .schedule:
             return try await ScheduleToolExecutor.run(
                 tool, arguments: arguments, sessionID: AgentSession.shared.sessionID)
