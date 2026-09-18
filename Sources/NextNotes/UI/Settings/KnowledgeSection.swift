@@ -24,10 +24,10 @@ struct KnowledgeSection: View {
 
             Toggle("Let the Agent search and answer from the index", isOn: $settings.knowledgeAgentToolsEnabled)
                 .disabled(!settings.knowledgeIndexEnabled)
-            Toggle("Extract decisions and action items from notes", isOn: $settings.knowledgeGraphEnabled)
+            Toggle("Extract a life map from notes, dictation and chats", isOn: $settings.knowledgeGraphEnabled)
                 .disabled(!settings.knowledgeIndexEnabled)
             if settings.knowledgeGraphEnabled {
-                Toggle("Let a cloud model read decisions and action items", isOn: $settings.knowledgeGraphCloudConsent)
+                Toggle("Let a cloud model read the life map", isOn: $settings.knowledgeGraphCloudConsent)
                     .disabled(!settings.knowledgeIndexEnabled)
             }
 
@@ -76,15 +76,19 @@ struct KnowledgeSection: View {
                     + "When a cloud model answers, the passages recall, search or Ask finds are sent with the prompt. "
                     + "Semantic search adds vectors computed on this Mac after you download a model; "
                     + "it waits while anything is recording or the notes model is loaded. "
-                    + "Extracting reads each meeting's notes once more with the on-device model — never a cloud "
-                    + "one — and saves notes.json beside them: decisions you can follow across meetings, and "
-                    + "action items you own with a date, offered as reminders you confirm. Nothing is created "
-                    + "for you. What it extracts stays on this Mac: a cloud model the Agent, Ask or a routine "
+                    + "Extracting reads each meeting's notes — and, when included, dictations and Agent chats — "
+                    + "once more with the on-device model — never a cloud one — and saves notes.json / life.json: "
+                    + "decisions you can follow across meetings, action items you own with a date, and a life map of "
+                    + "people, projects, places, activities, goals and preferences. Tool and MCP payloads are not "
+                    + "scraped into the graph; only user-authored passages and plain Agent replies. Nothing is "
+                    + "created for you. What it extracts stays on this Mac: a cloud model the Agent, Ask or a routine "
                     + "uses cannot read it unless you let it. "
                     + "People mentioned by different names — an address, initials, a first name, an unnamed "
                     + "speaker whose voice matches — are merged into one only on strong evidence; each meeting's "
                     + "speaker voice prints are saved beside it while this is on. Decisions → People lists every "
-                    + "merge with its reason, and Split undoes one.",
+                    + "merge with its reason, and Split undoes one. "
+                    + "With extraction on, Search → Graph opens the library overview (every recent node), a "
+                    + "one-hop neighbourhood around a focus, and — for a person — their meetings against time.",
                 orb: indexer.isIndexing ? .searching : nil
             )
         }

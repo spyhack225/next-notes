@@ -86,28 +86,41 @@ enum KnowledgeExtractSelfTest {
         check("a rule name is not [a-z0-9-]", names.allSatisfy { $0.allSatisfy { $0.isLowercase || $0.isNumber || $0 == "-" } })
         check("the root is not first", names.first == "root")
 
-        let valid = #"{"decisions":[{"text":"Ship on Friday.","subject":"pricing page launch","supersedes":false,"said_by":null,"chunk":3}],"action_items":[{"text":"Send the \"checklist\"","owner":"You","due":"2026-03-13","chunk":5}],"open_questions":[],"topics":[{"label":"Pricing","chunks":[0,3]}]}"#
+        let lifeEmpty = #""projects":[],"organizations":[],"places":[],"activities":[],"goals":[],"preferences":[],"events":[]"#
+        let valid = #"{"decisions":[{"text":"Ship on Friday.","subject":"pricing page launch","supersedes":false,"said_by":null,"chunk":3}],"action_items":[{"text":"Send the \"checklist\"","owner":"You","due":"2026-03-13","chunk":5}],"open_questions":[],"topics":[{"label":"Pricing","chunks":[0,3]}],\#(lifeEmpty)}"#
         check("a valid extraction does not match", grammar.matches(valid))
         let spaced = """
             {
               "decisions": [],
               "action_items": [],
               "open_questions": [],
-              "topics": []
+              "topics": [],
+              "projects": [],
+              "organizations": [],
+              "places": [],
+              "activities": [],
+              "goals": [],
+              "preferences": [],
+              "events": []
             }
             """
         check("bounded whitespace does not match", grammar.matches(spaced))
         check("trailing prose matched", !grammar.matches(valid + " Done."))
         check("a missing key matched", !grammar.matches(#"{"decisions":[],"action_items":[],"open_questions":[]}"#))
-        check("keys out of order matched", !grammar.matches(#"{"action_items":[],"decisions":[],"open_questions":[],"topics":[]}"#))
+        check("keys out of order matched", !grammar.matches(#"{"action_items":[],"decisions":[],"open_questions":[],"topics":[],\#(lifeEmpty)}"#))
         check("a string bool matched", !grammar.matches(valid.replacingOccurrences(of: #""supersedes":false"#, with: #""supersedes":"no""#)))
         check("a free-text due date matched", !grammar.matches(valid.replacingOccurrences(of: "2026-03-13", with: "next Friday")))
         check("an 81-character subject matched", !grammar.matches(valid.replacingOccurrences(
             of: "pricing page launch", with: String(repeating: "x", count: 81))))
         check("a raw newline inside a string matched", !grammar.matches(valid.replacingOccurrences(of: "Ship on", with: "Ship\non")))
         let seventeen = "{\"decisions\":[" + Array(repeating: #"{"text":"a","subject":"b","supersedes":true,"said_by":"Ana","chunk":1}"#, count: 17)
-            .joined(separator: ",") + "],\"action_items\":[],\"open_questions\":[],\"topics\":[]}"
+            .joined(separator: ",") + "],\"action_items\":[],\"open_questions\":[],\"topics\":[],\(lifeEmpty)}"
         check("seventeen decisions matched", !grammar.matches(seventeen))
+
+        let lifeGrammar = LifeExtraction.grammar
+        check("life grammar has structural problems: \(lifeGrammar.structuralProblems())", lifeGrammar.structuralProblems().isEmpty)
+        let lifeValid = #"{"people":[{"name":"Sam","chunks":[0],"kind":null}],"projects":[{"name":"Pricing launch","chunks":[0],"kind":"work"}],"organizations":[],"places":[],"activities":[],"goals":[],"preferences":[],"events":[],"topics":[],"relationships":[],"works_on":[{"person":"You","target":"Pricing launch","chunk":0}],"member_of":[],"lives_in":[],"interested_in":[],"participates_in":[],"aims_at":[],"prefers":[]}"#
+        check("a valid life extraction does not match", lifeGrammar.matches(lifeValid))
 
         // Reusable for the memory review and schedule creation: a small schema of its own.
         let small = GBNFGrammar.json(.object([("kind", .enumeration(["reminder", "routine"])), ("minutes", .nullable(.integer))]))
@@ -154,13 +167,23 @@ enum KnowledgeExtractSelfTest {
             return ["ontology: the compiled-in copy does not parse: \(error.localizedDescription)"]
         }
         check("the current ontology is not the compiled-in one", Ontology.current == ontology)
-        check("node types \(ontology.nodes.keys.sorted())", Set(ontology.nodes.keys)
-            == ["Meeting", "Person", "Decision", "ActionItem", "OpenQuestion", "Artifact", "Topic"])
-        check("Topic is not the only optional type",
-              ontology.nodes.values.filter(\.isOptional).map(\.name) == ["Topic"])
-        check("edge types \(ontology.edges.keys.sorted())", Set(ontology.edges.keys)
-            == ["attended", "decided_in", "supersedes", "assigned_in", "owns", "raised_in", "produced", "discussed", "about"])
-        check("about does not accept three sources", ontology.edges["about"]?.from == ["Decision", "ActionItem", "OpenQuestion"])
+        check("version is not 2", ontology.version == 2)
+        let expectedNodes: Set<String> = [
+            "Meeting", "Person", "Decision", "ActionItem", "OpenQuestion", "Artifact", "Topic",
+            "Project", "Organization", "Place", "Activity", "Goal", "Preference", "Event",
+        ]
+        check("node types \(ontology.nodes.keys.sorted())", Set(ontology.nodes.keys) == expectedNodes)
+        let optional = Set(ontology.nodes.values.filter(\.isOptional).map(\.name))
+        check("optional types \(optional.sorted())",
+              optional == Set(["Topic", "Project", "Organization", "Place", "Activity", "Goal", "Preference", "Event"]))
+        let expectedEdges: Set<String> = [
+            "attended", "decided_in", "supersedes", "assigned_in", "owns", "raised_in", "produced",
+            "discussed", "about", "mentioned_in", "works_on", "member_of", "lives_in", "located_at",
+            "interested_in", "participates_in", "related_to", "aims_at", "prefers", "part_of", "occurs_at",
+        ]
+        check("edge types \(ontology.edges.keys.sorted())", Set(ontology.edges.keys) == expectedEdges)
+        check("about does not accept projects and goals",
+              ontology.edges["about"]?.from == Set(["Decision", "ActionItem", "OpenQuestion", "Project", "Goal"]))
         check("ActionItem.due is not a date", ontology.nodes["ActionItem"]?.fields["due"] == .date)
         check("a malformed ontology parsed", (try? Ontology.parse("version: 1\nnodes:\n  A:\n    fields: { x: wibble }\nedges: {}\n")) == nil)
 
@@ -341,6 +364,41 @@ enum KnowledgeExtractSelfTest {
         check("the index failed its integrity check", (try? store.integrityProblems()) == [])
         check("the graph is not available after extraction", graph.isAvailable)
 
+        // MARK: Life map from a dictation (indexed + extracted without a meeting)
+        do {
+            let dictationID = KnowledgeFixtures.dictationID
+            sources.dictationRuns = [
+                KnowledgeDictation(
+                    id: dictationID,
+                    text: "I am working on the Pricing launch project with Sam. My hobby is climbing at the Boulder gym.",
+                    at: KnowledgeFixtures.pricingStart.addingTimeInterval(10_000)),
+            ]
+            environment.settings.includeDictation = true
+            await indexer.backfill()
+            _ = await indexer.drain()
+            let lifeModel = ScriptedExtractionModel(fixed: #"{"people":[{"name":"Sam","chunks":[0],"kind":null}],"projects":[{"name":"Pricing launch","chunks":[0],"kind":"work"}],"organizations":[],"places":[{"name":"Boulder gym","chunks":[0],"kind":"venue"}],"activities":[{"name":"climbing","chunks":[0],"kind":"hobby"}],"goals":[],"preferences":[],"events":[],"topics":[],"relationships":[],"works_on":[{"person":"You","target":"Pricing launch","chunk":0}],"member_of":[],"lives_in":[],"interested_in":[],"participates_in":[{"person":"You","target":"climbing","chunk":0}],"aims_at":[],"prefers":[]}"#)
+            let lifeExtractor = LifeSourceExtractor(store: store)
+            let lifeReport = try await lifeExtractor.extract(
+                kind: .dictation, sourceID: dictationID.uuidString, model: lifeModel)
+            check("dictation life extraction failed",
+                  lifeReport.outcome == .extracted && lifeReport.violations.isEmpty && lifeReport.nodes >= 4)
+            let lifeNodes = (try? graph.nodeCounts()) ?? [:]
+            check("life nodes missing after dictation extract \(lifeNodes)",
+                  (lifeNodes["Project"] ?? 0) >= 1 && (lifeNodes["Activity"] ?? 0) >= 1
+                    && (lifeNodes["Place"] ?? 0) >= 1 && (lifeNodes["Person"] ?? 0) >= 4)
+            let lifeAgain = try await lifeExtractor.extract(
+                kind: .dictation, sourceID: dictationID.uuidString, model: lifeModel)
+            check("dictation life re-extraction was not reused",
+                  lifeAgain.outcome == .reused && lifeAgain.modelCalls == 0)
+            let dumpBeforeLifeRebuild = try graph.canonicalDump()
+            // applyStored after "rebuild" path
+            let reapplied = try lifeExtractor.applyStored(kind: .dictation, sourceID: dictationID.uuidString)
+            check("life applyStored changed the graph", reapplied.outcome == .reused && reapplied.graph == .unchanged)
+            check("life applyStored drifted", (try? graph.canonicalDump()) == dumpBeforeLifeRebuild)
+        } catch {
+            failures.append("life extraction threw: \(error.localizedDescription)")
+        }
+
         // MARK: Bi-temporal
         let threads = (try? graph.decisionThreads()) ?? []
         let launch = threads.first { $0.id == GraphStore.subjectKey("pricing page launch") }
@@ -422,7 +480,8 @@ enum KnowledgeExtractSelfTest {
         let shifted = ScriptedExtractionModel(fixed: """
             {"decisions":[{"text":"From the summary.","subject":"ghost","supersedes":false,"said_by":null,"chunk":0},\
             {"text":"Open a second backend role before the budget review.","subject":"backend hiring","supersedes":false,"said_by":null,"chunk":1}],\
-            "action_items":[],"open_questions":[],"topics":[{"label":"Hiring","chunks":[1]}]}
+            "action_items":[],"open_questions":[],"topics":[{"label":"Hiring","chunks":[1]}],\
+            "projects":[],"organizations":[],"places":[],"activities":[],"goals":[],"preferences":[],"events":[]}
             """)
         do {
             let first = try await extractor.extract(meetingDirectory: directory(hiring), model: shifted, force: true)
@@ -441,7 +500,7 @@ enum KnowledgeExtractSelfTest {
         } catch {
             failures.append("shifted output threw: \(error.localizedDescription)")
         }
-        let pretty = ScriptedExtractionModel(fixed: "{\n                    \"decisions\": [], \"action_items\": [], \"open_questions\": [], \"topics\": []}",
+        let pretty = ScriptedExtractionModel(fixed: "{\n                    \"decisions\": [], \"action_items\": [], \"open_questions\": [], \"topics\": [], \"projects\": [], \"organizations\": [], \"places\": [], \"activities\": [], \"goals\": [], \"preferences\": [], \"events\": []}",
                                              enforcesGrammar: true)
         if let report = try? await extractor.extract(meetingDirectory: directory(hiring), model: pretty, force: true) {
             check("off-grammar output from a grammar model was not flagged",
@@ -675,7 +734,8 @@ final class ScriptedExtractionModel: KnowledgeExtractionModel, @unchecked Sendab
             }
         }
         let topics = pricingChunks.isEmpty ? "" : #"{"label":"Pricing","chunks":[\#(pricingChunks.prefix(8).map(String.init).joined(separator: ","))]}"#
-        return #"{"decisions":[\#(decisions.joined(separator: ","))],"action_items":[\#(actions.joined(separator: ","))],"open_questions":[\#(questions.joined(separator: ","))],"topics":[\#(topics)]}"#
+        let life = #""projects":[],"organizations":[],"places":[],"activities":[],"goals":[],"preferences":[],"events":[]"#
+        return #"{"decisions":[\#(decisions.joined(separator: ","))],"action_items":[\#(actions.joined(separator: ","))],"open_questions":[\#(questions.joined(separator: ","))],"topics":[\#(topics)],\#(life)}"#
     }
 
     private static func json(_ text: String) -> String {

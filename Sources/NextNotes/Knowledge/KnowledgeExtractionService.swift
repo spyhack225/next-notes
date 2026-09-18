@@ -100,34 +100,94 @@ final class KnowledgeExtractionService {
 
     var isBackfilling: Bool { backfillTask != nil }
 
-    /// *Extract past meetings*: every finished meeting with notes, oldest first so decision
-    /// threads are read in the order they happened. User-initiated only — it is minutes of
-    /// model time per meeting. Meetings whose `notes.json` is current cost a file read and no
-    /// model call; the loop waits while anything records, transcribes, writes notes, or the
-    /// Agent is replying or in a voice conversation.
+    /// *Extract library*: every finished meeting with notes, then indexed dictations and
+    /// Agent conversations (when those index toggles are on), oldest first. User-initiated
+    /// only — minutes of model time. Meetings / sources whose extraction file is current cost
+    /// a file read and no model call; the loop waits while anything records, transcribes,
+    /// writes notes, or the Agent is replying or in a voice conversation.
     func extractLibrary(store: MeetingStore = .shared) {
         guard isEnabled, backfillTask == nil else { return }
         let meetings = store.meetings.filter { $0.status == .done && store.notes(for: $0.id) != nil }
             .sorted { $0.start < $1.start }
-        backfillProgress = (0, meetings.count)
+        let settings = indexer.settings
+        let lifeSources: [(KnowledgeSourceKind, String)] = {
+            var rows: [(KnowledgeSourceKind, String)] = []
+            if settings.includeConversations {
+                rows += ((try? indexer.store.indexedSources(kind: .conversation)) ?? [:]).keys
+                    .sorted().map { (.conversation, $0) }
+            }
+            if settings.includeDictation {
+                rows += ((try? indexer.store.indexedSources(kind: .dictation)) ?? [:]).keys
+                    .sorted().map { (.dictation, $0) }
+            }
+            return rows
+        }()
+        let total = meetings.count + lifeSources.count
+        backfillProgress = (0, total)
         backfillTask = Task { @MainActor [weak self] in
             defer {
                 self?.backfillTask = nil
                 self?.backfillProgress = nil
             }
-            for (index, meeting) in meetings.enumerated() {
-                // Also a voice conversation: without Qwen this is Apple's model, which does not
-                // queue behind voice on the background lane.
+            var done = 0
+            for meeting in meetings {
                 while LiveKnowledgeIndexEnvironment.isForegroundBusy || LiveKnowledgeIndexEnvironment.isVoiceBusy,
                       !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(30))
                 }
                 guard let self, !Task.isCancelled, self.isEnabled else { return }
-                // Deleted since the list was taken, or back in the pipeline.
                 guard let current = store.meeting(id: meeting.id), current.status == .done else { continue }
                 await self.extract(current, directory: store.directory(for: current.id))
-                self.backfillProgress = (index + 1, meetings.count)
+                done += 1
+                self.backfillProgress = (done, total)
             }
+            for (kind, sourceID) in lifeSources {
+                while LiveKnowledgeIndexEnvironment.isForegroundBusy || LiveKnowledgeIndexEnvironment.isVoiceBusy,
+                      !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(30))
+                }
+                guard let self, !Task.isCancelled, self.isEnabled else { return }
+                await self.extractLife(kind: kind, sourceID: sourceID)
+                done += 1
+                self.backfillProgress = (done, total)
+            }
+        }
+    }
+
+    /// One dictation or conversation into the life map.
+    @discardableResult
+    func extractLife(
+        kind: KnowledgeSourceKind, sourceID: String, model: (any KnowledgeExtractionModel)? = nil, force: Bool = false
+    ) async -> KnowledgeExtractionReport? {
+        guard isEnabled, kind == .dictation || kind == .conversation else { return nil }
+        let chosen: (any KnowledgeExtractionModel)?
+        if let model {
+            chosen = model
+        } else {
+            chosen = await Self.localModel()
+        }
+        guard let chosen else { return nil }
+        let extractor = LifeSourceExtractor(store: indexer.store)
+        do {
+            let report = try await extractor.extract(
+                kind: kind, sourceID: sourceID, model: chosen, force: force,
+                isStillWanted: { await MainActor.run { self.isEnabled } })
+            if !isEnabled {
+                try? extractor.graph.deleteMeeting(GraphIDs.lifeSource(kind: kind, id: sourceID))
+                return nil
+            }
+            revision += 1
+            PersonResolutionService.shared.scheduleResolve()
+            Log.llm.info("""
+                life-extracted \(kind.rawValue, privacy: .public) \(sourceID, privacy: .public) — \
+                \(report.nodes, privacy: .public) nodes, \(report.edges, privacy: .public) edges
+                """)
+            return report
+        } catch is CancellationError {
+            return nil
+        } catch {
+            Log.llm.error("life extraction failed: \(error.localizedDescription, privacy: .public)")
+            return nil
         }
     }
 

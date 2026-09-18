@@ -29,18 +29,20 @@ struct KnowledgeGraphPane: View {
                 OrbUnavailableView(
                     .connecting,
                     title: "Graph is off",
-                    message: "Turn on extraction to walk people, meetings and decisions one hop at a time, "
-                        + "and to see one person's meetings against time."
+                    message: "Turn on extraction to map people, projects, places, activities and decisions "
+                        + "from meetings, dictations and Agent chats — one hop at a time."
                 ) {
-                    Button("Extract decisions and action items") { settings.knowledgeGraphEnabled = true }
+                    Button("Extract life map") { settings.knowledgeGraphEnabled = true }
                         .buttonStyle(.borderedProminent)
                 }
             } else if candidates.isEmpty && expansion.nodes.isEmpty && overview.nodes.isEmpty {
                 OrbUnavailableView(
-                    .connecting,
+                    .searching,
                     title: "No graph yet",
-                    message: "People and meetings appear here after notes are extracted. "
-                        + "Use Decisions → Extract past meetings if the library already has notes."
+                    message: "Your life map fills in after extraction: people, projects, places, hobbies, "
+                        + "goals and meetings from notes — and from dictations and Agent chats once those "
+                        + "are indexed. Turn on Index + Extract in Settings, include dictation if you want "
+                        + "it, then use Decisions → Extract library."
                 ) {
                     Button("People…") { showingPeople = true }
                 }
@@ -64,22 +66,34 @@ struct KnowledgeGraphPane: View {
         List {
             Section {
                 Button {
-                    showingOverview = true
-                    focusID = nil
-                    focusType = nil
-                    focusLabel = ""
-                    expansion = KnowledgeGraphExpansion()
-                    moments = []
+                    withAnimation(DS.Motion.reveal) {
+                        showingOverview = true
+                        focusID = nil
+                        focusType = nil
+                        focusLabel = ""
+                        expansion = KnowledgeGraphExpansion()
+                        moments = []
+                    }
                 } label: {
                     Label("Library overview", systemImage: "circle.grid.cross")
                 }
                 Button(people.candidates.isEmpty ? "People…" : "People (\(people.candidates.count))…") {
                     showingPeople = true
                 }
+            } header: {
+                Text("Navigate")
             }
+
             if !peopleCandidates.isEmpty {
                 Section("People") {
                     ForEach(peopleCandidates, id: \.id) { node in
+                        focusRow(node)
+                    }
+                }
+            }
+            ForEach(lifeDomainSections, id: \.title) { section in
+                Section(section.title) {
+                    ForEach(section.nodes, id: \.id) { node in
                         focusRow(node)
                     }
                 }
@@ -107,12 +121,37 @@ struct KnowledgeGraphPane: View {
             Task { await select(node.id) }
         } label: {
             HStack(spacing: DS.Space.s) {
-                Image(systemName: focusID == node.id ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(focusID == node.id ? DS.Color.accent : DS.Color.textTertiary)
-                Text(node.label)
-                    .lineLimit(2)
+                ZStack {
+                    Circle()
+                        .fill(DS.Color.graphNode(node.type).opacity(
+                            focusID == node.id ? 1 : DS.Opacity.secondaryFill
+                        ))
+                        .frame(width: DS.Size.graphRailSwatch, height: DS.Size.graphRailSwatch)
+                    if focusID == node.id {
+                        Circle()
+                            .strokeBorder(DS.Color.accent, lineWidth: DS.Border.hairline)
+                            .frame(
+                                width: DS.Size.graphRailSwatch + DS.Space.xs,
+                                height: DS.Size.graphRailSwatch + DS.Space.xs
+                            )
+                    }
+                }
+                .frame(width: DS.Size.iconMedium, height: DS.Size.iconMedium)
+
+                VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                    Text(node.label)
+                        .font(focusID == node.id ? DS.Font.callout.weight(.semibold) : DS.Font.callout)
+                        .foregroundStyle(DS.Color.text)
+                        .lineLimit(2)
+                    if focusID == node.id, let focusType {
+                        Text(GraphNodeStyle.title(for: focusType))
+                            .font(DS.Font.caption2)
+                            .foregroundStyle(DS.Color.textTertiary)
+                    }
+                }
                 Spacer(minLength: DS.Space.xs)
             }
+            .padding(.vertical, DS.Space.xxs)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -127,67 +166,99 @@ struct KnowledgeGraphPane: View {
         candidates.filter { $0.type == "Meeting" }
     }
 
+    private var lifeDomainSections: [(title: String, nodes: [KnowledgeGraphNode])] {
+        let lifeTypes = ["Project", "Organization", "Activity", "Place", "Goal", "Event", "Preference", "Topic"]
+        return lifeTypes.compactMap { type in
+            let nodes = candidates.filter { $0.type == type }
+            guard !nodes.isEmpty else { return nil }
+            return (GraphNodeStyle.title(for: type), nodes)
+        }
+    }
+
     // MARK: - Detail
 
     @ViewBuilder
     private var detail: some View {
         if showingOverview || focusID == nil {
-            VStack(alignment: .leading, spacing: DS.Space.m) {
-                Text("Library overview")
-                    .font(DS.Font.headline)
-                Text("Click a node to open its neighbourhood. At a few hundred nodes this is a map; "
-                    + "past that, prefer the people and meetings lists.")
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
-                GlobalGraphView(expansion: overview) { id in
-                    Task { await select(id) }
+            overviewDetail
+        } else if let focusID {
+            neighbourhoodDetail(focusID: focusID)
+        }
+    }
+
+    private var overviewDetail: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DS.Space.section) {
+                SectionHeading(
+                    title: "Library overview",
+                    eyebrow: "Life map",
+                    subtitle: "Click a node to open its neighbourhood. At a few hundred nodes this is a map; "
+                        + "past that, prefer the people and life-domain lists.",
+                    orb: .breathing,
+                    isOrbAnimated: false
+                )
+
+                GlassCard(padding: DS.Space.cardTight) {
+                    GlobalGraphView(expansion: overview) { id in
+                        Task { await select(id) }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.glassSmall, style: .continuous))
                 }
-                .glassSurface(cornerRadius: DS.Radius.glass)
             }
             .padding(DS.Space.page)
-        } else if let focusID {
-            ScrollView {
-                VStack(alignment: .leading, spacing: DS.Space.l) {
-                    HStack(spacing: DS.Space.s) {
-                        Text(focusLabel.isEmpty ? focusID : focusLabel)
-                            .font(DS.Font.headline)
-                        if let focusType {
-                            StatusChip(text: focusType, systemImage: symbol(for: focusType))
-                        }
-                        Spacer()
-                        Button("Overview") {
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .orbBackdrop(.breathing)
+    }
+
+    private func neighbourhoodDetail(focusID: String) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DS.Space.section) {
+                HStack(alignment: .top, spacing: DS.Space.m) {
+                    SectionHeading(
+                        title: focusLabel.isEmpty ? focusID : focusLabel,
+                        eyebrow: "Neighbourhood",
+                        subtitle: focusType.map { "One hop from this \(GraphNodeStyle.singular(for: $0))." },
+                        orb: .searching,
+                        isOrbAnimated: false
+                    )
+                    Spacer(minLength: DS.Space.s)
+                    if let focusType {
+                        StatusChip(
+                            text: GraphNodeStyle.title(for: focusType),
+                            color: DS.Color.graphNode(focusType),
+                            systemImage: GraphNodeStyle.symbol(for: focusType)
+                        )
+                    }
+                    Button("Overview") {
+                        withAnimation(DS.Motion.reveal) {
                             showingOverview = true
                             self.focusID = nil
                         }
                     }
+                    .buttonStyle(.bordered)
+                }
+
+                GlassCard(padding: DS.Space.cardTight) {
                     LocalGraphView(expansion: expansion, focusID: focusID) { id in
                         Task { await select(id) }
                     }
-                    .glassSurface(cornerRadius: DS.Radius.glass)
-
-                    if focusType == "Person" {
-                        PersonTimelineView(
-                            personLabel: focusLabel.isEmpty ? focusID : focusLabel,
-                            moments: moments,
-                            onOpenMeeting: openMeeting,
-                            onFocusNode: { id in Task { await select(id) } }
-                        )
-                    }
+                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.glassSmall, style: .continuous))
                 }
-                .padding(DS.Space.page)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
 
-    private func symbol(for type: String) -> String {
-        switch type {
-        case "Person": return "person"
-        case "Meeting": return "calendar"
-        case "Decision": return "checkmark.seal"
-        case "ActionItem": return "checklist"
-        default: return "circle"
+                if focusType == "Person" {
+                    PersonTimelineView(
+                        personLabel: focusLabel.isEmpty ? focusID : focusLabel,
+                        moments: moments,
+                        onOpenMeeting: openMeeting,
+                        onFocusNode: { id in Task { await select(id) } }
+                    )
+                }
+            }
+            .padding(DS.Space.page)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .orbBackdrop(.searching)
     }
 
     private func openMeeting(_ meetingID: String) {

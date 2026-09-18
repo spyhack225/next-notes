@@ -62,6 +62,7 @@ final class NavigationState {
     enum AgentPane: String, CaseIterable, Identifiable {
         case conversation = "Conversation"
         case routines = "Routines"
+        case about = "About"
         var id: String { rawValue }
     }
 
@@ -84,6 +85,12 @@ final class NavigationState {
     func showRoutines() {
         selectedSection = .agent
         agentPane = .routines
+    }
+
+    /// Agent → About (SOUL, MEMORY, name and avatar), from Settings or a deep link.
+    func showAgentAbout() {
+        selectedSection = .agent
+        agentPane = .about
     }
 
     /// A moment in a meeting's transcript that a search result jumped to. The token makes a

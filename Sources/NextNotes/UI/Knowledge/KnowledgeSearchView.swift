@@ -254,20 +254,41 @@ struct KnowledgeSearchView: View {
         try? await Task.sleep(for: .milliseconds(150))
         guard !Task.isCancelled else { return }
         let searcher = indexer.searcher
+        let totalTrace = LatencyTrace.start(.searchTotal)
         // Embedding the query may wait on a model; the search itself does not.
+        let embedTrace = LatencyTrace.start(.searchEmbed)
+        let embedBegan = Date()
         let request = await searcher.prepare(KnowledgeQuery(text: query, filter: filter))
+        let embedSeconds = Date().timeIntervalSince(embedBegan)
+        embedTrace.end(note: "vector=\(request.vector == nil ? "none" : "ready")")
         guard !Task.isCancelled else { return }
+        let queryTrace = LatencyTrace.start(.searchQuery)
+        let queryBegan = Date()
         let result = await Task.detached(priority: .userInitiated) { () -> Result<([KnowledgeHit], KnowledgeFacets), Error> in
             Result { (try searcher.search(request), try searcher.facets(request)) }
         }.value
+        let querySeconds = Date().timeIntervalSince(queryBegan)
         guard !Task.isCancelled else { return }
         switch result {
         case .success(let (found, counts)):
             hits = found
             facets = counts
             problem = nil
+            queryTrace.end(note: "hits=\(found.count)")
+            let total = totalTrace.end(note: "hits=\(found.count)")
+            if !KnowledgeFTSQuery.tokens(query).isEmpty {
+                Log.app.info("""
+                    search · embed \(embedSeconds, format: .fixed(precision: 3))s · \
+                    query \(querySeconds, format: .fixed(precision: 3))s · \
+                    total \(total.durationSeconds, format: .fixed(precision: 3))s · \
+                    hits \(found.count, privacy: .public)
+                    """)
+            }
         case .failure(let error):
             problem = error.localizedDescription
+            queryTrace.end(note: "error")
+            totalTrace.end(note: "error")
+            Log.app.info("search · failed · \(error.localizedDescription, privacy: .public)")
         }
         hasSearched = true
     }

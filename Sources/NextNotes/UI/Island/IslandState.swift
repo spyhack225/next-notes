@@ -184,7 +184,7 @@ final class IslandState {
         case .summarizing: MeetingStatus.summarizing.displayName
         case .notesReady(_, let title): title
         case .agentProposal(let proposal): proposal.title
-        case .agentListening, .agentWorking, .agentReply: "Next"
+        case .agentListening, .agentWorking, .agentReply: AgentIdentityStore.shared.name
         }
     }
 

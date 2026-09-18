@@ -1,6 +1,6 @@
 # Next Notes
 
-Talk to your Mac. Hold a key, talk, release — cleaned-up text lands in the app you were
+Your Mac is your best personal assistant. Hold a key, talk, release — cleaned-up text lands in the app you were
 already in. Meetings record themselves. ⇧⌘ Space asks the same machine to click, search
 or follow through. A Wispr Flow-shaped native app with on-device defaults and optional cloud models.
 
@@ -94,6 +94,15 @@ the same key both record, and whichever injects text will fight the other.
 
 ```bash
 make install     # builds, bundles, signs, copies to /Applications, launches
+make install OPEN=0   # same, but do not auto-open (agents must use this)
+```
+
+Agents running self-tests must never launch the GUI from install. After `OPEN=0`:
+
+```bash
+Scripts/run-selftest.sh --selftest-orb
+# TCC-sensitive:
+Scripts/run-selftest.sh --via-open --selftest-systemaudio
 ```
 
 Then grant these permissions — none is optional, and none can be requested silently:
@@ -425,10 +434,28 @@ Sources/NextNotes/
 ### Self-tests
 
 Each flag runs one thing and exits, so a subsystem can be answered from a terminal instead
-of by using the app. Run them from the installed bundle:
+of by using the app. Run them from the **installed** bundle after `make install OPEN=0`
+has finished. Do not launch while install is still copying — a half-deleted `.app` makes
+`open` report `kLSNoExecutableErr`, and a direct binary start under Cursor has aborted
+inside AppKit registration before any self-test code runs (Responsible=Cursor, Parent=
+Exited process). Agents should use the wrapper, which waits on the install lock, verifies
+codesign, and keeps the parent shell alive:
+
+```bash
+Scripts/run-selftest.sh --selftest-s1
+Scripts/run-selftest.sh --via-open --selftest-systemaudio   # TCC-sensitive
+make selftest SELFTEST_ARGS='--selftest-graph-layout'
+```
+
+Most probes can use the binary path directly (via the wrapper). Anything that depends on a
+TCC grant the app already has (system audio, microphone) must go through LaunchServices
+(`--via-open`) instead:
 
 ```bash
 S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
+# Prefer Scripts/run-selftest.sh over invoking $S from an agent shell.
+# TCC-sensitive:
+# Scripts/run-selftest.sh --via-open --selftest-systemaudio
 
 "$S" --selftest-s1                      # S1-mini cleanup through the shared llama.cpp backend
 "$S" --selftest-parakeet                # Parakeet loads and transcribes a silent second

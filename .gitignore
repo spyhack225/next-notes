@@ -24,3 +24,5 @@ models/
 *.nemo
 references/
 roadmap/
+roadmap/.scratch/
+.scratch/

@@ -8,6 +8,9 @@ struct IntegrationsSettingsTab: View {
     @State private var newCommand = ""
     @State private var newURL = ""
     @State private var status = ""
+    @State private var isSigningIn = false
+    @State private var showAdvanced = false
+    @State private var advancedKey = ""
 
     var body: some View {
         Form {
@@ -34,21 +37,63 @@ struct IntegrationsSettingsTab: View {
 
     private var composio: some View {
         Section {
-            Toggle("Connect through Composio", isOn: $settings.composioEnabled)
-            SecureField("API key", text: $settings.composioAPIKey)
-                .textContentType(.password)
-            TextField("MCP URL", text: $settings.composioURL)
-            Button("Save connection") {
-                ComposioProvider.connect()
-                status = "Composio saved. Tools appear after a refresh."
+            LabeledContent("Account") {
+                Text(ComposioProvider.isSignedIn ? "Signed in" : "Not signed in")
+                    .foregroundStyle(ComposioProvider.isSignedIn ? DS.Color.success : DS.Color.textSecondary)
             }
-            .disabled(!settings.composioEnabled || settings.composioAPIKey.isEmpty)
+
+            if ComposioProvider.isSignedIn {
+                Toggle("Use Composio for more apps", isOn: $settings.composioEnabled)
+                Button("Refresh tools") {
+                    Task { @MainActor in await refreshTools() }
+                }
+                .disabled(!settings.composioEnabled || isSigningIn)
+                Button("Sign out of Composio", role: .destructive) {
+                    Task { @MainActor in
+                        await ComposioProvider.signOut()
+                        status = "Signed out of Composio."
+                    }
+                }
+                .disabled(isSigningIn)
+            } else {
+                Button {
+                    Task { @MainActor in await signIn() }
+                } label: {
+                    if isSigningIn {
+                        Label("Waiting for browser…", systemImage: "safari")
+                    } else {
+                        Label("Sign in with Composio", systemImage: "person.badge.key")
+                    }
+                }
+                .disabled(isSigningIn)
+            }
+
+            DisclosureGroup("Advanced", isExpanded: $showAdvanced) {
+                TextField("MCP URL", text: $settings.composioURL)
+                SecureField("Consumer key (ck_…)", text: $advancedKey)
+                    .textContentType(.password)
+                Button("Save key & refresh") {
+                    Task { @MainActor in
+                        do {
+                            try ComposioCredentialStore.save(apiKey: advancedKey)
+                            settings.composioAPIKey = ""
+                            settings.composioEnabled = true
+                            advancedKey = ""
+                            await refreshTools()
+                        } catch {
+                            status = error.localizedDescription
+                        }
+                    }
+                }
+                .disabled(advancedKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
         } header: {
             Text("More apps")
         } footer: {
-            SettingsNote(text: "GitHub, Slack, Notion, Linear and the rest of Composio’s "
-                         + "catalogue arrive as MCP tools and still pass the permission broker. "
-                         + "You never have to think about MCP during normal use.")
+            SettingsNote(text: isSigningIn
+                         ? "A browser window asked Composio to authorize Next Notes. Click Authorize, then come back here."
+                         : "Sign in opens your browser — no API key to copy. After that, asking the agent about "
+                         + "GitHub, Slack, Notion or Linear will prompt to connect each app the same way.")
         }
     }
 
@@ -86,6 +131,33 @@ struct IntegrationsSettingsTab: View {
         } footer: {
             SettingsNote(text: "stdio or Streamable HTTP. Every discovered tool is allowlisted "
                          + "here and authorised by Next Notes, not by the server’s own annotations.")
+        }
+    }
+
+    @MainActor
+    private func signIn() async {
+        isSigningIn = true
+        status = "Browser opened — click Authorize in Composio."
+        defer { isSigningIn = false }
+        do {
+            let tools = try await ComposioProvider.signInAndRefresh()
+            status = tools.isEmpty
+                ? "Signed in. Tools will appear on the next refresh."
+                : "Signed in — \(tools.count) Composio tools ready."
+        } catch {
+            status = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func refreshTools() async {
+        do {
+            let tools = try await ComposioProvider.connectAndRefresh()
+            status = tools.isEmpty
+                ? "Composio saved, but no tools came back."
+                : "Composio ready — \(tools.count) tools registered."
+        } catch {
+            status = error.localizedDescription
         }
     }
 }

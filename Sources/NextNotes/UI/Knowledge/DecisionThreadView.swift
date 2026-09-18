@@ -48,7 +48,14 @@ struct DecisionThreadView: View {
                 }
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DS.Space.l) {
+                    LazyVStack(alignment: .leading, spacing: DS.Space.section) {
+                        SectionHeading(
+                            title: "Decisions",
+                            eyebrow: "Life map",
+                            subtitle: "Each thread follows one subject across meetings, including the day it changed.",
+                            orb: .searching,
+                            isOrbAnimated: false
+                        )
                         backfillControl
                         if !reminders.isEmpty { reminderSection }
                         ForEach(threads) { thread in threadCard(thread) }
@@ -61,6 +68,7 @@ struct DecisionThreadView: View {
                     .padding(DS.Space.page)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .orbBackdrop(.breathing)
             }
         }
         .task(id: reloadKey) { await reload() }
@@ -72,15 +80,15 @@ struct DecisionThreadView: View {
     @ViewBuilder private var backfillControl: some View {
         if let progress = extraction.backfillProgress {
             HStack(spacing: DS.Space.s) {
-                Text("Extracting past meetings: \(progress.done) of \(progress.total)")
+                Text("Extracting library: \(progress.done) of \(progress.total)")
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
                 Button("Stop") { extraction.cancelBackfill() }
             }
         } else {
             HStack(spacing: DS.Space.s) {
-                Button("Extract past meetings") { extraction.extractLibrary() }
-                    .help("Reads every finished meeting's notes with the on-device model. Minutes per meeting.")
+                Button("Extract library") { extraction.extractLibrary() }
+                    .help("Reads finished meeting notes, plus indexed dictations and Agent chats, with the on-device model.")
                 // Phase D: who is who, with every merge visible and undoable.
                 Button(people.candidates.isEmpty ? "People…" : "People (\(people.candidates.count) to review)…") {
                     showingPeople = true
@@ -93,12 +101,14 @@ struct DecisionThreadView: View {
     // MARK: - Reminders
 
     private var reminderSection: some View {
-        VStack(alignment: .leading, spacing: DS.Space.s) {
-            Text("Action items with a date").font(DS.Font.sectionLabel)
+        VStack(alignment: .leading, spacing: DS.Space.m) {
+            Text("Action items with a date")
+                .font(DS.Font.sectionLabel)
+                .foregroundStyle(DS.Color.textSecondary)
             ForEach(reminders) { suggestion in
-                VStack(alignment: .leading, spacing: DS.Space.xs) {
+                VStack(alignment: .leading, spacing: DS.Space.s) {
                     Text(suggestion.text)
-                        .font(DS.Font.callout)
+                        .font(DS.Font.callout.weight(.medium))
                     Text("Due \(suggestion.due) · \(suggestion.meetingTitle)")
                         .font(DS.Font.caption)
                         .foregroundStyle(DS.Color.textSecondary)
@@ -124,9 +134,9 @@ struct DecisionThreadView: View {
                             .buttonStyle(.borderless)
                     }
                 }
-                .padding(DS.Space.cardTight)
+                .padding(DS.Space.card)
                 .frame(maxWidth: DS.Size.agentEventMaxWidth, alignment: .leading)
-                .glassSurface(cornerRadius: DS.Radius.card)
+                .glassSurface(cornerRadius: DS.Radius.glass)
             }
         }
     }
@@ -134,7 +144,7 @@ struct DecisionThreadView: View {
     // MARK: - Threads
 
     private func threadCard(_ thread: DecisionThread) -> some View {
-        VStack(alignment: .leading, spacing: DS.Space.s) {
+        VStack(alignment: .leading, spacing: DS.Space.m) {
             HStack(spacing: DS.Space.s) {
                 Text(thread.subject.isEmpty ? "Decision" : thread.subject)
                     .font(DS.Font.headline)
@@ -146,14 +156,30 @@ struct DecisionThreadView: View {
                     .font(DS.Font.chip)
                     .foregroundStyle(DS.Color.textTertiary)
             }
-            ForEach(thread.rows) { row in
-                Button { open(row.meetingID) } label: { decisionRow(row) }
-                    .buttonStyle(.plain)
+            ForEach(Array(thread.rows.enumerated()), id: \.element.id) { index, row in
+                HStack(alignment: .top, spacing: DS.Space.m) {
+                    VStack(spacing: 0) {
+                        Circle()
+                            .fill(row.isCurrent ? DS.Color.accent : DS.Color.textTertiary)
+                            .frame(width: DS.Size.timelineMarker, height: DS.Size.timelineMarker)
+                        if index < thread.rows.count - 1 {
+                            Rectangle()
+                                .fill(DS.Color.separator.opacity(DS.Opacity.timelineSpine))
+                                .frame(width: DS.Size.timelineSpineWidth)
+                                .frame(maxHeight: .infinity)
+                        }
+                    }
+                    .frame(width: DS.Size.timelineGutter)
+
+                    Button { open(row.meetingID) } label: { decisionRow(row) }
+                        .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
-        .padding(DS.Space.cardTight)
+        .padding(DS.Space.card)
         .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
-        .glassSurface(cornerRadius: DS.Radius.card)
+        .glassSurface(cornerRadius: DS.Radius.glass)
     }
 
     private func decisionRow(_ row: DecisionThreadRow) -> some View {

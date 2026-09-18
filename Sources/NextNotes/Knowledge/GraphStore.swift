@@ -600,15 +600,30 @@ struct GraphStore: KnowledgeGraphReading {
         }
     }
 
-    /// People and recent meetings to open the local graph on (Phase F). People first —
-    /// that is what the timeline is for — then meetings by recency.
+    /// People and life-domain nodes to open the local graph on (Phase F), then meetings.
+    /// People first — that is what the timeline is for — then projects / places / activities,
+    /// then meetings by recency.
     func focusCandidates(limit: Int = 80) throws -> [KnowledgeGraphNode] {
         guard store.existsOnDisk else { return [] }
         return try store.withConnection { db in
             let statement = try KnowledgeStore.prepare(db, """
                 SELECT id FROM graph_node
-                WHERE type IN ('Person', 'Meeting')
-                ORDER BY CASE type WHEN 'Person' THEN 0 ELSE 1 END, observed_at DESC, id
+                WHERE type IN (
+                  'Person', 'Project', 'Organization', 'Activity', 'Place', 'Goal',
+                  'Event', 'Preference', 'Topic', 'Meeting'
+                )
+                ORDER BY CASE type
+                  WHEN 'Person' THEN 0
+                  WHEN 'Project' THEN 1
+                  WHEN 'Organization' THEN 2
+                  WHEN 'Activity' THEN 3
+                  WHEN 'Place' THEN 4
+                  WHEN 'Goal' THEN 5
+                  WHEN 'Event' THEN 6
+                  WHEN 'Preference' THEN 7
+                  WHEN 'Topic' THEN 8
+                  ELSE 9
+                END, observed_at DESC, id
                 LIMIT ?1
                 """)
             defer { sqlite3_finalize(statement) }
@@ -705,11 +720,17 @@ struct GraphStore: KnowledgeGraphReading {
         return members.isEmpty ? [id] : members
     }
 
-    /// An id as given, or a person or topic named by it — what a model is likely to pass.
+    /// An id as given, or a life-map node named by it — what a model is likely to pass.
     private static func resolve(_ db: OpaquePointer, _ raw: String) throws -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        for candidate in [trimmed, "person:" + GraphIDs.slug(trimmed), "topic:" + GraphIDs.slug(trimmed)] {
+        let slug = GraphIDs.slug(trimmed)
+        let candidates = [
+            trimmed,
+            "person:" + slug, "topic:" + slug, "project:" + slug, "org:" + slug,
+            "place:" + slug, "activity:" + slug, "goal:" + slug, "preference:" + slug, "event:" + slug,
+        ]
+        for candidate in candidates {
             if try KnowledgeStore.optionalInt(db, "SELECT 1 FROM graph_node WHERE id = ?1", [.text(candidate)]) != nil {
                 return candidate
             }
@@ -786,6 +807,15 @@ enum GraphIDs {
     static func meeting(_ id: String) -> String { "meeting:\(id)" }
     static func person(_ name: String) -> String { "person:\(slug(name))" }
     static func topic(_ label: String) -> String { "topic:\(slug(label))" }
+    static func project(_ name: String) -> String { "project:\(slug(name))" }
+    static func organization(_ name: String) -> String { "org:\(slug(name))" }
+    static func place(_ name: String) -> String { "place:\(slug(name))" }
+    static func activity(_ name: String) -> String { "activity:\(slug(name))" }
+    static func goal(_ text: String) -> String { "goal:\(slug(text))" }
+    static func preference(_ label: String) -> String { "preference:\(slug(label))" }
+    static func event(_ title: String) -> String { "event:\(slug(title))" }
+    /// Provenance key for a non-meeting source in `graph_edge.meeting_id` / `graph_state`.
+    static func lifeSource(kind: KnowledgeSourceKind, id: String) -> String { "\(kind.rawValue):\(id)" }
     static func owned(_ type: String, meetingID: String, ordinal: Int) -> String {
         "\(type.lowercased()):\(meetingID):\(ordinal)"
     }
@@ -795,4 +825,74 @@ enum GraphIDs {
             .split(whereSeparator: { !$0.isLetter && !$0.isNumber && $0 != "@" && $0 != "." })
             .joined(separator: "-")
     }
+}
+
+/// Display labels and SF Symbols for ontology node types (Search → Graph).
+enum GraphNodeStyle {
+    static func title(for type: String) -> String {
+        switch type {
+        case "Person": "People"
+        case "Meeting": "Meetings"
+        case "Decision": "Decisions"
+        case "ActionItem": "Actions"
+        case "OpenQuestion": "Questions"
+        case "Artifact": "Artifacts"
+        case "Topic": "Topics"
+        case "Project": "Projects"
+        case "Organization": "Organizations"
+        case "Place": "Places"
+        case "Activity": "Activities"
+        case "Goal": "Goals"
+        case "Preference": "Preferences"
+        case "Event": "Events"
+        default: type
+        }
+    }
+
+    static func symbol(for type: String) -> String {
+        switch type {
+        case "Person": "person"
+        case "Meeting": "calendar"
+        case "Decision": "checkmark.seal"
+        case "ActionItem": "checklist"
+        case "OpenQuestion": "questionmark.circle"
+        case "Artifact": "doc"
+        case "Topic": "tag"
+        case "Project": "folder"
+        case "Organization": "building.2"
+        case "Place": "mappin.and.ellipse"
+        case "Activity": "figure.walk"
+        case "Goal": "flag"
+        case "Preference": "heart"
+        case "Event": "star"
+        default: "circle"
+        }
+    }
+
+    /// Singular label for chrome that names one focused node (not a section of many).
+    static func singular(for type: String) -> String {
+        switch type {
+        case "Person": "person"
+        case "Meeting": "meeting"
+        case "Decision": "decision"
+        case "ActionItem": "action"
+        case "OpenQuestion": "question"
+        case "Artifact": "artifact"
+        case "Topic": "topic"
+        case "Project": "project"
+        case "Organization": "organization"
+        case "Place": "place"
+        case "Activity": "activity"
+        case "Goal": "goal"
+        case "Preference": "preference"
+        case "Event": "event"
+        default: type.lowercased()
+        }
+    }
+
+    /// Types the local-graph rail lists as starting points, life domains first after people.
+    static let focusOrder = [
+        "Person", "Project", "Organization", "Activity", "Place", "Goal", "Event",
+        "Preference", "Topic", "Meeting",
+    ]
 }

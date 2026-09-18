@@ -1,6 +1,51 @@
 import Observation
 import SwiftUI
 
+/// Wall-clock stages for one Ask run, shown under the status line and logged as `ask · …`.
+struct AskRunTiming: Equatable, Sendable {
+    var startedAt = Date()
+    /// `LLMProviders.resolve` before the first search (not model cold-start — that sits in TTFT).
+    var providerSeconds: Double?
+    /// Sum of hybrid retrieve (embed + BM25/cosine) across rounds. Nil until a retrieve finishes.
+    var retrieveSeconds: Double?
+    /// Generate start → first `.answering` paint (not SEARCH:). True TTFT, including cold load.
+    var firstTokenSeconds: Double?
+    /// Request start → finished / failed / cancelled.
+    var totalSeconds: Double?
+    /// When the finished answer was assigned on the main actor (UI render complete).
+    var renderSeconds: Double?
+
+    /// Honest display: never floor real work to `0.0s`.
+    static func formatSeconds(_ seconds: Double) -> String {
+        if seconds < 0.01 { return "<0.01s" }
+        if seconds < 1 { return String(format: "%.2fs", seconds) }
+        if seconds < 10 { return String(format: "%.1fs", seconds) }
+        return String(format: "%.0fs", seconds)
+    }
+
+    func summary(now: Date = Date(), running: Bool) -> String {
+        var parts: [String] = []
+        if let providerSeconds {
+            parts.append("\(Self.formatSeconds(providerSeconds)) model")
+        }
+        if let retrieveSeconds {
+            parts.append("\(Self.formatSeconds(retrieveSeconds)) retrieve")
+        }
+        if let firstTokenSeconds {
+            parts.append("\(Self.formatSeconds(firstTokenSeconds)) first token")
+        }
+        if let totalSeconds {
+            parts.append("\(Self.formatSeconds(totalSeconds)) total")
+            if let renderSeconds, renderSeconds > totalSeconds + 0.05 {
+                parts.append("\(Self.formatSeconds(renderSeconds)) rendered")
+            }
+        } else if running {
+            parts.append("\(Self.formatSeconds(now.timeIntervalSince(startedAt)))…")
+        }
+        return parts.joined(separator: " · ")
+    }
+}
+
 /// One question at a time against the knowledge index: the job, its progress, its answer.
 ///
 /// Kept outside the view so an answer that takes a minute survives switching sections, and
@@ -12,6 +57,8 @@ final class KnowledgeAskSession {
 
     enum Phase: Equatable {
         case idle
+        /// Resolving the Agent model — before any search. Used to be lumped into "Searching…".
+        case preparing
         case searching(round: Int, query: String)
         case answering
         case finished
@@ -27,7 +74,12 @@ final class KnowledgeAskSession {
     /// Every passage read so far, across rounds.
     private(set) var passages: [KnowledgeCitation] = []
     private(set) var answer: KnowledgeAnswer?
+    /// Stage timings for the run in flight or the last finished one.
+    private(set) var timing: AskRunTiming?
     @ObservationIgnored private var task: Task<Void, Never>?
+    @ObservationIgnored private var retrieveBegan: Date?
+    /// Set on `.generating`; first-token TTFT is measured from here, not request start.
+    @ObservationIgnored private var generateBegan: Date?
 
     var isRunning: Bool { task != nil }
 
@@ -39,7 +91,10 @@ final class KnowledgeAskSession {
         partial = ""
         passages = []
         answer = nil
-        phase = .searching(round: 1, query: text)
+        retrieveBegan = nil
+        generateBegan = nil
+        timing = AskRunTiming(startedAt: Date())
+        phase = .preparing
         task = Task { @MainActor [weak self] in
             await self?.run(text)
         }
@@ -49,23 +104,48 @@ final class KnowledgeAskSession {
         guard let task else { return }
         task.cancel()
         self.task = nil
+        retrieveBegan = nil
+        generateBegan = nil
+        if var timing {
+            timing.totalSeconds = Date().timeIntervalSince(timing.startedAt)
+            self.timing = timing
+        }
         phase = .cancelled
     }
 
     private func run(_ text: String) async {
-        defer { task = nil }
+        defer {
+            task = nil
+            retrieveBegan = nil
+            generateBegan = nil
+        }
         guard KnowledgeToolGate.mayRun, let context = KnowledgeIndexer.shared.toolContext else {
+            finishTiming()
             phase = .failed("Turn on the knowledge index and let the Agent use it to ask questions.")
             return
         }
+        let providerTrace = LatencyTrace.start(.askProvider)
+        let providerBegan = Date()
         guard let provider = await LLMProviders.resolve(
             preferring: Settings.shared.agentModelProvider,
             modelID: Settings.shared.openRouterAgentModelID,
             contextTokens: Settings.shared.openRouterAgentContextTokens
         ) else {
+            providerTrace.end(note: "unavailable")
+            finishTiming()
             phase = .failed("The Agent's model is unavailable.")
             return
         }
+        let providerSeconds = Date().timeIntervalSince(providerBegan)
+        providerTrace.end(note: provider.id.rawValue)
+        if var timing {
+            timing.providerSeconds = providerSeconds
+            self.timing = timing
+        }
+        Log.app.info("""
+            ask · provider \(provider.id.rawValue, privacy: .public) · \
+            \(providerSeconds, format: .fixed(precision: 3))s
+            """)
         guard !Task.isCancelled else { return }
         let asker = KnowledgeAsker(context: context, model: ProviderKnowledgeAnswerModel(provider: provider))
         do {
@@ -75,12 +155,23 @@ final class KnowledgeAskSession {
                     guard let self, !Task.isCancelled else { return }
                     switch event {
                     case .searching(let round, let query):
+                        retrieveBegan = Date()
                         phase = .searching(round: round, query: query)
                     case .retrieved(_, let found):
+                        markRetrieveFinished()
                         passages += found
+                    case .generating:
+                        markRetrieveFinished()
+                        generateBegan = Date()
+                        // Passages may already be on screen; leave "Searching…" immediately.
+                        phase = .answering
                     case .answering(let snapshot):
                         phase = .answering
                         partial = snapshot
+                        if var timing, timing.firstTokenSeconds == nil, let began = generateBegan {
+                            timing.firstTokenSeconds = Date().timeIntervalSince(began)
+                            self.timing = timing
+                        }
                     case .finished:
                         break
                     }
@@ -88,13 +179,47 @@ final class KnowledgeAskSession {
             }
             guard !Task.isCancelled else { return }
             answer = result
+            if var timing {
+                timing.totalSeconds = Date().timeIntervalSince(timing.startedAt)
+                self.timing = timing
+            }
             phase = .finished
+            if var timing {
+                timing.renderSeconds = Date().timeIntervalSince(timing.startedAt)
+                self.timing = timing
+                Log.app.info("""
+                    ask · ui render · \
+                    \(timing.renderSeconds!, format: .fixed(precision: 3))s from start · \
+                    first token \(timing.firstTokenSeconds.map { String(format: "%.3f", $0) } ?? "—", privacy: .public)s · \
+                    retrieve \(timing.retrieveSeconds.map { String(format: "%.3f", $0) } ?? "—", privacy: .public)s · \
+                    model \(timing.providerSeconds.map { String(format: "%.3f", $0) } ?? "—", privacy: .public)s · \
+                    total \(timing.totalSeconds!, format: .fixed(precision: 3))s
+                    """)
+            }
         } catch is CancellationError {
+            finishTiming()
             phase = .cancelled
         } catch {
             guard !Task.isCancelled else { return }
+            finishTiming()
             phase = .failed(error.localizedDescription)
         }
+    }
+
+    private func finishTiming() {
+        guard var timing else { return }
+        if timing.totalSeconds == nil {
+            timing.totalSeconds = Date().timeIntervalSince(timing.startedAt)
+        }
+        self.timing = timing
+    }
+
+    private func markRetrieveFinished() {
+        guard let began = retrieveBegan else { return }
+        retrieveBegan = nil
+        guard var timing else { return }
+        timing.retrieveSeconds = (timing.retrieveSeconds ?? 0) + Date().timeIntervalSince(began)
+        self.timing = timing
     }
 }
 
@@ -116,6 +241,7 @@ struct AskView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: DS.Space.l) {
                         status
+                        timingLine
                         content
                         passageList
                     }
@@ -159,14 +285,20 @@ struct AskView: View {
         switch session.phase {
         case .idle:
             EmptyView()
+        case .preparing:
+            Label("Getting the model ready…", systemImage: "hourglass")
+                .foregroundStyle(DS.Color.textSecondary)
         case .searching(let round, let query):
             Label(round == 1 ? "Searching for \u{201c}\(query)\u{201d}…"
                   : "Searching again (\(round) of \(KnowledgeAsker.maxRounds)) for \u{201c}\(query)\u{201d}…",
                   systemImage: "magnifyingglass")
                 .foregroundStyle(DS.Color.textSecondary)
         case .answering:
-            Label("Writing the answer from \(session.passages.count) passages…", systemImage: "text.quote")
-                .foregroundStyle(DS.Color.textSecondary)
+            Label(
+                "Writing the answer from \(session.passages.count) passages…",
+                systemImage: "text.quote"
+            )
+            .foregroundStyle(DS.Color.textSecondary)
         case .finished:
             EmptyView()
         case .cancelled:
@@ -175,6 +307,25 @@ struct AskView: View {
         case .failed(let reason):
             Label(reason, systemImage: "exclamationmark.triangle")
                 .foregroundStyle(DS.Color.warning)
+        }
+    }
+
+    @ViewBuilder
+    private var timingLine: some View {
+        if let timing = session.timing, session.phase != .idle {
+            if session.isRunning {
+                TimelineView(.periodic(from: .now, by: 0.25)) { context in
+                    Text(timing.summary(now: context.date, running: true))
+                        .font(DS.Font.timestamp)
+                        .foregroundStyle(DS.Color.textTertiary)
+                        .accessibilityLabel("Ask timing")
+                }
+            } else {
+                Text(timing.summary(running: false))
+                    .font(DS.Font.timestamp)
+                    .foregroundStyle(DS.Color.textTertiary)
+                    .accessibilityLabel("Ask timing")
+            }
         }
     }
 

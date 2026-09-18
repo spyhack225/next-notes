@@ -85,7 +85,7 @@ DMG_STAGE    := $(STAGE)/dmg-root
 DMG          := $(STAGE)/NextNotes-$(VERSION).dmg
 DMG_STABLE   := $(STAGE)/NextNotes.dmg
 
-.PHONY: all build test app run install clean icon signing-cert release dmg webrtc-audio
+.PHONY: all build test app run install selftest clean icon signing-cert release dmg webrtc-audio
 
 all: app
 
@@ -139,6 +139,8 @@ app: build
 	@# The persona preset `persona.md` is seeded from. PersonaStore carries a compiled-in copy
 	@# for bare binaries, and --selftest-persona fails if the two drift.
 	@cp Resources/agent-persona-base.md "$(CONTENTS)/Resources/"
+	@# Notion-style avatar parts (Felix Wong / Noto, CC0). See Resources/NotionAvatar/ATTRIBUTION.md.
+	@cp -R Resources/NotionAvatar "$(CONTENTS)/Resources/"
 	@# The knowledge graph's ontology. Ontology.swift carries a compiled-in copy for bare
 	@# binaries, and --selftest-extract fails if the two drift.
 	@cp Resources/knowledge-ontology.yaml "$(CONTENTS)/Resources/"
@@ -169,20 +171,32 @@ app: build
 ## cache bundle with the same identifier.
 run: install
 
+## Set OPEN=0 to install without launching (agents running self-tests must).
+## A mid-`rm`/`cp` window used to leave `/Applications/Next Notes.app` without its
+## executable: `open` then fails with kLSNoExecutableErr, and a concurrent direct
+## binary launch under Cursor has aborted inside HIServices `_RegisterApplication`
+## before any app code runs. Swap via a sibling `.new` bundle so LaunchServices
+## never sees a half-deleted app. The swap also takes `$(STAGE)/install.lock`,
+## which `Scripts/run-selftest.sh` waits on — concurrent install+self-test is how
+## the 2026-09-17 Cursor SIGABRT reports kept recurring after the atomic swap.
+OPEN ?= 1
+INSTALL_LOCK := $(STAGE)/install.lock
+
 ## Ad-hoc signatures change on every rebuild, which resets the Accessibility grant.
 ## Installing to /Applications keeps the path stable and makes re-granting a one-click fix.
 install: app
-	@pkill -x $(EXEC) 2>/dev/null || true
-	@# Old probe/rollback bundles in this dedicated cache also register with
-	@# LaunchServices and can be selected in place of the installed app.
-	@find "$(STAGE)" -maxdepth 1 -type d -name '*.app' ! -name "$(APPNAME)" -exec rm -rf {} +
-	@rm -rf "$(STAGE)/dmg-root/$(APPNAME)"
-	@# $(BUNDLE) is an absolute staging path — the destination must use $(APPNAME) alone.
-	@rm -rf "/Applications/$(APPNAME)"
-	@cp -R "$(BUNDLE)" "/Applications/$(APPNAME)"
-	@rm -rf "$(BUNDLE)"
-	@open "/Applications/$(APPNAME)"
-	@echo "installed to /Applications/$(APPNAME)"
+	@mkdir -p "$(STAGE)"
+	@APPNAME="$(APPNAME)" EXEC="$(EXEC)" BUNDLE="$(BUNDLE)" OPEN="$(OPEN)" \
+		Scripts/with-install-lock.sh "$(INSTALL_LOCK)" \
+		bash Scripts/install-bundle.sh
+
+## Agent entry point for self-tests. Never opens the GUI from make.
+##   make selftest SELFTEST_ARGS='--selftest-graph-layout'
+##   make selftest SELFTEST_ARGS='--via-open --selftest-systemaudio'
+## Prefer `Scripts/run-selftest.sh …` directly when embedding in agent shells.
+SELFTEST_ARGS ?=
+selftest:
+	@Scripts/run-selftest.sh $(SELFTEST_ARGS)
 
 ## Release configuration of the same bundle `make app` builds. Stamps the version from
 ## the current git tag (or 0.1.0 if there isn't one). Does not pass `-DPAID_BUILD` —

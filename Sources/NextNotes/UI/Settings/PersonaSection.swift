@@ -1,12 +1,11 @@
 import SwiftUI
 
-/// The persona editor, placed directly under the speech-synthesis voice picker: a personality
-/// that is only written and never heard is half a personality.
+/// The SOUL editor — free text saved to `persona.md` as it is typed.
 ///
-/// Free text, saved to `persona.md` as it is typed. Two live counters show what each kind of
-/// path hears — the Apple-model voice answer gets only the first paragraph — and the part a
-/// cap cuts is shown struck through, so "free text" never silently means "partly ignored".
-struct PersonaSection: View {
+/// Two live counters show what each kind of path hears — the Apple-model voice answer gets
+/// only the first paragraph — and the part a cap cuts is shown struck through. Used from
+/// Agent → About; Settings points here rather than hosting a second copy.
+struct SoulEditor: View {
     @State private var settings = Settings.shared
     @State private var text = ""
     @State private var loaded = false
@@ -18,7 +17,7 @@ struct PersonaSection: View {
 
     var body: some View {
         Section {
-            Toggle("Give the Agent this persona", isOn: $settings.agentPersonaEnabled)
+            Toggle("Give the Agent this soul", isOn: $settings.agentPersonaEnabled)
 
             TextEditor(text: $text)
                 .font(DS.Font.body)
@@ -36,7 +35,7 @@ struct PersonaSection: View {
                 counter("Everything else", full)
                 Spacer()
                 Button("Reset to base") { confirmingReset = true }
-                    .confirmationDialog("Replace your persona with the base preset?",
+                    .confirmationDialog("Replace your soul with the base preset?",
                                         isPresented: $confirmingReset) {
                         Button("Reset to base", role: .destructive) { reset() }
                     }
@@ -52,21 +51,21 @@ struct PersonaSection: View {
                 Text(saveError).font(DS.Font.caption).foregroundStyle(DS.Color.warning)
             }
         } header: {
-            Text("Persona")
+            Text("SOUL")
         } footer: {
             SettingsNote(text: "How the Agent talks, in your words. Fast spoken answers hear "
                          + "only the first paragraph, up to \(PersonaStore.shortCardLimit) "
                          + "characters; every other Agent prompt hears up to "
                          + "\(PersonaStore.fullLimit.formatted()). Safety rules always come after "
-                         + "the persona and override it. Coding agents never receive it. When "
-                         + "OpenRouter is the Agent model, the persona is sent with each request.")
+                         + "the soul and override it. Coding agents never receive it. When "
+                         + "OpenRouter is the Agent model, the soul is sent with each request.")
         }
         .onAppear(perform: load)
         .onDisappear(perform: flush)
     }
 
     private func counter(_ title: String, _ cut: PersonaStore.Cut) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: DS.Space.xxs) {
             Text(title)
                 .font(DS.Font.caption)
                 .foregroundStyle(DS.Color.textSecondary)
@@ -77,7 +76,7 @@ struct PersonaSection: View {
     }
 
     private func cutPreview(label: String, cut: PersonaStore.Cut) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: DS.Space.xxs) {
             Text(label)
                 .font(DS.Font.caption)
                 .foregroundStyle(DS.Color.warning)
@@ -92,7 +91,6 @@ struct PersonaSection: View {
 
     private func load() {
         text = store.text()
-        // Set after the first assignment lands so loading is not written back as an edit.
         DispatchQueue.main.async { loaded = true }
     }
 
@@ -132,5 +130,21 @@ struct PersonaSection: View {
             saveError = "Could not reset persona.md: \(error.localizedDescription)"
         }
         DispatchQueue.main.async { loaded = true }
+    }
+}
+
+/// Settings → Agent: points at the single SOUL editor in Agent → About.
+struct PersonaSection: View {
+    var body: some View {
+        Section {
+            Button("Edit Soul in Agent → About") {
+                NavigationState.shared.showAgentAbout()
+            }
+        } header: {
+            Text("SOUL")
+        } footer: {
+            SettingsNote(text: "How the Agent talks lives under Agent → About. The file on disk "
+                         + "is still persona.md; only the word you see is SOUL.")
+        }
     }
 }

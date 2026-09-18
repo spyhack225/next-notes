@@ -11,7 +11,6 @@ struct LocalGraphView: View {
     var onFocus: (String) -> Void
 
     @State private var hoverID: String?
-    @State private var canvasSize: CGSize = .zero
 
     var body: some View {
         GeometryReader { geo in
@@ -33,27 +32,30 @@ struct LocalGraphView: View {
                 .onContinuousHover { phase in
                     switch phase {
                     case .active(let point):
-                        hoverID = nearest(point, in: layout)
+                        withAnimation(DS.Motion.standard) { hoverID = nearest(point, in: layout) }
                     case .ended:
-                        hoverID = nil
+                        withAnimation(DS.Motion.standard) { hoverID = nil }
                     }
                 }
 
                 ForEach(expansion.nodes, id: \.id) { node in
                     if let point = layout.placements[node.id] {
                         Text(node.label)
-                            .font(DS.Font.caption)
+                            .font(node.id == focusID ? DS.Font.caption.weight(.semibold) : DS.Font.caption2)
                             .foregroundStyle(labelInk(for: node.id))
                             .lineLimit(2)
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: DS.Size.graphLabelMaxWidth)
-                            .position(x: point.x, y: point.y + DS.Size.graphNodeDot + DS.Space.xs)
+                            .position(
+                                x: point.x,
+                                y: point.y + DS.Size.graphLabelOffset
+                                    + (node.id == focusID ? DS.Size.graphNodeDotFocus : DS.Size.graphNodeDot) / 2
+                            )
                             .allowsHitTesting(false)
+                            .animation(DS.Motion.standard, value: hoverID)
                     }
                 }
             }
-            .onAppear { canvasSize = size }
-            .onChange(of: size) { _, next in canvasSize = next }
         }
         .frame(minHeight: DS.Size.graphCanvasMinHeight)
         .accessibilityElement(children: .contain)
@@ -76,46 +78,91 @@ struct LocalGraphView: View {
 
     private func labelInk(for id: String) -> Color {
         let active = hoverID == nil || neighbourIDs.contains(id)
-        return DS.Color.text.opacity(active ? 1 : DS.Opacity.graphDimmed)
+        if id == focusID {
+            return DS.Color.text.opacity(active ? 1 : DS.Opacity.graphDimmed)
+        }
+        return DS.Color.textSecondary.opacity(active ? 1 : DS.Opacity.graphDimmed)
     }
 
     private func draw(context: inout GraphicsContext, layout: ForceLayout, size: CGSize) {
         let neighbours = neighbourIDs
         let hovering = hoverID != nil
+
         for edge in expansion.edges {
             guard let a = layout.placements[edge.from], let b = layout.placements[edge.to] else { continue }
             let touchesHover = !hovering || edge.from == hoverID || edge.to == hoverID
+            let touchesFocus = edge.from == focusID || edge.to == focusID
             var path = Path()
             path.move(to: a)
             path.addLine(to: b)
+            let opacity = touchesHover
+                ? (touchesFocus ? DS.Opacity.graphEdgeActive : DS.Opacity.secondaryFill)
+                : DS.Opacity.graphEdgeDimmed
+            let width = touchesHover ? DS.Border.graphEdgeActive : DS.Border.graphEdgeQuiet
             context.stroke(
                 path,
-                with: .color(DS.Color.textTertiary.opacity(touchesHover ? DS.Opacity.secondaryFill : DS.Opacity.graphEdgeDimmed)),
-                lineWidth: DS.Border.hairline
+                with: .color(DS.Color.textTertiary.opacity(opacity)),
+                lineWidth: width
             )
         }
+
         for node in expansion.nodes {
             guard let point = layout.placements[node.id] else { continue }
             let active = !hovering || neighbours.contains(node.id)
             let isFocus = node.id == focusID
-            let radius = isFocus ? DS.Size.graphNodeDot * 1.35 : DS.Size.graphNodeDot
-            let rect = CGRect(x: point.x - radius / 2, y: point.y - radius / 2, width: radius, height: radius)
-            context.fill(
-                Path(ellipseIn: rect),
-                with: .color(ink(for: node).opacity(active ? 1 : DS.Opacity.graphDimmed))
+            let isHover = node.id == hoverID
+            let diameter: CGFloat = isFocus
+                ? DS.Size.graphNodeDotFocus
+                : (isHover ? DS.Size.graphNodeDotPrimary : DS.Size.graphNodeDot)
+            let fill = ink(for: node).opacity(active ? 1 : DS.Opacity.graphDimmed)
+
+            if isFocus {
+                let halo = DS.Size.graphNodeHalo
+                let haloRect = CGRect(
+                    x: point.x - halo / 2,
+                    y: point.y - halo / 2,
+                    width: halo,
+                    height: halo
+                )
+                context.fill(
+                    Path(ellipseIn: haloRect),
+                    with: .color(DS.Color.accent.opacity(DS.Opacity.graphNodeHalo))
+                )
+            }
+
+            let rect = CGRect(
+                x: point.x - diameter / 2,
+                y: point.y - diameter / 2,
+                width: diameter,
+                height: diameter
             )
+            context.fill(Path(ellipseIn: rect), with: .color(fill))
+
+            if isFocus || isHover {
+                let ringPad = DS.Size.graphNodeRingPad
+                let ring = diameter + ringPad * 2
+                let ringRect = CGRect(
+                    x: point.x - ring / 2,
+                    y: point.y - ring / 2,
+                    width: ring,
+                    height: ring
+                )
+                let ringInk = isFocus
+                    ? DS.Color.accent.opacity(DS.Opacity.graphFocusRing)
+                    : DS.Color.text.opacity(DS.Opacity.graphHoverRing)
+                context.stroke(
+                    Path(ellipseIn: ringRect),
+                    with: .color(ringInk),
+                    lineWidth: DS.Border.graphRing
+                )
+            }
         }
         _ = size
     }
 
     private func ink(for node: KnowledgeGraphNode) -> Color {
         if node.id == focusID { return DS.Color.accent }
-        switch node.type {
-        case "Person": return DS.Color.text
-        case "Meeting": return DS.Color.textSecondary
-        case "Decision", "ActionItem": return DS.Color.success
-        default: return DS.Color.textTertiary
-        }
+        return DS.Color.graphNode(node.type)
     }
 
     private func nearest(_ point: CGPoint, in layout: ForceLayout) -> String? {

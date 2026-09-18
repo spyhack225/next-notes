@@ -115,6 +115,9 @@ struct KnowledgeAnswer: Equatable, Sendable {
 enum KnowledgeAskEvent: Sendable {
     case searching(round: Int, query: String)
     case retrieved(round: Int, passages: [KnowledgeCitation])
+    /// Retrieval finished; the model is about to (or is) generating. Flips the UI off
+    /// "Searching…" before the first token arrives — TTFT is often the long wait.
+    case generating(round: Int)
     /// The answer so far, markers included. Never a `SEARCH:` line.
     case answering(String)
     case finished(KnowledgeAnswer)
@@ -178,11 +181,15 @@ struct KnowledgeAsker {
     /// (the task's) stops it between tokens and throws `CancellationError`.
     func run(_ question: String, emit: (KnowledgeAskEvent) -> Void = { _ in }) async throws -> KnowledgeAnswer {
         let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        let totalTrace = LatencyTrace.start(.askTotal)
         var shown: [KnowledgeHit] = []
         var queries: [String] = []
         var query = question
         var forceFinal = false
         var round = 0
+        var retrieveTotal: TimeInterval = 0
+        var generateTotal: TimeInterval = 0
+        var firstAnswerToken: TimeInterval?
         while round < Self.maxRounds {
             round += 1
             try Task.checkCancellation()
@@ -190,8 +197,17 @@ struct KnowledgeAsker {
             if !queries.contains(where: { $0.caseInsensitiveCompare(query) == .orderedSame }) {
                 queries.append(query)
                 emit(.searching(round: round, query: query))
+                let retrieveTrace = LatencyTrace.start(.askRetrieve)
+                let retrieveBegan = Date()
                 added = try await retrieve(query, excluding: Set(shown.map(\.chunkID)),
                                            room: Self.contextPassages - shown.count)
+                let retrieveSeconds = Date().timeIntervalSince(retrieveBegan)
+                retrieveTotal += retrieveSeconds
+                retrieveTrace.end(note: "round=\(round) hits=\(added.count)")
+                Log.app.info("""
+                    ask · retrieve round \(round, privacy: .public) · \
+                    \(retrieveSeconds, format: .fixed(precision: 3))s · hits \(added.count, privacy: .public)
+                    """)
                 shown += added
                 emit(.retrieved(round: round, passages: added.map(citation)))
             }
@@ -200,7 +216,31 @@ struct KnowledgeAsker {
             let final = forceFinal || round == Self.maxRounds || shown.count >= Self.contextPassages
             let user = Self.userMessage(question: question, passages: shown.map(citation), queries: queries,
                                         final: final)
-            let text = try await generate(user: user, emit: emit)
+            emit(.generating(round: round))
+            let generateTrace = LatencyTrace.start(.askGenerate)
+            let generateBegan = Date()
+            var sawAnswerToken = false
+            let text = try await generate(user: user) { event in
+                if case .answering = event, !sawAnswerToken {
+                    sawAnswerToken = true
+                    let tokenSeconds = Date().timeIntervalSince(generateBegan)
+                    if firstAnswerToken == nil { firstAnswerToken = tokenSeconds }
+                    // Only real answer tokens — SEARCH: rounds never emit `.answering`.
+                    LatencyTrace.record(.askFirstToken, seconds: tokenSeconds, note: "round=\(round)")
+                    Log.app.info("""
+                        ask · first token round \(round, privacy: .public) · \
+                        \(tokenSeconds, format: .fixed(precision: 3))s after generate start
+                        """)
+                }
+                emit(event)
+            }
+            let generateSeconds = Date().timeIntervalSince(generateBegan)
+            generateTotal += generateSeconds
+            generateTrace.end(note: "round=\(round) chars=\(text.count)")
+            Log.app.info("""
+                ask · generate round \(round, privacy: .public) · \
+                \(generateSeconds, format: .fixed(precision: 3))s · chars \(text.count, privacy: .public)
+                """)
             try Task.checkCancellation()
             if let next = KnowledgeAnswerParser.searchDirective(text) {
                 guard final else {
@@ -210,10 +250,24 @@ struct KnowledgeAsker {
                 break
             }
             let result = answer(text, shown: shown, queries: queries, rounds: round)
+            let total = totalTrace.end(note: "rounds=\(round) passages=\(shown.count)")
+            Log.app.info("""
+                ask · done · retrieve \(retrieveTotal, format: .fixed(precision: 3))s · \
+                first token \(firstAnswerToken.map { String(format: "%.3f", $0) } ?? "—", privacy: .public)s · \
+                generate \(generateTotal, format: .fixed(precision: 3))s · \
+                total \(total.durationSeconds, format: .fixed(precision: 3))s · \
+                rounds \(round, privacy: .public) · passages \(shown.count, privacy: .public)
+                """)
             emit(.finished(result))
             return result
         }
         let result = answer(KnowledgeAnswer.notFound, shown: shown, queries: queries, rounds: round)
+        let total = totalTrace.end(note: "rounds=\(round) not-found")
+        Log.app.info("""
+            ask · done (not found) · retrieve \(retrieveTotal, format: .fixed(precision: 3))s · \
+            generate \(generateTotal, format: .fixed(precision: 3))s · \
+            total \(total.durationSeconds, format: .fixed(precision: 3))s
+            """)
         emit(.finished(result))
         return result
     }
@@ -221,9 +275,12 @@ struct KnowledgeAsker {
     /// Hybrid search, the rerank window, then the best passages not already in context.
     private func retrieve(_ query: String, excluding: Set<Int64>, room: Int) async throws -> [KnowledgeHit] {
         guard room > 0, !KnowledgeFTSQuery.tokens(query).isEmpty else { return [] }
+        let embedTrace = LatencyTrace.start(.searchEmbed)
         let request = await context.searcher.prepare(
             KnowledgeQuery(text: query, filter: filter, limit: Self.candidates))
+        embedTrace.end(note: "ask query vector=\(request.vector == nil ? "none" : "ready")")
         try Task.checkCancellation()
+        let queryTrace = LatencyTrace.start(.searchQuery)
         var hits = try KnowledgeToolExecutor.search(request, context: context).filter { !excluding.contains($0.chunkID) }
         if let reranker, !hits.isEmpty {
             let window = Array(hits.prefix(Self.rerankWindow))
@@ -233,7 +290,9 @@ struct KnowledgeAsker {
             let kept = reranked.filter { known.contains($0.chunkID) }
             hits = kept + hits.dropFirst(window.count)
         }
-        return Array(hits.prefix(min(Self.perRound, room)))
+        let kept = Array(hits.prefix(min(Self.perRound, room)))
+        queryTrace.end(note: "hits=\(kept.count)")
+        return kept
     }
 
     private func generate(user: String, emit: (KnowledgeAskEvent) -> Void) async throws -> String {

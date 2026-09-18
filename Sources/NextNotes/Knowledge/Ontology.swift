@@ -313,8 +313,13 @@ struct Ontology: Equatable, Sendable {
         #
         # Edges are bi-temporal: observed_at, valid_from, valid_to (null = still true) and
         # source_chunk, which is required on every edge.
+        #
+        # Version 2 widens the graph from meetings into a life map: projects, organisations, places,
+        # activities (hobbies), goals, preferences and non-meeting events. Topic stays the speculative
+        # catch-all for subjects that do not fit a tighter type. New types are optional — empty is
+        # correct when a passage names none of them.
 
-        version: 1
+        version: 2
 
         nodes:
           Meeting:
@@ -322,7 +327,7 @@ struct Ontology: Equatable, Sendable {
             fields: { title: string, start: datetime }
             required: [title, start]
           Person:
-            source: attendees, speaker names and action item owners
+            source: attendees, speaker names, action owners, and people named in dictation or chat
             fields: { name: label }
             required: [name]
           Decision:
@@ -342,10 +347,45 @@ struct Ontology: Equatable, Sendable {
             fields: { title: text, kind: label, url: url }
             required: [title, kind]
           Topic:
-            source: model extraction; speculative, so last and optional
+            source: model extraction; speculative catch-all, so optional
             optional: true
             fields: { label: label }
             required: [label]
+          Project:
+            source: model extraction from notes, dictation and Agent chat
+            optional: true
+            fields: { name: label, domain: label }
+            required: [name]
+          Organization:
+            source: model extraction; companies, schools, clubs, teams
+            optional: true
+            fields: { name: label, kind: label }
+            required: [name]
+          Place:
+            source: model extraction; cities, homes, venues
+            optional: true
+            fields: { name: label, kind: label }
+            required: [name]
+          Activity:
+            source: model extraction; hobbies and recurring activities
+            optional: true
+            fields: { name: label, kind: label }
+            required: [name]
+          Goal:
+            source: model extraction; aims and standing intentions
+            optional: true
+            fields: { text: text }
+            required: [text]
+          Preference:
+            source: model extraction; stated likes and dislikes
+            optional: true
+            fields: { label: label }
+            required: [label]
+          Event:
+            source: model extraction; life events that are not meetings
+            optional: true
+            fields: { title: string, when: date }
+            required: [title]
 
         edges:
           attended: { from: Person, to: Meeting }
@@ -356,7 +396,19 @@ struct Ontology: Equatable, Sendable {
           raised_in: { from: OpenQuestion, to: Meeting }
           produced: { from: Meeting, to: Artifact }
           discussed: { from: Meeting, to: Topic }
-          about: { from: [Decision, ActionItem, OpenQuestion], to: Topic }
+          about: { from: [Decision, ActionItem, OpenQuestion, Project, Goal], to: Topic }
+          mentioned_in: { from: [Project, Organization, Place, Activity, Goal, Preference, Event, Topic], to: Meeting }
+          works_on: { from: Person, to: Project }
+          member_of: { from: Person, to: Organization }
+          lives_in: { from: Person, to: Place }
+          located_at: { from: [Organization, Event, Activity], to: Place }
+          interested_in: { from: Person, to: [Topic, Activity] }
+          participates_in: { from: Person, to: [Activity, Event] }
+          related_to: { from: Person, to: Person }
+          aims_at: { from: Person, to: Goal }
+          prefers: { from: Person, to: Preference }
+          part_of: { from: [Project, Activity], to: [Organization, Topic] }
+          occurs_at: { from: Event, to: Place }
 
         """
 }

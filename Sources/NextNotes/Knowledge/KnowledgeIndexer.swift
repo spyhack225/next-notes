@@ -374,7 +374,13 @@ final class KnowledgeIndexer {
         if let inFlight, case .conversation = inFlight { removedInFlight.insert(inFlight) }
         guard store.existsOnDisk else { return }
         do {
+            let ids = Array(try store.indexedSources(kind: .conversation).keys)
             try store.deleteSources(kind: .conversation)
+            let graph = GraphStore(store: store)
+            for id in ids {
+                try graph.deleteMeeting(GraphIDs.lifeSource(kind: .conversation, id: id))
+                LifeExtractionStore.delete(kind: .conversation, sourceID: id)
+            }
             changed()
         } catch {
             record(error)
@@ -397,7 +403,12 @@ final class KnowledgeIndexer {
         }
         guard store.existsOnDisk, !ids.isEmpty else { return }
         do {
-            for id in ids { try store.deleteSource(kind: .dictation, sourceID: id.uuidString) }
+            let graph = GraphStore(store: store)
+            for id in ids {
+                try store.deleteSource(kind: .dictation, sourceID: id.uuidString)
+                try graph.deleteMeeting(GraphIDs.lifeSource(kind: .dictation, id: id.uuidString))
+                LifeExtractionStore.delete(kind: .dictation, sourceID: id.uuidString)
+            }
             changed()
         } catch {
             record(error)
@@ -411,7 +422,13 @@ final class KnowledgeIndexer {
         if let inFlight, case .dictation = inFlight { removedInFlight.insert(inFlight) }
         guard store.existsOnDisk else { return }
         do {
+            let ids = Array(try store.indexedSources(kind: .dictation).keys)
             try store.deleteSources(kind: .dictation)
+            let graph = GraphStore(store: store)
+            for id in ids {
+                try graph.deleteMeeting(GraphIDs.lifeSource(kind: .dictation, id: id))
+                LifeExtractionStore.delete(kind: .dictation, sourceID: id)
+            }
             changed()
         } catch {
             record(error)
@@ -454,9 +471,10 @@ final class KnowledgeIndexer {
                 }
             }
             // Their graph too: owned nodes, the graph state, and the `valid_to` a reversal in
-            // the deleted meeting closed on an earlier decision.
+            // the deleted meeting closed on an earlier decision. Life-map sources use
+            // `dictation:` / `conversation:` keys in the same table — leave those alone here.
             let graph = GraphStore(store: store)
-            for id in try graph.extractedMeetings() where !present.contains(id) {
+            for id in try graph.extractedMeetings() where !present.contains(id) && UUID(uuidString: id) != nil {
                 try graph.deleteMeeting(id)
             }
 
@@ -474,6 +492,10 @@ final class KnowledgeIndexer {
                     enqueued += 1
                 }
             } else {
+                for id in try store.indexedSources(kind: .conversation).keys {
+                    try GraphStore(store: store).deleteMeeting(GraphIDs.lifeSource(kind: .conversation, id: id))
+                    LifeExtractionStore.delete(kind: .conversation, sourceID: id)
+                }
                 try store.deleteSources(kind: .conversation)
             }
 
@@ -482,6 +504,8 @@ final class KnowledgeIndexer {
                 let ids = Set(runs.map(\.id.uuidString))
                 for id in try store.indexedSources(kind: .dictation).keys where !ids.contains(id) {
                     try store.deleteSource(kind: .dictation, sourceID: id)
+                    try GraphStore(store: store).deleteMeeting(GraphIDs.lifeSource(kind: .dictation, id: id))
+                    LifeExtractionStore.delete(kind: .dictation, sourceID: id)
                 }
                 for run in runs {
                     dictationPayloads[run.id] = run
@@ -489,6 +513,10 @@ final class KnowledgeIndexer {
                     enqueued += 1
                 }
             } else {
+                for id in try store.indexedSources(kind: .dictation).keys {
+                    try GraphStore(store: store).deleteMeeting(GraphIDs.lifeSource(kind: .dictation, id: id))
+                    LifeExtractionStore.delete(kind: .dictation, sourceID: id)
+                }
                 try store.deleteSources(kind: .dictation)
             }
 
@@ -685,8 +713,14 @@ final class KnowledgeIndexer {
                 let outcome = try await write(.conversation, id: id, now: now) { Chunker.conversation(session.rows) }
                 if removedInFlight.contains(job) {
                     try store.deleteSource(kind: .conversation, sourceID: id.uuidString)
+                    try GraphStore(store: store).deleteMeeting(GraphIDs.lifeSource(kind: .conversation, id: id.uuidString))
+                    LifeExtractionStore.delete(kind: .conversation, sourceID: id.uuidString)
                 } else {
                     tally([outcome], into: &pass)
+                    if settings.graphEnabled {
+                        _ = try LifeSourceExtractor(store: store).applyStored(
+                            kind: .conversation, sourceID: id.uuidString, now: now)
+                    }
                 }
 
             case .dictation(let id):
@@ -694,8 +728,14 @@ final class KnowledgeIndexer {
                 let outcome = try await write(.dictation, id: id, now: now) { Chunker.dictation(run) }
                 if removedInFlight.contains(job) {
                     try store.deleteSource(kind: .dictation, sourceID: id.uuidString)
+                    try GraphStore(store: store).deleteMeeting(GraphIDs.lifeSource(kind: .dictation, id: id.uuidString))
+                    LifeExtractionStore.delete(kind: .dictation, sourceID: id.uuidString)
                 } else {
                     tally([outcome], into: &pass)
+                    if settings.graphEnabled {
+                        _ = try LifeSourceExtractor(store: store).applyStored(
+                            kind: .dictation, sourceID: id.uuidString, now: now)
+                    }
                 }
 
             case .routine(let id):

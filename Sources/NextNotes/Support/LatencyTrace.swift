@@ -45,6 +45,16 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
     case modelPrefill = "model.prefill"
     case modelFirstToken = "model.first_token"
 
+    // Knowledge Ask / Search — request → retrieve → first answer paint → done
+    case askTotal = "ask.total"
+    case askProvider = "ask.provider"
+    case askRetrieve = "ask.retrieve"
+    case askFirstToken = "ask.first_token"
+    case askGenerate = "ask.generate"
+    case searchTotal = "search.total"
+    case searchEmbed = "search.embed"
+    case searchQuery = "search.query"
+
     var pipeline: LatencyPipeline {
         switch self {
         case .dictationKeyDownToCapture, .dictationSpeechToFirstPartial,
@@ -61,6 +71,9 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
             return .agent
         case .modelLoad, .modelQueue, .modelContext, .modelPrefill, .modelFirstToken:
             return .model
+        case .askTotal, .askProvider, .askRetrieve, .askFirstToken, .askGenerate,
+             .searchTotal, .searchEmbed, .searchQuery:
+            return .knowledge
         }
     }
 
@@ -90,6 +103,7 @@ enum LatencyPipeline: String, Codable, Sendable {
     case meeting
     case agent
     case model
+    case knowledge
 }
 
 /// Optional identity propagated through child tasks for an interactive model turn.

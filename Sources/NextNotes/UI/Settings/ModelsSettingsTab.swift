@@ -135,8 +135,6 @@ struct ModelsSettingsTab: View {
 
             speechSynthesis
 
-            PersonaSection()
-
             Section {
                 Toggle("Run local language models on the GPU", isOn: $settings.llmMetalEnabled)
             } header: {

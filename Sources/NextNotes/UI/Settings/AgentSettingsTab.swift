@@ -10,6 +10,8 @@ struct AgentSettingsTab: View {
 
     var body: some View {
         Form {
+            // Persona / SOUL editor lives under Agent → About (single editor).
+            PersonaSection()
             activation
             wakeModel
             wakeTest

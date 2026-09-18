@@ -2,24 +2,10 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Settings → Agent → Memories, on the same pattern as *Remembered permissions*.
-///
-/// Memories save without a prompt (decision 1), so this list is where the user sees and
-/// undoes every one: source, date and session, edit in place, Forget, *Forget everything*,
-/// a *New* badge on what the background review added since the list was last closed (the
-/// Agent tab marks them seen when it closes: a lazy Form row can disappear on scroll), budget
-/// meters, and a Markdown export. Activity items are derived and rebuild themselves, so they
-/// sit collapsed underneath.
+/// Settings → Agent: memory policy. The list itself is edited under Agent → About → MEMORY.
 struct MemoriesSection: View {
     @State private var settings = Settings.shared
     @State private var memory = NextMemory.shared
-    @State private var editingID: UUID?
-    @State private var draft = ""
-    @State private var newText = ""
-    @State private var newKind: MemoryEntry.Kind = .profile
-    @State private var error: String?
-    @State private var confirmingForgetAll = false
-    @State private var showActivity = false
 
     var body: some View {
         Section {
@@ -36,6 +22,52 @@ struct MemoriesSection: View {
 
             Stepper("New conversation after \(settings.agentSessionIdleMinutes) minutes of silence",
                     value: $settings.agentSessionIdleMinutes, in: 5...240, step: 5)
+
+            HStack(spacing: DS.Space.m) {
+                ForEach(MemoryEntry.Kind.allCases, id: \.self) { kind in
+                    meter(kind)
+                }
+            }
+
+            Button("Edit memories in Agent → About") {
+                NavigationState.shared.showAgentAbout()
+            }
+        } header: {
+            Text("Memories")
+        } footer: {
+            SettingsNote(text: "The Agent saves facts you tell it about yourself and says out loud "
+                         + "what it saved. Edit, Forget and export live under Agent → About → MEMORY. "
+                         + "When OpenRouter is the Agent model, memories are sent with each request. "
+                         + "Coding agents never receive them.")
+        }
+    }
+
+    private func meter(_ kind: MemoryEntry.Kind) -> some View {
+        let used = memory.used(kind)
+        return VStack(alignment: .leading, spacing: DS.Space.xxs) {
+            Text("\(kind.displayName) \(used.formatted()) / \(kind.budget.formatted())")
+                .font(DS.Font.caption)
+                .foregroundStyle(used >= kind.budget * 9 / 10 ? DS.Color.warning : DS.Color.textSecondary)
+            ProgressView(value: Double(min(used, kind.budget)), total: Double(kind.budget))
+        }
+    }
+}
+
+/// Full memory list — Forget, edit, badges, export. Hosted by Agent → About.
+struct MemoriesEditor: View {
+    @State private var settings = Settings.shared
+    @State private var memory = NextMemory.shared
+    @State private var editingID: UUID?
+    @State private var draft = ""
+    @State private var newText = ""
+    @State private var newKind: MemoryEntry.Kind = .profile
+    @State private var error: String?
+    @State private var confirmingForgetAll = false
+    @State private var showActivity = false
+
+    var body: some View {
+        Section {
+            Toggle("Remember what I tell the Agent", isOn: $settings.agentMemoryEnabled)
 
             HStack(spacing: DS.Space.m) {
                 ForEach(MemoryEntry.Kind.allCases, id: \.self) { kind in
@@ -104,15 +136,12 @@ struct MemoriesSection: View {
                 }
             }
         } header: {
-            Text("Memories")
+            Text("MEMORY")
         } footer: {
-            SettingsNote(text: "The Agent saves facts you tell it about yourself and says out loud "
-                         + "what it saved. When a conversation ends it reviews what you said and may "
-                         + "add a few more, marked New. It never saves anything from email, web pages, files or "
-                         + "other tool results, and a memory never grants permission. Changes reach "
-                         + "the Agent at its next conversation; Forget takes effect immediately. When "
-                         + "OpenRouter is the Agent model, memories are sent with each request. "
-                         + "Coding agents never receive them.")
+            SettingsNote(text: "Facts the Agent keeps about you. It never saves anything from email, "
+                         + "web pages, files or other tool results, and a memory never grants "
+                         + "permission. Changes reach the Agent at its next conversation; Forget "
+                         + "takes effect immediately.")
         }
     }
 
