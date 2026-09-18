@@ -80,6 +80,9 @@ struct PermissionPolicy: Sendable {
     var autoSearchFiles = false
     var autoComputerControl = false
     var grants: [PermissionGrant] = []
+    /// Set per call by `AgentToolExecutor` when `ScheduleConfirmation` found the user's own
+    /// yes behind this `schedule.*` write. Never read from Settings or a model argument.
+    var confirmedScheduleWrite = false
 
     @MainActor
     static func fromSettings() -> PermissionPolicy {
@@ -103,7 +106,28 @@ struct PermissionPolicy: Sendable {
         autoComputerControl: true
     )
 
-    func allowsAutomatically(_ tool: AgentTool) -> Bool {
+    /// - Parameter authority: who supplied the authority for this call. `.scheduled` never
+    ///   auto-runs anything above a read. Otherwise only the `memory` and `schedule`
+    ///   namespaces look at it: memory writes save without a prompt (decision
+    ///   1), but only under the user's own conversation or the memory review; a confirmed
+    ///   reminder skips the card only under the user's own authority. Every other tool ignores it.
+    func allowsAutomatically(_ tool: AgentTool, authority: ActionAuthority? = nil) -> Bool {
+        // An unattended routine auto-runs observe and read tools only. Its writes are drafts
+        // (`ScheduledRunner`), and no standing setting widens that.
+        if authority?.isScheduled == true, tool.risk > .read {
+            return false
+        }
+        if tool.namespace == .memory, tool.risk == .modify {
+            return authority == .user || authority == .memoryReview
+        }
+        // A reminder is created after the user said yes to the restated sentence; that yes
+        // is the confirmation, so the card would ask twice. Only when code checked that yes
+        // (`confirmedScheduleWrite`), only under the user's own authority, and never for a
+        // delete or a test run, which always show the card.
+        if tool.namespace == .schedule, tool.risk == .modify {
+            return authority == .user && confirmedScheduleWrite
+                && ScheduleToolCatalogue.confirmableIDs.contains(tool.id)
+        }
         switch tool.risk {
         case .observe:
             return autoObserve

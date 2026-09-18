@@ -5,6 +5,8 @@ import Observation
 enum SidebarSection: String, CaseIterable, Identifiable, Sendable {
     case dictation
     case meetings
+    /// Search across the knowledge index. Listed only while the index is on.
+    case search
     case agent
     case dictionary
     case comparison
@@ -15,6 +17,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .dictation: "Dictation"
         case .meetings: "Meetings"
+        case .search: "Search"
         case .agent: "Agent"
         case .dictionary: "Dictionary"
         case .comparison: "Comparison"
@@ -25,6 +28,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .dictation: "waveform"
         case .meetings: "person.2.wave.2"
+        case .search: "text.magnifyingglass"
         case .agent: "ear"
         case .dictionary: "character.book.closed"
         case .comparison: "rectangle.split.2x1"
@@ -54,6 +58,16 @@ final class NavigationState {
     /// window that is usually closed, and reopening on General is the least surprising.
     var selectedSettingsTab: SettingsTab = .general
 
+    /// Which pane the Agent section shows. Not persisted: the conversation is home.
+    enum AgentPane: String, CaseIterable, Identifiable {
+        case conversation = "Conversation"
+        case routines = "Routines"
+        case about = "About"
+        var id: String { rawValue }
+    }
+
+    var agentPane: AgentPane = .conversation
+
     private enum Keys {
         static let section = "navigation.section"
     }
@@ -67,8 +81,45 @@ final class NavigationState {
         selectedSection = section
     }
 
+    /// Agent → Routines, from a routine's notification.
+    func showRoutines() {
+        selectedSection = .agent
+        agentPane = .routines
+    }
+
+    /// Agent → About (SOUL, MEMORY, name and avatar), from Settings or a deep link.
+    func showAgentAbout() {
+        selectedSection = .agent
+        agentPane = .about
+    }
+
+    /// A moment in a meeting's transcript that a search result jumped to. The token makes a
+    /// second jump to the same second a change the transcript notices.
+    struct TranscriptFocus: Equatable {
+        let meetingID: UUID
+        let time: TimeInterval
+        var token = UUID()
+    }
+
+    /// Where the Meetings detail should open its transcript, if a search result asked.
+    var transcriptFocus: TranscriptFocus?
+
     func show(meeting id: UUID) {
         selectedSection = .meetings
         selectedMeetingID = id
+        transcriptFocus = nil
+    }
+
+    /// Meetings → this meeting → Transcript, scrolled to `time`.
+    func show(meeting id: UUID, at time: TimeInterval) {
+        selectedSection = .meetings
+        selectedMeetingID = id
+        transcriptFocus = TranscriptFocus(meetingID: id, time: time)
+    }
+
+    /// Agent → Conversation.
+    func showConversation() {
+        selectedSection = .agent
+        agentPane = .conversation
     }
 }

@@ -1,6 +1,6 @@
 # Next Notes
 
-Talk to your Mac. Hold a key, talk, release — cleaned-up text lands in the app you were
+Your Mac is your best personal assistant. Hold a key, talk, release — cleaned-up text lands in the app you were
 already in. Meetings record themselves. ⇧⌘ Space asks the same machine to click, search
 or follow through. A Wispr Flow-shaped native app with on-device defaults and optional cloud models.
 
@@ -97,6 +97,15 @@ the same key both record, and whichever injects text will fight the other.
 
 ```bash
 make install     # builds, bundles, signs, copies to /Applications, launches
+make install OPEN=0   # same, but do not auto-open (agents must use this)
+```
+
+Agents running self-tests must never launch the GUI from install. After `OPEN=0`:
+
+```bash
+Scripts/run-selftest.sh --selftest-orb
+# TCC-sensitive:
+Scripts/run-selftest.sh --via-open --selftest-systemaudio
 ```
 
 Then grant these permissions — none is optional, and none can be requested silently:
@@ -409,7 +418,8 @@ Sources/NextNotes/
 │   │                               TranscriptView, MeetingActionsView,
 │   │                               ProposalArgumentsSheet, SpeakerNamesSheet,
 │   │                               RenameMeetingSheet
-│   ├── Agent/                      AgentView — conversation, tasks, audit history
+│   ├── Agent/                      AgentView — conversation, tasks, audit history;
+│   │                               RoutinesView — schedules, run history, drafts
 │   ├── Onboarding/                 PermissionsChecklist, OnboardingSheet
 │   └── Settings/                   SettingsWindow + one Form per tab, ten panes:
 │                                   General, Dictation, Formatting, Meetings, Calendar,
@@ -427,10 +437,28 @@ Sources/NextNotes/
 ### Self-tests
 
 Each flag runs one thing and exits, so a subsystem can be answered from a terminal instead
-of by using the app. Run them from the installed bundle:
+of by using the app. Run them from the **installed** bundle after `make install OPEN=0`
+has finished. Do not launch while install is still copying — a half-deleted `.app` makes
+`open` report `kLSNoExecutableErr`, and a direct binary start under Cursor has aborted
+inside AppKit registration before any self-test code runs (Responsible=Cursor, Parent=
+Exited process). Agents should use the wrapper, which waits on the install lock, verifies
+codesign, and keeps the parent shell alive:
+
+```bash
+Scripts/run-selftest.sh --selftest-s1
+Scripts/run-selftest.sh --via-open --selftest-systemaudio   # TCC-sensitive
+make selftest SELFTEST_ARGS='--selftest-graph-layout'
+```
+
+Most probes can use the binary path directly (via the wrapper). Anything that depends on a
+TCC grant the app already has (system audio, microphone) must go through LaunchServices
+(`--via-open`) instead:
 
 ```bash
 S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
+# Prefer Scripts/run-selftest.sh over invoking $S from an agent shell.
+# TCC-sensitive:
+# Scripts/run-selftest.sh --via-open --selftest-systemaudio
 
 "$S" --selftest-s1                      # S1-mini cleanup through the shared llama.cpp backend
 "$S" --selftest-parakeet                # Parakeet loads and transcribes a silent second
@@ -455,6 +483,17 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-tools                   # registry, native-first router, permission broker
 "$S" --selftest-wake                    # phrase spotting, authority split; loads the sherpa KWS model
 "$S" --selftest-tasks                   # submit / run / cancel without a model
+"$S" --selftest-persona                 # every Agent prompt path: persona + memory chars against budget
+"$S" --selftest-memory                  # core memory: save, supersede, overflow, forget, injection and tool-output blocks; sessions and compaction
+"$S" --selftest-memory-review           # review on Tests/Fixtures/memory-review.json (precision >= 0.9, scripted model), never while recording, routine suggestions
+"$S" --selftest-schedule                # reminders: DST, month-end, grace, catch-up, Missed, backoff, endsAt, macOS hand-off, confirmation card; routines: silence, skip retry, quiet hours, disable at 10, test run on creation; triggers: notes ready / meeting starting (lead time) / call started fire once per event from synthetic events, filter, retry window, publishers
+"$S" --selftest-routine-authority       # unattended runs read, draft writes without executing, never ask PermissionGate, stop at budgets; scheduled ACP refused; a trigger's event reaches the run as data under the same authority
+"$S" --selftest-index                   # knowledge.sqlite from fixture meetings and sessions: chunks, bytes, wall time; chunker cuts, foreign keys + cascade, FTS5 mirror, generations, yields to recording, resume, delete/clear/forget hooks, rebuild after rm or corruption
+"$S" --selftest-embed [text] [--model potion|embeddinggemma]  # unit vectors of 256 dims: fake embedder, Matryoshka + L2, blob format, potion tokenizer/table from a temp fixture, llama runtime refusals (missing file, notes model busy, bad file), pinned downloads + licence, indexer vectors only when idle, batching, cascade, model switch; --model embeds with a downloaded model
+"$S" --selftest-search [query] [--gold <path>]  # BM25 passages with timestamps, stemming, snippets, SQL filters, facets, hostile input, memory.recall over the index; hybrid BM25 + cosine + RRF with the fake embedder, filters on the vector leg, conversation recency; recall@10 / MRR on Tests/Fixtures/knowledge-gold.json; a query prints BM25, cosine and fused side by side
+"$S" --selftest-ask [question]           # search_knowledge / expand_node / timeline: registry, gate, routine ceiling, filters, errors, memory.recall as a wrapper; cited answers with a scripted model: multi-hop, every claim resolves to a chunk and a meeting timestamp, invented citations dropped, 4 rounds / 20 passages max, streaming, cancel, rerank; a question prints every retrieved chunk and its citation
+"$S" --selftest-extract [notes.json]     # knowledge graph (Phase C) on fixture meetings with a scripted model: GBNF grammars parse and match, ontology YAML vs compiled-in copy, violations dropped, .extracting persisted and repaired; zero schema violations, notes.json generation, source_chunk on every edge, a reversed decision closed by valid_to + supersedes; re-extraction and rm knowledge.sqlite idempotent without a model; hostile and non-JSON output; reminder suggestions offered, never created; a path validates that notes.json read-only
+"$S" --selftest-resolve [knowledge.sqlite]  # entity resolution (Phase D) with no model: names, initials, addresses and the hard rules; pairwise precision > 0.95 on a hand-labelled synthetic person set (no tiebreaker, a correct one, an always-"same" one and one wrong a fifth of the time), blocking, tiebreak only in the ambiguous band, an always-"same" tiebreaker never joins a hard-apart pair; voice prints per diarized label and linking an unnamed speaker by voice; merged_into never deletes, Split is one row and sticks, user merges chain, rm knowledge.sqlite resolves the same from the decisions file, timeline follows a merge; model answers cached in the store so a second run asks nothing again; a merge an "apart" would revert is refused and Undo restores a withdrawn "apart"; a relaunch loads people for memory; switching the graph off removes voice prints; resolved people replace memory attendee items and reach a cloud reader only with the graph's cloud consent; a path prints decisions with scores on a temporary copy
 "$S" --selftest-meeting-context         # extract decisions and candidate actions
 "$S" --selftest-realtime                # question/follow-up routing, tool speech, harness, duplex VAD
 "$S" --selftest-computer                # inspect/click/type on an owned window; stub trees stay empty

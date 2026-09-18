@@ -31,6 +31,16 @@ enum AgentActivityProjector {
             return "Running a command…"
         case (.meeting, _):
             return "Reading the meeting…"
+        case (.memory, "recall"):
+            return "Checking memory…"
+        case (.memory, "forget"):
+            return "Forgetting…"
+        case (.memory, _):
+            return "Remembering…"
+        case (.schedule, "list"):
+            return "Checking reminders…"
+        case (.schedule, _):
+            return "Updating reminders…"
         case (.workspace, _):
             let built = tool.title(for: arguments)
             return isPublic(built) ? built : "Working in Google Workspace…"

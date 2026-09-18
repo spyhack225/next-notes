@@ -14,10 +14,14 @@ final class PermissionGate {
     private var waiter: CheckedContinuation<Bool, Never>?
     private var queued: [(PermissionRequest, CheckedContinuation<Bool, Never>)] = []
     var queuedCount: Int { queued.count }
+    /// How many times anything has asked. `--selftest-routine-authority` checks an unattended
+    /// run leaves it unchanged: nobody is there to answer.
+    private(set) var askCount = 0
 
     private init() {}
 
     func ask(_ request: PermissionRequest) async -> Bool {
+        askCount += 1
         let requestID = request.id
         return await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in

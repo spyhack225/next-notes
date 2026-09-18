@@ -29,6 +29,13 @@ struct LlamaLLMProvider: LLMProvider {
         )
     }
 
+    var enforcesGrammar: Bool { true }
+
+    func complete(system: String, user: String, maxTokens: Int, grammar: GBNFGrammar) async throws -> LLMCompletion {
+        try await NotesModelRuntime.shared.complete(
+            system: system, user: user, maxTokens: maxTokens, grammar: grammar)
+    }
+
     func stream(
         system: String,
         user: String,

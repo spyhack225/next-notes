@@ -47,6 +47,8 @@ final class CallDetector {
     @ObservationIgnored private var debounce: CallPolicy.DebounceState = .quiet
     @ObservationIgnored private var lastEvaluation = Date()
     @ObservationIgnored private var poll: Task<Void, Never>?
+    /// When `start()` last ran. A call settled this soon after was probably already going.
+    @ObservationIgnored private(set) var startedAt: Date?
 
     /// Listener blocks have to be handed back to Core Audio to be removed, so each one is
     /// kept against the object it was installed on.
@@ -69,6 +71,7 @@ final class CallDetector {
     /// and costs one pass over an array of about forty object ids.
     func start() {
         guard poll == nil else { return }
+        startedAt = Date()
 
         subscribeToProcessList()
         refreshFlagListeners()
@@ -82,6 +85,14 @@ final class CallDetector {
             }
         }
         Log.calls.info("call detector running")
+    }
+
+    /// Whether `call` settled on the first passes after `start()`: already under way when
+    /// detection began (a relaunch mid-call), as far as the detector can tell. A call that
+    /// really began in those seconds looks the same and is treated the same.
+    func settledAtStart(_ call: CallActivity) -> Bool {
+        guard let startedAt else { return false }
+        return call.since.timeIntervalSince(startedAt) < CallPolicy.onThreshold + 2 * Self.pollInterval
     }
 
     func stop() {

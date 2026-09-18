@@ -248,6 +248,8 @@ final class AgentCaptureController {
         fileFirstEOUProcessSeconds = nil
         fileEOUResets = 0
         isSessionActive = true
+        // A voice conversation does not share the CPU with an embedding backfill.
+        Task { await EmbeddingRuntime.shared.stopNow() }
         RealtimeAudioSession.shared.begin()
         RealtimeAgent.shared.userSpeechEnded()
         ActivationController.shared.markListening()

@@ -16,6 +16,7 @@ struct Sidebar: View {
     @Binding var selection: SidebarSection
 
     @State private var meetings = MeetingController.shared
+    @State private var settings = Settings.shared
 
     var body: some View {
         List(selection: $selection) {
@@ -28,7 +29,7 @@ struct Sidebar: View {
             }
 
             Section {
-                ForEach(SidebarSection.allCases) { section in
+                ForEach(visibleSections) { section in
                     Label(section.title, systemImage: section.systemImage)
                         .tag(section)
                 }
@@ -87,6 +88,12 @@ struct Sidebar: View {
     private var liveState: OrbGeometry.State {
         if meetings.isRecording { return .weaving }
         return controller.state == .finishing ? .working : .listening
+    }
+
+    /// Search appears once the knowledge index is on — or while it is the selection, so a
+    /// relaunch into it never shows a detail without its row.
+    private var visibleSections: [SidebarSection] {
+        SidebarSection.allCases.filter { $0 != .search || settings.knowledgeIndexEnabled || selection == .search }
     }
 
     private var isRecording: Bool {

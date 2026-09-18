@@ -49,8 +49,17 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-dictation --selftest-calls      --selftest-axreadback
 --selftest-learn     --selftest-context [bundle-id]
 --selftest-tools     --selftest-wake       --selftest-tasks
+--selftest-persona   --selftest-memory     --selftest-schedule
+--selftest-routine-authority
+--selftest-index     --selftest-search [query] [--gold <path>]
+--selftest-ask [question]                  --selftest-extract [notes.json]
+--selftest-resolve [knowledge.sqlite]
+--selftest-graph-layout
+--selftest-embed [text] [--model potion|embeddinggemma]
+--selftest-memory-review [--model local|cloud] [--fixtures <path>]
 --selftest-meeting-context                 --selftest-realtime
---selftest-computer  --selftest-mcp        --selftest-acp
+--selftest-computer  --selftest-mcp        --selftest-composio
+--selftest-acp
 --selftest-activity  --selftest-fs         --selftest-browser
 --selftest-settings  --selftest-metrics    --selftest-cleanup-router
 --selftest-meeting-live --selftest-meeting-live-tools --selftest-tts
@@ -188,10 +197,53 @@ same build, same machine, same second, returned `rms 0.17489, peak 0.75562` when
 through LaunchServices. Before touching any privacy setting, re-run it as the app:
 
 ```
-open -n -a "Next Notes" --args --selftest-systemaudio --selftest-out /tmp/out.txt
+Scripts/run-selftest.sh --via-open --selftest-systemaudio
+# equivalent: open -n -a "Next Notes" --args --selftest-systemaudio --selftest-out /tmp/out.txt
 ```
 
 `--selftest-out` exists for exactly this: a LaunchServices launch has no stdout.
+
+**A SIGABRT in `HIServices` `_RegisterApplication` right after launch is usually an agent
+false alarm, not a Dock/Finder bug.** Measured repeatedly on 2026-09-17 (21:35 and again
+21:58): Next Notes died in `NSApplication init` → `_RegisterApplication` → `abort()` with
+no app frames beyond `NextNotesApp.$main`, `Responsible Process: Cursor`, parent already
+exited, `procRole: Unspecified`, coalition `com.todesktop.230313mzl4w4u92`. Lifetime ~0.25 s
+— before any self-test or UI code runs.
+
+Two agent mistakes produce the same report:
+
+1. **Launch while `/Applications/Next Notes.app` is mid-reinstall** (or disk-full) so
+   `Contents/MacOS/NextNotes` is missing. `open` fails with `kLSNoExecutableErr`; a direct
+   binary start under Cursor aborts inside registration. Self-tests still go through full
+   AppKit — there is no pre-`App.main` entry.
+2. **Direct-binary launch from a Cursor agent shell that exits before AppKit finishes
+   registering** (backgrounded command, tool timeout that orphans the child, or a chained
+   `make install && "$BIN" --selftest-…` racing another install). The 21:58 pair matched a
+   freshly signed bundle (`da6ddffa-…`, Signed Time 21:58:09) launched seconds later as
+   Responsible=Cursor / Parent=Exited process — not a half-copied Mach-O.
+
+**Dock / Finder / a healthy `open -n "/Applications/Next Notes.app"` are unaffected.** If
+that path works and the crash lists Cursor (or another IDE) as responsible, ignore the
+report — it is noise from agent launch hygiene, not a user-facing launch bug. Do not
+"fix" it by rewriting `App.main`.
+
+**How agents must install and self-test now:**
+
+```bash
+make install OPEN=0          # never omit OPEN=0; never launch the GUI from install
+Scripts/run-selftest.sh --selftest-graph-layout
+# TCC-sensitive only:
+Scripts/run-selftest.sh --via-open --selftest-systemaudio
+# or:
+make selftest SELFTEST_ARGS='--selftest-orb'
+```
+
+`make install` and `Scripts/run-selftest.sh` share `~/Library/Caches/NextNotesBuild/install.lock`
+and the install still swaps via `/Applications/Next Notes.app.new`, so a self-test cannot
+start against a half-deleted bundle. The wrapper verifies the executable exists and
+`codesign --verify`s the app, then runs the binary in the **foreground** (never `&`). Do
+not bare-invoke `/Applications/Next Notes.app/Contents/MacOS/NextNotes` from an agent
+shell, and do not `open` the GUI as a side effect of install.
 
 **There is no way to read the system-audio grant, and `CGPreflightScreenCaptureAccess` is not
 it.** It is tempting — the pane is called "Screen & System Audio Recording" and the tap's own

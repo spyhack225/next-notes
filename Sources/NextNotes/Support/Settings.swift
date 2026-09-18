@@ -643,6 +643,100 @@ final class Settings {
         didSet { defaults.set(agentVoiceEngine, forKey: Keys.agentVoiceEngine) }
     }
 
+    /// Whether Agent prompts start with `persona.md`. The file is kept either way.
+    var agentPersonaEnabled: Bool {
+        didSet { defaults.set(agentPersonaEnabled, forKey: Keys.agentPersonaEnabled) }
+    }
+
+    /// Whether the Agent keeps and uses core memory. Entries stay on disk either way.
+    var agentMemoryEnabled: Bool {
+        didSet { defaults.set(agentMemoryEnabled, forKey: Keys.agentMemoryEnabled) }
+    }
+
+    /// Which model the background memory review uses: "auto" (Qwen when it is loaded and
+    /// idle and nothing is recording, else OpenRouter when configured, else wait), "local"
+    /// or "cloud".
+    var agentMemoryReviewModel: String {
+        didSet { defaults.set(agentMemoryReviewModel, forKey: Keys.agentMemoryReviewModel) }
+    }
+
+    /// Minutes of silence after which the next Agent message starts a new session.
+    var agentSessionIdleMinutes: Int {
+        didSet { defaults.set(agentSessionIdleMinutes, forKey: Keys.agentSessionIdleMinutes) }
+    }
+
+    /// Whether reminders run. Off withdraws everything registered with macOS too.
+    var agentSchedulesEnabled: Bool {
+        didSet { defaults.set(agentSchedulesEnabled, forKey: Keys.agentSchedulesEnabled) }
+    }
+
+    /// Quiet hours, "HH:mm" in local time. Deliveries found inside them wait until they end.
+    var agentQuietHoursStart: String {
+        didSet { defaults.set(agentQuietHoursStart, forKey: Keys.agentQuietHoursStart) }
+    }
+
+    var agentQuietHoursEnd: String {
+        didSet { defaults.set(agentQuietHoursEnd, forKey: Keys.agentQuietHoursEnd) }
+    }
+
+    /// "whenPresent" speaks reminders only when the user is at the Mac, nothing is recording
+    /// and no call is active; "never" keeps them to notifications.
+    var agentRoutineSpeech: String {
+        didSet { defaults.set(agentRoutineSpeech, forKey: Keys.agentRoutineSpeech) }
+    }
+
+    /// Open Next Notes at login, so routines keep running. Off by default; offered when the
+    /// first routine is created, and applied through `LaunchAtLogin` (`SMAppService`).
+    var agentLaunchAtLogin: Bool {
+        didSet { defaults.set(agentLaunchAtLogin, forKey: Keys.agentLaunchAtLogin) }
+    }
+
+    /// Whether meetings, notes and (per the switches below) conversations are chunked into
+    /// `knowledge.sqlite` for Search and `memory.recall`. Off by default.
+    var knowledgeIndexEnabled: Bool {
+        didSet { defaults.set(knowledgeIndexEnabled, forKey: Keys.knowledgeIndexEnabled) }
+    }
+
+    /// Ended Agent conversations are indexed too.
+    var knowledgeIncludeConversations: Bool {
+        didSet { defaults.set(knowledgeIncludeConversations, forKey: Keys.knowledgeIncludeConversations) }
+    }
+
+    /// Every dictation is indexed too — high volume, low signal, so off by default.
+    var knowledgeIncludeDictation: Bool {
+        didSet { defaults.set(knowledgeIncludeDictation, forKey: Keys.knowledgeIncludeDictation) }
+    }
+
+    /// Each routine run's result is indexed too. Off by default.
+    var knowledgeIncludeRoutines: Bool {
+        didSet { defaults.set(knowledgeIncludeRoutines, forKey: Keys.knowledgeIncludeRoutines) }
+    }
+
+    /// Which model gives the index dense vectors for hybrid search: `none`, `potion` or
+    /// `embeddinggemma` (`KnowledgeEmbedderChoice`). `none` by default — search stays BM25.
+    var knowledgeEmbedder: String {
+        didSet { defaults.set(knowledgeEmbedder, forKey: Keys.knowledgeEmbedder) }
+    }
+
+    /// Whether the Agent may use `search_knowledge`, `expand_node` and `timeline`, and Ask
+    /// may answer from the index. Off by default; needs the index on as well.
+    var knowledgeAgentToolsEnabled: Bool {
+        didSet { defaults.set(knowledgeAgentToolsEnabled, forKey: Keys.knowledgeAgentToolsEnabled) }
+    }
+
+    /// Whether finished meetings' notes are extracted into `notes.json` and the knowledge
+    /// graph — decisions, action items, open questions, people — with the on-device model.
+    /// Off by default; needs the index on as well.
+    var knowledgeGraphEnabled: Bool {
+        didSet { defaults.set(knowledgeGraphEnabled, forKey: Keys.knowledgeGraphEnabled) }
+    }
+
+    /// Whether a cloud model (OpenRouter) may read the knowledge graph through `expand_node`
+    /// and `timeline`. Off by default: separate, per-feature consent.
+    var knowledgeGraphCloudConsent: Bool {
+        didSet { defaults.set(knowledgeGraphCloudConsent, forKey: Keys.knowledgeGraphCloudConsent) }
+    }
+
     var agentPocketVoice: String {
         didSet { defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice) }
     }
@@ -833,6 +927,23 @@ final class Settings {
         static let voiceWakeEnabled = "voiceWakeEnabled"
         static let agentVoiceIdentifier = "agentVoiceIdentifier"
         static let agentVoiceEngine = "agentVoiceEngine"
+        static let agentPersonaEnabled = PersonaStore.enabledDefaultsKey
+        static let agentMemoryEnabled = MemorySnapshotCache.enabledDefaultsKey
+        static let agentMemoryReviewModel = MemoryReviewModelChoice.defaultsKey
+        static let agentSessionIdleMinutes = AgentSessionBoundary.idleDefaultsKey
+        static let agentSchedulesEnabled = "agentSchedulesEnabled"
+        static let agentQuietHoursStart = "agentQuietHoursStart"
+        static let agentQuietHoursEnd = "agentQuietHoursEnd"
+        static let agentRoutineSpeech = "agentRoutineSpeech"
+        static let agentLaunchAtLogin = "agentLaunchAtLogin"
+        static let knowledgeIndexEnabled = KnowledgeIndexSettings.enabledKey
+        static let knowledgeIncludeConversations = KnowledgeIndexSettings.includeConversationsKey
+        static let knowledgeIncludeDictation = KnowledgeIndexSettings.includeDictationKey
+        static let knowledgeIncludeRoutines = KnowledgeIndexSettings.includeRoutinesKey
+        static let knowledgeEmbedder = KnowledgeIndexSettings.embedderKey
+        static let knowledgeAgentToolsEnabled = KnowledgeToolGate.enabledKey
+        static let knowledgeGraphEnabled = KnowledgeIndexSettings.graphKey
+        static let knowledgeGraphCloudConsent = KnowledgeIndexSettings.graphCloudConsentKey
         static let agentPocketVoice = "agentPocketVoice"
         static let wakePhrase = "wakePhrase"
         static let wakeSensitivity = "wakeSensitivity"
@@ -936,6 +1047,25 @@ final class Settings {
         agentVoiceIdentifier = defaults.string(forKey: Keys.agentVoiceIdentifier) ?? ""
         agentVoiceEngine = defaults.string(forKey: Keys.agentVoiceEngine) ?? "apple"
         agentPocketVoice = defaults.string(forKey: Keys.agentPocketVoice) ?? "alba"
+        agentPersonaEnabled = defaults.object(forKey: Keys.agentPersonaEnabled) as? Bool ?? true
+        agentMemoryEnabled = defaults.object(forKey: Keys.agentMemoryEnabled) as? Bool ?? true
+        agentMemoryReviewModel = defaults.string(forKey: Keys.agentMemoryReviewModel)
+            ?? MemoryReviewModelChoice.auto.rawValue
+        agentSessionIdleMinutes = defaults.object(forKey: Keys.agentSessionIdleMinutes) as? Int
+            ?? AgentSessionBoundary.defaultIdleMinutes
+        agentSchedulesEnabled = defaults.object(forKey: Keys.agentSchedulesEnabled) as? Bool ?? true
+        agentQuietHoursStart = defaults.string(forKey: Keys.agentQuietHoursStart) ?? "21:00"
+        agentQuietHoursEnd = defaults.string(forKey: Keys.agentQuietHoursEnd) ?? "08:00"
+        agentRoutineSpeech = defaults.string(forKey: Keys.agentRoutineSpeech) ?? "whenPresent"
+        agentLaunchAtLogin = defaults.object(forKey: Keys.agentLaunchAtLogin) as? Bool ?? false
+        knowledgeIndexEnabled = defaults.object(forKey: Keys.knowledgeIndexEnabled) as? Bool ?? false
+        knowledgeIncludeConversations = defaults.object(forKey: Keys.knowledgeIncludeConversations) as? Bool ?? true
+        knowledgeIncludeDictation = defaults.object(forKey: Keys.knowledgeIncludeDictation) as? Bool ?? false
+        knowledgeIncludeRoutines = defaults.object(forKey: Keys.knowledgeIncludeRoutines) as? Bool ?? false
+        knowledgeEmbedder = defaults.string(forKey: Keys.knowledgeEmbedder) ?? KnowledgeEmbedderChoice.none.rawValue
+        knowledgeAgentToolsEnabled = defaults.object(forKey: Keys.knowledgeAgentToolsEnabled) as? Bool ?? false
+        knowledgeGraphEnabled = defaults.object(forKey: Keys.knowledgeGraphEnabled) as? Bool ?? false
+        knowledgeGraphCloudConsent = defaults.object(forKey: Keys.knowledgeGraphCloudConsent) as? Bool ?? false
         wakePhrase = defaults.string(forKey: Keys.wakePhrase) ?? WakeWordConfiguration.defaultPhrase
         wakeSensitivity = defaults.object(forKey: Keys.wakeSensitivity) as? Double ?? 0.5
         listenWhileSleeping = defaults.object(forKey: Keys.listenWhileSleeping) as? Bool ?? true

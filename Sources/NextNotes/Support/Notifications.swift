@@ -28,6 +28,14 @@ final class Notifications {
         /// proposal, and the two are not interchangeable.
         case approveProposal(id: String)
         case dismissProposal(id: String)
+        /// A reminder's notification (Part 3): its body, *Read aloud* and *Snooze*.
+        case openSchedule(id: UUID)
+        case readScheduleAloud(id: UUID)
+        case snoozeSchedule(id: UUID)
+        /// A routine's draft (Part 3): *Review* opens the Routines view, *Approve* runs it
+        /// under the user's authority. Carries the draft's id.
+        case reviewRoutineDraft(id: UUID)
+        case approveRoutineDraft(id: UUID)
     }
 
     /// Everything that wants to hear about a pressed button.
@@ -131,6 +139,48 @@ final class Notifications {
                 ],
                 intentIdentifiers: []
             ),
+            // Reminders now, routine results in R2. The same category rides on the request
+            // handed to macOS for a reminder, so Snooze works on one delivered while the app
+            // was closed too.
+            UNNotificationCategory(
+                identifier: Category.agentRoutine,
+                actions: [
+                    UNNotificationAction(
+                        identifier: ActionID.openSchedule,
+                        title: "Open",
+                        options: [.foreground]
+                    ),
+                    UNNotificationAction(
+                        identifier: ActionID.readScheduleAloud,
+                        title: "Read aloud",
+                        options: []
+                    ),
+                    UNNotificationAction(
+                        identifier: ActionID.snoozeSchedule,
+                        title: "Snooze 10 minutes",
+                        options: []
+                    ),
+                ],
+                intentIdentifiers: []
+            ),
+            // A routine prepared a write it may not run unattended. Approving from here is
+            // the user's authority and runs exactly the draft the body describes.
+            UNNotificationCategory(
+                identifier: Category.agentRoutineApproval,
+                actions: [
+                    UNNotificationAction(
+                        identifier: ActionID.reviewRoutineDraft,
+                        title: "Review\u{2026}",
+                        options: [.foreground]
+                    ),
+                    UNNotificationAction(
+                        identifier: ActionID.approveRoutineDraft,
+                        title: "Approve",
+                        options: [.authenticationRequired]
+                    ),
+                ],
+                intentIdentifiers: []
+            ),
         ])
     }
 
@@ -229,6 +279,61 @@ final class Notifications {
         center.removeDeliveredNotifications(withIdentifiers: [identifier])
     }
 
+    /// A reminder, delivered now by the scheduler.
+    ///
+    /// Its identifier differs from the one the next occurrence is registered under with
+    /// macOS (`ScheduleNotifications.systemIdentifier`), so registering the next slot never
+    /// replaces the banner the user is reading.
+    ///
+    /// Throws when there is no notification center or macOS refuses the request, so the
+    /// scheduler counts it as a failed delivery rather than a delivered one.
+    func postAgentReminder(scheduleID: UUID, title: String, body: String) async throws {
+        guard let center = Self.center else { throw NotificationPostError.unavailable }
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.categoryIdentifier = Category.agentRoutine
+        content.userInfo = [UserInfoKey.scheduleID: scheduleID.uuidString]
+        content.sound = .default
+        let request = UNNotificationRequest(
+            identifier: "agent-reminder-delivered-\(scheduleID.uuidString)", content: content, trigger: nil)
+        try await center.add(request)
+    }
+
+    /// A reminder that keeps failing or turned itself off. Its own identifier, so it never
+    /// replaces the reminder's banner, and no Snooze or Read aloud: there is nothing to repeat.
+    /// Clicking it opens the reminders list.
+    func postAgentReminderProblem(scheduleID: UUID, title: String, body: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.userInfo = [UserInfoKey.scheduleID: scheduleID.uuidString]
+        post(content, identifier: "agent-reminder-problem-\(scheduleID.uuidString)")
+    }
+
+    /// "Your routine prepared this", with Review / Approve. One per draft, under the draft's
+    /// own identifier, so approving one never answers another.
+    func postRoutineDraft(_ draft: RoutineDraft, scheduleTitle: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "\(scheduleTitle): ready for your approval"
+        content.body = [draft.title, draft.preview].compactMap { $0 }.filter { !$0.isEmpty }
+            .joined(separator: "\n")
+        content.categoryIdentifier = Category.agentRoutineApproval
+        content.userInfo = [
+            UserInfoKey.scheduleID: draft.scheduleID.uuidString,
+            UserInfoKey.draftID: draft.id.uuidString,
+        ]
+        post(content, identifier: "agent-routine-draft-\(draft.id.uuidString)")
+    }
+
+    enum NotificationPostError: LocalizedError {
+        case unavailable
+
+        var errorDescription: String? {
+            "Notifications are unavailable, so the reminder could not be shown."
+        }
+    }
+
     private func post(_ content: UNNotificationContent, identifier: String) {
         guard let center = Self.center else { return }
         // No trigger: deliver now. The scheduler already decided the moment.
@@ -271,6 +376,10 @@ final class Notifications {
         /// The same question, without an Approve button. Used for anything that would speak
         /// in the user's name, where the only honest answer from a banner is "come and look".
         static let agentReview = "agentReview"
+        /// A reminder or a routine's result: Open, Read aloud, Snooze.
+        static let agentRoutine = "agentRoutine"
+        /// A routine's draft: Review, Approve.
+        static let agentRoutineApproval = "agentRoutineApproval"
     }
 
     enum ActionID {
@@ -280,11 +389,18 @@ final class Notifications {
         static let approveProposal = "agent.approve"
         static let dismissProposal = "agent.dismiss"
         static let reviewProposal = "agent.review"
+        static let openSchedule = "schedule.open"
+        static let readScheduleAloud = "schedule.readAloud"
+        static let snoozeSchedule = "schedule.snooze"
+        static let reviewRoutineDraft = "routine.reviewDraft"
+        static let approveRoutineDraft = "routine.approveDraft"
     }
 
     enum UserInfoKey {
         static let meetingID = "meetingID"
         static let proposalID = "proposalID"
+        static let scheduleID = "scheduleID"
+        static let draftID = "draftID"
     }
 }
 
@@ -300,6 +416,15 @@ private final class NotificationRouter: NSObject, UNUserNotificationCenterDelega
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        // A reminder registered with macOS for the closed-app case, firing while the app is
+        // running after all: the scheduler delivers it itself (so it can be spoken), and
+        // showing this copy too would put two banners up for one reminder.
+        let identifier = notification.request.identifier
+        if identifier.hasPrefix(ScheduleNotifications.systemIdentifierPrefix) {
+            completionHandler([])
+            Task { @MainActor in await AgentScheduler.shared.systemReminderFired(identifier: identifier) }
+            return
+        }
         // Shown even when Next Notes is frontmost: the user is usually looking at the
         // conferencing app, and "frontmost" is not the same as "watching this window".
         completionHandler([.banner, .sound])
@@ -313,7 +438,11 @@ private final class NotificationRouter: NSObject, UNUserNotificationCenterDelega
         let userInfo = response.notification.request.content.userInfo
         let identifier = response.actionIdentifier
         let proposalID = userInfo[Notifications.UserInfoKey.proposalID] as? String
+        let scheduleID = (userInfo[Notifications.UserInfoKey.scheduleID] as? String)
+            .flatMap(UUID.init(uuidString:))
         let meetingID = (userInfo[Notifications.UserInfoKey.meetingID] as? String)
+            .flatMap(UUID.init(uuidString:))
+        let draftID = (userInfo[Notifications.UserInfoKey.draftID] as? String)
             .flatMap(UUID.init(uuidString:))
 
         let action: Notifications.Action? = switch identifier {
@@ -327,6 +456,15 @@ private final class NotificationRouter: NSObject, UNUserNotificationCenterDelega
         case Notifications.ActionID.reviewProposal: meetingID.map { .open(meetingID: $0) }
         case Notifications.ActionID.approveProposal: proposalID.map { .approveProposal(id: $0) }
         case Notifications.ActionID.dismissProposal: proposalID.map { .dismissProposal(id: $0) }
+        case Notifications.ActionID.openSchedule: scheduleID.map { .openSchedule(id: $0) }
+        case Notifications.ActionID.readScheduleAloud: scheduleID.map { .readScheduleAloud(id: $0) }
+        case Notifications.ActionID.snoozeSchedule: scheduleID.map { .snoozeSchedule(id: $0) }
+        case Notifications.ActionID.reviewRoutineDraft: draftID.map { .reviewRoutineDraft(id: $0) }
+        case Notifications.ActionID.approveRoutineDraft: draftID.map { .approveRoutineDraft(id: $0) }
+        // A draft's body is Review, never Approve.
+        case UNNotificationDefaultActionIdentifier where draftID != nil: draftID.map { .reviewRoutineDraft(id: $0) }
+        // A reminder's body has no meeting behind it.
+        case UNNotificationDefaultActionIdentifier where scheduleID != nil: scheduleID.map { .openSchedule(id: $0) }
         // A proposal notification's body is not an approval — clicking through to the app
         // is how the user goes and looks at what is being proposed.
         case UNNotificationDefaultActionIdentifier: meetingID.map { .open(meetingID: $0) }

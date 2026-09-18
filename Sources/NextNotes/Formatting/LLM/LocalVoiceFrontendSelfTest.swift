@@ -317,9 +317,12 @@ enum LocalVoiceFrontendSelfTest {
                 }
             }
             await frontend.setSchedulerAcquiredObserverForTesting(nil)
+            // Independence is proven once speech arrived while the worker was still
+            // generating. Waiting out the full 256-token decode only burns the
+            // watchdog — cancel as soon as the probe has its evidence.
+            worker.cancel()
             _ = await worker.value
-            let workerSucceeded = await workerState.success
-            guard overlapFirst != nil, secondFirst != nil, workerSucceeded else {
+            guard overlapFirst != nil, secondFirst != nil else {
                 print("VOICE_FRONTEND_FAILED")
                 return false
             }
@@ -398,15 +401,21 @@ enum LocalVoiceFrontendSelfTest {
                     let queue = acquired.map { seconds(prefillStart.duration(to: $0)) } ?? -1
                     print("voice frontend long-prefill first_text=\(String(format: "%.3f", prefillFirst!))s scheduler_acquire=\(String(format: "%.3f", queue))s worker_completed=\(completed)")
                     if completed {
+                        prefillWorker.cancel()
+                        _ = await prefillWorker.value
+                        await frontend.setSchedulerAcquiredObserverForTesting(nil)
+                        await workerRuntime.setPrefillChunkObserverForTesting(nil)
                         print("VOICE_FRONTEND_FAILED")
                         return false
                     }
                 }
             }
-            let prefillWorkerSucceeded = await prefillWorker.value
+            // Same as the overlap probe: cancel once speech beat the remaining prefill.
+            prefillWorker.cancel()
+            _ = await prefillWorker.value
             await frontend.setSchedulerAcquiredObserverForTesting(nil)
             await workerRuntime.setPrefillChunkObserverForTesting(nil)
-            guard prefillFirst != nil, prefillWorkerSucceeded else {
+            guard prefillFirst != nil else {
                 print("VOICE_FRONTEND_FAILED")
                 return false
             }

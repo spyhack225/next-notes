@@ -213,8 +213,10 @@ enum RealtimeAgentToolLoopSelfTest {
         )
         check("tool request did not enter the separate planner", rounds >= 3)
         check("tool planner did not receive a real tool result", sawResult)
-        check("tool catalogue crowded out the 4K model context (\(schemaCharacters) chars)",
-              schemaCharacters < 8_000)
+        // Measured without the persona, which has its own budget (`--selftest-persona`).
+        let plannerPersona = PersonaStore.shared.fullPersona().count
+        check("tool catalogue crowded out the 4K model context (\(schemaCharacters) chars, persona \(plannerPersona))",
+              schemaCharacters - plannerPersona < 8_000)
         check("tool loop returned no final answer", !turn.reply.isEmpty)
         check("tool loop leaked a tool tag to the user", !turn.reply.contains("<tool_call>"))
 
@@ -231,8 +233,11 @@ enum RealtimeAgentToolLoopSelfTest {
         check("conversation entered tool planning (\(directRounds) rounds)", directRounds == 1)
         let firstPrompt = RealtimeAgent.voiceRoutingSystem(voice: false)
         check("first pass omitted the model tool decision", firstPrompt.contains("<use_tools/>"))
-        check("conversation prompt still carries the full tool roster (\(firstPromptCharacters) chars)",
-              firstPromptCharacters < 1_500)
+        // The persona is the user's own text and is budgeted separately
+        // (`--selftest-persona`); this ceiling is about the tool roster.
+        let personaCharacters = PersonaStore.shared.fullPersona().count
+        check("conversation prompt still carries the full tool roster (\(firstPromptCharacters) chars, persona \(personaCharacters))",
+              firstPromptCharacters - personaCharacters < 1_500)
 
 
         var utc = Calendar(identifier: .gregorian)

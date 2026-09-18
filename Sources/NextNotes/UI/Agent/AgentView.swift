@@ -1,13 +1,16 @@
 import SwiftUI
 
-/// The persistent agent: conversation, running tasks and the audit log.
+/// The persistent agent: conversation, running tasks and the audit log — and, in their own
+/// panes, Routines and About (identity, SOUL, MEMORY).
 struct AgentView: View {
+    @State private var navigation = NavigationState.shared
     @State private var session = AgentSession.shared
     @State private var agent = RealtimeAgent.shared
     @State private var tasks = AgentTaskManager.shared
     @State private var audit = AgentAuditLog.shared
     @State private var gate = PermissionGate.shared
     @State private var acpGate = ACPConfirmationGate.shared
+    @State private var identity = AgentIdentityStore.shared
     @State private var draft = ""
     @State private var showsRecentTasks = false
 
@@ -69,9 +72,31 @@ struct AgentView: View {
     /// Visible strings for this screen. Named so `--selftest-settings` can prove they
     /// still contain U+0020 — screenshots of this heading have been misread as one word.
     static let headingEyebrow = "Agent"
-    static let headingTitle = "Talk to your computer"
+    static let headingTitle = "Your Mac is your best personal assistant"
 
     var body: some View {
+        Group {
+            switch navigation.agentPane {
+            case .conversation: conversation
+            case .routines: RoutinesView()
+            case .about: AgentAboutView()
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("Agent pane", selection: $navigation.agentPane) {
+                    ForEach(NavigationState.AgentPane.allCases) { pane in
+                        Text(pane.rawValue).tag(pane)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+        }
+        .navigationTitle("Agent")
+    }
+
+    private var conversation: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: DS.Space.l) {
@@ -146,7 +171,6 @@ struct AgentView: View {
             .padding(.top, DS.Space.s)
             .background(DS.Color.window)
         }
-        .navigationTitle("Agent")
     }
 
     private func permissionCard(_ request: PermissionRequest) -> some View {
@@ -225,13 +249,11 @@ struct AgentView: View {
         return HStack(alignment: .bottom, spacing: DS.Space.s) {
             if isUser { Spacer(minLength: DS.Space.xl) }
             if !isUser {
-                ThinkingOrb(state: .breathing, size: DS.Size.orbSmall,
-                            ink: DS.Color.accent, isAnimated: false, label: "Next")
-                    .accessibilityHidden(true)
+                NotionAvatarView(config: identity.avatar, size: DS.Size.agentAvatar)
             }
             VStack(alignment: isUser ? .trailing : .leading, spacing: DS.Space.xs) {
                 HStack(spacing: DS.Space.xs) {
-                    Text(isUser ? "You" : "Next").font(DS.Font.chip)
+                    Text(isUser ? "You" : identity.name).font(DS.Font.chip)
                     if isUser, source == "voice" {
                         Label("Voice", systemImage: "waveform")
                     } else if isUser, source == "text" {
@@ -298,8 +320,10 @@ struct AgentView: View {
 
     private var thinkingRow: some View {
         HStack(spacing: DS.Space.s) {
-            ThinkingOrb(state: .working, size: DS.Size.orbSmall, label: "Next is working")
-            Text(agent.progressTitle.isEmpty ? "Next is thinking…" : agent.progressTitle)
+            NotionAvatarView(config: identity.avatar, size: DS.Size.agentAvatar)
+            Text(agent.progressTitle.isEmpty
+                 ? "\(identity.name) is thinking…"
+                 : agent.progressTitle)
                 .font(DS.Font.callout)
                 .foregroundStyle(DS.Color.textSecondary)
         }

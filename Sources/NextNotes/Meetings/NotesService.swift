@@ -125,7 +125,13 @@ final class NotesService {
             if let model { finished.notesModel = model }
             // A meeting whose notes couldn't be written is still a finished meeting — it has
             // a transcript. Only a recording that had already failed keeps its failure.
-            finished.status = previousStatus.isFailure ? previousStatus : .done
+            let finalStatus: MeetingStatus = previousStatus.isFailure ? previousStatus : .done
+            // Part 4, Phase C: between the notes and done, while the graph is switched on. It
+            // follows the notes rather than gating them: everything that waited for the notes
+            // — the recording's release, the review, "after every meeting" routines — runs now,
+            // and extraction is minutes of background work nobody should wait on.
+            let extracts = model != nil && KnowledgeExtractionService.shared.isEnabled
+            finished.status = extracts ? .extracting : finalStatus
             store.save(finished)
             // The last thing that had a use for the recording has finished with it — but
             // only on the automatic pass. Regenerate replays work that has already been
@@ -143,7 +149,17 @@ final class NotesService {
                 // the user presses Regenerate with the meeting open in front of them —
                 // telling them in the corner of the screen what they are already watching.
                 IslandState.shared.announceNotesReady(finished)
+                // "After every meeting…" triggers wait for exactly this: the automatic pass,
+                // with notes written. Regenerate is not a new meeting to act on.
+                AgentTriggerEvents.shared.notesReady(finished)
             }
+
+            guard extracts else { return }
+            await KnowledgeExtractionService.shared.extract(finished, directory: store.directory(for: id))
+            // Done whether or not extraction ran — unless the meeting went while it did.
+            guard var extracted = store.meeting(id: id), extracted.status == .extracting else { return }
+            extracted.status = finalStatus
+            store.save(extracted)
         }
     }
 

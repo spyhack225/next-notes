@@ -51,7 +51,7 @@ export default function Hero() {
           {...fadeUp(0)}
           className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-medium tracking-[-1px] sm:tracking-[-2px] leading-[1.02]"
         >
-          Talk to your <span className="font-serif italic font-normal">Mac</span>.
+          Your <span className="font-serif italic font-normal">Mac</span> is your best <span className="font-serif italic font-normal">personal assistant</span>.
         </motion.h1>
 
         <motion.p

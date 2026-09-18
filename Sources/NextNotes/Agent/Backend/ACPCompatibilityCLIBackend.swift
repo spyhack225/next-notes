@@ -73,6 +73,10 @@ enum ACPCompatibilityCLIBackend {
     /// consumed by `AgentTaskManager`; a direct backend call cannot silently execute.
     @MainActor
     static func submit(_ task: AgentTask, explicitApproval: Bool) async throws -> AgentTaskOutcome {
+        // Weaker permissions than ACP, so never for a routine, allowed harness or not.
+        if task.scheduleID != nil || task.source == AgentTask.scheduledSource {
+            throw AgentError.permissionDenied("A routine cannot run the compatibility CLI; nothing was run.")
+        }
         guard canRun(explicitApproval: explicitApproval), let request = request(for: task) else {
             throw AgentError.permissionDenied(
                 "Compatibility CLI mode requires an explicit one-shot approval."

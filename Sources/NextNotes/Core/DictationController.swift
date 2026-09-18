@@ -541,6 +541,8 @@ final class DictationController {
             originBundleID: origin?.app.bundleIdentifier
         )
         state = .starting
+        // An embedder a search loaded is not left beside the dictation for its idle timer.
+        Task { await EmbeddingRuntime.shared.stopNow() }
         transcript = ""
         audioCounter = DictationAudioCounter()
         holdStarted = Date()

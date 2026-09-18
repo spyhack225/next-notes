@@ -56,6 +56,14 @@ protocol LLMProvider: Sendable {
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion
 
+    /// Whether `complete(…grammar:)` actually constrains decoding. Only the in-process llama
+    /// runtime can; the others generate freely and the caller validates what comes back.
+    var enforcesGrammar: Bool { get }
+
+    /// A completion constrained to `grammar` where the provider supports it (`GBNFGrammar`),
+    /// and an ordinary completion where it does not.
+    func complete(system: String, user: String, maxTokens: Int, grammar: GBNFGrammar) async throws -> LLMCompletion
+
     /// Incremental text for interactive answers. Providers with a native token stream
     /// should override this; the default keeps existing providers compatible while still
     /// giving callers one cancellable interface.
@@ -81,6 +89,12 @@ protocol LLMProvider: Sendable {
 
 extension LLMProvider {
     var displayModelName: String { id.displayName }
+
+    var enforcesGrammar: Bool { false }
+
+    func complete(system: String, user: String, maxTokens: Int, grammar: GBNFGrammar) async throws -> LLMCompletion {
+        try await complete(system: system, user: user, maxTokens: maxTokens)
+    }
 
     func streamInteractiveConversation(
         system: String,

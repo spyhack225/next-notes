@@ -28,6 +28,7 @@ extension MeetingStatus {
         case .transcribing: .working
         case .diarizing: .solving
         case .summarizing: .composing
+        case .extracting: .connecting
         case .done, .failed: nil
         }
     }

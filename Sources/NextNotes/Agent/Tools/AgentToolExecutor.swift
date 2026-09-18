@@ -76,11 +76,38 @@ enum AgentToolExecutor {
             )
         }
         let publicTitle = AgentActivityProjector.title(for: tool, arguments: authorizedArguments)
-        let source: ActionSource = meetingID == nil ? .agent : .meeting
         // A meeting-origin call is derived context unless the caller explicitly passes the
         // user's approval. This prevents a future meeting mutation from inheriting authority
         // merely because it used the generic executor API.
         let actionAuthority = authority ?? (meetingID == nil ? .user : .systemDerived)
+        let source: ActionSource = actionAuthority.isScheduled ? .scheduled : meetingID == nil ? .agent : .meeting
+        // Runs cannot create schedules — not even a read of them is in a run's ceiling, and a
+        // write would be a job making jobs.
+        if actionAuthority.isScheduled, tool.namespace == .schedule {
+            throw AgentError.permissionDenied("A routine run cannot use \(tool.id).")
+        }
+        // The one auto-allowed write needs both halves: the authority the runtime checks, and
+        // the provenance the code running the turn bound — never the model's arguments.
+        if tool.namespace == .memory, tool.risk > .read {
+            let provenance = MemoryProvenance.current
+            guard meetingID == nil, let provenance, provenance.requiredAuthority == actionAuthority else {
+                throw MemoryWriteError.provenance(
+                    "memory can only be saved from what you say in a conversation with the Agent.")
+            }
+        }
+        // A reminder skips the card only with the user's checked yes behind it; otherwise
+        // the card, whose preview is the sentence, is the confirmation.
+        effective.confirmedScheduleWrite = false
+        if tool.namespace == .schedule, tool.risk > .read {
+            let problem = meetingID == nil && actionAuthority == .user
+                ? ScheduleConfirmation.problem(
+                    toolID: tool.id, arguments: authorizedArguments, provenance: MemoryProvenance.current)
+                : "not the user's own request."
+            effective.confirmedScheduleWrite = problem == nil
+            if let problem {
+                Log.agent.info("\(tool.id, privacy: .public) asks for permission: \(problem, privacy: .public)")
+            }
+        }
         let intent = ActionIntent(
             source: source,
             authority: actionAuthority,
@@ -103,8 +130,9 @@ enum AgentToolExecutor {
             ),
             steps: [tool.id],
             policy: effective,
-            promptIfNeeded: promptIfNeeded,
-            permissionAlreadyGranted: permissionAlreadyGranted,
+            // Nobody is there to answer a card for a scheduled run.
+            promptIfNeeded: promptIfNeeded && !actionAuthority.isScheduled,
+            permissionAlreadyGranted: permissionAlreadyGranted && !actionAuthority.isScheduled,
             allowUnverifiedResult: (tool.namespace == .browser
                                     || tool.namespace == .computer
                                     || tool.namespace == .workspace)
@@ -243,6 +271,21 @@ enum AgentToolExecutor {
             return try FilesystemExecutor.run(tool, arguments: arguments)
         case .shell:
             return try await ShellExecutor.run(tool, arguments: arguments)
+        case .memory:
+            var knowledge = KnowledgeIndexer.shared.recall
+            if tool.name == "recall" { await knowledge?.prepare(for: arguments["query"] ?? "") }
+            return try MemoryToolExecutor.run(tool, arguments: arguments, provenance: MemoryProvenance.current,
+                                              knowledge: knowledge)
+        case .knowledge:
+            // Checked at the call, not only when planning: a routine's allowed tools outlive
+            // the switch, and turning it off must stop the next run too.
+            guard KnowledgeToolGate.mayRun, let context = KnowledgeIndexer.shared.toolContext else {
+                throw KnowledgeToolError.off
+            }
+            return try await KnowledgeToolExecutor.run(tool, arguments: arguments, context: context)
+        case .schedule:
+            return try await ScheduleToolExecutor.run(
+                tool, arguments: arguments, sessionID: AgentSession.shared.sessionID)
         case .browser:
             let result = try await BrowserExecutor.run(tool, arguments: arguments)
             if tool.risk > .read {

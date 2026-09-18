@@ -8,15 +8,76 @@ enum ActionSource: String, Codable, Sendable, CaseIterable {
     case agent
     case system
     case background
+    /// A routine run with nobody present (Part 3).
+    case scheduled
 }
 
 /// Who supplied the authority for an action. Audio from another participant is evidence,
 /// never authority, even when a model labels it as an instruction.
-enum ActionAuthority: String, Codable, Sendable, CaseIterable {
+///
+/// Stored as a string — `"user"`, or `"scheduled:<uuid>"` — so receipts written before
+/// `.scheduled` existed still decode as the same thing.
+enum ActionAuthority: Codable, Sendable, Hashable {
     case user
     case otherParticipant
     case systemDerived
     case background
+    /// The background memory review (Part 2). Authority for `memory.*` writes only.
+    case memoryReview
+    /// A routine running unattended (Part 3). Not `.user` and not `.background`: it may run
+    /// the observe and read tools its schedule was confirmed with, and nothing else. Writes
+    /// become drafts the user approves; `ActionOrchestrator` refuses them outright.
+    case scheduled(UUID)
+
+    static let scheduledPrefix = "scheduled:"
+
+    var rawValue: String {
+        switch self {
+        case .user: "user"
+        case .otherParticipant: "otherParticipant"
+        case .systemDerived: "systemDerived"
+        case .background: "background"
+        case .memoryReview: "memoryReview"
+        case .scheduled(let id): Self.scheduledPrefix + id.uuidString
+        }
+    }
+
+    init?(rawValue: String) {
+        switch rawValue {
+        case "user": self = .user
+        case "otherParticipant": self = .otherParticipant
+        case "systemDerived": self = .systemDerived
+        case "background": self = .background
+        case "memoryReview": self = .memoryReview
+        default:
+            guard rawValue.hasPrefix(Self.scheduledPrefix),
+                  let id = UUID(uuidString: String(rawValue.dropFirst(Self.scheduledPrefix.count)))
+            else { return nil }
+            self = .scheduled(id)
+        }
+    }
+
+    /// The schedule behind a `.scheduled` authority.
+    var scheduleID: UUID? {
+        if case .scheduled(let id) = self { return id }
+        return nil
+    }
+
+    var isScheduled: Bool { scheduleID != nil }
+
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        guard let value = Self(rawValue: raw) else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath,
+                                                    debugDescription: "Unknown authority \(raw)"))
+        }
+        self = value
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 struct ActionContextReference: Codable, Equatable, Sendable, Identifiable {
@@ -273,7 +334,8 @@ final class ActionReceiptStore {
         AppIdentity.applicationSupportDirectory.appendingPathComponent("action-receipts.json")
     }
 
-    private init() { receipts = Self.load() }
+    /// A self-test starts empty: it must never read the user's receipts either.
+    private init() { receipts = SelfTest.isRunning ? [] : Self.load() }
 
     @discardableResult
     func record(_ receipt: ActionReceipt) -> Bool {
@@ -345,6 +407,9 @@ final class ActionOrchestrator {
         isStillValid: (@MainActor @Sendable () async -> Bool)? = nil,
         fire: @escaping @MainActor (PreparedAction) async throws -> AgentToolResult
     ) async throws -> AgentToolResult {
+        // Nobody is present for a scheduled run, so nothing may wait on a person: a
+        // decision that would ask records `waitingPermission` and throws instead.
+        let promptIfNeeded = promptIfNeeded && !intent.authority.isScheduled
         let preparedID = UUID()
         var receipt = ActionReceipt(
             actionID: preparedID, intent: intent, source: intent.source,
@@ -373,7 +438,8 @@ final class ActionOrchestrator {
             guard intent.risk == tool.risk else {
                 throw AgentError.permissionDenied("The action risk changed before execution.")
             }
-            if tool.risk >= .modify, intent.authority != .user {
+            let memoryReviewWrite = tool.namespace == .memory && intent.authority == .memoryReview
+            if tool.risk >= .modify, intent.authority != .user, !memoryReviewWrite {
                 add(.denied, "Only the user's microphone or explicit approval can authorize a mutation.")
                 throw AgentError.permissionDenied("Only the user can authorize this action.")
             }
@@ -393,7 +459,8 @@ final class ActionOrchestrator {
             let decision = await PermissionBroker.shared.authorize(
                 tool, arguments: intent.arguments, policy: policy,
                 scope: await PermissionScopeResolver.inferredAsync(tool: tool, arguments: intent.arguments),
-                meetingID: routing.meetingID, taskID: routing.taskID
+                meetingID: routing.meetingID, taskID: routing.taskID,
+                authority: intent.authority
             )
             switch decision {
             case .deny(let reason):
@@ -471,6 +538,53 @@ final class ActionOrchestrator {
         }
     }
 
+    /// A routine's write, prepared and never fired (Part 3, authority 4).
+    ///
+    /// The run has `.scheduled` authority, which `execute` refuses for anything of `.modify`
+    /// risk or higher — that rule stays exactly as it is. So a routine does not go through
+    /// `execute` for a write at all: it freezes the exact plan here, the receipt ends in
+    /// `waitingPermission`, and the user approves it later from a notification or the
+    /// Routines view. That approval is user authority and goes through `execute` like any
+    /// other request. Nothing here calls `PermissionGate` or the tool's executor.
+    func draft(
+        intent: ActionIntent,
+        tool: AgentTool,
+        title: String,
+        preparedContent: PreparedContent? = nil,
+        routing: ActionRouting,
+        steps: [String] = []
+    ) throws -> PreparedAction {
+        let preparedID = UUID()
+        var receipt = ActionReceipt(
+            actionID: preparedID, intent: intent, source: intent.source,
+            authority: intent.authority, toolID: tool.id, meetingID: routing.meetingID,
+            taskID: routing.taskID
+        )
+        func add(_ stage: ActionReceiptStatus, _ detail: String) -> Bool {
+            receipt.status = stage
+            receipt.events.append(ActionReceiptEvent(stage: stage, detail: detail))
+            return ActionReceiptStore.shared.record(receipt)
+        }
+        _ = add(.judged, "\(intent.source.rawValue) intent for \(tool.id)")
+        guard intent.risk == tool.risk, tool.risk >= .modify, intent.authority.isScheduled else {
+            _ = add(.denied, "Only an unattended routine's write is drafted.")
+            throw AgentError.permissionDenied("Only an unattended routine's write is drafted.")
+        }
+        _ = add(.verified, "Within the routine's allowed tools; unattended authority cannot execute it")
+        var prepared = PreparedAction(
+            id: preparedID, intentID: intent.id, title: title,
+            preparedContent: preparedContent, routing: routing,
+            executionPlan: ActionExecutionPlan(toolID: tool.id, arguments: intent.arguments, steps: steps),
+            evidence: intent.evidence, risk: tool.risk, status: .awaitingPermission
+        )
+        receipt.preparedAction = prepared
+        guard add(.prepared, title), add(.waitingPermission, "Draft awaiting the user's approval") else {
+            throw AgentError.backendUnavailable("Could not save the draft's receipt; nothing was prepared.")
+        }
+        prepared.status = .awaitingPermission
+        return prepared
+    }
+
     /// A success sentence is not proof that a mutation happened. Read-only tools can be
     /// verified by their returned content; consequential tools need a resource reference or
     /// link supplied by the integration. Unknown mutation results fail closed.
@@ -484,6 +598,10 @@ final class ActionOrchestrator {
         // a coding side effect landed.
         if tool.id == "mcp.acp_session" { return result.verification }
         if tool.risk <= .read { return "Read result returned" }
+        // Memory writes read the entry back from the store before returning.
+        if tool.namespace == .memory { return result.verification }
+        // Schedule writes read the record back from agent-schedules.json.
+        if tool.namespace == .schedule { return result.verification }
 
         if tool.namespace == .filesystem {
             if tool.name == "delete" {

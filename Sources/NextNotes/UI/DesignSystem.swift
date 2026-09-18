@@ -59,6 +59,34 @@ enum DS {
         static let warning = SwiftUI.Color(nsColor: .systemOrange)
         static let info = SwiftUI.Color.secondary
 
+        /// Accent on the Agent → About SOUL access card (type/icon only — not a chrome gradient).
+        static let soulAccent = SwiftUI.Color(nsColor: .systemPink)
+        /// Accent on the Agent → About MEMORY access card.
+        static let memoryAccent = SwiftUI.Color(nsColor: .systemBlue)
+
+        // Knowledge graph node inks (Search → Graph). Not chrome — canvas dots only.
+        static let graphPerson = accent
+        static let graphMeeting = text
+        static let graphDecision = success
+        static let graphWork = SwiftUI.Color(nsColor: .systemBlue)       // Project, Organization, Goal
+        static let graphLife = SwiftUI.Color(nsColor: .systemTeal)       // Activity, Place, Event
+        static let graphPreference = SwiftUI.Color(nsColor: .systemPurple)
+        static let graphTopic = textTertiary
+
+        /// Ink for a graph node by ontology type.
+        static func graphNode(_ type: String) -> SwiftUI.Color {
+            switch type {
+            case "Person": graphPerson
+            case "Meeting": graphMeeting
+            case "Decision", "ActionItem", "OpenQuestion", "Artifact": graphDecision
+            case "Project", "Organization", "Goal": graphWork
+            case "Activity", "Place", "Event": graphLife
+            case "Preference": graphPreference
+            case "Topic": graphTopic
+            default: textTertiary
+            }
+        }
+
         /// Diarized speakers, in assignment order. "You" is always `accent`.
         static let speakers: [SwiftUI.Color] = [
             SwiftUI.Color(nsColor: .systemBlue),
@@ -174,6 +202,8 @@ enum DS {
         static let glassSmall: CGFloat = 10
         /// A dotted field used as a panel background rather than as a whole screen.
         static let field: CGFloat = 12
+        /// Hover label chip floating above a global-graph node.
+        static let graphHoverChip: CGFloat = 8
     }
 
     // MARK: - Size
@@ -220,7 +250,19 @@ enum DS {
         /// A conversation bubble stays readable on a wide desktop detail pane.
         static let agentBubbleMaxWidth: CGFloat = 620
         static let agentEventMaxWidth: CGFloat = 520
-
+        /// Chat header / thinking-row Notion avatar.
+        static let agentAvatar: CGFloat = 28
+        /// Agent → About hero avatar.
+        static let agentAvatarHero: CGFloat = 96
+        /// Thumbnail in the avatar part chooser.
+        static let agentAvatarThumb: CGFloat = 56
+        /// Pencil affordance overlapping the About avatar.
+        static let agentAvatarEdit: CGFloat = 28
+        /// About pane content column.
+        static let agentAboutMaxWidth: CGFloat = 560
+        static let agentAboutCardIdeal: CGFloat = 280
+        /// SOUL / MEMORY access tiles.
+        static let agentAccessCardMinHeight: CGFloat = 140
         /// A determinate progress bar in a detail pane. Wide enough to read as progress,
         /// narrow enough not to read as a divider.
         static let progressWidth: CGFloat = 220
@@ -340,6 +382,45 @@ enum DS {
         /// band's content changes between states — the meter used to set this height, and
         /// removing it left the band free to resize on every transition.
         static let statusBandMinHeight: CGFloat = 44
+
+        // MARK: Knowledge graph
+
+        /// A node's default dot in the local and global graph views.
+        static let graphNodeDot: CGFloat = 10
+        /// The focused node — one clear centre of attention.
+        static let graphNodeDotFocus: CGFloat = 14
+        /// Neighbours of the focus (or primary types on the global map).
+        static let graphNodeDotPrimary: CGFloat = 11
+        /// Secondary / leaf nodes on the global map.
+        static let graphNodeDotSecondary: CGFloat = 8
+        /// Soft glow under the focus node; diameter, not radius.
+        static let graphNodeHalo: CGFloat = 28
+        /// Gap between the filled dot and its selection ring.
+        static let graphNodeRingPad: CGFloat = 4
+        /// Hit target around a graph node — larger than the drawn dot so clicks land.
+        static let graphNodeHitRadius: CGFloat = 22
+        /// A graph canvas's inset from the pane edge, so node labels never clip.
+        static let graphCanvasInset: CGFloat = 32
+        /// Minimum height for a force-layout canvas in the Search detail.
+        static let graphCanvasMinHeight: CGFloat = 360
+        /// Cap on a node label under its dot.
+        static let graphLabelMaxWidth: CGFloat = 128
+        /// How far below the dot a local-graph label sits.
+        static let graphLabelOffset: CGFloat = 14
+        /// Hover chip on the global map — slightly wider than a local label.
+        static let graphHoverLabelMaxWidth: CGFloat = 168
+        /// Node rows in the graph's side list before it scrolls.
+        static let graphNodeListHeight: CGFloat = 280
+        /// Type-colour swatch beside a rail row.
+        static let graphRailSwatch: CGFloat = 8
+        /// The widest a person timeline row runs before it wraps.
+        static let timelineRowMaxWidth: CGFloat = 560
+        /// Vertical rail beside person-timeline moments.
+        static let timelineSpineWidth: CGFloat = 2
+        /// Moment marker on that spine.
+        static let timelineMarker: CGFloat = 10
+        /// Leading column that holds the spine + marker.
+        static let timelineGutter: CGFloat = 28
     }
 
     // MARK: - Field
@@ -421,6 +502,22 @@ enum DS {
         /// An empty state's orb. Held just off full ink so it reads as an illustration
         /// rather than as a control.
         static let emptyStateOrb: Double = 0.85
+
+        /// Nodes outside the hovered neighbourhood on a local graph: still there, not the
+        /// thing being looked at (Phase F).
+        static let graphDimmed: Double = 0.18
+        /// Edges that do not touch the hovered node.
+        static let graphEdgeDimmed: Double = 0.08
+        /// Edges that touch the hovered / focus neighbourhood.
+        static let graphEdgeActive: Double = 0.42
+        /// Soft halo under the focus node.
+        static let graphNodeHalo: Double = 0.16
+        /// Selection ring around the focus node.
+        static let graphFocusRing: Double = 0.55
+        /// Lighter ring while the pointer is over a neighbour.
+        static let graphHoverRing: Double = 0.32
+        /// Timeline spine behind person moments.
+        static let timelineSpine: Double = 0.22
     }
 
     // MARK: - Scale
@@ -441,6 +538,14 @@ enum DS {
     enum Border {
         static let hairline: CGFloat = 1
         static let needle: CGFloat = 1.5
+        /// Active edge on a local graph (hover / focus neighbourhood).
+        static let graphEdgeActive: CGFloat = 1.5
+        /// Quiet edges everywhere else on the canvas.
+        static let graphEdgeQuiet: CGFloat = 0.75
+        /// Dimmed edges on the global map while a neighbourhood is highlighted.
+        static let graphEdgeFaint: CGFloat = 0.4
+        /// Selection / hover ring around a graph node.
+        static let graphRing: CGFloat = 1.5
     }
 
     // MARK: - Shadow

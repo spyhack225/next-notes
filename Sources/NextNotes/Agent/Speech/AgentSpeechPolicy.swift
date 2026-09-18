@@ -50,6 +50,10 @@ enum AgentSpeechPolicy {
         // still contain an opaque mail ID, a file path, or a bullet.
         if !lines.contains(where: { $0.hasPrefix("- ") }),
            !spokenForm(result).isEmpty { return result }
+        if toolID.hasPrefix("memory."), toolID != "memory.recall",
+           let first = lines.first, !first.isEmpty, !spokenForm(first).isEmpty {
+            return first
+        }
         switch toolID {
         case "get_agenda":
             let events = lines.filter { $0.hasPrefix("- ") }.map { String($0.dropFirst(2)) }
@@ -89,6 +93,79 @@ enum AgentSpeechPolicy {
         }
         return result.isEmpty ? nil
             : "I have the result, but its details are easier to read in the conversation."
+    }
+
+    // MARK: - Memory confirmations
+
+    enum MemoryAction: Sendable {
+        case saved
+        case updated
+        case forgotten
+        case alreadyKnown
+    }
+
+    /// The one sentence the Agent says after an in-conversation memory write, so a memory
+    /// is never saved silently: "Noted — you prefer short answers." The stored text is
+    /// third person ("The user prefers…"); the spoken form addresses the user.
+    static func memoryConfirmation(_ action: MemoryAction, text: String) -> String {
+        var fact = secondPerson(text.trimmingCharacters(in: .whitespacesAndNewlines))
+        while let last = fact.last, ".!?".contains(last) { fact.removeLast() }
+        let sentence: String = switch action {
+        case .saved: "Noted — \(fact)."
+        case .updated: "Updated — \(fact)."
+        case .forgotten: "Forgotten — I no longer remember that \(fact)."
+        case .alreadyKnown: "I already remember that \(fact)."
+        }
+        guard !fact.isEmpty, sentence.count <= 220, !spokenForm(sentence).isEmpty else {
+            return switch action {
+            case .saved: "Noted — I saved that to memory."
+            case .updated: "Updated — I changed that memory."
+            case .forgotten: "Forgotten — I removed that memory."
+            case .alreadyKnown: "I already remember that."
+            }
+        }
+        return sentence
+    }
+
+    /// "The user prefers short answers" → "you prefer short answers". Handles the subject
+    /// and possessive, and the verb (or adverb + verb) right after the subject.
+    static func secondPerson(_ text: String) -> String {
+        var words = text.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+        guard !words.isEmpty else { return text }
+        var index = 0
+        var changedSubject = false
+        while index < words.count {
+            let lowered = words[index].lowercased()
+            let next = index + 1 < words.count ? words[index + 1].lowercased() : ""
+            if lowered == "the", next == "user's" || next == "user’s" {
+                words.replaceSubrange(index...(index + 1), with: ["your"])
+            } else if lowered == "the", next == "user" {
+                words.replaceSubrange(index...(index + 1), with: ["you"])
+                changedSubject = true
+                var verb = index + 1
+                if verb < words.count, words[verb].lowercased().hasSuffix("ly") { verb += 1 }
+                if verb < words.count { words[verb] = baseVerb(words[verb]) }
+            }
+            index += 1
+        }
+        // A sentence-initial article reads mid-sentence after "Noted —"; a name keeps its capital.
+        if !changedSubject, let first = words.first, ["The", "A", "An"].contains(first) {
+            words[0] = first.lowercased()
+        }
+        return words.joined(separator: " ")
+    }
+
+    private static func baseVerb(_ word: String) -> String {
+        let lowered = word.lowercased()
+        let irregular = ["is": "are", "has": "have", "was": "were", "does": "do", "goes": "go",
+                         "doesn't": "don't", "isn't": "aren't", "wasn't": "weren't", "hasn't": "haven't"]
+        if let base = irregular[lowered] { return base }
+        guard lowered.count > 3, lowered.hasSuffix("s"), !lowered.hasSuffix("ss") else { return word }
+        if lowered.hasSuffix("ies") { return String(word.dropLast(3)) + "y" }
+        for ending in ["ches", "shes", "sses", "xes", "zes"] where lowered.hasSuffix(ending) {
+            return String(word.dropLast(2))
+        }
+        return String(word.dropLast())
     }
 
     /// Streaming guard used after a clause may already have started. Once unsafe
@@ -449,6 +526,7 @@ enum AgentSpeechPolicy {
     private static let toolMarks: [String] = [
         "filesystem.", "computer.", "shell.run", "shell.status", "shell.cancel",
         "browser.", "meeting.", "workspace.", "mcp.",
+        "memory.remember", "memory.update", "memory.forget", "memory.recall",
         "search_email", "get_agenda", "find_drive_files",
         "inspect_ui", "active_app",
     ]

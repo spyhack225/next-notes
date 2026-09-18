@@ -59,6 +59,6 @@
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Next Notes reads your calendar to know when a meeting starts, so it can offer to take notes.</string>
 	<key>NSUserNotificationsUsageDescription</key>
-	<string>Next Notes notifies you before a meeting recording starts and when notes are ready.</string>
+	<string>Next Notes notifies you before a meeting recording starts, when notes are ready, and when a reminder you set with the Agent is due.</string>
 </dict>
 </plist>

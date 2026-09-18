@@ -169,6 +169,9 @@ enum SelfTest {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let controller = DictationController()
+    /// The running delegate, for code that must read dictation state from outside the view
+    /// tree (the reminder presence rule). The SwiftUI adaptor hides it from `NSApp.delegate`.
+    private(set) static weak var current: AppDelegate?
     /// Meetings run from a singleton because the menu bar, the Meetings section and the
     /// scheduler all have to reach the same session. The delegate holds it so a running
     /// recording is closed out when the app quits.
@@ -180,6 +183,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var stateObservation: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Self.current = self
         // Before the self-test check: a notification the user actioned while Next Notes was
         // closed is delivered the instant the app launches, and a delegate installed after
         // that never sees it.
@@ -234,6 +238,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // registers a notification observer and the island's decision handler, and both of
         // those have to exist before a proposal from a previous session is delivered.
         AgentService.shared.start()
+        // Composio is an MCP gateway: saving the key alone used to leave zero tools in the
+        // registry. Refresh after the agent is up so meta-tools exist before the first ask.
+        Task { @MainActor in
+            guard ComposioProvider.isConfigured else { return }
+            do {
+                _ = try await ComposioProvider.connectAndRefresh()
+            } catch {
+                Log.agent.error("Composio refresh failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        // Reminders start after the agent, for the same reason the agent starts after the
+        // meeting scheduler: its notification observer must exist before a Snooze pressed
+        // while the app was closed is delivered.
+        AgentScheduler.shared.start()
+        // Sessions end and are reviewed for memories in the background, never while recording.
+        MemoryReviewScheduler.shared.start()
+        // After the review scheduler: both hook the conversation, and the indexer only reads
+        // what the review has already been handed. Does nothing until the index is turned on.
+        KnowledgeIndexer.shared.start()
         // Touch the registry so native tools exist before the first utterance, then arm
         // the agent shortcut. Wake-word audio is not started until the user turns it on.
         _ = AgentToolRegistry.shared
@@ -412,7 +435,84 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-memory") {
             Task { @MainActor in
-                SelfTest.failed = !NextMemory.runSelfTest()
+                SelfTest.failed = !(await MemorySelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-memory-review") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MemoryReviewSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-schedule") {
+            Task { @MainActor in
+                SelfTest.failed = !(await ScheduleSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-routine-authority") {
+            Task { @MainActor in
+                SelfTest.failed = !(await RoutineAuthoritySelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-index") {
+            Task { @MainActor in
+                SelfTest.failed = !(await KnowledgeIndexSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-embed") {
+            Task { @MainActor in
+                SelfTest.failed = !(await KnowledgeEmbedSelfTest.run(text: SelfTest.value(after: "--selftest-embed")))
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-search") {
+            Task { @MainActor in
+                SelfTest.failed = !(await KnowledgeSearchSelfTest.run(query: SelfTest.value(after: "--selftest-search")))
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-ask") {
+            Task { @MainActor in
+                SelfTest.failed = !(await KnowledgeAskSelfTest.run(question: SelfTest.value(after: "--selftest-ask")))
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-extract") {
+            Task { @MainActor in
+                SelfTest.failed = !(await KnowledgeExtractSelfTest.run(path: SelfTest.value(after: "--selftest-extract")))
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-resolve") {
+            Task { @MainActor in
+                SelfTest.failed = !(await EntityResolveSelfTest.run(path: SelfTest.value(after: "--selftest-resolve")))
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-graph-layout") {
+            Task { @MainActor in
+                SelfTest.failed = !(await GraphLayoutSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-persona") {
+            Task { @MainActor in
+                SelfTest.failed = !PersonaSelfTest.run()
                 NSApp.terminate(nil)
             }
             return true
@@ -439,6 +539,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-mcp") {
             runMCPSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-composio") {
+            runComposioSelfTest()
             return true
         }
         if arguments.contains("--selftest-acp") {
@@ -2725,9 +2829,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if panel.ignoresMouseEvents {
                 failures.append("an expanded island is ignoring the mouse it has buttons for")
             }
-            if let screen = IslandGeometry.screenUnderMouse(),
-               panel.frame != IslandGeometry.metrics(for: screen).bounds {
-                failures.append("the island is not where its own geometry puts it")
+            // Compare against the screen the panel actually occupies — not
+            // `screenUnderMouse()` at check time. On a multi-display desk the
+            // pointer can move during the settle wait, and that would fail a
+            // correctly placed island. Allow one point of rounding: Retina
+            // frames often land a fraction off the pure arithmetic.
+            let panelCenter = NSPoint(x: panel.frame.midX, y: panel.frame.midY)
+            if let screen = NSScreen.screens.first(where: { $0.frame.contains(panelCenter) })
+                ?? IslandGeometry.screenUnderMouse() {
+                let expected = IslandGeometry.metrics(for: screen).bounds
+                let dx = abs(panel.frame.minX - expected.minX)
+                let dy = abs(panel.frame.minY - expected.minY)
+                let dw = abs(panel.frame.width - expected.width)
+                let dh = abs(panel.frame.height - expected.height)
+                if dx > 1 || dy > 1 || dw > 1 || dh > 1 {
+                    let got = "\(Int(panel.frame.minX)),\(Int(panel.frame.minY)) \(Int(panel.frame.width))x\(Int(panel.frame.height))"
+                    let want = "\(Int(expected.minX)),\(Int(expected.minY)) \(Int(expected.width))x\(Int(expected.height))"
+                    failures.append(
+                        "the island is not where its own geometry puts it (got \(got); expected \(want) on \(screen.localizedName))"
+                    )
+                }
+            } else {
+                failures.append("the island is on no screen")
             }
             state.dismissNotice()
             try? await Task.sleep(for: .seconds(Self.islandSettle))
@@ -3869,6 +3992,106 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             writeSelfTest(failures.isEmpty
                           ? "MCP_OK: initialize, session, list and call hold"
                           : "MCP_FAILED: \(failures.count) rule(s) wrong")
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// Live Connect MCP probe. Fails when no consumer key is configured — a pass without
+    /// talking to `connect.composio.dev` would be worse than none. Search is read-only and
+    /// does not need a linked app; linking and executing an upstream tool stay interactive.
+    private func runComposioSelfTest() {
+        Task { @MainActor in
+            var failures: [String] = []
+            func check(_ name: String, _ condition: Bool) {
+                if !condition { failures.append(name) }
+            }
+
+            check("default Connect URL drifted", ComposioProvider.defaultURL == "https://connect.composio.dev/mcp")
+            check("meta-tool catalogue is empty", !ComposioProvider.metaTools.isEmpty)
+
+            // Browser sign-in parsing must hold even when nobody is signed in yet —
+            // that is the product path; the live MCP call below still needs a key.
+            let pendingJSON = Data(#"{"id":"11111111-2222-3333-4444-555555555555","expiresAt":"2099-01-01T00:00:00Z"}"#.utf8)
+            if let pending = ComposioBrowserAuth.parsePendingSession(pendingJSON) {
+                check("login URL missing cliKey", pending.loginURL.absoluteString.contains("cliKey="))
+                check("pending id was dropped", pending.id.hasPrefix("11111111"))
+            } else {
+                failures.append("create-session JSON did not parse")
+            }
+            let linkedJSON = Data(#"{"id":"11111111-2222-3333-4444-555555555555","status":"linked","api_key":"ck_test_fixture"}"#.utf8)
+            if case .linked(let linked) = ComposioBrowserAuth.parsePollResult(
+                linkedJSON,
+                expectedID: "11111111-2222-3333-4444-555555555555"
+            ) {
+                check("linked api_key was dropped", linked.apiKey == "ck_test_fixture")
+            } else {
+                failures.append("linked get-session JSON did not parse")
+            }
+
+            guard ComposioProvider.isConfigured else {
+                for failure in failures { writeSelfTest("  COMPOSIO_WRONG: \(failure)") }
+                if failures.isEmpty {
+                    writeSelfTest("COMPOSIO_FAILED: not signed in — Settings ▸ Integrations ▸ Sign in with Composio")
+                } else {
+                    writeSelfTest("COMPOSIO_FAILED: \(failures.count) rule(s) wrong before live call")
+                }
+                NSApp.terminate(nil)
+                return
+            }
+            if ComposioProvider.looksLikePlatformProjectKey {
+                writeSelfTest("COMPOSIO_FAILED: got an ak_… Platform key; Connect MCP needs a For You key from Sign in")
+                NSApp.terminate(nil)
+                return
+            }
+
+            do {
+                let tools = try await ComposioProvider.connectAndRefresh()
+                check("initialize never completed", MCPClientStore.shared.lastDidInitialize)
+                check("initialize returned no session id", !MCPClientStore.shared.lastSessionID.isEmpty)
+                let names = Set(tools.map(\.name))
+                check(
+                    "COMPOSIO_SEARCH_TOOLS missing from tools/list",
+                    names.contains("COMPOSIO_SEARCH_TOOLS")
+                )
+                check(
+                    "no Connect meta-tools registered",
+                    !names.intersection(ComposioProvider.metaTools).isEmpty
+                )
+
+                guard let search = tools.first(where: { $0.name == "COMPOSIO_SEARCH_TOOLS" })
+                        ?? AgentToolRegistry.shared.tool(named: "COMPOSIO_SEARCH_TOOLS") else {
+                    failures.append("search tool vanished after refresh")
+                    for failure in failures { writeSelfTest("  COMPOSIO_WRONG: \(failure)") }
+                    writeSelfTest("COMPOSIO_FAILED: \(failures.count) rule(s) wrong")
+                    NSApp.terminate(nil)
+                    return
+                }
+
+                var policy = PermissionPolicy.selfTest
+                policy.grants = [PermissionGrant(toolID: search.id, duration: .alwaysThisAction)]
+                let result = try await AgentToolExecutor.run(
+                    search.name,
+                    arguments: [
+                        "queries": "[{\"use_case\":\"list my github repositories\"}]",
+                    ],
+                    policy: policy
+                )
+                let summary = result.summary
+                check("search returned empty text", !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                check(
+                    "search looks like an auth error",
+                    !summary.localizedCaseInsensitiveContains("invalid consumer")
+                        && !summary.localizedCaseInsensitiveContains("unauthorized")
+                )
+                writeSelfTest("  COMPOSIO_SEARCH: \(summary.prefix(240))")
+            } catch {
+                failures.append("connect/search failed: \(error.localizedDescription)")
+            }
+
+            for failure in failures { writeSelfTest("  COMPOSIO_WRONG: \(failure)") }
+            writeSelfTest(failures.isEmpty
+                          ? "COMPOSIO_OK: Connect MCP initialize, list and search hold"
+                          : "COMPOSIO_FAILED: \(failures.count) rule(s) wrong")
             NSApp.terminate(nil)
         }
     }

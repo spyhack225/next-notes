@@ -62,6 +62,29 @@ final class AgentTaskManager {
         return task
     }
 
+    /// A routine run (Part 3): a fresh task with source `"scheduled"` and its schedule id.
+    /// `ScheduledRunner` executes it; this only keeps the record, so it shows with the other
+    /// tasks. It is never announced into the conversation — a routine delivers through its
+    /// own notification — and never handed to a backend.
+    func beginScheduledRun(_ task: AgentTask) {
+        tasks.insert(task, at: 0)
+        persist()
+        guard !SelfTest.isRunning else { return }
+        AgentActivityStore.shared.begin(task: task, title: task.objective)
+        IslandState.shared.showBackgroundAgentWork(title: task.objective)
+    }
+
+    func finishScheduledRun(id: String, status: AgentTaskStatus, result: String?, failure: String?) {
+        update(id) { task in
+            task.status = status
+            task.progress = status == .completed ? "Finished" : "Failed"
+            task.result = result
+            task.failure = failure
+        }
+        guard !SelfTest.isRunning else { return }
+        AgentActivityStore.shared.finish(taskID: id, title: result ?? failure ?? "Finished")
+    }
+
     func beginVoiceObjective(id: UUID, objective: String) {
         let task = AgentTask(id: id.uuidString, objective: objective, source: "voice",
                              status: .running, progress: "Working locally")
@@ -270,7 +293,9 @@ final class AgentTaskManager {
     private func announce(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        AgentSession.shared.recordAssistant(trimmed)
+        // Tagged: a background result is content the user did not write, so the memory review
+        // and a compaction summary never read it as the Agent's own words.
+        AgentSession.shared.recordAssistant(trimmed, contextKind: AgentSession.backgroundTaskContextKind)
         AgentAuditLog.shared.record(kind: .reply, title: trimmed)
         IslandState.shared.showBackgroundAgentReply(trimmed)
         VoiceAnnouncementQueue.shared.enqueue(trimmed)

@@ -40,7 +40,8 @@ final class AgentAuditLog {
     }
 
     private init() {
-        entries = Self.load()
+        // A self-test neither writes nor reads the user's audit log.
+        entries = SelfTest.isRunning ? [] : Self.load()
     }
 
     func record(
@@ -49,21 +50,24 @@ final class AgentAuditLog {
         detail: String = "",
         toolID: String? = nil,
         taskID: String? = nil,
-        meetingID: UUID? = nil
+        meetingID: UUID? = nil,
+        scheduleID: UUID? = nil
     ) {
-        // Realtime and tool self-tests drive real agent paths with fixture text.
-        // Keep those probes out of the person's persistent activity history.
-        guard !SelfTest.isRunning else { return }
+        // Self-tests may inspect the in-memory audit trail (see `--selftest-tasks`),
+        // but must never write fixture text into the person's persistent history —
+        // the same split ActionReceiptStore uses.
         let entry = AgentAuditEntry(
             kind: kind,
             title: title,
             detail: detail,
             toolID: toolID,
             taskID: taskID,
-            meetingID: meetingID
+            meetingID: meetingID,
+            scheduleID: scheduleID
         )
         entries.insert(entry, at: 0)
         if entries.count > 400 { entries = Array(entries.prefix(400)) }
+        guard !SelfTest.isRunning else { return }
         appendToDisk(entry)
     }
 

@@ -134,6 +134,10 @@ final class ModelResidencyGuardian: @unchecked Sendable {
     /// still refuse to unload them; cold-starting KWS mid-meeting is worse
     /// than keeping ~tens of MB.
     func applyLivePressure() async {
+        // The embedders are a batch backfill's, never a live path's: they go first.
+        await EmbeddingRuntime.shared.stopNow()
+        StaticEmbedder.shared.unload()
+        await MainActor.run { KnowledgeIndexer.shared.vectorIndex.purge() }
         let plan = ModelResidencyPolicy.unloadOrder(
             resident: [.notes, .diarization, .asr, .wake],
             wakeNeeded: true,

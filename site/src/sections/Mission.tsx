@@ -6,7 +6,7 @@ const PARAGRAPH_ONE =
   "Most of what you need an agent for is already on the machine in front of you. Your files. Your calendar. The names you say every day. A model that can run without leaving the desk.";
 
 const PARAGRAPH_TWO =
-  "Talk to your Mac. Hold a key. Ask it the rest. It knows you — and everything you say stays here.";
+  "Your Mac is your best personal assistant. Hold a key. Ask it the rest. It knows you — and everything you say stays here.";
 
 /** The words carrying the argument stay white; everything else settles a shade back. */
 const HIGHLIGHTS = new Set(["already", "machine", "files", "calendar", "names", "knows", "stays"]);

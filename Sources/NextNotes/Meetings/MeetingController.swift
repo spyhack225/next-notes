@@ -54,6 +54,8 @@ final class MeetingController {
         let session = MeetingSession(meeting: meeting, store: store)
         self.session = session
         problem = nil
+        // An embedder a search loaded is not left beside the meeting for its idle timer.
+        Task { await EmbeddingRuntime.shared.stopNow() }
 
         do {
             try await session.start()

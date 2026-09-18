@@ -22,8 +22,8 @@ enum LocalVoicePromptProbe {
             """
         let plain = "You are Next Notes on this Mac. Answer the user's question briefly using the provided capability inventory."
         let cases: [(String, String, [LLMChatMessage])] = [
-            ("full-packaged", VoiceConversationCoordinator.systemPrompt, [facts, packaged]),
-            ("full-direct", VoiceConversationCoordinator.systemPrompt, [facts, direct]),
+            ("full-packaged", VoiceConversationCoordinator.legacyEnvelopePrompt, [facts, packaged]),
+            ("full-direct", VoiceConversationCoordinator.legacyEnvelopePrompt, [facts, direct]),
             ("concise-direct", concise, [facts, direct]),
             ("plain-direct", plain, [facts, direct])
         ]

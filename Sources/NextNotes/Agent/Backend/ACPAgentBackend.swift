@@ -21,6 +21,20 @@ struct ACPAgentBackend: AgentBackend {
         let summary: String
     }
 
+    /// Why a scheduled task may not start a coding session, or nil for any other task.
+    static func scheduledRefusal(for task: AgentTask) async -> String? {
+        guard task.source == AgentTask.scheduledSource || task.scheduleID != nil else { return nil }
+        guard let scheduleID = task.scheduleID else {
+            return "A scheduled coding task without its routine was refused."
+        }
+        let allowed = await MainActor.run { ScheduleStore.shared.schedule(id: scheduleID)?.allowedTools ?? [] }
+        let harness = task.acpCLI.isEmpty ? "acp" : "acp.\(task.acpCLI)"
+        guard allowed.contains(harness) || allowed.contains("acp") else {
+            return "A routine cannot start a coding agent unless it was set up to use one; nothing was run."
+        }
+        return nil
+    }
+
     func describe() async -> AgentBackendDescription {
         AgentBackendDescription(
             id: AgentBackendKind.acp.rawValue,
@@ -41,6 +55,13 @@ struct ACPAgentBackend: AgentBackend {
     }
 
     func submit(_ task: AgentTask) async throws -> AgentTaskOutcome {
+        // Before anything launches, fixture or not: a scheduled coding session is refused
+        // unless its routine explicitly allows this harness — and even then it gets no
+        // auto-approved permissions, so the orchestrator refuses its privileged session
+        // under `.scheduled` authority rather than waiting on a person who is not there.
+        if let refusal = await Self.scheduledRefusal(for: task) {
+            throw AgentError.permissionDenied(refusal)
+        }
         if let fixture = task.arguments["acpFixture"] {
             return try await runSessionWithReceipt(
                 command: AgentStdioFixtures.python,
@@ -356,7 +377,13 @@ struct ACPAgentBackend: AgentBackend {
             executionMode: .task,
             title: "Run ACP coding task"
         )
-        let authority: ActionAuthority = task.source == "meeting" ? .systemDerived : .user
+        let authority: ActionAuthority = if let scheduleID = task.scheduleID {
+            .scheduled(scheduleID)
+        } else if task.isUserInitiated {
+            .user
+        } else {
+            .systemDerived
+        }
         let intent = ActionIntent(
             source: .background,
             authority: authority,
@@ -387,9 +414,11 @@ struct ACPAgentBackend: AgentBackend {
                 steps: ["initialize", "session/new", "session/prompt"],
                 policy: .fromSettings(),
                 promptIfNeeded: false,
-                // Creating an ACP task is already an explicit user action. Meeting-origin
-                // tasks retain the broker boundary and cannot self-authorize mutations.
-                permissionAlreadyGranted: approvePermissions || task.source != "meeting",
+                // Creating an ACP task is already an explicit user action — but only a task
+                // the user started. Meeting-origin and scheduled tasks retain the broker
+                // boundary and cannot self-authorize; this used to infer approval from any
+                // source that was not "meeting".
+                permissionAlreadyGranted: task.scheduleID == nil && (approvePermissions || task.isUserInitiated),
                 allowUnverifiedResult: true,
                 fire: { [self] prepared in
                     try Task.checkCancellation()

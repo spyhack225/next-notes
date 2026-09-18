@@ -69,5 +69,8 @@ final class AgentToolRegistry {
         for tool in FilesystemToolCatalogue.all { register(tool) }
         for tool in ShellToolCatalogue.all { register(tool) }
         for tool in BrowserToolCatalogue.all { register(tool) }
+        for tool in MemoryToolCatalogue.all { register(tool) }
+        for tool in ScheduleToolCatalogue.all { register(tool) }
+        for tool in KnowledgeToolCatalogue.all { register(tool) }
     }
 }

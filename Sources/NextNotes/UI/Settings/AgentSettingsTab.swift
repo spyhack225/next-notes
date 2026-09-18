@@ -10,6 +10,8 @@ struct AgentSettingsTab: View {
 
     var body: some View {
         Form {
+            // Persona / SOUL editor lives under Agent → About (single editor).
+            PersonaSection()
             activation
             wakeModel
             wakeTest
@@ -17,10 +19,17 @@ struct AgentSettingsTab: View {
             modelSection
             permissions
             remembered
+            MemoriesSection()
+            RemindersSection()
+            KnowledgeSection()
         }
         .formStyle(.grouped)
         .onAppear { models.refresh() }
-        .onDisappear { calibrator.stop() }
+        .onDisappear {
+            calibrator.stop()
+            // New memory badges stay visible while the tab is open; closing it marks them seen.
+            if NextMemory.shared.newCount > 0 { NextMemory.shared.markListViewed() }
+        }
     }
 
     private var modelSection: some View {
