@@ -53,6 +53,8 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-routine-authority
 --selftest-index     --selftest-search [query] [--gold <path>]
 --selftest-ask [question]                  --selftest-extract [notes.json]
+--selftest-resolve [knowledge.sqlite]
+--selftest-graph-layout
 --selftest-embed [text] [--model potion|embeddinggemma]
 --selftest-memory-review [--model local|cloud] [--fixtures <path>]
 --selftest-meeting-context                 --selftest-realtime

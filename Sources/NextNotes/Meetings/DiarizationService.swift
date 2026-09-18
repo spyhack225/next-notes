@@ -128,6 +128,21 @@ final class DiarizationService {
             guard store.meeting(id: id) != nil else { return false }
             store.saveTranscript(labelled, for: id)
             revision += 1
+            // Voice prints only while the knowledge graph is on: nothing else reads them.
+            if PersonResolutionService.shared.isEnabled {
+                let prints = MeetingVoicePrints.centroids(of: runs)
+                do {
+                    if prints.speakers.isEmpty {
+                        // Old prints would carry labels this transcript no longer uses.
+                        MeetingVoicePrints.remove(directory: store.directory(for: id))
+                    } else {
+                        try prints.write(directory: store.directory(for: id))
+                    }
+                    PersonResolutionService.shared.scheduleResolve()
+                } catch {
+                    Log.meeting.error("voice prints not written: \(error.localizedDescription, privacy: .public)")
+                }
+            }
 
             let speakers = MeetingDiarizer.labels(in: labelled).count
             Log.meeting.info("""

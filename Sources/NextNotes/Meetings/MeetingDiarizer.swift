@@ -17,13 +17,15 @@ actor MeetingDiarizer {
 
     /// One stretch of one speaker, in seconds from the start of the recording.
     ///
-    /// FluidAudio's own `TimedSpeakerSegment` carries a 256-float embedding per segment that
-    /// nothing here wants to keep, and lifting the result into this type is what lets
-    /// `assign(_:to:)` be tested without a CoreML model.
+    /// FluidAudio's own `TimedSpeakerSegment` carries a 256-float embedding per segment.
+    /// Assignment ignores it; `MeetingVoicePrints` averages it into one voice print per
+    /// speaker for entity resolution (Phase D). Lifting the result into this type is what lets
+    /// both be tested without a CoreML model.
     struct SpeakerRun: Sendable, Equatable {
         let speakerID: String
         let start: TimeInterval
         let end: TimeInterval
+        var embedding: [Float] = []
     }
 
     /// Windows shorter than this are a door closing, not a turn in a conversation, and the
@@ -151,7 +153,8 @@ actor MeetingDiarizer {
             SpeakerRun(
                 speakerID: $0.speakerId,
                 start: TimeInterval($0.startTimeSeconds),
-                end: TimeInterval($0.endTimeSeconds)
+                end: TimeInterval($0.endTimeSeconds),
+                embedding: $0.embedding
             )
         }
     }
@@ -180,10 +183,7 @@ actor MeetingDiarizer {
     static func assign(_ segments: [TranscriptSegment], to runs: [SpeakerRun]) -> [TranscriptSegment] {
         guard !runs.isEmpty else { return segments }
 
-        var labels: [String: String] = [:]
-        for run in runs.sorted(by: { $0.start < $1.start }) where labels[run.speakerID] == nil {
-            labels[run.speakerID] = "Speaker \(labels.count + 1)"
-        }
+        let labels = labelsByCluster(runs)
 
         return segments.map { segment in
             guard segment.source == .system else { return segment }
@@ -202,6 +202,15 @@ actor MeetingDiarizer {
             labelled.speaker = label
             return labelled
         }
+    }
+
+    /// Cluster id → "Speaker N", numbered by when each speaker is first heard.
+    static func labelsByCluster(_ runs: [SpeakerRun]) -> [String: String] {
+        var labels: [String: String] = [:]
+        for run in runs.sorted(by: { $0.start < $1.start }) where labels[run.speakerID] == nil {
+            labels[run.speakerID] = "Speaker \(labels.count + 1)"
+        }
+        return labels
     }
 
     /// Every generated speaker label in a transcript, in the order they were assigned.

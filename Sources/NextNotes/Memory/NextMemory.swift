@@ -189,7 +189,9 @@ final class NextMemory {
             return NextMemory(directory: directory, snapshotCache: .shared)
         }
         return NextMemory(directory: AppIdentity.applicationSupportDirectory, snapshotCache: .shared,
-                          isEnabled: { MemorySnapshotCache.defaultsEnabled })
+                          isEnabled: { MemorySnapshotCache.defaultsEnabled },
+                          resolvedPeople: { PersonResolutionService.shared.memoryPeople() },
+                          graphCloudConsent: { KnowledgeIndexer.shared.settings.graphCloudConsent })
     }()
 
     static let fileName = "next-memory.json"
@@ -208,6 +210,10 @@ final class NextMemory {
     let fileURL: URL?
     private let snapshotCache: MemorySnapshotCache
     private let enabledProvider: () -> Bool
+    /// Resolved people from the knowledge graph (Part 4, Phase D).
+    private let resolvedPeopleProvider: () -> MemoryPeople
+    /// Whether the user let a cloud model read the graph (`knowledgeGraphCloudConsent`).
+    private let graphCloudConsentProvider: () -> Bool
     private let now: () -> Date
     private static let maxItems = 240
     private static let maxValueLength = 240
@@ -219,11 +225,15 @@ final class NextMemory {
         directory: URL?,
         snapshotCache: MemorySnapshotCache = MemorySnapshotCache(isEnabled: { true }),
         isEnabled: @escaping () -> Bool = { true },
+        resolvedPeople: @escaping () -> MemoryPeople = { .graphOff },
+        graphCloudConsent: @escaping () -> Bool = { false },
         now: @escaping () -> Date = Date.init
     ) {
         fileURL = directory?.appendingPathComponent(Self.fileName)
         self.snapshotCache = snapshotCache
         enabledProvider = isEnabled
+        resolvedPeopleProvider = resolvedPeople
+        graphCloudConsentProvider = graphCloudConsent
         self.now = now
         load()
         beginSession()
@@ -257,6 +267,10 @@ final class NextMemory {
             }
         }
 
+        // Resolved people replace keyword-matched attendee names: one person, one item.
+        let people = applyMemoryPeople(resolvedPeopleProvider())
+        changed = people.changed || changed
+        let resolvedNames = people.names
         for meeting in MeetingStore.shared.meetings {
             changed = upsert(
                 kind: .meeting,
@@ -264,7 +278,8 @@ final class NextMemory {
                 value: meeting.title,
                 source: "meeting:\(meeting.id.uuidString)"
             ) || changed
-            for attendee in meeting.attendees {
+            // A meeting not in the graph yet still contributes its attendees.
+            for attendee in meeting.attendees where !resolvedNames.contains(Self.normalize(attendee)) {
                 changed = upsert(
                     kind: .person,
                     key: attendee,
@@ -297,6 +312,76 @@ final class NextMemory {
         if changed { try? persist() }
     }
 
+    /// Makes the person items exactly one per resolved person: the name that heads the
+    /// person as the key, every other name they were mentioned as in the value — so "S.K."
+    /// finds Serge — and the person's node id (`person:…`) as the source. Attendee items naming a resolved person
+    /// go; attendees the graph has not seen, and person items saved any other way, stay. Does not persist; the caller does.
+    /// - Returns: whether anything changed.
+    @discardableResult
+    func applyResolvedPeople(_ people: [ResolvedPerson]) -> Bool {
+        let before = items
+        let covered = Set(people.flatMap { [$0.name] + $0.aliases }.map(Self.normalize))
+        items.removeAll { item in
+            item.kind == .person && (item.source.hasPrefix("person:")
+                || (item.source.hasPrefix("meeting:") && covered.contains(Self.normalize(item.key))))
+        }
+        for person in people.sorted(by: { $0.id < $1.id }) {
+            let aliases = person.aliases.filter { Self.normalize($0) != Self.normalize(person.name) }
+            let value = aliases.isEmpty ? person.name : "\(person.name) (also \(aliases.joined(separator: ", ")))"
+            // Carry a previous item's use count across the rewrite.
+            let previous = before.first { $0.kind == .person && $0.source == person.id }
+            // A person item saved another way already has this name: it stays as it is.
+            guard !items.contains(where: { $0.kind == .person && Self.normalize($0.key) == Self.normalize(person.name) })
+            else { continue }
+            let clipped = String(value.prefix(Self.maxValueLength))
+            items.append(NextMemoryItem(kind: .person, key: person.name, value: clipped, source: person.id,
+                                        updatedAt: previous.map { $0.value == clipped ? $0.updatedAt : now() } ?? now(),
+                                        useCount: previous?.useCount ?? 1))
+        }
+        if items.count > Self.maxItems {
+            items.sort { $0.updatedAt > $1.updatedAt }
+            items = Array(items.prefix(Self.maxItems))
+        }
+        return items != before
+    }
+
+    /// What resolution says about people, applied: resolved people become the person items,
+    /// the graph switched off removes the ones it made, not loaded yet keeps what is there.
+    /// Does not persist; the caller does.
+    /// - Returns: whether anything changed, and the normalised names now covered by a person item.
+    func applyMemoryPeople(_ state: MemoryPeople) -> (changed: Bool, names: Set<String>) {
+        switch state {
+        case .resolved(let resolved):
+            let changed = applyResolvedPeople(resolved)
+            return (changed, Set(resolved.flatMap { [$0.name] + $0.aliases }.map(Self.normalize)))
+        case .graphOff:
+            // Nothing the graph derived outlives the graph; attendees come back from meetings.
+            return (removeResolvedPeople(), [])
+        case .notLoaded:
+            return (false, [])
+        }
+    }
+
+    /// Removes every person item the knowledge graph made (`person:…` sources).
+    /// - Returns: whether anything changed.
+    @discardableResult
+    func removeResolvedPeople() -> Bool {
+        let count = items.count
+        items.removeAll { Self.isGraphPerson($0) }
+        return items.count != count
+    }
+
+    static func isGraphPerson(_ item: NextMemoryItem) -> Bool {
+        item.kind == .person && item.source.hasPrefix("person:")
+    }
+
+    /// Whether `reader` may see graph-derived person items. They carry names the graph
+    /// extracted (action item owners, renamed speakers, addresses), so like `expand_node`
+    /// they reach a cloud model, or an unknown reader, only with `knowledgeGraphCloudConsent`.
+    func mayShareGraphPeople(with reader: LLMProviderID?) -> Bool {
+        KnowledgeGraphScope.mayRead(reader: reader, cloudConsent: graphCloudConsentProvider())
+    }
+
     /// Adds a single activity label, replacing the old value for that key and kind.
     @discardableResult
     func remember(
@@ -312,11 +397,13 @@ final class NextMemory {
 
     /// Returns the best bounded matches for a spoken phrase. Exact values win, then
     /// contains matches, then token overlap. A query never causes a new memory entry.
-    func matches(_ query: String, limit: Int = 8) -> [NextMemoryItem] {
+    /// - Parameter includeGraphPeople: false leaves out person items the knowledge graph made.
+    func matches(_ query: String, limit: Int = 8, includeGraphPeople: Bool = true) -> [NextMemoryItem] {
         let needle = Self.normalize(query)
         guard !needle.isEmpty, limit > 0 else { return [] }
         let queryTokens = Set(needle.split(separator: " ").map(String.init))
         return items
+            .filter { includeGraphPeople || !Self.isGraphPerson($0) }
             .map { item in
                 let key = Self.normalize(item.key)
                 let value = Self.normalize(item.value)
@@ -343,8 +430,10 @@ final class NextMemory {
 
     /// JSON keeps activity-sourced labels on one data line. Meeting titles and attendee
     /// names can be supplied by other people, so they must never become prompt syntax.
-    func grounding(for query: String, limit: Int = 8) -> String {
-        let facts = matches(query, limit: limit).map {
+    /// - Parameter reader: the model the grounding goes to; graph-derived people reach a cloud
+    ///   one only with the graph's cloud consent. Defaults to the turn's `KnowledgeGraphScope`.
+    func grounding(for query: String, limit: Int = 8, reader: LLMProviderID? = KnowledgeGraphScope.reader) -> String {
+        let facts = matches(query, limit: limit, includeGraphPeople: mayShareGraphPeople(with: reader)).map {
             ["kind": $0.kind.rawValue, "value": $0.value]
         }
         guard !facts.isEmpty,
@@ -382,7 +471,8 @@ final class NextMemory {
 
     /// `memory.recall`: core entries whose words overlap the query, then activity matches.
     /// The Part 4 index replaces the second half later.
-    func recall(_ query: String, limit: Int = 8) -> (entries: [MemoryEntry], activity: [NextMemoryItem]) {
+    func recall(_ query: String, limit: Int = 8,
+                reader: LLMProviderID? = KnowledgeGraphScope.reader) -> (entries: [MemoryEntry], activity: [NextMemoryItem]) {
         let queryTokens = Set(MemoryGuard.tokens(query))
         var scored: [(entry: MemoryEntry, score: Int)] = []
         for entry in entries where flagged[entry.id] == nil {
@@ -393,7 +483,8 @@ final class NextMemory {
             lhs.score != rhs.score ? lhs.score > rhs.score : lhs.entry.createdAt > rhs.entry.createdAt
         }
         let found: [MemoryEntry] = scored.prefix(limit).map { $0.entry }
-        return (found, queryTokens.isEmpty ? [] : matches(query, limit: limit))
+        return (found, queryTokens.isEmpty ? []
+                : matches(query, limit: limit, includeGraphPeople: mayShareGraphPeople(with: reader)))
     }
 
     // MARK: - Core memory: writes

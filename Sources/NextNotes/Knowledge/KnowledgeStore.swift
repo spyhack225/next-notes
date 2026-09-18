@@ -242,6 +242,8 @@ final class KnowledgeStore: @unchecked Sendable {
             // index built before extraction existed gains them without a rebuild — a rebuild
             // would lose conversation turns older than the history the Agent keeps.
             try Self.exec(handle, Self.graphSchema)
+            // Entity resolution (Phase D), additive for the same reason.
+            try Self.exec(handle, Self.resolutionSchema)
             // Touches every table, so a file that is not a database fails here rather than
             // on the first search.
             _ = try Self.int(handle, "SELECT count(*) FROM index_state")

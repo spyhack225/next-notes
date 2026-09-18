@@ -91,6 +91,32 @@ struct GraphActionItem: Identifiable, Equatable, Sendable {
     var sourceChunk: Int64
 }
 
+/// One meeting on a person's timeline (Phase F): what was decided and assigned there, and
+/// which action items that person owns.
+struct PersonMeetingMoment: Identifiable, Equatable, Sendable {
+    var id: String { meetingID }
+    var meetingID: String
+    var title: String
+    var at: Date
+    var decisions: [PersonTimelineItem]
+    var actionItems: [PersonTimelineItem]
+    /// Action-item ids this person owns in that meeting.
+    var ownedIDs: Set<String>
+}
+
+/// A decision or action item listed under a person-meeting moment.
+struct PersonTimelineItem: Identifiable, Equatable, Sendable {
+    var id: String
+    var text: String
+    var kind: Kind
+    var sourceChunk: Int64?
+
+    enum Kind: String, Equatable, Sendable {
+        case decision
+        case actionItem
+    }
+}
+
 /// Nodes, bi-temporal edges and traversal over `knowledge.sqlite`.
 ///
 /// - **One meeting, one transaction.** `replaceMeeting` removes what the meeting contributed
@@ -208,7 +234,10 @@ struct GraphStore: KnowledgeGraphReading {
     func deleteAll() throws {
         try store.withWritingConnection { db in
             try KnowledgeStore.transaction(db) {
-                try KnowledgeStore.exec(db, "DELETE FROM graph_edge; DELETE FROM graph_node; DELETE FROM graph_state;")
+                try KnowledgeStore.exec(db, """
+                    DELETE FROM graph_edge; DELETE FROM graph_node; DELETE FROM graph_state;
+                    DELETE FROM person_entity; DELETE FROM person_candidate;
+                    """)
             }
         }
     }
@@ -318,6 +347,32 @@ struct GraphStore: KnowledgeGraphReading {
     var isAvailable: Bool {
         guard store.existsOnDisk else { return false }
         return ((try? store.withConnection { db in try KnowledgeStore.int(db, "SELECT count(*) FROM graph_node") }) ?? 0) > 0
+    }
+
+    func visualization(limit: Int = 700) throws -> KnowledgeGraphExpansion {
+        guard store.existsOnDisk else { return KnowledgeGraphExpansion() }
+        return try store.withConnection { db in
+            let statement = try KnowledgeStore.prepare(db, "SELECT id FROM graph_node ORDER BY observed_at DESC, id LIMIT ?1")
+            defer { sqlite3_finalize(statement) }
+            KnowledgeStore.bind(statement, [.int(Int64(max(1, min(limit, 2000))))])
+            var nodes: [KnowledgeGraphNode] = []
+            while sqlite3_step(statement) == SQLITE_ROW {
+                if let id = KnowledgeStore.text(statement, 0), let node = try Self.node(db, id) { nodes.append(node) }
+            }
+            let ids = Set(nodes.map(\.id))
+            let edges = try KnowledgeStore.prepare(db, """
+                SELECT id, type, from_node, to_node, observed_at, valid_from, valid_to, source_chunk
+                FROM graph_edge ORDER BY observed_at DESC, id
+                """)
+            defer { sqlite3_finalize(edges) }
+            var result: [KnowledgeGraphEdge] = []
+            while sqlite3_step(edges) == SQLITE_ROW {
+                guard let type = KnowledgeStore.text(edges, 1), let from = KnowledgeStore.text(edges, 2),
+                      let to = KnowledgeStore.text(edges, 3), ids.contains(from), ids.contains(to) else { continue }
+                result.append(Self.edge(edges, type: type, from: from, to: to))
+            }
+            return KnowledgeGraphExpansion(nodes: nodes, edges: result)
+        }
     }
 
     func nodeCounts() throws -> [String: Int] {
@@ -468,8 +523,14 @@ struct GraphStore: KnowledgeGraphReading {
             guard let start = try Self.resolve(db, nodeID) else { return KnowledgeGraphExpansion() }
             var seenNodes: [String: KnowledgeGraphNode] = [:]
             var seenEdges: [Int64: KnowledgeGraphEdge] = [:]
-            if let node = try Self.node(db, start) { seenNodes[start] = node }
-            var frontier: [String] = [start]
+            // A resolved person starts from every node merged into them (Phase D).
+            var frontier: [String] = []
+            for id in try Self.sameEntity(db, start) {
+                guard let node = try Self.node(db, id) else { continue }
+                seenNodes[id] = node
+                frontier.append(id)
+            }
+            if frontier.isEmpty { frontier = [start] }
             for _ in 0..<min(3, max(1, depth)) {
                 var next: [String] = []
                 for id in frontier {
@@ -505,10 +566,13 @@ struct GraphStore: KnowledgeGraphReading {
     func timeline(entityID: String, from: Date?, to: Date?) throws -> [KnowledgeTimelineEntry] {
         try store.withConnection { db in
             guard let entity = try Self.resolve(db, entityID) else { return [] }
-            var values: [KnowledgeStore.SQLValue] = [.text(entity)]
+            // One person, however many nodes they were mentioned as (Phase D).
+            let members = try Self.sameEntity(db, entity)
+            var values: [KnowledgeStore.SQLValue] = members.map { .text($0) }
+            let placeholders = members.indices.map { "?\($0 + 1)" }.joined(separator: ", ")
             var sql = """
                 SELECT e.type, e.from_node, e.to_node, e.observed_at, e.source_chunk
-                FROM graph_edge e WHERE (e.from_node = ?1 OR e.to_node = ?1)
+                FROM graph_edge e WHERE (e.from_node IN (\(placeholders)) OR e.to_node IN (\(placeholders)))
                 """
             if let from {
                 values.append(.int(Int64(from.timeIntervalSince1970)))
@@ -526,7 +590,7 @@ struct GraphStore: KnowledgeGraphReading {
             while sqlite3_step(statement) == SQLITE_ROW {
                 guard let type = KnowledgeStore.text(statement, 0), let fromNode = KnowledgeStore.text(statement, 1),
                       let toNode = KnowledgeStore.text(statement, 2) else { continue }
-                let other = fromNode == entity ? toNode : fromNode
+                let other = members.contains(fromNode) ? toNode : fromNode
                 let label = try Self.node(db, other)?.label ?? other
                 entries.append(KnowledgeTimelineEntry(
                     at: Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(statement, 3))),
@@ -534,6 +598,111 @@ struct GraphStore: KnowledgeGraphReading {
             }
             return entries
         }
+    }
+
+    /// People and recent meetings to open the local graph on (Phase F). People first —
+    /// that is what the timeline is for — then meetings by recency.
+    func focusCandidates(limit: Int = 80) throws -> [KnowledgeGraphNode] {
+        guard store.existsOnDisk else { return [] }
+        return try store.withConnection { db in
+            let statement = try KnowledgeStore.prepare(db, """
+                SELECT id FROM graph_node
+                WHERE type IN ('Person', 'Meeting')
+                ORDER BY CASE type WHEN 'Person' THEN 0 ELSE 1 END, observed_at DESC, id
+                LIMIT ?1
+                """)
+            defer { sqlite3_finalize(statement) }
+            KnowledgeStore.bind(statement, [.int(Int64(max(1, min(limit, 400))))])
+            var nodes: [KnowledgeGraphNode] = []
+            while sqlite3_step(statement) == SQLITE_ROW {
+                if let id = KnowledgeStore.text(statement, 0), let node = try Self.node(db, id) {
+                    nodes.append(node)
+                }
+            }
+            return nodes
+        }
+    }
+
+    /// Meetings a person attended, newest first, each with that meeting's decisions and
+    /// action items — and which of those action items the person owns (Phase F).
+    func personMeetings(personID: String) throws -> [PersonMeetingMoment] {
+        try store.withConnection { db in
+            guard let entity = try Self.resolve(db, personID) else { return [] }
+            let members = try Self.sameEntity(db, entity)
+            guard !members.isEmpty else { return [] }
+            let values: [KnowledgeStore.SQLValue] = members.map { .text($0) }
+            let placeholders = members.indices.map { "?\($0 + 1)" }.joined(separator: ", ")
+
+            var ownedEverywhere = Set<String>()
+            let owns = try KnowledgeStore.prepare(db, """
+                SELECT to_node FROM graph_edge
+                WHERE type = 'owns' AND from_node IN (\(placeholders))
+                """)
+            defer { sqlite3_finalize(owns) }
+            KnowledgeStore.bind(owns, values)
+            while sqlite3_step(owns) == SQLITE_ROW {
+                if let id = KnowledgeStore.text(owns, 0) { ownedEverywhere.insert(id) }
+            }
+
+            let attended = try KnowledgeStore.prepare(db, """
+                SELECT e.to_node, m.label, e.observed_at, e.meeting_id
+                FROM graph_edge e
+                JOIN graph_node m ON m.id = e.to_node
+                WHERE e.type = 'attended' AND e.from_node IN (\(placeholders))
+                ORDER BY e.observed_at DESC, e.meeting_id
+                """)
+            defer { sqlite3_finalize(attended) }
+            KnowledgeStore.bind(attended, values)
+            var moments: [PersonMeetingMoment] = []
+            var seen = Set<String>()
+            while sqlite3_step(attended) == SQLITE_ROW {
+                guard let meetingNode = KnowledgeStore.text(attended, 0),
+                      let meetingID = KnowledgeStore.text(attended, 3), !seen.contains(meetingID) else { continue }
+                seen.insert(meetingID)
+                let title = KnowledgeStore.text(attended, 1) ?? meetingID
+                let at = Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(attended, 2)))
+                let decisions = try Self.items(db, type: "Decision", edge: "decided_in", meetingNode: meetingNode)
+                let actions = try Self.items(db, type: "ActionItem", edge: "assigned_in", meetingNode: meetingNode)
+                moments.append(PersonMeetingMoment(
+                    meetingID: meetingID, title: title, at: at,
+                    decisions: decisions, actionItems: actions,
+                    ownedIDs: ownedEverywhere.intersection(actions.map(\.id))))
+            }
+            return moments
+        }
+    }
+
+    private static func items(_ db: OpaquePointer, type: String, edge: String, meetingNode: String)
+        throws -> [PersonTimelineItem]
+    {
+        let statement = try KnowledgeStore.prepare(db, """
+            SELECT n.id, n.fields, e.source_chunk
+            FROM graph_node n
+            JOIN graph_edge e ON e.from_node = n.id AND e.type = ?1 AND e.to_node = ?2
+            WHERE n.type = ?3
+            ORDER BY e.observed_at, n.id
+            """)
+        defer { sqlite3_finalize(statement) }
+        KnowledgeStore.bind(statement, [.text(edge), .text(meetingNode), .text(type)])
+        var result: [PersonTimelineItem] = []
+        let kind: PersonTimelineItem.Kind = type == "Decision" ? .decision : .actionItem
+        while sqlite3_step(statement) == SQLITE_ROW {
+            guard let id = KnowledgeStore.text(statement, 0) else { continue }
+            let fields = decode(KnowledgeStore.text(statement, 1))
+            result.append(PersonTimelineItem(
+                id: id, text: fields["text"]?.string ?? "", kind: kind,
+                sourceChunk: sqlite3_column_type(statement, 2) == SQLITE_NULL
+                    ? nil : sqlite3_column_int64(statement, 2)))
+        }
+        return result
+    }
+
+    /// Every node resolution says is the same person as `id`, itself included. Just `id` for
+    /// anything that is not a person, or before anything was resolved.
+    private static func sameEntity(_ db: OpaquePointer, _ id: String) throws -> [String] {
+        guard id.hasPrefix("person:") else { return [id] }
+        let members = try PersonResolutionStore.memberIDs(db, of: id).filter { $0.hasPrefix("person:") }
+        return members.isEmpty ? [id] : members
     }
 
     /// An id as given, or a person or topic named by it — what a model is likely to pass.

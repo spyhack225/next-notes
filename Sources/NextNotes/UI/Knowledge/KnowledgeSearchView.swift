@@ -24,11 +24,14 @@ struct KnowledgeSearchView: View {
     @State private var mode: Mode = .search
 
     /// Search finds passages; Ask answers a question from them, with citations (Phase E);
-    /// Decisions follows each extracted decision across meetings (Phase C).
+    /// Decisions follows each extracted decision across meetings (Phase C);
+    /// Graph is the local neighbourhood and person timeline (Phase F), with an optional
+    /// library overview as the way in (Phase G).
     enum Mode: Hashable {
         case search
         case ask
         case decisions
+        case graph
     }
 
     var body: some View {
@@ -48,6 +51,8 @@ struct KnowledgeSearchView: View {
                     AskView()
                 case .decisions:
                     DecisionThreadView()
+                case .graph:
+                    KnowledgeGraphPane()
                 }
             } else {
                 OrbUnavailableView(
@@ -70,6 +75,7 @@ struct KnowledgeSearchView: View {
                         Text("Ask").tag(Mode.ask)
                         if settings.knowledgeGraphEnabled {
                             Text("Decisions").tag(Mode.decisions)
+                            Text("Graph").tag(Mode.graph)
                         }
                     }
                     .pickerStyle(.segmented)

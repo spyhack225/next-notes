@@ -76,6 +76,8 @@ final class KnowledgeExtractionService {
                 try? extractor.graph.deleteMeeting(meeting.id.uuidString)
             }
             revision += 1
+            // The people in it may be someone already known (Phase D).
+            PersonResolutionService.shared.scheduleResolve()
             Log.llm.info("""
                 extracted "\(meeting.title, privacy: .public)" — \(report.nodes, privacy: .public) nodes, \
                 \(report.edges, privacy: .public) edges, \(report.violations.count, privacy: .public) dropped

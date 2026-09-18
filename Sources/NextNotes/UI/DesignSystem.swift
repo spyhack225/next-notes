@@ -340,6 +340,23 @@ enum DS {
         /// band's content changes between states — the meter used to set this height, and
         /// removing it left the band free to resize on every transition.
         static let statusBandMinHeight: CGFloat = 44
+
+        // MARK: Knowledge graph
+
+        /// A node's dot in the local and global graph views.
+        static let graphNodeDot: CGFloat = 10
+        /// Hit target around a graph node — larger than the drawn dot so clicks land.
+        static let graphNodeHitRadius: CGFloat = 18
+        /// A graph canvas's inset from the pane edge, so node labels never clip.
+        static let graphCanvasInset: CGFloat = 28
+        /// Minimum height for a force-layout canvas in the Search detail.
+        static let graphCanvasMinHeight: CGFloat = 320
+        /// Cap on a node label under its dot.
+        static let graphLabelMaxWidth: CGFloat = 120
+        /// Node rows in the graph's side list before it scrolls.
+        static let graphNodeListHeight: CGFloat = 280
+        /// The widest a person timeline row runs before it wraps.
+        static let timelineRowMaxWidth: CGFloat = 560
     }
 
     // MARK: - Field
@@ -421,6 +438,12 @@ enum DS {
         /// An empty state's orb. Held just off full ink so it reads as an illustration
         /// rather than as a control.
         static let emptyStateOrb: Double = 0.85
+
+        /// Nodes outside the hovered neighbourhood on a local graph: still there, not the
+        /// thing being looked at (Phase F).
+        static let graphDimmed: Double = 0.22
+        /// Edges that do not touch the hovered node.
+        static let graphEdgeDimmed: Double = 0.12
     }
 
     // MARK: - Scale

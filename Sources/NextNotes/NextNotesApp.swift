@@ -486,6 +486,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-resolve") {
+            Task { @MainActor in
+                SelfTest.failed = !(await EntityResolveSelfTest.run(path: SelfTest.value(after: "--selftest-resolve")))
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-graph-layout") {
+            Task { @MainActor in
+                SelfTest.failed = !(await GraphLayoutSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-persona") {
             Task { @MainActor in
                 SelfTest.failed = !PersonaSelfTest.run()

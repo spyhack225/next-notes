@@ -22,6 +22,8 @@ struct DecisionThreadView: View {
     @State private var threads: [DecisionThread] = []
     @State private var reminders: [ActionItemReminderSuggestion] = []
     @State private var problem: String?
+    @State private var showingPeople = false
+    @State private var people = PersonResolutionService.shared
 
     var body: some View {
         Group {
@@ -62,6 +64,7 @@ struct DecisionThreadView: View {
             }
         }
         .task(id: reloadKey) { await reload() }
+        .sheet(isPresented: $showingPeople) { MergePeopleSheet() }
     }
 
     // MARK: - Past meetings
@@ -75,8 +78,15 @@ struct DecisionThreadView: View {
                 Button("Stop") { extraction.cancelBackfill() }
             }
         } else {
-            Button("Extract past meetings") { extraction.extractLibrary() }
-                .help("Reads every finished meeting's notes with the on-device model. Minutes per meeting.")
+            HStack(spacing: DS.Space.s) {
+                Button("Extract past meetings") { extraction.extractLibrary() }
+                    .help("Reads every finished meeting's notes with the on-device model. Minutes per meeting.")
+                // Phase D: who is who, with every merge visible and undoable.
+                Button(people.candidates.isEmpty ? "People…" : "People (\(people.candidates.count) to review)…") {
+                    showingPeople = true
+                }
+                .help("See which mentions were merged into one person, split a wrong merge, and answer the unsure ones.")
+            }
         }
     }
 
@@ -187,7 +197,7 @@ struct DecisionThreadView: View {
 
     private var reloadKey: ReloadKey {
         ReloadKey(enabled: settings.knowledgeGraphEnabled && settings.knowledgeIndexEnabled,
-                  revision: indexer.revision, extractions: extraction.revision,
+                  revision: indexer.revision, extractions: extraction.revision &+ people.revision,
                   resolved: suggestionsStore.resolved.count)
     }
 

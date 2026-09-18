@@ -209,6 +209,9 @@ final class KnowledgeIndexer {
 
     var settings: KnowledgeIndexSettings { environment.settings }
 
+    /// Where the meeting folders are, for readers of `speakers.json` (Phase D).
+    var meetingsRoot: URL { sources.meetingsRoot }
+
     /// The embedder the settings choose, when its files are there.
     var embedder: (any KnowledgeEmbedder)? {
         let settings = self.settings
@@ -302,6 +305,10 @@ final class KnowledgeIndexer {
         lastSettings = current
         // The graph switched off: the derived graph goes; `notes.json` stays in each meeting
         // folder, so switching it back on rebuilds without asking a model again.
+        if graphWasOn, !current.graphEnabled {
+            // Voice prints were written for the graph alone.
+            MeetingVoicePrints.removeAll(meetingsRoot: meetingsRoot)
+        }
         if graphWasOn, !current.graphEnabled, store.existsOnDisk {
             do {
                 try GraphStore(store: store).deleteAll()

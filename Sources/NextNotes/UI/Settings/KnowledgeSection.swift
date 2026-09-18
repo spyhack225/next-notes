@@ -80,7 +80,11 @@ struct KnowledgeSection: View {
                     + "one — and saves notes.json beside them: decisions you can follow across meetings, and "
                     + "action items you own with a date, offered as reminders you confirm. Nothing is created "
                     + "for you. What it extracts stays on this Mac: a cloud model the Agent, Ask or a routine "
-                    + "uses cannot read it unless you let it.",
+                    + "uses cannot read it unless you let it. "
+                    + "People mentioned by different names — an address, initials, a first name, an unnamed "
+                    + "speaker whose voice matches — are merged into one only on strong evidence; each meeting's "
+                    + "speaker voice prints are saved beside it while this is on. Decisions → People lists every "
+                    + "merge with its reason, and Split undoes one.",
                 orb: indexer.isIndexing ? .searching : nil
             )
         }
