@@ -141,7 +141,7 @@ final class RealtimeAgent {
     /// `KnowledgeAsker` on the voice model, or nil to fall back to the tool planner.
     private func answerFromKnowledge(_ question: String) async -> String? {
         guard let context = KnowledgeIndexer.shared.toolContext,
-              let provider = await LLMProviders.resolve(preferring: .gemma4E4B) else { return nil }
+              let provider = await LLMProviders.resolve(preferring: .appLLM) else { return nil }
         let owner = currentGeneration
         let asker = KnowledgeAsker(context: context, model: ProviderKnowledgeAnswerModel(provider: provider))
         do {
@@ -556,7 +556,7 @@ final class RealtimeAgent {
         if let localModelProviderForTesting {
             provider = localModelProviderForTesting
         } else if forceOnDevice || currentTurnSource == .voice {
-            provider = await LLMProviders.resolve(preferring: .gemma4E4B)
+            provider = await LLMProviders.resolve(preferring: .appLLM)
         } else {
             provider = await LLMProviders.resolve(
                 preferring: Settings.shared.agentModelProvider,
@@ -573,7 +573,7 @@ final class RealtimeAgent {
         guard let provider else {
             endReplyTrace("local-model-unavailable")
             let reason = forceOnDevice
-                ? (await LLMProviders.make(.gemma4E4B).unavailableReason)
+                ? (await LLMProviders.make(.appLLM).unavailableReason)
                 : (await LLMProviders.make(
                     Settings.shared.agentModelProvider,
                     modelID: Settings.shared.openRouterAgentModelID,

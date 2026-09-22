@@ -159,6 +159,14 @@ final class CleanupTrace: @unchecked Sendable {
         }
     }
 
+    /// Whether any model call in this run used a session staged at key-down.
+    /// OR-accumulated across chunks: true when the prewarm paid off at least once.
+    /// Nil when no model ran. The 0.6s-vs-4s spread on short dictations is the
+    /// question this answers.
+    func noteSessionPrewarmed(_ used: Bool) {
+        mutate { $0.sessionPrewarmed = ($0.sessionPrewarmed ?? false) || used }
+    }
+
     /// The model did not answer at all — unavailable, timed out, refused, not downloaded.
     func noteModelFailed(reason: String, seconds: Double) {
         mutate {
@@ -183,7 +191,8 @@ struct CleanupRecord: Codable, Sendable, Hashable {
     /// What was handed on to the dictionary and then typed.
     var cleanedText: String?
 
-    /// `apple`, `s1Mini`, `qwen`, or `rules` when no model was reached for.
+    /// `apple`, `s1Mini`, `appLLM` (`qwen` in runs recorded before the rename),
+    /// or `rules` when no model was reached for.
     var engine: String?
     /// `rules` or `semantic`.
     var route: String?
@@ -200,6 +209,9 @@ struct CleanupRecord: Codable, Sendable, Hashable {
 
     /// Whether a model produced an answer at all.
     var modelRan: Bool?
+    /// True when a key-down-staged session served at least one model call in this
+    /// run. Nil when no model ran.
+    var sessionPrewarmed: Bool?
     /// `accepted`, `rejected`, or `not reached`.
     var guardVerdict: String?
     /// Plain reason the model's answer was not used: a guard rejection, a timeout, an

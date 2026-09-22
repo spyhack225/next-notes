@@ -151,8 +151,12 @@ enum CleanupGuard {
         //    conflates "the model truncated my sentence" with "the input was 80% filler and
         //    was legitimately cut in half" — with a raw denominator those two land at 0.14
         //    and 0.21, too close to separate. Discounting fillers on both sides pushes the
-        //    real cleanups to 0.6–1.0 and leaves the failures below 0.2.
-        let ratio = Double(cleanedTokens.count) / Double(max(1, spokenWordCount(original, mode: mode)))
+        //    real cleanups to 0.6–1.0 and leaves the failures below 0.2. The output
+        //    side is discounted the same way: a discourse marker the model kept
+        //    ("Okay, go for it.") is filler in the denominator and must not count as
+        //    content in the numerator, or an unchanged transcript fails its own ratio.
+        let cleanedSpoken = cleanedTokens.count { !fillerWords(for: mode).contains($0) }
+        let ratio = Double(cleanedSpoken) / Double(max(1, spokenWordCount(original, mode: mode)))
         // Grammar repair inserts articles and restores dropped subjects, so the ceiling is
         // a little higher than for punctuation alone. The floor is unchanged: nothing
         // legitimate removes two thirds of what was said.

@@ -15,6 +15,7 @@ struct ModelsSettingsTab: View {
     @State private var models = LocalModelStore.shared
     @State private var library = ModelLibraryStore.shared
     @State private var installed = InstalledModelLibrary.shared
+    @State private var roles = ModelRoleStore.shared
     @State private var loadNotice = ModelLoadNotice.shared
     @State private var pocket = PocketAgentVoice.shared
     @State private var kokoro = KokoroAgentVoice.shared
@@ -28,6 +29,9 @@ struct ModelsSettingsTab: View {
     @State private var isCheckingOpenRouterKey = true
     @State private var isChangingOpenRouterKey = false
     @State private var showingSpaceManager = false
+    /// A model just made the runtime's file, waiting on the role question: the file alone
+    /// does not change what answers, so "Use this one" must ask before it can promise.
+    @State private var rolePromptModel: InstalledLocalModel?
 
     var body: some View {
         Form {
@@ -260,13 +264,24 @@ struct ModelsSettingsTab: View {
                     .foregroundStyle(DS.Color.textSecondary)
             }
             ForEach(installed.models) { model in
+                // The badge answers "will the next turn come from this file" — the role's
+                // effective choice, not the runtime's selected file. The note covers the
+                // split state: loaded, but something else answers.
+                let answersTurns = roles.resolution(for: .agent).effective == .installedModel(id: model.id)
+                let fileSelected = installed.activeAgentModelID == model.id
                 InstalledModelRow(
                     model: model,
                     fit: library.fit(for: model),
-                    isActive: installed.activeAgentModelID == model.id,
+                    answersTurns: answersTurns,
+                    statusNote: fileSelected && !answersTurns
+                        ? "Loaded, but agent turns use \(roles.displayName(for: .agent))."
+                        : nil,
                     canRemove: installed.canRemove(model),
                     lastUsed: installed.lastUsedDate(for: model.id),
-                    onUse: { library.makeActive(model) },
+                    onUse: {
+                        library.makeActive(model)
+                        rolePromptModel = model
+                    },
                     onDelete: { library.delete(model) }
                 )
             }
@@ -312,6 +327,22 @@ struct ModelsSettingsTab: View {
         .sheet(isPresented: $showingSpaceManager) {
             ModelSpaceManagerSheet()
         }
+        .confirmationDialog(
+            "Use \(rolePromptModel?.displayName ?? "this model") for agent turns?",
+            item: $rolePromptModel,
+            actions: { model in
+                // Through the role store, not straight at the file: the next turn
+                // re-asserts the role's choice, so a file switch alone flips back.
+                Button("Use for agent turns") {
+                    roles.setChoice(.installedModel(id: model.id), for: .agent)
+                }
+                Button("Keep file only", role: .cancel) {}
+            },
+            message: { _ in
+                Text("The Agent role decides what answers — it currently uses "
+                     + "\(roles.displayName(for: .agent)). The file stays loaded either way.")
+            }
+        )
     }
 
     /// Anything left half-fetched — the app was quit, the network dropped, Stop was pressed —

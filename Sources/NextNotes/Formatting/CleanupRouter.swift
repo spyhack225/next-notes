@@ -25,7 +25,7 @@ import Foundation
 ///
 /// S1-mini still takes no instructions. The router will not pretend a target profile or
 /// the screen-name harvest can reach it. The on-device engine is constructible as a seam
-/// and is never chosen from Settings; `QwenCleanupFormatter` must not call `beginCleanup()`.
+/// and is never chosen from Settings; `AppLLMCleanupFormatter` must not call `beginCleanup()`.
 struct CleanupRouter: TextFormatter {
     /// One spoken sentence, give or take. Only the opt-in busy shortcut reads it: at or under
     /// this, a transcript under pressure stays on rules when the user asked for speed.
@@ -346,7 +346,7 @@ struct CleanupRouter: TextFormatter {
         switch engine {
         case .apple:
             return { FoundationModelFormatter.timeout(for: $0) }
-        case .s1Mini, .qwen:
+        case .s1Mini, .appLLM:
             // The on-device engine has no separate ceiling; S1-mini's is the larger of the
             // two that do, which is the safe way to be wrong about it.
             return { S1MiniFormatter.timeout(for: $0) }
@@ -354,7 +354,7 @@ struct CleanupRouter: TextFormatter {
     }
 
     /// Stage B formatter for a named engine. The on-device engine is here so a later picker
-    /// can construct it; production never passes `.qwen`.
+    /// can construct it; production never passes `.appLLM`.
     ///
     /// Apple and the on-device engine used as Stage B fall back to `KeepAsIsFormatter`: the input has
     /// already been through rules, and running `RuleBasedFormatter` again would undo
@@ -383,10 +383,10 @@ struct CleanupRouter: TextFormatter {
             )
         case .s1Mini:
             return S1MiniFormatter(preferences: preferences, trace: trace)
-        case .qwen:
-            // Must not call LlamaBackend.beginCleanup — QwenCleanupFormatter is the
+        case .appLLM:
+            // Must not call LlamaBackend.beginCleanup — AppLLMCleanupFormatter is the
             // on-device notes model, and announcing it to the gate deadlocks the load.
-            return QwenCleanupFormatter(
+            return AppLLMCleanupFormatter(
                 preferences: preferences,
                 fixesGrammar: fixesGrammar,
                 target: target,
@@ -570,14 +570,14 @@ extension CleanupRouter {
         }
 
         let onDevice = makeSemantic(
-            .qwen,
+            .appLLM,
             preferences: CleanupPreferences(tone: .balanced, formatsLists: true, context: .general),
             fixesGrammar: true,
             target: .plain(bundleID: "", displayName: "the focused app"),
             context: .empty
         )
-        if !(onDevice is QwenCleanupFormatter) {
-            failures.append("makeSemantic(.qwen) did not return QwenCleanupFormatter")
+        if !(onDevice is AppLLMCleanupFormatter) {
+            failures.append("makeSemantic(.appLLM) did not return AppLLMCleanupFormatter")
         }
 
         struct Case {
@@ -868,6 +868,20 @@ extension CleanupRouter {
         // nothing about the case that lost this user their cleanup: a group dispatched with
         // a sliver of budget left, running for its own full ceiling, and carrying the whole
         // stage past the controller's deadline.
+        //
+        // Five groups, so the third wave is the one that hits the wall: the shared `long`
+        // fixture splits into four, two waves of 200 ms fit inside the 500 ms budget, and
+        // the mid-pass case this block exists to prove is never exercised — a green run
+        // that tested nothing, until the record assertion below caught the absence.
+        let stallLong = Array(repeating: "The build is green and the tests are passing.", count: 60)
+            .joined(separator: " ")
+        let stallGroups = SentenceChunker.chunks(stallLong, maxWords: 120)
+        if stallGroups.count < 5 {
+            failures.append(
+                "the mid-pass budget fixture split into \(stallGroups.count) group(s), "
+                    + "too few to outlast two waves"
+            )
+        }
         let stallTrace = CleanupTrace()
         let stallBox = CounterBox()
         let ceiling = Duration.milliseconds(200)
@@ -879,7 +893,7 @@ extension CleanupRouter {
             perCallTimeout: { _ in ceiling }
         )
         let stallBegan = ContinuousClock.now
-        let stalledOutput = await stalled.format(long)
+        let stalledOutput = await stalled.format(stallLong)
         let stallElapsed = ContinuousClock.now - stallBegan
         let calls = await stallBox.count
         if calls == 0 {
@@ -893,7 +907,7 @@ extension CleanupRouter {
                     + "ceiling ran for \(stallElapsed)"
             )
         }
-        if SentenceChunker.wordCount(stalledOutput) != SentenceChunker.wordCount(long) {
+        if SentenceChunker.wordCount(stalledOutput) != SentenceChunker.wordCount(stallLong) {
             failures.append("the out-of-budget tail was not left as spoken")
         }
         if stallTrace.snapshot.fallbackReason == nil {

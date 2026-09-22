@@ -51,13 +51,15 @@ enum ModelLibrarySelfTests {
     }
 
     static var cases: [Case] {
-        // Real file sizes, taken from the Q4_K_M build of each repo.
-        let qwen4b: Int64 = 2_740_937_888
+        // Real file sizes, taken from the Q4_K_M build of each size tier. Tier-named
+        // on purpose: these rows assert estimator math per size class, not per vendor,
+        // so a model swap must not need this table again.
+        let tier4b: Int64 = 2_740_937_888
         let llama8b: Int64 = 4_920_000_000
-        let qwen14b: Int64 = 9_000_000_000
+        let tier14b: Int64 = 9_000_000_000
         let gemma27b: Int64 = 16_500_000_000
         let llama70b: Int64 = 42_500_000_000
-        let qwen06b: Int64 = 500_000_000
+        let tier06b: Int64 = 500_000_000
 
         let m3_16 = machine("Apple M3", family: .m3, memoryGB: 16, freeDiskGB: 60)
         let m3_16_fullDisk = machine("Apple M3", family: .m3, memoryGB: 16, freeDiskGB: 8.8)
@@ -67,20 +69,20 @@ enum ModelLibrarySelfTests {
 
         return [
             // The machine this app was designed for, on the model it ships with.
-            Case(model: "Qwen3.5-4B Q4_K_M", fileBytes: qwen4b, parameterBillions: 4,
+            Case(model: "AppLLM-4B Q4_K_M", fileBytes: tier4b, parameterBillions: 4,
                  machine: m3_16, expected: .runsWell,
                  why: "the built-in model on a 16 GB M3 is the case the whole app assumes works"),
 
             // The user's own machine as it is today: plenty of memory, almost no disk. The
             // built-in model still fits — 2.7 GB out of 8.8 GB leaves the 4 GB reserve —
             // and telling them otherwise would be a lie in the pessimistic direction.
-            Case(model: "Qwen3.5-4B Q4_K_M", fileBytes: qwen4b, parameterBillions: 4,
+            Case(model: "AppLLM-4B Q4_K_M", fileBytes: tier4b, parameterBillions: 4,
                  machine: m3_16_fullDisk, expected: .runsWell,
                  why: "2.7 GB out of 8.8 GB free still clears the 4 GB reserve"),
 
             // The same nearly-full disk, one size up: this is the disk check doing its job,
             // and the verdict must name space rather than memory.
-            Case(model: "Qwen3-14B Q4_K_M", fileBytes: qwen14b, parameterBillions: 14,
+            Case(model: "Model-14B Q4_K_M", fileBytes: tier14b, parameterBillions: 14,
                  machine: m3_16_fullDisk, expected: .notRecommended,
                  why: "9 GB will not fit in 8.8 GB free, whatever the memory says"),
 
@@ -90,7 +92,7 @@ enum ModelLibrarySelfTests {
                  why: "42 GB of weights against about 10 GB this Mac can spare"),
 
             // A 14B is the boundary: it fits on disk, and does not fit in memory.
-            Case(model: "Qwen3-14B Q4_K_M", fileBytes: qwen14b, parameterBillions: 14,
+            Case(model: "Model-14B Q4_K_M", fileBytes: tier14b, parameterBillions: 14,
                  machine: m3_16, expected: .slow,
                  why: "9 GB of weights is right at the edge of what a 16 GB Mac can spare"),
 
@@ -103,12 +105,12 @@ enum ModelLibrarySelfTests {
             Case(model: "Llama-3.1-8B Q4_K_M", fileBytes: llama8b, parameterBillions: 8,
                  machine: m1_8, expected: .notRecommended,
                  why: "8 GB of unified memory leaves nothing after macOS and the app"),
-            Case(model: "Qwen3-0.6B Q4_K_M", fileBytes: qwen06b, parameterBillions: 0.6,
+            Case(model: "Model-0.6B Q4_K_M", fileBytes: tier06b, parameterBillions: 0.6,
                  machine: m1_8, expected: .runsGreat,
                  why: "a half-gigabyte model is the one thing an 8 GB M1 is comfortable with"),
 
             // Big machines must not be told to stay small.
-            Case(model: "Qwen3-14B Q4_K_M", fileBytes: qwen14b, parameterBillions: 14,
+            Case(model: "Model-14B Q4_K_M", fileBytes: tier14b, parameterBillions: 14,
                  machine: m4max_128, expected: .runsGreat,
                  why: "9 GB of weights at 410 GB/s is the pairing a fast Mac exists for"),
             Case(model: "Gemma-3-27B Q4_K_M", fileBytes: gemma27b, parameterBillions: 27,
@@ -189,6 +191,9 @@ enum ModelLibrarySelfTests {
     }
 
     /// The parser that turns a repo name into a parameter count and a quantization.
+    /// Test inputs below name real vendors on purpose: users keep old files on disk
+    /// (including Qwen-named ones from before the app-LLM rename), and the parser
+    /// must still read them. These are compatibility fixtures, not app dependencies.
     private static func nameParsingFailures() -> [String] {
         var failures: [String] = []
 

@@ -576,7 +576,7 @@ final class ModelRoleStore {
             if InstalledModelLibrary.shared.activeAgentModelID != id {
                 InstalledModelLibrary.shared.activeAgentModelID = id
             }
-            return await LLMProviders.resolve(preferring: .gemma4E4B)
+            return await LLMProviders.resolve(preferring: .appLLM)
 
         case .builtIn, .app:
             return await builtInProvider(for: role)
@@ -589,7 +589,7 @@ final class ModelRoleStore {
            case .builtIn = choice(for: role) {
             InstalledModelLibrary.shared.activeAgentModelID = InstalledModelLibrary.builtInID
         }
-        return await LLMProviders.resolve(preferring: .gemma4E4B)
+        return await LLMProviders.resolve(preferring: .appLLM)
     }
 
     /// The configured local-server provider for the assistant role, built without probing.
@@ -675,7 +675,7 @@ final class ModelRoleStore {
         InstalledModelLibrary.shared.refresh()
 
         var next = ModelRoleAvailability()
-        next.builtInModelReady = await LLMProviders.make(.gemma4E4B).unavailableReason == nil
+        next.builtInModelReady = await LLMProviders.make(.appLLM).unavailableReason == nil
         next.appleFoundationReady = await LLMProviders.make(.appleFoundation).unavailableReason == nil
         next.installedModelIDs = Set(InstalledModelLibrary.shared.models.map(\.id))
         next.localServerModels = catalog.modelIDsByEndpoint
@@ -724,7 +724,7 @@ final class ModelRoleStore {
 @MainActor
 enum AgentModelRouting {
     static func provider(for prompt: String, voice: Bool) async -> (any LLMProvider)? {
-        if voice { return await LLMProviders.resolve(preferring: .gemma4E4B) }
+        if voice { return await LLMProviders.resolve(preferring: .appLLM) }
         return await ModelRoleStore.shared.provider(for: ModelRoleStore.role(forUtterance: prompt))
     }
 }

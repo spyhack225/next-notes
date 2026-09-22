@@ -2,19 +2,40 @@ import Foundation
 
 /// Which Stage B model the user (or a caller) asked for.
 ///
-/// Settings still only offers Apple and S1-mini. `qwen` is a seam for a later picker —
+/// Role-named on purpose: the on-device engine is whatever the app LLM is this
+/// release (Qwen3.5-4B before, Gemma 4 E4B now), so nothing here may name a model.
+/// Settings still only offers Apple and S1-mini. `appLLM` is a seam for a later picker —
 /// `CleanupRouter` never selects it from `CleanupEngineChoice`, and
-/// `QwenCleanupFormatter` must not announce itself to `LlamaBackend`'s cleanup gate.
+/// `AppLLMCleanupFormatter` must not announce itself to `LlamaBackend`'s cleanup gate.
 enum CleanupSemanticEngine: String, Sendable, Equatable {
     case apple
     case s1Mini
-    case qwen
+    /// The app's on-device LLM, whichever file that is. `"qwen"` decodes here for
+    /// logs and runs recorded before the rename.
+    case appLLM = "appLLM"
+
+    init?(rawValue value: String) {
+        switch value {
+        case "apple": self = .apple
+        case "s1Mini": self = .s1Mini
+        case "appLLM", "qwen": self = .appLLM
+        default: return nil
+        }
+    }
+
+    var rawValue: String {
+        switch self {
+        case .apple: return "apple"
+        case .s1Mini: return "s1Mini"
+        case .appLLM: return "appLLM"
+        }
+    }
 
     var displayName: String {
         switch self {
         case .apple: "Apple Foundation Model"
         case .s1Mini: "S1-mini"
-        case .qwen: "On-device model"
+        case .appLLM: "On-device model"
         }
     }
 

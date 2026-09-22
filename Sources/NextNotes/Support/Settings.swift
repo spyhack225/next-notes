@@ -321,7 +321,8 @@ final class Settings {
     /// out and left the unformatted S1 text as what got typed.
     ///
     /// On by default because it measured both better and faster than the alternative: over
-    /// the 28 evaluation cases, Apple returned 19 clean against Qwen's 14, at a warm median
+    /// the 28 evaluation cases, Apple returned 19 clean against the app LLM's 14
+    /// (Qwen3.5-4B at the time), at a warm median
     /// of 0.686s against 7.41s. See `--selftest-cleanup apple-grammar`.
     var cleanupFixesGrammar: Bool {
         didSet { defaults.set(cleanupFixesGrammar, forKey: Keys.cleanupFixesGrammar) }

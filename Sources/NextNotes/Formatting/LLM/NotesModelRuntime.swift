@@ -22,7 +22,7 @@ import llama
 ///   so a queued voice turn runs next but cannot corrupt an in-flight notes pass.
 /// - Before loading, this runtime still waits on `LlamaBackend.awaitCleanupIdle()`.
 ///   It must **never** call `beginCleanup()` — that closes the gate and deadlocks
-///   on-device cleanup (`QwenCleanupFormatter`).
+///   on-device cleanup (`AppLLMCleanupFormatter`).
 /// - Under memory pressure, `ModelResidencyPolicy` may call `shutdown()` before it
 ///   unloads diarization. Wake/KWS and Parakeet stay warm.
 actor NotesModelRuntime {
@@ -511,11 +511,11 @@ actor NotesModelRuntime {
         let contextTrace = LatencyTrace.start(.modelContext)
         let hadContext = context != nil
         let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
-        contextTrace.end(note: "qwen35_4b had_context=\(hadContext) tokens=\(contextSize)")
+        contextTrace.end(note: "app_llm had_context=\(hadContext) tokens=\(contextSize)")
         let prefillTrace = LatencyTrace.start(.modelPrefill)
         llama_memory_clear(llama_get_memory(context), true)
         try await decodePromptWhileScheduled(promptTokens, context: context, jobID: jobID)
-        prefillTrace.end(note: "qwen35_4b prompt_tokens=\(promptTokens.count)")
+        prefillTrace.end(note: "app_llm prompt_tokens=\(promptTokens.count)")
 
         guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: nil) else {
             throw LlamaError.samplerFailed
@@ -539,7 +539,7 @@ actor NotesModelRuntime {
             let piece = LlamaHelpers.piece(token, vocabulary: vocabulary)
             if !reportedFirstToken {
                 reportedFirstToken = true
-                firstTokenTrace.end(note: "qwen35_4b")
+                firstTokenTrace.end(note: "app_llm")
             }
             output += piece
             generated += 1
@@ -586,7 +586,7 @@ actor NotesModelRuntime {
     ) async throws -> T {
         let queueTrace = LatencyTrace.start(.modelQueue)
         guard await reserveNativeContext(for: workClass) else {
-            queueTrace.end(note: "qwen35_4b class=\(workClass.rawValue) canceled")
+            queueTrace.end(note: "app_llm class=\(workClass.rawValue) canceled")
             throw CancellationError()
         }
         defer { releaseNativeContext() }
@@ -603,7 +603,7 @@ actor NotesModelRuntime {
             }
         }
         let jobID = await ComputeScheduler.shared.acquire(workClass)
-        queueTrace.end(note: "qwen35_4b class=\(workClass.rawValue)")
+        queueTrace.end(note: "app_llm class=\(workClass.rawValue)")
         do {
             let result = try await body(jobID)
             await ComputeScheduler.shared.release(jobID)
@@ -937,13 +937,13 @@ actor NotesModelRuntime {
             self.setRuntimeGeneration(generation)
             do {
                 try await self.load(schedulerJobID: jobID)
-                loadTrace.end(note: "qwen35_4b")
+                loadTrace.end(note: "app_llm")
                 _ = await ModelRuntimeManager.shared.markReady(
                     .notes,
                     generation: generation
                 )
             } catch {
-                loadTrace.end(note: "qwen35_4b failed")
+                loadTrace.end(note: "app_llm failed")
                 if let llamaError = error as? LlamaError,
                    case .modelMissing = llamaError {
                     // A missing download is an expected configuration state,

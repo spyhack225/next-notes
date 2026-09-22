@@ -331,7 +331,7 @@ tap to provoke the prompt; nothing reads the answer back, because nothing can.
 
 **A self-test cannot fail by hanging.** It runs as a task inside a SwiftUI app; if it never
 finishes it never terminates, and the process falls through into the AppKit run loop looking
-exactly like a running app. `--selftest-cleanup qwen` sat that way for three hours on 2 seconds
+exactly like a running app. `--selftest-cleanup app-llm` sat that way for three hours on 2 seconds
 of CPU. There is now a watchdog — `SelfTest.timeout`, `--selftest-timeout <seconds>` to override
 — which prints `SELFTEST_TIMEOUT` and exits non-zero.
 
@@ -351,7 +351,7 @@ executed.
 `NotesModelRuntime.loadIfNeeded` calls `awaitCleanupIdle()`, so notes wait for dictation
 cleanup. A cleanup formatter that calls `beginCleanup()` and *then* asks that same runtime to
 complete waits forever: the load waits on a count only `endCleanup()` clears, and `endCleanup()`
-runs after the load returns. `QwenCleanupFormatter` therefore does not touch the gate — it is
+runs after the load returns. `AppLLMCleanupFormatter` therefore does not touch the gate — it is
 the notes model, behind the same actor, which already serialises it.
 
 **Transcript text in the Dictation list cannot be selected with the mouse.** Deliberate. The

@@ -58,9 +58,11 @@ struct InstalledLocalModel: Identifiable, Codable, Sendable, Hashable {
 /// and a synthesized entry for the built-in model, which is downloaded by
 /// `NotesModels.download` and has no manifest row of its own. Callers read one list.
 ///
-/// `activeAgentModelID` is the model the agent and the notes writer should use. It persists in
-/// UserDefaults and falls back to the built-in whenever the chosen file has gone missing, so a
-/// deleted model can never leave the app pointing at nothing.
+/// `activeAgentModelID` is the weight file the runtime loads. It is half of the choice:
+/// the Agent role decides what answers, and re-asserts its own choice over this file on
+/// every turn — so a file switch with the role still on Built-in flips back. It persists
+/// in UserDefaults and falls back to the built-in whenever the chosen file has gone
+/// missing, so a deleted model can never leave the app pointing at nothing.
 @MainActor
 @Observable
 final class InstalledModelLibrary {
@@ -74,13 +76,13 @@ final class InstalledModelLibrary {
 
     private(set) var models: [InstalledLocalModel] = []
 
-    /// The model the agent answers with.
+    /// The weight file the runtime loads — not, on its own, what answers.
     ///
-    /// Setting this is the *whole* act of choosing a model: it persists the choice and hands
-    /// the runtime the new file. Two screens set it — the Models tab and the model picker in
-    /// Settings ▸ Agent — and when the swap lived in one of those screens instead of here,
-    /// the other one changed the stored id and the next answer still came from the old
-    /// weights. One setter, one behaviour.
+    /// Setting this persists the file choice and hands the runtime the new weights. Two
+    /// screens set it — the Models tab and the model picker in Settings ▸ Agent — and the
+    /// Agent role still decides the turns: `ModelRoleStore.setChoice(.installedModel, for:
+    /// .agent)` is what converges the two, and the Models tab prompts for it on "Use
+    /// this one" rather than pretending the file is enough.
     var activeAgentModelID: String {
         didSet {
             guard oldValue != activeAgentModelID else { return }

@@ -659,7 +659,9 @@ final class ModelLibraryStore {
         refreshHardware()
     }
 
-    /// Makes an installed model the one the agent uses. The library tells the runtime.
+    /// Makes an installed model the runtime's file. The library tells the runtime — and
+    /// the caller prompts for the Agent role, because the file alone flips back on the
+    /// next turn while the role still points elsewhere.
     func makeActive(_ model: InstalledLocalModel) {
         InstalledModelLibrary.shared.activeAgentModelID = model.id
     }

@@ -264,8 +264,9 @@ enum ModelFitEstimator {
 
     /// Parameter count in billions, from a repo or file name.
     ///
-    /// Handles "Qwen3.5-4B", "Llama-3.1-8B-Instruct", "gemma-3-1b-it", "Qwen3-30B-A3B"
-    /// (returns the total, 30, not the active 3) and "Mistral-7B-v0.3". Returns nil rather
+    /// Parses any vendor's "-<N>B" token — e.g. a 4B-class app LLM, an 8B Instruct,
+    /// a 1b-it, a 30B-A3B MoE (returns the total, 30, not the active 3) and a 7B.
+    /// Returns nil rather
     /// than guessing when there is no such token — the file size then stands in.
     static func parameterBillions(fromName name: String) -> Double? {
         let text = name.replacingOccurrences(of: "_", with: "-")

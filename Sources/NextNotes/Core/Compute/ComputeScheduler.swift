@@ -71,7 +71,7 @@ protocol ComputeScheduling: Sendable {
 /// - Call `LlamaBackend.beginCleanup` / `endCleanup`. The cleanup gate is
 ///   one-directional (notes wait for cleanup via `awaitCleanupIdle`). A
 ///   scheduler that asked cleanup to wait for notes would deadlock it —
-///   see `QwenCleanupFormatter`.
+///   see `AppLLMCleanupFormatter`.
 /// - Bind a real model to `preferredDevice`.
 /// - Unload weights under pressure — that is `ModelResidencyPolicy`.
 ///

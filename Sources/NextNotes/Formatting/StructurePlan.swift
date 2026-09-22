@@ -597,7 +597,7 @@ enum StructureFixtures {
 /// Something that can propose a layout. One method, so a self-test can script it and the
 /// router never needs to know whether a model is on this Mac.
 protocol StructurePlanning: Sendable {
-    /// For the record: `apple`, `qwen3.5-4b`, `scripted`.
+    /// For the record: `apple`, `appLLM`, `scripted` (`qwen3.5-4b` in older runs).
     var planName: String { get }
     func plan(for sentences: [String]) async -> StructurePlanOutcome
 }

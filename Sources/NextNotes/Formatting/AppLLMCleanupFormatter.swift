@@ -1,8 +1,10 @@
 import Foundation
 
-/// Dictation cleanup through the on-device meeting model, on the GPU.
+/// Dictation cleanup through the app's on-device LLM, on the GPU.
 ///
-/// The same general instruction-following model that writes meeting notes — whichever file
+/// Role-named on purpose: the file behind this paragraph has been Qwen3.5-4B and is
+/// Gemma 4 E4B now, and the next swap must not need this rename again. It is the same
+/// general instruction-following model that writes meeting notes — whichever file
 /// the Models tab has selected — pointed at one or two sentences instead of an hour of
 /// them. It is here because it is the only model on this Mac that can be *told* what to
 /// do in prose, which is what open-ended grammar repair needs; S1-mini cannot be told
@@ -19,8 +21,8 @@ import Foundation
 ///
 /// Both are bounded by `timeout`, after which the rule-based output is used — a person who
 /// released the key three seconds ago needs text, not a better sentence. Every number
-/// behind this paragraph comes from `--selftest-cleanup qwen`.
-struct QwenCleanupFormatter: TextFormatter {
+/// behind this paragraph comes from `--selftest-cleanup app-llm`.
+struct AppLLMCleanupFormatter: TextFormatter {
     private let fallback = RuleBasedFormatter()
     private let preferences: CleanupPreferences
     private let fixesGrammar: Bool

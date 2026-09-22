@@ -16,7 +16,7 @@ import Dispatch
 /// - **Cleanup gate stays one-directional.** Notes still call
 ///   `LlamaBackend.awaitCleanupIdle()` before loading. Nothing here calls
 ///   `beginCleanup()`. Closing that cycle deadlocks the local model cleanup
-///   (`QwenCleanupFormatter`).
+///   (`AppLLMCleanupFormatter`).
 ///
 /// ## Wired, soft
 ///

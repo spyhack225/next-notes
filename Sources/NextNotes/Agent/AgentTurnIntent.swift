@@ -66,6 +66,9 @@ enum AgentTurnIntent: Equatable {
     }
 
     /// Explicit on-device phrasing selects the answer-only local model route.
+    /// Role-named: "ask app" / "ask agent" are the future-proof forms. "ask qwen" and
+    /// "ask gemma" stay as legacy aliases for utterances spoken when the app LLM
+    /// carried those names.
     static func localModelPrompt(for text: String) -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let lowered = trimmed.lowercased()
@@ -73,7 +76,10 @@ enum AgentTurnIntent: Equatable {
             "ask the model", "ask model", "use the model",
             "ask the local model", "ask local model",
             "ask the on-device model", "ask the on device model",
-            "use the local model", "use local model", "ask qwen", "ask gemma",
+            "use the local model", "use local model",
+            "ask the app", "ask app", "use the app model", "use app model",
+            "ask agent", "ask the agent",
+            "ask qwen", "ask gemma",
         ]
         guard let prefix = prefixes.first(where: {
             guard lowered.hasPrefix($0) else { return false }
@@ -96,7 +102,10 @@ enum AgentTurnIntent: Equatable {
             "ask the model", "ask model", "use the model",
             "ask the local model", "ask local model",
             "ask the on-device model", "ask the on device model",
-            "use the local model", "use local model", "ask qwen", "ask gemma",
+            "use the local model", "use local model",
+            "ask the app", "ask app", "use the app model", "use app model",
+            "ask agent", "ask the agent",
+            "ask qwen", "ask gemma",
         ].contains(lowered)
     }
 
@@ -104,6 +113,8 @@ enum AgentTurnIntent: Equatable {
         let lowered = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return ["ask the local model", "ask local model", "ask the on-device model",
                 "ask the on device model", "use the local model", "use local model",
+                "ask the app", "ask app", "use the app model", "use app model",
+                "ask agent", "ask the agent",
                 "ask qwen", "ask gemma"]
             .contains { lowered.hasPrefix($0) }
     }

@@ -105,9 +105,9 @@ struct FoundationModelFormatter: TextFormatter {
         let began = Date()
         do {
             let budget = Self.timeout(for: trimmed)
-            let cleaned = try await withThrowingTaskGroup(of: String.self) { group in
+            let (cleaned, prewarmed) = try await withThrowingTaskGroup(of: (String, Bool).self) { group in
                 group.addTask {
-                    try await Self.clean(
+                    try await Self.cleanReporting(
                         trimmed,
                         preferences: preferences,
                         fixesGrammar: fixesGrammar,
@@ -124,6 +124,7 @@ struct FoundationModelFormatter: TextFormatter {
                 group.cancelAll()
                 return first
             }
+            trace?.noteSessionPrewarmed(prewarmed)
 
             if let reason = CleanupGuard.rejection(
                 original: trimmed,
@@ -200,6 +201,25 @@ struct FoundationModelFormatter: TextFormatter {
         target: OutputProfile = .plain(bundleID: "", displayName: "the focused app"),
         context: ScreenContext = .empty
     ) async throws -> String {
+        try await cleanReporting(
+            text,
+            preferences: preferences,
+            fixesGrammar: fixesGrammar,
+            target: target,
+            context: context
+        ).text
+    }
+
+    /// Same as `clean`, plus whether the call ran on a session staged at key-down.
+    /// The caller files that bit in the per-run record: the 0.6s-vs-4s spread on
+    /// short dictations is a prewarm hit versus a miss until proven otherwise.
+    static func cleanReporting(
+        _ text: String,
+        preferences: CleanupPreferences,
+        fixesGrammar: Bool,
+        target: OutputProfile = .plain(bundleID: "", displayName: "the focused app"),
+        context: ScreenContext = .empty
+    ) async throws -> (text: String, prewarmed: Bool) {
         let instructions = CleanupInstructions.system(
             for: preferences,
             fixesGrammar: fixesGrammar,
@@ -209,8 +229,8 @@ struct FoundationModelFormatter: TextFormatter {
         // A session staged while the key was still down, if there is one for exactly these
         // instructions. Apple's prewarm is prompt-specific, so a session staged against a
         // different prompt is worth nothing and is not offered.
-        let session = await CleanupSessionWarmer.shared.take(instructions: instructions)
-            ?? LanguageModelSession(instructions: instructions)
+        let staged = await CleanupSessionWarmer.shared.take(instructions: instructions)
+        let session = staged ?? LanguageModelSession(instructions: instructions)
 
         let response = try await session.respond(
             to: CleanupInstructions.user(text, fixesGrammar: fixesGrammar),
@@ -222,7 +242,10 @@ struct FoundationModelFormatter: TextFormatter {
             )
         )
 
-        return response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (
+            response.content.trimmingCharacters(in: .whitespacesAndNewlines),
+            staged != nil
+        )
     }
 
     /// How long this transcript is allowed to spend in the model.

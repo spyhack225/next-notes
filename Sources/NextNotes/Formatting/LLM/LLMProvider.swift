@@ -20,6 +20,12 @@ enum LLMProviderID: String, CaseIterable, Sendable, Codable, Identifiable {
     /// back means the built-in model.
     static var allCases: [LLMProviderID] { [.gemma4E4B, .appleFoundation, .openRouter] }
 
+    /// Role name for the app's on-device LLM, whichever file that is this release
+    /// (Qwen3.5-4B before, Gemma 4 E4B now). Routing and fallback code must prefer
+    /// `.appLLM` so the next swap changes one line; only `make(_:)`,
+    /// `LlamaLLMProvider`, `NotesModels` and the Models UI may name the file.
+    static var appLLM: Self { .gemma4E4B }
+
     var id: String { rawValue }
 
     var displayName: String {

@@ -115,9 +115,9 @@ enum SelfTest {
     /// How long a self-test may run before it is declared hung.
     ///
     /// A self-test that never finishes never fails, because the process falls through into
-    /// the AppKit run loop and waits for events that are not coming. `--selftest-cleanup qwen`
+    /// the AppKit run loop and waits for events that are not coming. `--selftest-cleanup app-llm`
     /// did exactly that on 2026-09-09: it printed its header and then sat for three hours on
-    /// 2 seconds of CPU, holding 29 MB against a 2.74 GB model it had not loaded. Nothing
+    /// 2 seconds of CPU, holding megabytes against a multi-gigabyte model it had not loaded. Nothing
     /// reported it, because from the outside it looked like a running app.
     ///
     /// Generous on purpose. The slowest honest test loads a multi-gigabyte model from cold.
@@ -143,7 +143,7 @@ enum SelfTest {
         let flat: Double = 300
         guard requested == "--selftest-cleanup" else { return flat }
 
-        let modelBacked: Set<String> = ["apple", "apple-grammar", "s1", "chain", "qwen"]
+        let modelBacked: Set<String> = ["apple", "apple-grammar", "s1", "chain", "app-llm"]
         let choice = value(after: "--selftest-cleanup") ?? "all"
         let passes = choice == "all"
             ? modelBacked.count
@@ -1273,7 +1273,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// dictionary together — a number in which a Parakeet batch decode can hide a cleanup
     /// pass entirely. This harness times the cleanup call and nothing else.
     ///
-    /// `--selftest-cleanup rules|apple|apple-grammar|s1|chain|qwen|all`. The first case a
+    /// `--selftest-cleanup rules|apple|apple-grammar|s1|chain|app-llm|all`. The first case a
     /// model-backed formatter sees pays its cold start and is reported separately, because
     /// on a machine where the model has idled out that is the latency a real dictation gets.
     /// Does correcting a transcript teach the right thing, and refuse the wrong thing?
@@ -1600,7 +1600,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             let requested: [String]
             switch engine {
-            case "all": requested = ["guard", "rules", "apple", "apple-grammar", "s1", "chain", "qwen"]
+            case "all": requested = ["guard", "rules", "apple", "apple-grammar", "s1", "chain", "app-llm"]
             default: requested = [engine]
             }
 
@@ -1669,8 +1669,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         )
                     )
                     mode = .grammar
-                case "qwen":
-                    formatter = QwenCleanupFormatter(preferences: preferences, fixesGrammar: true)
+                case "app-llm", "qwen":
+                    formatter = AppLLMCleanupFormatter(preferences: preferences, fixesGrammar: true)
                     mode = .grammar
                 default:
                     formatter = nil
@@ -1792,8 +1792,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return try? await FoundationModelFormatter.clean(
                 text, preferences: preferences, fixesGrammar: true
             )
-        case "qwen":
-            return try? await QwenCleanupFormatter.generate(
+        case "app-llm", "qwen":
+            return try? await AppLLMCleanupFormatter.generate(
                 text, preferences: preferences, fixesGrammar: true
             )
         case "chain":

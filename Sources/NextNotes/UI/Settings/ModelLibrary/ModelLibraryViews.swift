@@ -190,10 +190,20 @@ struct ModelBrowseRow: View {
 }
 
 /// One model already on this Mac.
+///
+/// "In use" answers one question — will the next agent turn come from this file? —
+/// and nothing else. The runtime's selected file (`activeAgentModelID`) is not that
+/// answer: the Agent role re-asserts its own choice over the file on every turn, so a
+/// badge drawn from the file alone reads "in use" on a model nothing will reach.
 struct InstalledModelRow: View {
     let model: InstalledLocalModel
     let fit: ModelFitEstimator.Fit
-    let isActive: Bool
+    /// Whether the Agent role effectively resolves to this file. The only thing the
+    /// badge may claim.
+    let answersTurns: Bool
+    /// Shown when this file is loaded but something else answers — the state the old
+    /// badge reported as "In use".
+    var statusNote: String? = nil
     /// Whether Delete may even be offered. The built-in model only allows it once a
     /// different brain is already the one in use — see `InstalledModelLibrary.canRemove`.
     var canRemove: Bool = true
@@ -218,11 +228,17 @@ struct InstalledModelRow: View {
                 Text(subtitle)
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
+                if let statusNote {
+                    Text(statusNote)
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 ModelVerdictBadge(fit: fit)
             }
             Spacer(minLength: DS.Space.s)
             VStack(alignment: .trailing, spacing: DS.Space.xs) {
-                if isActive {
+                if answersTurns {
                     Label("In use", systemImage: "checkmark.circle.fill")
                         .font(DS.Font.caption)
                         .foregroundStyle(DS.Color.success)

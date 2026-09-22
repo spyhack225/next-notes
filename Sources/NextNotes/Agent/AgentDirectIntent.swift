@@ -5,7 +5,8 @@ import Foundation
 /// 2026-09-20T20:45:00Z, from `metrics.jsonl`: "You open Google Chrome and go to
 /// youtube.com." The frontend said "I'm on it." in 0.38 s, then the background worker built
 /// the planner prompt — persona, rules, memory, today's date, the file-index sentence, the
-/// skills index and the full schema of fifty-odd tools — and Qwen3.5-4B spent **44.78 s**
+/// skills index and the full schema of fifty-odd tools — and the app LLM
+/// (Qwen3.5-4B at the time) spent **44.78 s**
 /// prefilling 3,634 tokens before its first token. The spoken result landed 47 s after the
 /// request. The second request queued behind it and waited another 3.76 s to start.
 ///

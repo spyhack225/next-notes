@@ -528,7 +528,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-orb                     # the nine ThinkingOrb states at both sizes
 "$S" --selftest-gws                     # locate `gws`, read its version and auth state
 "$S" --selftest-agent <meeting-dir>     # proposals as JSON; executes nothing
-"$S" --selftest-cleanup [engine]        # rules / apple / s1 / qwen / chain / all against the eval corpus
+"$S" --selftest-cleanup [engine]        # rules / apple / s1 / app-llm / chain / all against the eval corpus
 "$S" --selftest-dictation               # every way a hold can go wrong still ends at idle
 "$S" --selftest-learn                   # CorrectionLearner acceptances and the rejections
 "$S" --selftest-axreadback              # which frontmost apps expose readable AX text

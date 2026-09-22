@@ -91,7 +91,8 @@ final class VoiceConversationCoordinator {
     /// `AgentCaptureController` takes a residency lease when the microphone opens but
     /// deliberately does not load: "opening its microphone must not load and prefill a 4B
     /// worker before there is any work." True at microphone-open; false once somebody has
-    /// started a sentence. From `metrics.jsonl`, a cold load of Qwen3.5-4B on this Mac took
+    /// started a sentence. From `metrics.jsonl`, a cold load of the app LLM
+    /// (Qwen3.5-4B at the time) on this Mac took
     /// 11.78 s, 19.37 s, 22.00 s and 25.06 s, and on 2026-09-19T23:04 the whole of it sat
     /// between "I'm on it." and the answer.
     ///

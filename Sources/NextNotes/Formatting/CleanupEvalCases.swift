@@ -721,5 +721,13 @@ extension CleanupGuardVectors {
                original: "The model claimed the text and claimed the images.",
                cleaned: "The model cleaned the text and cleaned the images.",
                mode: .grammar, accepted: false),
+
+        // 2026-09-21T16:02:48Z. The model returned the transcript unchanged and the
+        // guard rejected it with "length ratio 2.00": "okay" is a filler word, so it
+        // was discounted from the denominator while counted in the numerator.
+        Vector(name: "identical-short-interjection",
+               original: "Okay, go for it.",
+               cleaned: "Okay, go for it.",
+               mode: .grammar, accepted: true),
     ]
 }
