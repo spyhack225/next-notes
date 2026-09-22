@@ -145,28 +145,50 @@ final class MeetingStore {
     func save(_ meeting: Meeting) {
         let directory = directory(for: meeting.id)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        write(meeting, to: directory.appendingPathComponent(Self.recordFile))
+        var stamped = meeting
+        // M1-a: a calendar link implies a calendar title. An `.auto` placeholder saved
+        // with an event id becomes `.calendar` here, so the scheduler — which this file
+        // owns and `MeetingScheduler` does not need to touch — still records the link.
+        if stamped.titleSource == nil, stamped.calendarEventID != nil,
+           !Meeting.isPlaceholderTitle(stamped.title) {
+            stamped.titleSource = .calendar
+        }
+        // A live session saving an older copy must not downgrade a rename: a stored
+        // `.user` wins over an incoming `.auto`/nil for the same title.
+        if let stored = meetings.first(where: { $0.id == stamped.id }),
+           stored.effectiveTitleSource == .user, stamped.effectiveTitleSource != .user,
+           stored.title == stamped.title {
+            stamped.titleSource = .user
+        }
+        write(stamped, to: directory.appendingPathComponent(Self.recordFile))
 
-        if let index = meetings.firstIndex(where: { $0.id == meeting.id }) {
-            meetings[index] = meeting
+        if let index = meetings.firstIndex(where: { $0.id == stamped.id }) {
+            meetings[index] = stamped
         } else {
-            meetings.append(meeting)
+            meetings.append(stamped)
             meetings.sort { $0.start > $1.start }
         }
         // A finished meeting's speaker names or status changed what its chunks say.
-        if !meeting.status.isActive { KnowledgeIndexer.shared.meetingChanged(meeting.id) }
+        if !stamped.status.isActive { KnowledgeIndexer.shared.meetingChanged(stamped.id) }
     }
 
     /// Changes the name a person sees in the list. Empty after trimming is refused, so a
     /// meeting can never lose the required `title` that decode treats as identity-adjacent.
+    ///
+    /// M1-a: a rename flips the source to `.user` *before* any memory is written, so the
+    /// activity refresh that follows learns a name the person chose, never a placeholder.
     @discardableResult
     func rename(_ meeting: Meeting, to rawTitle: String) -> Bool {
         guard let title = MeetingTitle.cleaned(rawTitle) else { return false }
         var updated = self.meeting(id: meeting.id) ?? meeting
         updated.title = title
+        updated.titleSource = .user
         save(updated)
         MeetingContextStore.shared.rename(meetingID: updated.id, to: title)
         MeetingController.shared.syncTitle(of: updated.id, to: title)
+        // The renamed title is worth remembering; placeholders never reach the store
+        // (see `NextMemory.refreshFromActivity` and the `Meeting ·` backstop).
+        NextMemory.shared.remember(.meeting, key: title, value: title, source: "meeting:\(updated.id.uuidString)")
         return true
     }
 

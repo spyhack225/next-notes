@@ -78,6 +78,17 @@ struct AgentAboutView: View {
                 }
             }
 
+            // G3: what the Agent calls you — from the first voice session, one tap to change.
+            Button {
+                showMemories = true
+            } label: {
+                Text(userNamingLine)
+                    .font(DS.Font.callout)
+                    .foregroundStyle(DS.Color.textSecondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Change what the Agent calls you")
+
             connectedStatus
         }
         .padding(.vertical, DS.Space.m)
@@ -173,6 +184,21 @@ struct AgentAboutView: View {
     private func commitName() {
         identity.setDisplayName(nameDraft)
         editingName = false
+    }
+
+    /// G3: "What should I call you?" answered once, shown beside the avatar.
+    private var userNamingLine: String {
+        let prose = AgentIdentityProse.shared.displayName
+        if !prose.isEmpty { return "Calls you \(prose) · tap to change" }
+        let remembered = memory.entries.first {
+            $0.text.lowercased().contains("wants to be called")
+        }?.text
+        if let remembered,
+           let range = remembered.range(of: "wants to be called ", options: .caseInsensitive) {
+            let name = remembered[range.upperBound...].trimmingCharacters(in: .punctuationCharacters.union(.whitespaces))
+            if !name.isEmpty { return "Calls you \(name) · tap to change" }
+        }
+        return "Tap to tell it what to call you"
     }
 }
 

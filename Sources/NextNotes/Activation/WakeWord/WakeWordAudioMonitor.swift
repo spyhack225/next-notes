@@ -57,6 +57,11 @@ final class WakeWordAudioMonitor {
         var at: Date
         /// Seconds from the spotter firing to the island showing.
         var acknowledgedAfter: TimeInterval
+        /// Lifetime misses / false accepts at the moment of this fire, from
+        /// `WakeWordTelemetry`. A single fire cannot say whether the ears are
+        /// reliable; the counts beside it can.
+        var misses: Int = 0
+        var falseAccepts: Int = 0
     }
 
     private(set) var isListening = false
@@ -249,7 +254,9 @@ final class WakeWordAudioMonitor {
         lastDetection = Detection(
             keyword: keyword,
             at: spottedAt,
-            acknowledgedAfter: span.durationSeconds
+            acknowledgedAfter: span.durationSeconds,
+            misses: WakeWordTelemetry.shared.misses,
+            falseAccepts: WakeWordTelemetry.shared.falseAccepts
         )
     }
 

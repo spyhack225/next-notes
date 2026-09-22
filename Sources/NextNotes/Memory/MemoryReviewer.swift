@@ -104,9 +104,22 @@ enum MemoryReviewRouter {
 
     static func route(
         choice: MemoryReviewModelChoice, isRecording: Bool,
-        local: MemoryReviewLocalState, cloudConfigured: Bool, appleAvailable: Bool = false
+        local: MemoryReviewLocalState, cloudConfigured: Bool, appleAvailable: Bool = false,
+        cloudDown: Bool = false
     ) -> MemoryReviewRoute {
         if isRecording { return .wait("a meeting or dictation is recording") }
+        // M2-a: while the cloud gate is down, Automatic waits instead of burning a 429.
+        // A local model that is already idle still runs — the gate is about the cloud,
+        // not about work this Mac can do itself — unless the choice needs the cloud.
+        if cloudDown, choice == .auto {
+            let localIdleNow: Bool = {
+                if case .idle(let seconds) = local { return seconds >= requiredLocalIdle }
+                return false
+            }()
+            if !localIdleNow {
+                return .wait(MemoryCloudGate.cachedReason())
+            }
+        }
         let localIdle: Bool = {
             if case .idle(let seconds) = local { return seconds >= requiredLocalIdle }
             return false
@@ -130,6 +143,7 @@ enum MemoryReviewRouter {
             if appleAvailable { return .appleFoundation }
             return .wait(localWait + " and Apple Intelligence isn't available")
         case .cloud:
+            if cloudDown { return .wait(MemoryCloudGate.cachedReason()) }
             return cloudConfigured ? .cloud : .wait("OpenRouter isn't set up")
         }
     }
@@ -641,6 +655,11 @@ final class MemoryReviewScheduler {
 
     static let tickInterval: TimeInterval = 60
     static let maxAttempts = 3
+    /// Kept from `AgentScheduler`: 1 min → 5 → 15 → 60. A failing review backs off on
+    /// the same curve so a down cloud is not hammered once a minute.
+    static let retryBackoff: [TimeInterval] = [60, 5 * 60, 15 * 60, 60 * 60]
+    static let failureNotifyThreshold = 3
+    static let failureDisableThreshold = 10
 
     let state: MemoryReviewStateStore
     let session: AgentSession
@@ -665,6 +684,16 @@ final class MemoryReviewScheduler {
     /// The last pass could not run (recording, no route). The backfill reads it so it stops
     /// cleanly instead of burning through its queue returning nothing.
     private(set) var lastPassWaited = false
+    /// Pre-create skips: `enqueue()` / `harvestNewSources()` consulted the route and found
+    /// `.wait`, so no job was queued. Counted with reason (M2-a); the ledger stays quiet
+    /// because nothing was read.
+    private(set) var preCreateSkips: [(reason: String, at: Date)] = []
+    /// Consecutive model failures. One notice at 3, disabled at 10 — the same curve as
+    /// `AgentScheduler`, so a review that keeps failing does not fail quietly for ever.
+    private(set) var consecutiveFailures = 0
+    private(set) var reviewDisabled = false
+    private(set) var problemNotices: [String] = []
+    private var retryNotBefore: Date?
     private var isRunning = false
     private var tick: Task<Void, Never>?
     private var defaultsObserver: NSObjectProtocol?
@@ -771,6 +800,17 @@ final class MemoryReviewScheduler {
     /// and meeting controllers, which other parts of the app own.
     func harvestNewSources() {
         guard environment.isMemoryEnabled, let store = knowledge() else { return }
+        guard !reviewDisabled else { return }
+        // M2-a pre-create: consult the route before queueing work that cannot run.
+        // A recording or a down cloud records one counted skip with reason, not a job.
+        if environment.isRecording {
+            recordPreCreateSkip(reason: "a meeting or dictation is recording")
+            return
+        }
+        if MemoryCloudGate.isDownCached(now: now()), choice() == .auto {
+            recordPreCreateSkip(reason: MemoryCloudGate.cachedReason())
+            return
+        }
         // Only what arrived since the review last looked: history from before it existed is
         // the backfill's job, and running both would review everything twice.
         let since = state.backfill.hasRun ? nil : state.reviewedThrough
@@ -802,6 +842,16 @@ final class MemoryReviewScheduler {
             if let last = request.messages.last?.at { state.markReviewed(through: max(last, now()), memoryOff: true) }
             return
         }
+        guard !reviewDisabled else { return }
+        // M2-a pre-create: no job when the route already says wait. Counted, reasoned.
+        if environment.isRecording {
+            recordPreCreateSkip(reason: "a meeting or dictation is recording")
+            return
+        }
+        if MemoryCloudGate.isDownCached(now: now()), choice() == .auto {
+            recordPreCreateSkip(reason: MemoryCloudGate.cachedReason())
+            return
+        }
         guard let job = MemoryReviewJob(request, reviewedThrough: state.reviewedThrough) else { return }
         if let index = pending.firstIndex(where: { $0.sessionID == job.sessionID }) {
             pending[index] = job
@@ -822,6 +872,11 @@ final class MemoryReviewScheduler {
         lastPassWaited = false
         syncMemorySetting()
         guard environment.isMemoryEnabled else { return .disabled }
+        if reviewDisabled { return .disabled }
+        if let retryAt = retryNotBefore, now() < retryAt {
+            lastPassWaited = true
+            return .waiting("the review is backing off after failures — retrying shortly")
+        }
         guard let job = pending.first else { return .nothingPending }
         isRunning = true
         defer { isRunning = false }
@@ -835,9 +890,21 @@ final class MemoryReviewScheduler {
         let local = await environment.localModelState()
         let cloud = await environment.isCloudConfigured()
         let apple = await environment.isAppleFoundationAvailable()
+        let cloudDown = await MemoryCloudGate.shared.isDown(now: now())
         let route = MemoryReviewRouter.route(choice: choice(), isRecording: environment.isRecording,
-                                             local: local, cloudConfigured: cloud, appleAvailable: apple)
-        if case .wait(let reason) = route { return waiting(reason) }
+                                             local: local, cloudConfigured: cloud, appleAvailable: apple,
+                                             cloudDown: cloudDown)
+        if case .wait(let reason) = route {
+            // M2-a: a cloud wait while down is a counted skip, and one notice per period.
+            if cloudDown {
+                await MemoryCloudGate.shared.recordSkip(reason: reason, now: now())
+                if await MemoryCloudGate.shared.shouldNotify(now: now()) {
+                    problemNotices.append(reason)
+                    if problemNotices.count > 20 { problemNotices.removeFirst() }
+                }
+            }
+            return waiting(reason)
+        }
         guard let model = await models.model(for: route) else { return waiting("the review model is unavailable") }
         // Checked again right before the model: a recording may have started during the awaits.
         guard !environment.isRecording else { return waiting("a meeting or dictation is recording") }
@@ -864,6 +931,8 @@ final class MemoryReviewScheduler {
         switch result {
         case .success(let outcome):
             lastOutcome = outcome
+            consecutiveFailures = 0
+            retryNotBefore = nil
             pending.removeAll { $0.id == job.id }
             if job.request != nil {
                 state.recordReview(job, now: now())
@@ -889,6 +958,22 @@ final class MemoryReviewScheduler {
                 // Not a failed attempt: the job waits for the recording to end.
                 return waiting("a recording started during the review")
             }
+            consecutiveFailures += 1
+            let backoff = Self.retryBackoff[min(consecutiveFailures - 1, Self.retryBackoff.count - 1)]
+            retryNotBefore = now().addingTimeInterval(backoff)
+            if consecutiveFailures == Self.failureNotifyThreshold {
+                let note = "The review failed \(consecutiveFailures) times in a row: \(error.localizedDescription)"
+                problemNotices.append(note)
+                if problemNotices.count > 20 { problemNotices.removeFirst() }
+                Log.agent.info("memory review keeps failing: \(error.localizedDescription, privacy: .public)")
+            }
+            if consecutiveFailures >= Self.failureDisableThreshold {
+                reviewDisabled = true
+                let note = "The review turned itself off after \(consecutiveFailures) failures. Last error: \(error.localizedDescription)"
+                problemNotices.append(note)
+                if problemNotices.count > 20 { problemNotices.removeFirst() }
+                Log.agent.info("memory review disabled after failures")
+            }
             if let index = pending.firstIndex(where: { $0.id == job.id }) {
                 pending[index].attempts += 1
                 if pending[index].attempts >= Self.maxAttempts {
@@ -901,6 +986,21 @@ final class MemoryReviewScheduler {
             }
             return .failed(error.localizedDescription)
         }
+    }
+
+    /// M2-a counted skip: the route said wait before a job existed, so nothing was queued.
+    func recordPreCreateSkip(reason: String) {
+        preCreateSkips.append((reason: reason, at: now()))
+        if preCreateSkips.count > 200 { preCreateSkips.removeFirst(preCreateSkips.count - 200) }
+    }
+
+    /// For the self-test: clear backoff/disable state without touching the queue.
+    func resetFailureStateForTesting() {
+        consecutiveFailures = 0
+        reviewDisabled = false
+        retryNotBefore = nil
+        problemNotices = []
+        preCreateSkips = []
     }
 }
 

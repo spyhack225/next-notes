@@ -177,6 +177,20 @@ enum MeetingTitle {
     }
 }
 
+/// Where a meeting's title came from (M1-a).
+///
+/// `Meeting · 14:30` is a placeholder, not a name. Anything that learns names — activity
+/// refresh, grounding, recall — skips `.auto`, the list renders it dimmed/provisional,
+/// and the first rename or calendar link flips the source before any memory is written.
+enum MeetingTitleSource: String, Codable, Sendable {
+    /// Placeholder from `MeetingController.defaultTitle` or an undated import.
+    case auto
+    /// Taken from the calendar event it was armed for.
+    case calendar
+    /// Typed by the person (rename, or a title passed to `startAdHoc`).
+    case user
+}
+
 /// One meeting: what it was, when, and what came out of it.
 ///
 /// The heavy parts — transcript, notes, audio — live in sibling files rather than in this
@@ -185,6 +199,9 @@ enum MeetingTitle {
 struct Meeting: Codable, Sendable, Identifiable, Equatable {
     var id: UUID = UUID()
     var title: String
+    /// Where the title came from. Optional on disk so meetings written before M1-a still
+    /// decode — nil reads as `.auto` when the title looks like a placeholder, else `.user`.
+    var titleSource: MeetingTitleSource?
     var start: Date
     var end: Date?
 
@@ -228,6 +245,24 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
     /// a key that will never be seen again.
     var isDetectedCall: Bool { providerID == CalendarProviderID.detectedCall.rawValue }
 
+    /// The effective source: stored value, or the M1-a back-compat read for files written
+    /// before the field existed. A `Meeting · …` placeholder reads as `.auto`; anything
+    /// with a calendar link reads as `.calendar`; otherwise `.user`.
+    var effectiveTitleSource: MeetingTitleSource {
+        if let titleSource { return titleSource }
+        if Meeting.isPlaceholderTitle(title) { return .auto }
+        if calendarEventID != nil { return .calendar }
+        return .user
+    }
+
+    /// Whether the list renders this title dimmed/provisional.
+    var isProvisionalTitle: Bool { effectiveTitleSource == .auto }
+
+    /// `Meeting · 14:30` and its siblings — the placeholder, never a name to learn.
+    static func isPlaceholderTitle(_ title: String) -> Bool {
+        title.range(of: #"^Meeting · \d"#, options: .regularExpression) != nil
+    }
+
     /// How long the recording ran, once it has stopped.
     var duration: TimeInterval? {
         guard let end else { return nil }
@@ -237,6 +272,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
     init(
         id: UUID = UUID(),
         title: String,
+        titleSource: MeetingTitleSource? = nil,
         start: Date = Date(),
         end: Date? = nil,
         calendarEventID: String? = nil,
@@ -253,6 +289,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
     ) {
         self.id = id
         self.title = title
+        self.titleSource = titleSource
         self.start = start
         self.end = end
         self.calendarEventID = calendarEventID
@@ -280,6 +317,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         title = try container.decode(String.self, forKey: .title)
+        titleSource = try container.decodeIfPresent(MeetingTitleSource.self, forKey: .titleSource)
         start = try container.decode(Date.self, forKey: .start)
         end = try container.decodeIfPresent(Date.self, forKey: .end)
         calendarEventID = try container.decodeIfPresent(String.self, forKey: .calendarEventID)

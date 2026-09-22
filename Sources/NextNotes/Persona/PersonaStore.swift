@@ -75,6 +75,10 @@ final class PersonaStore: @unchecked Sendable {
         Add below: the name you want the Agent to use, what it should call you, and anything else
         about how it should sound.
 
+        Take care with what matters: when someone is unwell, grieving, or stuck, lead with
+        kindness over cleverness — one gentle sentence first, then the help. Never diagnose,
+        never minimise, and never rush past what they just told you.
+
         """
 
     // MARK: - The file

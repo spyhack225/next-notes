@@ -738,6 +738,13 @@ final class Settings {
         didSet { defaults.set(knowledgeGraphCloudConsent, forKey: Keys.knowledgeGraphCloudConsent) }
     }
 
+    /// Whether a cloud vision model may be shown screenshots (`computer.screenshot`,
+    /// `browser.screenshot`). Off by default: a screenshot leaves the Mac, so this is a
+    /// separate switch from the graph consent, plus a per-run thumbnail sheet.
+    var visionCloudConsent: Bool {
+        didSet { defaults.set(visionCloudConsent, forKey: Keys.visionCloudConsent) }
+    }
+
     var agentPocketVoice: String {
         didSet { defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice) }
     }
@@ -945,6 +952,7 @@ final class Settings {
         static let knowledgeAgentToolsEnabled = KnowledgeToolGate.enabledKey
         static let knowledgeGraphEnabled = KnowledgeIndexSettings.graphKey
         static let knowledgeGraphCloudConsent = KnowledgeIndexSettings.graphCloudConsentKey
+        static let visionCloudConsent = "visionCloudConsent"
         static let agentPocketVoice = "agentPocketVoice"
         static let wakePhrase = "wakePhrase"
         static let wakeSensitivity = "wakeSensitivity"
@@ -1067,6 +1075,7 @@ final class Settings {
         knowledgeAgentToolsEnabled = defaults.object(forKey: Keys.knowledgeAgentToolsEnabled) as? Bool ?? false
         knowledgeGraphEnabled = defaults.object(forKey: Keys.knowledgeGraphEnabled) as? Bool ?? false
         knowledgeGraphCloudConsent = defaults.object(forKey: Keys.knowledgeGraphCloudConsent) as? Bool ?? false
+        visionCloudConsent = defaults.object(forKey: Keys.visionCloudConsent) as? Bool ?? false
         wakePhrase = defaults.string(forKey: Keys.wakePhrase) ?? WakeWordConfiguration.defaultPhrase
         wakeSensitivity = defaults.object(forKey: Keys.wakeSensitivity) as? Double ?? 0.5
         listenWhileSleeping = defaults.object(forKey: Keys.listenWhileSleeping) as? Bool ?? true

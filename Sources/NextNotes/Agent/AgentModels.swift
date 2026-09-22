@@ -21,6 +21,18 @@ enum AgentRisk: String, Codable, Sendable, CaseIterable, Comparable {
     /// This is the "communicate" class in the v2 roadmap. The raw value stays `send` so a
     /// proposal written before the rename still decodes as the same thing.
     case send
+    /// Spends the user's money. One click, and the card shows the exact amount, the
+    /// payment method and the cap it was checked against.
+    ///
+    /// Ranked between `send` and `destructive`: money out is harder to take back than a
+    /// sent message and easier to replace than deleted data. Never auto-runs.
+    ///
+    /// Documented choice (roadmap AGENT-COMPETITOR-GAP P1/D5): a distinct risk class
+    /// rather than a `requiresCapCheck` flag on the tool, so `max` over a plan, the
+    /// permission broker and the approval card all see it without special-casing one
+    /// tool id. The cap itself stays per-call (`capCents`), checked in
+    /// `BrowserToolExecutor.purchase`, not in the class.
+    case purchase
     /// Deletes or irreversibly destroys something. Strong confirmation.
     case destructive
     /// Installs software, runs as root, or otherwise leaves the user's machine. Strong
@@ -34,6 +46,7 @@ enum AgentRisk: String, Codable, Sendable, CaseIterable, Comparable {
         case .modify: "Edits"
         case .write: "Creates"
         case .send: "Sends"
+        case .purchase: "Purchases"
         case .destructive: "Deletes"
         case .privileged: "Privileged"
         }
@@ -43,7 +56,7 @@ enum AgentRisk: String, Codable, Sendable, CaseIterable, Comparable {
     var mayAutoRun: Bool {
         switch self {
         case .observe, .read: true
-        case .modify, .write, .send, .destructive, .privileged: false
+        case .modify, .write, .send, .purchase, .destructive, .privileged: false
         }
     }
 
@@ -59,12 +72,27 @@ enum AgentRisk: String, Codable, Sendable, CaseIterable, Comparable {
         case .modify: 2
         case .write: 3
         case .send: 4
-        case .destructive: 5
-        case .privileged: 6
+        case .purchase: 5
+        case .destructive: 6
+        case .privileged: 7
         }
     }
 
     static func < (lhs: AgentRisk, rhs: AgentRisk) -> Bool { lhs.rank < rhs.rank }
+
+    /// A proposal written by a newer build may name a class this build has never heard
+    /// of. A decoding surprise must never auto-run and must never take the file with
+    /// it, so an unknown raw value reads as `.send`: the most cautious class that still
+    /// renders a card a person can approve or refuse.
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = AgentRisk(rawValue: raw) ?? .send
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 /// Which pass offered a proposal.

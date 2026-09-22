@@ -12,7 +12,7 @@ enum RealtimeAgentToolLoopSelfTest {
     /// `--selftest-tool-awareness` and `--selftest-voice-grounding` both run this first, so
     /// the regression fails in half a second on a machine with no model installed.
     @MainActor
-    static func runGroundingChecks() -> [String] {
+    static func runGroundingChecks() async -> [String] {
         var failures: [String] = []
         func check(_ name: String, _ condition: Bool) {
             if !condition { failures.append(name) }
@@ -188,6 +188,44 @@ enum RealtimeAgentToolLoopSelfTest {
               AgentEntityResolver.askedForAName(
                 "Please tell me the exact name of the project or file you want to open."))
 
+        // P0-2: the relevance filter is add-only over the core set, capped, and keeps
+        // the browser tool for the 20:45 utterance. The core survives every gate combo;
+        // otherwise the planner falls back to core-only rather than to a list without it.
+        let allTools = RealtimeAgent.plannableTools()
+        let allOff = RealtimeAgent.plannableTools(knowledgeTools: false)
+        for (label, roster) in [("on", allTools), ("off", allOff)] {
+            let ids = Set(roster.map(\.id))
+            let missing = RealtimeAgent.coreToolIDs.subtracting(ids)
+            check("core tools missing with knowledge tools \(label): \(missing.sorted().joined(separator: ", "))",
+                  missing.isEmpty)
+        }
+        let youtubeRequest = "open Chrome and go to youtube.com"
+        let filtered = RealtimeAgent.relevantTools(for: youtubeRequest, all: allTools)
+        let filteredIDs = Set(filtered.map(\.id))
+        check("core tools dropped by the relevance filter",
+              RealtimeAgent.coreToolIDs.isSubset(of: filteredIDs))
+        check("relevance filter grew past its cap (\(filtered.count))",
+              filtered.count <= RealtimeAgent.relevantToolCap)
+        check("browser.navigate lost with the filter on", filteredIDs.contains("browser.navigate"))
+        if let nav = filtered.firstIndex(where: { $0.id == "browser.navigate" }),
+           let doc = filtered.firstIndex(where: { $0.id == "append_doc" }) {
+            check("append_doc outranked browser.navigate for a navigation request", nav < doc)
+        }
+        // Token budget for a 12-tool roster. Prefill is the whole latency bill, so the
+        // planner prompt is counted with the provider's own tokenizer.
+        let twelve = Array(filtered.prefix(12))
+        let twelveSystem = RealtimeAgent.plannerSystem(
+            tools: twelve, voice: true, request: youtubeRequest)
+        do {
+            let counter = ToolLoopTestProvider(state: ToolLoopTestState())
+            let tokens = try await counter.countTokens(twelveSystem)
+            print("PROMPT_TOKENS: \(tokens) for \(twelve.count) tools")
+            check("planner prompt too large: \(tokens) tokens for 12 tools (budget 900)",
+                  tokens < 900)
+        } catch {
+            failures.append("countTokens threw for a 12-tool roster: \(error.localizedDescription)")
+        }
+
         for failure in failures { print("GROUNDING_WRONG: \(failure)") }
         print(failures.isEmpty ? "GROUNDING_OK" : "GROUNDING_FAILED")
         return failures
@@ -197,7 +235,7 @@ enum RealtimeAgentToolLoopSelfTest {
     /// tools or recording these fixtures in the user's conversation.
     @MainActor
     static func runToolAwareness() async -> Bool {
-        let grounding = runGroundingChecks()
+        let grounding = await runGroundingChecks()
         let provider = LlamaLLMProvider()
         if let reason = await provider.unavailableReason {
             print("TOOL_AWARENESS_FAILED: \(reason)")
@@ -264,7 +302,7 @@ enum RealtimeAgentToolLoopSelfTest {
     /// the local model; it does not add a row to the user's Agent conversation.
     @MainActor
     static func runVoiceGrounding() async -> Bool {
-        let groundingFailures = runGroundingChecks()
+        let groundingFailures = await runGroundingChecks()
         // The prompt the voice path actually hears, not a copy of it.
         let voiceAnswer = LocalVoiceSplitResponse.answerInstructions
         var promptFailures: [String] = groundingFailures
@@ -508,6 +546,32 @@ enum RealtimeAgentToolLoopSelfTest {
               fallback.reply.contains("Remaining steps are unfinished.")
                   && fallback.reply.components(separatedBy: "\n").first?.isEmpty == false)
         check("the second model pass was never exercised", (await fallbackState.rounds) >= 2)
+        // P0-5: the timeout names what actually ran, with its step count.
+        check("timeout sentence did not name the last tool",
+              fallback.reply.contains("computer.active_app"))
+        check("timeout sentence lost its step count",
+              fallback.reply.range(of: #"step \d+/\d+"#,
+                                   options: .regularExpression) != nil)
+
+        // P0-2 token budget, on the live loop too: a 12-tool planner prompt stays
+        // under 900 tokens by the provider's own count.
+        do {
+            let liveAll = RealtimeAgent.plannableTools()
+            let liveFiltered = RealtimeAgent.relevantTools(
+                for: "open Chrome and go to youtube.com", all: liveAll)
+            check("browser.navigate lost with the filter on (live loop)",
+                  liveFiltered.contains { $0.id == "browser.navigate" })
+            let liveTwelve = Array(liveFiltered.prefix(12))
+            let liveSystem = RealtimeAgent.plannerSystem(
+                tools: liveTwelve, voice: true, request: "open Chrome and go to youtube.com")
+            let counter = ToolLoopTestProvider(state: ToolLoopTestState())
+            let tokens = try await counter.countTokens(liveSystem)
+            print("PROMPT_TOKENS: \(tokens) for \(liveTwelve.count) tools (live loop)")
+            check("planner prompt too large in the live loop: \(tokens) tokens for 12 tools",
+                  tokens < 900)
+        } catch {
+            failures.append("countTokens threw in the live loop: \(error.localizedDescription)")
+        }
 
         // Mutations are available to the planner, but a malformed request must
         // fail at the executor before prompting or changing the user's UI.

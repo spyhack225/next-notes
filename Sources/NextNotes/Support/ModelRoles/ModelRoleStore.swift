@@ -725,6 +725,110 @@ final class ModelRoleStore {
 enum AgentModelRouting {
     static func provider(for prompt: String, voice: Bool) async -> (any LLMProvider)? {
         if voice { return await LLMProviders.resolve(preferring: .appLLM) }
-        return await ModelRoleStore.shared.provider(for: ModelRoleStore.role(forUtterance: prompt))
+        let role = ModelRoleStore.role(forUtterance: prompt)
+        // P1-3: a long plan cannot hold on the on-device model. When the request looks
+        // multi-step and an online model is configured and consented, continue there.
+        // Voice never takes this path — see the early return above.
+        if role == .agent, MultiStepPlanRouting.likelyMultiStep(prompt) {
+            let ready = await OpenRouterKeyStore.hasKeyAsync()
+                && !Settings.shared.openRouterAgentModelID.isEmpty
+            let consent = Settings.shared.knowledgeGraphCloudConsent
+            if ready && consent,
+               let cloud = await LLMProviders.resolve(
+                   preferring: .openRouter,
+                   modelID: Settings.shared.openRouterAgentModelID,
+                   contextTokens: Settings.shared.openRouterAgentContextTokens) {
+                return cloud
+            }
+        }
+        return await ModelRoleStore.shared.provider(for: role)
     }
+}
+
+// MARK: - P1-3 Long-plan routing (deterministic; no model call)
+
+/// Whether a request looks like ≥3 steps, and where it should run.
+///
+/// The decision is deterministic: sequencers plus action verbs, with the single-step
+/// shortcut (`AgentDirectIntent`) as the veto. A miss costs a slow local run; a false
+/// positive costs an online round trip — so the shortcut wins over the heuristics.
+enum MultiStepPlanRouting: Sendable {
+    enum Route: String, Sendable, Equatable { case cloud, localWithWarning, local }
+
+    /// Action words worth counting. Matched as a word prefix so "checking" counts
+    /// for "check" without listing every form.
+    static let verbs = [
+        "open", "go", "find", "search", "check", "summarise", "summarize", "list",
+        "send", "create", "read", "write", "book", "buy", "reserve", "plan",
+        "schedule", "remind", "draft", "email", "look", "get", "show", "make",
+        "add", "update",
+    ]
+
+    static func likelyMultiStep(_ text: String) -> Bool {
+        let lowered = text.lowercased()
+        // Sequencers: "then", "and then", "after", "afterwards". "and" alone is not
+        // enough — it joins two nouns as often as two steps.
+        guard lowered.range(of: #"\b(then|after|afterwards)\b"#,
+                            options: .regularExpression) != nil else { return false }
+        var hits = 0
+        for verb in verbs {
+            if lowered.range(of: #"\b"# + verb + #"\w*\b"#,
+                             options: .regularExpression) != nil {
+                hits += 1
+                if hits >= 2 { break }
+            }
+        }
+        guard hits >= 2 else { return false }
+        // The single-step shortcut would have caught this without any model round.
+        return AgentDirectIntent.parse(text) == nil
+    }
+
+    static func route(
+        for text: String, role: ModelRole, cloudReady: Bool, cloudConsent: Bool
+    ) -> Route {
+        guard likelyMultiStep(text), role == .agent else { return .local }
+        return (cloudReady && cloudConsent) ? .cloud : .localWithWarning
+    }
+}
+
+/// The one honest sentence for each long-plan path. Consumer words, no tool ids,
+/// no chain-of-thought — just what happens next and what it costs.
+@MainActor
+enum MultiStepNotices {
+    static var slowWarningIssued = false
+
+    /// "This takes a while on this Mac" — once per session, not per turn.
+    static func slowWarningIfNeeded() -> String? {
+        guard !slowWarningIssued else { return nil }
+        slowWarningIssued = true
+        return "This needs a few steps, so on this Mac it takes a few minutes. "
+            + "I’ll keep going here — or connect an online model to go faster."
+    }
+
+    static func resetForTesting() { slowWarningIssued = false }
+
+    /// "Online model — slower, leaves this Mac…" with the configured model name.
+    static func cloudNotice() -> String {
+        let name = ModelRoleStore.shared.displayName(for: .cloud, role: .agent)
+        return "Using \(name) online — slower, and it leaves this Mac. "
+            + "I’ll keep the steps on screen as I go."
+    }
+}
+
+extension ModelRoleStore {
+    nonisolated static func likelyMultiStep(_ text: String) -> Bool {
+        MultiStepPlanRouting.likelyMultiStep(text)
+    }
+
+    typealias MultiStepRoute = MultiStepPlanRouting.Route
+
+    nonisolated static func multiStepRoute(
+        for text: String, role: ModelRole, cloudReady: Bool, cloudConsent: Bool
+    ) -> MultiStepRoute {
+        MultiStepPlanRouting.route(for: text, role: role, cloudReady: cloudReady, cloudConsent: cloudConsent)
+    }
+
+    static func slowWarningIfNeeded() -> String? { MultiStepNotices.slowWarningIfNeeded() }
+    static func resetSlowWarningForTesting() { MultiStepNotices.resetForTesting() }
+    static func cloudSlowNotice() -> String { MultiStepNotices.cloudNotice() }
 }

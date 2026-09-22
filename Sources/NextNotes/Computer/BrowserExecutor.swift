@@ -6,8 +6,9 @@ import Foundation
 ///    local debugging port.
 /// 2. Accessibility, for Safari and for Chromium that was not launched with
 ///    `--remote-debugging-port`.
-/// 3. Vision is reserved and is not implemented — it is a last resort, not the
-///    default.
+/// 3. Vision (P1-2): a focused-tab screenshot, only after a stub snapshot or with an
+///    explicit reason, uploaded to a vision model only with per-run consent. A last
+///    resort for pixels AX cannot see — a canvas, a seat-picker — not the default.
 enum BrowserBackend: String, Sendable {
     case cdp
     case accessibility
@@ -42,6 +43,13 @@ enum BrowserExecutor {
         host: String = BrowserCDPClient.defaultHost,
         port: Int = BrowserCDPClient.defaultPort
     ) async throws -> AgentToolResult {
+        // The purchase gate is backend-independent: the cap is checked before any
+        // backend is touched, and nothing runs above it. It sits ahead of the
+        // backend pins because a pinned `_browserBackend` must not route a purchase
+        // into a backend that knows nothing about the cap.
+        if tool.name == "purchase" {
+            return try BrowserToolExecutor.run(tool, arguments: arguments)
+        }
         if arguments["_browserBackend"] == "accessibility" {
             guard arguments["targetId"] == nil else {
                 throw AgentError.backendUnavailable("The authorized browser backend changed. Snapshot again.")
@@ -58,6 +66,14 @@ enum BrowserExecutor {
                 throw AgentError.backendUnavailable("The authorized browser target is no longer available. Snapshot again.")
             }
             return try await BrowserCDPClient.run(tool, arguments: arguments, host: host, port: port)
+        }
+        // Screenshots prefer CDP's own capture; without a debugger the AX path
+        // captures the focused window after checking it is a browser.
+        if tool.name == "screenshot" {
+            if await BrowserCDPClient.isReachable(host: host, port: port) {
+                return try await BrowserCDPClient.run(tool, arguments: arguments, host: host, port: port)
+            }
+            return try BrowserToolExecutor.runScreenshot(reason: arguments["reason"])
         }
         if await BrowserCDPClient.isReachable(host: host, port: port) {
             // A stale snapshot, ambiguous target, or changed tab is a safety

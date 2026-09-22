@@ -596,15 +596,66 @@ extension RealtimeAgent {
 
     /// - Parameter knowledgeTools: whether `KnowledgeToolGate` lets the Agent see the
     ///   knowledge tools; the self-test passes both values.
+    ///
+    /// P0-2 floor: the core set survives every gate combo. None of these lives in a
+    /// gated namespace today, but a future gate must not reintroduce the `append_doc`
+    /// failure by dropping the right tool — so a roster missing any core id falls back
+    /// to the core tools themselves rather than to a filtered list without them.
+    static let coreToolIDs: Set<String> = [
+        "get_agenda", "search_email",
+        "filesystem.search", "filesystem.find", "filesystem.tree", "filesystem.reveal",
+        "computer.active_app", "computer.open_app",
+        "browser.navigate",
+    ]
+
+    /// How many tools the planner prompt may carry. The full roster stays on
+    /// `publishGrounding`; only the planner prompt is filtered.
+    static let relevantToolCap = 24
+
+    /// Add-only relevance filter (P0-2). The core set is always kept; the rest is
+    /// ranked by keyword overlap with the request and truncated to `relevantToolCap`.
+    /// It may only ever add to the core, never subtract from it.
+    static func relevantTools(for request: String, all: [AgentTool]) -> [AgentTool] {
+        let byID = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
+        let core = coreToolIDs.compactMap { byID[$0] }.sorted { $0.id < $1.id }
+        let coreIDs = Set(core.map(\.id))
+        let rest = all.filter { !coreIDs.contains($0.id) }
+        guard !rest.isEmpty else { return core }
+        let terms = SkillPromptIndex.terms(in: request)
+        struct Scored { let tool: AgentTool; let score: Int }
+        var scored: [Scored] = []
+        scored.reserveCapacity(rest.count)
+        for tool in rest {
+            let hay = (tool.id + " " + tool.description).lowercased()
+            var score = 0
+            for term in terms where hay.contains(term) {
+                score += 1
+                if tool.id.lowercased().contains(term) { score += 1 }
+            }
+            scored.append(Scored(tool: tool, score: score))
+        }
+        scored.sort {
+            if $0.score != $1.score { return $0.score > $1.score }
+            return $0.tool.id < $1.tool.id
+        }
+        let budget = max(0, relevantToolCap - core.count)
+        return core + scored.prefix(budget).map(\.tool)
+    }
+
     static func plannableTools(knowledgeTools: Bool = KnowledgeToolGate.isAvailable) -> [AgentTool] {
         let memoryEnabled = MemorySnapshotCache.shared.isEnabled
         let schedulesEnabled = Settings.shared.agentSchedulesEnabled
-        return AgentToolRegistry.shared.tools(upTo: .send)
+        let filtered = AgentToolRegistry.shared.tools(upTo: .send)
             .filter { RealtimeToolSelection.allowedIDs.contains($0.id) }
             .filter { memoryEnabled || $0.namespace != .memory }
             .filter { schedulesEnabled || $0.namespace != .schedule }
             .filter { knowledgeTools || $0.namespace != .knowledge }
             .filter { SkillToolGate.isAvailable || $0.namespace != .skills }
+        if coreToolIDs.isSubset(of: Set(filtered.map(\.id))) { return filtered }
+        let fallback = AgentToolRegistry.shared.tools(upTo: .send)
+            .filter { coreToolIDs.contains($0.id) && RealtimeToolSelection.allowedIDs.contains($0.id) }
+            .sorted { $0.id < $1.id }
+        return fallback.isEmpty ? filtered : fallback
     }
 
     /// The tool planner's system prompt: persona, fixed rules (ending with the override
@@ -699,9 +750,30 @@ extension RealtimeAgent {
            let reply = await runDirectIntent(direct, speech: speech) {
             return reply
         }
-        let tools = Self.plannableTools()
-        guard !tools.isEmpty else {
+        let allTools = Self.plannableTools()
+        guard !allTools.isEmpty else {
             return "The local tool catalogue is unavailable."
+        }
+        // P0-2: the planner sees the filtered roster; grounding keeps the full one.
+        let requestForRanking = work?.original ?? prompt
+        let tools = Self.relevantTools(for: requestForRanking, all: allTools)
+        // P1-3: a long plan gets one honest sentence. Voice stays on this Mac, so it
+        // never carries the cloud notice — only the slow warning.
+        let role = ModelRoleStore.role(forUtterance: requestForRanking)
+        let cloudReady = await OpenRouterKeyStore.hasKeyAsync()
+            && !Settings.shared.openRouterAgentModelID.isEmpty
+        let cloudConsent = Settings.shared.knowledgeGraphCloudConsent
+        let route = ModelRoleStore.multiStepRoute(
+            for: requestForRanking, role: role, cloudReady: cloudReady, cloudConsent: cloudConsent)
+        let notice: String?
+        if voice {
+            notice = (route == .localWithWarning) ? ModelRoleStore.slowWarningIfNeeded() : nil
+        } else {
+            switch route {
+            case .cloud: notice = ModelRoleStore.cloudSlowNotice()
+            case .localWithWarning: notice = ModelRoleStore.slowWarningIfNeeded()
+            case .local: notice = nil
+            }
         }
         let provider: any LLMProvider
         if let testingProvider = localModelProviderForTesting {
@@ -712,10 +784,14 @@ extension RealtimeAgent {
             return "I can’t plan tool use because the selected model is unavailable."
         }
         // The knowledge graph reaches a cloud planner only with its own consent.
-        return await KnowledgeGraphScope.$reader.withValue(provider.id) {
+        let planned: String = await KnowledgeGraphScope.$reader.withValue(provider.id) {
             await runPlannedToolLoop(prompt, speech: speech, voice: voice, owner: owner, background: background,
                                      work: work, tools: tools, provider: provider)
         }
+        if let notice, !notice.isEmpty {
+            return notice + "\n\n" + planned
+        }
+        return planned
     }
 
     private func runPlannedToolLoop(
@@ -734,6 +810,10 @@ extension RealtimeAgent {
         var lastVerifiedResult: String?
         var callsUsed = 0
         var completedCalls = Set<String>()
+        // P0-5: what actually happened, for the timeout sentence. Tool ids in the
+        // order they finished; the in-flight id is passed per call site.
+        var completedToolIDs: [String] = []
+        var currentToolID: String? = nil
         let responsiveness = Settings.shared.agentResponsiveness
         let maxRounds = AgentToolLoop.clampedMaxRounds(responsiveness.toolRoundLimit)
         let maxCalls = min(AgentToolLoop.defaultMaxCalls, responsiveness.toolCallLimit)
@@ -768,9 +848,24 @@ extension RealtimeAgent {
             let missing = memoryConfirmations.filter { !reply.contains($0) }
             return missing.isEmpty ? reply : (missing + [reply]).joined(separator: " ")
         }
-        func incomplete(_ reason: String) -> String {
-            guard let lastVerifiedResult else { return confirmed(reason) }
-            return confirmed(lastVerifiedResult + "\n" + reason + " Remaining steps are unfinished.")
+        // P0-5: "Did X (step 2/8). Timed out on Y. Remaining…" — consumer words,
+        // but the tool ids stay in the sentence so a timeout names what ran.
+        // `completed` is tool ids in finish order; `inFlight` is the id that did
+        // not finish, when there is one. The "Remaining steps are unfinished."
+        // trailer is kept for the existing timeout assertions.
+        func incomplete(_ reason: String, completed: [String], inFlight: String?) -> String {
+            var progress = ""
+            if !completed.isEmpty {
+                progress += "Did \(completed.joined(separator: ", ")) "
+                    + "(step \(completed.count)/\(maxCalls)). "
+            }
+            if let inFlight {
+                progress += "Timed out on \(inFlight). "
+            }
+            guard let lastVerifiedResult else {
+                return confirmed(progress + reason + " Remaining steps are unfinished.")
+            }
+            return confirmed(lastVerifiedResult + "\n" + progress + reason + " Remaining steps are unfinished.")
         }
         while rounds < maxRounds {
             await waitForVoiceInput()
@@ -784,7 +879,8 @@ extension RealtimeAgent {
             speech?.beginResponse()
             guard isCurrent(owner) else { return "I stopped the tool plan." }
             guard remainingBudget > .zero else {
-                return incomplete("I stopped the tool plan because it took too long.")
+                return incomplete("I stopped the tool plan because it took too long.",
+                                  completed: completedToolIDs, inFlight: currentToolID)
             }
             let user = AgentToolLoop.userMessage(original: groundedPrompt, results: results)
             let spokenConfirmations = memoryConfirmations.joined(separator: " ")
@@ -829,7 +925,8 @@ extension RealtimeAgent {
             rounds += 1
             guard let completion else {
                 speech?.cancel()
-                return incomplete("I stopped the tool plan because it took too long.")
+                return incomplete("I stopped the tool plan because it took too long.",
+                                  completed: completedToolIDs, inFlight: currentToolID)
             }
             let completionText: String
             switch completion {
@@ -881,11 +978,14 @@ extension RealtimeAgent {
                 let signature = call.name + "|" + arguments.keys.sorted()
                     .map { "\($0)=\(arguments[$0] ?? "")" }.joined(separator: "|")
                 guard completedCalls.insert(signature).inserted else {
-                    return incomplete("The planner repeated a completed step, so I stopped it.")
+                    return incomplete("The planner repeated a completed step, so I stopped it.",
+                                      completed: completedToolIDs, inFlight: currentToolID)
                 }
                 guard remainingBudget > .zero else {
-                    return incomplete("I stopped the tool plan because it took too long.")
+                    return incomplete("I stopped the tool plan because it took too long.",
+                                      completed: completedToolIDs, inFlight: currentToolID)
                 }
+                currentToolID = call.name
                 let policy = PermissionPolicy.fromSettings()
                 // Bound by this code, not taken from the model: what the user said this
                 // turn, and every tool result it has seen so far.
@@ -926,13 +1026,16 @@ extension RealtimeAgent {
                     remainingBudget -= callBegan.duration(to: clock.now)
                 }
                 guard let execution else {
-                    return incomplete("I stopped the tool plan because it took too long.")
+                    return incomplete("I stopped the tool plan because it took too long.",
+                                      completed: completedToolIDs, inFlight: call.name)
                 }
                 switch execution {
                 case .success(let output):
                     results.append(AgentPrompts.toolResult(name: call.name, output: output))
                     speech?.recordVerifiedResult(toolID: call.name, output: output)
                     callsUsed += 1
+                    completedToolIDs.append(call.name)
+                    currentToolID = nil
                     if tool.namespace == .memory, tool.risk > .read {
                         let sentence = output.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
                         if !sentence.isEmpty { memoryConfirmations.append(sentence) }
@@ -951,18 +1054,22 @@ extension RealtimeAgent {
                     results.append(AgentPrompts.toolResult(name: call.name, output: message))
                     completedCalls.remove(signature)
                     callsUsed += 1
+                    currentToolID = nil
                 case .failure(.message(let message)):
                     if revision != (work?.revision ?? 0) {
                         completedCalls.remove(signature)
+                        currentToolID = nil
                         break
                     }
                     // Do not hand a denial/error back to the model for a possible
                     // optimistic rewrite. A failed tool ends this turn visibly.
+                    currentToolID = nil
                     return confirmed("The tool " + call.name + " did not run: " + message)
                 }
             }
         }
-        return incomplete("I couldn’t finish the tool plan within the safe limit.")
+        return incomplete("I couldn’t finish the tool plan within the safe limit.",
+                          completed: completedToolIDs, inFlight: currentToolID)
     }
 
     // MARK: - The planner shortcut

@@ -34,15 +34,24 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
         var workspace: WorkspaceStatus
         /// This setting controls post-meeting proposals, not direct voice tool calls.
         var automaticMeetingFollowUpsEnabled: Bool?
+        /// P0-7: whether the voice model weights are resident. `nil` means not yet
+        /// probed. Only live-backed capabilities are claimed.
+        var modelResident: Bool?
+        /// P0-7: whether the `gws` helper CLI is on PATH. `nil` means not yet probed.
+        var cliOnPATH: Bool?
 
         init(
             accessibilityGranted: Bool? = nil,
             workspace: WorkspaceStatus = .unknown,
-            automaticMeetingFollowUpsEnabled: Bool? = nil
+            automaticMeetingFollowUpsEnabled: Bool? = nil,
+            modelResident: Bool? = nil,
+            cliOnPATH: Bool? = nil
         ) {
             self.accessibilityGranted = accessibilityGranted
             self.workspace = workspace
             self.automaticMeetingFollowUpsEnabled = automaticMeetingFollowUpsEnabled
+            self.modelResident = modelResident
+            self.cliOnPATH = cliOnPATH
         }
     }
 
@@ -63,6 +72,11 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
     /// Introspection is application data. A semantic frontend decision selects
     /// this view; the model does not invent the roster or its availability.
     var spokenSummary: String {
+        // P0-7: with no voice model resident nothing below can be delivered hands-free.
+        // Name the missing piece instead of listing capabilities.
+        if availability.modelResident == false {
+            return "My voice model isn't ready yet. Open Settings ▸ Models to get it."
+        }
         let ids = Set(toolIDs)
         var features: [String] = []
         if ids.contains("meeting.transcript") { features.append("read meeting transcripts and notes") }
@@ -97,6 +111,9 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
             case .notInstalled, .needsOAuthClient, .signedOut:
                 reply += " Google features need connection setup."
             }
+            if availability.cliOnPATH == false {
+                reply += " The Workspace helper isn't installed, so mail, calendar and Drive need setup first."
+            }
         }
         if ids.contains("computer.click"), availability.accessibilityGranted != true {
             reply += " App control needs Accessibility permission."
@@ -127,7 +144,9 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
         let availability = Availability(
             accessibilityGranted: Permissions.hasAccessibility,
             workspace: workspace,
-            automaticMeetingFollowUpsEnabled: Settings.shared.agentEnabled
+            automaticMeetingFollowUpsEnabled: Settings.shared.agentEnabled,
+            modelResident: VoiceCapabilityProbeCache.cached().modelResident,
+            cliOnPATH: VoiceCapabilityProbeCache.cached().cliOnPATH
         )
         return make(
             tools: RealtimeAgent.plannableTools(),
@@ -152,6 +171,8 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
         // those names.
         sections.append("Accessibility: \(accessibilityLine(availability.accessibilityGranted)).")
         sections.append("Google Workspace: \(workspaceLine(availability.workspace)).")
+        sections.append("Voice model: \(modelLine(availability.modelResident)).")
+        sections.append("Helper CLI: \(cliLine(availability.cliOnPATH)).")
         sections.append(
             "Reads follow Settings; changes, commands and sends require approval. "
                 + "Support does not prove an account, target or permission is ready."
@@ -223,6 +244,14 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
         } else if snapshot.promptText.contains("Google Workspace: connected") {
             return SelfTestResult(passed: false, detail: "reported Workspace as connected without signed-in evidence")
         }
+        if availability.modelResident == false,
+           snapshot.promptText.contains("Voice model: ready") {
+            return SelfTestResult(passed: false, detail: "reported the voice model ready without resident weights")
+        }
+        if availability.cliOnPATH == false,
+           snapshot.promptText.contains("Helper CLI: on PATH") {
+            return SelfTestResult(passed: false, detail: "reported the helper CLI on PATH without finding it")
+        }
         return SelfTestResult(passed: true, detail: "\(ids.count) planner tools grounded")
     }
 
@@ -243,6 +272,22 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
         case .signedOut: "not connected (cached)"
         case .signedIn: "connected (cached sign-in evidence)"
         case .failed: "connection check failed; availability unknown"
+        }
+    }
+
+    private nonisolated static func modelLine(_ resident: Bool?) -> String {
+        switch resident {
+        case true: "ready (cached probe)"
+        case false: "not downloaded"
+        case nil: "not checked"
+        }
+    }
+
+    private nonisolated static func cliLine(_ onPATH: Bool?) -> String {
+        switch onPATH {
+        case true: "on PATH (cached probe)"
+        case false: "not found"
+        case nil: "not checked"
         }
     }
 
@@ -272,5 +317,46 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
             if withCompact.count <= limit { result = withCompact }
         }
         return result
+    }
+}
+
+/// Timestamped P0-7 availability probes. `current()` reads the cache synchronously
+/// (`nil` = unknown, and unknown is qualified, never claimed); call `refresh()` from
+/// a task when a fresh answer is worth an async hop. The `gws` credential itself is
+/// the existing `Availability.workspace` cached auth state, not a second field.
+@MainActor
+enum VoiceCapabilityProbeCache {
+    private static var modelResidentValue: Bool?
+    private static var cliOnPATHValue: Bool?
+    private(set) static var probedAt: Date?
+
+    static func cached() -> (modelResident: Bool?, cliOnPATH: Bool?) {
+        (modelResidentValue, cliOnPATHValue)
+    }
+
+    static func record(modelResident: Bool?, cliOnPATH: Bool?) {
+        modelResidentValue = modelResident
+        cliOnPATHValue = cliOnPATH
+        probedAt = Date()
+    }
+
+    /// Async probe; records a timestamped cache. Reads residency and PATH only:
+    /// never loads a model, never prompts, never spawns a shell.
+    static func refresh() async {
+        record(modelResident: await NotesModelRuntime.shared.isLoaded,
+               cliOnPATH: cliPresent())
+    }
+
+    /// Synchronous `gws`-on-PATH check over the candidate locations the Workspace CLI
+    /// itself probes. File-existence only: no process, no prompt.
+    nonisolated static func cliPresent() -> Bool {
+        let home = NSHomeDirectory()
+        let candidates = [
+            "/opt/homebrew/bin/gws",
+            "/usr/local/bin/gws",
+            home + "/.cargo/bin/gws",
+            home + "/.npm-global/bin/gws",
+        ]
+        return candidates.contains { FileManager.default.isExecutableFile(atPath: $0) }
     }
 }

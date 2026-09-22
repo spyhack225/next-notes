@@ -2,7 +2,7 @@ import Foundation
 
 /// The Settings "Test phrase" walk: say it 2–3 times, show confidence, save only if
 /// detection is reliable. No audio leaves the device.
-struct WakeWordAttempt: Sendable, Equatable {
+struct WakeWordAttempt: Sendable, Equatable, Codable {
     var index: Int
     var transcript: String
     var confidence: Double
@@ -13,6 +13,12 @@ struct WakeWordAttempt: Sendable, Equatable {
     /// True when only the generous listener heard it. The attempt did not fire at the
     /// current Sensitivity, and saying so is the whole point of the test.
     var onlyAtMaximum = false
+    /// Meter peak (0…1) seen during the attempt window. Stored so a persisted run can
+    /// tell silence apart from an unheard phrase without the audio.
+    var peakLevel: Float = 0
+    /// Seconds from the prompt to the fire (or to the timeout on a miss). Stored for
+    /// the same reason: promptness is part of the confidence score.
+    var elapsed: TimeInterval = 0
 
     /// One line for the Settings row, explaining the result rather than scoring it.
     var explanation: String {
@@ -62,7 +68,9 @@ enum WakeWordTrainer {
                 confidence: 0,
                 accepted: false,
                 heardAs: heardAs,
-                onlyAtMaximum: heardAs != nil
+                onlyAtMaximum: heardAs != nil,
+                peakLevel: peakLevel,
+                elapsed: elapsed
             )
         }
         let window = max(timeout, 0.1)
@@ -74,7 +82,9 @@ enum WakeWordTrainer {
             transcript: "",
             confidence: confidence,
             accepted: confidence >= minimumConfidence,
-            heardAs: heardAs
+            heardAs: heardAs,
+            peakLevel: peakLevel,
+            elapsed: elapsed
         )
     }
 

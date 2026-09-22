@@ -159,6 +159,31 @@ extension LLMProvider {
     }
 }
 
+/// Typed voice-boundary error codes (P0-7). Providers map their failures to one of
+/// these; the single renderer at the voice boundary maps codes to user sentences.
+/// Raw provider strings stay in the log and never reach speech.
+enum VoiceProviderErrorCode: String, Sendable {
+    case quotaExceeded
+    case rateLimited
+    case modelMissing
+    case notConfigured
+    case timeout
+    case unavailable
+    case unknown
+}
+
+/// A provider error that knows its own voice code.
+protocol VoiceCodedError {
+    var voiceCode: VoiceProviderErrorCode { get }
+}
+
+extension Error {
+    /// The voice code for any error: the provider's own mapping, or unknown.
+    var asVoiceCode: VoiceProviderErrorCode {
+        (self as? VoiceCodedError)?.voiceCode ?? .unknown
+    }
+}
+
 /// What a generation produced, and what it cost.
 ///
 /// The token count and duration are here rather than logged inside each provider because

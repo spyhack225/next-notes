@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!--
+  D5 fixture: a local-only seat grid for the agentic-browsing demo
+  (roadmap AGENT-COMPETITOR-GAP-2026-09-20, §5 D5).
+
+  Local only: no links, no fetches, no pixels leave the machine. The Pay button is
+  fake — it writes a demo receipt into the DOM and never charges anything. Do not
+  test against a live cinema site; serve this file and drive it with
+  --selftest-browser / the SeatGridSelfTest chain instead.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Demo Cinema — Tonight 7:30</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 560px; margin: 2rem auto; }
+  .seat-grid { display: grid; grid-template-columns: repeat(6, 3rem); gap: 0.4rem; }
+  .seat-grid button { height: 2.4rem; }
+  .seat-grid button[aria-pressed="true"] { outline: 3px solid currentColor; }
+  #cap-label, #price-label, #receipt { margin-top: 1rem; }
+</style>
+</head>
+<body>
+<h1>Tonight 7:30 — Demo Film</h1>
+<p id="price-label">2 seats together, middle block: $33.50 total.</p>
+<p id="cap-label">Your budget cap for this run: $40.</p>
+
+<div class="seat-grid" role="group" aria-label="Seat picker">
+  <button type="button" data-seat="A1" aria-pressed="false">A1</button>
+  <button type="button" data-seat="A2" aria-pressed="false">A2</button>
+  <button type="button" data-seat="B1" aria-pressed="false">B1</button>
+  <button type="button" data-seat="B2" aria-pressed="false">B2</button>
+  <button type="button" data-seat="C1" aria-pressed="false">C1</button>
+  <button type="button" data-seat="C2" aria-pressed="false">C2</button>
+</div>
+
+<p id="selection">No seats selected yet.</p>
+<button type="button" id="pay">Pay $33.50 (demo — never charges)</button>
+<p id="receipt" aria-live="polite"></p>
+
+<script>
+(function () {
+  var selected = [];
+  var selection = document.getElementById("selection");
+  var receipt = document.getElementById("receipt");
+  document.querySelectorAll("[data-seat]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var seat = el.getAttribute("data-seat");
+      var at = selected.indexOf(seat);
+      if (at >= 0) {
+        selected.splice(at, 1);
+        el.setAttribute("aria-pressed", "false");
+      } else {
+        selected.push(seat);
+        el.setAttribute("aria-pressed", "true");
+      }
+      selection.textContent = selected.length
+        ? selected.join(" and ") + " selected"
+        : "No seats selected yet.";
+    });
+  });
+  document.getElementById("pay").addEventListener("click", function () {
+    // Fake Pay: a DOM receipt, no network, no charge — ever.
+    receipt.textContent = selected.length
+      ? "Demo receipt — no charge was made — " + selected.join(" and ") + " — $33.50."
+      : "Demo receipt — no charge was made — no seats chosen.";
+  });
+})();
+</script>
+</body>
+</html>

@@ -69,7 +69,7 @@ enum FunctionCallSelfTest {
         // control, the browser, the file system, a read. The only correct answer to all of
         // them is silence, and a nearest neighbour is not a lesser version of that answer.
         Fixture(
-            name: "the browser command that started this",
+            name: "browser-command-never-append-doc",
             utterance: "You open Google Chrome and go to youtube.com.",
             expectedTool: nil
         ),

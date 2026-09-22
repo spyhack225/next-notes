@@ -35,6 +35,89 @@ enum ModelRoleSelfTest {
         failures += addressNormalisation()
         failures += toolCallBridging()
         failures += await discovery()
+        failures += multiStepRoutesToCloud()
+        failures += slowWarningPresent()
+        return failures
+    }
+
+    // MARK: - P1-3 Long plans leave the on-device model
+
+    /// A ≥3-step request routes to cloud when configured and consented, and to the
+    /// honest slow warning when not. Consent off and key missing both stay local.
+    private static func multiStepRoutesToCloud() -> [String] {
+        var failures: [String] = []
+        let multi = "Find tonight's showing and then book two seats after checking the price"
+        if !ModelRoleStore.likelyMultiStep(multi) {
+            failures.append("a multi-step request was not recognised as one: “\(multi)”")
+        }
+        if ModelRoleStore.role(forUtterance: multi) != .agent {
+            failures.append("a multi-step request was routed away from the everyday assistant")
+        }
+        if ModelRoleStore.likelyMultiStep("open Safari") {
+            failures.append("a single app request was read as a multi-step plan")
+        }
+        // Two verbs and a sequencer, but the shortcut already answers it with no model
+        // round — it must never be sent online for being long.
+        if ModelRoleStore.likelyMultiStep("open Chrome and then go to youtube.com") {
+            failures.append("a direct-intent request was read as a multi-step plan")
+        }
+        let cloud = ModelRoleStore.multiStepRoute(
+            for: multi, role: .agent, cloudReady: true, cloudConsent: true)
+        if cloud != .cloud {
+            failures.append("a consented multi-step plan did not route to cloud (got \(cloud))")
+        }
+        let noConsent = ModelRoleStore.multiStepRoute(
+            for: multi, role: .agent, cloudReady: true, cloudConsent: false)
+        if noConsent != .localWithWarning {
+            failures.append("a multi-step plan without consent left the slow path (got \(noConsent))")
+        }
+        let noKey = ModelRoleStore.multiStepRoute(
+            for: multi, role: .agent, cloudReady: false, cloudConsent: true)
+        if noKey != .localWithWarning {
+            failures.append("a multi-step plan without an online model left the slow path (got \(noKey))")
+        }
+        let single = ModelRoleStore.multiStepRoute(
+            for: "open Safari", role: .agent, cloudReady: true, cloudConsent: true)
+        if single != .local {
+            failures.append("a single-step request took the multi-step route (got \(single))")
+        }
+        let driving = ModelRoleStore.multiStepRoute(
+            for: multi, role: .computerUse, cloudReady: true, cloudConsent: true)
+        if driving == .cloud {
+            failures.append("a computer-use request took the agent cloud route")
+        }
+        return failures
+    }
+
+    /// One honest sentence, once per session, in words a person would use — never a
+    /// tool id or a plan. The cloud notice names the configured online model.
+    private static func slowWarningPresent() -> [String] {
+        var failures: [String] = []
+        ModelRoleStore.resetSlowWarningForTesting()
+        defer { ModelRoleStore.resetSlowWarningForTesting() }
+        guard let first = ModelRoleStore.slowWarningIfNeeded() else {
+            return ["the slow-plan warning never appeared"]
+        }
+        if ModelRoleStore.slowWarningIfNeeded() != nil {
+            failures.append("the slow-plan warning appeared more than once in a session")
+        }
+        for id in ["computer.", "filesystem.", "browser.", "<tool_call>", "tool plan"] {
+            if first.contains(id) {
+                failures.append("the slow-plan warning reads like a log line (\(id)): \(first)")
+            }
+        }
+        if first.isEmpty {
+            failures.append("the slow-plan warning was empty")
+        }
+        let notice = ModelRoleStore.cloudSlowNotice()
+        let lowered = notice.lowercased()
+        if !lowered.contains("slower") || !lowered.contains("leaves this mac") {
+            failures.append("the online notice does not say it is slower and leaves this Mac: \(notice)")
+        }
+        let expectedName = ModelRoleStore.shared.displayName(for: .cloud, role: .agent)
+        if !notice.contains(expectedName) {
+            failures.append("the online notice does not name \(expectedName): \(notice)")
+        }
         return failures
     }
 

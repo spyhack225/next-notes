@@ -56,6 +56,20 @@ enum BrowserToolCatalogue {
         ),
         .native(
             namespace: .browser,
+            name: "screenshot",
+            description: "A screenshot of the frontmost browser tab via CDP Page.captureScreenshot "
+                + "(memory-only, never stored). Use only after a stub snapshot or when asked for "
+                + "pixels. The image reaches a vision model only with per-run consent; otherwise "
+                + "it backs the live working view and is never uploaded.",
+            risk: .observe,
+            parameters: [
+                .init(name: "targetId", description: "The CDP target id from snapshot.", isRequired: false),
+                .init(name: "reason", description: "Why pixels are needed, e.g. the seat-picker has no accessibility labels.", isRequired: false),
+            ],
+            title: "Browser screenshot"
+        ),
+        .native(
+            namespace: .browser,
             name: "click",
             description: "Click an element in the frontmost browser, by snapshot id.",
             risk: .modify,
@@ -93,6 +107,22 @@ enum BrowserToolCatalogue {
             parameters: [
                 .init(name: "url", description: "The URL to download.")
             ]
+        ),
+        .native(
+            namespace: .browser,
+            name: "purchase",
+            description: "Complete a purchase in the frontmost browser tab. Refused before anything "
+                + "runs when the amount is over the cap. The approval card shows the exact amount, "
+                + "the payment method and the cap; the receipt is kept as an artifact.",
+            risk: .purchase,
+            parameters: [
+                .init(name: "targetId", description: "The CDP target id from snapshot.", isRequired: false),
+                .init(name: "amountCents", description: "Total charged, in cents — 3350 for $33.50."),
+                .init(name: "capCents", description: "Budget cap in cents. Above it the run is refused."),
+                .init(name: "paymentRef", description: "Payment method shown on the card, e.g. Visa on file.", isRequired: false),
+            ],
+            title: "Purchase",
+            preview: { BrowserPurchaseCard.preview(for: $0) }
         ),
     ]
 }

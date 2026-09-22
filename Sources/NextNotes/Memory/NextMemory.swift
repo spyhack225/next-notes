@@ -344,12 +344,17 @@ final class NextMemory {
         changed = people.changed || changed
         let resolvedNames = people.names
         for meeting in MeetingStore.shared.meetings {
-            changed = upsert(
-                kind: .meeting,
-                key: meeting.title,
-                value: meeting.title,
-                source: "meeting:\(meeting.id.uuidString)"
-            ) || changed
+            // M1-a: a placeholder (`Meeting · …`, `.auto`) is not a name to learn.
+            // Renames flip to `.user` first (see `MeetingStore.rename`), so what lands
+            // here was chosen by the person.
+            if !meeting.isProvisionalTitle {
+                changed = upsert(
+                    kind: .meeting,
+                    key: meeting.title,
+                    value: meeting.title,
+                    source: "meeting:\(meeting.id.uuidString)"
+                ) || changed
+            }
             // A meeting not in the graph yet still contributes its attendees.
             for attendee in meeting.attendees where !resolvedNames.contains(Self.normalize(attendee)) {
                 changed = upsert(
@@ -454,7 +459,22 @@ final class NextMemory {
         KnowledgeGraphScope.mayRead(reader: reader, cloudConsent: graphCloudConsentProvider())
     }
 
+    /// M1-a backstop: how many `Meeting · …` placeholders were refused. Counted, and
+    /// visible in `--selftest-memory`, so a placeholder that reaches the store is seen.
+    nonisolated(unsafe) static var placeholderRefusals = 0
+
+    nonisolated static var placeholderPattern: String { #"^Meeting · \d"# }
+
+    nonisolated static func isPlaceholderMeetingTitle(_ text: String) -> Bool {
+        text.range(of: placeholderPattern, options: .regularExpression) != nil
+    }
+
+    nonisolated static func resetPlaceholderRefusals() { placeholderRefusals = 0 }
+
     /// Adds a single activity label, replacing the old value for that key and kind.
+    ///
+    /// M1-a backstop: a `meeting`-kind write whose key or value is a placeholder is
+    /// refused with a counted skip — it returns false and never touches the store.
     @discardableResult
     func remember(
         _ kind: NextMemoryKind,
@@ -462,6 +482,10 @@ final class NextMemory {
         value: String,
         source: String
     ) -> Bool {
+        if kind == .meeting, Self.isPlaceholderMeetingTitle(key) || Self.isPlaceholderMeetingTitle(value) {
+            Self.placeholderRefusals += 1
+            return false
+        }
         let changed = upsert(kind: kind, key: key, value: value, source: source)
         if changed { try? persist() }
         return changed
@@ -470,12 +494,22 @@ final class NextMemory {
     /// Returns the best bounded matches for a spoken phrase. Exact values win, then
     /// contains matches, then token overlap. A query never causes a new memory entry.
     /// - Parameter includeGraphPeople: false leaves out person items the knowledge graph made.
+    ///
+    /// M1-a: provisional (`.auto`) meeting titles never match. They are placeholders, not
+    /// names, and matching one would ground a turn in "Meeting · 14:30".
     func matches(_ query: String, limit: Int = 8, includeGraphPeople: Bool = true) -> [NextMemoryItem] {
         let needle = Self.normalize(query)
         guard !needle.isEmpty, limit > 0 else { return [] }
         let queryTokens = Set(needle.split(separator: " ").map(String.init))
         return items
             .filter { includeGraphPeople || !Self.isGraphPerson($0) }
+            .filter { item in
+                guard item.kind == .meeting else { return true }
+                if Self.isPlaceholderMeetingTitle(item.key) || Self.isPlaceholderMeetingTitle(item.value) { return false }
+                if let id = Self.meetingID(from: item.source),
+                   let meeting = MeetingStore.shared.meeting(id: id), meeting.isProvisionalTitle { return false }
+                return true
+            }
             .map { item in
                 let key = Self.normalize(item.key)
                 let value = Self.normalize(item.value)
@@ -1165,6 +1199,12 @@ final class NextMemory {
             .lowercased()
             .split(whereSeparator: { $0.isWhitespace })
             .joined(separator: " ")
+    }
+
+    /// `meeting:<uuid>` → the id, for the M1-a `.auto` filter in `matches`.
+    nonisolated static func meetingID(from source: String) -> UUID? {
+        guard source.hasPrefix("meeting:") else { return nil }
+        return UUID(uuidString: String(source.dropFirst("meeting:".count)))
     }
 }
 

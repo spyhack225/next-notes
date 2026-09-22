@@ -31,6 +31,22 @@ enum ToolCallValidation {
                     + "which is a stand-in rather than a real answer. Nothing was run."
             }
         }
+        // P1-4: a click with a knowable destination must state its postcondition, or the
+        // executor has nothing to verify and the tool loop reports "took too long"
+        // instead of what happened. Fill/set_text/type/select are exempt: the executor
+        // reads the field value back directly. Navigate/open_url are exempt while the
+        // `url` argument is present: the destination is the URL itself, which the
+        // runtime reads back, so no second statement of it is needed.
+        if let verification = missingVerification(tool: tool, arguments: arguments) {
+            return verification
+        }
+        // D5: the cap is refused here too, so a call that never touched a card — a
+        // cloud model, an MCP server, a routine replaying a frozen plan, a proposal
+        // decoded off disk — still cannot run above it.
+        if tool.id == "browser.purchase",
+           let capProblem = BrowserPurchase.problem(arguments: arguments) {
+            return capProblem
+        }
         return nil
     }
 
@@ -80,5 +96,21 @@ enum ToolCallValidation {
     private static func clip(_ value: String) -> String {
         let flat = value.replacingOccurrences(of: "\n", with: " ")
         return flat.count > 48 ? flat.prefix(47) + "\u{2026}" : flat
+    }
+
+    /// Which tools must name their postcondition, and the sentence when they don't.
+    /// `browser.click`/`computer.click` only: every other id either verifies itself
+    /// (fill, set_text, type, select read the field back) or carries its destination
+    /// in `url` (navigate, open_url, download).
+    private static func missingVerification(tool: AgentTool, arguments: [String: String]) -> String? {
+        guard tool.id == "computer.click" || tool.id == "browser.click" else { return nil }
+        let stated = !(arguments["expectedText"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            || !(arguments["expectedURL"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+        guard !stated else {
+            return "Either \u{201c}Expected text\u{201d} or \u{201c}Expected URL\u{201d} "
+                + "is needed so the effect can be verified. Supply expectedText or expectedURL. "
+                + "Nothing was run."
+        }
+        return nil
     }
 }

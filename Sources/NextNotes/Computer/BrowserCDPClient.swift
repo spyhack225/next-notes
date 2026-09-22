@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 struct BrowserSnapshotNode: Sendable, Equatable {
@@ -175,13 +176,16 @@ enum BrowserCDPClient {
         case "click":
             return try await act(
                 arguments: arguments,
-                target: target
+                target: target,
+                retryAllowed: tool.risk <= .modify
             ) { id, socket in
                 try await evaluate(
                     "document.querySelectorAll('a,button,input,textarea,select,[role=button],[role=link],[role=textbox]')[\(max(0, id - 1))]?.click()",
                     webSocketURL: socket
                 )
             }
+        case "screenshot":
+            return try await captureScreenshot(arguments: arguments, target: target)
         case "fill", "select":
             let text = arguments["text"] ?? arguments["value"] ?? ""
             let encoded = jsonStringLiteral(text)
@@ -404,6 +408,7 @@ enum BrowserCDPClient {
         arguments: [String: String],
         target: BrowserCDPTarget,
         expectedValue: String? = nil,
+        retryAllowed: Bool = false,
         body: (Int, String) async throws -> String
     ) async throws -> AgentToolResult {
         let rawID = arguments["id"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -452,26 +457,119 @@ enum BrowserCDPClient {
         // A click/submit acknowledgement says only that JavaScript ran. Read the same
         // target again and require a changed page or destination; otherwise the receipt
         // stays unverified so it is not blindly retried.
-        for attempt in 0..<4 {
-            if attempt > 0 { try? await Task.sleep(for: .milliseconds(250)) }
-            let afterRaw = try? await evaluate(
-                snapshotExpression, webSocketURL: target.webSocketDebuggerURL
+        let expectation = [arguments["expectedText"], arguments["expectedURL"]]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty }
+
+        func readState(after beforeDOM: String) async -> (afterURL: String?, verified: Bool) {
+            var lastURL: String?
+            for attempt in 0..<4 {
+                if attempt > 0 { try? await Task.sleep(for: .milliseconds(250)) }
+                let afterRaw = try? await evaluate(
+                    snapshotExpression, webSocketURL: target.webSocketDebuggerURL
+                )
+                lastURL = await probe(host: defaultHost, port: defaultPort)?
+                    .targets.first(where: { $0.id == target.id })?.url
+                if verifiesClick(
+                    beforeDOM: beforeDOM, afterDOM: afterRaw,
+                    beforeURL: target.url, afterURL: lastURL,
+                    expectedText: arguments["expectedText"],
+                    expectedURL: arguments["expectedURL"]
+                ) {
+                    return (lastURL, true)
+                }
+            }
+            return (lastURL, false)
+        }
+
+        var replies = [reply]
+        var state = await readState(after: currentRaw)
+        // P1-4: one re-inspect and one retry on an unverified click — only with a
+        // stated postcondition to check the second attempt against, and only for
+        // risks at or below `.modify`. Without an expectation there is nothing a
+        // retry could verify, and re-clicking blindly can undo the first press.
+        if !state.verified, expectation != nil, retryAllowed {
+            _ = try? await evaluate(snapshotExpression, webSocketURL: target.webSocketDebuggerURL)
+            replies.append(try await body(id, target.webSocketDebuggerURL))
+            state = await readState(after: currentRaw)
+        }
+        if state.verified {
+            let lines = replies.enumerated().map { pair in
+                pair.offset == 0 ? "CDP \(pair.element)" : "CDP \(pair.element) (after re-inspecting)"
+            }
+            return AgentToolResult(
+                summary: lines.joined(separator: "\n"),
+                verification: "Browser page reached the expected post-click state"
             )
-            let afterURL = await probe(host: defaultHost, port: defaultPort)?
-                .targets.first(where: { $0.id == target.id })?.url
-            if verifiesClick(
-                beforeDOM: currentRaw, afterDOM: afterRaw,
-                beforeURL: target.url, afterURL: afterURL,
-                expectedText: arguments["expectedText"],
-                expectedURL: arguments["expectedURL"]
-            ) {
+        }
+        if replies.count > 1, let expectation {
+            let seen = state.afterURL ?? "an unchanged page"
+            let lines = replies.enumerated().map { pair in
+                pair.offset == 0 ? "CDP \(pair.element)" : "CDP \(pair.element) (after re-inspecting)"
+            }
+            return AgentToolResult(
+                summary: (lines + [
+                    "I clicked \(target.title) expecting \(expectation) but saw \(seen). "
+                        + "Re-checked and tried once more — still off."
+                ]).joined(separator: "\n")
+            )
+        }
+        return AgentToolResult(summary: "CDP \(reply)")
+    }
+
+    // MARK: - Screenshot (P1-2)
+
+    /// `Page.captureScreenshot` through the existing command path. Memory only: the
+    /// JPEG is downscaled to the shared budget and parked in `ScreenshotStore` for a
+    /// vision call; uploading it needs per-run consent.
+    private static func captureScreenshot(
+        arguments: [String: String], target: BrowserCDPTarget
+    ) async throws -> AgentToolResult {
+        let reason = arguments["reason"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if reason.isEmpty {
+            // Screenshots are a last resort: license one when the cached tree is
+            // missing or empty, not when the snapshot already describes the tab.
+            let cached = SnapshotCache.shared.snapshot(for: target)
+            if let cached, !cached.nodes.isEmpty {
                 return AgentToolResult(
-                    summary: "CDP \(reply)",
-                    verification: "Browser page reached the expected post-click state"
+                    summary: "The snapshot already describes this tab, so no screenshot was taken. "
+                        + "Pass a reason if pixels are still needed."
                 )
             }
         }
-        return AgentToolResult(summary: "CDP \(reply)")
+        let raw = try await command(
+            "Page.captureScreenshot",
+            params: ["format": "jpeg", "quality": 80],
+            webSocketURL: target.webSocketDebuggerURL
+        )
+        guard let data = screenshotData(from: raw),
+              let image = NSImage(data: data),
+              let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil)
+        else {
+            throw AgentError.backendUnavailable("Browser debugger returned an unreadable screenshot.")
+        }
+        let screenshot = try ScreenCapture.encode(cgImage: cgImage)
+        ScreenshotStore.store(screenshot, for: "browser.screenshot:\(target.id)")
+        return AgentToolResult(
+            summary: "CDP screenshot \(target.title) "
+                + "(\(screenshot.pixelWidth)x\(screenshot.pixelHeight), memory-only, never stored). "
+                + "Parked for a vision call; uploading it needs per-run consent."
+        )
+    }
+
+    /// `command()` returns the `value` of `result.result` when there is one; for
+    /// `Page.captureScreenshot` the result is `{"data": "<base64>"}`, which arrives
+    /// as that JSON string. Accept both shapes.
+    private static func screenshotData(from raw: String) -> Data? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+        if let data = trimmed.data(using: .utf8),
+           let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let base64 = object["data"] as? String,
+           let decoded = Data(base64Encoded: base64, options: .ignoreUnknownCharacters) {
+            return decoded
+        }
+        return Data(base64Encoded: trimmed, options: .ignoreUnknownCharacters)
     }
 
     private static func snapshotNodes(in raw: String) -> [BrowserSnapshotNode] {

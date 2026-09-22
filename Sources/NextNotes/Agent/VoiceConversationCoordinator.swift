@@ -36,6 +36,24 @@ final class VoiceConversationCoordinator {
     var workerForTesting: (@MainActor (VoiceConversationWork) async -> String)?
     var hasActiveWork: Bool { jobs.contains { $0.status == "running" } }
 
+    /// A tool-shaped request the frontend answered instead of delegating (P0-6).
+    /// A bare acknowledgment ("yes", "use them", "do it") resolves to this without
+    /// a model call, so the ellipsis is never gambled on the small model.
+    struct PendingIntent: Equatable, Sendable {
+        let requestText: String
+        let capabilityID: String
+        let at: Date
+        /// An offer goes stale after three minutes of other conversation.
+        var isFresh: Bool { Date().timeIntervalSince(at) < 180 }
+    }
+    private(set) var pendingIntent: PendingIntent?
+    /// Identical spoken denials per session (P0-6 backstop): the second one plans
+    /// instead of speaking the same denial again.
+    private var denialCounts: [String: Int] = [:]
+    private var backstoppedDenials: Set<String> = []
+    /// Short, recoverable, and free of any diagnosis (P0-3).
+    static let garbleClarifier = "Sorry — I didn't catch that. Could you say it again?"
+
     /// Do inference while a stable recognized partial is still waiting for
     /// end-of-utterance. This path records no turn and has no speech/tool sink.
     /// The frontend reuses it only for an exact final request/context match.
@@ -125,6 +143,9 @@ final class VoiceConversationCoordinator {
     func closeSession() {
         cancelResponsePreparation()
         didPrewarmWorker = false
+        pendingIntent = nil
+        denialCounts = [:]
+        backstoppedDenials = []
         inputEpoch &+= 1
         responseTask?.cancel()
         responseTask = nil
@@ -191,7 +212,6 @@ final class VoiceConversationCoordinator {
     private func respond(_ text: String, id: UUID, inputEpoch: UInt64, commitRevision: UInt64) async -> AgentTurn {
         let agent = RealtimeAgent.shared
         let turn = agent.beginVoiceFrontend()
-        let request = frontendRequest(text)
         AgentSession.shared.recordUser(text, source: .voice)
         AgentAuditLog.shared.record(kind: .request, title: text, detail: "local conversational frontend")
         let active = jobs.filter { $0.status == "running" }
@@ -225,6 +245,48 @@ final class VoiceConversationCoordinator {
                 return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
             }
         }
+        // P0-6 pending intent: a bare acknowledgment resolves to the stored request.
+        // Checked before the garble gate so "yes" with an offer is an answer, not noise.
+        if let pending = pendingIntent, pending.isFresh,
+           VoiceTurnPolicy.isBareAcknowledgment(text) {
+            pendingIntent = nil
+            AgentAuditLog.shared.record(kind: .request, title: pending.requestText,
+                detail: "pending_ack → newWork (heard: \(String(text.prefix(80))))")
+            resolveInput(epoch: inputEpoch)
+            submit(pending.requestText)
+            return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
+        }
+        // P0-6 tool-shape gate BEFORE the frontend model: a request naming a registry
+        // capability routes straight to submit. Same rule as P0-2's core tool set — it
+        // may only ever add newWork routes, never subtract answers.
+        let allowedIDs = Set(RealtimeAgent.plannableTools().map(\.id))
+        if let route = toolShapeRoute(text, allowedIDs: allowedIDs) {
+            AgentAuditLog.shared.record(kind: .request, title: text,
+                detail: "tool_shape_route(\(route.route)) → newWork; planner keeps the decision")
+            resolveInput(epoch: inputEpoch)
+            submit(route.text)
+            return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
+        }
+        // P0-3 garble gate BEFORE any model inference. A name with no job to attach to
+        // is not a new subject either: the branches above returned only when a running
+        // or just-finished job claimed it.
+        if VoiceTurnPolicy.isUncertainRequest(text) || AgentEntityResolver.namingTarget(in: text) != nil {
+            // Route a spoken name/label through the index before giving up on it.
+            if let match = AgentEntityResolver.resolve(
+                spoken: text, wantsFolder: text.lowercased().contains("folder")).first,
+               match.score >= AgentEntityResolver.confidentThreshold {
+                AgentAuditLog.shared.record(kind: .request, title: text,
+                    detail: "garble_resolve → open \(match.hit.name)")
+                resolveInput(epoch: inputEpoch)
+                submit("open \(match.hit.name)")
+                return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
+            }
+            AgentAuditLog.shared.record(kind: .reply, title: "Asked for clarification",
+                                        detail: "garble_clarifier: \(String(text.prefix(120)))")
+            resolveInput(epoch: inputEpoch)
+            return agent.finishVoiceFrontend(Self.garbleClarifier, turn: turn, streamed: false)
+        }
+        let request = frontendRequest(text)
         let indexed = request.indexed
         let messages = request.messages
         let tracker = AgentToolSpeechTracker(agent: agent, turn: turn, allowSpeech: true,
@@ -279,6 +341,26 @@ final class VoiceConversationCoordinator {
             ) {
             case .answer(let answer):
                 assembled = answer.trimmingCharacters(in: .whitespacesAndNewlines)
+                // P0-6: remember a tool-shaped request the frontend answered, so a bare
+                // "yes" / "use them" resolves to the original text with no model call.
+                if let capability = namesCapability(text) {
+                    pendingIntent = PendingIntent(requestText: text, capabilityID: capability, at: Date())
+                }
+                // P0-6 backstop: the second identical denial plans instead of speaking.
+                // Reads auto-run in the tool loop; anything stronger waits for approval.
+                if AgentRefusalGuard.mayBeDenial(assembled) {
+                    let key = VoiceTranscriptCanonical.key(assembled)
+                    denialCounts[key, default: 0] += 1
+                    if (denialCounts[key] ?? 0) >= 2, !backstoppedDenials.contains(key) {
+                        backstoppedDenials.insert(key)
+                        AgentAuditLog.shared.record(kind: .reply, title: "Denial backstop",
+                            detail: "denial_backstop → newWork (second identical denial)")
+                        tracker.cancel()
+                        resolveInput(epoch: inputEpoch)
+                        submit(text)
+                        return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
+                    }
+                }
                 resolveInput(epoch: inputEpoch)
                 tracker.finish(hasToolCalls: false)
                 return agent.finishVoiceFrontend(assembled, turn: turn, streamed: tracker.didStreamSpeech)
@@ -411,6 +493,41 @@ final class VoiceConversationCoordinator {
         }
         return String(reflecting: type(of: error)).split(separator: ".").last.map(String.init)
             ?? "model_stream_error"
+    }
+
+    /// Deterministic newWork routing before the frontend model (P0-6). Returns the
+    /// request text plus the route that matched, or nil to continue to the garble
+    /// gate and the frontend. Open/click/type/locate shapes come first through the
+    /// existing direct-intent parser; mail, calendar, docs and memory verbs follow.
+    private func toolShapeRoute(_ text: String, allowedIDs: Set<String>) -> (text: String, route: String)? {
+        if let direct = AgentDirectIntent.parse(text) {
+            return (text, "direct:" + direct.requiredToolIDs.joined(separator: "+"))
+        }
+        if let match = AgentDirectIntent.toolShapeMatch(
+            in: AgentDirectIntent.normalize(text), allowedIDs: allowedIDs) {
+            return (text, "capability:" + match)
+        }
+        return nil
+    }
+
+    /// The registry capability id the utterance names, if any (P0-6 pending slot).
+    /// A verb-shaped request is pending by construction; a question that merely
+    /// mentions a domain (mail, calendar, docs, memory) still names it, so a denial
+    /// of it can be kept and a later "use them" still resolves.
+    private func namesCapability(_ text: String) -> String? {
+        let allowedIDs = Set(RealtimeAgent.plannableTools().map(\.id))
+        if let direct = AgentDirectIntent.parse(text) {
+            let id: String
+            switch direct {
+            case .openURL: id = "browser.navigate"
+            case .openApp: id = "computer.open_app"
+            case .locate: id = FileToolCatalogue.findID
+            }
+            if allowedIDs.contains(id) { return id }
+        }
+        let normalized = AgentDirectIntent.normalize(text)
+        return AgentDirectIntent.toolShapeMatch(in: normalized, allowedIDs: allowedIDs)
+            ?? AgentDirectIntent.capabilityMention(in: normalized, allowedIDs: allowedIDs)
     }
 
     private func frontendRequest(_ text: String) -> (indexed: [Job], messages: [LLMChatMessage]) {

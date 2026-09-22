@@ -339,6 +339,56 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
     }
 }
 
+// MARK: - Vision (P1-2, image part only)
+
+///
+/// Same choice as the OpenRouter provider and the same wire format (the OpenAI chat
+/// API is identical on loopback), so the tool loop has one vision shape whichever
+/// cloud-or-local model plans. The chat protocol (`LLMProvider`) is untouched.
+/// A loopback server that cannot see images answers in its own words; that failure
+/// stays in the log and never becomes a silent text-only turn.
+extension OpenAICompatibleLLMProvider {
+    /// `image_url` data-URL parts for `images` — or nothing when consent is off.
+    static func imageParts(_ images: [LLMImage], consent: Bool) -> [[String: Any]] {
+        images.compactMap { $0.contentPart(consent: consent) }
+    }
+
+    /// One vision completion. Throws `needsVision` — sending nothing — unless every
+    /// image survived the consent gate.
+    func completeWithImages(
+        system: String, user: String, images: [LLMImage], consent: Bool, maxTokens: Int
+    ) async throws -> LLMCompletion {
+        guard !images.isEmpty, Self.imageParts(images, consent: consent).count == images.count else {
+            throw LocalServerError.needsVision(serverName)
+        }
+        let began = Date()
+        let parts = Self.imageParts(images, consent: consent)
+        var request = URLRequest(url: baseURL.appendingPathComponent("chat/completions"))
+        request.httpMethod = "POST"
+        request.timeoutInterval = 600
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = [
+            "model": modelID,
+            "messages": [["role": "system", "content": system],
+                         ["role": "user",
+                          "content": [["type": "text", "text": user]] + parts]],
+            "max_tokens": maxTokens,
+            "stream": false,
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try Self.validate(response, data: data, serverName: serverName)
+        let text = try Self.text(fromCompletion: data)
+        guard !text.isEmpty else { throw LocalServerError.emptyAnswer(serverName) }
+        let usage = try? JSONDecoder().decode(CompletionResponse.self, from: data).usage
+        return LLMCompletion(
+            text: text,
+            generatedTokens: usage?.completion_tokens ?? max(1, text.utf8.count / 3),
+            duration: Date().timeIntervalSince(began)
+        )
+    }
+}
+
 /// What can go wrong talking to a model-running app on this Mac, said plainly.
 enum LocalServerError: LocalizedError, Equatable {
     case noModel(String)
@@ -346,6 +396,9 @@ enum LocalServerError: LocalizedError, Equatable {
     case http(String, Int)
     case server(String)
     case unreadable
+    /// The vision call refused to build: consent is off, or this server was never
+    /// told it can see images. Nothing left this Mac.
+    case needsVision(String)
 
     var errorDescription: String? {
         switch self {
@@ -359,6 +412,18 @@ enum LocalServerError: LocalizedError, Equatable {
             message
         case .unreadable:
             "That app sent back something Next Notes couldn’t read."
+        case .needsVision(let name):
+            "\(name) was not sent the screenshot: vision consent is off. Nothing left this Mac."
+        }
+    }
+}
+
+/// P0-7 error mapping only: every local-server failure gets a voice code.
+extension LocalServerError: VoiceCodedError {
+    var voiceCode: VoiceProviderErrorCode {
+        switch self {
+        case .noModel: .modelMissing
+        case .emptyAnswer, .http, .server, .unreadable, .needsVision: .unavailable
         }
     }
 }

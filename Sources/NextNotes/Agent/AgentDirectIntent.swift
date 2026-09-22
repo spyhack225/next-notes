@@ -173,6 +173,99 @@ enum AgentDirectIntent: Equatable, Sendable {
         knownApps.first { $0.value == app && text.contains($0.key) }?.key
     }
 
+    // MARK: - Deterministic tool-shape verbs (P0-6)
+
+    /// One registry capability in the words a person uses for it. The coordinator's
+    /// tool-shape gate matches these *before* the frontend model runs: a hit routes
+    /// straight to `submit`, so the small model never gets to deny what the registry
+    /// offers. The gate may only ever add newWork routes, never subtract answers.
+    struct CapabilityVerb: Sendable {
+        /// Planner tool id this names.
+        let toolID: String
+        /// Verbs that name it only beside one of `nouns`.
+        let verbs: [String]
+        /// Domain nouns that complete a verb above.
+        let nouns: [String]
+        /// Verbs distinctive enough to match on their own (`remember`, `email`).
+        let standalone: [String]
+    }
+
+    static let capabilityVerbs: [CapabilityVerb] = [
+        CapabilityVerb(toolID: "search_email",
+            verbs: ["search", "find", "check", "read", "summarise", "summarize", "list", "show"],
+            nouns: ["email", "emails", "mail", "inbox", "gmail"],
+            standalone: []),
+        CapabilityVerb(toolID: "send_email",
+            verbs: ["send", "forward", "reply"],
+            nouns: ["email", "emails", "mail"],
+            standalone: ["email"]),
+        CapabilityVerb(toolID: "get_agenda",
+            verbs: ["list", "show", "check", "summarise", "summarize"],
+            nouns: ["calendar", "agenda", "events", "event", "schedule"],
+            standalone: []),
+        CapabilityVerb(toolID: "create_event",
+            verbs: ["create", "schedule", "add", "book"],
+            nouns: ["event", "events", "meeting", "meetings", "calendar", "reminder"],
+            standalone: []),
+        CapabilityVerb(toolID: "create_doc",
+            verbs: ["create", "open", "write", "draft", "make"],
+            nouns: ["doc", "docs", "document", "documents", "note", "notes"],
+            standalone: []),
+        CapabilityVerb(toolID: "read_doc",
+            verbs: ["read", "open", "find", "show"],
+            nouns: ["doc", "docs", "document", "documents"],
+            standalone: []),
+        CapabilityVerb(toolID: "find_drive_files",
+            verbs: ["find", "search", "list", "show"],
+            nouns: ["drive"],
+            standalone: []),
+        CapabilityVerb(toolID: "memory.remember",
+            verbs: ["remember", "memorise", "memorize"],
+            nouns: ["memory"],
+            standalone: ["remember", "memorise", "memorize"]),
+        CapabilityVerb(toolID: "memory.recall",
+            verbs: ["recall", "forget"],
+            nouns: ["memory"],
+            standalone: ["recall", "forget"]),
+    ]
+
+    /// Single-word verbs the turn-policy gates recognise as carrying an instruction.
+    /// Deliberately without `do`, `use` and `go`: `do it`, `use them` and `go ahead`
+    /// are acknowledgments, not instructions.
+    static let actionVerbs: Set<String> = [
+        "open", "find", "show", "reveal", "locate", "launch", "start",
+        "search", "check", "read", "list", "send", "email", "create", "make",
+        "write", "remember", "recall", "forget", "summarise", "summarize",
+        "schedule", "book", "draft",
+    ]
+
+    /// The capability id the normalized utterance names, or nil. A hit requires the
+    /// tool to be in the planner's allow-list, so the fast path can never reach past it.
+    static func toolShapeMatch(in normalized: String, allowedIDs: Set<String>) -> String? {
+        let words = Set(normalized.split(whereSeparator: \.isWhitespace).map(String.init))
+        for entry in capabilityVerbs {
+            guard allowedIDs.contains(entry.toolID) else { continue }
+            let spacedID = entry.toolID.replacingOccurrences(of: "_", with: " ")
+            if normalized.contains(entry.toolID) || normalized.contains(spacedID) { return entry.toolID }
+            if entry.standalone.contains(where: words.contains) { return entry.toolID }
+            if entry.verbs.contains(where: words.contains),
+               entry.nouns.contains(where: words.contains) { return entry.toolID }
+        }
+        return nil
+    }
+
+    /// The capability whose domain nouns the normalized utterance mentions, or nil.
+    /// Broader than `toolShapeMatch`: a question about mail still names mail, so a
+    /// denial of it can be kept as pending and a later "use them" still resolves.
+    static func capabilityMention(in normalized: String, allowedIDs: Set<String>) -> String? {
+        let words = Set(normalized.split(whereSeparator: \.isWhitespace).map(String.init))
+        for entry in capabilityVerbs {
+            guard allowedIDs.contains(entry.toolID) else { continue }
+            if entry.nouns.contains(where: words.contains) { return entry.toolID }
+        }
+        return nil
+    }
+
     // MARK: - Files and folders
 
     private static let fileWords: Set<String> = [

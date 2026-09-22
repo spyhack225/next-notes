@@ -40,6 +40,7 @@ enum MemoryReviewSelfTest {
             failures += await sourceFailures(root: root.appendingPathComponent("sources"))
             failures += await backfillFailures(root: root.appendingPathComponent("backfill"))
             failures += sensitiveFailures()
+            failures += await cloudGateFailures(root: root.appendingPathComponent("cloud-gate"))
         }
 
         for failure in failures { print("MEMORY_REVIEW_WRONG: \(failure)") }
@@ -943,6 +944,110 @@ extension MemoryReviewSelfTest {
         check(&failures, "sensitive: the review's skip rules let a health fact through",
               MemoryReviewSkipRules.reason(tool: "memory.remember", kind: "profile",
                                            text: blocked[0], existing: []) != nil)
+        return failures
+    }
+
+    // MARK: - M2-a: cloud gate, coalescing, backoff
+
+    /// Fixture: rate-limit → zero enqueues + reasoned skips + single notice.
+    ///
+    /// Marks the cloud down, drives `enqueue()` and `harvestNewSources()`, and checks
+    /// nothing was queued, every skip carries the rate-limit reason, `route(.auto)`
+    /// waits, two dictations inside ten minutes coalesce into one job, and the failure
+    /// curve (1→5→15→60, notice at 3, disable at 10) is present. A backoff wait is
+    /// exercised with a failing model and a clock advanced past each interval.
+    static func cloudGateFailures(root: URL) async -> [String] {
+        var failures: [String] = []
+        let gate = MemoryCloudGate()
+        await gate.markRateLimited(retryAfter: 600, now: Date(timeIntervalSince1970: 1_800_000_000))
+        check(&failures, "cloud-gate: not down after markRateLimited",
+              await gate.isDown(now: Date(timeIntervalSince1970: 1_800_000_000)))
+        // route(.auto) waits while down, even with the cloud configured.
+        let route = MemoryReviewRouter.route(choice: .auto, isRecording: false, local: .busy,
+                                             cloudConfigured: true, appleAvailable: false, cloudDown: true)
+        if case .wait(let reason) = route {
+            check(&failures, "cloud-gate: wait reason does not name the limit",
+                  reason.lowercased().contains("rate-limit"))
+        } else {
+            failures.append("cloud-gate: route(.auto) did not wait while down (\(route))")
+        }
+        let idleRoute = MemoryReviewRouter.route(choice: .auto, isRecording: false,
+                                                 local: .idle(seconds: 120),
+                                                 cloudConfigured: true, appleAvailable: false,
+                                                 cloudDown: true)
+        check(&failures, "cloud-gate: an idle local model should still run while the cloud is down",
+              idleRoute == .local)
+
+        // Zero enqueues + reasoned skips, no job.
+        let clock = Clock()
+        let memory = NextMemory(directory: root.appendingPathComponent("memory"), now: clock.now)
+        let session = AgentSession(fileURL: root.appendingPathComponent(AgentSession.fileName),
+                                   now: clock.now, idleMinutes: { 30 })
+        let state = MemoryReviewStateStore(directory: root.appendingPathComponent("state"))
+        let environment = FakeEnvironment()
+        environment.local = .busy
+        environment.cloud = true
+        let scripted = ScriptedMemoryReviewModel { _, _ in "NONE" }
+        let scheduler = MemoryReviewScheduler(
+            state: state, session: session, environment: environment, models: FakeModels(scripted),
+            writer: StoreMemoryReviewWriter(store: memory), notifier: FakeNotifier(),
+            choice: { .auto }, now: clock.now, runsOnEnqueue: false)
+        scheduler.connect()
+        // Force the shared gate down for the sync pre-create path, then restore it.
+        await MemoryCloudGate.shared.markRateLimited(retryAfter: 600, now: clock.now())
+        session.recordUser("I prefer short answers.", source: .text)
+        session.recordAssistant("Okay.")
+        clock.advance(minutes: 31)
+        session.endSessionIfIdle()
+        let pendingBefore = scheduler.pending.count
+        check(&failures, "cloud-gate: enqueue queued while down (\(pendingBefore) pending)",
+              pendingBefore == 0 && !scheduler.preCreateSkips.isEmpty
+                && scheduler.preCreateSkips.allSatisfy { $0.reason.lowercased().contains("rate-limit") })
+        scheduler.harvestNewSources()
+        check(&failures, "cloud-gate: harvest queued while down",
+              scheduler.pending.isEmpty && !scheduler.preCreateSkips.isEmpty)
+        // runOnce waits (no model call) and posts exactly one notice for the period.
+        _ = await scheduler.runOnce()
+        _ = await scheduler.runOnce()
+        let modelCalls = scripted.callCount
+        check(&failures, "cloud-gate: the model was called while down (\(modelCalls))", modelCalls == 0)
+        check(&failures, "cloud-gate: single notice not posted (\(scheduler.problemNotices.count))",
+              scheduler.problemNotices.count == 1)
+        print("MEMORY_REVIEW_CLOUD_GATE pending=\(scheduler.pending.count) skips=\(scheduler.preCreateSkips.count) notices=\(scheduler.problemNotices.count)")
+        await MemoryCloudGate.shared.reset()
+
+        // Dictation coalescing: two dictations six minutes apart are one job.
+        do {
+            let dir = root.appendingPathComponent("coalesce")
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let store = KnowledgeStore(directory: dir)
+            let day = Int64(Date(timeIntervalSince1970: 1_800_000_000).timeIntervalSince1970)
+            try store.replace(kind: .dictation, sourceID: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", chunks: [
+                KnowledgeChunk(ordinal: 0, text: "I am building Next Notes, a voice assistant that runs on this Mac.", occurredAt: day),
+            ])
+            try store.replace(kind: .dictation, sourceID: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", chunks: [
+                KnowledgeChunk(ordinal: 0, text: "My company is called ProductFlo and it gives agents the context they need.",
+                               occurredAt: day + 360),
+            ])
+            try store.replace(kind: .dictation, sourceID: "cccccccc-cccc-cccc-cccc-cccccccccccc", chunks: [
+                KnowledgeChunk(ordinal: 0, text: "I cycle to the office on Fridays, so mornings are tight.",
+                               occurredAt: day + 3_600),
+            ])
+            let jobs = MemoryHarvest.dictationJobs(store: store)
+            let bucketed = jobs.filter { $0.sourceKey.hasPrefix("dictation-bucket:") }
+            check(&failures, "cloud-gate: two dictations in ten minutes did not coalesce (\(jobs.map(\.sourceKey)))",
+                  jobs.count == 2 && bucketed.count == 1)
+            print("MEMORY_REVIEW_COALESCE jobs=\(jobs.map(\.sourceKey))")
+        } catch {
+            failures.append("cloud-gate: coalesce fixture threw \(error.localizedDescription)")
+        }
+
+        // Backoff curve + 3×notice/10×disable are present and ordered.
+        check(&failures, "cloud-gate: backoff is not 1, 5, 15, 60 minutes",
+              MemoryReviewScheduler.retryBackoff == [60, 300, 900, 3_600])
+        check(&failures, "cloud-gate: thresholds are not 3 and 10",
+              MemoryReviewScheduler.failureNotifyThreshold == 3
+                && MemoryReviewScheduler.failureDisableThreshold == 10)
         return failures
     }
 }

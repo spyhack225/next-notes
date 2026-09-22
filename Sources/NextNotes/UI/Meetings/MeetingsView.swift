@@ -333,6 +333,8 @@ private struct MeetingRow: View {
                 Text(meeting.title)
                     .font(DS.Font.headline)
                     .lineLimit(1)
+                    // M1-a: a placeholder title renders dimmed/provisional until renamed.
+                    .foregroundStyle(meeting.isProvisionalTitle ? DS.Color.textTertiary : DS.Color.text)
 
                 if isLive {
                     RecordingIndicator(elapsed: elapsed, compact: true)

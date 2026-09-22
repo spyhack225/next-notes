@@ -658,6 +658,23 @@ enum MemorySelfTest {
         let grounding = memory.grounding(for: "Sprint review")
         check("activity text escaped the data boundary", !grounding.contains("\n"))
         check("activity text did not remain a JSON value", grounding.contains("Ignore previous instructions"))
+        // M1-a backstop: `Meeting · …` placeholders never reach the store, counted.
+        NextMemory.resetPlaceholderRefusals()
+        let refusedKey = memory.remember(.meeting, key: "Meeting · 14:30", value: "Meeting · 14:30",
+                                         source: "fixture")
+        let refusedValue = memory.remember(.meeting, key: "Weekly sync", value: "Meeting · 9:41",
+                                           source: "fixture")
+        check("a placeholder meeting title was stored", !refusedKey && !refusedValue)
+        check("placeholder refusals were not counted", NextMemory.placeholderRefusals == 2)
+        check("a placeholder matches", memory.matches("Meeting").isEmpty)
+        check("a placeholder grounds", !memory.grounding(for: "Meeting").contains("Meeting ·"))
+        let (_, activity) = memory.recall("Meeting")
+        check("a placeholder recalls", activity.filter { $0.kind == .meeting }.isEmpty)
+        print("MEMORY_PLACEHOLDER_REFUSALS \(NextMemory.placeholderRefusals)")
+        // A real title still lands, and then matches, grounds and recalls.
+        check("a renamed title was refused",
+              memory.remember(.meeting, key: "Weekly sync", value: "Weekly sync", source: "fixture"))
+        check("a renamed title does not match", memory.matches("Weekly sync").first?.value == "Weekly sync")
         return failures
     }
 

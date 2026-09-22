@@ -44,26 +44,63 @@ enum MemoryHarvest {
 
     // MARK: - Dictations
 
-    /// One job per dictation. A dictation is the user talking to themselves: all of it is
-    /// theirs, and there is no untrusted half.
+    /// Dictation jobs, coalesced into ~10-minute buckets (M2-a).
+    ///
+    /// One job per dictation used to mean a morning of quick notes queued a dozen model
+    /// calls that each said the same thing about the user. Dictations inside the same
+    /// ten-minute window are one job now: their sentences are read together, newest first
+    /// within the per-job character budget. A lone dictation keeps its own
+    /// `dictation:<uuid>` key so the backfill's ticked-off set still matches; a bucket of
+    /// several uses `dictation-bucket:<first-uuid>+<n>`.
     static func dictationJobs(
         store: KnowledgeStore, reviewed: Set<String> = [], since: Date? = nil
     ) -> [MemoryReviewJob] {
         guard let sources = try? store.indexedSources(kind: .dictation) else { return [] }
-        var jobs: [MemoryReviewJob] = []
+        struct Row { let id: String; let at: Date; let text: [String] }
+        var rows: [Row] = []
         for sourceID in sources.keys.sorted() {
             let key = "dictation:\(sourceID)"
-            guard !reviewed.contains(key), let rows = try? store.chunkRows(kind: .dictation, sourceID: sourceID),
-                  let first = rows.first else { continue }
+            guard !reviewed.contains(key), let chunks = try? store.chunkRows(kind: .dictation, sourceID: sourceID),
+                  let first = chunks.first else { continue }
             let occurredAt = Date(timeIntervalSince1970: TimeInterval(first.occurredAt))
             if let since, occurredAt <= since { continue }
-            let text = sentences(rows.map(\.text))
+            let text = sentences(chunks.map(\.text))
             guard !text.isEmpty else { continue }
-            jobs.append(MemoryReviewJob(
-                source: .userDictated, trigger: .dictationSaved, sourceKey: key,
-                label: "on " + occurredAt.formatted(.dateTime.day().month(.abbreviated)),
-                sessionID: UUID(uuidString: sourceID) ?? UUID(),
-                userText: clipped(text), untrustedText: [], occurredAt: occurredAt))
+            rows.append(Row(id: sourceID, at: occurredAt, text: text))
+        }
+        // Ten-minute buckets, in time order.
+        rows.sort { $0.at < $1.at }
+        var buckets: [[Row]] = []
+        for row in rows {
+            if let last = buckets.last, let lastAt = last.last?.at,
+               row.at.timeIntervalSince(lastAt) <= 600 {
+                buckets[buckets.count - 1].append(row)
+            } else {
+                buckets.append([row])
+            }
+        }
+        var jobs: [MemoryReviewJob] = []
+        for bucket in buckets {
+            if bucket.count == 1, let only = bucket.first {
+                let key = "dictation:\(only.id)"
+                if reviewed.contains(key) { continue }
+                jobs.append(MemoryReviewJob(
+                    source: .userDictated, trigger: .dictationSaved, sourceKey: key,
+                    label: "on " + only.at.formatted(.dateTime.day().month(.abbreviated)),
+                    sessionID: UUID(uuidString: only.id) ?? UUID(),
+                    userText: clipped(only.text), untrustedText: [], occurredAt: only.at))
+            } else {
+                let first = bucket.first!
+                let key = "dictation-bucket:\(first.id)+\(bucket.count)"
+                if reviewed.contains(key) { continue }
+                let combined = bucket.flatMap(\.text)
+                let latest = bucket.map(\.at).max() ?? first.at
+                jobs.append(MemoryReviewJob(
+                    source: .userDictated, trigger: .dictationSaved, sourceKey: key,
+                    label: "on " + latest.formatted(.dateTime.day().month(.abbreviated)),
+                    sessionID: UUID(uuidString: first.id) ?? UUID(),
+                    userText: clipped(sentences(combined)), untrustedText: [], occurredAt: latest))
+            }
         }
         return jobs
     }

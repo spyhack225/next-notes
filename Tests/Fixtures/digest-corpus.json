@@ -1,0 +1,63 @@
+{
+  "about": "P2-3 morning digest corpus (Option A: digest-first, no web). A hand-written Tuesday morning over fixture calendar days, mail, and notes, mirroring DigestSelfTest.fullFixture(), plus the silence case. Every section of the digest anatomy is exercised: masthead with edition/date/city, Today with an overlap callout, a 7-day week grid, per-person desks, dated watch items, Around Town from a place-bearing item, mail/notes items each with source and date, and Talk at the Table questions. Weather is absent, so the digest omits it; the silence fixture has nothing anywhere and must render exactly NOTHING_TO_REPORT. Synthetic people and places only; no real meeting is committed. Run with: NextNotes --selftest-digest (dispatch snippet returned with the implementation; NextNotesApp.swift itself is never edited by the digest epic).",
+  "edition": "2026-09-22",
+  "timeZone": "America/New_York",
+  "weather": null,
+  "days": [
+    {
+      "date": "Tue 22",
+      "events": [
+        { "time": "09:00", "title": "Design review", "people": ["Kim"] },
+        { "time": "09:30", "title": "1:1 with Ana", "people": ["Ana"] },
+        { "time": "19:00", "title": "Dinner", "people": ["Ana"], "place": "Carbone" }
+      ],
+      "overlap": "Design review and 1:1 with Ana overlap from 09:30 to 10:00."
+    },
+    { "date": "Wed 23", "events": [{ "time": "10:00", "title": "Dentist" }] },
+    { "date": "Thu 24", "events": [] },
+    { "date": "Fri 25", "events": [{ "time": "15:00", "title": "Acme renewal call", "people": ["Sam"] }] },
+    { "date": "Sat 26", "events": [] },
+    { "date": "Sun 27", "events": [{ "time": "08:00", "title": "Flight to Lisbon" }] },
+    { "date": "Mon 28", "events": [{ "time": "09:00", "title": "Sprint planning" }] }
+  ],
+  "desks": [
+    { "person": "Sam", "lines": ["Acme renewal Friday — the contract draft is in your notes."] },
+    { "person": "Ana", "lines": ["1:1 moved to 09:30 Tuesday."] }
+  ],
+  "watch": [
+    "Acme contract draft due Thursday 24 Sep.",
+    "Dentist form to fill before Wednesday."
+  ],
+  "mail": [
+    { "from": "sam@acme.com", "subject": "Re: renewal", "date": "2026-09-21", "snippet": "Can we move Friday's call 30 minutes later?" },
+    { "from": "ana", "subject": "1:1 notes", "date": "2026-09-20", "snippet": "Moved our 1:1 to 9:30." }
+  ],
+  "knowledge": [
+    { "title": "Acme renewal prep", "date": "2026-09-18", "text": "Acme wants SSO before renewing 120 seats." },
+    { "title": "Lisbon flights", "date": "2026-09-15", "text": "Outbound Sunday 08:00, return Friday." }
+  ],
+  "aroundTown": ["Dinner at Carbone, Tuesday 19:00 — reservation for two."],
+  "questions": [
+    "Should Friday's Acme call move 30 minutes later?",
+    "What is the one thing the Design review must decide?",
+    "Is the dentist form filled?"
+  ],
+  "expect": {
+    "sections": ["Morning digest", "Edition: Tuesday, 22 September 2026 · New York", "Today", "The Week Ahead", "For Sam", "For Ana", "Watch these", "Around Town", "From your mail and notes", "Talk at the Table"],
+    "overlap": "Overlap:",
+    "mailSource": "[mail · sam@acme.com · 2026-09-21]",
+    "notesSource": "[notes · Acme renewal prep · 2026-09-18]",
+    "absent": ["Weather:"]
+  },
+  "silence": {
+    "about": "Nothing on any day, no desks, watch items, mail, notes, places, or questions. Renders exactly NOTHING_TO_REPORT; the scheduler delivers nothing.",
+    "days": [],
+    "desks": [],
+    "watch": [],
+    "mail": [],
+    "knowledge": [],
+    "aroundTown": [],
+    "questions": [],
+    "expect": "NOTHING_TO_REPORT"
+  }
+}

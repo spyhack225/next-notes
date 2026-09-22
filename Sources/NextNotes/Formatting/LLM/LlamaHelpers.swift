@@ -128,3 +128,16 @@ enum LlamaError: LocalizedError {
         }
     }
 }
+
+/// P0-7 error mapping only: every llama.cpp failure gets a voice code.
+extension LlamaError: VoiceCodedError {
+    var voiceCode: VoiceProviderErrorCode {
+        switch self {
+        case .modelMissing: .modelMissing
+        case .modelLoadFailed, .contextLoadFailed, .notLoaded,
+             .tokenizationFailed, .inputTooLong, .decodeFailed,
+             .samplerFailed, .grammarInvalid:
+            .unavailable
+        }
+    }
+}

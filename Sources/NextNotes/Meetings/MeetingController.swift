@@ -35,8 +35,11 @@ final class MeetingController {
     /// Records something that isn't on any calendar.
     @discardableResult
     func startAdHoc(title: String? = nil) async -> Bool {
+        // M1-a: no title passed means a placeholder (`.auto`); a passed title is the
+        // person's own (`.user`).
         let meeting = Meeting(
             title: title ?? Self.defaultTitle(at: Date()),
+            titleSource: title == nil ? .auto : .user,
             start: Date(),
             status: .recording
         )
@@ -96,6 +99,10 @@ final class MeetingController {
     ///
     /// The live pane and the island read `session.meeting.title`, not the copy on disk, so
     /// a save alone would leave the recording looking un-renamed until it stopped.
+    ///
+    /// M1-a: the store copy already flipped to `.user`; `MeetingStore.save` keeps a stored
+    /// `.user` when a live session later saves the same title with an older source, so the
+    /// rename survives Stop without touching the session.
     func syncTitle(of id: UUID, to title: String) {
         session?.applyTitle(title, ifID: id)
     }

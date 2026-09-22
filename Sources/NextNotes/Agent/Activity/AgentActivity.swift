@@ -45,6 +45,14 @@ struct AgentAuditEntry: Identifiable, Sendable, Equatable, Codable {
         case permission
         case task
         case wake
+        /// A calibration attempt (or live window) where the configured listener did
+        /// not fire. Written by `WakeWordTelemetry.recordMiss` beside `kind: "wake"`,
+        /// so the D7 tally reads misses off-device from `agent-audit.jsonl`.
+        case wakeMiss
+        /// A wake that fired on speech the user disowned ("That wasn't for you").
+        /// Written by `WakeWordTelemetry.recordFalseAccept`; the island button that
+        /// produces it is owned by the surface agent (see the hook spec).
+        case wakeFalse
         case request
         case reply
     }

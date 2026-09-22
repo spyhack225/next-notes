@@ -696,6 +696,14 @@ final class ActionOrchestrator {
             // The browser executor compares a post-action DOM/URL to its pre-action
             // snapshot, or reads the exact value of a filled control. An unchanged page
             // is inconclusive even when Runtime.evaluate reported success.
+            if tool.name == "purchase" {
+                // The cap gate either threw (over cap, so nothing ran) or returned a
+                // receipt carrying a verification string. A purchase receipt without
+                // one fails closed: money out is never "verified" by a success
+                // sentence alone. The receipt reference joins the run's artifacts in
+                // `execute`, alongside any link.
+                return result.verification
+            }
             return result.verification
         }
 

@@ -687,6 +687,219 @@ enum VoiceCapabilityConversationSelfTest {
         let oneLine = text.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
         return String(oneLine.prefix(420))
     }
+
+    /// P0-3 / P0-4 / P0-6 (+D8) / P0-7 coordinator routing. Deterministic: every model
+    /// response is scripted, no tool runs, no RunLog. Wire with `--selftest-voice-turn-routing`
+    /// in `NextNotesApp.runRequestedSelfTest`.
+    @MainActor
+    static func runTurnRouting() async -> Bool {
+        guard SelfTest.isRunning else {
+            print("VOICE_TURN_ROUTING_FAILED: requires SelfTest.isRunning to protect conversation history")
+            return false
+        }
+        let harnessFailureBefore = SelfTest.failed
+        var failures: [String] = []
+        var outputs: [(String, String)] = []
+        let coordinator = VoiceConversationCoordinator.shared
+
+        // MARK: P0-3 — eight real garbled utterances; none reaches frontend inference.
+        coordinator.resetForTesting()
+        AgentSession.shared.clear()
+        let garbleProbe = TurnRoutingProbe()
+        coordinator.streamForTesting = { _, _ in await garbleProbe.stream() }
+        coordinator.workerForTesting = { work in await garbleProbe.ranWorker(work.original) }
+        let auditBeforeGarble = AgentAuditLog.shared.entries.count
+        let garbled = [
+            "boys", "Am", "Take it.", "Okay.", "hey win", "Hey we",
+            "can you also nothing get to my folder to my document folder in open next project",
+            "note the four days called next note",
+        ]
+        for (index, utterance) in garbled.enumerated() {
+            let turn = await coordinator.handle(utterance)
+            outputs.append(("garble-\(index + 1)", "\(utterance) → \(turn.reply)"))
+            if turn.reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                failures.append("garble turn was silent: \(utterance)")
+            }
+        }
+        if await garbleProbe.streamCalls != 0 {
+            failures.append("garbled utterances reached frontend inference "
+                + "\(await garbleProbe.streamCalls)x")
+        }
+        let clarifiers = AgentAuditLog.shared.entries.prefix(
+            max(0, AgentAuditLog.shared.entries.count - auditBeforeGarble)
+        ).filter { $0.detail.contains("garble_clarifier") }
+        // Six short fragments plus the orphan naming turn clarify; the folder sentence
+        // parses and submits. A confident index hit may submit instead of clarifying,
+        // but it still never reaches the frontend — hence the lower bound.
+        if clarifiers.count < 6 {
+            failures.append("only \(clarifiers.count) garble_clarifier audit entries for eight garbled turns")
+        }
+        if coordinator.jobs.isEmpty {
+            failures.append("the parsable folder sentence was never submitted")
+        }
+
+        // MARK: P0-4 — the 20:45:00Z browser command through the live coordinator path.
+        coordinator.resetForTesting()
+        AgentSession.shared.clear()
+        let browserProbe = TurnRoutingProbe()
+        coordinator.streamForTesting = { _, _ in await browserProbe.stream() }
+        coordinator.workerForTesting = { work in await browserProbe.ranWorker(work.original) }
+        let auditBeforeBrowser = AgentAuditLog.shared.entries.count
+        let browserUtterance = "You open Google Chrome and go to youtube.com."
+        let browserTurn = await coordinator.handle(browserUtterance)
+        outputs.append(("browser-command", browserTurn.reply))
+        try? await Task.sleep(for: .milliseconds(150))
+        if await browserProbe.streamCalls != 0 {
+            failures.append("browser command reached frontend inference")
+        }
+        if await browserProbe.workerPrompts != [browserUtterance] {
+            failures.append("browser command did not submit its own text: "
+                + bounded((await browserProbe.workerPrompts).joined(separator: " | ")))
+        }
+        let browserEntries = Array(AgentAuditLog.shared.entries.prefix(
+            max(0, AgentAuditLog.shared.entries.count - auditBeforeBrowser)))
+        if !browserEntries.contains(where: { $0.detail.contains("browser.navigate") }) {
+            failures.append("audit shows no browser.navigate path for the browser command")
+        }
+        if browserEntries.contains(where: {
+            ($0.title + " " + $0.detail + " " + ($0.toolID ?? "")).contains("append_doc")
+        }) {
+            failures.append("audit mentions append_doc for a browser command")
+        }
+
+        // MARK: P0-6 + D8 — the 5-turn email/calendar loop.
+        //
+        // T1 routes before any model call. T2 rephrases as a question the gate
+        // deliberately misses, so the scripted denial exercises the pending slot;
+        // T3 resolves it, T4 repeats the denial into the backstop, T5 confirms the
+        // re-stored pending still resolves.
+        coordinator.resetForTesting()
+        AgentSession.shared.clear()
+        let loopProbe = TurnRoutingProbe()
+        coordinator.streamForTesting = { _, _ in await loopProbe.stream() }
+        coordinator.workerForTesting = { work in await loopProbe.ranWorker(work.original) }
+        let request = "Summarise my emails, list tomorrow's events."
+        let rephrase = "What did my emails say today?"
+        let t1 = await coordinator.handle(request)
+        outputs.append(("d8-1-request", t1.reply))
+        if t1.reply != "I'm on it." {
+            failures.append("tool-shaped request did not route before the model: " + bounded(t1.reply))
+        }
+        await loopProbe.enqueueAnswer("<answer/>I don't have access to your email.")
+        let t2 = await coordinator.handle(rephrase)
+        outputs.append(("d8-2-denial", t2.reply))
+        if coordinator.pendingIntent?.requestText != rephrase {
+            failures.append("denied capability mention was not kept as pending")
+        }
+        let t3 = await coordinator.handle("use them")
+        outputs.append(("d8-3-ack", t3.reply))
+        if t3.reply != "I'm on it." {
+            failures.append("bare acknowledgment did not resolve to pending: " + bounded(t3.reply))
+        }
+        if coordinator.pendingIntent != nil {
+            failures.append("resolved pending intent was not cleared")
+        }
+        await loopProbe.enqueueAnswer("<answer/>I don't have access to your email.")
+        let t4 = await coordinator.handle(rephrase)
+        outputs.append(("d8-4-backstop", t4.reply))
+        if t4.reply != "I'm on it." {
+            failures.append("second identical denial was spoken again: " + bounded(t4.reply))
+        }
+        let t5 = await coordinator.handle("yes")
+        outputs.append(("d8-5-ack", t5.reply))
+        if t5.reply != "I'm on it." {
+            failures.append("acknowledgment after the backstop did not resolve: " + bounded(t5.reply))
+        }
+        try? await Task.sleep(for: .milliseconds(150))
+        if await loopProbe.streamCalls != 2 {
+            failures.append("D8 loop used frontend inference \(await loopProbe.streamCalls)x, expected 2")
+        }
+        if await loopProbe.workerPrompts != [request, rephrase, rephrase, rephrase] {
+            failures.append("D8 loop did not submit the original texts: "
+                + bounded((await loopProbe.workerPrompts).joined(separator: " | ")))
+        }
+        let denialsSpoken = outputs.filter { $0.0.hasPrefix("d8-") && $0.1.contains("don't have access") }
+        if denialsSpoken.count > 1 {
+            failures.append("the denial sentence was spoken \(denialsSpoken.count)x in one loop")
+        }
+
+        // MARK: P0-7 — the single renderer and live-only claims.
+        let rawCases = [
+            "Codex stopped: ERROR: You've hit your usage limit, I'll do it myself",
+            "The model is not downloaded.",
+            "OpenRouter HTTP 429: Rate limited",
+            "https://openrouter.ai/api/v1 failed",
+        ]
+        for raw in rawCases {
+            let rendered = RealtimeAgent.voiceSafeReply(raw)
+            outputs.append(("renderer", "\(raw) → \(rendered)"))
+            let lower = rendered.lowercased()
+            if lower.contains("error:") || lower.contains("http") || lower.contains("is not downloaded") {
+                failures.append("renderer leaked raw text: \(bounded(rendered))")
+            }
+        }
+        func checkCode(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+        checkCode("openrouter missing key was not notConfigured",
+                  OpenRouterError.missingKey.asVoiceCode == .notConfigured)
+        checkCode("openrouter missing model was not modelMissing",
+                  OpenRouterError.missingModel.asVoiceCode == .modelMissing)
+        checkCode("openrouter 429 was not rateLimited",
+                  OpenRouterError.http(429, "Rate limited").asVoiceCode == .rateLimited)
+        checkCode("openrouter quota was not quotaExceeded",
+                  OpenRouterError.http(402, "quota exceeded").asVoiceCode == .quotaExceeded)
+        checkCode("llama modelMissing was not modelMissing",
+                  LlamaError.modelMissing.asVoiceCode == .modelMissing)
+        checkCode("local-server noModel was not modelMissing",
+                  LocalServerError.noModel("Ollama").asVoiceCode == .modelMissing)
+        checkCode("an untyped error was not unknown",
+                  NSError(domain: "example", code: 1).asVoiceCode == .unknown)
+        let unready = VoiceCapabilitySnapshot.make(
+            tools: RealtimeAgent.plannableTools(), availability: .init(modelResident: false))
+        if unready.spokenSummary != "My voice model isn't ready yet. Open Settings ▸ Models to get it." {
+            failures.append("a missing voice model still claimed capabilities: "
+                + bounded(unready.spokenSummary))
+        }
+        let noCLI = VoiceCapabilitySnapshot.make(
+            tools: RealtimeAgent.plannableTools(), availability: .init(cliOnPATH: false))
+        if noCLI.spokenSummary.contains("search email")
+            && !noCLI.spokenSummary.contains("helper isn't installed") {
+            failures.append("a missing helper CLI still claimed workspace tools silently")
+        }
+        // A coordinator failure reply passes through the same renderer.
+        coordinator.resetForTesting()
+        AgentSession.shared.clear()
+        let failureProbe = TurnRoutingProbe()
+        coordinator.streamForTesting = { _, _ in await failureProbe.stream() }
+        coordinator.workerForTesting = { work in await failureProbe.ranWorker(work.original) }
+        await failureProbe.enqueueThrow()
+        let failed = await coordinator.handle("Tell me a haiku about rain.")
+        outputs.append(("failure-reply", failed.reply))
+        let failedLower = failed.reply.lowercased()
+        if failedLower.contains("error:") || failedLower.contains("http")
+            || failedLower.contains("is not downloaded") {
+            failures.append("coordinator failure reply leaked raw text: " + bounded(failed.reply))
+        }
+        if coordinator.lastFailure?.code != .modelError {
+            failures.append("thrown frontend stream was not recorded as a model error")
+        }
+
+        if SelfTest.failed && !harnessFailureBefore {
+            failures.append("self-test harness failure was raised during deterministic replay")
+            SelfTest.diagnostic("VOICE_TURN_ROUTING_HARNESS_FAILURE: deterministic replay")
+        }
+        for (label, output) in outputs {
+            print("VOICE_TURN_ROUTING_CASE: " + label + " output=" + bounded(output))
+        }
+        for failure in failures {
+            print("VOICE_TURN_ROUTING_WRONG: \(bounded(failure))")
+        }
+        let okay = failures.isEmpty && !SelfTest.failed
+        print(okay ? "VOICE_TURN_ROUTING_OK" : "VOICE_TURN_ROUTING_FAILED")
+        coordinator.resetForTesting()
+        return okay
+    }
 }
 
 private actor VoiceHeldInferenceCount {
@@ -783,6 +996,43 @@ private actor VoiceCapabilityProbe {
               let marker = content.range(of: "Latest user speech:", options: .backwards)
         else { return messages.last?.content ?? "" }
         return String(content[marker.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private enum ProbeError: Error {
+        case generation
+    }
+}
+
+/// Scripted frontend + worker capture for `--selftest-voice-turn-routing`. Counts
+/// frontend stream calls (the garble and tool-shape gates must keep that at zero)
+/// and records every worker prompt (acks and backstops must resubmit the original).
+private actor TurnRoutingProbe {
+    private(set) var streamCalls = 0
+    private(set) var workerPrompts: [String] = []
+    private var queued: [String] = []
+    private var throwNext = false
+
+    func enqueueAnswer(_ body: String) { queued.append(body) }
+    func enqueueThrow() { throwNext = true }
+
+    func stream() -> AsyncThrowingStream<String, Error> {
+        streamCalls += 1
+        if throwNext {
+            throwNext = false
+            return AsyncThrowingStream { continuation in
+                continuation.finish(throwing: ProbeError.generation)
+            }
+        }
+        let body = queued.isEmpty ? "<answer/>Okay." : queued.removeFirst()
+        return AsyncThrowingStream { continuation in
+            continuation.yield(body)
+            continuation.finish()
+        }
+    }
+
+    func ranWorker(_ original: String) -> String {
+        workerPrompts.append(original)
+        return "test worker; no external effect"
     }
 
     private enum ProbeError: Error {

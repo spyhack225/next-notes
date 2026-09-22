@@ -169,7 +169,31 @@ final class RealtimeAgent {
     }
 
     func finishVoiceFrontend(_ text: String, turn: Int, streamed: Bool) -> AgentTurn {
-        conclude(turn, text, route: "on-device-frontend", speak: !streamed)
+        conclude(turn, Self.voiceSafeReply(text), route: "on-device-frontend", speak: !streamed)
+    }
+
+    /// The single voice-boundary renderer (P0-7). Typed provider failures become
+    /// consumer-worded sentences; raw `ERROR:` prefixes and URLs never reach speech.
+    /// Everything else passes through untouched.
+    static func voiceSafeReply(_ text: String) -> String {
+        let lower = text.lowercased()
+        if lower.contains("usage limit") || lower.contains("you've hit your")
+            || lower.contains("you have hit your") || lower.contains("quota")
+            || lower.contains("rate limit") || lower.contains("rate-limit")
+            || lower.range(of: "\\b429\\b", options: .regularExpression) != nil {
+            return "You've hit the usage limit, so I stopped there. Check your plan or try again later."
+        }
+        if lower.contains("is not downloaded") || lower.contains("not downloaded")
+            || lower.contains("is no longer on this mac") {
+            return "The voice model isn't ready yet. Open Settings ▸ Models to get it."
+        }
+        var clean = text
+        if let range = clean.range(of: "^ERROR:\\s*", options: .regularExpression) {
+            clean.removeSubrange(range)
+        }
+        clean = clean.replacingOccurrences(of: "https?://\\S+", with: "that link",
+                                           options: .regularExpression)
+        return clean.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 
     /// A hesitation has no answer to record or speak. Background work has its

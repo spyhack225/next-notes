@@ -50,7 +50,7 @@ struct RoutinesView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: DS.Space.xs) {
-            Text("Routines").font(DS.Font.title2)
+            Text("Reminders").font(DS.Font.title2)
             Text("Things your assistant does on its own, at a time or when something happens. "
                  + "Anything it would write or send waits for your yes.")
                 .font(DS.Font.callout)
@@ -94,7 +94,7 @@ struct RoutinesView: View {
     private func draftRow(_ draft: RoutineDraft) -> some View {
         VStack(alignment: .leading, spacing: DS.Space.xs) {
             HStack {
-                Text(store.schedule(id: draft.scheduleID)?.title ?? "Routine")
+                Text(store.schedule(id: draft.scheduleID)?.title ?? "Reminder")
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
                 Spacer()
@@ -133,7 +133,7 @@ struct RoutinesView: View {
     private var schedulesSection: some View {
         VStack(alignment: .leading, spacing: DS.Space.s) {
             if !store.schedules.isEmpty {
-                Text("Scheduled").font(DS.Font.sectionLabel)
+                Text("Your reminders").font(DS.Font.sectionLabel)
             } else {
                 emptyState
             }
@@ -209,8 +209,8 @@ struct RoutinesView: View {
             }
         }
         if schedule.kind != .reminder {
-            Text("Allowed tools: \(schedule.allowedTools.isEmpty ? "none" : schedule.allowedTools.joined(separator: ", ")) · "
-                 + "model: \(schedule.model.rawValue) · limit \(schedule.budget.maxSeconds / 60) min, \(schedule.budget.maxToolCalls) tool calls")
+            Text("What it can do: \(schedule.allowedTools.isEmpty ? "nothing extra" : schedule.allowedTools.joined(separator: ", ")) · "
+                 + "model: \(schedule.model.rawValue) · limit \(schedule.budget.maxSeconds / 60) min, \(schedule.budget.maxToolCalls) steps")
                 .font(DS.Font.caption)
                 .foregroundStyle(DS.Color.textSecondary)
         }
@@ -252,7 +252,7 @@ struct RoutinesView: View {
             HStack(spacing: DS.Space.m) {
                 ThinkingOrb(state: .breathing, size: DS.Size.iconLarge)
                 VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                    Text("Nothing scheduled yet").font(DS.Font.headline)
+                    Text("No reminders yet").font(DS.Font.headline)
                     Text("Just ask, in your own words. Try one of these:")
                         .font(DS.Font.callout)
                         .foregroundStyle(DS.Color.textSecondary)
@@ -293,7 +293,7 @@ struct RoutinesView: View {
                 .frame(width: DS.Size.iconLarge)
             VStack(alignment: .leading, spacing: DS.Space.xxs) {
                 Text("Open Next Notes at login")
-                Text("Routines only run while Next Notes is open. Reminders still reach you when it is closed.")
+                Text("Reminders and goals only run while Next Notes is open. Timely reminders still reach you when it is closed.")
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

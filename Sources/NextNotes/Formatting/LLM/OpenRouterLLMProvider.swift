@@ -10,6 +10,9 @@ enum OpenRouterError: LocalizedError {
     case keychain(Int)
     case http(Int, String)
     case speedProbe(String)
+    /// The vision call refused to build: consent is off, so no `image_url` part
+    /// exists and nothing left the Mac.
+    case visionBlocked
 
     var errorDescription: String? {
         return switch self {
@@ -20,6 +23,32 @@ enum OpenRouterError: LocalizedError {
         case .http(429, _): "OpenRouter rate-limited this model. Choose another Agent model or try again later."
         case .http(let status, let message): "OpenRouter HTTP \(status): \(message)"
         case .speedProbe(let message): "OpenRouter speed check: \(message)"
+        case .visionBlocked: "The screenshot was not sent: vision consent is off. Nothing left this Mac."
+        }
+    }
+}
+
+/// P0-7 error mapping only: every OpenRouter failure gets a voice code.
+extension OpenRouterError: VoiceCodedError {
+    var voiceCode: VoiceProviderErrorCode {
+        switch self {
+        case .missingKey: .notConfigured
+        case .missingModel: .modelMissing
+        case .invalidResponse: .unavailable
+        case .keychain: .notConfigured
+        case .http(let status, let message):
+            let lower = message.lowercased()
+            if lower.contains("quota") || lower.contains("credit") || lower.contains("balance")
+                || lower.contains("usage limit") { return .quotaExceeded }
+            switch status {
+            case 429: .rateLimited
+            case 401, 403: .notConfigured
+            case 408, 504: .timeout
+            case 500...599: .unavailable
+            default: .unknown
+            }
+        case .speedProbe: .unavailable
+        case .visionBlocked: .unavailable
         }
     }
 }
@@ -509,6 +538,73 @@ struct OpenRouterLLMProvider: LLMProvider {
     }
 }
 
+// MARK: - Vision (P1-2, image part only)
+
+///
+/// The chat protocol (`LLMProvider`) is untouched: vision enters through
+/// `completeWithImages`, which the tool loop calls only after `VisionScope` and the
+/// per-run consent sheet both approved. Text requests are byte-identical to before.
+extension OpenRouterLLMProvider {
+    /// `image_url` data-URL parts for `images` — or nothing. Fail-closed: consent off
+    /// (or a cloud reader without it, via `VisionScope`) means no part is ever built,
+    /// which `--selftest-openrouter-contract` pins.
+    static func imageParts(_ images: [LLMImage], consent: Bool) -> [[String: Any]] {
+        images.compactMap { $0.contentPart(consent: consent) }
+    }
+
+    /// Chat request body with an optional vision turn. With no consented images the
+    /// user message is the same plain string `makeRequest` sends.
+    static func chatBody(
+        model: String, system: String, user: String,
+        images: [LLMImage], consent: Bool, maxTokens: Int, stream: Bool
+    ) throws -> Data {
+        let parts = imageParts(images, consent: consent)
+        let userMessage: [String: Any]
+        if parts.isEmpty {
+            userMessage = ["role": "user", "content": user]
+        } else {
+            userMessage = ["role": "user", "content": [["type": "text", "text": user]] + parts]
+        }
+        let body: [String: Any] = [
+            "model": model,
+            "messages": [["role": "system", "content": system], userMessage],
+            "max_tokens": maxTokens,
+            "stream": stream,
+        ]
+        return try JSONSerialization.data(withJSONObject: body)
+    }
+
+    /// One vision completion. Throws `visionBlocked` — sending nothing — unless every
+    /// image survived the consent gate.
+    func completeWithImages(
+        system: String, user: String, images: [LLMImage], consent: Bool, maxTokens: Int
+    ) async throws -> LLMCompletion {
+        guard !images.isEmpty, Self.imageParts(images, consent: consent).count == images.count else {
+            throw OpenRouterError.visionBlocked
+        }
+        guard let key = await OpenRouterKeyStore.keyAsync() else { throw OpenRouterError.missingKey }
+        let began = Date()
+        var request = URLRequest(url: URL(string: "https://openrouter.ai/api/v1/chat/completions")!)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 300
+        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try Self.chatBody(
+            model: modelID, system: system, user: user,
+            images: images, consent: consent, maxTokens: maxTokens, stream: false
+        )
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try Self.validate(response, data: data)
+        let decoded = try JSONDecoder().decode(CompletionResponse.self, from: data)
+        guard let text = decoded.choices.first?.message.content, !text.isEmpty else {
+            throw OpenRouterError.invalidResponse
+        }
+        return LLMCompletion(text: text,
+                             generatedTokens: decoded.usage?.completion_tokens ?? max(1, text.utf8.count / 3),
+                             duration: Date().timeIntervalSince(began))
+    }
+}
+
 @MainActor
 enum OpenRouterSelfTest {
     static func run() async throws -> String {
@@ -604,9 +700,25 @@ enum OpenRouterContractSelfTest {
             )
             return false
         } catch OpenRouterError.http(let status, _) {
-            return status == 429
+            guard status == 429 else { return false }
         } catch {
             return false
         }
+        // P1-2: no image_url part is ever built when consent is off — the vision
+        // gate, pinned without a network or a window. The contract reader is nil
+        // (no TaskLocal set), so consent alone decides, exactly as in production.
+        let visionImage = LLMImage(
+            data: Data([0xFF, 0xD8]), mimeType: "image/jpeg",
+            thumbnail: Data([0xFF, 0xD8]), pixelWidth: 2, pixelHeight: 1
+        )
+        guard OpenRouterLLMProvider.imageParts([visionImage], consent: false).isEmpty else {
+            return false
+        }
+        let consented = OpenRouterLLMProvider.imageParts([visionImage], consent: true)
+        guard consented.count == 1,
+              (consented[0]["image_url"] as? [String: String])?["url"]?
+                .hasPrefix("data:image/jpeg;base64,") == true
+        else { return false }
+        return true
     }
 }

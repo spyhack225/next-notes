@@ -26,6 +26,19 @@ enum ComputerToolCatalogue {
         ),
         .native(
             namespace: .computer,
+            name: "screenshot",
+            description: "A screenshot of the focused window only: downscaled to 1280px, kept "
+                + "in memory, never stored. Use only when inspect_ui returns a stub tree or "
+                + "when asked for pixels. The image reaches a vision model only with per-run "
+                + "consent; otherwise it backs the live working view and is never uploaded.",
+            risk: .observe,
+            parameters: [
+                .init(name: "reason", description: "Why pixels are needed, e.g. the seat-picker has no accessibility labels.", isRequired: false),
+            ],
+            title: "Screenshot"
+        ),
+        .native(
+            namespace: .computer,
             name: "get_selection",
             description: "The currently selected text, when the focused field exposes it.",
             risk: .observe,

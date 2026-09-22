@@ -22,6 +22,12 @@ import Foundation
 /// adversarial negatives (“hey Bill can you check the numbers”, “I will send you the
 /// file”, “hey we need to talk about the budget”).
 ///
+/// The committed re-run of that grid is `Tests/Fixtures/wake/` (recipe in its README,
+/// runner `--selftest-wake-live` in `WakeWordLiveSelfTest.swift`): 24 hits across 8
+/// voices × 3 rates plus optional local microphone captures for real rooms, and 32
+/// negatives grown from the three seeds above. The table below is the claim; the
+/// fixture grid is the check.
+///
 /// The shipped behaviour — beam 4, no variants, threshold 0.15 — hit **52/90** with
 /// no false accepts. Every setting at or above the default here beats it on recall,
 /// and the two false accepts it costs are the same adversarial sentence in two voices.

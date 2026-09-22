@@ -68,6 +68,19 @@ final class WakeWordCalibrator {
 
     func stop() {
         session += 1
+        // An abandoned run still measured something: persist what it has so a phrase
+        // tested twice and stopped twice is not "never tested" in the history file.
+        if isRunning, !attempts.isEmpty {
+            WakeWordCalibrationStore.append(
+                WakeWordCalibrationStore.Run(
+                    at: Date(),
+                    phrase: phrase,
+                    sensitivity: Settings.shared.wakeSensitivity,
+                    completed: false,
+                    attempts: attempts
+                )
+            )
+        }
         finishAttempt(
             WakeWordAttempt(index: attempts.count + 1, transcript: "", confidence: 0, accepted: false)
         )
@@ -167,6 +180,15 @@ final class WakeWordCalibrator {
         guard mine == session else { return }
         phase = .finished
         prompt = WakeWordTrainer.advice(for: attempts)
+        WakeWordCalibrationStore.append(
+            WakeWordCalibrationStore.Run(
+                at: Date(),
+                phrase: phrase,
+                sensitivity: Settings.shared.wakeSensitivity,
+                completed: true,
+                attempts: attempts
+            )
+        )
         capture.stop()
         spotter = nil
         generous = nil
@@ -196,18 +218,36 @@ final class WakeWordCalibrator {
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(Self.attemptTimeout))
                 guard mine == self.session else { return }
+                // Ground truth for a miss: the user was prompted to say the phrase in
+                // this window and the configured listener did not fire. Tallied beside
+                // `kind: "wake"` so D7 reads misses off-device.
+                let heardAs = self.heardAs
+                let peak = self.peakLevel
+                WakeWordTelemetry.shared.recordMiss(
+                    reason: Self.missReason(peakLevel: peak, heardAs: heardAs),
+                    heardAs: heardAs
+                )
                 self.finishAttempt(
                     WakeWordTrainer.score(
                         hit: false,
                         elapsed: Self.attemptTimeout,
                         timeout: Self.attemptTimeout,
-                        peakLevel: self.peakLevel,
+                        peakLevel: peak,
                         index: index,
-                        heardAs: self.heardAs
+                        heardAs: heardAs
                     )
                 )
             }
         }
+    }
+
+    /// The shape of a timeout, from what the window measured. A miss the generous
+    /// listener caught is a sensitivity problem; a silent window is a microphone
+    /// problem; anything else is the configured ears genuinely not hearing the phrase.
+    private static func missReason(peakLevel: Float, heardAs: String?) -> String {
+        if heardAs != nil { return "heard-only-at-maximum" }
+        if peakLevel < 0.05 { return "silence-or-no-mic" }
+        return "unheard-at-configured-sensitivity"
     }
 
     private func didSpot(_ keyword: String) {

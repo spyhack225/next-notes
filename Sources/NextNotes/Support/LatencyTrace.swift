@@ -37,6 +37,12 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
     case agentFirstTokenToFirstTTS = "agent.first_token_to_first_tts"
     case agentToolCallToResult = "agent.tool_call_to_result"
     case agentBargeInToTTSStopped = "agent.barge_in_to_tts_stopped"
+    /// A wake miss or false accept as a zero-duration marker span. Written by
+    /// `WakeWordTelemetry` beside the wake spans, so the D7 tally reads them
+    /// off-device from `metrics.jsonl`. Markers, not timings: `durationSeconds`
+    /// is 0 and the reason rides in `note`.
+    case wakeMiss = "wake.miss"
+    case wakeFalse = "wake.false"
 
     // Milestone 1 also asked for model-load timing. One span, the model name in `note`.
     case modelLoad = "model.load"
@@ -67,7 +73,8 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
             return .meeting
         case .agentWakeToListeningUI, .agentSpeechEndToTranscript,
              .agentTranscriptToFirstToken, .agentFirstTokenToFirstTTS,
-             .agentToolCallToResult, .agentBargeInToTTSStopped:
+             .agentToolCallToResult, .agentBargeInToTTSStopped,
+             .wakeMiss, .wakeFalse:
             return .agent
         case .modelLoad, .modelQueue, .modelContext, .modelPrefill, .modelFirstToken:
             return .model
