@@ -60,5 +60,13 @@
 	<string>Next Notes reads your calendar to know when a meeting starts, so it can offer to take notes.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Next Notes notifies you before a meeting recording starts, when notes are ready, and when a reminder you set with the Agent is due.</string>
+	<!-- Asked for only when the user adds one of these folders to the list their assistant
+	     may look through. Only names, sizes and dates are read; file contents never are. -->
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Next Notes lists the names of what is on your Desktop so your assistant can find your files. It never reads what is inside them.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Next Notes lists the names of what is in your Documents folder so your assistant can find your files. It never reads what is inside them.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Next Notes lists the names of what is in your Downloads folder so your assistant can find your files. It never reads what is inside them.</string>
 </dict>
 </plist>

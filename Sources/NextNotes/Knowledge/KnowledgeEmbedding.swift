@@ -3,7 +3,7 @@ import Foundation
 
 /// `knowledgeEmbedder`: which model gives the index its dense vectors.
 ///
-/// Two tiers, the same shape as Qwen vs Apple Foundation Models for notes: potion is a
+/// Two tiers, the same shape as on-device vs Apple Foundation Models for notes: potion is a
 /// lookup table on the CPU with no forward pass, so hybrid search works minutes after a
 /// small download; EmbeddingGemma is the quality tier. `none` — the default — keeps search
 /// on BM25 alone and never loads anything.

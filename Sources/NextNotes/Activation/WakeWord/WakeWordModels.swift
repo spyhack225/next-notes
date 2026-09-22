@@ -1,8 +1,8 @@
 import Foundation
 
-/// The sherpa-onnx keyword-spotting assets Qwen's desktop client downloads (~33 MB).
+/// The sherpa-onnx keyword-spotting assets the local model's desktop client downloads (~33 MB).
 ///
-/// Same archive, hash and filenames as `references/qwen-audio-agent-main/desktop/src/wake-word/model-manager.mjs`.
+/// Same archive, hash and filenames as `references/local-model-agent-main/desktop/src/wake-word/model-manager.mjs`.
 /// Next Notes writes a user-chosen phrase into `keywords.txt` instead of baking “你好千问”.
 enum WakeWordModels {
     static let name = "sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20"

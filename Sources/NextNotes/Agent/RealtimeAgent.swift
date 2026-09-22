@@ -26,7 +26,7 @@ final class RealtimeAgent {
         static let cloudTool: Duration = .seconds(90)
         static let localModel: Duration = .seconds(90)
         static let captureFinish: Duration = .seconds(8)
-        /// A Qwen cold load took 18.1 s in the September 14 recording, before
+        /// A local model cold load took 18.1 s in the September 14 recording, before
         /// its first token. Give an open voice session time to finish loading.
         static let modelWarm: Duration = .seconds(18)
         static let modelCold: Duration = .seconds(45)
@@ -141,7 +141,7 @@ final class RealtimeAgent {
     /// `KnowledgeAsker` on the voice model, or nil to fall back to the tool planner.
     private func answerFromKnowledge(_ question: String) async -> String? {
         guard let context = KnowledgeIndexer.shared.toolContext,
-              let provider = await LLMProviders.resolve(preferring: .qwen35_4b) else { return nil }
+              let provider = await LLMProviders.resolve(preferring: .gemma4E4B) else { return nil }
         let owner = currentGeneration
         let asker = KnowledgeAsker(context: context, model: ProviderKnowledgeAnswerModel(provider: provider))
         do {
@@ -556,7 +556,7 @@ final class RealtimeAgent {
         if let localModelProviderForTesting {
             provider = localModelProviderForTesting
         } else if forceOnDevice || currentTurnSource == .voice {
-            provider = await LLMProviders.resolve(preferring: .qwen35_4b)
+            provider = await LLMProviders.resolve(preferring: .gemma4E4B)
         } else {
             provider = await LLMProviders.resolve(
                 preferring: Settings.shared.agentModelProvider,
@@ -573,7 +573,7 @@ final class RealtimeAgent {
         guard let provider else {
             endReplyTrace("local-model-unavailable")
             let reason = forceOnDevice
-                ? (await LLMProviders.make(.qwen35_4b).unavailableReason)
+                ? (await LLMProviders.make(.gemma4E4B).unavailableReason)
                 : (await LLMProviders.make(
                     Settings.shared.agentModelProvider,
                     modelID: Settings.shared.openRouterAgentModelID,
@@ -1013,7 +1013,7 @@ final class AgentSession {
 
     /// Keep the speaker roles intact for chat models. The previous string
     /// context put every past Assistant answer inside the current User message;
-    /// Qwen then copied a past answer when the person asked about an error.
+    /// The local model then copied a past answer when the person asked about an error.
     func chatHistoryForCurrentTurn(maxCharacters: Int, excludingLastUser: Bool = true,
                                   includeDeliveryNotes: Bool = true) -> [LLMChatMessage] {
         let tail = messages[tailStartIndex...]

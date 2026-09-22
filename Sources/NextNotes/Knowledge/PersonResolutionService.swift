@@ -29,7 +29,7 @@ struct PersonResolutionReport: Equatable, Sendable {
 ///   resolved from the graph, and there is no graph otherwise.
 /// - **After extraction.** A meeting's graph changing, or a new `speakers.json`, schedules a
 ///   run. Scoring is milliseconds of SQL and arithmetic; the model tiebreak is on-device only
-///   (Qwen or Apple's model, never OpenRouter), capped per run, and skipped while anything
+///   (on-device or Apple's model, never OpenRouter), capped per run, and skipped while anything
 ///   records or the Agent is busy — the pairs wait in the review sheet instead.
 /// - **Never destructive.** A merge sets `merged_into`; *Split* is one row's update, and the
 ///   user's word is kept in `knowledge-person-decisions.json` so a rebuilt index agrees.

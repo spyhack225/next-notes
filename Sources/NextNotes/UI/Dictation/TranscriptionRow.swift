@@ -14,15 +14,14 @@ import SwiftUI
 /// sentence is quieted so the sentence is what the eye lands on.
 struct TranscriptionRow: View {
     let run: DictationRun
+    /// Asks the list to open the correction sheet for this run.
+    ///
+    /// The sheet is not presented from here, and that is deliberate: rows in a `List` are
+    /// created and destroyed as the list scrolls, and a sheet presented from one goes with
+    /// it. The list outlives every row in it, so it owns the presentation.
+    let onCorrect: () -> Void
 
     @State private var isHovering = false
-    @State private var isEditing = false
-    @State private var draft = ""
-    /// Corrections this edit implies, awaiting a yes. Empty when nothing was learned or the
-    /// user has asked for them to be filed without asking.
-    @State private var proposed: [LearnedCorrection] = []
-    @State private var chosen: Set<String> = []
-    @FocusState private var editorFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.xs) {
@@ -50,16 +49,12 @@ struct TranscriptionRow: View {
                         .foregroundStyle(DS.Color.textTertiary)
                         .help("You corrected this transcript")
                 }
-                Button {
-                    draft = run.displayText
-                    isEditing = true
-                    editorFocused = true
-                } label: {
+                Button(action: onCorrect) {
                     Label("Correct", systemImage: "pencil")
                 }
                 .buttonStyle(.borderless)
                 .labelStyle(.iconOnly)
-                .opacity(isHovering && !isEditing ? 1 : 0)
+                .opacity(isHovering ? 1 : 0)
                 .help("Correct this transcript, and teach the dictionary")
 
                 CopyButton(text: run.displayText, title: "Copy")
@@ -80,29 +75,16 @@ struct TranscriptionRow: View {
             // window's width is an argument for a 1400pt one. The row itself still runs the
             // full width — the `Spacer()` above and `.contentShape` below see to that — so
             // clicking beside the text still selects the row.
-            if isEditing {
-                // A plain `TextField` with `.vertical` axis rather than a `TextEditor`: the
-                // editor brings its own scroll view and background into a list row that
-                // already has both, and a transcript is a sentence or two.
-                TextField("Transcript", text: $draft, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .font(DS.Font.transcript)
-                    .focused($editorFocused)
-                    .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
-                    .onSubmit(commit)
-                HStack(spacing: DS.Space.s) {
-                    Button("Save", action: commit)
-                        .keyboardShortcut(.defaultAction)
-                    Button("Cancel") { isEditing = false }
-                        .keyboardShortcut(.cancelAction)
-                }
-                .font(DS.Font.caption)
-            } else {
-                Text(run.displayText)
-                    .font(DS.Font.transcript)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
-            }
+            //
+            // And the row never changes height for an edit, which is the other half of the
+            // same argument: a `List` row is measured once and clips whatever is added to
+            // it afterwards. An editor and a Save/Cancel pair used to be put here in place
+            // of this sentence, and the buttons were what got clipped. Correcting happens
+            // in `TranscriptEditorSheet` now.
+            Text(run.displayText)
+                .font(DS.Font.transcript)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
 
             if let corrections = run.corrections, !corrections.isEmpty {
                 CorrectionBadges(corrections: corrections)
@@ -112,29 +94,28 @@ struct TranscriptionRow: View {
         .padding(.vertical, DS.Space.s)
         .contentShape(.rect)
         .onHover { isHovering = $0 }
-        .sheet(isPresented: Binding(get: { !proposed.isEmpty }, set: { if !$0 { proposed = [] } })) {
-            LearnedCorrectionsSheet(
-                corrections: proposed,
-                chosen: $chosen,
-                onAdd: {
-                    for correction in proposed where chosen.contains(correction.id) {
-                        DictionaryStore.shared.add(correction.entry)
-                    }
-                    proposed = []
-                },
-                onSkip: { proposed = [] }
-            )
-        }
+        // No tap gesture opens the editor. A gesture recogniser on a row in a selectable
+        // `List` competes with the list for the same mouse-down — the reason the body of
+        // the row is not selectable text either — and losing click-to-select to gain
+        // double-click to edit is a bad trade. The pencil on hover and the context menu
+        // are the ways in.
     }
+}
 
-    /// Saves the edit, then reads the dictionary lesson out of it.
-    ///
-    /// The save happens first and unconditionally. Learning is the bonus; a correction the
-    /// user typed is worth keeping even when nothing general can be inferred from it.
-    private func commit() {
-        let edited = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        isEditing = false
-        guard !edited.isEmpty, edited != run.displayText else { return }
+/// Filing a correction, and reading the dictionary lesson out of it.
+///
+/// Lifted out of the row so it can be run from wherever the correction was made and so it
+/// can be reasoned about on its own: the save happens first and unconditionally, because a
+/// correction somebody typed is worth keeping even when nothing general can be inferred
+/// from it. Learning is the bonus.
+enum TranscriptCorrection {
+    /// Saves the edit and returns whatever the user should be asked about, which is empty
+    /// unless the dictionary is set to ask.
+    @MainActor
+    @discardableResult
+    static func save(_ text: String, to run: DictationRun) -> [LearnedCorrection] {
+        let edited = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !edited.isEmpty, edited != run.displayText else { return [] }
 
         var updated = run
         updated.editedText = edited
@@ -143,16 +124,16 @@ struct TranscriptionRow: View {
         // Diffed against the transcript as originally written, not against the previous
         // edit: what the engine produced is the thing a dictionary rule has to fire on.
         let candidates = CorrectionLearner.candidates(from: run.text, to: edited)
-        guard !candidates.isEmpty else { return }
+        guard !candidates.isEmpty else { return [] }
 
         switch Settings.shared.dictionaryLearning {
         case .off:
-            break
+            return []
         case .automatic:
             for candidate in candidates { DictionaryStore.shared.add(candidate.entry) }
+            return []
         case .ask:
-            chosen = Set(candidates.map(\.id))
-            proposed = candidates
+            return candidates
         }
     }
 }

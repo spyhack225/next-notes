@@ -59,11 +59,6 @@ enum DS {
         static let warning = SwiftUI.Color(nsColor: .systemOrange)
         static let info = SwiftUI.Color.secondary
 
-        /// Accent on the Agent → About SOUL access card (type/icon only — not a chrome gradient).
-        static let soulAccent = SwiftUI.Color(nsColor: .systemPink)
-        /// Accent on the Agent → About MEMORY access card.
-        static let memoryAccent = SwiftUI.Color(nsColor: .systemBlue)
-
         // Knowledge graph node inks (Search → Graph). Not chrome — canvas dots only.
         static let graphPerson = accent
         static let graphMeeting = text
@@ -72,6 +67,10 @@ enum DS {
         static let graphLife = SwiftUI.Color(nsColor: .systemTeal)       // Activity, Place, Event
         static let graphPreference = SwiftUI.Color(nsColor: .systemPurple)
         static let graphTopic = textTertiary
+        /// Folders the user shared with the assistant.
+        static let graphFolder = SwiftUI.Color(nsColor: .systemOrange)
+        /// Individual files, a shade quieter than the folder that holds them.
+        static let graphFile = SwiftUI.Color(nsColor: .systemBrown)
 
         /// Ink for a graph node by ontology type.
         static func graphNode(_ type: String) -> SwiftUI.Color {
@@ -83,6 +82,8 @@ enum DS {
             case "Activity", "Place", "Event": graphLife
             case "Preference": graphPreference
             case "Topic": graphTopic
+            case "Folder": graphFolder
+            case "File": graphFile
             default: textTertiary
             }
         }
@@ -204,6 +205,8 @@ enum DS {
         static let field: CGFloat = 12
         /// Hover label chip floating above a global-graph node.
         static let graphHoverChip: CGFloat = 8
+        /// Glass chrome floating over the map — toolbar, legend, detail card.
+        static let graphChrome: CGFloat = 12
     }
 
     // MARK: - Size
@@ -258,11 +261,30 @@ enum DS {
         static let agentAvatarThumb: CGFloat = 56
         /// Pencil affordance overlapping the About avatar.
         static let agentAvatarEdit: CGFloat = 28
-        /// About pane content column.
-        static let agentAboutMaxWidth: CGFloat = 560
+        /// About / Routines pane content column. A centred readable column, not a grid — but
+        /// wide enough to feel coherent next to Skills' full-width card grid rather than
+        /// cramped beside it.
+        static let agentAboutMaxWidth: CGFloat = 640
         static let agentAboutCardIdeal: CGFloat = 280
         /// SOUL / MEMORY access tiles.
         static let agentAccessCardMinHeight: CGFloat = 140
+        /// Skills pane content column. Wide enough for a 2–3 column adaptive grid of skill
+        /// cards on a wide window, capped so a single card never reads as a full-width banner.
+        static let agentSkillsMaxWidth: CGFloat = 1100
+        /// Minimum width of one skill card in that adaptive grid, below which the grid drops
+        /// to fewer columns instead of squeezing every card.
+        static let skillCardMin: CGFloat = 320
+        /// A skill card's minimum height, so a row of cards with short and long descriptions
+        /// still lines up its bottom row (See what it says / page count) across the row.
+        static let skillCardMinHeight: CGFloat = 156
+        /// The bring-memory-in / download-memory sheet. Wide enough for a proposed memory
+        /// to sit on one line beside its checkbox, tall enough to show several at once.
+        static let memoryPortabilitySheetWidth: CGFloat = 600
+        static let memoryPortabilitySheetHeight: CGFloat = 540
+        /// The paste box on the guided import step, and the scroll height of the review
+        /// list — both scroll rather than growing the sheet.
+        static let memoryPasteBoxHeight: CGFloat = 160
+        static let memoryReviewListHeight: CGFloat = 280
         /// A determinate progress bar in a detail pane. Wide enough to read as progress,
         /// narrow enough not to read as a divider.
         static let progressWidth: CGFloat = 220
@@ -385,16 +407,10 @@ enum DS {
 
         // MARK: Knowledge graph
 
-        /// A node's default dot in the local and global graph views.
-        static let graphNodeDot: CGFloat = 10
-        /// The focused node — one clear centre of attention.
-        static let graphNodeDotFocus: CGFloat = 14
-        /// Neighbours of the focus (or primary types on the global map).
-        static let graphNodeDotPrimary: CGFloat = 11
-        /// Secondary / leaf nodes on the global map.
-        static let graphNodeDotSecondary: CGFloat = 8
-        /// Soft glow under the focus node; diameter, not radius.
-        static let graphNodeHalo: CGFloat = 28
+        // A node used to be one of four fixed dot sizes. It is now sized by how many things
+        // it is joined to, between `graphDotMin` and `graphDotMax` below — those are the
+        // live tokens, and the four fixed ones are gone so nobody reaches for both sets.
+
         /// Gap between the filled dot and its selection ring.
         static let graphNodeRingPad: CGFloat = 4
         /// Hit target around a graph node — larger than the drawn dot so clicks land.
@@ -405,14 +421,73 @@ enum DS {
         static let graphCanvasMinHeight: CGFloat = 360
         /// Cap on a node label under its dot.
         static let graphLabelMaxWidth: CGFloat = 128
-        /// How far below the dot a local-graph label sits.
-        static let graphLabelOffset: CGFloat = 14
         /// Hover chip on the global map — slightly wider than a local label.
         static let graphHoverLabelMaxWidth: CGFloat = 168
         /// Node rows in the graph's side list before it scrolls.
         static let graphNodeListHeight: CGFloat = 280
         /// Type-colour swatch beside a rail row.
         static let graphRailSwatch: CGFloat = 8
+
+        // MARK: Knowledge map (the whole-map canvas)
+
+        /// The smallest a dot on the map gets. A node's size is how many things it is
+        /// joined to, so this is the size of something mentioned once.
+        static let graphDotMin: CGFloat = 7
+        /// The largest. The busiest node on a map is this wide and no wider, however many
+        /// edges it has — past a point a bigger dot stops meaning "more" and starts
+        /// meaning "in the way".
+        static let graphDotMax: CGFloat = 26
+        /// At and above this diameter a dot carries its SF Symbol instead of being plain.
+        static let graphGlyphThreshold: CGFloat = 15
+        /// The glyph inside a dot, as a fraction of the dot.
+        static let graphGlyphRatio: CGFloat = 0.52
+        /// At and above this diameter a node keeps its name on screen without being
+        /// pointed at. Everything smaller shows its name on hover or when zoomed in.
+        static let graphLabelThreshold: CGFloat = 16
+        /// How far an edge bows away from the straight line between its two nodes, as a
+        /// fraction of their distance. A straight line between every pair reads as a
+        /// diagram; a slight, consistent bow reads as a map.
+        static let graphEdgeBow: CGFloat = 0.13
+        /// The soft glow around the selected node — added to its diameter.
+        static let graphSelectionGlow: CGFloat = 24
+        /// The floating glass chrome's distance from the canvas edge.
+        static let graphChromeInset: CGFloat = 14
+        /// A control glyph in that chrome.
+        static let graphChromeIcon: CGFloat = 12
+        /// The card that floats over the map describing the selected node.
+        static let graphDetailCardWidth: CGFloat = 250
+        /// Zoom limits, and one press of the zoom buttons.
+        static let graphZoomMin: CGFloat = 0.4
+        static let graphZoomMax: CGFloat = 4
+        static let graphZoomStep: CGFloat = 1.35
+        /// How much of the zoom reaches the dots themselves. Well under 1 on purpose: the
+        /// map spreads apart as you zoom in, but a dot that grew with it would swallow the
+        /// space the zoom just made.
+        static let graphZoomDotExponent: CGFloat = 0.34
+        /// Drag distance before a press on the canvas is a pan rather than a selection.
+        static let graphPanThreshold: CGFloat = 4
+        /// Scroll distance, in points, for one doubling of the zoom.
+        static let graphScrollZoomRate: CGFloat = 320
+        /// The whole map, edge to edge under the pane.
+        static let graphMapMinHeight: CGFloat = 440
+        /// A colour swatch in the map's legend.
+        static let graphLegendSwatch: CGFloat = 7
+        /// The floating heading over the map, before its sentence wraps.
+        static let graphHeaderMaxWidth: CGFloat = 320
+        /// The filter chips, before they wrap onto another row.
+        static let graphChipsMaxWidth: CGFloat = 400
+        /// How far past the frame a node is still drawn. Anything further out cannot be
+        /// seen, and skipping it is what keeps a zoomed-in map cheap.
+        static let graphCullMargin: CGFloat = 64
+        /// The frame is rounded down to this step before a layout is asked for, so
+        /// dragging a window edge does not restart the simulation on every frame.
+        static let graphLayoutSizeStep: CGFloat = 24
+        /// How long a name on the map runs before it is cut. A label that wraps into a
+        /// paragraph has stopped being a label.
+        static let graphLabelCharacters = 28
+        /// How many names the map shows without being asked. Past this the picture is
+        /// text rather than a shape, so the rest arrive on hover and on zoom.
+        static let graphRestingLabels = 14
         /// The widest a person timeline row runs before it wraps.
         static let timelineRowMaxWidth: CGFloat = 560
         /// Vertical rail beside person-timeline moments.
@@ -510,12 +585,26 @@ enum DS {
         static let graphEdgeDimmed: Double = 0.08
         /// Edges that touch the hovered / focus neighbourhood.
         static let graphEdgeActive: Double = 0.42
-        /// Soft halo under the focus node.
-        static let graphNodeHalo: Double = 0.16
         /// Selection ring around the focus node.
         static let graphFocusRing: Double = 0.55
         /// Lighter ring while the pointer is over a neighbour.
         static let graphHoverRing: Double = 0.32
+        /// Edges on the whole map with nothing being pointed at. Above `graphEdgeDimmed`
+        /// and below `graphEdgeActive`: at rest the lines are the shape of the map, and
+        /// they only recede once one neighbourhood is being looked at.
+        static let graphEdgeResting: Double = 0.2
+        /// The SF Symbol inside a dot, against that dot's own fill.
+        static let graphNodeGlyph: Double = 0.95
+        /// The dotted ground under the map. Fainter than a page's field: it is behind a
+        /// hundred dots of its own, not behind text.
+        static let graphFieldInk: Double = 0.07
+        /// The soft glow a selected node sits in.
+        static let graphSelectionGlow: Double = 0.2
+        /// A kind whose filter chip is switched off. Not hidden — a map that silently
+        /// drops half its nodes is a different map, and you cannot tell which.
+        static let graphFilteredOut: Double = 0.07
+        /// Plate behind a node's name, so a label crossing an edge stays readable.
+        static let graphLabelPlate: Double = 0.55
         /// Timeline spine behind person moments.
         static let timelineSpine: Double = 0.22
     }
@@ -546,6 +635,9 @@ enum DS {
         static let graphEdgeFaint: CGFloat = 0.4
         /// Selection / hover ring around a graph node.
         static let graphRing: CGFloat = 1.5
+        /// The ring around the one selected node on the map — heavier than a hover ring,
+        /// because selection survives the pointer leaving.
+        static let graphSelectionRing: CGFloat = 2
     }
 
     // MARK: - Shadow
@@ -644,6 +736,14 @@ enum DS {
         static let reveal = Animation.smooth(duration: 0.35)
         /// A backdrop or a field crossfading as a screen changes what it is about.
         static let ambient = Animation.easeInOut(duration: 1.2)
+
+        /// The map recentring on a node that was just clicked. A spring rather than a
+        /// curve, so clicking a second node while the first is still arriving continues
+        /// from where the map is instead of snapping back and starting again.
+        static let graphFocus = Animation.spring(response: 0.42, dampingFraction: 0.84)
+        /// A dot growing, an edge lighting up, a label arriving. Short: this runs on every
+        /// node the pointer crosses.
+        static let graphHover = Animation.easeOut(duration: 0.14)
     }
 
     // MARK: - Meter geometry
@@ -660,5 +760,46 @@ enum DS {
         static let tickMajorInset: CGFloat = 0.78
         static let tickMinorInset: CGFloat = 0.86
         static let needleLength: CGFloat = 0.98
+    }
+
+    // MARK: - First run
+
+    /// The first-run window. One question per screen, centred, with nothing else on it —
+    /// so its measurements are its own rather than a settings form's, and live together.
+    enum Onboarding {
+        /// The window. Fixed: every screen is centred in it, and a resizable window would
+        /// let one screen's card stretch to a width no other screen's content justifies.
+        static let window = CGSize(width: 720, height: 600)
+        /// How wide the centred column runs — headline, sentence, card and button.
+        static let contentWidth: CGFloat = 460
+        /// The tinted symbol above the headline.
+        static let icon: CGFloat = 30
+        /// Between the icon, the headline and the grey sentence.
+        static let headerSpacing: CGFloat = 10
+        /// Between the header, the card and the button.
+        static let blockSpacing: CGFloat = 26
+        /// One permission or setting row inside the card.
+        static let rowMinHeight: CGFloat = 44
+        /// The primary pill.
+        static let pillHeight: CGFloat = 32
+        static let pillWidth: CGFloat = 200
+        /// The small "Allow" pill at the end of a row.
+        static let allowPillWidth: CGFloat = 62
+        static let allowPillHeight: CGFloat = 22
+        /// A progress dot under the button, and the gap between two of them.
+        static let dot: CGFloat = 5
+        static let dotSpacing: CGFloat = 6
+        /// The back / forward chevrons in the top corner.
+        static let chevron: CGFloat = 26
+        /// The card's own rows scroll past this rather than growing the window.
+        static let listHeight: CGFloat = 180
+        /// The setup-progress bar on the assistant screen.
+        static let barWidth: CGFloat = 300
+        /// How long a user may stare at an ungranted Accessibility toggle before the screen
+        /// offers the stale-signature explanation. Long enough to cross to System Settings
+        /// and flip a switch; short enough that nobody sits there believing it is broken.
+        static let staleGrantHint: TimeInterval = 14
+        /// How often the screens re-read a grant while nothing has told them to.
+        static let poll: TimeInterval = 1.5
     }
 }

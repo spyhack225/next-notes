@@ -34,4 +34,18 @@ final class RunStore {
     var singles: [DictationRun] {
         runs.filter { $0.group == nil }.reversed()
     }
+
+    /// The most recent run that carries a cleanup record, and that record.
+    ///
+    /// Settings shows this so "what did it actually do to my words" is answerable from the
+    /// app instead of from a JSONL file and a terminal. Older rows have no record, so this
+    /// walks back rather than reading the last row and reporting nothing — after an upgrade
+    /// the newest row is usually the only one that has one, but during a session where
+    /// cleanup is switched off there may be several without.
+    var lastCleanup: (run: DictationRun, record: CleanupRecord)? {
+        for run in runs.reversed() {
+            if let record = run.cleanup { return (run, record) }
+        }
+        return nil
+    }
 }

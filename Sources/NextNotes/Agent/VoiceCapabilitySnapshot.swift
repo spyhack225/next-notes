@@ -111,6 +111,10 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
     /// No subprocess, account refresh or permission prompt runs here.
     @MainActor
     static func current(maxCharacters: Int = 1_650) -> Self {
+        // The voice frontend's prompt is assembled off the main actor moments from now, and
+        // this is the last main-actor step before it. Publish the folder list, the row count
+        // and the live roster so `AgentGrounding` has them.
+        RealtimeAgent.publishGrounding()
         let service = AgentService.shared
         let workspace: WorkspaceStatus
         if service.isProbing {

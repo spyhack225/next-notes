@@ -36,6 +36,65 @@ enum GraphLayoutSelfTest {
         let empty = ForceLayout(ids: [], edges: [], size: size)
         check("empty graph produced placements", empty.placements.isEmpty)
 
+        // MARK: Unconnected groups do not line the frame
+        //
+        // The artefact this guards against: a map whose folders and files had no edge to
+        // the rest of the graph got pushed outward by repulsion until the frame clamped
+        // them, and came out as a rigid row along the top and a column down the right.
+        // `ForceLayout` now gives every connected group its own gravity well and fits the
+        // finished picture into the frame instead of clipping to it, so only the handful
+        // of nodes that define the bounding box should touch an edge.
+        //
+        // The fixture is the real shape of the problem: one connected chain, plus six
+        // folders each holding three files and joined to nothing else.
+        var islandIDs = (0..<16).map { "chain\($0)" }
+        var islandEdges = (0..<15).map { (islandIDs[$0], islandIDs[$0 + 1]) }
+        var families: [[String]] = []
+        for folder in 0..<6 {
+            let root = "folder\(folder)"
+            let files = (0..<3).map { "file\(folder)-\($0)" }
+            islandIDs.append(root)
+            islandIDs += files
+            islandEdges += files.map { (root, $0) }
+            families.append([root] + files)
+        }
+        let islandSize = CGSize(width: 760, height: 520)
+        let islands = ForceLayout(ids: islandIDs, edges: islandEdges, size: islandSize)
+        check("island layout missed nodes", islands.placements.count == islandIDs.count)
+
+        let onEdge = islands.placements.values.filter {
+            abs($0.x - inset) < 1 || abs($0.x - (islandSize.width - inset)) < 1
+                || abs($0.y - inset) < 1 || abs($0.y - (islandSize.height - inset)) < 1
+        }
+        // The fit lands the bounding box on the frame, so the few nodes that define that
+        // box do touch an edge — six of forty, at the time of writing. A quarter of the
+        // map against the walls is the old picture, and that is what this catches. Widen
+        // the allowance if the layout legitimately changes; do not delete the check.
+        check("unconnected nodes are pinned to the frame edges (\(onEdge.count) of \(islandIDs.count))",
+              onEdge.count <= max(10, islandIDs.count / 4))
+
+        // Each folder should sit with its own files rather than be scattered through the
+        // rest of the map: a file's nearest company is the folder that holds it.
+        func centroid(_ ids: [String]) -> CGPoint {
+            var sum = CGPoint.zero
+            for id in ids {
+                guard let point = islands.placements[id] else { continue }
+                sum.x += point.x
+                sum.y += point.y
+            }
+            return CGPoint(x: sum.x / CGFloat(ids.count), y: sum.y / CGFloat(ids.count))
+        }
+        let chainMiddle = centroid((0..<16).map { "chain\($0)" })
+        for family in families {
+            let home = centroid(family)
+            let spread = family.compactMap { islands.placements[$0] }
+                .map { hypot($0.x - home.x, $0.y - home.y) }
+                .max() ?? .greatestFiniteMagnitude
+            let away = hypot(home.x - chainMiddle.x, home.y - chainMiddle.y)
+            check("folder group \(family[0]) did not stay together (spread \(Int(spread)), \(Int(away)) from the chain)",
+                  spread < away)
+        }
+
         let hugeIDs = (0..<420).map { "h\($0)" }
         let hugeEdges = (0..<419).map { (hugeIDs[$0], hugeIDs[$0 + 1]) }
         let huge = ForceLayout(ids: hugeIDs, edges: hugeEdges, size: CGSize(width: 900, height: 700))

@@ -78,15 +78,15 @@ enum RoutineAuthoritySelfTest {
             if route != wanted { failures.append("router: \(name) gave \(route), wanted \(wanted)") }
         }
         let route = RoutineModelRouter.route
-        expect("auto, Qwen idle", route(.auto, false, .idle(seconds: 5), true), .local)
-        expect("auto, Qwen loadable", route(.auto, false, .notLoaded, false), .local)
-        expect("auto, Qwen busy, cloud", route(.auto, false, .busy, true), .cloud)
-        expect("auto, Qwen busy, no cloud", route(.auto, false, .busy, false), .skip("local model busy"))
-        expect("auto, no Qwen, no cloud", route(.auto, false, .unavailable, false), .skip("Qwen isn't downloaded"))
+        expect("auto, local model idle", route(.auto, false, .idle(seconds: 5), true), .local)
+        expect("auto, local model loadable", route(.auto, false, .notLoaded, false), .local)
+        expect("auto, local model busy, cloud", route(.auto, false, .busy, true), .cloud)
+        expect("auto, local model busy, no cloud", route(.auto, false, .busy, false), .skip("local model busy"))
+        expect("auto, no local model, no cloud", route(.auto, false, .unavailable, false), .skip("Local model isn't downloaded"))
         expect("local, busy", route(.local, false, .busy, true), .skip("local model busy"))
         expect("cloud, not set up", route(.cloud, false, .idle(seconds: 99), false), .skip("OpenRouter isn't set up"))
         expect("cloud", route(.cloud, false, .busy, true), .cloud)
-        // Recording rules out Qwen only; OpenRouter still runs (a call trigger fires mid-call).
+        // Recording rules out only the local model; OpenRouter still runs (a call trigger fires mid-call).
         let recording = "a meeting or dictation is recording"
         expect("auto, recording, cloud", route(.auto, true, .idle(seconds: 99), true), .cloud)
         expect("auto, recording, no cloud", route(.auto, true, .idle(seconds: 99), false), .skip(recording))
@@ -499,7 +499,7 @@ enum RoutineAuthoritySelfTest {
                 && recorder.audits.contains { $0.title.hasPrefix("Refused") && $0.scheduleID == sneaky.id })
         _ = store.remove(id: sneaky.id)
 
-        // A call trigger fires while that call records: Qwen is ruled out, OpenRouter runs it once.
+        // A call trigger fires while that call records: local model is ruled out, OpenRouter runs it once.
         let callTrigger = AgentSchedule(
             kind: .trigger, title: "Call notes", plainEnglish: "When a call starts, I'll pull up my notes on them.",
             prompt: "Search my email for the people on this call.",

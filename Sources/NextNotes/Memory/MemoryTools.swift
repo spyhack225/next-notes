@@ -108,7 +108,8 @@ enum MemoryToolExecutor {
             }
             let text = try checkedText(argument("text"), provenance: provenance, store: store)
             let outcome = try store.remember(kind: kind, text: text, source: source(provenance),
-                                             sessionID: provenance?.sessionID)
+                                             sessionID: provenance?.sessionID,
+                                             origin: provenance?.source, sourceLabel: provenance?.sourceLabel)
             return result(for: outcome, action: outcome.wasDuplicate ? .alreadyKnown : .saved, store: store)
 
         case "update":
@@ -120,7 +121,8 @@ enum MemoryToolExecutor {
                 throw MemoryWriteError.provenance(problem)
             }
             let outcome = try store.update(match: argument("match"), text: text, source: source(provenance),
-                                           sessionID: provenance?.sessionID)
+                                           sessionID: provenance?.sessionID,
+                                           origin: provenance?.source, sourceLabel: provenance?.sourceLabel)
             return result(for: outcome, action: outcome.wasDuplicate ? .alreadyKnown : .updated, store: store)
 
         case "forget":
@@ -155,6 +157,12 @@ enum MemoryToolExecutor {
         // Content first: an injected write is refused as injection even when it also fails
         // provenance, which is the more useful thing for the user to hear.
         if let finding = MemoryGuard.scan(text) { throw MemoryWriteError.blocked(finding.reason) }
+        // Health, money, home addresses, credentials and other people's private details are
+        // never saved automatically — and every memory write is automatic. The person can
+        // still type one into the Memories list themselves; that write is theirs.
+        if let sensitive = MemoryGuard.sensitiveCategory(text) {
+            throw MemoryWriteError.blocked(sensitive.reason)
+        }
         switch MemoryGuard.provenanceProblem(text, provenance: provenance, remembered: store.rememberedTexts) {
         case .refused(let reason): throw MemoryWriteError.provenance(reason)
         case .notUserWords(let reason): throw MemoryWriteError.notUserWords(reason)

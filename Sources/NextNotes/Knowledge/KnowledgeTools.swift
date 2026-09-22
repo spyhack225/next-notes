@@ -154,7 +154,9 @@ enum KnowledgeGraphScope {
 
     static func mayRead(reader: LLMProviderID? = KnowledgeGraphScope.reader, cloudConsent: Bool) -> Bool {
         switch reader {
-        case .qwen35_4b, .appleFoundation: true
+        // `localServer` is a loopback-only server on this same Mac, so it is on-device in
+        // the sense that matters here: nothing leaves the machine.
+        case .gemma4E4B, .appleFoundation, .localServer: true
         case .openRouter, nil: cloudConsent
         }
     }
@@ -197,6 +199,17 @@ struct KnowledgeToolContext {
     var graph: any KnowledgeGraphReading = EmptyKnowledgeGraph()
     /// Whether the user let a cloud model read the graph (`KnowledgeGraphScope`).
     var graphCloudConsent = false
+    /// The user's own folders, blended into `search_knowledge` as a second, clearly separate
+    /// source. Empty until they share a folder.
+    var files: any FileRetrieving = EmptyFileRetrieval()
+    /// Whether the user let a cloud model be told what is on their Mac.
+    ///
+    /// The same consent `filesystem.find` checks, and it has to be checked here too:
+    /// `search_knowledge` blends file names into its result, and a path carries the user's
+    /// account name, their employer and what they are working on this week. Without this,
+    /// the switch that stops one tool handing those to a cloud model was quietly bypassed by
+    /// the other. An on-device reader is allowed either way — `FileIndexScope` decides.
+    var filesCloudConsent = IndexedFoldersStore.shared.cloudConsent
     var calendar: Calendar = .current
 }
 
@@ -214,10 +227,18 @@ enum KnowledgeToolExecutor {
         case KnowledgeToolCatalogue.searchID:
             let query = await context.searcher.prepare(try searchQuery(arguments, context: context))
             let hits = try search(query, context: context)
+            // The user's own files are a second source, labelled separately rather than mixed
+            // into the passage list: a file name is not something anyone said, and an answer
+            // that cites one as if it were a quote would be wrong.
+            let fileSection = files(matching: query.text, context: context)
             guard !hits.isEmpty else {
-                return AgentToolResult(summary: "No passages match \"\(query.text)\".")
+                guard let fileSection else {
+                    return AgentToolResult(summary: "No passages match \"\(query.text)\".")
+                }
+                return AgentToolResult(summary: "No passages match \"\(query.text)\". " + fileSection)
             }
-            return AgentToolResult(summary: passagesLabel + render(hits, sourceTitle: context.sourceTitle))
+            let passages = passagesLabel + render(hits, sourceTitle: context.sourceTitle)
+            return AgentToolResult(summary: fileSection.map { passages + "\n" + $0 } ?? passages)
         case KnowledgeToolCatalogue.expandID:
             let node = value(arguments, "node")
             let edges = Set(value(arguments, "edges").split(separator: ",")
@@ -282,6 +303,28 @@ enum KnowledgeToolExecutor {
     /// The one search both `search_knowledge` and `memory.recall` run.
     static func search(_ query: KnowledgeQuery, context: KnowledgeToolContext) throws -> [KnowledgeHit] {
         try context.searcher.search(query)
+    }
+
+    /// How many of the user's files one knowledge search may carry back. Small on purpose:
+    /// this is a hint that the file is there, and `files.find` is how the agent goes looking
+    /// properly.
+    static let fileHitLimit = 5
+
+    /// The user's own files whose *name* matches — never their contents, which nothing here
+    /// has ever read. Shared by `search_knowledge` and by Ask, so both see the same sources.
+    static func fileHits(matching text: String, context: KnowledgeToolContext,
+                         limit: Int = KnowledgeToolExecutor.fileHitLimit) -> [FileHit] {
+        guard context.files.isAvailable, !FileIndexStore.tokens(text).isEmpty,
+              FileIndexScope.mayRead(cloudConsent: context.filesCloudConsent) else { return [] }
+        return (try? context.files.find(query: text, category: nil, folder: nil,
+                                        modifiedAfter: nil, limit: limit)) ?? []
+    }
+
+    /// The file section of a knowledge search, or nil when there is nothing to say.
+    static func files(matching text: String, context: KnowledgeToolContext) -> String? {
+        let hits = fileHits(matching: text, context: context)
+        guard !hits.isEmpty else { return nil }
+        return FileToolExecutor.label + FileToolExecutor.render(hits)
     }
 
     /// JSON rows: other people's words, so data and never instructions. `id` is the citation.

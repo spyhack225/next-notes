@@ -3,7 +3,7 @@ import FoundationModels
 import Observation
 
 /// The microphone turn, spoken response, and background objective have different
-/// owners. The small local frontend never waits for Qwen's native planning context.
+/// owners. The small local frontend never waits for the on-device model's native planning context.
 @MainActor
 @Observable
 final class VoiceConversationCoordinator {
@@ -26,6 +26,8 @@ final class VoiceConversationCoordinator {
     private var provisionalText = ""
     private var preparationEpoch: UInt64 = 0
     private var preparationTask: Task<Void, Never>?
+    /// One prewarm per voice session; `closeSession` clears it.
+    private var didPrewarmWorker = false
     /// The last committed response failure is a test/UI seam. It is cleared for
     /// every new response and never populated for a superseded or cancelled turn.
     private(set) var lastFailure: VoiceFrontendFailure?
@@ -81,6 +83,30 @@ final class VoiceConversationCoordinator {
         inputPending = true
         responseTask?.cancel()
         responseID = UUID()
+        prewarmWorkerModel()
+    }
+
+    /// Load the tool-planning model while the person is still speaking.
+    ///
+    /// `AgentCaptureController` takes a residency lease when the microphone opens but
+    /// deliberately does not load: "opening its microphone must not load and prefill a 4B
+    /// worker before there is any work." True at microphone-open; false once somebody has
+    /// started a sentence. From `metrics.jsonl`, a cold load of Qwen3.5-4B on this Mac took
+    /// 11.78 s, 19.37 s, 22.00 s and 25.06 s, and on 2026-09-19T23:04 the whole of it sat
+    /// between "I'm on it." and the answer.
+    ///
+    /// Once per session, never when the weights are already resident, and on the scheduler's
+    /// background lane so a meeting or a dictation still outranks it.
+    private func prewarmWorkerModel() {
+        guard !SelfTest.isRunning, streamForTesting == nil, !didPrewarmWorker else { return }
+        didPrewarmWorker = true
+        Task { @MainActor in
+            guard AgentCaptureController.shared.isSessionActive,
+                  await !NotesModelRuntime.shared.isLoaded else { return }
+            do { try await NotesModelRuntime.shared.prepareForConversation() } catch {
+                Log.agent.info("worker prewarm skipped: \(error.localizedDescription, privacy: .public)")
+            }
+        }
     }
 
     func discardInput() {
@@ -97,6 +123,7 @@ final class VoiceConversationCoordinator {
 
     func closeSession() {
         cancelResponsePreparation()
+        didPrewarmWorker = false
         inputEpoch &+= 1
         responseTask?.cancel()
         responseTask = nil
@@ -124,7 +151,12 @@ final class VoiceConversationCoordinator {
                                    detail: "voice hesitation; awaiting continuation")
     }
 
-    func handle(_ text: String) async -> AgentTurn {
+    func handle(_ raw: String) async -> AgentTurn {
+        // The user's own dictionary rewrites what dictation inserts; the Agent's ear had
+        // never been given it. `dictionary.txt` on this Mac maps "Quentin 2.5" to
+        // "Qwen3.5" and "Sergeant William Kedu" to "Serge William Kadjo" — names the
+        // recogniser gets wrong every time, and that the Agent was then reasoning about.
+        let text = Self.corrected(raw)
         if VoiceTurnPolicy.isHesitation(text) {
             noteHesitation(text)
             return AgentTurn(reply: "", delegated: false)
@@ -143,6 +175,9 @@ final class VoiceConversationCoordinator {
         inputPending = true
         inputEpoch &+= 1
         let epoch = inputEpoch
+        // A committed turn, not a partial: the watcher raises a card, and a card built from
+        // a provisional is a card about words the user did not finish saying.
+        FunctionCallWatcher.shared.noteUserTurn(text)
         let task = Task { @MainActor in
             await self.respond(text, id: id, inputEpoch: epoch, commitRevision: commitRevision)
         }
@@ -169,6 +204,25 @@ final class VoiceConversationCoordinator {
             cancel(active[0].id)
             resolveInput(epoch: inputEpoch)
             return agent.finishVoiceFrontend("I stopped that task.", turn: turn, streamed: false)
+        }
+        // A turn that only supplies a name is an answer, not a new subject. Left to the
+        // model this became "I see. You're referring to the four days labeled 'next note'"
+        // (2026-09-20T20:46:26Z) — the recogniser's words taken as the user's meaning.
+        if let named = AgentEntityResolver.namingTarget(in: text) {
+            if let job = active.last {
+                // The user's own words, not this code's reading of them: the worker's
+                // prompt already frames follow-ups as corrections to apply, and a
+                // paraphrase here would be one more guess between the two.
+                job.work.append(text)
+                PermissionGate.shared.cancelPending(taskID: job.work.id.uuidString)
+                resolveInput(epoch: inputEpoch)
+                return agent.finishVoiceFrontend("Got it — “\(named)”.", turn: turn, streamed: false)
+            }
+            if let last = jobs.last, AgentEntityResolver.askedForAName(last.result) {
+                resolveInput(epoch: inputEpoch)
+                submit("open \(named)")
+                return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
+            }
         }
         let indexed = request.indexed
         let messages = request.messages
@@ -416,6 +470,21 @@ final class VoiceConversationCoordinator {
         workerForTesting = nil
         lastFailure = nil
         responseDeadlineForTesting = nil
+    }
+
+    /// The user's dictionary applied to what the Agent heard, audited when it changes
+    /// anything so a surprising turn can be traced back to the rule that rewrote it.
+    private static func corrected(_ raw: String) -> String {
+        let corrector = DictionaryStore.shared.corrector
+        guard !corrector.isEmpty else { return raw }
+        let result = corrector.apply(to: raw)
+        guard !result.applied.isEmpty else { return raw }
+        AgentAuditLog.shared.record(
+            kind: .request, title: result.text,
+            detail: "dictionary corrected: "
+                + result.applied.map { "\($0.from) → \($0.to)" }.joined(separator: ", ")
+        )
+        return result.text
     }
 
     /// The instructions every voice turn passes to `LocalVoiceFrontend`.

@@ -18,6 +18,7 @@ struct AgentAboutView: View {
             VStack(spacing: DS.Space.xl) {
                 identityHeader
                 accessCards
+                AgentDataControlsCard()
             }
             .padding(DS.Space.page)
             .frame(maxWidth: DS.Size.agentAboutMaxWidth)
@@ -98,32 +99,33 @@ struct AgentAboutView: View {
     // MARK: - SOUL / MEMORY cards
 
     private var accessCards: some View {
-        HStack(alignment: .top, spacing: DS.Space.m) {
-            accessCard(
-                title: "SOUL",
-                subtitle: "ACCESS WITH CARE",
-                date: personaDate,
-                symbol: "heart.fill",
-                accent: DS.Color.soulAccent
-            ) { showSoul = true }
+        GlassGroup(spacing: DS.Space.m) {
+            HStack(alignment: .top, spacing: DS.Space.m) {
+                accessCard(
+                    title: "SOUL",
+                    subtitle: "ACCESS WITH CARE",
+                    date: personaDate,
+                    symbol: "heart.fill"
+                ) { showSoul = true }
 
-            accessCard(
-                title: "MEMORY",
-                subtitle: "ACCESS WITH CARE",
-                date: memoryDate,
-                symbol: "heart.fill",
-                accent: DS.Color.memoryAccent
-            ) { showMemories = true }
+                accessCard(
+                    title: "MEMORY",
+                    subtitle: "ACCESS WITH CARE",
+                    date: memoryDate,
+                    symbol: "heart.fill"
+                ) { showMemories = true }
+            }
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
     }
 
+    /// SOUL and MEMORY read as one monochrome family — black, white and grey, with hierarchy
+    /// coming from weight, size and glass depth rather than a colour key.
     private func accessCard(
         title: String,
         subtitle: String,
         date: String,
         symbol: String,
-        accent: Color,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -144,20 +146,13 @@ struct AgentAboutView: View {
                         .monospacedDigit()
                     Spacer()
                     Image(systemName: symbol)
-                        .foregroundStyle(accent)
+                        .foregroundStyle(DS.Color.textSecondary)
                         .font(DS.Font.callout)
                 }
             }
             .padding(DS.Space.card)
             .frame(maxWidth: .infinity, minHeight: DS.Size.agentAccessCardMinHeight, alignment: .leading)
             .glassSurface(cornerRadius: DS.Radius.glass)
-            .overlay(alignment: .leading) {
-                RoundedRectangle(cornerRadius: DS.Radius.control, style: .continuous)
-                    .fill(accent)
-                    .frame(width: DS.Space.xs)
-                    .padding(.vertical, DS.Space.m)
-                    .padding(.leading, DS.Space.xs)
-            }
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(title). \(subtitle)")

@@ -574,7 +574,7 @@ final class Settings {
 
     /// Which local model writes them.
     ///
-    /// Qwen by default even before it is downloaded: the picker is where the download is
+    /// The built-in model by default even before it is downloaded: the picker is where the download is
     /// explained, and silently defaulting to Apple's 4K window would hide the fact that long
     /// meetings are then summarised in pieces. `LLMProviders.resolve` falls back to whichever
     /// provider can actually run, so the default never blocks notes.
@@ -653,7 +653,7 @@ final class Settings {
         didSet { defaults.set(agentMemoryEnabled, forKey: Keys.agentMemoryEnabled) }
     }
 
-    /// Which model the background memory review uses: "auto" (Qwen when it is loaded and
+    /// Which model the background memory review uses: "auto" (the on-device model when it is loaded and
     /// idle and nothing is recording, else OpenRouter when configured, else wait), "local"
     /// or "cloud".
     var agentMemoryReviewModel: String {
@@ -1016,10 +1016,10 @@ final class Settings {
         notesAutoGenerate = defaults.object(forKey: Keys.notesAutoGenerate) as? Bool ?? true
         notesProvider = LLMProviderID(
             rawValue: defaults.string(forKey: Keys.notesProvider) ?? ""
-        ) ?? .qwen35_4b
+        ) ?? .gemma4E4B
         agentModelProvider = LLMProviderID(
             rawValue: defaults.string(forKey: Keys.agentModelProvider) ?? ""
-        ) ?? .qwen35_4b
+        ) ?? .gemma4E4B
         openRouterNotesModelID = defaults.string(forKey: Keys.openRouterNotesModelID) ?? ""
         openRouterAgentModelID = defaults.string(forKey: Keys.openRouterAgentModelID) ?? ""
         openRouterNotesContextTokens = defaults.integer(forKey: Keys.openRouterNotesContextTokens)

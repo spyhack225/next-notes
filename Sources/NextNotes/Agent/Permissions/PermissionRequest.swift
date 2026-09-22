@@ -13,6 +13,10 @@ struct PermissionRequest: Identifiable, Sendable, Equatable, Codable {
     var meetingID: UUID?
     var taskID: String?
     var createdAt: Date
+    /// What made the agent want to do this, in the user's own words or a participant's.
+    /// The card's "why" line is built from it, and an unattributed call says so rather
+    /// than borrowing the confident "You said this." every card used to print.
+    var trigger: ToolCallTrigger
 
     init(
         id: String = UUID().uuidString,
@@ -24,7 +28,8 @@ struct PermissionRequest: Identifiable, Sendable, Equatable, Codable {
         scope: PermissionScope = .any,
         meetingID: UUID? = nil,
         taskID: String? = nil,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        trigger: ToolCallTrigger = .unattributed
     ) {
         self.id = id
         self.toolID = toolID
@@ -36,10 +41,12 @@ struct PermissionRequest: Identifiable, Sendable, Equatable, Codable {
         self.meetingID = meetingID
         self.taskID = taskID
         self.createdAt = createdAt
+        self.trigger = trigger
     }
 
     enum CodingKeys: String, CodingKey {
         case id, toolID, title, detail, risk, arguments, scope, meetingID, taskID, createdAt
+        case trigger
     }
 
     init(from decoder: Decoder) throws {
@@ -54,6 +61,9 @@ struct PermissionRequest: Identifiable, Sendable, Equatable, Codable {
         meetingID = try container.decodeIfPresent(UUID.self, forKey: .meetingID)
         taskID = try container.decodeIfPresent(String.self, forKey: .taskID)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
+        // `decodeIfPresent`, like every other added field in this app: a request written
+        // by an older build must still decode rather than vanish.
+        trigger = try container.decodeIfPresent(ToolCallTrigger.self, forKey: .trigger) ?? .unattributed
     }
 
     func encode(to encoder: Encoder) throws {
@@ -68,6 +78,7 @@ struct PermissionRequest: Identifiable, Sendable, Equatable, Codable {
         try container.encodeIfPresent(meetingID, forKey: .meetingID)
         try container.encodeIfPresent(taskID, forKey: .taskID)
         try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(trigger, forKey: .trigger)
     }
 }
 

@@ -44,6 +44,25 @@ enum AgentToolLoop {
             """
     }
 
+    /// Strips argument values the model invented to fill a slot it did not know.
+    ///
+    /// The loop is where a call stops being text and starts being an action, so it is the
+    /// last place a stand-in can be removed without also removing the user's chance to see
+    /// it. What is left is an incomplete call, which is what it always was — the executor
+    /// refuses it for the missing argument, and the approval card asks for the value
+    /// instead of showing "[Name]" as though somebody had chosen it.
+    @MainActor
+    static func grounded(_ call: AgentToolCall) -> AgentToolCall {
+        let tool = AgentToolRegistry.shared.tool(named: call.name)
+        let cleaned = ToolCallValidation.withoutInventedValues(call.arguments, tool: tool)
+        guard cleaned != call.arguments else { return call }
+        Log.agent.info("dropped \(call.arguments.count - cleaned.count, privacy: .public) invented argument(s) from \(call.name, privacy: .public)")
+        return AgentToolCall(
+            name: call.name, arguments: cleaned,
+            rationale: call.rationale, evidence: call.evidence
+        )
+    }
+
     /// A relative day in the current request is grounded by the device clock,
     /// not by a small model's remembered training date. This validates an
     /// already-selected calendar tool; it does not decide whether to call one.
@@ -127,6 +146,7 @@ enum AgentToolLoop {
                     roundTimedOut = callRemaining <= .zero
                     break
                 }
+                let call = grounded(call)
                 guard let output = await withBoundedWait(callRemaining, {
                     await executeBox.value(call)
                 }) else {

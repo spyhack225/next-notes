@@ -1,6 +1,4 @@
-import AppKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// Settings → Agent: memory policy. The list itself is edited under Agent → About → MEMORY.
 struct MemoriesSection: View {
@@ -8,6 +6,13 @@ struct MemoriesSection: View {
     @State private var memory = NextMemory.shared
 
     var body: some View {
+        Group {
+            policy
+            DataControlsSection()
+        }
+    }
+
+    private var policy: some View {
         Section {
             Toggle("Remember what I tell the Agent", isOn: $settings.agentMemoryEnabled)
 
@@ -36,7 +41,7 @@ struct MemoriesSection: View {
             Text("Memories")
         } footer: {
             SettingsNote(text: "The Agent saves facts you tell it about yourself and says out loud "
-                         + "what it saved. Edit, Forget and export live under Agent → About → MEMORY. "
+                         + "what it saved. Edit and Forget live under Agent → About → MEMORY. "
                          + "When OpenRouter is the Agent model, memories are sent with each request. "
                          + "Coding agents never receive them.")
         }
@@ -53,7 +58,8 @@ struct MemoriesSection: View {
     }
 }
 
-/// Full memory list — Forget, edit, badges, export. Hosted by Agent → About.
+/// Full memory list — Forget, edit, badges. Hosted by Agent → About, whose own *Your data*
+/// card carries importing and downloading; this sheet does not repeat them.
 struct MemoriesEditor: View {
     @State private var settings = Settings.shared
     @State private var memory = NextMemory.shared
@@ -110,7 +116,6 @@ struct MemoriesEditor: View {
             }
 
             HStack {
-                Button("Export as Markdown…", action: export)
                 Spacer()
                 Button("Forget everything", role: .destructive) { confirmingForgetAll = true }
                     .disabled(memory.entries.isEmpty && memory.items.isEmpty)
@@ -199,6 +204,13 @@ struct MemoriesEditor: View {
     }
 
     private func detail(_ entry: MemoryEntry) -> String {
+        // An imported fact says where it came from and when, in one phrase, rather than
+        // "Imported · 19 Sep 2026" in two — that is the sentence someone reads back later.
+        if let label = entry.importLabel {
+            var parts = [label]
+            if entry.updatedAt > entry.createdAt { parts.append("edited") }
+            return parts.joined(separator: " · ")
+        }
         var parts = [entry.source.displayName, entry.createdAt.formatted(date: .abbreviated, time: .shortened)]
         if entry.updatedAt > entry.createdAt { parts.append("edited") }
         if let session = entry.sessionID {
@@ -232,11 +244,4 @@ struct MemoriesEditor: View {
         }
     }
 
-    private func export() {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
-        panel.nameFieldStringValue = "Next Notes memories.md"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        perform { try Data(memory.markdownExport().utf8).write(to: url, options: .atomic) }
-    }
 }

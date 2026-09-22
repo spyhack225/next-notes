@@ -34,12 +34,27 @@ final class WakeWordCalibrator {
     }
 
     private let capture = AudioCapture()
+    /// The listener built from the user's actual Sensitivity. Firing here is the test.
     private var spotter: SherpaKeywordSpotter?
+    /// A second listener at maximum sensitivity, with one display name per
+    /// pronunciation. It never decides anything — it is there so a failed attempt can
+    /// say *why*: not heard at all, or heard only once the ears were wide open.
+    private var generous: SherpaKeywordSpotter?
+    private var generousRules: [String: String] = [:]
+    private var heardAs: String?
     private var holdingMic = false
     private var session = 0
     private var attemptStarted: Date?
     private var peakLevel: Float = 0
     private var continuation: CheckedContinuation<WakeWordAttempt, Never>?
+
+    /// Scratch keywords file for the generous listener. Never the live one: writing the
+    /// test's own keywords into the model directory is how `--selftest-wake` used to
+    /// replace the user's configured phrase with the default.
+    private static var diagnosticKeywordsURL: URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("nextnotes-wake-test-keywords.txt")
+    }
 
     private init() {}
 
@@ -69,7 +84,7 @@ final class WakeWordCalibrator {
 
     func commit() {
         guard WakeWordTrainer.shouldSave(attempts) else { return }
-        try? WakeWordModelManager.writeKeywords(WakeWordConfiguration.current)
+        _ = try? WakeWordModelManager.writeKeywords(WakeWordConfiguration.current)
         attempts = []
         phase = .idle
         prompt = ""
@@ -92,11 +107,14 @@ final class WakeWordCalibrator {
         }
 
         do {
-            try WakeWordModelManager.writeKeywords(WakeWordConfiguration.current)
-            let threshold = Float(max(0.05, min(0.6, 0.45 - Settings.shared.wakeSensitivity * 0.3)))
-            let loaded = try WakeWordModelManager.loadSpotter(threshold: threshold)
+            let configuration = WakeWordConfiguration.current
+            try WakeWordModelManager.writeKeywords(configuration)
+            let loaded = try WakeWordModelManager.loadSpotter(tuning: configuration.tuning)
             guard mine == session else { return }
             spotter = loaded
+            let wideOpen = try? makeGenerousSpotter(for: configuration)
+            guard mine == session else { return }
+            generous = wideOpen
 
             guard let format = AVAudioFormat(
                 commonFormat: .pcmFormatFloat32,
@@ -110,6 +128,11 @@ final class WakeWordCalibrator {
             try capture.start(outputFormat: format, onBuffer: { [weak self] chunk in
                 let samples = AudioConversion.samples(of: chunk.buffer)
                 guard !samples.isEmpty else { return }
+                // The generous listener runs first and on every buffer, so an attempt
+                // that the configured one misses still has a reason attached to it.
+                if let tag = wideOpen?.accept(samples: samples) {
+                    Task { @MainActor in self?.noteHeardAs(tag) }
+                }
                 guard let keyword = loaded.accept(samples: samples) else { return }
                 Task { @MainActor in
                     self?.didSpot(keyword)
@@ -131,6 +154,8 @@ final class WakeWordCalibrator {
         for index in 1...WakeWordTrainer.requiredAttempts {
             guard mine == session else { return }
             spotter?.reset()
+            generous?.reset()
+            heardAs = nil
             peakLevel = 0
             prompt = index == 1 ? "Say it now." : "Again."
             phase = .listening
@@ -141,11 +166,27 @@ final class WakeWordCalibrator {
 
         guard mine == session else { return }
         phase = .finished
-        prompt = WakeWordTrainer.shouldSave(attempts)
-            ? "Phrase looks reliable."
-            : "The phrase did not fire reliably. Try again."
+        prompt = WakeWordTrainer.advice(for: attempts)
         capture.stop()
         spotter = nil
+        generous = nil
+    }
+
+    /// A listener with the ears wide open and one display name per pronunciation, so a
+    /// fired keyword names the variant that matched.
+    private func makeGenerousSpotter(for configuration: WakeWordConfiguration) throws -> SherpaKeywordSpotter? {
+        guard let phrase = configuration.validatedPhrase() else { return nil }
+        let tuning = WakeWordTuning.forSensitivity(1)
+        guard let built = WakeWordKeywords.diagnosticFile(for: phrase, tuning: tuning) else { return nil }
+        let url = Self.diagnosticKeywordsURL
+        try built.text.write(to: url, atomically: true, encoding: .utf8)
+        generousRules = built.rules
+        return try WakeWordModelManager.loadSpotter(keywords: url, tuning: tuning)
+    }
+
+    private func noteHeardAs(_ tag: String) {
+        guard isRunning else { return }
+        heardAs = generousRules[tag] ?? "as written"
     }
 
     private func listen(index: Int, session mine: Int) async -> WakeWordAttempt {
@@ -161,7 +202,8 @@ final class WakeWordCalibrator {
                         elapsed: Self.attemptTimeout,
                         timeout: Self.attemptTimeout,
                         peakLevel: self.peakLevel,
-                        index: index
+                        index: index,
+                        heardAs: self.heardAs
                     )
                 )
             }
@@ -176,7 +218,8 @@ final class WakeWordCalibrator {
             elapsed: elapsed,
             timeout: Self.attemptTimeout,
             peakLevel: peakLevel,
-            index: attempts.count + 1
+            index: attempts.count + 1,
+            heardAs: heardAs ?? "as written"
         )
         attempt.transcript = keyword
         finishAttempt(attempt)

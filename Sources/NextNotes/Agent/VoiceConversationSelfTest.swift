@@ -202,7 +202,7 @@ private actor VoiceConversationProbeState {
 }
 
 private struct VoiceConversationProbeProvider: LLMProvider {
-    let id = LLMProviderID.qwen35_4b
+    let id = LLMProviderID.gemma4E4B
     let state: VoiceConversationProbeState
     var contextTokens: Int { 8_192 }
     var unavailableReason: String? { get async { nil } }

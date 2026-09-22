@@ -5,12 +5,33 @@ import SwiftUI
 /// It has one job: prove the app heard you. A red dot says recording, a bar says the level
 /// is real, and the transcript says what it got — nothing else earns the space, because
 /// this thing sits on top of whatever you were actually doing.
+///
+/// Command Mode borrows the same window and draws something else in it. It is a different
+/// question — not "did it hear me" but "what is this and what does it act on" — and the
+/// panel is shown for it whatever the heads-up placement setting says, because it is the
+/// only surface in the app that can answer that in words.
 struct HUDView: View {
     @Bindable var controller: DictationController
 
     private var isRecording: Bool { controller.state == .listening }
 
     var body: some View {
+        // Both conditions, not just the status: a Command Mode message outlives its hold on
+        // purpose, and while it lingers an ordinary dictation started underneath it must
+        // still get the dictation capsule. `commandModeOwnsHUD` is where that is decided.
+        if controller.commandModeOwnsHUD, let command = controller.commandMode {
+            CommandModeCard(
+                status: command,
+                key: Settings.shared.commandModeKey,
+                level: controller.level,
+                transcript: controller.transcript
+            )
+        } else {
+            dictationCapsule
+        }
+    }
+
+    private var dictationCapsule: some View {
         HStack(spacing: DS.Space.m) {
             // The orb says *what* is happening, the dot says it is being recorded, and the
             // bar says the microphone is actually receiving something. They are three

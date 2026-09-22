@@ -834,7 +834,7 @@ enum EntityResolveSelfTest {
         check("re-applying the same people changed something", !memory.applyResolvedPeople(people))
 
         // The graph's cloud consent: graph-derived people are local-only unless the user said so.
-        check("a local reader lost the resolved person", memory.grounding(for: "S.K.", reader: .qwen35_4b).contains("Serge Kadjo (also"))
+        check("a local reader lost the resolved person", memory.grounding(for: "S.K.", reader: .gemma4E4B).contains("Serge Kadjo (also"))
         check("a cloud reader got graph people without consent",
               !memory.grounding(for: "S.K.", reader: .openRouter).contains("(also")
                 && !memory.grounding(for: "Serge Kadjo", reader: nil).contains("(also")

@@ -25,6 +25,9 @@ enum WakeWordModelManager {
     static var joinerURL: URL { modelDirectory.appendingPathComponent(WakeWordModels.joinerFile) }
     static var tokensURL: URL { modelDirectory.appendingPathComponent(WakeWordModels.tokensFile) }
     static var keywordsURL: URL { modelDirectory.appendingPathComponent(WakeWordModels.keywordsFile) }
+    static var phoneLexiconURL: URL {
+        modelDirectory.appendingPathComponent(WakeWordModels.phoneLexiconFile)
+    }
     static var testKeywordsURL: URL {
         modelDirectory.appendingPathComponent("test_wavs/keywords.txt")
     }
@@ -63,12 +66,35 @@ enum WakeWordModelManager {
         return "The keyword model is on disk."
     }
 
-    static func writeKeywords(_ configuration: WakeWordConfiguration) throws {
-        try FileManager.default.createDirectory(at: modelDirectory, withIntermediateDirectories: true)
+    /// Writes the phrase's pronunciations to `destination`, defaulting to the live
+    /// `keywords.txt` the running spotter loads.
+    ///
+    /// `destination` exists because the self-test used to call this with its own
+    /// throwaway configuration and overwrite the file the user's wake phrase lives in:
+    /// running `--selftest-wake` replaced “Hey Will” with “Hey Next” on disk. Tests
+    /// pass a scratch path now, and nothing but a real settings change touches the
+    /// real one.
+    @discardableResult
+    static func writeKeywords(
+        _ configuration: WakeWordConfiguration,
+        to destination: URL? = nil
+    ) throws -> String {
+        let target = destination ?? keywordsURL
+        try FileManager.default.createDirectory(
+            at: target.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
         guard let phrase = configuration.validatedPhrase() else {
-            throw AgentError.permissionDenied("That wake phrase is too short or too long.")
+            throw AgentError.permissionDenied(
+                "That wake phrase cannot be encoded for the local keyword model. "
+                    + "Stick to words Next Notes knows how to pronounce, or use “Hey Next”."
+            )
         }
-        try WakeWordKeywords.line(for: phrase).write(to: keywordsURL, atomically: true, encoding: .utf8)
+        guard let text = WakeWordKeywords.file(for: phrase, tuning: configuration.tuning) else {
+            throw AgentError.permissionDenied("That wake phrase cannot be encoded for the local keyword model.")
+        }
+        try text.write(to: target, atomically: true, encoding: .utf8)
+        return text
     }
 
     /// Fetches the model archive and the C API dylib, verifies each hash, extracts, writes
@@ -121,23 +147,24 @@ enum WakeWordModelManager {
     }
 
     /// Loads the spotter. Throws if the files are absent or the dylib refuses the model.
-    static func loadSpotter(keywords override: URL? = nil, threshold: Float = 0.25) throws -> SherpaKeywordSpotter {
+    ///
+    /// A missing `keywords.txt` is an error rather than a silent write of the default
+    /// phrase: quietly installing “Hey Next” under someone who configured “Hey Will”
+    /// is exactly the failure that makes wake look broken at random.
+    static func loadSpotter(
+        keywords override: URL? = nil,
+        tuning: WakeWordTuning = .default
+    ) throws -> SherpaKeywordSpotter {
         guard isDownloaded else {
             throw AgentError.backendUnavailable(unavailableReason)
         }
         guard isRuntimeDownloaded else {
             throw AgentError.backendUnavailable(unavailableReason)
         }
-        if override == nil, !FileManager.default.fileExists(atPath: keywordsURL.path) {
-            try writeKeywords(
-                WakeWordConfiguration(
-                    phrase: WakeWordConfiguration.defaultPhrase,
-                    sensitivity: 0.5,
-                    listenWhileSleeping: true
-                )
-            )
-        }
         let keywords = override ?? keywordsURL
+        guard FileManager.default.fileExists(atPath: keywords.path) else {
+            throw AgentError.backendUnavailable("The wake phrase has not been written to the keyword model yet.")
+        }
         return try SherpaKeywordSpotter(
             dylibDirectory: runtimeLibraryDirectory,
             encoder: encoderURL,
@@ -145,7 +172,7 @@ enum WakeWordModelManager {
             joiner: joinerURL,
             tokens: tokensURL,
             keywords: keywords,
-            threshold: threshold
+            tuning: tuning
         )
     }
 

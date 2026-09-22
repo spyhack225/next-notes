@@ -197,7 +197,7 @@ protocol KnowledgeExtractionModel: Sendable {
 }
 
 /// A local provider. The graph never goes to a cloud model: `KnowledgeExtractionService`
-/// only ever hands in Qwen or Apple's on-device model.
+/// only ever hands in the on-device model or Apple's model.
 struct ProviderExtractionModel: KnowledgeExtractionModel {
     let provider: any LLMProvider
 

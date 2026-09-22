@@ -19,7 +19,8 @@ struct RoutinesView: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: DS.Space.l) {
+            LazyVStack(alignment: .leading, spacing: DS.Space.xl) {
+                header
                 if !review.openSuggestions.isEmpty { suggestions }
                 if !store.awaitingDrafts.isEmpty { drafts(store.awaitingDrafts, title: "Awaiting your approval") }
                 schedulesSection
@@ -31,7 +32,11 @@ struct RoutinesView: View {
                 }
             }
             .padding(DS.Space.page)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            // The same centred column as Skills and About. Pinned to the leading edge, the
+            // cards stopped at 520pt while the empty state centred itself in the whole pane,
+            // and a bare checkbox sat under both — three alignments on one screen.
+            .frame(maxWidth: DS.Size.agentAboutMaxWidth)
+            .frame(maxWidth: .infinity)
         }
         .onAppear { store.reload() }
         .sheet(item: $editing) { schedule in
@@ -42,6 +47,17 @@ struct RoutinesView: View {
     }
 
     // MARK: - Sections
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: DS.Space.xs) {
+            Text("Routines").font(DS.Font.title2)
+            Text("Things your assistant does on its own, at a time or when something happens. "
+                 + "Anything it would write or send waits for your yes.")
+                .font(DS.Font.callout)
+                .foregroundStyle(DS.Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
 
     private var suggestions: some View {
         VStack(alignment: .leading, spacing: DS.Space.s) {
@@ -62,7 +78,7 @@ struct RoutinesView: View {
                     }
                 }
                 .padding(DS.Space.cardTight)
-                .frame(maxWidth: DS.Size.agentEventMaxWidth, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .glassSurface(cornerRadius: DS.Radius.card)
             }
         }
@@ -110,19 +126,16 @@ struct RoutinesView: View {
             }
         }
         .padding(DS.Space.cardTight)
-        .frame(maxWidth: DS.Size.agentEventMaxWidth, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .glassSurface(cornerRadius: DS.Radius.card)
     }
 
     private var schedulesSection: some View {
         VStack(alignment: .leading, spacing: DS.Space.s) {
-            Text("Routines and reminders").font(DS.Font.sectionLabel)
-            if store.schedules.isEmpty {
-                OrbUnavailableView(
-                    .breathing,
-                    title: "Nothing scheduled",
-                    message: "Ask the Agent, for example “every Monday at 8, summarise last week’s meetings.”"
-                )
+            if !store.schedules.isEmpty {
+                Text("Scheduled").font(DS.Font.sectionLabel)
+            } else {
+                emptyState
             }
             ForEach(store.schedules.sorted { ($0.nextRunAt ?? .distantFuture) < ($1.nextRunAt ?? .distantFuture) }) { schedule in
                 scheduleRow(schedule)
@@ -167,7 +180,7 @@ struct RoutinesView: View {
             if isOpen { details(schedule) }
         }
         .padding(DS.Space.cardTight)
-        .frame(maxWidth: DS.Size.agentEventMaxWidth, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(DS.Color.groupedFill, in: RoundedRectangle(cornerRadius: DS.Radius.card))
     }
 
@@ -228,16 +241,74 @@ struct RoutinesView: View {
         }
     }
 
+    private static let examples = [
+        "Every Monday at 8, summarise last week’s meetings",
+        "Remind me every weekday at 9 to stand up",
+        "When a call ends, draft the follow-up email",
+    ]
+
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: DS.Space.m) {
+            HStack(spacing: DS.Space.m) {
+                ThinkingOrb(state: .breathing, size: DS.Size.iconLarge)
+                VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                    Text("Nothing scheduled yet").font(DS.Font.headline)
+                    Text("Just ask, in your own words. Try one of these:")
+                        .font(DS.Font.callout)
+                        .foregroundStyle(DS.Color.textSecondary)
+                }
+            }
+            VStack(alignment: .leading, spacing: DS.Space.s) {
+                ForEach(Self.examples, id: \.self) { example in
+                    Button {
+                        NavigationState.shared.agentPane = .conversation
+                        Task { await RealtimeAgent.shared.handleLive(example, source: .text) }
+                    } label: {
+                        HStack(spacing: DS.Space.s) {
+                            Image(systemName: "plus.circle")
+                                .foregroundStyle(DS.Color.accent)
+                            Text("“\(example)”")
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.vertical, DS.Space.xs)
+                    .padding(.horizontal, DS.Space.s)
+                    .background(DS.Color.groupedFill, in: RoundedRectangle(cornerRadius: DS.Radius.card))
+                }
+            }
+        }
+        .padding(DS.Space.cardTight)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassSurface(cornerRadius: DS.Radius.card)
+    }
+
     private var launchAtLogin: some View {
-        VStack(alignment: .leading, spacing: DS.Space.xs) {
+        HStack(alignment: .top, spacing: DS.Space.m) {
+            Image(systemName: "power")
+                .font(DS.Font.title3)
+                .foregroundStyle(DS.Color.textSecondary)
+                .frame(width: DS.Size.iconLarge)
+            VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                Text("Open Next Notes at login")
+                Text("Routines only run while Next Notes is open. Reminders still reach you when it is closed.")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: DS.Space.s)
             Toggle("Open Next Notes at login", isOn: $settings.agentLaunchAtLogin)
+                .labelsHidden()
+                .toggleStyle(.switch)
                 .onChange(of: settings.agentLaunchAtLogin) { _, on in
                     message = LaunchAtLogin.apply(on)
                 }
-            Text("Routines and triggers run only while Next Notes is open. Reminders also reach you through macOS when it is closed.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
         }
+        .padding(DS.Space.cardTight)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DS.Color.groupedFill, in: RoundedRectangle(cornerRadius: DS.Radius.card))
     }
 
     // MARK: - Helpers
@@ -321,7 +392,7 @@ private struct RoutineEditor: View {
             if schedule.kind != .reminder {
                 Picker("Model", selection: $model) {
                     Text("Automatic").tag(AgentSchedule.ModelChoice.auto)
-                    Text("Qwen on this Mac").tag(AgentSchedule.ModelChoice.local)
+                    Text("Local model on this Mac").tag(AgentSchedule.ModelChoice.local)
                     Text("OpenRouter").tag(AgentSchedule.ModelChoice.cloud)
                 }
                 Text("When a \(schedule.kind.rawValue) uses OpenRouter, your persona, memories and what the routine reads are sent to it.")

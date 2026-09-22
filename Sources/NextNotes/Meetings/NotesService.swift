@@ -48,10 +48,23 @@ final class NotesService {
         let id = meeting.id
         guard !isRunning(id) else { return nil }
 
-        let choice = preferred ?? Settings.shared.notesProvider
-        guard let provider = await LLMProviders.resolve(preferring: choice) else {
-            problems[id] = await LLMProviders.make(choice).unavailableReason
-                ?? NotesError.noProvider.localizedDescription
+        // Use the role-based model selection for meeting notes.
+        // If a specific provider is preferred (e.g., from Regenerate button), use that.
+        // Otherwise, use the model configured for the meeting notes role.
+        let provider: (any LLMProvider)?
+        if let preferred {
+            provider = await LLMProviders.resolve(preferring: preferred)
+        } else {
+            provider = await ModelRoleStore.shared.provider(for: .meetingNotes)
+        }
+
+        guard let provider else {
+            let reason = if let preferred {
+                await LLMProviders.make(preferred).unavailableReason
+            } else {
+                await LLMProviders.make(.gemma4E4B).unavailableReason
+            }
+            problems[id] = reason ?? NotesError.noProvider.localizedDescription
             Log.llm.info("no notes provider available for \"\(meeting.title, privacy: .public)\"")
             return nil
         }

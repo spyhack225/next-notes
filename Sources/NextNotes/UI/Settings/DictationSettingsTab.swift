@@ -5,6 +5,7 @@ import SwiftUI
 struct DictationSettingsTab: View {
     @State private var settings = Settings.shared
     @State private var models = LocalModelStore.shared
+    @State private var runs = RunStore.shared
     @State private var isPickingAutoSendApp = false
 
     var body: some View {
@@ -132,9 +133,9 @@ struct DictationSettingsTab: View {
                     // word beside it tells the user something untrue about their own Mac.
                     if settings.cleanupEngine == .s1Mini, settings.cleanupFixesGrammar {
                         Label(
-                            "Apple's on-device model is doing the cleanup, not S1-mini. S1-mini "
-                                + "can only add punctuation, so grammar repair runs on Apple. Turn "
-                                + "off “Fix grammar” below to use S1-mini.",
+                            "Fixing grammar needs Apple's on-device model, so that is what runs "
+                                + "for these dictations. Nothing to change \u{2014} it is picked "
+                                + "for you, and nothing leaves this Mac either way.",
                             systemImage: "info.circle"
                         )
                         .font(DS.Font.caption)
@@ -150,13 +151,20 @@ struct DictationSettingsTab: View {
                             Text(context.displayName).tag(context)
                         }
                     }
-                    Toggle("Fix grammar, not just punctuation (uses Apple's model)",
+                    Toggle("Fix grammar and spelling, not just punctuation",
                            isOn: $settings.cleanupFixesGrammar)
-                        .help("Repairs agreement, tense and word order — \"there is some "
-                              + "lags\" becomes \"there are some lags\". Runs on Apple's "
-                              + "on-device model; S1-mini cannot do this on its own.")
+                        .help("Repairs agreement, tense, plurals and word order — \"there is "
+                              + "some lags\" becomes \"there are some lags\", \"how it walks\" "
+                              + "becomes \"how it works\". With this off, only punctuation and "
+                              + "capitals are tidied and everything else is typed as heard.")
 
-                    Toggle("Format spoken lists", isOn: $settings.cleanupFormatsLists)
+                    Toggle("Format the lists, quotes and code you speak",
+                           isOn: $settings.cleanupFormatsLists)
+                        .help("Say \u{201C}first point\u{2026} second point\u{2026}\u{201D}, "
+                              + "\u{201C}start the list\u{2026} close the list\u{201D}, "
+                              + "\u{201C}quote\u{2026} end quote\u{201D} or \u{201C}start the "
+                              + "code\u{2026} end the code\u{201D} and it comes out formatted. "
+                              + "Nothing you did not say out loud is turned into a list.")
 
                     Toggle("Skip the cleanup model when the Mac is busy", isOn: $settings.cleanupSkipsModelWhenBusy)
                         .help("While memory is low, the Mac is hot or in Low Power Mode, or live "
@@ -164,11 +172,27 @@ struct DictationSettingsTab: View {
                               + "dictations get quick rule-based cleanup instead of waiting. "
                               + "Faster, but noticeably rougher. Dictations that name a file on "
                               + "screen always use the model.")
+
+                    CleanupPromiseList(rows: promises)
                 }
             } header: {
                 Text("Cleanup")
             } footer: {
                 SettingsNote(text: cleanupNote, orb: cleanupWork)
+            }
+
+            if settings.cleanupEnabled, let last = runs.lastCleanup {
+                Section {
+                    LastCleanupRow(run: last.run, record: last.record)
+                } header: {
+                    Text("Your last dictation")
+                } footer: {
+                    SettingsNote(
+                        text: "What actually happened to the words you spoke, rather than what "
+                            + "the switches above promise. If something here does not match "
+                            + "them, this row is the truth."
+                    )
+                }
             }
         }
         .formStyle(.grouped)
@@ -290,8 +314,8 @@ struct DictationSettingsTab: View {
             switch models.s1MiniState {
             case .ready:
                 return settings.cleanupFixesGrammar
-                    ? "Grammar repair uses Apple's on-device model. S1-mini is the "
-                        + "punctuation-only engine; turn grammar off to use it alone."
+                    ? "Fixing grammar needs Apple's on-device model, so that runs instead. "
+                        + "Either way, no transcript leaves this Mac."
                     : "S1-mini by Superwhisper punctuates locally through llama.cpp; no "
                         + "transcript leaves this Mac."
             case .preparing(let message): return message
@@ -301,5 +325,189 @@ struct DictationSettingsTab: View {
                     + "Models tab."
             }
         }
+    }
+
+    /// What the switches above actually promise, in the order the text passes through them.
+    ///
+    /// It exists because the switches lied by omission. "Fix grammar" off and "Format spoken
+    /// lists" on is a perfectly reachable state, and in it the second switch did nothing
+    /// whatsoever — the engine that runs when grammar is off takes no instructions, so the
+    /// list rule never reached a model, and an app with no row in the Formatting table was
+    /// told to keep lists as prose anyway. Both of those are fixed; this list is how the
+    /// person in front of the window can tell.
+    private var promises: [CleanupPromiseList.Row] {
+        var rows: [CleanupPromiseList.Row] = [
+            .init(isOn: true, text: "Fillers, punctuation and capitals are always tidied up.")
+        ]
+
+        if settings.cleanupFixesGrammar {
+            if let reason = FoundationModelFormatter.unavailableReason {
+                rows.append(.init(
+                    isOn: false,
+                    text: "Grammar and spelling cannot be fixed on this Mac right now. \(reason)"
+                ))
+            } else {
+                rows.append(.init(
+                    isOn: true,
+                    text: "Grammar, plurals and misheard words are corrected."
+                ))
+            }
+        } else {
+            // Actionable, not just informative. This is the line that describes the state
+            // this user has actually been dictating in, and telling someone to go and find
+            // a switch they have already walked past is not telling them anything.
+            rows.append(.init(
+                isOn: false,
+                text: "Grammar and spelling are left exactly as heard \u{2014} missing plurals, "
+                    + "wrong tenses and misheard words stay in.",
+                actionTitle: "Fix grammar too",
+                action: { settings.cleanupFixesGrammar = true }
+            ))
+        }
+
+        if settings.cleanupFormatsLists {
+            rows.append(.init(
+                isOn: true,
+                text: "Lists, quotes and code you say out loud become lists, quotes and code "
+                    + "\u{2014} in every app, whether or not it shows formatting marks."
+            ))
+        } else {
+            rows.append(.init(
+                isOn: false,
+                text: "\u{201C}First point\u{2026} second point\u{2026}\u{201D} stays as a "
+                    + "sentence. Nothing you speak is turned into a list."
+            ))
+        }
+
+        if settings.cleanupSkipsModelWhenBusy {
+            rows.append(.init(
+                isOn: false,
+                text: "While the Mac is busy, short dictations skip all of this and get the "
+                    + "quick version instead."
+            ))
+        }
+        return rows
+    }
+}
+
+/// The plain-language consequence of the switches above it, one line each.
+///
+/// A tick or a dash rather than a colour alone, because "off" here is often the setting the
+/// person meant to choose and must not read as an error.
+private struct CleanupPromiseList: View {
+    struct Row: Identifiable {
+        let isOn: Bool
+        let text: String
+        /// A one-tap way to change what this line says, for a line describing something the
+        /// person probably did not mean to choose.
+        var actionTitle: String?
+        var action: (() -> Void)?
+        var id: String { text }
+    }
+
+    let rows: [Row]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.Space.s) {
+            ForEach(rows) { row in
+                HStack(alignment: .top, spacing: DS.Space.s) {
+                    Image(systemName: row.isOn ? "checkmark.circle.fill" : "minus.circle")
+                        .foregroundStyle(row.isOn ? DS.Color.accent : DS.Color.textTertiary)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                        Text(row.text)
+                            .font(DS.Font.caption)
+                            .foregroundStyle(row.isOn ? DS.Color.text : DS.Color.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let title = row.actionTitle, let action = row.action {
+                            Button(title, action: action)
+                                .buttonStyle(.link)
+                                .font(DS.Font.caption)
+                        }
+                    }
+                }
+                .accessibilityElement(children: row.action == nil ? .combine : .contain)
+                .accessibilityLabel((row.isOn ? "On. " : "Off. ") + row.text)
+            }
+        }
+        .padding(.vertical, DS.Space.xxs)
+    }
+}
+
+/// The last dictation's cleanup, said in words rather than in fields.
+///
+/// This is the answer to "check the dictation logs and you will see it does no grammar":
+/// before it, `runs.jsonl` stored one string and no version of that question was answerable
+/// without a terminal. The two texts are behind a disclosure because most of the time the
+/// summary line is the whole answer.
+private struct LastCleanupRow: View {
+    let run: DictationRun
+    let record: CleanupRecord
+
+    @State private var isExpanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.Space.s) {
+            HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
+                Text(record.plainSummary)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: DS.Space.s)
+                Text(run.date, style: .time)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+            }
+
+            if let target = record.targetName {
+                Text(renderingNote(target: target))
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if changed {
+                DisclosureGroup("Compare what you said with what was typed", isExpanded: $isExpanded) {
+                    VStack(alignment: .leading, spacing: DS.Space.s) {
+                        labelled("You said", record.rawText)
+                        labelled("It typed", record.cleanedText ?? run.text)
+                    }
+                    .padding(.top, DS.Space.xs)
+                }
+                .font(DS.Font.caption)
+            }
+        }
+        .padding(.vertical, DS.Space.xxs)
+    }
+
+    private var changed: Bool {
+        guard let raw = record.rawText else { return false }
+        return raw != (record.cleanedText ?? run.text)
+    }
+
+    @ViewBuilder
+    private func labelled(_ title: String, _ body: String?) -> some View {
+        if let body, !body.isEmpty {
+            VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                Text(title)
+                    .font(DS.Font.caption2)
+                    .foregroundStyle(DS.Color.textTertiary)
+                Text(body)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func renderingNote(target: String) -> String {
+        let renders = record.targetRenders ?? []
+        if renders.isEmpty {
+            return "Sent to \(target), which shows no formatting marks, so anything you spoke as "
+                + "a list was written as plain numbered lines."
+        }
+        return "Sent to \(target), which shows formatting, so lists and quotes were written the "
+            + "way it draws them."
     }
 }

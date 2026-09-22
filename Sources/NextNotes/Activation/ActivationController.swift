@@ -24,7 +24,12 @@ final class ActivationController {
             self?.toggleAgent()
         }
         ShortcutActivation.shared.start()
-        WakeWordAudioMonitor.shared.sync()
+        // After the rest of launch has returned: a bad keywords.txt used to abort inside
+        // sherpa during `applicationDidFinishLaunching`, so the Dock icon flashed and the
+        // process was gone. Deferring keeps the window up even if wake setup fails later.
+        Task { @MainActor in
+            WakeWordAudioMonitor.shared.sync()
+        }
     }
 
     func toggleAgent() {
@@ -48,8 +53,13 @@ final class ActivationController {
             RealtimeAgent.shared.interrupt()
         }
         mode = .agentListening
-        WakeWordAudioMonitor.shared.sync()
+        // The island is the acknowledgement, so it goes first. This used to sit behind
+        // `WakeWordAudioMonitor.sync()`, which — being the only microphone subscriber —
+        // stopped the shared AVAudioEngine synchronously on this actor before anything
+        // was drawn. Feedback now costs a paint; the monitor idles itself afterwards
+        // and keeps its seat, so no engine is stopped on the wake path at all.
         IslandState.shared.showAgentListening(transcript: utterance ?? "")
+        WakeWordAudioMonitor.shared.sync()
         AgentAuditLog.shared.record(kind: .wake, title: "Agent woke", detail: source)
         Task {
             await AgentCaptureController.shared.beginSession(captureAudio: !SelfTest.isRunning)

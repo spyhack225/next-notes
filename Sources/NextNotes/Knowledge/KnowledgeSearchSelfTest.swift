@@ -165,6 +165,7 @@ enum KnowledgeSearchSelfTest {
             failures.append("memory.recall is not in the catalogue")
         }
 
+        failures += await unifiedFailures(root: root.appendingPathComponent("unified", isDirectory: true))
         failures += await hybridFailures(root: root.appendingPathComponent("hybrid", isDirectory: true), query: query)
         failures += await recencyFailures(root: root.appendingPathComponent("recency", isDirectory: true))
         failures += await goldFailures(root: root.appendingPathComponent("gold", isDirectory: true))
@@ -184,6 +185,201 @@ enum KnowledgeSearchSelfTest {
         await indexer.backfill()
         _ = await indexer.drain()
         return indexer
+    }
+
+    // MARK: - One engine for the whole library
+
+    /// `LibrarySearch`: passages **and** the user's own files, from one call, with one rail.
+    ///
+    /// This section exists because the Search tab used to answer from half the library. The
+    /// file index was built, crawled, and wired into the agent's tools, and the screen the
+    /// user actually searches from never asked it a question — so a file that `filesystem.find`
+    /// returned in a second was, on the Search tab, simply not there. Nothing failed; the
+    /// answer was just quietly short.
+    ///
+    /// It fails, rather than passing quietly, when:
+    /// - a file whose name matches does not surface through the unified search;
+    /// - a folder that has been removed still answers one (the purge is asserted in
+    ///   `--selftest-file-index` at the store; this asserts it end to end, where the user is);
+    /// - a source tick leaks — files returned when only transcripts are asked for, passages
+    ///   returned when only files are, or files returned under a speaker filter;
+    /// - the "Files and folders" count is the page `find` returned rather than the real total;
+    /// - a file hit outranks every passage, or file hits never reach the visible page at all;
+    /// - anything in a file's contents reaches a result.
+    private static func unifiedFailures(root: URL) async -> [String] {
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+        /// The file names among a set of results, which is what most of these assertions are
+        /// about — and what reads best in a failure message.
+        func names(of hits: [LibraryHit]) -> [String] {
+            hits.compactMap { hit -> String? in
+                guard case .file(let file) = hit else { return nil }
+                return file.name
+            }
+        }
+        let manager = FileManager.default
+        let meetingsRoot = root.appendingPathComponent("Meetings", isDirectory: true)
+        do {
+            try KnowledgeFixtures.writeLibrary(meetingsRoot: meetingsRoot)
+        } catch {
+            return ["unified fixture library could not be written: \(error)"]
+        }
+        let sources = FixtureKnowledgeSources(meetingsRoot: meetingsRoot)
+        sources.sessions = [KnowledgeFixtures.conversation()]
+        let environment = FixedKnowledgeIndexEnvironment(settings: KnowledgeIndexSettings(enabled: true))
+        let indexer = KnowledgeIndexer(store: KnowledgeStore(directory: root.appendingPathComponent("index",
+                                                                                                   isDirectory: true)),
+                                       sources: sources, environment: environment, drainsOnChange: false)
+        await indexer.backfill()
+        _ = await indexer.drain()
+
+        do {
+            // MARK: A folder of the user's, beside the library
+
+            let shared = root.appendingPathComponent("Shared", isDirectory: true)
+            let other = root.appendingPathComponent("Other", isDirectory: true)
+            func write(_ url: URL, _ text: String) throws {
+                try manager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try text.write(to: url, atomically: true, encoding: .utf8)
+            }
+            // Named after what the fixture meetings talk about, so one query hits both stores.
+            try write(shared.appendingPathComponent("pricing-page-brief.pdf"), "FILECONTENTSMUSTNOTLEAK")
+            try write(shared.appendingPathComponent("Pricing/launch-plan.md"), "FILECONTENTSMUSTNOTLEAK")
+            try write(shared.appendingPathComponent("unrelated-lease.pdf"), "FILECONTENTSMUSTNOTLEAK")
+            try write(other.appendingPathComponent("elsewhere-pricing.md"), "FILECONTENTSMUSTNOTLEAK")
+
+            let fileStore = FileIndexStore(directory: root.appendingPathComponent("files", isDirectory: true))
+            defer { fileStore.close() }
+            for folder in [shared, other] {
+                let crawl = FileCrawler.crawl(folder)
+                try fileStore.replaceRoot(folder.path, records: crawl.records, capped: crawl.capped, note: crawl.note)
+            }
+            let retrieval = FixtureFileRetrieval(store: fileStore, roots: [shared.path, other.path])
+            let library = LibrarySearch(passages: indexer.searcher, files: retrieval)
+            check("the rail would not offer files although folders are shared", library.hasFiles)
+
+            func run(_ text: String, _ filter: LibraryFilter = LibraryFilter(),
+                     limit: Int = 50) async throws -> [LibraryHit] {
+                try library.search(await library.prepare(text: text, filter: filter, limit: limit))
+            }
+
+            // MARK: A file surfaces through the search the user actually uses
+
+            let began = Date()
+            let pricing = try await run("pricing")
+            let elapsed = Date().timeIntervalSince(began) * 1_000
+            print("SEARCH_UNIFIED \(String(format: "%.2f", elapsed))ms hits=\(pricing.count) "
+                + "files=\(pricing.filter { !$0.isPassage }.count)")
+            check("the unified search returned no passages at all", pricing.contains(where: \.isPassage))
+            check("a file whose name matches did not surface through the unified search — "
+                  + "the Search tab is answering from half the library",
+                  names(of: pricing).contains("pricing-page-brief.pdf"))
+            check("a passage did not lead the results", pricing.first?.isPassage == true)
+            check("file hits never reach the page someone reads",
+                  pricing.prefix(12).contains { !$0.isPassage })
+            let secretInStore = try fileStore.find(query: "FILECONTENTSMUSTNOTLEAK", limit: 10)
+            let secretInSearch = try await run("FILECONTENTSMUSTNOTLEAK")
+            check("the file index holds what is inside a file, so a result could quote it",
+                  secretInStore.isEmpty && secretInSearch.isEmpty)
+
+            // Words only a file has: the library has nothing to say, and that is not "no results".
+            let lease = try await run("lease")
+            check("a query only a file name matches returned nothing",
+                  names(of: lease).contains("unrelated-lease.pdf"))
+
+            // MARK: The rail's counts
+
+            let facets = try library.facets(await library.prepare(text: "pricing", filter: LibraryFilter()))
+            check("the files facet is missing although folders are shared", facets.files != nil)
+            check("the files count is not the real total, got \(facets.files ?? -1)",
+                  facets.files == (try fileStore.count(query: "pricing")))
+            check("the files count counted the page find returned rather than the index",
+                  (try fileStore.count(query: "")) == (try fileStore.stats()).files + (try fileStore.stats()).folders)
+            check("the passage facets were lost when files joined the rail",
+                  (facets.knowledge.kinds[.transcript] ?? 0) > 0)
+
+            // MARK: Ticking a source narrows to it, both ways round
+
+            let filesOnly = try await run("pricing", LibraryFilter(sources: [.files]))
+            check("ticking Files and folders still returned passages",
+                  !filesOnly.isEmpty && filesOnly.allSatisfy { !$0.isPassage })
+            let transcriptsOnly = try await run("pricing", LibraryFilter(sources: [.passages(.transcript)]))
+            check("ticking Transcripts leaked files into the results",
+                  !transcriptsOnly.isEmpty && transcriptsOnly.allSatisfy(\.isPassage))
+            let bothTicked = try await run("pricing", LibraryFilter(sources: [.passages(.transcript), .files]))
+            check("ticking both sources dropped one of them",
+                  bothTicked.contains(where: \.isPassage) && bothTicked.contains { !$0.isPassage })
+
+            // A filter only a passage can satisfy is a question about what was said.
+            let bySpeaker = try await run("pricing", LibraryFilter(speakers: ["Ana"]))
+            check("a speaker filter still returned files, which nobody said",
+                  !bySpeaker.isEmpty && bySpeaker.allSatisfy(\.isPassage))
+
+            // MARK: A removed folder stops answering, now
+
+            check("the other folder was not in the index to begin with",
+                  names(of: try await run("elsewhere")).contains("elsewhere-pricing.md"))
+            try fileStore.purgeRoot(other.path)
+            let afterPurge = names(of: try await run("elsewhere"))
+            check("a removed folder still returns hits through the unified search: \(afterPurge)",
+                  afterPurge.isEmpty)
+            check("the purge took the folder that is still shared with it",
+                  !names(of: try await run("pricing")).isEmpty)
+
+            // With no folder shared at all, the rail has no files row to offer.
+            let none = LibrarySearch(passages: indexer.searcher, files: EmptyFileRetrieval())
+            check("the rail offers files with no folder shared", !none.hasFiles)
+            let withoutFiles = try none.facets(await none.prepare(text: "pricing", filter: LibraryFilter()))
+            check("the files facet appears with no folder shared", withoutFiles.files == nil)
+            let passagesOnly = try none.search(await none.prepare(text: "pricing", filter: LibraryFilter()))
+            check("switching folders off lost the passages too",
+                  !passagesOnly.isEmpty && passagesOnly.allSatisfy(\.isPassage))
+
+            // MARK: How the two legs are blended
+
+            // Rank fusion, not score fusion: a BM25 score and a file's position are not the
+            // same number. One file for every three passages, and a passage wins a dead heat.
+            let fakePassages = (0..<10).map { index in
+                KnowledgeHit(chunkID: Int64(index + 1), kind: .transcript, sourceID: "s", ordinal: index,
+                             text: "t", snippet: "t", startTime: nil, endTime: nil, speaker: nil, heading: nil,
+                             occurredAt: Date(timeIntervalSince1970: 0), score: Double(index))
+            }
+            let fakeFiles = (0..<10).map { index in
+                FileHit(path: "/tmp/f\(index)", name: "f\(index)", isDirectory: false, category: .pdf,
+                        size: nil, modifiedAt: nil, accessedAt: nil, root: "/tmp", depth: 1)
+            }
+            let fused = LibrarySearch.fuse(passages: fakePassages, files: fakeFiles, limit: 12)
+            check("fusion did not put a passage first", fused.first?.isPassage == true)
+            check("fusion buried every file below the visible page",
+                  fused.prefix(6).contains { !$0.isPassage })
+            check("fusion drowned the passages in files",
+                  fused.prefix(8).filter { !$0.isPassage }.count <= 3)
+            check("fusion is not stable",
+                  LibrarySearch.fuse(passages: fakePassages, files: fakeFiles, limit: 12).map(\.id)
+                      == fused.map(\.id))
+            check("fusion with one empty leg lost the other",
+                  LibrarySearch.fuse(passages: fakePassages, files: [], limit: 3).count == 3
+                      && LibrarySearch.fuse(passages: [], files: fakeFiles, limit: 3).count == 3)
+
+            // MARK: People, gathered from the speaker labels they go by
+
+            let counts = LibrarySearch.peopleCounts(speakers: ["Ana": 3, "Ana Silva": 2, "Bo": 1],
+                                                    aliases: ["Ana Silva": ["Ana", "Ana Silva"], "Nobody": ["Zed"]])
+            check("a person's names were not added up, got \(counts)", counts["Ana Silva"] == 5)
+            check("a person with no passages was listed anyway", counts["Nobody"] == nil)
+            let peopleFilter = LibraryFilter(people: ["Ana Silva"])
+                .knowledgeFilter(aliases: ["Ana Silva": ["Ana", "Ana Silva"]])
+            check("ticking a person did not search every name they go by",
+                  peopleFilter.speakers == ["Ana", "Ana Silva"])
+            let byPerson = try await run("pricing", LibraryFilter(people: ["Ana"]))
+            check("ticking a person returned nothing",
+                  !byPerson.isEmpty && byPerson.allSatisfy(\.isPassage))
+        } catch {
+            failures.append("unified search threw: \(error.localizedDescription)")
+        }
+        return failures
     }
 
     // MARK: - Hybrid

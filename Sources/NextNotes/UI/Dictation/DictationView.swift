@@ -28,6 +28,28 @@ struct DictationView: View {
     @State private var isConfirmingSelection = false
     @State private var elapsed: TimeInterval = 0
     @State private var startedAt: Date?
+    /// The correction sheet's two steps, owned here rather than by a row.
+    ///
+    /// A row in a `List` is created and destroyed as the list scrolls, and a sheet
+    /// presented from one goes with it. This view outlives every row, and it is also where
+    /// the context menu lives — so both ways into the editor lead to the same place.
+    @State private var correcting: CorrectionStep?
+    /// Which learned rules are ticked on the second step. Pre-ticked from the edit itself.
+    @State private var chosenCorrections: Set<String> = []
+
+    private enum CorrectionStep: Identifiable {
+        /// Editing the transcript of one past dictation.
+        case edit(DictationRun)
+        /// What that edit taught, offered for a yes.
+        case learn([LearnedCorrection])
+
+        var id: String {
+            switch self {
+            case .edit(let run): "edit:\(run.id)"
+            case .learn(let candidates): "learn:\(candidates.map(\.id).joined(separator: "|"))"
+            }
+        }
+    }
 
     private var isRecording: Bool { controller.state.isActive }
 
@@ -88,6 +110,28 @@ struct DictationView: View {
         .onChange(of: store.runs.count) { _, _ in
             selection = DictationSelectionPolicy.pruned(selection, existing: store.runs)
         }
+        .sheet(item: $correcting) { step in
+            switch step {
+            case .edit(let run):
+                TranscriptEditorSheet(
+                    original: run.displayText,
+                    onSave: { save($0, to: run) },
+                    onCancel: { correcting = nil }
+                )
+            case .learn(let candidates):
+                LearnedCorrectionsSheet(
+                    corrections: candidates,
+                    chosen: $chosenCorrections,
+                    onAdd: {
+                        for candidate in candidates where chosenCorrections.contains(candidate.id) {
+                            DictionaryStore.shared.add(candidate.entry)
+                        }
+                        correcting = nil
+                    },
+                    onSkip: { correcting = nil }
+                )
+            }
+        }
         .task(id: startedAt) {
             guard let startedAt else { return }
             while !Task.isCancelled {
@@ -135,7 +179,7 @@ struct DictationView: View {
     private var transcriptionList: some View {
         List(selection: $selection) {
             ForEach(runs) { run in
-                TranscriptionRow(run: run)
+                TranscriptionRow(run: run) { correcting = .edit(run) }
                     .tag(run.id)
             }
         }
@@ -152,6 +196,11 @@ struct DictationView: View {
                 Button(ids.count == 1 ? "Copy" : "Copy \(ids.count) Transcriptions") {
                     copy(ids)
                 }
+                // One row only: the editor edits one transcript, and a menu item that
+                // silently acted on the first of six would be worse than not being there.
+                if ids.count == 1, let run = runs.first(where: { ids.contains($0.id) }) {
+                    Button("Correct\u{2026}") { correcting = .edit(run) }
+                }
                 Button(
                     ids.count == 1 ? "Delete" : "Delete \(ids.count) Transcriptions…",
                     role: .destructive
@@ -163,6 +212,24 @@ struct DictationView: View {
         // A new transcription arrives at the moment the key is released, which is the one
         // moment the user is watching this list. It should slide in rather than appear.
         .animation(DS.Motion.fluid, value: runs.map(\.id))
+    }
+
+    // MARK: - Correcting
+
+    /// Files the correction, then asks about the dictionary rules it implies — if it
+    /// implies any and the user asked to be asked.
+    private func save(_ text: String, to run: DictationRun) {
+        let candidates = TranscriptCorrection.save(text, to: run)
+        correcting = nil
+        guard !candidates.isEmpty else { return }
+        chosenCorrections = Set(candidates.map(\.id))
+        // One sheet closes before the next opens. Swapping the value straight over asks
+        // AppKit to dismiss and present in the same pass, and what comes back is a sheet
+        // with nothing in it. The hop is short enough to read as one motion.
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
+            correcting = .learn(candidates)
+        }
     }
 
     // MARK: - Selection

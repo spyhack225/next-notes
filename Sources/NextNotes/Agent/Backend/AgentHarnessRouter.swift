@@ -43,6 +43,17 @@ enum AgentIntentClass: String, Codable, Sendable {
     case general
 }
 
+/// What the "Writing code" / "Controlling your Mac" rows say about a turn nobody named an
+/// app for.
+enum AgentHarnessRoleDecision: Equatable, Sendable {
+    /// Hand it to this app.
+    case app(AgentHarnessID)
+    /// The person chose a model rather than an app, or the work cannot leave this Mac.
+    case keepHere
+    /// Nobody has chosen; the older backend setting still answers.
+    case unset
+}
+
 enum AgentHarnessSource: String, Codable, Sendable {
     case explicit
     case history
@@ -104,8 +115,14 @@ final class AgentHarnessRouter {
         if let named = Self.explicitHarness(in: text) {
             choice = finalize(named, source: .explicit)
         } else if Settings.shared.agentBackend == .acp {
-            let id = Self.harness(forCLI: Settings.shared.acpBackendID) ?? .claude
-            choice = finalize(id, source: .settings)
+            choice = finalize(
+                Self.settingsHarness(
+                    for: text,
+                    roles: ModelRoleStore.shared,
+                    acpBackendID: Settings.shared.acpBackendID
+                ),
+                source: .settings
+            )
         } else {
             choice = finalize(.local, source: .settings)
         }
@@ -150,6 +167,45 @@ final class AgentHarnessRouter {
         persistEnabled = true
         availabilityProbe = nil
         entries = Self.load()
+    }
+
+    /// What Settings ▸ Agent's job rows say about where an unnamed turn should run.
+    ///
+    /// `.keepHere` is not the same as `.unset`, and conflating them was a real bug: someone
+    /// who deliberately set "Writing code" to a model on this Mac still had the turn handed
+    /// to an external CLI, because a role that named no app read exactly like a role nobody
+    /// had ever touched.
+    static func roleDecision(
+        for text: String,
+        roles: ModelRoleStore
+    ) -> AgentHarnessRoleDecision {
+        // Never the coding route. This router hands a task to a coding agent in a project
+        // folder, which is not what "click the Save button" is. When that job is pointed at
+        // Codex it goes to Codex's screen-driving helper instead, through
+        // `CodexComputerUse.route` on the turn itself; otherwise Next Notes' own computer
+        // tools do it here. Either way, not down this path.
+        if ModelRoleStore.role(forUtterance: text) == .computerUse { return .keepHere }
+        // An untouched row must not overrule a backend the person configured earlier.
+        guard roles.hasExplicitChoice(for: .coding) else { return .unset }
+        // A named app that is not installed falls back to this Mac, like everywhere else in
+        // the roles screen — not to a different CLI, and not to an "isn't installed" card.
+        if let harness = roles.codingHarness { return .app(harness) }
+        return .keepHere
+    }
+
+    /// The harness a turn gets when the person did not name one in the utterance: the job
+    /// rows first, the older backend setting second. Pure, so the self-test can drive every
+    /// branch without writing to the person's real settings.
+    static func settingsHarness(
+        for text: String,
+        roles: ModelRoleStore,
+        acpBackendID: String
+    ) -> AgentHarnessID {
+        switch roleDecision(for: text, roles: roles) {
+        case .app(let harness): return harness
+        case .keepHere: return .local
+        case .unset: return harness(forCLI: acpBackendID) ?? .claude
+        }
     }
 
     static func intent(for text: String) -> AgentIntentClass {

@@ -19,6 +19,8 @@ enum AgentToolNamespace: String, Codable, Sendable, CaseIterable {
     case schedule
     /// The knowledge index (Part 4): `search_knowledge` / `expand_node` / `timeline`. Read-class.
     case knowledge
+    /// Skills — written procedures the Agent can follow: `skills.search` / `read` / `install`.
+    case skills
 }
 
 /// Where the implementation lives. The model is not told this — `ToolRouter` is.

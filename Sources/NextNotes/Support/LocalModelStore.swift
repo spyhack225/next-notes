@@ -128,6 +128,9 @@ final class LocalModelStore {
                     }
                 }
                 notesModelState = .preparing("Loading \(NotesModels.spec.displayName)…")
+                // The library lists the built-in model the moment its file is complete, so
+                // the Models tab shows it beside anything fetched from Hugging Face.
+                InstalledModelLibrary.shared.refresh()
                 try await NotesModelRuntime.shared.prepare()
                 notesModelState = .ready
             } catch {
@@ -259,6 +262,7 @@ final class LocalModelStore {
                     }
                 }
                 wakeWordState = .preparing("Loading wake phrase…")
+                WakeWordPhoneLexicon.reset()
                 _ = try WakeWordModelManager.loadSpotter()
                 wakeWordState = .ready
                 WakeWordAudioMonitor.shared.sync()

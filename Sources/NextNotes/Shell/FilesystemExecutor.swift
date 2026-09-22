@@ -26,6 +26,10 @@ enum FilesystemExecutor {
             return try trash(path: arguments["path"] ?? "")
         case "reveal":
             return try reveal(path: arguments["path"] ?? "")
+        case FileToolCatalogue.findName, FileToolCatalogue.treeName:
+            // The indexed-folder tools: bounded by the user's own folder list rather than by
+            // the caps above, and answered from `file-index.sqlite` instead of a live walk.
+            return try FileToolExecutor.run(tool, arguments: arguments)
         default:
             throw AgentError.unknownTool(tool.id)
         }

@@ -4,7 +4,7 @@ import Foundation
 /// in flight.
 ///
 /// Producers with a real token stream should call `append` as chunks arrive
-/// and `finalize` when the reply is complete. Explicit Qwen answers stream here;
+/// and `finalize` when the reply is complete. Explicit on-device answers stream here;
 /// one-shot tool and Foundation Models replies go through `RealtimeAudioSession.speak`,
 /// which feeds the full text into this buffer in one append + finalize.
 ///

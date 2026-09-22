@@ -218,11 +218,7 @@ final class AgentService {
                 self.thinking.remove(id)
                 self.tasks[id] = nil
             }
-            guard let provider = await LLMProviders.resolve(
-                preferring: Settings.shared.agentModelProvider,
-                modelID: Settings.shared.openRouterAgentModelID,
-                contextTokens: Settings.shared.openRouterAgentContextTokens
-            ) else {
+            guard let provider = await ModelRoleStore.shared.provider(for: .agent) else {
                 self.problems[id] = AgentError.noProvider.localizedDescription
                 return
             }
@@ -601,11 +597,7 @@ final class AgentService {
                 self.liveProposalTask = nil
                 self.planLiveCandidatesIfNeeded()
             }
-            guard let provider = await LLMProviders.resolve(
-                preferring: Settings.shared.agentModelProvider,
-                modelID: Settings.shared.openRouterAgentModelID,
-                contextTokens: Settings.shared.openRouterAgentContextTokens
-            ) else { return }
+            guard let provider = await ModelRoleStore.shared.provider(for: .agent) else { return }
             do {
                 let proposals = try await MeetingAgent.shared.liveProposals(
                     for: meeting, recent: recent, provider: provider
@@ -713,12 +705,20 @@ enum MeetingLiveAgent {
         return "\(verb) \(object)?"
     }
 
+    /// The card's one line. It quotes the words that caused it wherever there are any:
+    /// "You said this." on its own is a claim the user cannot check, and it was printed
+    /// identically over calls the model had assembled out of a whole transcript.
     static func detail(for candidate: MeetingCandidateAction) -> String {
+        let quote = candidate.evidence?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let said = (quote?.isEmpty == false) ? " \u{201c}\(quote!)\u{201d}" : ""
         if candidate.source == .system {
             let who = candidate.speaker ?? "Someone"
-            return "\(who) asked for this. Prepare it — it cannot run from their speech."
+            return "\(who) said\(said.isEmpty ? " this in the meeting" : said). "
+                + "Open it to fill in the details \u{2014} their words alone cannot run anything."
         }
-        return "You said this. Approve runs it only if a Workspace proposal already exists."
+        return said.isEmpty
+            ? "Open it to check what would happen before anything runs."
+            : "You said\(said). Open it to check the details before anything runs."
     }
 
     /// Prints one last `MEETING_LIVE_OK` / `MEETING_LIVE_FAILED` line, and runs the bus

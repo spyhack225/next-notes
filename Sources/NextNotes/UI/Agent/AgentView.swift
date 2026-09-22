@@ -79,6 +79,8 @@ struct AgentView: View {
             switch navigation.agentPane {
             case .conversation: conversation
             case .routines: RoutinesView()
+            case .graph: KnowledgeGraphPane()
+            case .skills: SkillsView()
             case .about: AgentAboutView()
             }
         }
@@ -173,45 +175,32 @@ struct AgentView: View {
         }
     }
 
+    /// The full review — every argument, where it came from, and what is still missing.
+    /// `ToolReviewCard` owns the layout; this only binds it to the gate.
     private func permissionCard(_ request: PermissionRequest) -> some View {
-        VStack(alignment: .leading, spacing: DS.Space.s) {
-            Text(request.title)
-                .font(DS.Font.headline)
-            Text(request.detail)
-                .font(DS.Font.callout)
-                .foregroundStyle(DS.Color.textSecondary)
-            if request.scope.kind != .any {
-                Text(request.scope.displayName)
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
+        ToolReviewCard(
+            review: gate.pendingReview ?? ToolCallReviewStore.shared.review(for: request),
+            isCompact: true,
+            approve: {
+                PermissionGate.shared.respond(
+                    id: request.id,
+                    approved: true,
+                    duration: .once,
+                    scope: request.scope
+                )
+            },
+            dismiss: {
+                PermissionGate.shared.respond(id: request.id, approved: false)
+            },
+            alwaysAllow: request.scope.kind == .any ? nil : {
+                PermissionGate.shared.respond(
+                    id: request.id,
+                    approved: true,
+                    duration: .alwaysThisAction,
+                    scope: request.scope
+                )
             }
-            HStack(spacing: DS.Space.s) {
-                Button("Dismiss") {
-                    PermissionGate.shared.respond(id: request.id, approved: false)
-                }
-                Button("Approve") {
-                    PermissionGate.shared.respond(
-                        id: request.id,
-                        approved: true,
-                        duration: .once,
-                        scope: request.scope
-                    )
-                }
-                .buttonStyle(.borderedProminent)
-                if request.scope.kind != .any {
-                    Button(request.scope.alwaysLabel) {
-                        PermissionGate.shared.respond(
-                            id: request.id,
-                            approved: true,
-                            duration: .alwaysThisAction,
-                            scope: request.scope
-                        )
-                    }
-                }
-            }
-        }
-        .padding(DS.Space.cardTight)
-        .glassSurface()
+        )
     }
 
     private func acpConfirmCard(_ request: ACPConfirmationRequest) -> some View {

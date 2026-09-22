@@ -6,6 +6,7 @@ struct AgentSettingsTab: View {
     @State private var models = LocalModelStore.shared
     @State private var harness = AgentHarnessRouter.shared
     @State private var calibrator = WakeWordCalibrator.shared
+    @State private var wakeMonitor = WakeWordAudioMonitor.shared
     @State private var grants = PermissionGrantStore.shared
 
     var body: some View {
@@ -16,7 +17,9 @@ struct AgentSettingsTab: View {
             wakeModel
             wakeTest
             execution
+            ModelRoleSection()
             modelSection
+            FastListeningSection()
             permissions
             remembered
             MemoriesSection()
@@ -32,23 +35,30 @@ struct AgentSettingsTab: View {
         }
     }
 
+    /// The online catalogue, shown only once a job above has been pointed at an online
+    /// model. Two pickers for the same decision was the old shape of this screen; the job
+    /// rows now own the choice and this is only where the online one is named.
+    @ViewBuilder
     private var modelSection: some View {
-        Section {
-            Picker("Answers and tool planning", selection: $settings.agentModelProvider) {
-                ForEach(LLMProviderID.allCases) { model in
-                    Text(model.displayName).tag(model)
-                }
-            }
-            if settings.agentModelProvider == .openRouter {
+        if usesOnlineModel {
+            Section {
                 OpenRouterModelSelection(
                     modelID: $settings.openRouterAgentModelID,
                     contextTokens: $settings.openRouterAgentContextTokens
                 )
+            } header: {
+                Text("Online model")
+            } footer: {
+                SettingsNote(text: "Requests go to OpenRouter and may cost money. Add the "
+                             + "key in Models settings. Everything else above stays on this Mac.")
             }
-        } header: {
-            Text("Agent model")
-        } footer: {
-            SettingsNote(text: settings.agentModelProvider.summary)
+        }
+    }
+
+    private var usesOnlineModel: Bool {
+        ModelRole.allCases.contains { role in
+            if case .cloud = ModelRoleStore.shared.choice(for: role) { return true }
+            return false
         }
     }
 
@@ -58,6 +68,11 @@ struct AgentSettingsTab: View {
             TextField("Wake phrase", text: $settings.wakePhrase)
                 .textFieldStyle(.roundedBorder)
                 .disabled(!settings.voiceWakeEnabled)
+            if settings.voiceWakeEnabled, let problem = wakePhraseProblem {
+                Text(problem)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.warning)
+            }
             Slider(value: $settings.wakeSensitivity, in: 0...1) {
                 Text("Sensitivity")
             } minimumValueLabel: {
@@ -67,6 +82,16 @@ struct AgentSettingsTab: View {
             }
             Toggle("Listen while sleeping", isOn: $settings.listenWhileSleeping)
                 .disabled(!settings.voiceWakeEnabled)
+            // What the microphone is actually doing right now, in plain words. Until
+            // this line existed there was no way to tell "listening" from "stopped
+            // half an hour ago and never came back".
+            LabeledContent("Right now") {
+                Text(wakeMonitor.status.plainWords)
+                    .foregroundStyle(
+                        wakeMonitor.isListening ? DS.Color.success : DS.Color.textSecondary
+                    )
+            }
+            .font(DS.Font.caption)
             Toggle("Agent shortcut", isOn: $settings.agentShortcutEnabled)
             Picker("Shortcut", selection: $settings.agentShortcut) {
                 ForEach(AgentShortcut.allCases) { shortcut in
@@ -77,29 +102,84 @@ struct AgentSettingsTab: View {
         } header: {
             Text("Activation")
         } footer: {
-            SettingsNote(text: "Push-to-talk stays dictation. The shortcut and the wake phrase "
-                         + "open the agent. Changing the phrase never locks you out — the "
-                         + "shortcut always works. Wake-word audio stays on this Mac.")
+            SettingsNote(text: activationFooter)
+        }
+        .onChange(of: settings.wakePhrase) { _, _ in applyWakePhrase() }
+        .onChange(of: settings.voiceWakeEnabled) { _, _ in applyWakePhrase() }
+        .onChange(of: settings.listenWhileSleeping) { _, _ in applyWakePhrase() }
+        // Sensitivity had no hook at all, so moving the slider changed nothing until
+        // the next relaunch — and the reload test only compared the phrase, so even
+        // then it was ignored.
+        .onChange(of: settings.wakeSensitivity) { _, _ in applyWakePhrase() }
+    }
+
+    private var activationFooter: String {
+        if WakeWordPhoneLexicon.isAvailable {
+            return "Push-to-talk stays dictation. The shortcut and the wake phrase open the "
+                + "agent. English phrases use the keyword model’s pronunciation dictionary "
+                + "(~126k words), so common names and words work without a rebuild. The "
+                + "keyboard shortcut always works; wake-word audio stays on this Mac."
+        }
+        return "Push-to-talk stays dictation. The shortcut and the wake phrase open the agent. "
+            + "Download the keyword model below to unlock the full English pronunciation "
+            + "dictionary for custom phrases. The keyboard shortcut always works."
+    }
+
+    /// Shown under the field when the typed phrase cannot be loaded safely.
+    private var wakePhraseProblem: String? {
+        let normalized = WakeWordConfiguration.normalize(settings.wakePhrase)
+        guard !normalized.isEmpty else { return nil }
+        if normalized.count < 3 || normalized.split(separator: " ").count > 6 {
+            return "Use a short phrase of a few spoken words."
+        }
+        let unknown = WakeWordKeywords.unknownWords(in: normalized)
+        guard !unknown.isEmpty else { return nil }
+        let listed = unknown.map { "“\($0)”" }.joined(separator: ", ")
+        if !WakeWordPhoneLexicon.isAvailable {
+            return "\(listed) isn’t available until the keyword model is downloaded (or isn’t "
+                + "in the small offline list). The keyboard shortcut still works."
+        }
+        return "\(listed) isn’t in the pronunciation dictionary, so voice wake won’t use this "
+            + "phrase. Try a different word, or use the keyboard shortcut."
+    }
+
+    /// Keep the on-disk keywords and the live spotter in step with the field — and never
+    /// leave a crashing keywords.txt behind after an edit.
+    private func applyWakePhrase() {
+        Task { @MainActor in
+            WakeWordAudioMonitor.shared.sync()
         }
     }
 
     private var wakeModel: some View {
         Section {
-            ModelStatusRow(
-                title: "Keyword model",
-                detail: "sherpa-onnx zipformer · \(WakeWordModels.archive.displaySize)",
-                state: models.wakeWordState,
-                downloadTitle: "Download…"
-            ) {
-                models.prepareWakeWord()
+            // The download itself lives in Settings ▸ Models now, alongside every other
+            // model this app fetches — this row only says whether it's there yet.
+            HStack(spacing: DS.Space.xs) {
+                Text(models.wakeWordState == .ready ? "Ready" : "Not downloaded yet")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+                Spacer()
+                Button("Manage in Models") {
+                    NavigationState.shared.selectedSettingsTab = .models
+                }
+                .buttonStyle(.link)
+                .font(DS.Font.caption)
             }
         } header: {
             Text("Wake-from-sleep")
         } footer: {
             SettingsNote(text: models.wakeWordState == .ready
-                         ? "The keyword model is loaded. “\(WakeWordConfiguration.normalize(settings.wakePhrase))” on the microphone wakes the agent."
+                         ? wakeModelFooter
                          : WakeWordModelManager.unavailableReason)
         }
+    }
+
+    private var wakeModelFooter: String {
+        if let phrase = WakeWordConfiguration.current.validatedPhrase() {
+            return "The keyword model is loaded. “\(phrase)” on the microphone wakes the agent."
+        }
+        return "The keyword model is loaded, but the current wake phrase can’t be used until every word is in the pronunciation list. The agent shortcut still works."
     }
 
     private var wakeTest: some View {
@@ -139,6 +219,11 @@ struct AgentSettingsTab: View {
                     }
                     .font(DS.Font.callout)
                     ProgressView(value: attempt.confidence)
+                    // Why it landed where it did. A bare number cannot tell someone
+                    // that they were heard but the slider is too conservative.
+                    Text(attempt.explanation)
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.textSecondary)
                 }
             }
 
@@ -238,9 +323,9 @@ struct AgentSettingsTab: View {
                          + "The backend is the default when there is no past request to learn "
                          + "from. Say “use Claude Code” or “do it locally” to pick for one "
                          + "turn. Calendar, mail, Drive, Docs, click and type stay on this "
-                         + "Mac unless you name a coding agent. Claude Code and Codex use "
-                         + "their official ACP adapter; the adapter must be installed before "
-                         + "the provider is marked ready.")
+                         + "Mac unless you say otherwise. Claude Code and Codex each need a "
+                         + "small helper installed alongside them before Next Notes can hand "
+                         + "them work; until it is there, they show as not ready.")
         }
     }
 

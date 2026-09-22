@@ -9,19 +9,29 @@ import llama
 struct S1MiniFormatter: TextFormatter {
     private let preferences: CleanupPreferences
     private let fallback = RuleBasedFormatter()
+    /// Per-run record, so a fallback here is visible afterwards instead of looking like a
+    /// model that decided to change nothing. Nil outside the live dictation path.
+    private let trace: CleanupTrace?
 
-    /// A ceiling on the model, not a target.
+    /// A ceiling on the model, not a target — and one that now moves with the input.
     ///
-    /// It had none, and on a machine under memory pressure that showed: one eval case took
-    /// 39 s end to end while the grammar stage beside it was capped at 4 s, so essentially all
-    /// of it was this model crawling against 6 GB of swap. Warm median is 0.511 s, cold start
-    /// about 2.4 s, so eight seconds is far outside anything healthy and still an eternity
-    /// less than the 30 s bound `DictationController` would otherwise apply — and falling back
-    /// to rule-based cleanup beats falling back to the raw transcript.
-    static let timeout: Duration = .seconds(8)
+    /// It was a flat eight seconds, which is the right number for a sentence and the wrong one
+    /// for a minute of speech. Measured on this machine from `metrics.jsonl`: 3.2 s of cleanup
+    /// on a 19.6 s hold, 7.1 s on a 98.3 s hold. So a two-minute dictation was already at the
+    /// ceiling, and past it the whole pass throws and `RuleBasedFormatter` returns raw ASR with
+    /// a full stop on the end — which is precisely the "long dictations come out unfixed"
+    /// report. `ChunkedFormatter` keeps a real hold under a hundred-odd words per call, and
+    /// this is the second belt: four seconds plus one per twenty words, capped at fifteen, so a
+    /// cold start (~2.4 s) plus a long group still fits and a stalled model still cannot sit on
+    /// the tail.
+    static func timeout(for text: String) -> Duration {
+        let words = text.split { $0.isWhitespace || $0.isNewline }.count
+        return .seconds(min(15.0, 4.0 + Double(max(0, words - 20)) / 20.0))
+    }
 
-    init(preferences: CleanupPreferences) {
+    init(preferences: CleanupPreferences, trace: CleanupTrace? = nil) {
         self.preferences = preferences
+        self.trace = trace
     }
 
     func format(_ raw: String) async -> String {
@@ -29,16 +39,19 @@ struct S1MiniFormatter: TextFormatter {
         guard !trimmed.isEmpty else { return trimmed }
         guard S1MiniModels.isDownloaded else {
             Log.speech.info("S1-mini model unavailable — using rule-based cleanup")
+            trace?.noteModelFailed(reason: "the cleanup model is not downloaded yet", seconds: 0)
             return await fallback.format(trimmed)
         }
 
+        let began = Date()
         do {
+            let budget = Self.timeout(for: trimmed)
             let result = try await withThrowingTaskGroup(of: String.self) { group in
                 group.addTask {
                     try await S1MiniRuntime.shared.normalize(trimmed, preferences: preferences)
                 }
                 group.addTask {
-                    try await Task.sleep(for: Self.timeout)
+                    try await Task.sleep(for: budget)
                     throw S1MiniTimeout()
                 }
                 guard let first = try await group.next() else { throw S1MiniTimeout() }
@@ -48,11 +61,20 @@ struct S1MiniFormatter: TextFormatter {
             // Empty is a documented, valid result for filler-only/noise-only transcripts.
             if result.isEmpty, Self.hasSubstantiveContent(trimmed) {
                 Log.speech.info("S1-mini returned empty substantive text — using rule-based cleanup")
+                trace?.noteModelRejected(
+                    reason: "the cleanup model returned nothing",
+                    seconds: Date().timeIntervalSince(began)
+                )
                 return await fallback.format(trimmed)
             }
+            trace?.noteModelAccepted(seconds: Date().timeIntervalSince(began))
             return result
         } catch {
             Log.speech.error("S1-mini cleanup failed: \(error.localizedDescription, privacy: .public)")
+            trace?.noteModelFailed(
+                reason: error.localizedDescription,
+                seconds: Date().timeIntervalSince(began)
+            )
             return await fallback.format(trimmed)
         }
     }

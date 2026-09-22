@@ -133,7 +133,7 @@ Then choose OpenRouter separately in Settings ▸ Agent and Settings ▸ Meeting
 picker searches OpenRouter's live catalog and filters by text output, tool support,
 reasoning, vision, free variants and provider; it shows context length and published
 input/output prices. Agent answers and meeting notes can use different cloud models.
-Qwen3.5-4B and Apple Foundation Model remain available as local choices. An OpenRouter
+Gemma 4 E4B and Apple Foundation Model remain available as local choices. An OpenRouter
 selection with a missing key or model reports an error instead of silently changing providers.
 The Agent and meeting model pickers offer an OpenRouter speed rank using its recent
 throughput ranking. Visible models show the fastest provider's reported 30-minute median
@@ -253,7 +253,7 @@ Do not commit the DMG; it lives on the Release, not in `docs/`.
 
 The [September 14 voice analysis](Tests/Reports/voice-conversation-analysis-2026-09-14.md)
 traces the latest conversation through the local model, work lifecycle, and playback.
-Apple Foundation Models handles local conversation independently of Qwen background
+Apple Foundation Models handles local conversation independently of on-device background
 workers. Side questions keep work intact; targeted corrections revise the relevant task.
 Announcements wait for a quiet interval and retry unfinished clauses after interruption.
 Local Parakeet EOU detects turn endings, and actual rendered PCM feeds SpeexDSP echo
@@ -317,16 +317,23 @@ Sources/NextNotes/
 │   ├── S1MiniFormatter.swift       local llama.cpp cleanup
 │   ├── FoundationModelCommandProcessor.swift
 │   ├── CleanupInstructions.swift   the cleanup prompt, including the grounding block
+│   ├── SpokenStructure.swift       spoken lists/quotes/code/tables rendered in code, not
+│   │                               by a prompt — runs either side of the model
+│   ├── SentenceChunker.swift       long holds split into sentence groups, whole-pass budget
+│   ├── CleanupTrace.swift          what actually happened to one dictation: engine, route,
+│   │                               guard verdict, fallback reason — filed on the run
 │   ├── Targets/                    OutputProfile (+PathReferenceStyle), OutputProfileStore,
 │   │                               OutputFormatInstructions, InstalledApps
 │   └── LLM/
 │       ├── LlamaBackend.swift      one llama.cpp backend for both local models
 │       ├── LlamaHelpers.swift      tokenize/detokenize/batch, shared
 │       ├── LLMProvider.swift       protocol + LLMProviderID, provider resolution
-│       ├── NotesModels.swift       the Qwen3.5-4B ModelSpec
+│       ├── NotesModels.swift       the built-in (Gemma 4 E4B) ModelSpec
 │       ├── NotesModelRuntime.swift the notes model, Metal-offloaded, self-unloading
-│       ├── LlamaLLMProvider.swift  Qwen behind the protocol
+│       ├── LlamaLLMProvider.swift  on-device model behind the protocol
 │       ├── FoundationModelLLMProvider.swift   Apple's on-device model behind it
+│       ├── OpenAICompatibleLLMProvider.swift  Ollama / LM Studio / any loopback server,
+│       │                               including the structured-tool-call bridge
 │       └── OpenRouterLLMProvider.swift   optional cloud model, Keychain and catalog
 ├── Calendar/
 │   ├── CalendarProvider.swift      MeetingEvent + the protocol both accounts implement
@@ -375,10 +382,36 @@ Sources/NextNotes/
 │   ├── AgentTurnIntent.swift       ordinary turns use the selected Agent model
 │   ├── MeetingLiveToolSelfTest.swift  live model proposal and evidence probe
 │   ├── Tools/                      AgentTool, registry, router, executor, catalogues
-│   ├── Permissions/                PermissionBroker above every executor
+│   ├── Permissions/                PermissionBroker above every executor; ToolCallReview
+│   │                               + Inspector + Context + Builder + Store + Validation —
+│   │                               the approval card is built from the tool's schema, so a
+│   │                               missing argument is a question rather than nothing
+│   ├── FunctionCalling/            Needle 3 (a child process) and a local-model fallback
+│   │                               propose actions from live speech; every value is
+│   │                               grounded against what was actually said before the card
+│   ├── Skills/                     SKILL.md folders already on this Mac, plus search and
+│   │                               install from skills.sh over plain HTTPS
 │   ├── Tasks/                      AgentTask + manager; conversation stays free
 │   ├── Backend/                    AgentBackend, Local, ACP, harness router
 │   └── Activity/                   island activity + inspectable audit log
+├── Knowledge/
+│   ├── KnowledgeStore.swift        chunks, embeddings and FTS5 in knowledge.sqlite
+│   ├── KnowledgeIndexer.swift, HybridSearch.swift, KnowledgeAsk.swift
+│   ├── Extractor.swift, LifeExtractor.swift, Ontology.swift, GraphStore.swift
+│   ├── EntityResolver.swift, PersonResolutionService/Store.swift
+│   ├── Embedding*.swift, StaticEmbedder.swift, Chunker.swift
+│   └── Files/                      the user's shared folders indexed by name, size and
+│                                   date only — never contents. Own file-index.sqlite,
+│                                   FSEvents watcher, and two read-only agent tools
+├── Memory/
+│   ├── NextMemory.swift            the memory list, its budgets and the prompt snapshot
+│   ├── MemoryGuard.swift           what may never become a memory
+│   ├── MemoryReviewer.swift, MemoryTools.swift, RoutineSuggestions.swift
+│   └── Portability/                export the assistant's memory as a folder; import from
+│                                   a file or from another assistant, reviewed before saving
+├── Persona/
+│   ├── PersonaStore.swift          the editable persona, seeded from a bundled preset
+│   └── AgentPromptContext.swift    every section of the agent's system prompt, in order
 ├── Activation/
 │   ├── ActivationController.swift  shortcut + wake phrase → agent session
 │   ├── ShortcutActivation.swift    configurable ⇧⌘Space (not push-to-talk)
@@ -411,7 +444,10 @@ Sources/NextNotes/
 │   │                               OrbBackdrop, DottedField, GlassSurface,
 │   │                               LabeledOrb, SectionHeading, OrbUnavailableView,
 │   │                               InstalledAppPickerSheet
-│   ├── Dictation/                  DictationView, TranscriptionRow
+│   ├── Dictation/                  DictationView, TranscriptionRow,
+│   │                               TranscriptEditorSheet (correcting a past dictation
+│   │                               happens in a sheet, never inside a List row),
+│   │                               CommandModeStatus
 │   ├── Dictionary/                 DictionaryPanel
 │   ├── Comparison/                 ComparisonView
 │   ├── Meetings/                   MeetingsView, MeetingLiveView, MeetingDetailView,
@@ -419,19 +455,37 @@ Sources/NextNotes/
 │   │                               ProposalArgumentsSheet, SpeakerNamesSheet,
 │   │                               RenameMeetingSheet
 │   ├── Agent/                      AgentView — conversation, tasks, audit history;
-│   │                               RoutinesView — schedules, run history, drafts
-│   ├── Onboarding/                 PermissionsChecklist, OnboardingSheet
+│   │                               RoutinesView — schedules, run history, drafts;
+│   │                               SkillsView; ToolReviewCard — what will happen, what is
+│   │                               missing, and where every value came from
+│   ├── Knowledge/                  KnowledgeSearchView; KnowledgeGraphPane, which now
+│   │                               lives under Agent rather than under Search
+│   ├── Onboarding/                 PermissionsChecklist, plus the first-run flow:
+│   │                               OnboardingFlow (a pure state machine — which screens
+│   │                               may be skipped is a question a test can answer),
+│   │                               Steps, Chrome, Window, Outcome, ModelResume, SelfTest
 │   └── Settings/                   SettingsWindow + one Form per tab, ten panes:
 │                                   General, Dictation, Formatting, Meetings, Calendar,
 │                                   Workspace, Agent, Integrations, Models, Permissions.
 │                                   `--selftest-settings` fails if any drop out of
-│                                   `SettingsTab.allCases`.
+│                                   `SettingsTab.allCases`. Sections added here:
+│                                   ModelRoleSection (which model does which job),
+│                                   ModelLibrary/ (browse and download from Hugging Face,
+│                                   with a plain-language "will it run on this Mac"),
+│                                   FastListeningSection, MemoryDataControls +
+│                                   MemoryImportSheet.
 └── Support/
     ├── Settings.swift, LocalModelStore.swift, Permissions.swift, Log.swift
     ├── ModelDownloader.swift       one ModelSpec download path with progress + SHA-256
     ├── Notifications.swift         armed meetings, notes ready, agent proposals, and
     │                               the action buttons on each
-    └── NavigationState.swift       which section is showing
+    ├── NavigationState.swift       which section is showing
+    ├── ModelLibrary/               what this Mac is (HardwareProfile), what it can run
+    │                               (ModelFitEstimator), the Hub client, Keychain-backed
+    │                               access, and the installed-model list
+    └── ModelRoles/                 three jobs — everyday assistant, controlling the Mac,
+                                    writing code — resolved against what is actually
+                                    present, plus Ollama / LM Studio discovery
 ```
 
 ### Self-tests
@@ -519,13 +573,13 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-toolloop-production     # model → read tool → model, plus single-stream answers
 "$S" --selftest-voice-conversation      # corrections preserve work/results; stale effects cannot run
 "$S" --selftest-concurrent-voice        # independent conversation and multiple retained workers
-"$S" --selftest-voice-frontend          # real on-device conversation during Qwen decode/prefill
+"$S" --selftest-voice-frontend          # real on-device conversation during local decode/prefill
 "$S" --selftest-voice-eou speech.wav    # local EOU model, silence rejection and speech ending
 "$S" --selftest-acoustic-replay        # production DSP with generated overlapping signals
 "$S" --selftest-acoustic-speech far.wav near.wav # distinct speech overlap, echo/near quality gates
 open -n -a "Next Notes" --args --selftest-acoustic-live --selftest-out /tmp/nextnotes-echo.txt
 #                                        actual output PCM + mic; silence/headphones cannot pass
-"$S" --selftest-voice-local             # real local Qwen routing, prewarm and first-text timings
+"$S" --selftest-voice-local             # real local-model routing, prewarm and first-text timings
 "$S" --selftest-voice-turns             # overlapping acknowledgments and extended corrections
 "$S" --selftest-voice-work-lifecycle    # explicit cancel and model budget while holding the floor
 "$S" --selftest-voice-delivery          # interrupted announcements retry only unfinished clauses
@@ -546,6 +600,17 @@ open -n -a "Next Notes" --args --selftest-microphone --selftest-out /tmp/nextnot
 "$S" --selftest-acoustic-measure <audio-file> # speaker bleed vs voice-processing input; launch as the app
 "$S" --selftest-contention              # hub share, scheduler yield, barge-in, ACP confirm
 "$S" --selftest-residency               # pressure unload order; background yields to realtime ASR
+"$S" --selftest-cleanup-structure       # spoken lists/quotes/code/tables rendered without a model
+"$S" --selftest-commandkey              # a tap or a chord starts nothing; every status has words
+"$S" --selftest-tool-review             # a missing argument becomes a question; invention is refused
+"$S" --selftest-function-calls [dir]    # a real proposal from speech, and the address it must not invent
+"$S" --selftest-skills                  # skills already on this Mac, plus a live search and install
+"$S" --selftest-file-index              # crawl, watch, purge; a removed folder returns no hits
+"$S" --selftest-onboarding              # required screens refuse to be skipped; the ending tells the truth
+"$S" --selftest-model-roles             # which model does which job, and what happens when it is absent
+"$S" --selftest-model-fit               # the "will it run on this Mac" verdict, and no jargon in it
+"$S" --selftest-hf-search               # live Hub search, then a real interrupted-and-resumed download
+"$S" --selftest-memory-portability      # export, re-import, and what the review refuses to save
 ```
 
 Each prints a single `<NAME>_OK` or `<NAME>_FAILED` line last, so they can be read by a
@@ -609,7 +674,7 @@ Two providers are interchangeable and either can be picked per meeting from **Re
 
 | Provider | Where it runs | Context | Notes |
 |---|---|---|---|
-| **Qwen3.5-4B Q4_K_M** (default) | bundled llama.cpp, Metal | up to 32K here | 2.74 GB download from Settings ▸ Models; frees itself ten minutes after the last generation |
+| **Gemma 4 E4B Q4_K_M** (default) | bundled llama.cpp, Metal | up to 32K here | 4.98 GB download from Settings ▸ Models; frees itself ten minutes after the last generation |
 | **Apple Foundation Models** | the OS | 4096 tokens | no download; long transcripts always take the map/reduce path |
 
 Notes are written automatically when a recording finishes (*Write notes when a meeting
@@ -623,8 +688,8 @@ Push-to-talk stays dictation. ⇧⌘ Space (Settings ▸ Agent; configurable) or
 phrase — default “Hey Next”, after the keyword model is downloaded — opens a conversation.
 A local streaming end-of-utterance model ends each spoken turn; **Done** on the
 island leaves the session and discards unfinished speech. Live voice uses Apple
-Foundation Models for on-device conversation and routing, independently of Qwen
-background tool workers. The Agent model picker applies to the regular text
+Foundation Models for on-device conversation and routing, independently of
+on-device background tool workers. The Agent model picker applies to the regular text
 agent; it does not send live voice conversation to a cloud model. The frontend
 sees compact tool capabilities; requests needing tools open the full argument
 catalogue in a worker. Plain answers stream into speech one clause at a time.
@@ -948,8 +1013,8 @@ events) and confirmed via `/usr/bin/log show --predicate 'subsystem ==
   the whole reason grants stick: two consecutive builds produce an identical designated
   requirement, so macOS does not treat the rebuilt app as a different one. Genuinely ad-hoc
   builds — no certificate at all — do require a fresh Accessibility grant every rebuild.
-- Qwen3.5-4B downloaded, SHA-256 pinned, and running on Metal with real weights alongside
-  S1-mini on the CPU in one process.
+- Gemma 4 E4B downloaded and running on Metal with real weights alongside
+  S1-mini on the CPU in one process (SHA-256 still to pin from the first verified download).
 - Google Calendar connected through the OAuth loopback flow, with the refresh token in the
   Keychain: `--selftest-calendar` reports `google: Connected` and returns real events.
 - The system-audio tap runs with its grant — `system audio started — tap 48000Hz → engine

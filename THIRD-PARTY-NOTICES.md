@@ -54,12 +54,26 @@ Instrument Serif under the SIL Open Font License 1.1. The fonts keep their OFL t
 the site is copied; the OFL's only real constraint — do not sell the fonts on their own and
 do not rename them — is untouched by the AGPL.
 
-## Models
+## Downloaded at runtime, not distributed
 
-Speech and language models (Apple's own, Parakeet TDT, Qwen, S1-mini, the wake-word model)
-are **downloaded at runtime and are not distributed with this source or with the app**.
-Each carries its own licence from its publisher, which the AGPL here neither extends nor
-restricts. Check the model's own terms before redistributing weights.
+Nothing in this section ships in the repository or inside the `.app`. Each item is fetched
+from its publisher on the user's machine, against a pinned SHA-256, and keeps its own terms —
+which the AGPL here neither extends nor restricts.
+
+| Component | What it is | Licence |
+|---|---|---|
+| Apple on-device models, Parakeet TDT, Gemma 4 E4B, S1-mini, the wake-word model | speech and language model weights | each publisher's own |
+| Needle 3 (`Cactus-Compute/needle3`) — `needle3.cact` weights (35.3 MB) | on-device function-calling model | Apache-2.0 |
+| Needle 3 — `macos-arm64/needle` (825 KB) | the engine that runs those weights, spawned as a child process like `gws` | Apache-2.0 |
+| Any GGUF the user chooses from the Hugging Face Hub | model weights | whatever that repository states; gated repositories require the user to accept the publisher's terms first |
+
+The Needle engine is the only **executable** in this table rather than a set of weights, so
+it is called out separately: it is Apache-2.0, which is one-way compatible with
+AGPL-3.0-or-later, it is never committed, and it runs as a separate process rather than being
+linked in. Verified against the Hub's own metadata on 2026-09-20 (`license: apache-2.0`,
+`gated: false`).
+
+Check a model's own terms before redistributing weights.
 
 ## Cloud services
 

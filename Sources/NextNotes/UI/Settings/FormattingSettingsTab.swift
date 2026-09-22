@@ -16,12 +16,28 @@ import SwiftUI
 ///
 /// The output-profile table, as a grouped `Form` like every other pane.
 ///
-/// The app list is a `List` of fixed height inside the section — `DS.Size.formatListHeight`
-/// — so it scrolls inside that frame rather than growing the window. A `List` with
-/// `maxHeight: .infinity` inside the HStack Settings rewrite was what clipped General,
-/// Dictation and Formatting off the top of the sidebar: the pane's intrinsic height
-/// exceeded the window and the stack centered the overflow. Do not give this list an
-/// unbounded height again.
+/// The app list used to be a `List` of fixed height inside the section —
+/// `DS.Size.formatListHeight` — clipped to that frame so it would scroll inside it rather
+/// than growing the window. That List and the pane's own `Form` (itself a scrolling
+/// container on macOS) were two independent scroll surfaces stacked on top of each other,
+/// and the trackpad/wheel routing between them never worked: the box showed roughly five
+/// rows and neither the box nor the pane would scroll to reveal the rest. Nesting a
+/// scrollable `List` inside a scrollable `Form` is exactly the combination the platform
+/// does not handle reliably — a `Form` is the flat list of rows a Settings pane is built
+/// from, not a place to park a second, competing scroll view.
+///
+/// The fix is to stop giving the app list a scroll surface of its own. `profileList` below
+/// disables the `List`'s own scrolling and drops its fixed height, so it lays out at its
+/// full content height — every row present at once — and the pane's `Form` becomes the one
+/// and only scrolling surface, exactly like the pane's other sections. Selecting a row (by
+/// click, arrow key or Page Down) still works, because that is `List`'s row-selection
+/// machinery, not its scrolling; a `ScrollViewReader` around the `Form` brings a newly
+/// selected row into view when it lands outside the current scroll position, so keyboard
+/// navigation still reaches a row currently off-screen. The one thing this trades away is a
+/// header pinned to the top of a small box while only its rows scroll — `Form` sections do
+/// not support that, and reintroducing it would mean giving the list back its own scroll
+/// view, which is the bug. Do not give this list a fixed frame height again; it is what
+/// broke scrolling.
 struct FormattingSettingsTab: View {
     @State private var store = OutputProfileStore.shared
     @State private var screenContext = ScreenContextStore.shared
@@ -33,12 +49,25 @@ struct FormattingSettingsTab: View {
     @State private var isPicking = false
 
     var body: some View {
-        Form {
-            apps
-            screenNames
-            file
+        ScrollViewReader { proxy in
+            Form {
+                apps
+                screenNames
+                file
+            }
+            .formStyle(.grouped)
+            // The `Form` is now the pane's only scroll surface (see the type comment
+            // above), so a selection made by arrow key or Page Down has to ask it to
+            // scroll explicitly — `List` no longer has a scroll view of its own to do
+            // that automatically. Only fires for a single fresh selection: a shift/cmd
+            // range extension has no one row to centre on.
+            .onChange(of: selection) { _, newValue in
+                guard newValue.count == 1, let id = newValue.first else { return }
+                withAnimation {
+                    proxy.scrollTo(id, anchor: .center)
+                }
+            }
         }
-        .formStyle(.grouped)
         .sheet(isPresented: $isAdding) {
             OutputProfileEditor(existing: nil) { store.upsert($0) }
         }
@@ -66,9 +95,13 @@ struct FormattingSettingsTab: View {
         } footer: {
             SettingsNote(
                 text: "Dictated text is written to suit the app it is about to land in — a "
-                    + "spoken list becomes bullets in Slack and a sentence in Mail. An "
-                    + "app that isn't listed gets plain prose, because a formatting mark "
-                    + "an app doesn't render is worse than none."
+                    + "spoken list becomes bullets in Slack and numbered lines in Mail. "
+                    + "These switches choose the marks an app is allowed, not whether you "
+                    + "get structure: a list you actually spoke out loud stays a list "
+                    + "everywhere, written as plain \u{201C}1.\u{201D} lines in an app that "
+                    + "shows marks instead of drawing them. An app that isn't listed is "
+                    + "given no marks at all, because a mark an app doesn't render is worse "
+                    + "than none."
             )
         }
     }
@@ -158,12 +191,16 @@ struct FormattingSettingsTab: View {
                     .foregroundStyle(DS.Color.textSecondary)
                     .frame(width: DS.Size.formatCapabilityColumn)
                     .help("\(capability.displayName) — \(capability.help)")
+                    // Without this, VoiceOver reads the SF Symbol's raw name (e.g.
+                    // "textformat") instead of what the column means.
+                    .accessibilityLabel("\(capability.displayName) column: \(capability.help)")
             }
             Image(systemName: "at")
                 .font(DS.Font.caption)
                 .foregroundStyle(DS.Color.textSecondary)
                 .frame(width: DS.Size.formatCapabilityColumn)
                 .help("Whether this app resolves @-paths into files")
+                .accessibilityLabel("Path references column: whether this app resolves @-paths into files")
         }
     }
 
@@ -180,6 +217,9 @@ struct FormattingSettingsTab: View {
             )
             .frame(height: DS.Size.formatListHeight)
         } else {
+            // No `.frame(height:)` and no scrolling of its own — see the type comment on
+            // `FormattingSettingsTab` for why. The `List` lays out every row at once and
+            // leaves scrolling to the enclosing `Form`.
             List(selection: $selection) {
                 ForEach(store.profiles) { profile in
                     OutputProfileRow(
@@ -192,11 +232,12 @@ struct FormattingSettingsTab: View {
                         }
                     )
                     .tag(profile.bundleID)
+                    .id(profile.bundleID)
                 }
             }
             .listStyle(.inset)
             .alternatingRowBackgrounds()
-            .frame(height: DS.Size.formatListHeight)
+            .scrollDisabled(true)
         }
     }
 

@@ -319,7 +319,10 @@ final class SystemAudioCapture: @unchecked Sendable {
               let buffer = AVAudioPCMBuffer(pcmFormat: tapFormat, bufferListNoCopy: inputData)
         else { return }
 
-        onLevel?(AudioConversion.level(of: buffer))
+        let level = AudioConversion.level(of: buffer)
+        // Without the grant every sample is zero, so any level at all is proof of it.
+        if level > 0 { Permissions.noteSystemAudioHeard() }
+        onLevel?(level)
 
         guard let outputFormat else { return }
 

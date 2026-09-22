@@ -107,7 +107,7 @@ private actor VoiceWorkLifecycleProbe {
 }
 
 private struct VoiceWorkLifecycleProvider: LLMProvider {
-    let id = LLMProviderID.qwen35_4b
+    let id = LLMProviderID.gemma4E4B
     let state: VoiceWorkLifecycleProbe
     var contextTokens: Int { 8_192 }
     var unavailableReason: String? { get async { nil } }

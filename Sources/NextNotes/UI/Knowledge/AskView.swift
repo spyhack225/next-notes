@@ -1,3 +1,4 @@
+import AppKit
 import Observation
 import SwiftUI
 
@@ -73,6 +74,9 @@ final class KnowledgeAskSession {
     private(set) var partial = ""
     /// Every passage read so far, across rounds.
     private(set) var passages: [KnowledgeCitation] = []
+    /// Files of the user's whose *name* matched the question. Shown separately from the
+    /// passages, and never as a source for a sentence: nothing read them.
+    private(set) var files: [FileHit] = []
     private(set) var answer: KnowledgeAnswer?
     /// Stage timings for the run in flight or the last finished one.
     private(set) var timing: AskRunTiming?
@@ -90,6 +94,7 @@ final class KnowledgeAskSession {
         asked = text
         partial = ""
         passages = []
+        files = []
         answer = nil
         retrieveBegan = nil
         generateBegan = nil
@@ -160,6 +165,8 @@ final class KnowledgeAskSession {
                     case .retrieved(_, let found):
                         markRetrieveFinished()
                         passages += found
+                    case .files(let found):
+                        files = found
                     case .generating:
                         markRetrieveFinished()
                         generateBegan = Date()
@@ -243,6 +250,7 @@ struct AskView: View {
                         status
                         timingLine
                         content
+                        fileList
                         passageList
                     }
                     .frame(maxWidth: DS.Size.readingWidth, alignment: .leading)
@@ -351,6 +359,35 @@ struct AskView: View {
         } else if !session.partial.isEmpty {
             Text(KnowledgeAnswerParser.stripMarkers(session.partial))
                 .textSelection(.enabled)
+        }
+    }
+
+    /// Files whose name matched, kept well away from the citations.
+    ///
+    /// Deliberately not a source chip: a chip says "this sentence came from here", and
+    /// nothing has read these files. The line above them says so in plain words, so nobody
+    /// reads a matching file name as evidence of what is inside it.
+    @ViewBuilder
+    private var fileList: some View {
+        if !session.files.isEmpty {
+            VStack(alignment: .leading, spacing: DS.Space.xs) {
+                Text("Files on your Mac with a matching name. Next Notes hasn’t looked inside them.")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+                FlowLayout(spacing: DS.Space.xs) {
+                    ForEach(session.files) { file in
+                        Button {
+                            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: file.path)])
+                        } label: {
+                            Label(file.name, systemImage: file.isDirectory ? "folder" : file.category.symbol)
+                                .font(DS.Font.chip)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .help("Show \(file.path) in Finder")
+                    }
+                }
+            }
         }
     }
 

@@ -638,6 +638,44 @@ struct GraphStore: KnowledgeGraphReading {
         }
     }
 
+    /// The graph nodes that were extracted from these chunks — how a passage that names a
+    /// file is traced back to the meeting, person or project it belongs to (Part 4, files).
+    func nodes(forChunks ids: [Int64]) throws -> [KnowledgeGraphNode] {
+        guard store.existsOnDisk, !ids.isEmpty else { return [] }
+        return try store.withConnection { db in
+            var values: [KnowledgeStore.SQLValue] = []
+            var placeholders: [String] = []
+            for id in ids.prefix(100) {
+                values.append(.int(id))
+                placeholders.append("?\(values.count)")
+            }
+            let statement = try KnowledgeStore.prepare(db, """
+                SELECT id, type, label, source_chunk FROM graph_node
+                WHERE source_chunk IN (\(placeholders.joined(separator: ", ")))
+                """)
+            defer { sqlite3_finalize(statement) }
+            KnowledgeStore.bind(statement, values)
+            var result: [KnowledgeGraphNode] = []
+            while sqlite3_step(statement) == SQLITE_ROW {
+                guard let id = KnowledgeStore.text(statement, 0) else { continue }
+                result.append(KnowledgeGraphNode(
+                    id: id, type: KnowledgeStore.text(statement, 1) ?? "",
+                    label: KnowledgeStore.text(statement, 2) ?? "",
+                    sourceChunk: sqlite3_column_type(statement, 3) == SQLITE_NULL
+                        ? nil : sqlite3_column_int64(statement, 3)))
+            }
+            return result
+        }
+    }
+
+    /// Nodes by id, for callers that already know which ones they want.
+    func nodes(ids: [String]) throws -> [KnowledgeGraphNode] {
+        guard store.existsOnDisk, !ids.isEmpty else { return [] }
+        return try store.withConnection { db in
+            try ids.compactMap { try Self.node(db, $0) }
+        }
+    }
+
     /// Meetings a person attended, newest first, each with that meeting's decisions and
     /// action items — and which of those action items the person owns (Phase F).
     func personMeetings(personID: String) throws -> [PersonMeetingMoment] {
@@ -845,6 +883,8 @@ enum GraphNodeStyle {
         case "Goal": "Goals"
         case "Preference": "Preferences"
         case "Event": "Events"
+        case "Folder": "Folders"
+        case "File": "Files"
         default: type
         }
     }
@@ -865,6 +905,8 @@ enum GraphNodeStyle {
         case "Goal": "flag"
         case "Preference": "heart"
         case "Event": "star"
+        case "Folder": "folder.fill"
+        case "File": "doc.text"
         default: "circle"
         }
     }
@@ -886,6 +928,8 @@ enum GraphNodeStyle {
         case "Goal": "goal"
         case "Preference": "preference"
         case "Event": "event"
+        case "Folder": "folder"
+        case "File": "file"
         default: type.lowercased()
         }
     }
@@ -893,6 +937,6 @@ enum GraphNodeStyle {
     /// Types the local-graph rail lists as starting points, life domains first after people.
     static let focusOrder = [
         "Person", "Project", "Organization", "Activity", "Place", "Goal", "Event",
-        "Preference", "Topic", "Meeting",
+        "Preference", "Topic", "Folder", "File", "Meeting",
     ]
 }

@@ -5,7 +5,7 @@ import Observation
 /// written, with the on-device model.
 ///
 /// - **Off by default.** Only while the index and `knowledgeGraphEnabled` are both on.
-/// - **Local only.** Qwen under the grammar when it is downloaded, Apple's on-device model
+/// - **Local only.** The on-device model under the grammar when it is downloaded, Apple's on-device model
 ///   (validated, not constrained) otherwise. The graph is the distilled version of every
 ///   meeting and is never sent to a cloud provider; with neither local model there is no
 ///   extraction, and the meeting simply reaches done.
@@ -197,9 +197,9 @@ final class KnowledgeExtractionService {
         backfillProgress = nil
     }
 
-    /// Qwen (grammar-constrained) or Apple's on-device model. Never OpenRouter.
+    /// The on-device model (grammar-constrained) or Apple's on-device model. Never OpenRouter.
     static func localModel() async -> (any KnowledgeExtractionModel)? {
-        guard let provider = await LLMProviders.resolve(preferring: .qwen35_4b), provider.id != .openRouter else {
+        guard let provider = await LLMProviders.resolve(preferring: .gemma4E4B), provider.id != .openRouter else {
             return nil
         }
         return ProviderExtractionModel(provider: provider)

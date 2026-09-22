@@ -121,6 +121,15 @@ final class MemoryReviewStateStore {
     private(set) var memoryOff = false
     private(set) var requests: [RoutineRequestOccurrence] = []
     private(set) var suggestions: [RoutineSuggestion] = []
+    /// What every pass of the review decided, newest last. The Memories sheet reads the last
+    /// row, so an empty list is never again indistinguishable from a review that never ran.
+    private(set) var runs: [MemoryReviewRun] = []
+    /// `sourceKey` values the review has already read — `dictation:<uuid>`, `meeting:<uuid>`.
+    /// This is what makes the backfill resumable and idempotent.
+    private(set) var harvested: Set<String> = []
+    private(set) var backfill = MemoryBackfillState()
+
+    static let runLimit = 200
 
     let directory: URL
     var fileURL: URL { directory.appendingPathComponent(Self.fileName) }
@@ -169,6 +178,46 @@ final class MemoryReviewStateStore {
         return suggestions[index].offer()
     }
 
+    // MARK: - The review ledger
+
+    /// Records what one pass decided, and ticks off the source it read.
+    func record(run: MemoryReviewRun, sourceKey: String?) {
+        runs.append(run)
+        if runs.count > Self.runLimit { runs.removeFirst(runs.count - Self.runLimit) }
+        // A conversation is re-read as it grows, so only the other channels are ticked off.
+        if let sourceKey, !sourceKey.hasPrefix("conversation:") { harvested.insert(sourceKey) }
+        persist()
+    }
+
+    var lastRun: MemoryReviewRun? { runs.last }
+
+    /// "Last looked: today 17:40 — saved 2.", or the sentence for a review that never ran.
+    func lastLookedLine(now: Date = Date()) -> String {
+        guard let lastRun else {
+            return memoryOff
+                ? "Not looking: remembering is turned off."
+                : "Last looked: not yet — the Agent looks when a conversation ends and after each note."
+        }
+        return lastRun.line(now: now)
+    }
+
+    // MARK: - Backfill
+
+    func updateBackfill(_ change: (inout MemoryBackfillState) -> Void) {
+        var next = backfill
+        change(&next)
+        guard next != backfill else { return }
+        backfill = next
+        persist()
+    }
+
+    /// Ticks a source off without a run row — used when a source turns out to hold nothing
+    /// the user said, so the backfill does not keep coming back to it.
+    func markHarvested(_ sourceKey: String) {
+        guard harvested.insert(sourceKey).inserted else { return }
+        persist()
+    }
+
     /// Suggestions still shown at the top of the Routines view.
     var openSuggestions: [RoutineSuggestion] {
         suggestions.filter { $0.resolvedAt == nil }
@@ -195,6 +244,10 @@ final class MemoryReviewStateStore {
         var memoryOff: Bool?
         var requests: [RoutineRequestOccurrence]
         var suggestions: [RoutineSuggestion]
+        /// Optional for the same reason: a file from before the ledger existed still reads.
+        var runs: [MemoryReviewRun]?
+        var harvested: [String]?
+        var backfill: MemoryBackfillState?
     }
 
     private func load() {
@@ -209,6 +262,9 @@ final class MemoryReviewStateStore {
         memoryOff = stored.memoryOff ?? false
         requests = stored.requests
         suggestions = stored.suggestions
+        runs = stored.runs ?? []
+        harvested = Set(stored.harvested ?? [])
+        backfill = stored.backfill ?? MemoryBackfillState()
     }
 
     /// Dates are stored as the exact number `Date` holds (seconds since 2001), as
@@ -236,7 +292,8 @@ final class MemoryReviewStateStore {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         do {
             let data = try encoder.encode(Stored(version: 1, reviewedThrough: reviewedThrough, memoryOff: memoryOff,
-                                                 requests: requests, suggestions: suggestions))
+                                                 requests: requests, suggestions: suggestions, runs: runs,
+                                                 harvested: harvested.sorted(), backfill: backfill))
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             try data.write(to: fileURL, options: .atomic)
             try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)

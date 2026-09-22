@@ -38,6 +38,19 @@ struct DictationRun: Codable, Sendable, Identifiable {
     /// editing existed decode with this nil rather than failing the whole line.
     var editedText: String?
 
+    /// What the cleanup pass did to this utterance, if anything.
+    ///
+    /// Added because the file could not answer the only question anyone ever asked of it.
+    /// `text` is what was typed, and one string cannot say whether grammar was switched on,
+    /// which model ran, whether its answer was thrown away by `CleanupGuard`, whether it
+    /// timed out, or whether a spoken list was turned into a list — and those are five
+    /// different faults with one symptom.
+    ///
+    /// Optional, and `CleanupRecord` decodes every key with `decodeIfPresent`, so the 175
+    /// runs already in this user's `runs.jsonl` still load. Nothing here is required reading
+    /// for the Dictation list; it is the diagnostic half of the row.
+    var cleanup: CleanupRecord?
+
     /// What to show, and what to copy: the correction if there is one.
     var displayText: String { editedText ?? text }
 
@@ -55,7 +68,8 @@ struct DictationRun: Codable, Sendable, Identifiable {
         text: String,
         group: String? = nil,
         corrections: [AppliedCorrection]? = nil,
-        editedText: String? = nil
+        editedText: String? = nil,
+        cleanup: CleanupRecord? = nil
     ) {
         self.editedText = editedText
         self.id = id
@@ -66,6 +80,7 @@ struct DictationRun: Codable, Sendable, Identifiable {
         self.text = text
         self.group = group
         self.corrections = corrections
+        self.cleanup = cleanup
     }
 
     init(from decoder: any Decoder) throws {
@@ -79,6 +94,10 @@ struct DictationRun: Codable, Sendable, Identifiable {
         group = try container.decodeIfPresent(String.self, forKey: .group)
         corrections = try container.decodeIfPresent([AppliedCorrection].self, forKey: .corrections)
         editedText = try container.decodeIfPresent(String.self, forKey: .editedText)
+        // Written by hand for the same reason `id` is: every row already in the file
+        // predates this key, and a synthesized decoder would throw `keyNotFound` on all 175
+        // of them rather than lose one optional field.
+        cleanup = try container.decodeIfPresent(CleanupRecord.self, forKey: .cleanup)
     }
 }
 

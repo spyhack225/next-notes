@@ -27,6 +27,12 @@ struct SettingsWindow: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
+        // Without this, `.sidebarAdaptable` reserves a "large title" band: the window
+        // title floats alone on its own row, the sidebar toggle sits below the traffic
+        // lights on a second row, and only then does the sidebar/content start. Inline
+        // display keeps the title on the same compact row as the toggle, like System
+        // Settings, so the sidebar and each pane's own header start right under it.
+        .toolbarTitleDisplayMode(.inline)
         .frame(minWidth: DS.Size.settingsWindowMinWidth)
         .frame(minHeight: DS.Size.settingsWindowMinHeight)
         .background(SettingsWindowFrame(minSize: SettingsTab.windowMinSize))

@@ -45,7 +45,7 @@ struct NotesGenerator: Sendable {
     /// Notes longer than this are a transcript with bullet points in front of it.
     private static let maxNotesTokens = 1_500
     /// One chunk's worth of transcript in the map step.
-    private static let qwenChunkTokens = 3_000
+    private static let localModelChunkTokens = 3_000
     private static let appleChunkTokens = 2_000
     /// A chunk's facts are far shorter than the chunk.
     private static let maxFactTokens = 600
@@ -180,9 +180,11 @@ struct NotesGenerator: Sendable {
 
     private var chunkTokens: Int {
         switch provider.id {
-        case .qwen35_4b: Self.qwenChunkTokens
+        case .gemma4E4B: Self.localModelChunkTokens
         case .appleFoundation: Self.appleChunkTokens
-        case .openRouter: Self.qwenChunkTokens
+        // A model served over HTTP, here or in the cloud, has a window we cannot read
+        // exactly, so both use the conservative local chunk size.
+        case .openRouter, .localServer: Self.localModelChunkTokens
         }
     }
 
@@ -362,8 +364,8 @@ enum NotesError: LocalizedError {
         case .contextTooSmall:
             "The notes model has no room for a transcript."
         case .noProvider:
-            "No notes model is available. Download \(NotesModels.spec.displayName), or turn "
-                + "on Apple Intelligence."
+            "Your assistant\u{2019}s brain isn\u{2019}t downloaded yet \u{2014} get it in "
+                + "Settings \u{25b8} Models, or turn on Apple Intelligence."
         }
     }
 }

@@ -39,10 +39,13 @@ enum RealtimeToolSelection {
         "browser.snapshot", "browser.navigate", "browser.click", "browser.fill", "browser.select",
         "filesystem.search", "filesystem.read", "filesystem.write", "filesystem.move",
         "filesystem.copy", "filesystem.reveal", "shell.run",
+        // The indexed-folder tools; the model is told to call them files.find / files.tree.
+        "filesystem.find", "filesystem.tree",
         "memory.remember", "memory.update", "memory.forget", "memory.recall",
         "schedule.list", "schedule.create", "schedule.update", "schedule.pause",
         "schedule.resume", "schedule.remove", "schedule.run_now",
         "search_knowledge", "expand_node", "timeline",
+        "skills.search", "skills.read", "skills.install",
     ]
 }
 
@@ -345,14 +348,24 @@ extension RealtimeAgent {
     ) async -> AgentModelTurnResult {
         let owner = currentGeneration
         let work = voice ? voiceWork : nil
+        // "Controlling your Mac" can be pointed at Codex, which drives the screen through
+        // its own helper app. Asked before a model is chosen, because a hand-off that
+        // succeeds needs no model here at all.
+        var handoffNote: String?
+        if localModelProviderForTesting == nil {
+            switch await CodexComputerUse.route(prompt) {
+            case .done(let reply):
+                return AgentModelTurnResult(reply: reply, usedTools: true)
+            case .fellBack(let note):
+                handoffNote = note
+            case nil:
+                break
+            }
+        }
         let provider: any LLMProvider
         if let testingProvider = localModelProviderForTesting {
             provider = testingProvider
-        } else if let selected = await LLMProviders.resolve(
-            preferring: voice ? .qwen35_4b : Settings.shared.agentModelProvider,
-            modelID: Settings.shared.openRouterAgentModelID,
-            contextTokens: Settings.shared.openRouterAgentContextTokens
-        ) {
+        } else if let selected = await AgentModelRouting.provider(for: prompt, voice: voice) {
             provider = selected
         } else {
             return AgentModelTurnResult(
@@ -360,9 +373,15 @@ extension RealtimeAgent {
             )
         }
         // The knowledge graph reaches a cloud planner only with its own consent.
-        return await KnowledgeGraphScope.$reader.withValue(provider.id) {
+        let result = await KnowledgeGraphScope.$reader.withValue(provider.id) {
             await runModelTurn(prompt, speech: speech, voice: voice, owner: owner, work: work, provider: provider)
         }
+        guard let handoffNote else { return result }
+        // The person picked Codex for this. They are told once, in one sentence, why the
+        // answer came from here instead — never silently.
+        return AgentModelTurnResult(
+            reply: handoffNote + "\n\n" + result.reply, usedTools: result.usedTools
+        )
     }
 
     private func runModelTurn(
@@ -372,10 +391,11 @@ extension RealtimeAgent {
         guard isCurrent(owner) else {
             return AgentModelTurnResult(reply: "Stopped.", usedTools: false)
         }
+        Self.publishGrounding()
         // A stable work item receives microphone follow-ups while this producer
         // runs. An obsolete response is discarded before it can become an action.
         let history = AgentSession.shared.chatHistoryForCurrentTurn(maxCharacters: 2_500)
-        let coldLocalModel = localModelProviderForTesting == nil && provider.id == .qwen35_4b
+        let coldLocalModel = localModelProviderForTesting == nil && provider.id == .gemma4E4B
             ? !(await NotesModelRuntime.shared.isLoaded) : false
         if coldLocalModel { beginWork(title: "Loading local model…") }
         let limit = toolLoopLimitForTesting
@@ -417,7 +437,11 @@ extension RealtimeAgent {
                         assembled += chunk
                         switch VoiceResponseEnvelope.parse(assembled) {
                         case .answer(let answer):
-                            if let speech { await speech.receive(answer) }
+                            // Hold the audio while the sentence could still be a denial the
+                            // roster contradicts; see `AgentRefusalGuard.mayBeDenial`.
+                            if let speech, !AgentRefusalGuard.mayBeDenial(answer) {
+                                await speech.receive(answer)
+                            }
                         case .tools:
                             return .text("<use_tools/>")
                         case .invalid:
@@ -454,8 +478,20 @@ extension RealtimeAgent {
                         speech?.cancel()
                         return AgentModelTurnResult(reply: "The model returned an invalid tool request.", usedTools: false)
                     }
-                    speech?.finish(hasToolCalls: false)
                     let text = answer.trimmingCharacters(in: .whitespacesAndNewlines)
+                    // "I don't know what you are working on. I need to check your files and
+                    // history to find out." — 20:43:22Z, from this branch, with the file
+                    // index already built. A first pass that answers with a denial the
+                    // roster contradicts has chosen the wrong header, not the wrong words.
+                    if AgentRefusalGuard.rebuttal(for: text) != nil {
+                        speech?.cancel()
+                        beginWork(title: "Working with tools…")
+                        let trace = LatencyTrace.start(.agentToolCallToResult)
+                        let reply = await runPlannedToolLoop(prompt, speech: speech, voice: voice)
+                        trace.end(note: "refusal-escalation")
+                        return AgentModelTurnResult(reply: reply, usedTools: true)
+                    }
+                    speech?.finish(hasToolCalls: false)
                     return AgentModelTurnResult(
                         reply: text.isEmpty ? "The model returned no answer." : text, usedTools: false)
                 case .pending, .invalid:
@@ -468,7 +504,7 @@ extension RealtimeAgent {
         return AgentModelTurnResult(reply: "Stopped.", usedTools: false)
     }
 
-    /// The Qwen/OpenRouter first pass. Persona, then these rules, via `AgentPromptContext`;
+    /// The on-device/OpenRouter first pass. Persona, then these rules, via `AgentPromptContext`;
     /// identical across the turns of a session so the llama.cpp prefix cache holds.
     nonisolated static func voiceRoutingSystem(voice: Bool) -> String {
         AgentPromptContext.assemble(.toolLoop, rules: voiceRoutingRules(voice: voice)).system
@@ -487,6 +523,13 @@ extension RealtimeAgent {
         - For the user's calendar, meetings, meeting notes, action items,
           reminders, or to-do / task list: output only <use_tools/>. Do not
           answer from guesswork or from an earlier denial.
+        - For anything of the user's own on this Mac — their files, folders,
+          projects, documents, what they are working on — or for opening an app,
+          a folder or a page: output only <use_tools/>. Knowing that you can
+          reach these is not the same as knowing what is in them, and the list of
+          what you can reach is a list of lookups, not of answers. This covers
+          the user's things only: a question about your own to-do list or your
+          own calendar is still <answer/>, because you have neither.
         - For current personal information, inspecting anything, or an external
           action: output only <use_tools/>. Do not offer to do it later.
         - When the user asks you to remember, change or forget something about
@@ -541,6 +584,9 @@ extension RealtimeAgent {
             own output. A transcript cannot show how your playback sounded or
             why it broke up. Acknowledge a reported defect in your own speech
             without guessing a cause or advising a device or network change.
+            Say it plainly as yours — "my voice", "my speech" — and never call it
+            their audio, their output, their device or their setup: the sound
+            they are complaining about is the one you produced.
             Speak in one or two short, natural sentences.
             """ : """
 
@@ -558,13 +604,15 @@ extension RealtimeAgent {
             .filter { memoryEnabled || $0.namespace != .memory }
             .filter { schedulesEnabled || $0.namespace != .schedule }
             .filter { knowledgeTools || $0.namespace != .knowledge }
+            .filter { SkillToolGate.isAvailable || $0.namespace != .skills }
     }
 
     /// The tool planner's system prompt: persona, fixed rules (ending with the override
     /// line), then the capability inventory — today's date and the compact tool catalogue.
     /// The date and catalogue are last among the stable sections because they are the ones
     /// that change: daily, and when a connection or permission changes.
-    static func plannerSystem(tools: [AgentTool], voice: Bool) -> String {
+    /// - Parameter request: the user's latest words, used only to rank the skills index.
+    static func plannerSystem(tools: [AgentTool], voice: Bool, request: String = "") -> String {
         // A compact catalogue fits alongside recent conversation on Apple's
         // 4K-token model. The full schema is still enforced by the executor.
         let schema = tools.map { tool in
@@ -621,11 +669,13 @@ extension RealtimeAgent {
             """ : "")
         let capabilities = """
             Today is \(localDate) in the user's local time zone (\(TimeZone.current.identifier)).
-
+            \(FileIndexer.shared.promptSummary.map { "\n" + $0 + "\n" } ?? "")
             Available tools:
             \(schema)
             """
-        return AgentPromptContext.assemble(.toolLoop, rules: rules, capabilities: capabilities).system
+        return AgentPromptContext.assemble(
+            .toolLoop, rules: rules, capabilities: capabilities,
+            skills: SkillPromptSection.current(for: request)).system
     }
 
     func runPlannedToolLoop(
@@ -640,6 +690,15 @@ extension RealtimeAgent {
         // meetings and tasks on every conversational utterance stalled the main
         // actor before the first answer token.
         NextMemory.shared.refreshFromActivity()
+        Self.publishGrounding()
+        // Open an app, open a page, find a folder: the arguments are in the sentence and a
+        // planner round costs 45 s of prefill on this machine. A correction in flight goes
+        // to the planner instead — the shortcut reads one sentence, not a conversation.
+        if work?.followUps.isEmpty ?? true,
+           let direct = AgentDirectIntent.parse(work?.original ?? prompt),
+           let reply = await runDirectIntent(direct, speech: speech) {
+            return reply
+        }
         let tools = Self.plannableTools()
         guard !tools.isEmpty else {
             return "The local tool catalogue is unavailable."
@@ -647,11 +706,7 @@ extension RealtimeAgent {
         let provider: any LLMProvider
         if let testingProvider = localModelProviderForTesting {
             provider = testingProvider
-        } else if let resolvedProvider = await LLMProviders.resolve(
-            preferring: voice ? .qwen35_4b : Settings.shared.agentModelProvider,
-            modelID: Settings.shared.openRouterAgentModelID,
-            contextTokens: Settings.shared.openRouterAgentContextTokens
-        ) {
+        } else if let resolvedProvider = await AgentModelRouting.provider(for: prompt, voice: voice) {
             provider = resolvedProvider
         } else {
             return "I can’t plan tool use because the selected model is unavailable."
@@ -667,7 +722,7 @@ extension RealtimeAgent {
         _ prompt: String, speech: AgentToolSpeechTracker?, voice: Bool, owner: Int, background: Bool,
         work: VoiceConversationWork?, tools: [AgentTool], provider: any LLMProvider
     ) async -> String {
-        let system = Self.plannerSystem(tools: tools, voice: voice)
+        let system = Self.plannerSystem(tools: tools, voice: voice, request: prompt)
         let clock = ContinuousClock()
         let duration = toolLoopLimitForTesting
             ?? (isVoiceWorker ? .seconds(120) : provider.id == .openRouter
@@ -696,6 +751,11 @@ extension RealtimeAgent {
         contextSections.append("Current user request:\n\(prompt)")
 
         var rounds = 0
+        // One re-plan, and only one: a model that denies the same capability twice is
+        // telling us something the correction cannot fix, and a loop here would cost the
+        // user another prefill for nothing.
+        var rebutted = false
+        let rosterIDs = Set(tools.map(\.id))
         // Tool output this turn has seen, for memory provenance, and the one-sentence
         // confirmations of memory writes the reply must carry.
         var untrustedOutputs = AgentSession.shared.recentAssistantTexts()
@@ -752,7 +812,9 @@ extension RealtimeAgent {
                                 || leading.hasPrefix("<") || leading.hasPrefix("{")
                                 ? "" : spokenConfirmations + " "
                             let snapshot = prefix + assembled
-                            await speech.receive(snapshot)
+                            if !AgentRefusalGuard.mayBeDenial(assembled) {
+                                await speech.receive(snapshot)
+                            }
                         }
                     }
                     return .success(assembled)
@@ -784,6 +846,17 @@ extension RealtimeAgent {
                 }
                 let reply = completionText.trimmingCharacters(in: .whitespacesAndNewlines)
                 if reply.isEmpty, !memoryConfirmations.isEmpty { return memoryConfirmations.joined(separator: " ") }
+                // "I cannot open the 'next project' folder yet…" — 20:46:06Z, with both
+                // file tools in this very roster. Hand the planner the contradiction and
+                // let it try once more rather than speaking a refusal that is not true.
+                if !rebutted, let note = AgentRefusalGuard.rebuttal(for: reply, toolIDs: rosterIDs) {
+                    rebutted = true
+                    speech?.cancel()
+                    results.append(note)
+                    AgentAuditLog.shared.record(kind: .reply, title: "Re-planned after a false refusal",
+                                                detail: String(reply.prefix(120)))
+                    continue
+                }
                 return reply.isEmpty ? "The tool plan did not produce an answer." : confirmed(reply)
             }
 
@@ -794,8 +867,11 @@ extension RealtimeAgent {
                 guard callsUsed < maxCalls else {
                     return "I couldn’t finish the tool plan within the safe limit."
                 }
-                guard RealtimeToolSelection.allowedIDs.contains(call.name),
-                      let tool = AgentToolRegistry.shared.tool(named: call.name)
+                // Resolve first: a model may emit a registered alias ("files.find") for an
+                // allowed tool, and the allowlist names canonical ids.
+                guard let tool = AgentToolRegistry.shared.tool(named: call.name),
+                      RealtimeToolSelection.allowedIDs.contains(call.name)
+                        || RealtimeToolSelection.allowedIDs.contains(tool.id)
                 else {
                     return "The tool planner requested an unavailable tool; nothing else was run."
                 }
@@ -887,6 +963,120 @@ extension RealtimeAgent {
             }
         }
         return incomplete("I couldn’t finish the tool plan within the safe limit.")
+    }
+
+    // MARK: - The planner shortcut
+
+    /// Facts the prompt builders read without the main actor, refreshed here because this
+    /// runs on it and always before a prompt is assembled.
+    static func publishGrounding() {
+        let folders = IndexedFoldersStore.shared.folders.map(\.lastPathComponent)
+        let stats = FileIndexer.shared.stats
+        AgentGroundingCache.shared.publish(
+            folders: folders,
+            indexedItems: stats.files + stats.folders,
+            toolIDs: Set(plannableTools().map(\.id))
+        )
+    }
+
+    /// Run a parsed direct intent, or return nil to fall through to the planner.
+    ///
+    /// Nil on any doubt: a tool the planner is not allowed, an app that would not open, a
+    /// name with no good match. The point is to skip a model round that had nothing to
+    /// decide, never to answer a request this parser only half understood.
+    func runDirectIntent(_ intent: AgentDirectIntent, speech: AgentToolSpeechTracker?) async -> String? {
+        let allowed = Set(Self.plannableTools().map(\.id))
+        guard intent.requiredToolIDs.allSatisfy(allowed.contains) else { return nil }
+        speech?.cancel()
+        beginWork(title: intent.progressTitle)
+        AgentAuditLog.shared.record(kind: .tool, title: intent.progressTitle,
+                                    detail: "direct intent; planner skipped")
+        switch intent {
+        case .openApp(let name):
+            switch await directCall("computer.open_app", ["name": name]) {
+            case .done(let result):
+                speech?.recordVerifiedResult(toolID: "computer.open_app", output: result)
+                return "Opened \(name)."
+            case .denied(let reason): return reason
+            case .standDown: return nil
+            }
+        case .openURL(let url, let app):
+            if let app {
+                switch await directCall("computer.open_app", ["name": app]) {
+                case .done: break
+                case .denied(let reason): return reason
+                case .standDown: return nil
+                }
+            }
+            switch await directCall("browser.navigate", ["url": url]) {
+            case .done(let result):
+                speech?.recordVerifiedResult(toolID: "browser.navigate", output: result)
+                let page = url.replacingOccurrences(of: "https://", with: "")
+                    .replacingOccurrences(of: "www.", with: "")
+                return app.map { "Opened \(page) in \($0)." } ?? "Opened \(page)."
+            case .denied(let reason): return reason
+            case .standDown: return nil
+            }
+        case .locate(let query, let wantsFolder):
+            return await runLocate(query: query, wantsFolder: wantsFolder, speech: speech)
+        }
+    }
+
+    /// Find what the user named and reveal it, ask which of the near matches they meant, or
+    /// say exactly where it was looked for. Never "I cannot open that folder".
+    private func runLocate(
+        query: String, wantsFolder: Bool, speech: AgentToolSpeechTracker?
+    ) async -> String? {
+        let files = LiveFileRetrieval()
+        guard files.isAvailable else { return nil }
+        let matches = AgentEntityResolver.resolve(spoken: query, wantsFolder: wantsFolder, files: files)
+        let searched = ListFormatter.localizedString(
+            byJoining: files.folders.map { URL(fileURLWithPath: $0).lastPathComponent })
+        guard let best = matches.first else {
+            return "I searched \(searched) for “\(query)” and found nothing with that name. "
+                + "What is it near, or what is it called on screen?"
+        }
+        if matches.count > 1, best.score < AgentEntityResolver.confidentThreshold {
+            let names = matches.map(\.hit.name)
+            return "I found \(ListFormatter.localizedString(byJoining: names)). Which one?"
+        }
+        switch await directCall("filesystem.reveal", ["path": best.hit.path]) {
+        case .done(let result):
+            speech?.recordVerifiedResult(toolID: "filesystem.reveal", output: result)
+            let parent = URL(fileURLWithPath: best.hit.path).deletingLastPathComponent().lastPathComponent
+            return "Opened \(best.hit.name) in \(parent)."
+        case .denied(let reason): return reason
+        case .standDown: return nil
+        }
+    }
+
+    /// What one direct call can do to the turn.
+    enum DirectCallOutcome {
+        case done(String)
+        /// The user said no, or a policy did. The turn ends here: handing it to the planner
+        /// would put the same card in front of them a second time.
+        case denied(String)
+        /// Something else went wrong. The shortcut withdraws and the planner, which can
+        /// inspect and re-plan, gets the request it would have had anyway.
+        case standDown
+    }
+
+    private func directCall(_ name: String, _ arguments: [String: String]) async -> DirectCallOutcome {
+        do {
+            let result = try await AgentToolExecutor.run(
+                name, arguments: arguments, policy: .fromSettings(),
+                taskID: voiceWork?.id.uuidString,
+                autoApproveReads: true, promptIfNeeded: true
+            )
+            return .done(result.summary)
+        } catch AgentError.permissionDenied(let reason) {
+            return .denied(reason)
+        } catch AgentError.cancelled {
+            return .denied("I stopped that.")
+        } catch {
+            Log.agent.info("direct intent stood down on \(name, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return .standDown
+        }
     }
 
     private func executeComputerCall(_ call: AgentToolCall) async -> String {

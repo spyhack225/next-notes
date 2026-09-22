@@ -1,16 +1,25 @@
+import AppKit
 import SwiftUI
 
-/// Local graph + person timeline as one screen (Part 4, Phase F), with the optional global
-/// overview (Phase G) as the way to pick a starting node.
+/// Agent ▸ Graph: the local neighbourhood, the person timeline and the library overview —
+/// with the user's own folders and files drawn onto the same map.
 ///
-/// Selection is shared: focusing a person fills the timeline; focusing anything else keeps
-/// the one-hop neighbourhood. The global canvas is only useful as navigation into that —
-/// click a node, walk from there.
+/// It lives under Agent rather than Search because it is the assistant's picture of a life:
+/// who is in it, what is being worked on, and where things are on the Mac. Search is for
+/// finding the sentence where something was said, and it kept that job.
+///
+/// Two sources, one canvas. The extracted graph (people, meetings, decisions, projects) comes
+/// from `knowledge.sqlite`; the folders and files come from `file-index.sqlite` through
+/// `FileGraphOverlay`, which is merged in at draw time rather than written into the graph —
+/// see that file for why. Either half can be switched off and the other still draws.
 struct KnowledgeGraphPane: View {
+    @Environment(\.openSettings) private var openSettings
     @State private var settings = Settings.shared
     @State private var indexer = KnowledgeIndexer.shared
     @State private var people = PersonResolutionService.shared
     @State private var navigation = NavigationState.shared
+    @State private var folders = IndexedFoldersStore.shared
+    @State private var fileIndex = FileIndexer.shared
     @State private var showingPeople = false
 
     @State private var focusID: String?
@@ -22,27 +31,39 @@ struct KnowledgeGraphPane: View {
     @State private var moments: [PersonMeetingMoment] = []
     @State private var problem: String?
     @State private var showingOverview = false
+    /// The sidebar's own selection, kept in step with `focusID` in both directions so the
+    /// system highlight is the one source of "which row is current".
+    @State private var railSelection: String?
+    /// Folders whose children are drawn. A shared folder brings hundreds of sub-folders with
+    /// it; they arrive when somebody opens that folder, and not before.
+    @State private var expandedFolders: Set<String> = []
+
+    private var hasExtractedGraph: Bool { settings.knowledgeGraphEnabled && settings.knowledgeIndexEnabled }
+    private var hasFiles: Bool { folders.isEnabled && !folders.folders.isEmpty }
 
     var body: some View {
         Group {
-            if !settings.knowledgeGraphEnabled {
+            if !hasExtractedGraph && !hasFiles {
                 OrbUnavailableView(
                     .connecting,
-                    title: "Graph is off",
-                    message: "Turn on extraction to map people, projects, places, activities and decisions "
-                        + "from meetings, dictations and Agent chats — one hop at a time."
+                    title: "Nothing to map yet",
+                    message: "The map shows the people, projects and places your notes mention, and the "
+                        + "folders you let your assistant look through. Turn one of them on to start it."
                 ) {
-                    Button("Extract life map") { settings.knowledgeGraphEnabled = true }
+                    Button("Map my notes") { settings.knowledgeGraphEnabled = true }
                         .buttonStyle(.borderedProminent)
+                    Button("Choose folders…") {
+                        navigation.selectedSettingsTab = .agent
+                        openSettings()
+                    }
                 }
             } else if candidates.isEmpty && expansion.nodes.isEmpty && overview.nodes.isEmpty {
                 OrbUnavailableView(
                     .searching,
-                    title: "No graph yet",
-                    message: "Your life map fills in after extraction: people, projects, places, hobbies, "
-                        + "goals and meetings from notes — and from dictations and Agent chats once those "
-                        + "are indexed. Turn on Index + Extract in Settings, include dictation if you want "
-                        + "it, then use Decisions → Extract library."
+                    title: "No map yet",
+                    message: "Your map fills in after your notes have been read: people, projects, places, "
+                        + "hobbies, goals and meetings — and the folders you share, with the files you have "
+                        + "used lately. Turn on Index + Extract in Settings, then use Decisions → Extract library."
                 ) {
                     Button("People…") { showingPeople = true }
                 }
@@ -62,8 +83,11 @@ struct KnowledgeGraphPane: View {
 
     // MARK: - Rail
 
+    /// A native sidebar: the system's own selection highlight through `List(selection:)`
+    /// rather than a hand-drawn ring, one symbol per kind in its own ink, and a count on
+    /// each section header so the shape of the library is readable without opening it.
     private var rail: some View {
-        List {
+        List(selection: $railSelection) {
             Section {
                 Button {
                     withAnimation(DS.Motion.reveal) {
@@ -71,40 +95,46 @@ struct KnowledgeGraphPane: View {
                         focusID = nil
                         focusType = nil
                         focusLabel = ""
+                        railSelection = nil
                         expansion = KnowledgeGraphExpansion()
                         moments = []
                     }
                 } label: {
-                    Label("Library overview", systemImage: "circle.grid.cross")
+                    Label("Whole map", systemImage: "circle.grid.cross")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
-                Button(people.candidates.isEmpty ? "People…" : "People (\(people.candidates.count))…") {
+                .buttonStyle(.plain)
+
+                Button {
                     showingPeople = true
+                } label: {
+                    Label(peopleActionTitle, systemImage: "person.2")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
             } header: {
                 Text("Navigate")
             }
 
-            if !peopleCandidates.isEmpty {
-                Section("People") {
-                    ForEach(peopleCandidates, id: \.id) { node in
-                        focusRow(node)
-                    }
-                }
-            }
-            ForEach(lifeDomainSections, id: \.title) { section in
-                Section(section.title) {
+            ForEach(railSections) { section in
+                Section {
                     ForEach(section.nodes, id: \.id) { node in
-                        focusRow(node)
+                        railRow(node).tag(node.id)
+                    }
+                } header: {
+                    HStack(spacing: DS.Space.xs) {
+                        Text(section.title)
+                        Spacer(minLength: DS.Space.xs)
+                        Text(section.nodes.count.formatted())
+                            .font(DS.Font.caption2)
+                            .monospacedDigit()
+                            .foregroundStyle(DS.Color.textTertiary)
                     }
                 }
             }
-            if !meetingCandidates.isEmpty {
-                Section("Meetings") {
-                    ForEach(meetingCandidates, id: \.id) { node in
-                        focusRow(node)
-                    }
-                }
-            }
+
             if let problem {
                 Section {
                     Text(problem)
@@ -114,64 +144,43 @@ struct KnowledgeGraphPane: View {
             }
         }
         .listStyle(.sidebar)
-    }
-
-    private func focusRow(_ node: KnowledgeGraphNode) -> some View {
-        Button {
-            Task { await select(node.id) }
-        } label: {
-            HStack(spacing: DS.Space.s) {
-                ZStack {
-                    Circle()
-                        .fill(DS.Color.graphNode(node.type).opacity(
-                            focusID == node.id ? 1 : DS.Opacity.secondaryFill
-                        ))
-                        .frame(width: DS.Size.graphRailSwatch, height: DS.Size.graphRailSwatch)
-                    if focusID == node.id {
-                        Circle()
-                            .strokeBorder(DS.Color.accent, lineWidth: DS.Border.hairline)
-                            .frame(
-                                width: DS.Size.graphRailSwatch + DS.Space.xs,
-                                height: DS.Size.graphRailSwatch + DS.Space.xs
-                            )
-                    }
-                }
-                .frame(width: DS.Size.iconMedium, height: DS.Size.iconMedium)
-
-                VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                    Text(node.label)
-                        .font(focusID == node.id ? DS.Font.callout.weight(.semibold) : DS.Font.callout)
-                        .foregroundStyle(DS.Color.text)
-                        .lineLimit(2)
-                    if focusID == node.id, let focusType {
-                        Text(GraphNodeStyle.title(for: focusType))
-                            .font(DS.Font.caption2)
-                            .foregroundStyle(DS.Color.textTertiary)
-                    }
-                }
-                Spacer(minLength: DS.Space.xs)
-            }
-            .padding(.vertical, DS.Space.xxs)
-            .contentShape(Rectangle())
+        .onChange(of: railSelection) { _, id in
+            guard let id, id != focusID else { return }
+            Task { await select(id) }
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(focusID == node.id ? .isSelected : [])
+        .onChange(of: focusID) { _, id in
+            if railSelection != id { railSelection = id }
+        }
     }
 
-    private var peopleCandidates: [KnowledgeGraphNode] {
-        candidates.filter { $0.type == "Person" }
+    private func railRow(_ node: KnowledgeGraphNode) -> some View {
+        Label {
+            Text(node.label)
+                .lineLimit(2)
+        } icon: {
+            Image(systemName: GraphNodeStyle.symbol(for: node.type))
+                .foregroundStyle(DS.Color.graphNode(node.type))
+        }
+        .accessibilityLabel("\(node.label), \(GraphNodeStyle.singular(for: node.type))")
     }
 
-    private var meetingCandidates: [KnowledgeGraphNode] {
-        candidates.filter { $0.type == "Meeting" }
+    private var peopleActionTitle: String {
+        people.candidates.isEmpty ? "People…" : "People (\(people.candidates.count))…"
     }
 
-    private var lifeDomainSections: [(title: String, nodes: [KnowledgeGraphNode])] {
-        let lifeTypes = ["Project", "Organization", "Activity", "Place", "Goal", "Event", "Preference", "Topic"]
-        return lifeTypes.compactMap { type in
+    /// One section per kind, people first and meetings last, with the life domains that
+    /// actually have something in them in between.
+    private struct RailSection: Identifiable {
+        let id: String
+        let title: String
+        let nodes: [KnowledgeGraphNode]
+    }
+
+    private var railSections: [RailSection] {
+        GraphNodeStyle.focusOrder.compactMap { type in
             let nodes = candidates.filter { $0.type == type }
             guard !nodes.isEmpty else { return nil }
-            return (GraphNodeStyle.title(for: type), nodes)
+            return RailSection(id: type, title: GraphNodeStyle.title(for: type), nodes: nodes)
         }
     }
 
@@ -186,29 +195,30 @@ struct KnowledgeGraphPane: View {
         }
     }
 
+    /// The map takes the whole pane. No scroll view, no card, no page margin: the heading,
+    /// the controls and the card all float on glass over the canvas, which is what turns a
+    /// picture of a graph into somewhere you can be.
     private var overviewDetail: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: DS.Space.section) {
-                SectionHeading(
-                    title: "Library overview",
-                    eyebrow: "Life map",
-                    subtitle: "Click a node to open its neighbourhood. At a few hundred nodes this is a map; "
-                        + "past that, prefer the people and life-domain lists.",
-                    orb: .breathing,
-                    isOrbAnimated: false
-                )
-
-                GlassCard(padding: DS.Space.cardTight) {
-                    GlobalGraphView(expansion: overview) { id in
-                        Task { await select(id) }
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.glassSmall, style: .continuous))
-                }
-            }
-            .padding(DS.Space.page)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        GlobalGraphView(
+            expansion: overview,
+            eyebrow: "Your life and your Mac",
+            title: "The whole map",
+            subtitle: subtitle
+        ) { id in
+            Task { await select(id) }
         }
-        .orbBackdrop(.breathing)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Plain language, and honest about what is not drawn: only the files you have used
+    /// lately are dots, and the rest are one search away.
+    private var subtitle: String {
+        var lines = ["Click a dot to see what it is."]
+        if hasFiles, fileIndex.stats.files > 0 {
+            lines.append("Your folders are here with the files you have used in the last month — "
+                + "the other \(fileIndex.stats.files.formatted()) are found by asking.")
+        }
+        return lines.joined(separator: " ")
     }
 
     private func neighbourhoodDetail(focusID: String) -> some View {
@@ -217,8 +227,8 @@ struct KnowledgeGraphPane: View {
                 HStack(alignment: .top, spacing: DS.Space.m) {
                     SectionHeading(
                         title: focusLabel.isEmpty ? focusID : focusLabel,
-                        eyebrow: "Neighbourhood",
-                        subtitle: focusType.map { "One hop from this \(GraphNodeStyle.singular(for: $0))." },
+                        eyebrow: "Around this",
+                        subtitle: focusType.map { "One step from this \(GraphNodeStyle.singular(for: $0))." },
                         orb: .searching,
                         isOrbAnimated: false
                     )
@@ -230,7 +240,13 @@ struct KnowledgeGraphPane: View {
                             systemImage: GraphNodeStyle.symbol(for: focusType)
                         )
                     }
-                    Button("Overview") {
+                    if let path = FileGraphOverlay.path(of: focusID) {
+                        Button("Show in Finder") {
+                            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    Button("Whole map") {
                         withAnimation(DS.Motion.reveal) {
                             showingOverview = true
                             self.focusID = nil
@@ -239,12 +255,10 @@ struct KnowledgeGraphPane: View {
                     .buttonStyle(.bordered)
                 }
 
-                GlassCard(padding: DS.Space.cardTight) {
-                    LocalGraphView(expansion: expansion, focusID: focusID) { id in
-                        Task { await select(id) }
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.glassSmall, style: .continuous))
+                LocalGraphView(expansion: expansion, focusID: focusID) { id in
+                    Task { await select(id) }
                 }
+                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.glass, style: .continuous))
 
                 if focusType == "Person" {
                     PersonTimelineView(
@@ -272,27 +286,43 @@ struct KnowledgeGraphPane: View {
         let enabled: Bool
         let revision: Int
         let people: Int
+        let files: Int
+        let folders: Int
         let focus: String?
+        let expanded: Int
     }
 
     private var reloadKey: ReloadKey {
         ReloadKey(
-            enabled: settings.knowledgeGraphEnabled && settings.knowledgeIndexEnabled,
+            enabled: hasExtractedGraph,
             revision: indexer.revision,
             people: people.revision,
-            focus: focusID
+            files: fileIndex.revision,
+            folders: folders.revision,
+            focus: focusID,
+            expanded: expandedFolders.count
         )
     }
 
+    /// One pass off the main actor: the extracted graph, the file overlay, and the edges that
+    /// join them. Both halves are optional and a missing one is simply nothing to draw.
     private func reload() async {
-        guard let graph = indexer.graph else {
+        // Kicked off, not waited on: the probe runs off the main actor and publishes its
+        // verdicts into `folders.accessProblems`, which re-renders this pane on its own.
+        folders.refreshAccessProblems()
+        let graph = indexer.graph
+        let overlay = hasFiles && fileIndex.store.existsOnDisk
+            ? FileGraphOverlay(store: fileIndex.store) : nil
+        guard graph != nil || overlay != nil else {
             candidates = []
             overview = KnowledgeGraphExpansion()
             expansion = KnowledgeGraphExpansion()
             moments = []
             return
         }
+        let searcher = indexer.searcher
         let focus = focusID
+        let expanded = expandedFolders
         let result = await Task.detached(priority: .userInitiated) { () -> Result<(
             candidates: [KnowledgeGraphNode],
             overview: KnowledgeGraphExpansion,
@@ -301,27 +331,50 @@ struct KnowledgeGraphPane: View {
             focusNode: KnowledgeGraphNode?
         ), Error> in
             Result {
-                let candidates = try graph.focusCandidates()
-                let overview = try graph.visualization()
-                let expansion: KnowledgeGraphExpansion
+                var candidates = try graph?.focusCandidates() ?? []
+                var overview = try graph?.visualization() ?? KnowledgeGraphExpansion()
+                if let overlay {
+                    let map = try overlay.map(expanded: expanded)
+                    candidates = map.nodes.filter { $0.type == "Folder" } + candidates
+                    overview.nodes += map.nodes
+                    overview.edges += map.edges
+                    if let graph {
+                        // What mentioned a file, joined to it: the whole reason files are on
+                        // this map rather than only in search.
+                        let mentions = overlay.mentions(of: map.nodes, searcher: searcher, graph: graph)
+                        let known = Set(overview.nodes.map(\.id))
+                        overview.nodes += overlay.mentioningNodes(for: mentions, graph: graph, known: known)
+                        overview.edges += mentions
+                    }
+                }
+                var expansion = KnowledgeGraphExpansion()
                 var focusNode: KnowledgeGraphNode?
                 var moments: [PersonMeetingMoment] = []
                 if let focus {
-                    expansion = try graph.expand(nodeID: focus, edgeTypes: [], depth: 1)
-                    focusNode = expansion.nodes.first { $0.id == focus }
-                        ?? expansion.nodes.first {
-                            $0.label.compare(focus, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+                    if FileGraphOverlay.isFileNode(focus) {
+                        expansion = try overlay?.neighbourhood(of: focus) ?? KnowledgeGraphExpansion()
+                        if let graph, let overlay {
+                            let mentions = overlay.mentions(of: expansion.nodes, searcher: searcher, graph: graph)
+                            let known = Set(expansion.nodes.map(\.id))
+                            expansion.nodes += overlay.mentioningNodes(for: mentions, graph: graph, known: known)
+                            expansion.edges += mentions
                         }
-                        ?? candidates.first { $0.id == focus }
-                        ?? candidates.first {
-                            $0.label.compare(focus, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+                        focusNode = expansion.nodes.first { $0.id == focus }
+                    } else if let graph {
+                        expansion = try graph.expand(nodeID: focus, edgeTypes: [], depth: 1)
+                        focusNode = expansion.nodes.first { $0.id == focus }
+                            ?? expansion.nodes.first {
+                                $0.label.compare(focus, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+                            }
+                            ?? candidates.first { $0.id == focus }
+                            ?? candidates.first {
+                                $0.label.compare(focus, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+                            }
+                        let personFocus = (focusNode?.type == "Person") || focus.hasPrefix("person:")
+                        if personFocus, let id = focusNode?.id ?? (focus.hasPrefix("person:") ? focus : nil) {
+                            moments = try graph.personMeetings(personID: id)
                         }
-                    let personFocus = (focusNode?.type == "Person") || focus.hasPrefix("person:")
-                    if personFocus, let id = focusNode?.id ?? (focus.hasPrefix("person:") ? focus : nil) {
-                        moments = try graph.personMeetings(personID: id)
                     }
-                } else {
-                    expansion = KnowledgeGraphExpansion()
                 }
                 return (candidates, overview, expansion, moments, focusNode)
             }
@@ -338,15 +391,15 @@ struct KnowledgeGraphPane: View {
                 focusID = node.id
                 showingOverview = false
             } else if focusID != nil, loaded.expansion.nodes.isEmpty {
-                // Focus vanished after a rebuild — fall back to the overview.
+                // Focus vanished after a rebuild, or a file was deleted — fall back to the map.
                 focusID = nil
                 focusType = nil
                 focusLabel = ""
                 showingOverview = true
             }
-            problem = nil
+            problem = fileProblem
             if focusID == nil, showingOverview == false, !loaded.candidates.isEmpty {
-                // First open: land on the first person, else the overview.
+                // First open: land on the first person, else the first folder, else the map.
                 if let first = loaded.candidates.first(where: { $0.type == "Person" })
                     ?? loaded.candidates.first
                 {
@@ -360,9 +413,28 @@ struct KnowledgeGraphPane: View {
         }
     }
 
+    /// A folder macOS has not let the app read is the one file problem worth saying out loud.
+    ///
+    /// Reads the cached verdict only. This runs on the main actor at the tail of every reload,
+    /// and asking the file system here — once per folder, per reload — would stall the window
+    /// on exactly the slow volume the message is about.
+    private var fileProblem: String? {
+        guard hasFiles else { return nil }
+        for folder in folders.folders {
+            if let problem = folders.accessProblem(for: folder) {
+                return "\(folder.lastPathComponent): \(problem)"
+            }
+        }
+        return fileIndex.lastError
+    }
+
     private func select(_ id: String) async {
         focusID = id
         showingOverview = false
+        // Opening a folder is what brings its sub-folders onto the map.
+        if let path = FileGraphOverlay.path(of: id), id.hasPrefix("folder:") {
+            expandedFolders.insert(path)
+        }
         await reload()
     }
 }

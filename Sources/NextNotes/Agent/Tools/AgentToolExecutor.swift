@@ -19,10 +19,34 @@ enum AgentToolExecutor {
         guard let tool = AgentToolRegistry.shared.tool(named: name) else {
             throw AgentError.unknownTool(name)
         }
-        for parameter in tool.parameters where parameter.isRequired {
-            let value = arguments[parameter.name]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            guard !value.isEmpty else {
-                throw AgentError.missingArgument(name: parameter.name, tool: tool.id)
+        // A well-formed stand-in is not an argument, and neither is an absent one. This is
+        // the only place every caller passes through, so it is where "[Name]" and
+        // john.doe@example.com are refused — including when they arrive from a cloud model
+        // or an external harness that never drew a card.
+        //
+        // Where there is somebody to ask, that refusal is a question rather than an error.
+        // Throwing here was the whole reason the "what is missing, fill it in" card could
+        // never be reached from the Agent: a model that left `to` out got the string
+        // `send_email needs "to", and it is empty.` back — schema-key jargon, no card, no
+        // form — because this ran *before* `ActionOrchestrator.execute`, which is the only
+        // thing that raises one. So an incomplete call now goes on to the card, which turns
+        // each gap into a field and keeps Approve off until it is answered, and `fire`
+        // below re-checks what the user actually approved.
+        //
+        // Nobody can answer a card for a scheduled run, for arguments already approved on
+        // one, or for a proposal replayed off disk, so those keep the hard refusal.
+        let mayAskTheUser = promptIfNeeded
+            && !permissionAlreadyGranted
+            && !(authority?.isScheduled ?? false)
+        if !mayAskTheUser {
+            for parameter in tool.parameters where parameter.isRequired {
+                let value = arguments[parameter.name]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard !value.isEmpty else {
+                    throw AgentError.missingArgument(name: parameter.name, tool: tool.id)
+                }
+            }
+            if let problem = ToolCallValidation.problem(tool: tool, arguments: arguments) {
+                throw AgentError.permissionDenied(problem)
             }
         }
 
@@ -139,6 +163,16 @@ enum AgentToolExecutor {
                 && tool.risk > .read,
             isStillValid: isStillValid,
             fire: { prepared in
+                // The last word on a fabricated or absent argument. Everything above may
+                // have been a question; this is the set that would actually run — the
+                // user's edits merged over the model's draft — and it is checked again
+                // because a card raised *for* a gap must not be able to fire while the gap
+                // is still open, whatever a view drew.
+                if let problem = ToolCallValidation.problem(
+                    tool: tool, arguments: prepared.executionPlan.arguments
+                ) {
+                    throw AgentError.permissionDenied(problem)
+                }
                 // A denied or waiting action must not appear as executed activity. These
                 // projections happen only after the orchestrator has received permission.
                 AgentActivityStore.shared.update(
@@ -195,6 +229,14 @@ enum AgentToolExecutor {
         }
         guard definition.risk == proposal.risk else {
             throw AgentError.permissionDenied("The proposal risk no longer matches the Workspace tool catalogue.")
+        }
+        // The Workspace path does not go through `run(_:arguments:…)`, so it needs the same
+        // refusal: a proposal that has been sitting in `proposals.json` since before this
+        // check existed can still be carrying "[Name]" in its recipient.
+        if let problem = ToolCallValidation.problem(
+            tool: AgentTool.workspace(definition), arguments: proposal.arguments
+        ) {
+            throw AgentError.permissionDenied(problem)
         }
         let workspaceTool = AgentTool.workspace(proposal.definition ?? WorkspaceTool(
             name: proposal.tool,
@@ -283,6 +325,10 @@ enum AgentToolExecutor {
                 throw KnowledgeToolError.off
             }
             return try await KnowledgeToolExecutor.run(tool, arguments: arguments, context: context)
+        case .skills:
+            // Same rule as knowledge: the switch is checked at the call, not only when the
+            // planner was told the tool existed.
+            return try await SkillToolExecutor.run(tool, arguments: arguments)
         case .schedule:
             return try await ScheduleToolExecutor.run(
                 tool, arguments: arguments, sessionID: AgentSession.shared.sessionID)

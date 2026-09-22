@@ -11,7 +11,7 @@ import os
 /// process-wide state.
 ///
 /// **Never beside the notes model.** The contended resource on a 16 GB Mac is not this
-/// model's 265 MB — it is the moment Qwen's 2.7 GB and anything else load together. So:
+/// model's 265 MB — it is the moment the built-in model's gigabytes and anything else load together. So:
 ///
 /// - this runtime refuses to load while the notes model is loaded, loading or working
 ///   (`KnowledgeEmbeddingError.notesModelResident`), and the indexer waits;
@@ -31,7 +31,7 @@ import os
 /// outright rather than leaving it to the idle timer.
 ///
 /// **On the CPU.** Rule one of the plan is to put the embedder on a different unit from
-/// Qwen: `n_gpu_layers = 0` with `op_offload` and `offload_kqv` off means no Metal buffers and
+/// On-device model: `n_gpu_layers = 0` with `op_offload` and `offload_kqv` off means no Metal buffers and
 /// no ops or KV cache sent to the GPU — nothing queued behind notes, nothing for the Metal
 /// shader compiler to wedge on — and a
 /// 300M Q4_0 model embeds a few hundred tokens in tens of milliseconds on the performance

@@ -4,6 +4,8 @@ import SwiftUI
 struct MeetingsSettingsTab: View {
     @State private var settings = Settings.shared
     @State private var models = LocalModelStore.shared
+    @State private var roles = ModelRoleStore.shared
+    @State private var library = InstalledModelLibrary.shared
 
     var body: some View {
         Form {
@@ -104,33 +106,17 @@ struct MeetingsSettingsTab: View {
             Section {
                 Toggle("Write notes when a meeting ends", isOn: $settings.notesAutoGenerate)
 
-                Picker("Written by", selection: $settings.notesProvider) {
-                    ForEach(LLMProviderID.allCases) { provider in
-                        Text(provider.displayName).tag(provider)
-                    }
-                }
-
-                if settings.notesProvider == .qwen35_4b {
-                    ModelStatusRow(
-                        title: NotesModels.spec.displayName,
-                        detail: NotesModels.spec.displaySize,
-                        state: models.notesModelState,
-                        downloadTitle: "Download",
-                        action: { models.prepareNotesModel() }
-                    )
-                }
-                if settings.notesProvider == .openRouter {
-                    OpenRouterModelSelection(
-                        modelID: $settings.openRouterNotesModelID,
-                        contextTokens: $settings.openRouterNotesContextTokens
-                    )
+                // Show the currently configured model for meeting notes.
+                // The actual configuration is done in Models settings; this row is
+                // deliberately not a link, so it never promises navigation it has not got.
+                LabeledContent("Written by") {
+                    Text(currentNotesModelName)
+                        .foregroundStyle(DS.Color.textSecondary)
                 }
             } header: {
                 Text("Notes")
             } footer: {
-                SettingsNote(text: settings.notesProvider.summary
-                             + " Notes are rewritten on demand from the Regenerate button in "
-                             + "a meeting, so the choice here isn\u{2019}t final.")
+                SettingsNote(text: "Choose which model writes notes in Settings \u{2192} Models \u{2192} Meeting notes. Notes are rewritten on demand from the Regenerate button in a meeting, so the choice isn\u{2019}t final.")
             }
 
             Section {
@@ -279,5 +265,15 @@ struct MeetingsSettingsTab: View {
         case 1: "1 minute before"
         default: "\(settings.meetingLeadMinutes) minutes before"
         }
+    }
+
+    /// The display name of the model currently configured for meeting notes.
+    ///
+    /// Read from the same role resolution the Models tab draws, so the two screens can
+    /// never disagree: replacing the default brain renames it here too.
+    private var currentNotesModelName: String {
+        // Touch the library so this row refreshes when the active brain changes.
+        _ = library.activeAgentModelID
+        return roles.displayName(for: .meetingNotes)
     }
 }

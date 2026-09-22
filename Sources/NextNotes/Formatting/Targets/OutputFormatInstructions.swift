@@ -51,10 +51,19 @@ enum OutputFormatInstructions {
         guard !profile.isPlain else {
             return [
                 "The cleaned text will be typed into \(name), which shows formatting marks "
-                    + "literally rather than rendering them. Write plain prose only.",
+                    + "literally rather than rendering them. Use no Markdown marks.",
                 "Use none of the following: "
                     + OutputCapability.allCases.map(\.prohibition).joined(separator: "; ")
-                    + ". Write a spoken list as a sentence.",
+                    + ".",
+                // The line that used to read "write a spoken list as a sentence", which is
+                // the instruction that threw away every list dictated into an app nobody had
+                // written a `formatting.txt` row for. An app that renders no Markdown still
+                // renders "1." and a newline perfectly well — those are characters, not marks
+                // — so the structure the speaker spoke survives and only the syntax changes.
+                "A list the speaker actually spoke is still a list here: write it as plain "
+                    + "numbered lines, \"1. item\" and \"2. item\", one per line, with no "
+                    + "bullet characters and no other marks. A quotation the speaker opened "
+                    + "and closed out loud is wrapped in ordinary quotation marks.",
                 Self.neverInvent,
             ] + pathReferenceRules(for: profile)
         }

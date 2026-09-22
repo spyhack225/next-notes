@@ -24,7 +24,7 @@ The macOS app is no longer only dictation, and the second half of it is younger 
 less exercised than the first. It reads the calendar (EventKit and, optionally, the Google
 Calendar API), arms and records a meeting on its own, captures the microphone and a Core
 Audio process tap as two separate tracks, transcribes both with Parakeet, tells the
-speakers on the system track apart, writes notes with a local Qwen3.5-4B (or Apple
+speakers on the system track apart, writes notes with a local Gemma 4 E4B (or Apple
 Foundation Models), and — when it is switched on — proposes follow-up actions in Gmail,
 Calendar, Drive and Docs through Google's `gws` CLI, which a person approves one at a time.
 Its status shows in a card at the notch. None of that exists on Windows and none of it is
@@ -90,7 +90,21 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-stream    --selftest-transcript-bus
 --selftest-duplex    --selftest-contention
 --selftest-residency
+--selftest-cleanup-structure               --selftest-commandkey
+--selftest-tool-review                     --selftest-function-calls [engine-dir]
+--selftest-skills    --selftest-file-index --selftest-onboarding
+--selftest-model-roles --selftest-model-fit --selftest-hf-search
+--selftest-memory-portability
 ```
+
+The last five lines were added on 2026-09-19. Three of them reach the network and say so
+when it is missing rather than passing quietly: `--selftest-skills` searches skills.sh and
+installs one real skill from GitHub into a temp folder, `--selftest-hf-search` fetches a
+3.9 MB file from the Hugging Face Hub and resumes it from a real `206`, and
+`--selftest-model-roles` starts its own loopback fixture server. `--selftest-function-calls`
+takes an optional directory holding `needle3-macos-arm64` and `needle3.cact`; without it the
+run prints `FUNCTION_CALLS_NEEDLE_ABSENT` and grades only the fallback, and it still fails
+if no *model* — Needle or the local one — produced a single call.
 
 A self-test must **fail** when the thing it names did not happen. `--selftest-systemaudio`
 reporting `SYSTEM_AUDIO_SILENT` on a zero peak, and the Metal probe failing on zero
@@ -183,6 +197,69 @@ was permanently nil, `capturedProfile` always resolved to plain, and every row i
 settings UI wrote a file the pipeline never read. If you add a seam like
 `OutputFormatInstructions` — a pure function with a written integration note and no caller —
 grep for its callers before assuming the feature ships.
+
+**A prompt rule is only a rule for the engines that read prompts.** Every grammar, list,
+quotation and per-app formatting instruction lived in `CleanupInstructions.system` — and
+`S1MiniFormatter` is a 0.6B punctuation normaliser that takes no instructions at all. With
+`cleanupEngine = s1Mini` the whole instruction block was addressed to something that never
+saw it, so "Format spoken lists" could not have had any effect no matter what the toggle
+said, and the user's own history contains the typed sentence `Open a list.` — they said it,
+and the app typed it. That is why structure now lives in `SpokenStructure`, a deterministic
+stage on `CleanupRouter` that runs **before and after** the model: before, so the model is
+handed rendered structure instead of instructions it can delete (Apple's model ate
+`quote … end quote` markers when it saw them as text); after, so a model that flattens the
+formatting back into prose loses to the pre-rendered version. Before adding a rule to a
+prompt, check which engines can actually receive it.
+
+**`URL.resourceValues` answers from a cache attached to that `URL` instance.** The model
+downloader's own size check was served stale bytes from a `URL` it had held across a write,
+so a resumed transfer was silently skipped. `ModelDownloader.fileSize(at:)` goes through
+`FileManager` instead. The older pinned-model path is safe only by accident — `ModelSpec.fileURL`
+is a computed property that returns a fresh `URL` each call — so it is the same trap one
+refactor away.
+
+**`URL.resolvingSymlinksInPath()` is not a canonical form, and it disagrees with
+`FileManager.enumerator`.** It strips `/private` rather than adding it, while the enumerator
+reports every child under `/private/var/…`, so a prefix test between the two matches nothing:
+every `LIKE`, every `parent =` lookup and every purge in the file index silently returned
+empty, which reads as "the index is broken". Both the file index and the skill scanner hit
+this independently. Use `realpath(3)` — `FileIndexStore.canonical` and
+`SkillScanner.canonicalPath` are the two copies.
+
+**`FileManager.enumerator(at:)` yields nothing when the root URL is a symlink to a
+directory.** On this Mac ~90% of `~/.claude/skills` entries are symlinks into
+`~/.agents/skills`, so every one of those skills reported exactly one file and
+`skills.read(name, file:)` refused all 1025 bundled files. Worse, de-duplication kept the
+*first* candidate by name+hash and `.claude/skills` is scanned before `.agents/skills`, so the
+crippled record shadowed the intact one. Resolve the root first, and prefer the candidate
+with more files on a key collision.
+
+**`AgentTurnIntent.computer` has no producer, and `ComputerLoopPlanner` is dead for live
+turns.** `resolve` only ever returns `.delegate`, `.localModel` or `.toolLoop`; the
+`.computer` case survives as a pattern match and a progress title. A real "click the Send
+button" goes `handle → .toolLoop → runModelTurn`, which picks its model through
+`AgentModelRouting`, so the "Controlling your Mac" role *does* reach the path that plans the
+clicks. A reviewer read the `performComputer → runComputerLoop → ComputerLoopPlanner` chain
+as the live one and filed it as a blocker; wiring a model into that closure would wire it
+into a path nothing takes. Grep for a producer before believing an `enum` case is reachable.
+
+**In the realtime tool loop, an alias is checked against the allowlist before the registry
+resolves it — and a miss abandons the whole turn.** `RealtimeAgent+ToolLoop.swift:796` tests
+the raw `call.name` against `RealtimeToolSelection.allowedIDs` and then `return`s, so a model
+that emits a registered alias (`files.find`, `workspace.*`) loses every remaining call in the
+plan rather than that one. Nothing advertised reaches it today — `FileToolCatalogue` derives
+its advertised ids from the canonical namespace, and `--selftest-file-index` fails if the
+sentence in the planner prompt names anything that is not both allowlisted and
+registry-resolvable. The ordering itself is still latent: resolve through the registry
+first, and skip the call rather than the turn.
+
+**A confidence score from a function-calling model is not comparable across tool sets.** The
+same sentence scored 1.00 with 2 tools, 0.93 with 14 and 0.41 with the 8 this app offers, so
+a fixed 0.65 gate threw away correct proposals. Latency scales with the schemas too — 126 ms
+at 2 tools, ~1 s at 8, ~4 s at 14 — which is why `FunctionCallCatalogue` is curated and
+capped rather than "every tool we have". The real filter is grounding, not confidence: a
+model asked to "send Marcus the pricing sheet" with no address anywhere invents a
+plausible-looking one at confidence 1.0.
 
 **A new engine in `--selftest-cleanup` scores 28/28 until you give it a `rawCleanup` case.**
 The verdict compares the guarded pipeline output against an unguarded second call; with no
@@ -867,7 +944,7 @@ development machine. Treat anything here as unproven, and do not describe it as 
 
 - **The system-audio tap with its TCC grant.** Every call succeeds without it and every
   sample is zero, so no meeting has yet contained an "Others" track.
-- **Qwen3.5-4B.** Never downloaded (~7 GB of free disk is needed: 2.74 GB plus the
+- **Gemma 4 E4B.** Never downloaded (~9 GB of free disk is needed: 4.98 GB plus the
   downloader's 4 GB reserve), so `NotesModels.spec.expectedSHA256` is still `nil` — the
   downloader logs the computed digest and the next agent to get it pins it — and every
   notes and agent run so far has gone through Apple Foundation Models instead.
@@ -919,18 +996,18 @@ only a committed user turn calls `userSpeechStarted`, which stops output while r
 the work objective and completed results. Explicit cancellation invalidates work. Do not turn every acknowledgment into a
 cancellation. Model/read budgets exclude waiting for the user's floor or an approval.
 `VoicePlaybackDelivery` records output acknowledgements separately from generated results;
-a completed clause is not proof of physical audibility. Qwen's single native context must
-be reserved before acquiring its compute scheduler ticket, or actor reentry can corrupt
+a completed clause is not proof of physical audibility. The on-device model's single native
+context must be reserved before acquiring its compute scheduler ticket, or actor reentry can corrupt
 its inference state and reverse lock order can deadlock. The voice lifecycle, delivery,
 and scheduling self-tests exercise these boundaries without a microphone.
 
 **Live conversation has a different model owner from tool work.**
 `VoiceConversationCoordinator` routes local Foundation Models responses and keeps separate
-Qwen workers alive. A microphone commit clears `RealtimeAgent.voiceInputActive` but must
+on-device workers alive. A microphone commit clears `RealtimeAgent.voiceInputActive` but must
 not clear the coordinator's effect barrier until the latest input has been classified.
 Otherwise a correction can allow an old effect, or an uncleared floor can deadlock the
 response. `--selftest-concurrent-voice` and `--selftest-voice-conversation` cover both.
-Qwen prefill must checkpoint between batches, and its background warmup must not acquire
+On-device prefill must checkpoint between batches, and its background warmup must not acquire
 the same priority as the conversational frontend.
 
 **Echo suppression and EOU require the real producer.** Mixer PCM feeds SpeexDSP before

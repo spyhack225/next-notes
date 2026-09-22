@@ -371,7 +371,7 @@ enum KnowledgeAskSelfTest {
                 try await KnowledgeToolExecutor.run(timeline, arguments: ["entity": "person:ana"], context: consented)
             }
             check("timeline refused a cloud reader the user consented to", allowed.summary.contains("decision:ship"))
-            let expanded = try await KnowledgeGraphScope.$reader.withValue(.qwen35_4b) {
+            let expanded = try await KnowledgeGraphScope.$reader.withValue(.gemma4E4B) {
                 try await KnowledgeToolExecutor.run(
                     expand, arguments: ["node": "person:ana", "edges": "decided, owns", "depth": "9"], context: withGraph)
             }

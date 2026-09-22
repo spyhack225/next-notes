@@ -17,7 +17,7 @@ final class SherpaKeywordSpotter: @unchecked Sendable {
         joiner: URL,
         tokens: URL,
         keywords: URL,
-        threshold: Float
+        tuning: WakeWordTuning
     ) throws {
         let spotter = dylibDirectory.path.withCString { dylib in
             encoder.path.withCString { enc in
@@ -25,7 +25,13 @@ final class SherpaKeywordSpotter: @unchecked Sendable {
                     joiner.path.withCString { join in
                         tokens.path.withCString { tok in
                             keywords.path.withCString { keys in
-                                nn_wake_create(dylib, enc, dec, join, tok, keys, threshold)
+                                nn_wake_create_tuned(
+                                    dylib, enc, dec, join, tok, keys,
+                                    tuning.threshold,
+                                    tuning.maxActivePaths,
+                                    0,
+                                    tuning.numTrailingBlanks
+                                )
                             }
                         }
                     }

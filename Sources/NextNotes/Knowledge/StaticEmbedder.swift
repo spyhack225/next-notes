@@ -4,7 +4,7 @@ import Foundation
 ///
 /// A Model2Vec model is a table — one row per WordPiece token — and embedding a passage is
 /// tokenizing it and averaging its rows. That is the whole model, which is why it is the
-/// instant-on tier: no GPU, no load time worth the name, and it never queues behind Qwen.
+/// instant-on tier: no GPU, no load time worth the name, and it never queues behind the on-device model.
 ///
 /// What Model2Vec's own `encode` does, and this repeats:
 ///

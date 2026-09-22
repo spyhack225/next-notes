@@ -318,8 +318,15 @@ struct Ontology: Equatable, Sendable {
         # activities (hobbies), goals, preferences and non-meeting events. Topic stays the speculative
         # catch-all for subjects that do not fit a tighter type. New types are optional — empty is
         # correct when a passage names none of them.
+        #
+        # Version 3 adds Folder and File, the user's own folders and the files worth naming in them.
+        # These two are the one part of the vocabulary a model never produces: they come from
+        # file-index.sqlite, which is built by crawling the folders the user shared, and they are
+        # merged into the map when it is drawn rather than written into graph_node. That is why they
+        # need no source chunk — a path is its own evidence, where a decision is only ever somebody's
+        # word for something.
 
-        version: 2
+        version: 3
 
         nodes:
           Meeting:
@@ -386,6 +393,16 @@ struct Ontology: Equatable, Sendable {
             optional: true
             fields: { title: string, when: date }
             required: [title]
+          Folder:
+            source: the folders the user shared with the assistant, and their sub-folders
+            optional: true
+            fields: { name: label, path: string }
+            required: [name, path]
+          File:
+            source: files recently used, or named in a meeting, a memory or a task
+            optional: true
+            fields: { name: label, path: string, kind: label }
+            required: [name, path]
 
         edges:
           attended: { from: Person, to: Meeting }
@@ -409,6 +426,8 @@ struct Ontology: Equatable, Sendable {
           prefers: { from: Person, to: Preference }
           part_of: { from: [Project, Activity], to: [Organization, Topic] }
           occurs_at: { from: Event, to: Place }
+          inside: { from: [Folder, File], to: Folder }
+          refers_to: { from: [Meeting, Person, Project, Decision, ActionItem, Goal, Topic], to: File }
 
         """
 }

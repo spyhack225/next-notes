@@ -11,7 +11,7 @@ import Foundation
 /// - dictation / meeting / agent ASR (Parakeet or Apple) → `realtimeASR`
 /// - S1 / Foundation dictation cleanup → `realtimeAgent` when it is the
 ///   user-facing tail, `background` when it is an expensive second pass
-/// - Qwen meeting notes → `background`
+/// - Local model meeting notes → `background`
 /// - diarization → `background`
 /// - immediate agent tools (inspect, route, a short read) → `realtimeAgent`
 /// - delegated / long agent tools (coding, large search) → `background`
@@ -57,7 +57,7 @@ enum WorkClass: String, Sendable, CaseIterable, Equatable {
     /// - `realtimeAgent` prefers GPU / Apple Foundation Models.
     /// - `meetingLive` takes whatever accelerator is free.
     /// - `background` prefers GPU but is the class that must throttle and
-    ///   yield. Notes generation on Qwen is the example the scheduler exists
+    ///   yield. Notes generation on the local model is the example the scheduler exists
     ///   to stop: loading 2.7 GB of weights must not make dictation ASR lag.
     var preferredDevice: ComputeDevice {
         switch self {

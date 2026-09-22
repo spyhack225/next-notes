@@ -14,7 +14,7 @@ enum AgentTaskStatus: String, Codable, Sendable, CaseIterable {
 }
 
 /// A unit of background work. The conversational agent sees status and a result, not the
-/// backend's execution graph — the Qwen Task record, in Swift.
+/// backend's execution graph — the local model Task record, in Swift.
 struct AgentTask: Identifiable, Sendable, Equatable, Codable {
     var id: String
     var objective: String

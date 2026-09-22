@@ -5,7 +5,7 @@ import Foundation
 /// An extension, and one that both providers get for free, because tool calling here is a
 /// prompt convention rather than a runtime feature: the catalogue goes into the system
 /// message as a `<tools>` block and the calls come back as `<tool_call>` tags in ordinary
-/// text. Qwen3.5 was tuned on exactly that shape.
+/// text. The on-device model was tuned on exactly that shape.
 ///
 /// Apple's `Tool` protocol was the obvious alternative for the second provider and is the
 /// wrong shape twice over: it wants a compile-time `@Generable` argument type per tool,

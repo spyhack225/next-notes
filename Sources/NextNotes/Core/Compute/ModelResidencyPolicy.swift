@@ -15,7 +15,7 @@ import Dispatch
 /// - **Idle notes unload** stays at ten minutes (`NotesModelRuntime.idleUnload`).
 /// - **Cleanup gate stays one-directional.** Notes still call
 ///   `LlamaBackend.awaitCleanupIdle()` before loading. Nothing here calls
-///   `beginCleanup()`. Closing that cycle deadlocks Qwen cleanup
+///   `beginCleanup()`. Closing that cycle deadlocks the local model cleanup
 ///   (`QwenCleanupFormatter`).
 ///
 /// ## Wired, soft
@@ -37,7 +37,7 @@ enum ModelResidencyPolicy: Sendable {
     /// Models the product treats as always-warm while the feature is on.
     /// Pressure unload must not touch these when sessions still need them.
     enum ResidentModel: String, Sendable, CaseIterable, Equatable {
-        /// Qwen / notes GGUF behind `NotesModelRuntime`.
+        /// Local model GGUF behind `NotesModelRuntime`.
         case notes
         /// FluidAudio offline diarizer behind `MeetingDiarizer`.
         case diarization

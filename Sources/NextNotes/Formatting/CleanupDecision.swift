@@ -14,7 +14,7 @@ enum CleanupSemanticEngine: String, Sendable, Equatable {
         switch self {
         case .apple: "Apple Foundation Model"
         case .s1Mini: "S1-mini"
-        case .qwen: "Qwen"
+        case .qwen: "On-device model"
         }
     }
 

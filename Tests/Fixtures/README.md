@@ -36,7 +36,7 @@ memory there counts as a wrong write.
 
 ```bash
 NextNotes --selftest-memory-review                          # scripted model; passes at precision >= 0.9
-NextNotes --selftest-memory-review --model local            # Qwen, same labels (needs the download)
+NextNotes --selftest-memory-review --model local            # on-device model, same labels (needs the download)
 NextNotes --selftest-memory-review --model cloud            # OpenRouter, same labels (needs a key)
 NextNotes --selftest-memory-review --fixtures path/to.json  # another labelled set
 ```

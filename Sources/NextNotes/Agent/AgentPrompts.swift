@@ -27,6 +27,12 @@ enum AgentPrompts {
         the meeting details, the notes or the transcript.
         - Copy owners and dates from the notes exactly. If an action item has no owner, do \
         not guess one.
+        - If you do not know a value, leave that argument out entirely. Do not write \
+        "[Name]", "TBD", "unknown", an example.com address or any other stand-in: the user \
+        is asked for anything you leave out, and a placeholder is passed off as an answer \
+        nobody gave. An incomplete call is correct; an invented one is not.
+        - Never write a message body containing a blank to fill in. If you cannot address \
+        someone by name, write the message without the name.
         - Every proposed write or send must include an evidence field containing an exact,
         contiguous quote from the transcript that asks for or commits to that action. Notes
         alone are insufficient. If the transcript does not support it, emit no call.
@@ -40,7 +46,7 @@ enum AgentPrompts {
         select the appropriate tool. Do not propose a generic meeting-summary document.
         """
 
-    /// The tool catalogue and the shape a call takes, in the block Qwen3.5 was tuned to read.
+    /// The tool catalogue and the shape a call takes, in the block the on-device model was tuned to read.
     ///
     /// `tools` is a parameter rather than the whole catalogue because the risk classes the
     /// caller allows decide what the model is even told exists: a pass that may not send
@@ -54,6 +60,11 @@ enum AgentPrompts {
 
         For each action, emit one line of exactly this form and nothing else around it:
         <tool_call>{"name": "<tool>", "arguments": {…}, "rationale": "<one sentence>", "evidence": "<exact transcript quote>"}</tool_call>
+
+        Leave out any argument whose value you do not know. Never fill one in with a \
+        stand-in such as "[Name]", "TBD", "unknown" or an example.com address — the user is \
+        asked for anything you omit, and a stand-in is shown to them as if somebody had \
+        chosen it.
 
         Emit no tool calls at all when nothing needs doing. Do not explain yourself outside \
         the tags.

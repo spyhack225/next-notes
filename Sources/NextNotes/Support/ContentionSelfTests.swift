@@ -9,7 +9,7 @@ import Foundation
 ///
 /// What this deliberately does **not** claim:
 ///
-/// - Real meeting ASR latency under notes load (needs Parakeet + Qwen).
+/// - Real meeting ASR latency under notes load (needs Parakeet + on-device model).
 /// - Lost microphone frames during barge-in (needs a live tap).
 /// - Dictation e2e latency while an ACP coding task runs (needs both paths live).
 ///

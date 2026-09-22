@@ -42,7 +42,13 @@ struct ProposalArgumentsSheet: View {
             }
             .formStyle(.grouped)
 
-            HStack {
+            HStack(alignment: .firstTextBaseline) {
+                if let problem {
+                    Text(problem)
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Spacer()
                 Button("Cancel", role: .cancel) { dismiss() }
                 Button("Save") {
@@ -62,7 +68,9 @@ struct ProposalArgumentsSheet: View {
         switch parameter.kind {
         case .multiline:
             VStack(alignment: .leading, spacing: DS.Space.xs) {
-                Text(parameter.name)
+                // The label a person can read. `document_id` is a schema key, and a sheet
+                // that prints it has asked somebody to approve a word they do not know.
+                Text(label(parameter))
                     .font(DS.Font.sectionLabel)
                 TextEditor(text: binding(parameter.name))
                     .font(DS.Font.transcript)
@@ -72,7 +80,7 @@ struct ProposalArgumentsSheet: View {
                     .foregroundStyle(DS.Color.textSecondary)
             }
         case .text, .list, .date:
-            LabeledContent(parameter.name) {
+            LabeledContent(label(parameter)) {
                 VStack(alignment: .trailing, spacing: DS.Space.xxs) {
                     TextField(parameter.description, text: binding(parameter.name))
                         .textFieldStyle(.roundedBorder)
@@ -86,14 +94,21 @@ struct ProposalArgumentsSheet: View {
         }
     }
 
-    /// Every required field has something in it. A proposal saved with a blank recipient
-    /// would fail the moment it was approved, which is a worse place to learn about it.
-    private var isComplete: Bool {
-        parameters.filter(\.isRequired).allSatisfy { parameter in
-            !(values[parameter.name] ?? "")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .isEmpty
-        }
+    /// Every required field has something real in it. A proposal saved with a blank
+    /// recipient would fail the moment it was approved, which is a worse place to learn
+    /// about it — and one saved with "[Name]" would not fail at all, which is worse again.
+    private var isComplete: Bool { problem == nil }
+
+    /// The sentence shown under the buttons when Save is off, so the greyed button is not
+    /// a puzzle. Nil when everything is answered.
+    private var problem: String? {
+        guard let definition = proposal.definition else { return nil }
+        return ToolCallValidation.problem(
+            tool: AgentTool.workspace(definition), arguments: values)
+    }
+
+    private func label(_ parameter: WorkspaceTool.Parameter) -> String {
+        ToolCallReviewBuilder.label(for: parameter.name, toolID: proposal.tool)
     }
 
     private func binding(_ name: String) -> Binding<String> {

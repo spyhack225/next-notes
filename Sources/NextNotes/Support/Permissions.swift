@@ -3,6 +3,7 @@ import AppKit
 import ApplicationServices
 import EventKit
 import Foundation
+import os
 
 /// Every grant Next Notes can ask for, and where to send the user when it can't ask.
 ///
@@ -29,6 +30,30 @@ enum Permissions {
 
     static var hasCalendar: Bool {
         EKEventStore.authorizationStatus(for: .event) == .fullAccess
+    }
+
+    /// Whether a system-audio tap in this app has ever delivered real sound.
+    ///
+    /// Evidence, not a query — the grant still cannot be read. A tap without the grant
+    /// succeeds and delivers zeroed samples, so one non-silent buffer is proof the grant
+    /// exists, and it is the only proof there is. On 2026-09-20 the user switched the grant
+    /// on in both lists of the pane and the row went on saying "Ask…", which read as broken.
+    /// The reverse is not evidence: silence is also what a quiet Mac sounds like.
+    nonisolated static var hasHeardSystemAudio: Bool {
+        UserDefaults.standard.object(forKey: systemAudioHeardKey) != nil
+    }
+
+    private nonisolated static let systemAudioHeardKey = "permissions.systemAudioHeardAt"
+    private nonisolated static let heardThisLaunch = OSAllocatedUnfairLock(initialState: false)
+
+    /// Called from the tap's audio thread on a non-silent buffer. Writes once per launch.
+    nonisolated static func noteSystemAudioHeard() {
+        let first = heardThisLaunch.withLock { heard -> Bool in
+            defer { heard = true }
+            return !heard
+        }
+        guard first else { return }
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: systemAudioHeardKey)
     }
 
     /// Nudges macOS into asking for system audio, by doing the thing it asks about.
@@ -66,7 +91,9 @@ enum Permissions {
                 Log.systemAudio.error("tap probe failed: \(error.localizedDescription, privacy: .public)")
                 return
             }
-            try? await Task.sleep(for: .milliseconds(400))
+            // Long enough to catch a beat of whatever is playing, which is what turns the
+            // row green; the prompt itself needs far less.
+            try? await Task.sleep(for: .milliseconds(1_500))
             capture.stop()
         }
     }
@@ -142,6 +169,30 @@ enum Permissions {
     static func openCalendarSettings() {
         open("Privacy_Calendars")
     }
+
+    /// Desktop / Documents / Downloads for an app outside the sandbox. A folder refused
+    /// here fails every read afterwards, and this pane is the only way back.
+    static func openFilesAndFoldersSettings() {
+        open("Privacy_FilesAndFolders")
+    }
+
+    /// What to tell somebody whose Accessibility switch is on and who still is not trusted.
+    ///
+    /// TCC stores a code-signing requirement beside each grant, so an entry made against a
+    /// previous build keeps its switch on while `AXIsProcessTrusted()` stays false and the
+    /// event tap refuses to arm. Nothing in the API distinguishes that from "not granted"
+    /// — the only tell is a switch the user says is on next to a tap that will not start —
+    /// so the repair is offered rather than detected, in the words of somebody who has
+    /// never heard of a code signature.
+    ///
+    /// One string, here, because the first-run screen and the Settings tab both say it and
+    /// they must not drift.
+    /// `nonisolated` because a constant sentence needs no actor, and the value that decides
+    /// what the last setup screen says (`OnboardingOutcome`) is deliberately not one.
+    nonisolated static let accessibilityRepairAdvice =
+        "If the switch next to Next Notes already looks on, macOS is holding on to an older "
+        + "copy of it. Select Next Notes in that list, press the minus button to remove it, "
+        + "then press plus and add Next Notes again."
 
     /// Notifications are not a privacy pane: they live in their own Settings extension, so
     /// the security URL every other row uses opens the wrong page.

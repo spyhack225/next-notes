@@ -157,7 +157,7 @@ final class DictationController {
     /// A function rather than a computed property because of `context`: the names visible on
     /// screen are harvested on a detached task and have to be awaited, and a property has
     /// nowhere to put the await. It stays private, so nothing outside this file is affected.
-    private func activeFormatter(context: ScreenContext) -> any TextFormatter {
+    private func activeFormatter(context: ScreenContext, trace: CleanupTrace?) -> any TextFormatter {
         if let formatter { return formatter }
         let settings = Settings.shared
         // What the app about to receive this text can actually render, captured at
@@ -175,7 +175,11 @@ final class DictationController {
             fixesGrammar: settings.cleanupFixesGrammar,
             target: target,
             context: context,
-            skipsModelWhenBusy: settings.cleanupSkipsModelWhenBusy
+            skipsModelWhenBusy: settings.cleanupSkipsModelWhenBusy,
+            // Filed on the run afterwards. Without it, "the model does no grammar" and "the
+            // model's answer was rejected" and "the model timed out" all look identical in
+            // `runs.jsonl`, which stores only the finished string.
+            trace: trace
         )
     }
 
@@ -375,6 +379,52 @@ final class DictationController {
 
     private var recordingIntent = RecordingIntent.dictation
 
+    /// What Command Mode is saying right now, or `nil` when this hold is ordinary dictation.
+    ///
+    /// The single switch behind the whole feature's visibility. While it is set the
+    /// heads-up display draws `CommandModeCard` and is shown whatever the placement setting
+    /// says, and the notch island stands down — so a Command Mode hold is described in one
+    /// place, in words, instead of appearing at the notch as a wordless orb borrowed from
+    /// dictation.
+    private(set) var commandMode: CommandModeStatus?
+
+    /// True while Command Mode owns the heads-up display. Read by the island so the two
+    /// surfaces never narrate the same hold at once.
+    ///
+    /// Not simply "a message exists". A message is allowed to outlive the hold that raised
+    /// it — "Select some text first" is only useful if it stays up long enough to read — and
+    /// for those four seconds a plain "is there a status?" test handed the next recording,
+    /// whatever it was, to the Command Mode card. `beginDictation` clears a stale message, so
+    /// this should never be the thing that saves us; it is here because the cost of being
+    /// wrong is the user's dictation disappearing from the only surface they watch.
+    var commandModeOwnsHUD: Bool {
+        Self.commandModeOwnsHUD(
+            status: commandMode,
+            isRecording: state.isActive,
+            isCommandRecording: recordingIntent.kind == .command
+        )
+    }
+
+    /// The rule behind `commandModeOwnsHUD`, as a function of the three facts it turns on.
+    ///
+    /// Pure and static so `--selftest-commandkey` can walk the whole table — including the
+    /// combination this exists to get right, a leftover message over a running dictation —
+    /// without a microphone, a hotkey or a screen.
+    static func commandModeOwnsHUD(
+        status: CommandModeStatus?,
+        isRecording: Bool,
+        isCommandRecording: Bool
+    ) -> Bool {
+        guard status != nil else { return false }
+        // An idle message owns the display on its own; a live one only while the recording
+        // it is describing is the one actually running.
+        return !isRecording || isCommandRecording
+    }
+
+    /// Generation counter for the self-dismissing Command Mode messages, so a message that
+    /// has already been replaced cannot clear its successor when its own timer fires.
+    private var commandModeToken = 0
+
     /// The app that was frontmost when this hold began.
     ///
     /// Captured at key-down rather than read at insertion time, because the tail between
@@ -394,7 +444,13 @@ final class DictationController {
         limits: Limits = .standard,
         insert: @escaping @MainActor (String, TextInjector.Origin?) async -> TextInjector.Outcome
             = { await TextInjector.insert($0, returningTo: $1) },
-        record: @escaping @MainActor (DictationRun) -> Void = { RunLog.record($0) }
+        record: @escaping @MainActor (DictationRun) -> Void = { RunLog.record($0) },
+        // Injectable for the same reason `insert` is: reading the selection needs
+        // Accessibility and a focused text field in another app, neither of which a
+        // self-test has, and the branch worth checking is the one where there is no
+        // selection at all.
+        captureSelection: @escaping @MainActor () -> TextInjector.Selection?
+            = { TextInjector.captureSelection() }
     ) {
         self.formatter = formatter
         self.commandProcessor = commandProcessor
@@ -402,7 +458,10 @@ final class DictationController {
         self.limits = limits
         self.insert = insert
         self.record = record
+        self.captureSelection = captureSelection
     }
+
+    private let captureSelection: @MainActor () -> TextInjector.Selection?
 
     // MARK: - Lifecycle
 
@@ -431,9 +490,7 @@ final class DictationController {
                 Log.hotkey.error("Command Mode key conflicts with push-to-talk; command hotkey not armed")
                 return true
             }
-            commandHotkey.key = settings.commandModeKey
-            commandHotkey.onPress = { [weak self] in self?.beginCommand() }
-            commandHotkey.onRelease = { [weak self] in self?.endDictation(expected: .command) }
+            arm(commandHotkey, forCommandModeOn: settings.commandModeKey)
             if !commandHotkey.start() {
                 Log.hotkey.error("Command Mode hotkey could not be armed")
             }
@@ -478,24 +535,98 @@ final class DictationController {
         endDictation()
     }
 
-    // MARK: - Dictation
+    // MARK: - Command Mode
 
-    private func beginCommand() {
+    /// How long the Command Mode key must be held before anything happens.
+    ///
+    /// Long enough that no shortcut reaches it — ⌘C is tens of milliseconds from press to
+    /// press — and short enough that somebody holding the key deliberately does not think
+    /// the app is dead. The chord guard in `HotkeyMonitor` is the real protection; this is
+    /// what stops a stray tap from putting something on screen.
+    static let commandHoldThreshold = Duration.milliseconds(400)
+
+    /// Points a monitor at the Command Mode key and hands it the three answers it needs.
+    ///
+    /// Unlike push-to-talk, this key is usually ⌘ — the modifier every shortcut on the
+    /// machine is built out of. Firing on key-down meant ⌘C opened the microphone against
+    /// the selection the user was copying, and a bare tap raised a heads-up display and then
+    /// nothing. A hold now has to outlast the threshold with nothing else struck or clicked
+    /// inside it; a tap and a chord produce nothing at all.
+    ///
+    /// This is a named function rather than five lines inside `activate()` because it *is*
+    /// the contract: delete the `holdThreshold` line and the original bug comes straight
+    /// back, silently, with every unit of the gate still passing. `--selftest-commandkey`
+    /// arms a throwaway monitor through here and checks what came out, which is the only
+    /// way that regression is catchable without a keyboard and an Accessibility grant.
+    func arm(_ monitor: HotkeyMonitor, forCommandModeOn key: PushToTalkKey) {
+        monitor.key = key
+        monitor.holdThreshold = Self.commandHoldThreshold
+        monitor.onPress = { [weak self] in self?.beginCommandMode() }
+        monitor.onRelease = { [weak self] in self?.endDictation(expected: .command) }
+        monitor.onCancel = { [weak self] in self?.cancelCommandMode() }
+    }
+
+    /// The Command Mode key was held long enough to mean it.
+    ///
+    /// Internal rather than private so `--selftest-commandkey` can drive it: everything
+    /// this decides happens before the microphone opens, and none of it is reachable from a
+    /// terminal through the event tap.
+    func beginCommandMode() {
         guard case .idle = state else { return }
         guard FoundationModelCommandProcessor.isAvailable else {
-            fail(FoundationModelCommandProcessor.unavailableReason
-                ?? "The on-device model required by Command Mode is unavailable.")
+            // Not `fail`. `fail` is the dictation failure path: it sets `.error`, which the
+            // island draws as a dictation card with nothing in it — the wordless animation
+            // this feature was reported for. Command Mode says its own piece instead.
+            showCommandMode(.problem(FoundationModelCommandProcessor.unavailableReason
+                ?? "This Mac can\u{2019}t rewrite text on its own yet."))
             return
         }
-        guard let selection = TextInjector.captureSelection() else {
-            fail("Select editable text before holding the Command Mode key.")
+        guard let selection = captureSelection() else {
+            showCommandMode(.needsSelection)
             return
         }
+        showCommandMode(.listening)
         beginDictation(intent: .command(selection))
     }
 
+    /// The key turned out to be part of a shortcut after the hold had already started.
+    ///
+    /// Silent on purpose: the user pressed ⌘ and then another key, which is an ordinary
+    /// thing to do and not something to be told about. Whatever had started is unwound.
+    private func cancelCommandMode() {
+        guard commandMode != nil else { return }
+        showCommandMode(nil)
+        if state.isActive, recordingIntent.kind == .command { cancelDictation() }
+    }
+
+    /// Puts a Command Mode message up, and takes it down again when it has had its time.
+    ///
+    /// `nil` clears immediately. The token makes a stale timer harmless: without it, the
+    /// four-second life of "Select some text first" would erase a listening card the user
+    /// started two seconds later.
+    private func showCommandMode(_ status: CommandModeStatus?) {
+        commandModeToken &+= 1
+        commandMode = status
+        guard let lifetime = status?.lifetime else { return }
+        let token = commandModeToken
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: lifetime)
+            guard let self, self.commandModeToken == token else { return }
+            self.commandMode = nil
+        }
+    }
+
+    // MARK: - Dictation
+
     private func beginDictation(intent: RecordingIntent) {
         guard case .idle = state else { return }
+        // A Command Mode message outlives its hold by design — "Select some text first"
+        // stays up for four seconds so it can be read. It must not outlive it *into the
+        // next recording*: left standing, an ordinary push-to-talk dictation started inside
+        // those four seconds was narrated by the Command Mode card, vanished from the notch
+        // entirely, and on key-up promised to replace a selection this hold never captured.
+        // Raised after the idle guard so a Command Mode hold already in flight keeps its own.
+        if case .dictation = intent { showCommandMode(nil) }
         session &+= 1
         let session = self.session
         recordingIntent = intent
@@ -540,6 +671,37 @@ final class DictationController {
             processID: origin?.app.processIdentifier,
             originBundleID: origin?.app.bundleIdentifier
         )
+        // Wake the Apple cleanup model while the key is still down: a session staged here
+        // and reused by `FoundationModelFormatter.clean` measured 0.94s versus 4.69s cold
+        // (see `CleanupSessionWarmer`). Skipped for Command Mode, which never reaches this
+        // formatter at all, and for a hold whose settings would not land on Apple's model
+        // regardless — cleanup off, or S1-mini with grammar repair off. Built with `.empty`
+        // screen context because the real context is narrowed against the transcript, which
+        // does not exist yet; `CleanupSessionWarmer.take(instructions:)` simply will not
+        // hand out a session staged for the wrong prompt, so a guess that misses costs
+        // nothing beyond the wasted prewarm. Fired on its own task — never awaited here —
+        // so staging can never delay the capture this function starts below.
+        if case .dictation = intent, Settings.shared.cleanupEnabled,
+           CleanupRouter.preferredEngine(
+               choice: Settings.shared.cleanupEngine,
+               fixesGrammar: Settings.shared.cleanupFixesGrammar
+           ) == .apple {
+            let instructions = CleanupInstructions.system(
+                for: Settings.shared.cleanupPreferences,
+                fixesGrammar: Settings.shared.cleanupFixesGrammar,
+                target: OutputProfileStore.shared.capturedProfile
+            )
+            // The layout pass is a second call to the same model with different
+            // instructions, and it is the one that was timing out cold. Staged on the same
+            // hold, and only when formatting is actually switched on.
+            let layout = Settings.shared.cleanupPreferences.formatsLists
+                ? StructurePlanPrompt.system
+                : nil
+            Task {
+                await CleanupSessionWarmer.shared.stage(instructions: instructions)
+                if let layout { await CleanupSessionWarmer.shared.stage(instructions: layout) }
+            }
+        }
         state = .starting
         // An embedder a search loaded is not left beside the dictation for its idle timer.
         Task { await EmbeddingRuntime.shared.stopNow() }
@@ -756,6 +918,13 @@ final class DictationController {
         }
 
         state = .finishing
+        // The Command Mode card stops inviting an instruction the moment the key comes up;
+        // everything after this point is the model working on what was already said.
+        //
+        // Gated on what *this* hold is, not on whether a card happens to be on screen. A
+        // leftover message from an earlier hold used to make this branch announce that an
+        // ordinary dictation was about to replace the user's selection, which was a lie.
+        if recordingIntent.kind == .command { showCommandMode(.rewriting) }
         let capturedFrames = audioCounter?.frames ?? 0
         audioCounter = nil
         AudioCaptureHub.shared.unsubscribe(.dictation)
@@ -861,17 +1030,27 @@ final class DictationController {
             var cleanupTimedOut = false
             // Outside the cleanup block because the file tagging below reads it too.
             var screen = ScreenContext.empty
+            // Filled in by the pass itself and filed on the run below, so the Dictation
+            // history can say what happened to these words rather than only what came out.
+            var cleanupRecord: CleanupRecord?
             if Settings.shared.cleanupEnabled {
                 screen = await screenNames(mentionedIn: raw)
                 narrowedAt = Date().timeIntervalSince(began)
                 guard self.session == session else { return }
-                let formatter = activeFormatter(context: screen)
+                let trace = CleanupTrace()
+                let formatter = activeFormatter(context: screen, trace: trace)
                 if let formatted = await withBoundedWait(limits.cleanup, { await formatter.format(raw) }) {
                     cleaned = formatted
                 } else {
                     cleanupTimedOut = true
+                    trace.noteModelFailed(
+                        reason: "tidying up took too long, so your words were used as spoken",
+                        seconds: Date().timeIntervalSince(began) - narrowedAt
+                    )
+                    trace.noteOutput(raw, seconds: Date().timeIntervalSince(began) - narrowedAt)
                     Log.speech.error("cleanup did not finish within \(String(describing: self.limits.cleanup), privacy: .public) — using the raw transcript")
                 }
+                cleanupRecord = trace.snapshot
             }
 
             // The split, every time, at info level. `runs.jsonl` records one number for the
@@ -917,7 +1096,7 @@ final class DictationController {
             // Recorded before injection, deliberately. If the text cannot be placed, the
             // Dictation list is the other way back to it, and an utterance that is hard to
             // deliver is exactly the one worth having filed.
-            recordRun(text: output, corrections: corrections)
+            recordRun(text: output, corrections: corrections, cleanup: cleanupRecord)
 
             let injectBegan = Date()
             let outcome = await insert(output, origin)
@@ -961,6 +1140,7 @@ final class DictationController {
         firstPartialTrace = nil
         keyDownToCaptureTrace = nil
         recordingIntent = .dictation
+        showCommandMode(nil)
         origin = nil
         OutputProfileStore.shared.clearCapturedTarget()
         ScreenContextStore.shared.clearCaptured()
@@ -971,6 +1151,7 @@ final class DictationController {
         // but punctuation cleanup does not: the model needs an imperative, not prose.
         let (command, _) = DictionaryStore.shared.corrector.apply(to: rawCommand)
         transcript = "Editing selection…"
+        showCommandMode(.rewriting)
 
         // Bounded like the dictation tail, and for the same reason: the model behind this
         // is Apple's, it already has its own timeout, and if that timeout ever fails to
@@ -1032,6 +1213,7 @@ final class DictationController {
         keyDownToCaptureTrace?.end(note: "cancelled")
         keyDownToCaptureTrace = nil
         recordingIntent = .dictation
+        showCommandMode(nil)
     }
 
     // MARK: - Helpers
@@ -1118,7 +1300,11 @@ final class DictationController {
     /// `processSeconds` is measured from key release, not from capture start — that's the
     /// wait the user actually experiences, and it's the only number on which a streaming
     /// engine and a batch engine can be compared honestly.
-    private func recordRun(text: String, corrections: [AppliedCorrection] = []) {
+    private func recordRun(
+        text: String,
+        corrections: [AppliedCorrection] = [],
+        cleanup: CleanupRecord? = nil
+    ) {
         guard let holdStarted, let releasedAt else { return }
         record(
             DictationRun(
@@ -1127,7 +1313,8 @@ final class DictationController {
                 audioSeconds: releasedAt.timeIntervalSince(holdStarted),
                 processSeconds: Date().timeIntervalSince(releasedAt),
                 text: text,
-                corrections: corrections.isEmpty ? nil : corrections
+                corrections: corrections.isEmpty ? nil : corrections,
+                cleanup: cleanup
             )
         )
         self.holdStarted = nil
@@ -1146,6 +1333,11 @@ final class DictationController {
     /// the whole point of bounding the waits above.
     private func fail(_ message: String) {
         Log.app.error("\(message, privacy: .public)")
+        // A Command Mode hold keeps its own card rather than handing the message to the
+        // dictation error state. Gated on what this hold is rather than on whether a card is
+        // up, so a leftover message from an earlier hold cannot claim an ordinary dictation's
+        // failure — that one goes to `.error`, which the island now draws with its words on.
+        if recordingIntent.kind == .command { showCommandMode(.problem(message)) }
         // Anything still in flight for this hold is disowned rather than awaited: `fail` is
         // reached *because* something did not come back.
         let releasing = session

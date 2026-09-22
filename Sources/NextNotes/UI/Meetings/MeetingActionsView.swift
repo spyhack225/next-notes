@@ -47,6 +47,12 @@ struct MeetingActionsView: View {
         .sheet(item: $editing) { proposal in
             ProposalArgumentsSheet(proposal: proposal) { arguments in
                 agent.update(proposal, arguments: arguments)
+                // What the user typed here is theirs, and the card has to hear about it.
+                // Rebuilding the review from the saved arguments instead would run them
+                // back through the inspector, which cannot tell a correct address the user
+                // knows from one the model invented — and the card would go on refusing a
+                // value it had just asked for.
+                ToolCallReviewStore.shared.applyEdits(id: proposal.id, arguments: arguments)
             }
         }
     }
@@ -306,10 +312,58 @@ private struct ProposalCard: View {
     let edit: () -> Void
     let dismiss: () -> Void
 
+    /// Where the card's review lives. The fallback below covers the frame before `.task`
+    /// has run and nothing else.
+    @State private var store = ToolCallReviewStore.shared
+
+    /// Built from the tool's own schema rather than from the proposal's prose, so a
+    /// parameter the model left out shows up as a question instead of as nothing at all.
+    ///
+    /// Read out of the store rather than rebuilt here, for two reasons. Building it reads
+    /// the meeting's transcript and notes off disk — 110 KB on this machine — and this
+    /// property is read four times per body evaluation. And the user's own edits and
+    /// confirmations live in the stored copy: a card that rebuilt would argue with the
+    /// sheet it had just been filled in from, because the inspector cannot tell a correct
+    /// address the user knows from one the model invented.
+    private var review: ToolCallReview {
+        store.review(id: proposal.id) ?? ToolCallReviewStore.review(
+            proposalID: proposal.id, toolID: proposal.tool, arguments: proposal.arguments,
+            meetingID: proposal.meetingID, evidence: proposal.evidence,
+            risk: proposal.risk, title: proposal.title
+        )
+    }
+
+    /// Blockers the editing sheet can actually answer. A value that is merely unconfirmed
+    /// is answered on the row itself — "That's right" — and sending somebody to a sheet
+    /// where everything is already filled in is how the old card trapped them.
+    private var fillable: [ToolCallField] {
+        review.blockers.filter { $0.problem != .notConfirmed }
+    }
+
+    private var fillInLabel: String {
+        fillable.count == 1 ? "Fill in 1 thing\u{2026}" : "Fill in \(fillable.count) things\u{2026}"
+    }
+
     var body: some View {
         GlassCard {
             card
         }
+        // Keyed on the arguments as well as the id: a proposal the agent has rewritten gets
+        // a fresh review, and one the user has just edited keeps theirs, because
+        // `beginProposal` compares what it was built from.
+        .task(id: signature) {
+            store.beginProposal(
+                id: proposal.id, toolID: proposal.tool, arguments: proposal.arguments,
+                meetingID: proposal.meetingID, evidence: proposal.evidence,
+                risk: proposal.risk, title: proposal.title
+            )
+        }
+    }
+
+    private var signature: String {
+        proposal.id + "\u{1}"
+            + proposal.arguments.sorted { $0.key < $1.key }
+                .map { "\($0.key)=\($0.value)" }.joined(separator: "\u{2}")
     }
 
     /// The landing page's hero card, in a window: a pane with nothing but a corner radius
@@ -337,6 +391,13 @@ private struct ProposalCard: View {
                     .textSelection(.enabled)
             }
 
+            // What would actually be passed, field by field, with anything missing or
+            // invented called out. Without it the card shows a confident title over
+            // arguments nobody has seen.
+            ToolReviewSummary(review: review) { field in
+                store.confirm(id: proposal.id, field: field)
+            }
+
             if let preview = proposal.reviewPreview, !preview.isEmpty {
                 ScrollView {
                     Text(preview)
@@ -354,7 +415,22 @@ private struct ProposalCard: View {
             HStack(spacing: DS.Space.s) {
                 Button("Approve", action: approve)
                     .buttonStyle(.borderedProminent)
-                Button("Edit\u{2026}", action: edit)
+                    // A proposal that is still short an address cannot be approved from
+                    // here either. Edit is the way forward, and it says so.
+                    .disabled(!review.isReadyToRun)
+                    .help(review.isReadyToRun
+                          ? "Runs exactly what is on this card."
+                          : (review.needsSummary ?? "Something is still needed."))
+                // Prominent only while it is the way forward: with nothing to fill in, Edit
+                // is an option rather than the next step — and when the only thing standing
+                // in the way is a value nobody could confirm, the way forward is the row's
+                // own "That's right", not this sheet.
+                if fillable.isEmpty {
+                    Button("Edit\u{2026}", action: edit)
+                } else {
+                    Button(fillInLabel, action: edit)
+                        .buttonStyle(.borderedProminent)
+                }
                 Button("Dismiss", role: .cancel, action: dismiss)
                 if isRunning {
                     ProgressView()

@@ -13,12 +13,68 @@ struct MemoryProvenance: Sendable {
         case memoryReview
     }
 
+    /// Which of the user's own channels the words in a memory came from.
+    ///
+    /// This is the provenance model that replaced one blanket "conversations only" rule. The
+    /// user is right that memory should learn from what *they* said, wherever they said it —
+    /// but "wherever they said it" is a closed list of channels where the words are known to
+    /// be theirs. Other speakers in a meeting, an email, a web page, a file and any tool
+    /// result are still never a source of memory content; they arrive as `untrustedText` and
+    /// a single word that only appears there refuses the write.
+    enum TrustedSource: String, Codable, Sendable, CaseIterable {
+        /// Said or typed to the Agent in a conversation.
+        case userSaidToAgent
+        /// Dictated by the user. Their own microphone, their own words.
+        case userDictated
+        /// Spoken by the user on the "You" track of a recorded meeting, or written about
+        /// them under their own name in that meeting's notes.
+        case userSpokeInMeeting
+        /// Read off the user's own life map (people, projects, organisations, recurring
+        /// activities, preferences). Inference rather than a sentence, so it is proposed at
+        /// low confidence and only when something the user actually said carries the same
+        /// words — see `requiresCorroboration`.
+        case derivedFromUsersGraph
+
+        /// Plain words for the Memories list. The date is appended by `MemoryEntry.whereFrom`.
+        var displayName: String {
+            switch self {
+            case .userSaidToAgent: "You told me"
+            case .userDictated: "From your dictation"
+            case .userSpokeInMeeting: "From your call"
+            case .derivedFromUsersGraph: "From your life map"
+            }
+        }
+
+        /// A derived fact is the app's reading of the user's own data, not a sentence they
+        /// said: every content word must be one they said somewhere, with no paraphrase
+        /// allowance, and the write is refused otherwise.
+        var requiresCorroboration: Bool { self == .derivedFromUsersGraph }
+
+        /// How much weight the entry carries, shown in the list and used to break ties when
+        /// two channels say the same thing.
+        var confidence: Double {
+            switch self {
+            case .userSaidToAgent: 0.9
+            case .userDictated: 0.8
+            case .userSpokeInMeeting: 0.7
+            case .derivedFromUsersGraph: 0.5
+            }
+        }
+    }
+
     let origin: Origin
+    /// The channel the words came from. Defaulted so the conversation path reads unchanged.
+    var source: TrustedSource = .userSaidToAgent
+    /// "your dictation on 19 Sep", "your call with Mathieu" — the phrase the list shows.
+    var sourceLabel: String?
+    /// When the user said it, for the same phrase.
+    var occurredAt: Date?
     let sessionID: UUID?
     /// What the user said: the current request and their recent turns.
     let userText: [String]
     /// Everything that is not the user's words and reached this turn: tool results, earlier
-    /// tool-backed answers. Emails, pages, files and calendar descriptions all land here.
+    /// tool-backed answers, other speakers in a meeting. Emails, pages, files and calendar
+    /// descriptions all land here.
     let untrustedText: [String]
     /// A tool outside `memory` and `schedule` returned output earlier in this turn. A
     /// reminder written after that asks with a card (`ScheduleConfirmation`).
@@ -198,15 +254,18 @@ enum MemoryGuard {
     /// Nil when the text may be saved under `provenance`, otherwise why not.
     ///
     /// The check is lexical and deliberately conservative. Every content word must be one the
-    /// user said (or one already in a stored memory, which the user said when it was saved),
-    /// allowing one paraphrased word in four. Any unsupported word found in tool output
-    /// refuses the write — one injected word can be the whole fact — as does an address, a
+    /// user said — on any of `MemoryProvenance.TrustedSource`'s channels — or one already in
+    /// a stored memory, which the user said when it was saved. One paraphrased word in four
+    /// is allowed, and none at all for a fact derived from the life map. Any unsupported word
+    /// found in untrusted text refuses the write — one injected word can be the whole fact,
+    /// and another meeting speaker's sentence is untrusted text — as does an address, a
     /// number or a name the user never said.
     static func provenanceProblem(
         _ text: String, provenance: MemoryProvenance?, remembered: [String] = []
     ) -> ProvenanceProblem? {
         guard let provenance else {
-            return .refused("memory can only be saved from what you say in a conversation with the Agent.")
+            return .refused("memory can only be saved from your own words — a conversation, "
+                            + "a dictation, or what you said in a meeting.")
         }
         let content = contentTokens(text)
         guard !content.isEmpty else { return .notUserWords("there is no fact in it to remember.") }
@@ -216,7 +275,7 @@ enum MemoryGuard {
         let unsupported = content.filter { !supports(userTokens, $0) }
         let fromTools = unsupported.filter { supports(untrustedTokens, $0) }
         if !fromTools.isEmpty {
-            return .refused("it comes from tool output (an email, page, file or calendar item), not from you.")
+            return .refused(untrustedReason(provenance.source))
         }
         if unsupported.contains(where: isAddressLike) {
             return .refused("it names an address or link you didn't say.")
@@ -225,12 +284,94 @@ enum MemoryGuard {
         if unsupported.contains(where: { $0.contains(where: \.isNumber) || names.contains($0) }) {
             return .refused("it names something you didn't say.")
         }
+        if provenance.source.requiresCorroboration {
+            // The life map is the app's reading of the user's data, not a sentence: nothing
+            // in it becomes a memory unless every word of the fact is one the user said.
+            guard unsupported.isEmpty else {
+                return .refused("nothing you said backs it up; the life map alone isn't enough.")
+            }
+            return nil
+        }
         let supportedRatio = Double(content.count - unsupported.count) / Double(content.count)
         if unsupported.count > 1 || supportedRatio < 0.75 {
             return .notUserWords("it isn't what you said. Save the fact in the user's own words.")
         }
         return nil
     }
+
+    /// The sentence a refusal shows when a word only exists in the untrusted half of a
+    /// source — the other speakers on a call, or a tool result in a conversation.
+    private static func untrustedReason(_ source: MemoryProvenance.TrustedSource) -> String {
+        switch source {
+        case .userSpokeInMeeting:
+            "someone else on the call said it, not you."
+        case .derivedFromUsersGraph:
+            "it comes from someone else's words in your notes, not from you."
+        case .userSaidToAgent, .userDictated:
+            "it comes from tool output (an email, page, file or calendar item), not from you."
+        }
+    }
+
+    // MARK: - Sensitive categories
+
+    /// Categories that are never saved on the Agent's own initiative, whatever the user said.
+    ///
+    /// The user can still type any of these into the Memories list themselves — that write is
+    /// theirs, not the Agent's. This only screens automatic saves, where a wrong or unwanted
+    /// entry shapes every later answer and nobody chose it.
+    enum Sensitive: String, Sendable, CaseIterable {
+        case health
+        case finances
+        case address
+        case credentials
+        case otherPeoplesPrivateDetails
+
+        /// The sentence shown in the Memories list and recorded in the review ledger.
+        var reason: String {
+            switch self {
+            case .health: "it's about health, which the Agent never saves on its own."
+            case .finances: "it's about money, which the Agent never saves on its own."
+            case .address: "it's a home address, which the Agent never saves on its own."
+            case .credentials: "it looks like a password or key, which is never saved."
+            case .otherPeoplesPrivateDetails:
+                "it's a private detail about someone else, which the Agent never saves on its own."
+            }
+        }
+    }
+
+    /// The sensitive category `text` falls into, or nil. Deliberately narrow: it catches the
+    /// categories a person would be upset to find in a list they did not write, not every
+    /// sentence that mentions a body or a bill.
+    static func sensitiveCategory(_ text: String) -> Sensitive? {
+        let folded = text.precomposedStringWithCompatibilityMapping.lowercased()
+            .replacingOccurrences(of: "’", with: "'")
+        for (category, patterns) in sensitivePatterns {
+            for pattern in patterns where matches(pattern, folded) { return category }
+        }
+        return nil
+    }
+
+    private static let sensitivePatterns: [(Sensitive, [String])] = [
+        (.credentials, [
+            #"\b(password|passcode|pin code|api[_ -]?key|access token|secret key|private key|ssh key|seed phrase|recovery (code|phrase))\b"#,
+            #"\b(two[- ]factor|2fa) (code|backup)\b"#,
+        ]),
+        (.health, [
+            #"\b(diagnos(is|ed|es)|prescri(bed|ption)|medication|medicine|dosage|therapy|therapist|psychiatr\w+|depress(ion|ed)|anxiety disorder|cancer|diabet\w+|hiv|pregnan\w+|miscarriage|surgery|chemotherapy|disab(led|ility)|adhd|autis\w+|bipolar)\b"#,
+            #"\b(blood (pressure|sugar|test)|mental health|sick leave|medical (record|history|condition))\b"#,
+        ]),
+        (.finances, [
+            #"\b(salary|salaries|income|net worth|savings account|bank account|iban|sort code|routing number|credit card|debit card|card number|mortgage|in debt|loan balance|overdraft|bankrupt\w*)\b"#,
+            #"\b(earns?|paid|owes?|owing)\b[^.]{0,20}[€$£]\s?\d"#,
+        ]),
+        (.address, [
+            #"\b\d{1,5}\s+\w+(\s+\w+)?\s+(street|st|road|rd|avenue|ave|boulevard|blvd|lane|ln|drive|dr|way|place|pl)\b"#,
+            #"\b(lives|live|living|resides?|home address|postcode|zip code)\b[^.]{0,30}\b\d{4,}\b"#,
+        ]),
+        (.otherPeoplesPrivateDetails, [
+            #"\b(his|her|their|\w+'s)\s+(salary|diagnosis|medication|divorce|therapy|password|illness|pregnancy|depression|debt|visa status|immigration status)\b"#,
+        ]),
+    ]
 
     /// Nil when `memory.forget` or `memory.update` may act on `entry` under `provenance`.
     ///

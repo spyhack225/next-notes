@@ -207,15 +207,20 @@ final class MeetingSession {
         }
 
         // The notes model is warmed here rather than at launch, which is the difference
-        // between paying 2.7 GB of resident memory for the one hour a meeting is happening
+        // between paying gigabytes of resident memory for the one hour a meeting is happening
         // and paying it all day for a meeting that might not. It also has to be here rather
         // than at the end: `NotesModelRuntime` releases the weights after ten idle minutes,
         // so warming at launch would usually have unloaded them again by the time a meeting
         // finished. A meeting that has started is the earliest honest signal that notes are
         // about to be wanted.
         if Settings.shared.notesAutoGenerate,
-           Settings.shared.notesProvider == .qwen35_4b,
-           NotesModels.isDownloaded {
+           // Only the built-in choice loads this runtime: Apple Intelligence, a local
+           // server and the cloud need no warm-up, and warming the GGUF for them would
+           // spend gigabytes and seconds on weights nothing will read.
+           ModelRoleStore.shared.resolution(for: .meetingNotes).effective == .builtIn,
+           // Any installed brain, not only the built-in file — a Mac whose only model
+           // came from the library still deserves the warm start.
+           InstalledModelLibrary.shared.hasUsableModel {
             Task.detached(priority: .background) {
                 try? await NotesModelRuntime.shared.prepare()
             }

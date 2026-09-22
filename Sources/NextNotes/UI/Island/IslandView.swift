@@ -202,6 +202,8 @@ struct IslandView: View {
                 glyph("calendar.badge.clock")
             case .notesReady:
                 glyph("doc.text")
+            case .problem:
+                glyph("exclamationmark.triangle")
             default:
                 EmptyView()
             }
@@ -243,6 +245,16 @@ struct IslandView: View {
                     .monospacedDigit()
                     .foregroundStyle(secondaryInk)
                     .contentTransition(.numericText())
+            }
+        case .agentProposal(let proposal):
+            // Collapsed, the flank has room for one number. How many answers are owed is
+            // the only number this card has.
+            if proposal.needsCount > 0 {
+                Text("\(proposal.needsCount)")
+                    .font(DS.Font.counterSmall)
+                    .monospacedDigit()
+                    .foregroundStyle(ink)
+                    .accessibilityLabel(proposal.needsSummary ?? "")
             }
         default:
             EmptyView()
@@ -294,10 +306,21 @@ struct IslandView: View {
                 .foregroundStyle(secondaryInk)
 
         case .agentProposal(let proposal):
-            Text(proposal.detail)
-                .font(DS.Font.callout)
-                .foregroundStyle(secondaryInk)
-                .lineLimit(2)
+            VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                // The count first, because it changes what the buttons mean. A card that
+                // leads with "Send an email to Marie" and buries "no address yet" in the
+                // second line is the card that gets approved without being read.
+                if let needed = proposal.needsSummary {
+                    Label(needed, systemImage: "exclamationmark.circle")
+                        .font(DS.Font.chip)
+                        .foregroundStyle(ink)
+                        .labelStyle(.titleAndIcon)
+                }
+                Text(proposal.detail)
+                    .font(DS.Font.callout)
+                    .foregroundStyle(secondaryInk)
+                    .lineLimit(2)
+            }
 
         case .agentListening(let transcript, let level):
             HStack(spacing: DS.Space.s) {
@@ -329,6 +352,16 @@ struct IslandView: View {
                 ProgressView(value: progress)
                     .frame(width: DS.Size.islandExpandedBarWidth)
             }
+
+        case .problem(let message):
+            // The sentence itself, not a summary of it. This card exists because the notch
+            // used to answer a failed dictation with a silent animation, and a shortened
+            // version of the explanation would be the same mistake in smaller print.
+            Text(message)
+                .font(DS.Font.callout)
+                .foregroundStyle(secondaryInk)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
 
         case .transcribing, .hidden:
             EmptyView()
@@ -384,8 +417,12 @@ struct IslandView: View {
                     Button("Prepare") { state.prepare(proposal) }
                         .buttonStyle(.borderedProminent)
                 case .review:
-                    Button("Review\u{2026}") { state.review(proposal) }
-                        .buttonStyle(.borderedProminent)
+                    // Two different waits, two different words: something the user has to
+                    // type is not the same request as something they only have to read.
+                    Button(proposal.needsCount > 0 ? "Fill in\u{2026}" : "Review\u{2026}") {
+                        state.review(proposal)
+                    }
+                    .buttonStyle(.borderedProminent)
                 case .approve:
                     Button("Approve") { state.decide(proposal, approved: true) }
                         .buttonStyle(.borderedProminent)

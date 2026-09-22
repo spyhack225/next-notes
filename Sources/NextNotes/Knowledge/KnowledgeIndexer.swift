@@ -243,7 +243,8 @@ final class KnowledgeIndexer {
             sourceTitle: { sources.title(for: $0) },
             meetingIDs: { sources.meetingIDs(matching: $0) },
             graph: settings.graphEnabled ? GraphStore(store: store) : EmptyKnowledgeGraph(),
-            graphCloudConsent: settings.graphCloudConsent
+            graphCloudConsent: settings.graphCloudConsent,
+            files: LiveFileRetrieval()
         )
     }
 

@@ -259,7 +259,7 @@ enum WorkspaceTools {
         all.filter { $0.risk <= risk }
     }
 
-    /// The `<tools>` block's contents: one JSON object per line, in the Hermes shape Qwen
+    /// The `<tools>` block's contents: one JSON object per line, in the Hermes shape the on-device model
     /// was tuned on. Built through `JSONSerialization` rather than string interpolation
     /// because a description with a quote in it would otherwise produce a block the model
     /// reads as truncated.

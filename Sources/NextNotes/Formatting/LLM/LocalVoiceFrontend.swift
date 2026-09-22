@@ -1,7 +1,7 @@
 import Foundation
 import FoundationModels
 
-/// An on-device conversational lane independent of the Qwen notes/planning context.
+/// An on-device conversational lane independent of the notes/planning context.
 ///
 /// Foundation Models owns its own inference state. A tool worker can therefore keep
 /// generating with llama.cpp while this lane handles a new spoken turn. The frontend

@@ -43,9 +43,35 @@ final class PermissionGate {
                          continuation: CheckedContinuation<Bool, Never>) {
         pending = request
         waiter = continuation
+        // The review is built before the card is raised, so the island's first frame
+        // already knows whether anything is missing. A card that says "Approve" for two
+        // seconds and then changes its mind has already been pressed.
+        ToolCallReviewStore.shared.begin(request)
+        raiseIsland(for: request)
+    }
+
+    /// Puts the island card up from the current state of the review, so the two never
+    /// disagree about whether anything is still owed.
+    private func raiseIsland(for request: PermissionRequest) {
+        let review = ToolCallReviewStore.shared.review(for: request)
         IslandState.shared.propose(IslandProposal(
-            id: request.id, title: request.title, detail: request.detail,
-            meetingID: request.meetingID, needsReview: request.risk >= .modify))
+            id: request.id,
+            title: review.title,
+            detail: review.isReadyToRun ? review.why : review.blockers[0].prompt,
+            meetingID: request.meetingID,
+            // Anything that needs an answer, or that speaks in the user's name, is
+            // answered where the whole thing is on screen — never from two lines.
+            needsReview: request.risk >= .modify || !review.isReadyToRun,
+            canExecute: review.isReadyToRun,
+            needsCount: review.blockers.count
+        ))
+    }
+
+    /// The card for the request on screen. Built on demand so a view that appears late
+    /// still gets fields rather than two sentences.
+    var pendingReview: ToolCallReview? {
+        guard let pending else { return nil }
+        return ToolCallReviewStore.shared.review(for: pending)
     }
 
     private func advance() {
@@ -63,11 +89,36 @@ final class PermissionGate {
         scope: PermissionScope? = nil
     ) -> Bool {
         guard pending?.id == id else { return false }
+        let review = ToolCallReviewStore.shared.review(id: id)
+        // The last gate, and the one that cannot be got round by a view drawing the button
+        // anyway: an approval for a call that is still missing a required value, or that
+        // still carries a placeholder, is refused here rather than executed.
+        if approved, let review, !review.isReadyToRun, let stillPending = pending {
+            Log.agent.info("approval refused: \(review.blockers.count, privacy: .public) unanswered fields on \(review.toolID, privacy: .public)")
+            // The request is still ours and still open. Put the card back — a surface that
+            // took itself down on a refused press would leave the tool waiting on a
+            // question nobody can see any more.
+            raiseIsland(for: stillPending)
+            return false
+        }
         let request = pending
         pending = nil
         waiter?.resume(returning: approved)
         waiter = nil
         IslandState.shared.dismissNotice()
+        if let review {
+            AgentAuditLog.shared.record(
+                kind: .permission,
+                title: review.title,
+                detail: approved ? review.auditNote : "Dismissed",
+                toolID: review.toolID,
+                taskID: request?.taskID,
+                meetingID: request?.meetingID
+            )
+        }
+        // The values the executor reads back are kept until it has read them; the caller
+        // clears the review when the action has been fired or has failed.
+        if !approved { ToolCallReviewStore.shared.remove(id: id) }
         if approved, let request {
             PermissionGrantStore.shared.add(
                 PermissionGrant(
@@ -88,6 +139,8 @@ final class PermissionGate {
     func cancelPending() {
         let abandoned = queued
         queued.removeAll()
+        for (request, _) in abandoned { ToolCallReviewStore.shared.remove(id: request.id) }
+        if let pending { ToolCallReviewStore.shared.remove(id: pending.id) }
         pending = nil
         waiter?.resume(returning: false)
         waiter = nil
@@ -106,8 +159,12 @@ final class PermissionGate {
     private func cancelMatching(_ matches: (PermissionRequest) -> Bool) {
         let removed = queued.filter { matches($0.0) }
         queued.removeAll { matches($0.0) }
-        for (_, continuation) in removed { continuation.resume(returning: false) }
+        for (request, continuation) in removed {
+            ToolCallReviewStore.shared.remove(id: request.id)
+            continuation.resume(returning: false)
+        }
         if let pending, matches(pending) {
+            ToolCallReviewStore.shared.remove(id: pending.id)
             self.pending = nil
             waiter?.resume(returning: false)
             waiter = nil

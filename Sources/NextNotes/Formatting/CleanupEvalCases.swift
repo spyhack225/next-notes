@@ -22,6 +22,21 @@ enum CleanupEvalCases {
         /// Output that must be rejected outright, not merely graded poorly.
         let kind: Kind
 
+        /// Substrings the shipped text must contain, whichever engine ran.
+        ///
+        /// These are for structure, which `SpokenStructure` renders deterministically after
+        /// (and now before) the model, so they hold for the punctuation-only engine too.
+        var requires: [String] = []
+        /// Substrings the shipped text must not contain, whichever engine ran.
+        var forbids: [String] = []
+        /// Substrings that must be gone once grammar repair was asked for.
+        ///
+        /// Only checked for an engine running in `.grammar` mode: S1-mini leaving "it miss
+        /// information" alone is S1-mini doing exactly what it says on the tin, and a suite
+        /// that failed it would be measuring the wrong thing. Apple leaving it alone with
+        /// the grammar switch on is the user's complaint, and fails.
+        var grammarForbids: [String] = []
+
         enum Kind: Sendable {
             /// Ordinary cleanup: fix it, keep the meaning.
             case fix
@@ -34,6 +49,76 @@ enum CleanupEvalCases {
 
     static let all: [Case] = shipped + constructed
 
+    /// The app the eval pretends to be typing into: one that renders everything, so an
+    /// assertion can name "1. " and "- " without also asserting a target's capabilities.
+    static let target = OutputProfile(
+        bundleID: "md.obsidian",
+        displayName: "Obsidian",
+        capabilities: [.markdown, .bullets, .numbered, .tables, .code]
+    )
+
+    /// What the pipeline would actually inject, given one engine's answer.
+    ///
+    /// `--selftest-cleanup` drives a formatter directly rather than the router, so the two
+    /// deterministic stages the router wraps it in have to be reproduced here or the suite
+    /// grades the engine for work it was never asked to do. This is `CleanupRouter.format`'s
+    /// Stage C rule, and only that rule: render the spoken structure, and if the model
+    /// flattened structure that was already rendered, keep the rendered version.
+    ///
+    /// The one approximation is that Stage A is not re-run here — the rules pass fixes
+    /// punctuation and fillers and leaves spoken markers alone, so it cannot change which
+    /// structure a case asks for.
+    static func shippedText(input: String, modelAnswer: String) -> String {
+        let before = SpokenStructure.apply(to: input, target: target, isEnabled: true)
+        let after = SpokenStructure.apply(to: modelAnswer, target: target, isEnabled: true)
+        if before.didChange,
+           SpokenStructure.renderedLineCount(after.text)
+               < SpokenStructure.renderedLineCount(before.text) {
+            return before.text
+        }
+        return after.text
+    }
+
+    /// The assertions for one case, as lines to print. Empty means it passed.
+    ///
+    /// The `expectation` string above stays what it always was — a rubric for a human
+    /// reading the transcript — and this is the part a build can fail on. Without it the
+    /// suite printed "want:" and "out:" next to each other and reported OK regardless, so a
+    /// model that applied no grammar at all passed the flag that exists to catch exactly
+    /// that.
+    static func failures(for testCase: Case, shipped: String, fixesGrammar: Bool) -> [String] {
+        var failures: [String] = []
+        func show(_ text: String) -> String {
+            text.replacingOccurrences(of: "\n", with: " \u{21B5} ")
+        }
+        // Case-insensitively, like `forbids`: these assert that the enumeration became a
+        // list with the right words in the right order, not which letter a model chose to
+        // capitalise inside a line it was handed already formatted.
+        for needle in testCase.requires
+        where !shipped.localizedCaseInsensitiveContains(needle) {
+            failures.append(
+                "\(testCase.id): shipped text is missing \(needle.debugDescription)\n"
+                    + "      got: \(show(shipped))"
+            )
+        }
+        for needle in testCase.forbids
+        where shipped.localizedCaseInsensitiveContains(needle) {
+            failures.append(
+                "\(testCase.id): shipped text still contains \(needle.debugDescription)\n"
+                    + "      got: \(show(shipped))"
+            )
+        }
+        guard fixesGrammar else { return failures }
+        for needle in testCase.grammarForbids
+        where shipped.localizedCaseInsensitiveContains(needle) {
+            failures.append(
+                "\(testCase.id): grammar repair was on and \(needle.debugDescription) "
+                    + "survived\n      got: \(show(shipped))"
+            )
+        }
+        return failures
+    }
+
     /// Real transcripts, copied from `~/Library/Application Support/Next Notes/runs.jsonl`.
     static let shipped: [Case] = [
         Case(
@@ -43,7 +128,8 @@ enum CleanupEvalCases {
                 + "shows, it doesn't show on the notch. I don't know what's happening, so you need "
                 + "to make sure that the user can see that the computer is actually recording.",
             shipped: true,
-            kind: .fix
+            kind: .fix,
+            grammarForbids: ["there is some lags"]
         ),
         Case(
             id: "R2-misheard-work",
@@ -73,14 +159,16 @@ enum CleanupEvalCases {
             input: "We'll have to create a new repo for this project, so don't publish it on the "
                 + "original one. You create it our own repo and push it on our own reporter.",
             shipped: true,
-            kind: .fix
+            kind: .fix,
+            grammarForbids: ["You create it our own repo"]
         ),
         Case(
             id: "R6-preposition",
             expectation: "\u{201C}what you need for me\u{201D} \u{2192} \u{201C}from me\u{201D}",
             input: "Give me a clear list of exactly what you need for me.",
             shipped: true,
-            kind: .fix
+            kind: .fix,
+            grammarForbids: ["what you need for me"]
         ),
         Case(
             id: "R7-articles",
@@ -89,7 +177,8 @@ enum CleanupEvalCases {
                 + "company that helped engineering team develop hardware product at the speed of "
                 + "software.",
             shipped: true,
-            kind: .fix
+            kind: .fix,
+            grammarForbids: ["helped engineering team develop hardware product"]
         ),
         Case(
             id: "R8-nonsense",
@@ -138,6 +227,91 @@ enum CleanupEvalCases {
             input: "I still can get access to the calendar.",
             shipped: true,
             kind: .leaveAlone
+        ),
+        // 2026-09-20. Five long holds (26 s to 98 s) whose text was typed with the shipping
+        // settings — S1-mini, grammar off — and came out with the recogniser's own mistakes
+        // in it. Copied verbatim, so the wording below is the user's and the errors are real.
+        Case(
+            id: "R15-long-agreement",
+            expectation: "\u{201C}it miss information\u{201D} \u{2192} \u{201C}it misses information\u{201D}; "
+                + "\u{201C}is really faking\u{201D} \u{2192} \u{201C}it is really faking\u{201D}",
+            input: "Also, when the agent showcases the tool calling UI, sometime it miss "
+                + "information, so is really faking information, especially when it is email or "
+                + "you are missing a name or you are missing the context first of all.",
+            shipped: true,
+            kind: .fix,
+            grammarForbids: ["it miss information"]
+        ),
+        Case(
+            id: "R16-asr-debris",
+            expectation: "\u{201C}search from skills on skills that sh automatically\u{201D} is "
+                + "recogniser debris; repair the sentence without inventing a new claim",
+            input: "So we need to let the user being able to download skills also search from "
+                + "skills on skills that sh automatically and then install them.",
+            shipped: true,
+            kind: .fix,
+            grammarForbids: ["let the user being able"]
+        ),
+        Case(
+            id: "R17-plurals",
+            expectation: "MEASURED GAP 2026-09-20: \u{201C}all of the file\u{201D} is still not "
+                + "made plural by Apple's model on this damaged fragment. "
+                + "plurals and agreement: \u{201C}folder that user interact\u{201D} \u{2192} "
+                + "\u{201C}folders the user interacts with\u{201D}; \u{201C}all of the file\u{201D} "
+                + "\u{2192} \u{201C}all of the files\u{201D}",
+            input: "Not all of the file, but some folder, main folder like the download folder, "
+                + "the desktop folder, the document folder, folder that user interact with them on "
+                + "a daily basis.",
+            shipped: true,
+            kind: .fix,
+            grammarForbids: ["folder that user interact with"]
+        ),
+        Case(
+            id: "R18-misspelled-product",
+            expectation: "\u{201C}chatgpd cloud code\u{201D} is \u{201C}ChatGPT, Claude Code\u{201D} "
+                + "mis-heard; fixing it is a bonus, inventing a third product is a failure",
+            input: "Most of the time those skills are also used by other agents like chatgpd "
+                + "cloud code etc.",
+            shipped: true,
+            kind: .fix
+        ),
+        Case(
+            id: "R19-comment-key",
+            expectation: "\u{201C}the comment key\u{201D} / \u{201C}comment touch\u{201D} is "
+                + "\u{201C}Command key\u{201D}; the sentence must still be a question",
+            input: "So what is the comment touch does it like the right comment touch on the "
+                + "keyboard? What does it do?",
+            shipped: true,
+            kind: .fix
+        ),
+        // 2026-09-20, the two holds that started this round. Both ran with engine `apple`
+        // and grammar repair on, both were ACCEPTED by the guard, and both came out almost
+        // untouched — the model was asked to remove fillers and fix grammar, and neither a
+        // restarted phrase nor a mis-heard word is either of those things.
+        Case(
+            id: "R20-restart",
+            expectation: "the speaker restarted mid-phrase: \u{201C}in the formatting\u{201D} "
+                + "\u{2192} \u{201C}in the settings of the formatting\u{201D}. The abandoned "
+                + "attempt must go, leaving one prepositional phrase rather than two.",
+            input: "Also in the formatting in the settings of the formatting, the user is not "
+                + "able to scroll through the app. So can you check that for us?",
+            shipped: true,
+            kind: .fix,
+            grammarForbids: ["formatting in the settings of the formatting"]
+        ),
+        Case(
+            id: "R21-misheard-cleaned",
+            expectation: "\u{201C}could have claimed the text\u{201D} is \u{201C}cleaned the "
+                + "text\u{201D} mis-heard \u{2014} phonetically close and unambiguous here; "
+                + "\u{201C}cle clean\u{201D} is one broken-off word; and the second sentence "
+                + "is a run-on that has to be split.",
+            input: "But you see we keep the same, we did not properly cle clean the text. For "
+                + "example, I said formatting in the setting of the formatting could have "
+                + "claimed the text properly as an issue that the model is not able to "
+                + "properly clean the text and also format it top check.",
+            shipped: true,
+            kind: .fix,
+            grammarForbids: ["could have claimed the text", "properly cle clean"]
         ),
         Case(
             id: "R14-proper-noun",
@@ -251,6 +425,75 @@ enum CleanupEvalCases {
             shipped: false,
             kind: .leaveAlone
         ),
+
+        // Spoken structure. `SpokenStructure` renders these deterministically after the
+        // model, so these fixtures are here to catch a model that *mangles* the markers
+        // before Stage C can see them — dropping "second point" entirely, or answering the
+        // enumeration instead of formatting it.
+        Case(
+            id: "C15-enumeration",
+            expectation: "three items become three lines; the words \u{201C}first point\u{201D} "
+                + "and so on do not survive into the text",
+            input: "Here is the plan. First point, ship the installer. Second point, write the "
+                + "release note. Third point, tell the beta group.",
+            shipped: false,
+            kind: .fix,
+            requires: ["1. Ship the installer", "2. Write the release note",
+                       "3. Tell the beta group"],
+            forbids: ["first point", "second point", "third point"]
+        ),
+        Case(
+            id: "C16-explicit-list",
+            expectation: "\u{201C}start the list\u{201D} and \u{201C}close the list\u{201D} become "
+                + "the list and disappear; the prose either side survives",
+            input: "I need three things from you. Start the list. The signed contract. The "
+                + "invoice. The delivery date. Close the list. Send them today.",
+            shipped: false,
+            kind: .fix,
+            requires: ["- The signed contract", "- The invoice", "- The delivery date"],
+            forbids: ["start the list", "close the list"]
+        ),
+        Case(
+            id: "C17-quotation",
+            expectation: "the words between \u{201C}quote\u{201D} and \u{201C}end quote\u{201D} "
+                + "become a quotation, unchanged inside",
+            input: "She was very clear about it. Quote, we are not shipping on Friday, end "
+                + "quote. So we need a new date.",
+            shipped: false,
+            kind: .fix,
+            requires: ["> We are not shipping on Friday"],
+            forbids: ["end quote"]
+        ),
+        Case(
+            id: "C18-code",
+            expectation: "the command becomes code and is not \u{201C}corrected\u{201D} into prose",
+            input: "To start it, start the code, npm run dev dash dash host, end the code, and "
+                + "then open the browser.",
+            shipped: false,
+            kind: .fix,
+            requires: ["```", "npm run dev"],
+            forbids: ["start the code", "end the code"]
+        ),
+        Case(
+            id: "C19-table",
+            expectation: "three columns and two rows; no cell is invented and none is dropped",
+            input: "Start a table. Columns name, role and city. Row one, Ada, engineer, London. "
+                + "Row two, Grace, captain, New York. End the table.",
+            shipped: false,
+            kind: .fix,
+            requires: ["| Name | Role | City |", "| Ada | engineer | London |"],
+            forbids: ["row one", "end the table"]
+        ),
+        Case(
+            id: "C20-not-a-list",
+            expectation: "LEAVE ALONE \u{2014} \u{201C}first of all\u{201D} is a turn of phrase, "
+                + "not the first item of anything",
+            input: "First of all, nobody has tested the installer, and second of all we still "
+                + "have no release note.",
+            shipped: false,
+            kind: .leaveAlone,
+            forbids: ["1. ", "2. "]
+        ),
     ]
 }
 
@@ -275,6 +518,12 @@ enum CleanupGuardVectors {
         // Must be accepted: real grammar repair.
         Vector(name: "misheard-word", original: "This is interesting. Let's see how it walks.",
                cleaned: "This is interesting. Let's see how it works.",
+               mode: .grammar, accepted: true),
+        // The same mis-hearing one letter shorter. It was rejected as an invention until
+        // 2026-09-20, which cost this user the whole cleanup of the dictation it was in.
+        Vector(name: "misheard-four-letter",
+               original: "why is it that slow and why doesn't it walk faster",
+               cleaned: "Why is it slow? And why doesn't it work faster?",
                mode: .grammar, accepted: true),
         Vector(name: "misheard-word-with-drop", original: "This is interesting. Let's see how it walks.",
                cleaned: "Let's see how it works.", mode: .grammar, accepted: true),
@@ -347,5 +596,130 @@ extension CleanupGuardVectors {
                cleaned: "We need more reviewers on this.", mode: .grammar, accepted: false),
         Vector(name: "invented-verb-not-inflection", original: "we should ship it on friday",
                cleaned: "We should cancel it on Friday.", mode: .grammar, accepted: false),
+
+        // 2026-09-20T20:47:25Z. Every one of these is a sentence from that dictation, and
+        // the guard refused the whole chunk over the first of them — by name, in the
+        // record: "invented word: times". The ancestor was in the input; what was missing
+        // was any way for a new *form* of a word to claim one that had not been deleted.
+        // "time" was still in the answer two sentences earlier, so "times" had nothing to
+        // point at.
+        Vector(name: "inflects-a-word-still-in-the-answer",
+               original: "Triggering the agent takes a lot of time. I said hey we need "
+                   + "multiple time, but in never trigger it.",
+               cleaned: "Triggering the agent takes a lot of time. I said we need it "
+                   + "multiple times, but it never triggers.",
+               mode: .grammar, accepted: true),
+        Vector(name: "inflects-a-tense",
+               original: "Sometimes it doesn't trigger at all. I said hey we need multiple "
+                   + "time, but in never trigger it.",
+               cleaned: "Sometimes it does not trigger at all. I said we need it multiple "
+                   + "times, but it never triggered it.",
+               mode: .grammar, accepted: true),
+        Vector(name: "expands-a-contraction",
+               original: "he's not have doesn't have access to the file",
+               cleaned: "He does not have access to the files.",
+               mode: .grammar, accepted: true),
+        Vector(name: "contracts-an-expansion",
+               original: "It does not know me and it does not have access to the files.",
+               cleaned: "It doesn't know me and it doesn't have access to the files.",
+               mode: .grammar, accepted: true),
+        Vector(name: "inflects-a-participle",
+               original: "we still far away again from from getting this thing polish",
+               cleaned: "We are still far away from getting this thing polished.",
+               mode: .grammar, accepted: true),
+        Vector(name: "inflects-agreement-on-a-word-that-stayed",
+               original: "The list never get triggered, the formatting doesn't go through.",
+               cleaned: "The list never gets triggered and the formatting does not go through.",
+               mode: .grammar, accepted: true),
+        // ...and the same loosening must not have opened a door. An inflection is free
+        // because inflecting a word the speaker said cannot introduce a fact; a word that
+        // is not one is still an invention however ordinary it looks.
+        Vector(name: "inflection-is-not-a-licence-for-a-noun",
+               original: "I said hey we need multiple time, but in never trigger it.",
+               cleaned: "I said we need multiple retries, but it never triggered.",
+               mode: .grammar, accepted: false),
+        Vector(name: "inflection-is-not-a-licence-for-a-verb",
+               original: "You should check the agent conversation log.",
+               cleaned: "You should delete the agent conversation log.",
+               mode: .grammar, accepted: false),
+        Vector(name: "inflection-is-not-a-licence-for-a-clause",
+               original: "We need to focus on the agent now.",
+               cleaned: "We need to focus on the agent now because the release is on Friday.",
+               mode: .grammar, accepted: false),
+        // Strict mode has not moved. A plural is still a content word the input did not
+        // contain, and punctuation-only cleanup is not allowed to write one.
+        Vector(name: "strict-still-refuses-an-inflection",
+               original: "I said hey we need multiple time, but in never trigger it.",
+               cleaned: "I said we need it multiple times, but it never triggers.",
+               mode: .punctuationOnly, accepted: false),
+
+        // The strict mode used to reject every formatted list, because "1", "2" and "3" are
+        // content words that were not in the input — they were "first", "second" and "third".
+        // So punctuation-only cleanup could never produce a list: the model made one, the
+        // guard threw it away, and the user got prose with no trace of why.
+        Vector(name: "strict-accepts-spoken-list",
+               original: "first point milk second point eggs third point bread",
+               cleaned: "1. Milk\n2. Eggs\n3. Bread", mode: .punctuationOnly, accepted: true),
+        Vector(name: "strict-accepts-bulleted-list",
+               original: "start the list the contract the invoice the delivery date close the list",
+               cleaned: "- The contract\n- The invoice\n- The delivery date",
+               mode: .punctuationOnly, accepted: true),
+        // ...and the number that was never spoken is still an invention in strict mode.
+        Vector(name: "strict-rejects-invented-number",
+               original: "we need units by friday",
+               cleaned: "We need 40 units by Friday.", mode: .punctuationOnly, accepted: false),
+        Vector(name: "grammar-accepts-spoken-list",
+               original: "first point milk second point eggs third point bread",
+               cleaned: "1. Milk\n2. Eggs\n3. Bread", mode: .grammar, accepted: true),
+
+        // Found by running Apple's on-device model over `CleanupEvalCases` on 2026-09-20.
+        // The model produced this exactly and the guard answered "invented number: 1", so
+        // the user got the prose back — the failure mode the whole workstream is about.
+        Vector(name: "grammar-accepts-envelope-list",
+               original: "I need three things from you. Start the list. The signed contract. "
+                   + "The invoice. The delivery date. Close the list. Send them today.",
+               cleaned: "I need three things from you.\n1. The signed contract\n"
+                   + "2. The invoice\n3. The delivery date\nSend them today.",
+               mode: .grammar, accepted: true),
+        Vector(name: "strict-accepts-envelope-list",
+               original: "I need three things from you. Start the list. The signed contract. "
+                   + "The invoice. The delivery date. Close the list. Send them today.",
+               cleaned: "I need three things from you.\n1. The signed contract\n"
+                   + "2. The invoice\n3. The delivery date\nSend them today.",
+               mode: .punctuationOnly, accepted: true),
+        // A list is not a licence to invent its contents.
+        Vector(name: "list-cannot-invent-an-item",
+               original: "first point milk second point eggs",
+               cleaned: "1. Milk\n2. Eggs\n3. Champagne", mode: .grammar, accepted: false),
+
+        // Disfluency repair, 2026-09-20. Resolving a restart only ever removes words, so it
+        // passes in both modes; the mis-hearing three edits away is grammar-mode only, and
+        // is rationed — see `CleanupGuard.phoneticBudget`.
+        Vector(name: "restart-resolved",
+               original: "Also in the formatting in the settings of the formatting, the user "
+                   + "is not able to scroll through the app. So can you check that for us?",
+               cleaned: "Also, in the formatting settings, the user is not able to scroll "
+                   + "through the app. Can you check that for us?",
+               mode: .grammar, accepted: true),
+        Vector(name: "strict-accepts-restart-resolved",
+               original: "Also in the formatting in the settings of the formatting, the user "
+                   + "is not able to scroll through the app. So can you check that for us?",
+               cleaned: "Also, in the formatting settings, the user is not able to scroll "
+                   + "through the app. Can you check that for us?",
+               mode: .punctuationOnly, accepted: true),
+        Vector(name: "misheard-three-edits",
+               original: "The model claimed the text properly.",
+               cleaned: "The model cleaned the text properly.",
+               mode: .grammar, accepted: true),
+        Vector(name: "strict-rejects-misheard-three-edits",
+               original: "The model claimed the text properly.",
+               cleaned: "The model cleaned the text properly.",
+               mode: .punctuationOnly, accepted: false),
+        // ...and one per sentence is the whole allowance. Two is a model rewriting the
+        // sentence a plausible word at a time.
+        Vector(name: "phonetic-chain-is-not-a-repair",
+               original: "The model claimed the text and claimed the images.",
+               cleaned: "The model cleaned the text and cleaned the images.",
+               mode: .grammar, accepted: false),
     ]
 }

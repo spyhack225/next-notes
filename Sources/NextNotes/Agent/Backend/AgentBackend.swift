@@ -1,6 +1,6 @@
 import Foundation
 
-/// Qwen's BackendPort, as a Swift protocol: start, health, submit, status, cancel,
+/// The local model's BackendPort, as a Swift protocol: start, health, submit, status, cancel,
 /// permission/input responses, events, shutdown. Optional behaviour is advertised by
 /// `describe()` and refused explicitly — callers never infer support from a missing method.
 enum AgentBackendKind: String, Codable, Sendable, CaseIterable {

@@ -445,7 +445,7 @@ final class ActionOrchestrator {
             }
             add(.verified, "Target and authority verified")
 
-            let prepared = PreparedAction(
+            var prepared = PreparedAction(
                 id: preparedID, intentID: intent.id, title: title,
                 preparedContent: preparedContent, routing: routing,
                 executionPlan: ActionExecutionPlan(toolID: tool.id, arguments: intent.arguments, steps: steps),
@@ -460,7 +460,8 @@ final class ActionOrchestrator {
                 tool, arguments: intent.arguments, policy: policy,
                 scope: await PermissionScopeResolver.inferredAsync(tool: tool, arguments: intent.arguments),
                 meetingID: routing.meetingID, taskID: routing.taskID,
-                authority: intent.authority
+                authority: intent.authority,
+                trigger: Self.trigger(for: intent)
             )
             switch decision {
             case .deny(let reason):
@@ -474,10 +475,34 @@ final class ActionOrchestrator {
                 if !permissionAlreadyGranted {
                     guard await PermissionGate.shared.ask(request) else {
                         add(.denied, "Permission dismissed")
+                        ToolCallReviewStore.shared.remove(id: request.id)
                         throw AgentError.permissionDenied("You dismissed \(request.title).")
                     }
                 }
-                guard add(.approved, permissionAlreadyGranted ? "Approved by action card" : "Approved by user") else {
+                // What the user approved is what is on the card, which is not necessarily
+                // what the model proposed: a missing recipient they typed, or an invented
+                // address they replaced, has to be the thing that actually runs. The card
+                // refuses to approve while anything is unanswered, so an argument set that
+                // arrives here is complete by construction.
+                var approvalNote = permissionAlreadyGranted ? "Approved by action card" : "Approved by user"
+                if let review = ToolCallReviewStore.shared.review(id: request.id) {
+                    if review.wasEdited {
+                        // Merged, not replaced. The card deliberately leaves the
+                        // underscore-prefixed arguments out of its fields — they are
+                        // machinery, not something to approve — and `_browserBackend` and
+                        // `_authorizedPageURL` are precisely the authorization the executor
+                        // pinned *before* this card went up. Replacing the whole set with
+                        // the card's fields dropped them, and browser.click then acted on
+                        // whichever tab resolved afterwards instead of the one the user was
+                        // shown. Anything the user can see still wins, including clearing it.
+                        prepared.executionPlan.arguments =
+                            review.executionArguments(mergedOver: intent.arguments)
+                        receipt.preparedAction = prepared
+                        approvalNote = review.auditNote
+                    }
+                    ToolCallReviewStore.shared.remove(id: request.id)
+                }
+                guard add(.approved, approvalNote) else {
                     throw AgentError.backendUnavailable("Could not save action approval; it was not run.")
                 }
             case .allow:
@@ -535,6 +560,28 @@ final class ActionOrchestrator {
         } catch {
             add(.failed, error.localizedDescription)
             throw error
+        }
+    }
+
+    /// Where the card's "why" line comes from.
+    ///
+    /// Deliberately conservative. The old copy said "You said this." on every card, which
+    /// is true of a request the user spoke and a lie about a call a model produced while
+    /// chewing on a transcript — and the second kind is exactly the one worth reading
+    /// twice. Anything without a quotable trigger says so.
+    static func trigger(for intent: ActionIntent) -> ToolCallTrigger {
+        let transcript = intent.evidence.first { $0.kind == "transcript" }?.value
+        switch intent.source {
+        case .meeting:
+            return .saidInMeeting(transcript ?? "", speaker: nil, at: nil)
+        case .scheduled:
+            return .routine(intent.evidence.first { $0.kind == "schedule" }?.value ?? "A routine")
+        case .agent:
+            if let transcript { return .youSaid(transcript) }
+            let said = AgentSession.shared.messages.last { $0.role == "user" }?.text ?? ""
+            return said.isEmpty ? .unattributed : .youSaid(said)
+        default:
+            return transcript.map { ToolCallTrigger.youSaid($0) } ?? .unattributed
         }
     }
 

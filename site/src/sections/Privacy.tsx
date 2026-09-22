@@ -34,14 +34,14 @@ export default function Privacy() {
           className="text-5xl md:text-7xl lg:text-8xl font-medium tracking-[-2px] text-center leading-[1.02]"
         >
           Every other tool{" "}
-          <span className="font-serif italic font-normal">uploads you.</span>
+          <span className="font-serif italic font-normal">waits for you.</span>
         </motion.h2>
 
         <motion.p
           {...fadeUp(0.12)}
           className="text-muted-foreground text-lg max-w-2xl mx-auto mb-24 mt-7 text-center leading-relaxed"
         >
-          This one does the opposite. Your Mac is the agent — it already has your memory,
+          This one does the opposite. It's your Mac into a proactive agent — it already has your memory,
           your storage, a model that runs beside you. Everything you say stays local. No
           account, no subscription, and no bot joining your call to take notes on everyone
           else&apos;s behalf.

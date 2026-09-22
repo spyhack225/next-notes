@@ -11,6 +11,7 @@ struct PermissionsChecklist: View {
     @State private var hasAccessibility = false
     @State private var hasMicrophone = false
     @State private var hasCalendar = false
+    @State private var hasHeardSystemAudio = false
     @State private var hasNotifications = false
     @State private var isGrantingAll = false
 
@@ -45,19 +46,29 @@ struct PermissionsChecklist: View {
 
             PermissionRow(
                 title: "System audio",
-                detail: "Hears the other side of a meeting. Without it a recording is only "
-                    + "your half, in silence.",
+                detail: hasHeardSystemAudio
+                    ? "Hears the other side of a meeting. Next Notes has heard sound from this Mac, "
+                        + "so this is on."
+                    : "Hears the other side of a meeting. macOS can't tell Next Notes whether this "
+                        + "is on — play any sound, press Check, and this turns green if it is heard.",
                 systemImage: "speaker.wave.2",
                 // `nil`, not false. This grant has no query API — macOS decides it on the
                 // first tap — so claiming either answer would be inventing one. The row says
-                // "ask", and `--selftest-systemaudio` is where a real answer comes from.
-                isGranted: nil,
-                actionTitle: "Ask…"
+                // "ask", and `--selftest-systemaudio` is where a real answer comes from. The one
+                // honest "yes" is evidence: a tap that has delivered real sound.
+                isGranted: hasHeardSystemAudio ? true : nil,
+                actionTitle: "Check…"
             ) {
                 // Raises the prompt by opening a tap, then shows the pane, because a grant
                 // already decided will not prompt again and the pane is the only way back.
                 Permissions.requestSystemAudio()
-                Permissions.openSystemAudioSettings()
+                Task {
+                    try? await Task.sleep(for: .seconds(2))
+                    refresh()
+                    // Heard nothing: either nothing is playing or the grant is off, and the
+                    // pane is the only place the second can be fixed.
+                    if !hasHeardSystemAudio { Permissions.openSystemAudioSettings() }
+                }
             }
 
             PermissionRow(
@@ -214,6 +225,7 @@ struct PermissionsChecklist: View {
         hasAccessibility = Permissions.hasAccessibility
         hasMicrophone = Permissions.hasMicrophone
         hasCalendar = Permissions.hasCalendar
+        hasHeardSystemAudio = Permissions.hasHeardSystemAudio
         // The only row that can't be answered synchronously — the notification center's
         // settings are fetched, not read off a bit.
         Task { hasNotifications = await Notifications.shared.isAuthorized() }
@@ -271,37 +283,9 @@ private struct PermissionRow: View {
     }
 }
 
-/// The first-launch wrapper around the checklist.
-struct OnboardingSheet: View {
-    let onDone: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DS.Space.l) {
-            VStack(alignment: .leading, spacing: DS.Space.xs) {
-                Text("Welcome to Next Notes")
-                    .font(DS.Font.title)
-                Text("Hold a key, talk, let go — the text lands in whatever had focus. "
-                     + "Two of these grants are needed for that; the rest can wait.")
-                .font(DS.Font.callout)
-                .foregroundStyle(DS.Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            }
-
-            PermissionsChecklist()
-
-            HStack {
-                Spacer()
-                Button("Start Dictating", action: onDone)
-                    .keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(DS.Space.xl)
-        .frame(width: DS.Size.onboardingWidth)
-        // The landing page's hero, brought inside: one slow `breathing` ring behind the
-        // type, at a fraction of the page's opacity because this is a window in the user's
-        // own appearance rather than white ink on black. The first screen anyone sees is
-        // the one place the mark can be large, and there is no work running behind it to
-        // misrepresent — the app is present and idle, which is what `breathing` means.
-        .orbBackdrop(.breathing, opacity: DS.Opacity.orbWatermark)
-    }
-}
+// `OnboardingSheet` used to live here: this same checklist, wrapped in a title and a
+// "Start Dictating" button, shown as a sheet on the main window the first time it opened.
+// It has been replaced by `OnboardingFlowView` — one question per screen, in plain words,
+// in its own window. The checklist itself stays, because Settings → Permissions is a
+// different job: not "set this up" but "which of these is missing today?", asked by
+// somebody who already knows what they are looking at.

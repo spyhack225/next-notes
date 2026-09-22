@@ -74,7 +74,7 @@ actor LlamaBackend {
     /// **One-directional.** Notes (`NotesModelRuntime`) and the compute scheduler call
     /// `awaitCleanupIdle()` so a load waits for cleanup. They must never call
     /// `beginCleanup()`. Closing the cycle — beginCleanup from a path that then awaits
-    /// this same runtime — deadlocks Qwen cleanup (`QwenCleanupFormatter`).
+    /// this same runtime — deadlocks on-device cleanup (`QwenCleanupFormatter`).
     /// `ComputeScheduler` and `ModelResidencyPolicy` cooperate by yielding / unloading;
     /// they do not reverse this gate.
     func beginCleanup() {

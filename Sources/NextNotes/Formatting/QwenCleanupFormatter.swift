@@ -1,12 +1,12 @@
 import Foundation
 
-/// Dictation cleanup through the notes model — Qwen3.5-4B on the GPU.
+/// Dictation cleanup through the on-device meeting model, on the GPU.
 ///
-/// The same 2.7 GB general instruction-following model that writes meeting notes, pointed
-/// at one or two sentences instead of an hour of them. It is here because it is the only
-/// model on this Mac that can be *told* what to do in prose, which is what open-ended
-/// grammar repair needs; S1-mini cannot be told anything (see `S1MiniFormatter`) and
-/// Apple's model is smaller.
+/// The same general instruction-following model that writes meeting notes — whichever file
+/// the Models tab has selected — pointed at one or two sentences instead of an hour of
+/// them. It is here because it is the only model on this Mac that can be *told* what to
+/// do in prose, which is what open-ended grammar repair needs; S1-mini cannot be told
+/// anything (see `S1MiniFormatter`) and Apple's model is smaller.
 ///
 /// It is not the default, and the reason is latency rather than quality. Two costs land on
 /// a person holding a key:
@@ -49,19 +49,24 @@ struct QwenCleanupFormatter: TextFormatter {
         self.timeout = timeout
     }
 
-    static var isAvailable: Bool { NotesModels.isDownloaded }
+    /// Any installed brain, not only the built-in one — a Mac whose only model came from
+    /// the library must not fall back to rule-based cleanup while that model is loaded.
+    static var isAvailable: Bool {
+        get async { await MainActor.run { InstalledModelLibrary.shared.hasUsableModel } }
+    }
 
     static var unavailableReason: String? {
-        NotesModels.isDownloaded
-            ? nil
-            : "\(NotesModels.spec.displayName) isn\u{2019}t downloaded (\(NotesModels.spec.displaySize))."
+        get async {
+            await MainActor.run { InstalledModelLibrary.shared.hasUsableModel } ? nil
+                : "Your assistant\u{2019}s brain isn\u{2019}t downloaded yet \u{2014} get it in Settings \u{25b8} Models."
+        }
     }
 
     func format(_ raw: String) async -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return trimmed }
-        guard Self.isAvailable else {
-            Log.speech.info("Qwen cleanup unavailable — using rule-based cleanup")
+        guard await Self.isAvailable else {
+            Log.speech.info("On-device cleanup unavailable — using rule-based cleanup")
             return await fallback.format(trimmed)
         }
 
@@ -91,12 +96,12 @@ struct QwenCleanupFormatter: TextFormatter {
                 cleaned: cleaned,
                 mode: CleanupInstructions.mode(fixesGrammar: fixesGrammar)
             ) {
-                Log.speech.info("Qwen cleanup rejected — \(reason, privacy: .public)")
+                Log.speech.info("On-device cleanup rejected — \(reason, privacy: .public)")
                 return await fallback.format(trimmed)
             }
             return cleaned
         } catch {
-            Log.speech.info("Qwen cleanup failed (\(error.localizedDescription, privacy: .public)) — falling back")
+            Log.speech.info("On-device cleanup failed (\(error.localizedDescription, privacy: .public)) — falling back")
             return await fallback.format(trimmed)
         }
     }
@@ -149,6 +154,6 @@ struct QwenCleanupFormatter: TextFormatter {
 
     private enum CleanupError: LocalizedError {
         case timedOut
-        var errorDescription: String? { "Qwen cleanup timed out" }
+        var errorDescription: String? { "On-device cleanup timed out" }
     }
 }

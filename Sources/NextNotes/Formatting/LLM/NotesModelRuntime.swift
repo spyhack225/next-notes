@@ -22,7 +22,7 @@ import llama
 ///   so a queued voice turn runs next but cannot corrupt an in-flight notes pass.
 /// - Before loading, this runtime still waits on `LlamaBackend.awaitCleanupIdle()`.
 ///   It must **never** call `beginCleanup()` — that closes the gate and deadlocks
-///   Qwen cleanup (`QwenCleanupFormatter`).
+///   on-device cleanup (`QwenCleanupFormatter`).
 /// - Under memory pressure, `ModelResidencyPolicy` may call `shutdown()` before it
 ///   unloads diarization. Wake/KWS and Parakeet stay warm.
 actor NotesModelRuntime {
@@ -30,13 +30,13 @@ actor NotesModelRuntime {
     /// second, smaller GGUF on the GPU to prove Metal and CPU runtimes coexist.
     static let shared = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: NotesModelRuntime.allGPULayers)
 
-    /// Offload everything. 4B at Q4_K_M is ~2.7 GB against 16 GB of unified memory, so
-    /// there is no layer-splitting decision to make — either Metal is on or it isn't.
+    /// Offload everything. The built-in model file is a few GB against 16 GB of unified
+    /// memory, so there is no layer-splitting decision to make — either Metal is on or it isn't.
     static let allGPULayers: Int32 = 99
 
-    /// Qwen3.5 trains to 256K, but a context that size would reserve more memory than this
-    /// machine has. 32K is roughly four hours of speech, which is longer than any meeting
-    /// the app will be asked to summarise in one pass.
+    /// The built-in model trains to a much longer window, but a runtime context that size
+    /// would reserve more memory than this machine has. 32K is roughly four hours of
+    /// speech, which is longer than any meeting the app will be asked to summarise in one pass.
     static let maxContextTokens = 32_768
     /// Below this, sizing the context to the prompt costs more rebuilds than it saves memory.
     private static let minContextTokens = 2_048
@@ -49,7 +49,14 @@ actor NotesModelRuntime {
     /// How long the weights stay resident with nothing to do.
     static let idleUnload: TimeInterval = 10 * 60
 
-    let spec: ModelSpec
+    /// The model file currently loaded, or the one the next load will use.
+    ///
+    /// A `var` since the Models tab can hand the app a different GGUF. It only ever changes
+    /// while nothing is loaded: a swap while a generation is in flight would free the
+    /// weights its sampler is reading from.
+    private(set) var spec: ModelSpec
+    /// A model the user chose that has not been switched to yet, because work was running.
+    private var pendingSpec: ModelSpec?
     private let gpuLayers: Int32
 
     private var model: OpaquePointer?
@@ -84,6 +91,142 @@ actor NotesModelRuntime {
     }
 
     var isLoaded: Bool { model != nil }
+
+    // MARK: - Choosing a model
+
+    /// A model the user installed from the library, as a `ModelSpec` this runtime can load.
+    ///
+    /// `expectedSHA256` is nil rather than the Hub's hash: the download already verified it
+    /// byte for byte before the file was allowed into Application Support, and re-hashing
+    /// four gigabytes on every load would add a minute to a cold start.
+    ///
+    /// **`ModelSpec.fileURL` is `ModelSpec.directory` plus the file name**, not the `url`
+    /// field — so this is only correct for a model that lives in Application Support's
+    /// Models folder. Every installed model does: `ModelLibraryStore` downloads into that
+    /// folder and `InstalledModelLibrary` records the same path.
+    nonisolated static func spec(for model: InstalledLocalModel) -> ModelSpec {
+        ModelSpec(
+            displayName: model.displayName,
+            fileName: model.fileURL.lastPathComponent,
+            url: model.fileURL,
+            expectedBytes: model.bytes,
+            expectedSHA256: nil
+        )
+    }
+
+    /// Point the runtime at the model the user picked in the Models tab.
+    ///
+    /// One model is resident at a time, so this is a swap rather than an addition. It never
+    /// frees anything that is in use: while a generation, a queued request or a voice
+    /// conversation holds the runtime, the choice is recorded and the swap happens at the
+    /// moment the last of them lets go — which is also when `deferredShutdown` runs, and for
+    /// the same reason.
+    func useInstalledModel(_ model: InstalledLocalModel?) {
+        let next = model.map(Self.spec(for:)) ?? NotesModels.spec
+        guard next.fileURL != spec.fileURL else {
+            pendingSpec = nil
+            return
+        }
+        pendingSpec = next
+        if Self.swapMustWait(
+            activeOperations: activeOperations,
+            loadInFlight: loadTask != nil,
+            nativeOwner: nativeOwner,
+            nativeWaiters: nativeWaiters.count,
+            conversationLeases: conversationLeases.count
+        ) {
+            // Same gate as a pressure shutdown: the weights go when nothing is reading them.
+            deferredShutdown = true
+        } else {
+            // Idle — including "loaded but idle", which is the ordinary case a second after
+            // the last answer. Freeing the weights here is what makes the *next* answer come
+            // from the model the person just picked; waiting for a generation that has not
+            // started yet would let that generation run on the old one.
+            applyPendingSpec()
+        }
+    }
+
+    /// Whether a model chosen right now has to wait for work already in flight.
+    ///
+    /// Resident weights alone are **not** a reason to wait — nothing is reading them, and
+    /// `applyPendingSpec` frees them before it swaps. Only work that is running, queued,
+    /// loading, or held open by a voice session is, because each of those either owns the
+    /// native context or is about to.
+    static func swapMustWait(
+        activeOperations: Int,
+        loadInFlight: Bool,
+        nativeOwner: Bool,
+        nativeWaiters: Int,
+        conversationLeases: Int
+    ) -> Bool {
+        activeOperations > 0 || loadInFlight || nativeOwner || nativeWaiters > 0 || conversationLeases > 0
+    }
+
+    /// True while this runtime is on the model that ships with the app.
+    var isUsingBuiltInModel: Bool { spec.fileURL == NotesModels.spec.fileURL }
+
+    private var didAdoptSavedSelection = false
+
+    /// The model file the next answer will come from, with the saved choice adopted first.
+    ///
+    /// Availability is asked before anything is generated, and the answer has to be about the
+    /// model the app is actually going to use. Reading `spec` alone reported on the built-in
+    /// model until the first load — so a person whose only model came from Hugging Face was
+    /// told the built-in one was missing, generation never started, the load that adopts the
+    /// saved choice never ran, and the same thing happened on every launch.
+    func activeSpec() async -> ModelSpec {
+        await adoptSavedSelectionIfNeeded()
+        return pendingSpec ?? spec
+    }
+
+    /// Reads the saved choice once per process.
+    private func adoptSavedSelectionIfNeeded() async {
+        guard !didAdoptSavedSelection else { return }
+        didAdoptSavedSelection = true
+        // Self-tests must not have their model swapped out from under them by whatever the
+        // person who owns this Mac happened to choose in the UI.
+        guard !SelfTest.isRunning else { return }
+        let chosen = await MainActor.run { InstalledModelLibrary.shared.activeModel }
+        // Records the choice, and applies it straight away unless work is in flight — in
+        // which case `load` below applies it, since nothing is loaded by then either.
+        useInstalledModel(chosen)
+    }
+
+    /// Opens a GGUF, or returns nil. Never traps, never leaks a half-opened model.
+    private static func openNative(
+        _ candidate: ModelSpec, parameters: llama_model_params
+    ) -> (OpaquePointer, OpaquePointer)? {
+        guard FileManager.default.fileExists(atPath: candidate.fileURL.path) else { return nil }
+        guard let loaded = llama_model_load_from_file(candidate.fileURL.path, parameters) else { return nil }
+        guard let vocabulary = llama_model_get_vocab(loaded) else {
+            llama_model_free(loaded)
+            return nil
+        }
+        return (loaded, vocabulary)
+    }
+
+    /// Goes back to the built-in model and tells the user why, in one sentence.
+    ///
+    /// The selection in `InstalledModelLibrary` moves too. Leaving it pointing at a file
+    /// that will not open would mean the Models tab says one thing while the agent does
+    /// another, and every later launch would repeat the same failed load.
+    private func revertToBuiltIn(message: String) async {
+        pendingSpec = nil
+        spec = NotesModels.spec
+        await MainActor.run {
+            InstalledModelLibrary.shared.activeAgentModelID = InstalledModelLibrary.builtInID
+            ModelLoadNotice.shared.report(message)
+        }
+    }
+
+    /// Swaps in the chosen model. Only safe with nothing loaded and nothing running.
+    private func applyPendingSpec() {
+        guard let pendingSpec else { return }
+        if model != nil { shutdownNow() }
+        spec = pendingSpec
+        self.pendingSpec = nil
+        Log.llm.info("model library: now using \(self.spec.displayName, privacy: .public)")
+    }
 
     /// Seconds since the model last generated, or nil while it is generating, queued, or
     /// held by a voice conversation. The memory review waits for a minute of this, so a
@@ -246,7 +389,7 @@ actor NotesModelRuntime {
 
     /// Prefill must yield too: a long tool prompt used to monopolize the GPU before
     /// the first token checkpoint. The native-context reservation remains held across
-    /// these awaits, so another Qwen request cannot clear the in-flight KV cache.
+    /// these awaits, so another request cannot clear the in-flight KV cache.
     private func decodePromptWhileScheduled(
         _ tokens: [llama_token], context: OpaquePointer, jobID: UUID
     ) async throws {
@@ -324,7 +467,7 @@ actor NotesModelRuntime {
             if llama_vocab_is_eog(vocabulary, token) { break }
             output += LlamaHelpers.piece(token, vocabulary: vocabulary)
             generated += 1
-            // Some Qwen GGUF conversions emit the turn terminator as text rather than as an
+            // Some GGUF conversions emit the turn terminator as text rather than as an
             // end-of-generation token; without this the model keeps writing a second turn.
             if output.hasSuffix(Self.turnEnd) {
                 output.removeLast(Self.turnEnd.count)
@@ -452,7 +595,12 @@ actor NotesModelRuntime {
         defer {
             activeOperations -= 1
             lastUse = Date()
-            if activeOperations == 0 && deferredShutdown { shutdownNow() }
+            if activeOperations == 0 && deferredShutdown {
+                shutdownNow()
+                // A model chosen while this operation was running swaps in here, now that
+                // nothing is reading the weights that were just freed.
+                applyPendingSpec()
+            }
         }
         let jobID = await ComputeScheduler.shared.acquire(workClass)
         queueTrace.end(note: "qwen35_4b class=\(workClass.rawValue)")
@@ -613,6 +761,56 @@ actor NotesModelRuntime {
         }
     }
 
+    /// The Models tab can hand this runtime a different GGUF at any moment.
+    ///
+    /// Two things have to hold and neither needs a model file: while the runtime is idle the
+    /// swap happens immediately, and while a generation holds the lane it does not — the
+    /// choice is recorded and applied the instant the work lets go. A swap that landed
+    /// mid-generation would free the weights the sampler is reading from, which is a crash
+    /// rather than a wrong answer.
+    static func modelSwapSelfTest() async -> Bool {
+        let runtime = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: 0)
+        // The same folder every installed model lives in. No file is created: the swap is a
+        // bookkeeping change, and the load that would open it never runs here.
+        let probeName = "nextnotes-swap-probe-\(UUID().uuidString).gguf"
+        let chosen = InstalledLocalModel(
+            id: "probe/model",
+            displayName: "Probe",
+            fileURL: ModelSpec.directory.appendingPathComponent(probeName),
+            parameterBillions: 4,
+            quantization: "Q4_K_M",
+            bytes: 1,
+            isBuiltIn: false
+        )
+
+        // Idle: immediate.
+        await runtime.useInstalledModel(chosen)
+        guard await runtime.spec.fileName == probeName else { return false }
+        await runtime.useInstalledModel(nil)
+        guard await runtime.isUsingBuiltInModel else { return false }
+
+        // Busy: deferred until the lane is free.
+        let gate = NotesShutdownProbeGate()
+        let work = Task {
+            try? await runtime.withLane(.background) { _ in await gate.park() }
+        }
+        for _ in 0..<50 {
+            if await gate.started { break }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        guard await gate.started else {
+            work.cancel()
+            await gate.release()
+            return false
+        }
+        await runtime.useInstalledModel(chosen)
+        let heldOff = await runtime.isUsingBuiltInModel
+        await gate.release()
+        _ = await work.result
+        let swappedAfterwards = await runtime.spec.fileName == probeName
+        return heldOff && swappedAfterwards
+    }
+
     /// Exercise the actor re-entrancy seam without loading a GGUF. The same
     /// background lane and public shutdown path are used by real generation
     /// and the memory-pressure guardian.
@@ -640,8 +838,8 @@ actor NotesModelRuntime {
 
     /// ChatML with the thinking block pre-closed.
     ///
-    /// Qwen3.5 is a hybrid reasoning model: left to itself it opens `<think>` and spends
-    /// hundreds of tokens deliberating before writing anything. Notes are an extraction
+    /// The on-device model is a hybrid reasoning model: left to itself it opens `<think>` and
+    /// spends hundreds of tokens deliberating before writing anything. Notes are an extraction
     /// task, not a reasoning one, and on a 4B model the deliberation mostly costs minutes.
     /// Supplying an already-closed, empty think block is the documented way to start the
     /// answer immediately.
@@ -727,6 +925,9 @@ actor NotesModelRuntime {
     private func loadIfNeeded(schedulerJobID: UUID? = nil) async throws {
         if model != nil, vocabulary != nil { return }
         if let loadTask { return try await loadTask.value }
+        // Nothing is loaded and nothing is loading, which is the only safe moment to adopt a
+        // model the user chose while the previous one was busy.
+        applyPendingSpec()
 
         let jobID = schedulerJobID
         let task = Task<Void, Error> {
@@ -770,7 +971,22 @@ actor NotesModelRuntime {
     }
 
     private func load(schedulerJobID: UUID? = nil) async throws {
-        guard spec.isDownloaded else { throw LlamaError.modelMissing }
+        // The first load of the process adopts whatever the user picked last time, unless
+        // something read `activeSpec` earlier and adopted it already.
+        await adoptSavedSelectionIfNeeded()
+        // Nothing is loaded at this point — this is the load — so a choice that was recorded
+        // while a generation held the lane can be taken up now, before the file is opened.
+        if model == nil { applyPendingSpec() }
+
+        // A chosen model whose file has gone — deleted in Finder, or on a volume that is no
+        // longer mounted — is a configuration problem, not a failure: fall back and say so.
+        if !spec.isDownloaded {
+            // The built-in model simply hasn't been downloaded yet — the caller handles that.
+            guard !isUsingBuiltInModel else { throw LlamaError.modelMissing }
+            await revertToBuiltIn(
+                message: ModelLoadNotice.fileMissing(spec.displayName, fallback: NotesModels.spec.displayName))
+            guard spec.isDownloaded else { throw LlamaError.modelMissing }
+        }
 
         ModelResidencyPolicy.installPressureObserver()
 
@@ -779,7 +995,7 @@ actor NotesModelRuntime {
         // The dictation path is the one with a person waiting on it, so notes generation
         // yields: it loads only once the cleanup pass in flight has released its context.
         //
-        // One-directional only. Do not call beginCleanup() here — Qwen cleanup is this
+        // One-directional only. Do not call beginCleanup() here — on-device cleanup is this
         // same runtime, and closing the cycle deadlocks (AGENTS.md).
         await LlamaBackend.shared.awaitCleanupIdle()
 
@@ -801,11 +1017,20 @@ actor NotesModelRuntime {
         // moment this process is least able to afford it.
         modelParameters.use_extra_bufts = false
 
-        guard let loadedModel = llama_model_load_from_file(spec.fileURL.path, modelParameters) else {
-            throw LlamaError.modelLoadFailed
+        // A GGUF built for an architecture this llama.cpp does not implement returns null
+        // here rather than crashing — but only because the load is guarded. The user chose
+        // this file from a list of thousands, so "unsupported" is an ordinary outcome, and
+        // the app has to keep working through it rather than refusing to write notes.
+        var opened = Self.openNative(spec, parameters: modelParameters)
+        if opened == nil, !isUsingBuiltInModel {
+            let failed = spec.displayName
+            await revertToBuiltIn(
+                message: ModelLoadNotice.couldNotOpen(failed, fallback: NotesModels.spec.displayName))
+            if spec.isDownloaded {
+                opened = Self.openNative(spec, parameters: modelParameters)
+            }
         }
-        guard let loadedVocabulary = llama_model_get_vocab(loadedModel) else {
-            llama_model_free(loadedModel)
+        guard let (loadedModel, loadedVocabulary) = opened else {
             throw LlamaError.modelLoadFailed
         }
 

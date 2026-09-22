@@ -52,7 +52,7 @@ protocol ComputeScheduling: Sendable {
 ///     background     → idle resources / throttled GPU
 ///
 /// Background jobs yield when a `realtimeASR` (or higher) job is queued.
-/// That is the whole reason this type exists: a meeting-notes load of Qwen
+/// That is the whole reason this type exists: a meeting-notes load of the local model
 /// must not stall dictation ASR for four seconds.
 ///
 /// ## Enforced here

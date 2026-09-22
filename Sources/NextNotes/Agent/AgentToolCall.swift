@@ -11,7 +11,7 @@ struct AgentToolCall: Sendable, Equatable {
 
 /// Reads tool calls out of a completion.
 ///
-/// Qwen3.5 was tuned on the Hermes convention — a JSON object between `<tool_call>` and
+/// The on-device model was tuned on the Hermes convention — a JSON object between `<tool_call>` and
 /// `</tool_call>` — so that is what is asked for and that is what is parsed. Everything
 /// outside the tags is deliberately thrown away: a small model padding its answer with "Here
 /// is what I would do" is normal, and a parser that tried to make sense of the prose would
@@ -60,7 +60,27 @@ enum AgentToolCallParser {
 
         var arguments: [String: String] = [:]
         for (key, value) in rawArguments {
-            if let string = flatten(value) { arguments[key] = string }
+            guard let string = flatten(value) else { continue }
+            // A slot the model could not fill comes back as furniture — "[Name]",
+            // john.doe@example.com — rather than as an absent key, because the schema said
+            // the field was required and the model would rather satisfy the shape than
+            // admit the gap. Dropping it here makes the call say what is actually true:
+            // this argument is missing, and the card has to ask for it. Nothing is
+            // substituted in its place.
+            //
+            // Only what is furniture whatever tool this is. The parser has read a name, not
+            // looked a tool up, so it cannot tell `query: "todo"` on a file search — a
+            // perfectly ordinary thing to look for — from `subject: "TBD"` on an email.
+            // That judgement needs the tool's own risk and is made in
+            // `AgentToolLoop.grounded`, one step later, where the tool is known.
+            //
+            // Multi-line values are left alone: a message body with a placeholder in it is
+            // still a draft worth editing, and it is refused at the executor rather than
+            // deleted here.
+            if !string.contains("\n"), ToolCallInspector.isUniversalStandIn(string) {
+                continue
+            }
+            arguments[key] = string
         }
         let rationale = (object["rationale"] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

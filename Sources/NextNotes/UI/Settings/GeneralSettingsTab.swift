@@ -36,7 +36,7 @@ struct GeneralSettingsTab: View {
                 .disabled(!FoundationModelCommandProcessor.isAvailable)
 
                 if settings.commandModeEnabled {
-                    Picker("Command key", selection: Binding(
+                    Picker("Key to hold", selection: Binding(
                         get: { settings.commandModeKey },
                         set: { key in
                             settings.commandModeKey = key
@@ -52,6 +52,22 @@ struct GeneralSettingsTab: View {
                 Text("Command Mode")
             } footer: {
                 SettingsNote(text: commandModeNote)
+            }
+
+            // The way back into first run. It is here rather than under Permissions
+            // because it is not only about grants — it is the whole walkthrough, and
+            // somebody who wants it usually cannot remember what it was called.
+            Section {
+                HStack {
+                    Text("Setup")
+                    Spacer()
+                    Button("Run setup again") {
+                        OnboardingPresenter.restart(controller: controller)
+                    }
+                }
+            } footer: {
+                SettingsNote(text: "Walks through the same questions Next Notes asked the "
+                             + "first time. Nothing you have already set up is undone.")
             }
         }
         .formStyle(.grouped)
@@ -75,7 +91,13 @@ struct GeneralSettingsTab: View {
 
     private var commandModeNote: String {
         if let reason = FoundationModelCommandProcessor.unavailableReason { return reason }
-        return "Select editable text, hold the second key, and say an instruction such as "
-            + "\u{201c}make this more formal.\u{201d} Processing stays on this Mac."
+        // Says what the key does, and — just as important — what it does *not* do. The key
+        // is usually ⌘, so the first thing anyone does with it by accident is press it on
+        // its own or inside a shortcut, and for a while that put an unexplained animation
+        // on screen. Both are now nothing, and the sentence says so.
+        return "Highlight some text, hold \(settings.commandModeKey.spokenName) for a "
+            + "moment, and say what to change — \u{201c}make this shorter.\u{201d} A quick "
+            + "tap does nothing, and neither does using that key in an ordinary shortcut "
+            + "like Command-C or Command-click. Your words never leave this Mac."
     }
 }

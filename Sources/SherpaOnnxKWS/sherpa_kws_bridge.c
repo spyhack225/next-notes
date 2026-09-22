@@ -144,6 +144,22 @@ NNWakeSpotter *nn_wake_create(
     const char *keywords_file,
     float threshold
 ) {
+    return nn_wake_create_tuned(dylib_directory, encoder, decoder, joiner, tokens,
+                                keywords_file, threshold, 0, 0.0f, 0);
+}
+
+NNWakeSpotter *nn_wake_create_tuned(
+    const char *dylib_directory,
+    const char *encoder,
+    const char *decoder,
+    const char *joiner,
+    const char *tokens,
+    const char *keywords_file,
+    float threshold,
+    int32_t max_active_paths,
+    float keywords_score,
+    int32_t num_trailing_blanks
+) {
     g_error[0] = 0;
     if (!dylib_directory || !encoder || !decoder || !joiner || !tokens || !keywords_file) {
         set_error("wake spotter is missing a required path");
@@ -199,9 +215,9 @@ NNWakeSpotter *nn_wake_create(
     config.model_config.num_threads = 1;
     config.model_config.provider = "cpu";
     config.model_config.debug = 0;
-    config.max_active_paths = 4;
-    config.num_trailing_blanks = 1;
-    config.keywords_score = 1.0f;
+    config.max_active_paths = max_active_paths > 0 ? max_active_paths : 4;
+    config.num_trailing_blanks = num_trailing_blanks > 0 ? num_trailing_blanks : 1;
+    config.keywords_score = keywords_score > 0 ? keywords_score : 1.0f;
     config.keywords_threshold = threshold > 0 ? threshold : 0.25f;
     config.keywords_file = keywords_file;
 

@@ -6,9 +6,9 @@ import Foundation
 //   schedule's id, executed by the same bounded multi-round tool loop the Agent uses
 //   (`AgentToolLoop`). No conversation: persona, the core memory snapshot, fixed rules, the
 //   schedule's self-contained prompt, today's date and time zone.
-// - **Model.** `auto` probes Qwen first (loaded or loadable, nothing recording, not busy),
-//   then OpenRouter; if neither, the slot is skipped with a reason, never crashed. Recording
-//   rules out only Qwen: a cloud routine still runs while a meeting records.
+// - **Model.** `auto` probes the on-device model first (loaded or loadable, nothing recording,
+//   not busy), then OpenRouter; if neither, the slot is skipped with a reason, never crashed.
+//   Recording rules out only the on-device model: a cloud routine still runs while a meeting records.
 // - **Budget.** `maxSeconds` and `maxToolCalls` are loop parameters, not prompt text; the
 //   run stops cleanly at either.
 // - **Silence.** A final answer of exactly `NOTHING_TO_REPORT` delivers nothing.
@@ -27,12 +27,12 @@ enum RoutineModelRoute: Equatable, Sendable {
 
 enum RoutineModelRouter {
     /// The plan's rule: probe the local model before starting, and report a skip, not a crash.
-    /// Unlike the memory review, a routine may load Qwen: it was scheduled for this minute.
+    /// Unlike the memory review, a routine may load the on-device model: it was scheduled for this minute.
     static func route(
         choice: AgentSchedule.ModelChoice, isRecording: Bool,
         local: MemoryReviewLocalState, cloudConfigured: Bool
     ) -> RoutineModelRoute {
-        // Recording rules out only Qwen (it shares the machine with the live transcription);
+        // Recording rules out only the on-device model (it shares the machine with the live transcription);
         // `auto` then falls back to OpenRouter, and a cloud routine runs as usual. A trigger on
         // a call or a meeting start fires while that meeting records, so it must not wait.
         let localRunnable: Bool = !isRecording && {
@@ -42,7 +42,7 @@ enum RoutineModelRouter {
             }
         }()
         let localReason = isRecording ? "a meeting or dictation is recording"
-            : local == .unavailable ? "Qwen isn't downloaded" : "local model busy"
+            : local == .unavailable ? "Local model isn't downloaded" : "local model busy"
         switch choice {
         case .auto:
             if localRunnable { return .local }
@@ -235,7 +235,7 @@ final class ScheduledRunner: ScheduledRunning {
         let loop: AgentToolLoop.Outcome
         do {
             // The graph answers a cloud route only with its own consent (`KnowledgeGraphScope`).
-            loop = try await KnowledgeGraphScope.$reader.withValue(route == .local ? .qwen35_4b : .openRouter) {
+            loop = try await KnowledgeGraphScope.$reader.withValue(route == .local ? .gemma4E4B : .openRouter) {
                 try await AgentToolLoop.run(
                 user: schedule.prompt,
                 maxRounds: AgentToolLoop.maxRoundsBound,

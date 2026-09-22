@@ -10,7 +10,7 @@ struct AgentBackendEvent: Sendable, Equatable {
 /// One ACP stdio session: initialize → session/new → session/prompt, with
 /// session/update subscribe and session/request_permission relay.
 ///
-/// Copied from Qwen's `AcpBackendAdapter` / `backend-port.mjs` contract, not its
+/// Copied from the local model's `AcpBackendAdapter` / `backend-port.mjs` contract, not its
 /// Electron installer. A process that never answers `initialize` is not ACP.
 actor ACPSession {
     private(set) var sessionID: String?

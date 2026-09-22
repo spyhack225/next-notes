@@ -2,29 +2,40 @@ import Foundation
 
 /// Which local language model writes the notes.
 ///
-/// Both are on-device and both are optional: Qwen is a 2.7 GB download the user may not
-/// want to keep, and Apple's model needs Apple Intelligence turned on. The generator picks
-/// the configured one and falls back to the other rather than producing nothing.
+/// Gemma 4 E4B is a 4.98 GB download the user may not want to keep, and Apple's model
+/// needs Apple Intelligence turned on. The generator picks the configured one and falls
+/// back to the other rather than producing nothing.
 enum LLMProviderID: String, CaseIterable, Sendable, Codable, Identifiable {
-    case qwen35_4b
+    case gemma4E4B
     case appleFoundation
     case openRouter
+    /// A model held by an app already running on this Mac — Ollama, LM Studio, or any
+    /// other OpenAI-compatible server on loopback.
+    case localServer
+
+    /// The notes and meeting pickers enumerate this to offer a model, and the fallback
+    /// chain walks it. `localServer` is deliberately absent from both: it is not one model
+    /// but a whole catalogue that may or may not be running, so it is chosen through the
+    /// model-role rows in Settings ▸ Agent, and it is never fallen back *to* — falling
+    /// back means the built-in model.
+    static var allCases: [LLMProviderID] { [.gemma4E4B, .appleFoundation, .openRouter] }
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .qwen35_4b: "Qwen3.5-4B"
+        case .gemma4E4B: "Gemma 4 E4B"
         case .appleFoundation: "Apple Foundation Model"
         case .openRouter: "OpenRouter"
+        case .localServer: "A model app on this Mac"
         }
     }
 
     /// What the difference actually means to someone choosing between them.
     var summary: String {
         switch self {
-        case .qwen35_4b:
-            "A 2.7 GB download that reads a whole meeting at once. Slower, and much better "
+        case .gemma4E4B:
+            "A 4.98 GB download that reads a whole meeting at once. Slower, and much better "
                 + "at long transcripts."
         case .appleFoundation:
             "Already on this Mac and fast, but its short context means a long meeting is "
@@ -32,6 +43,9 @@ enum LLMProviderID: String, CaseIterable, Sendable, Codable, Identifiable {
         case .openRouter:
             "Uses the cloud model selected here. Add the API key in Models settings. "
                 + "Transcript or Agent prompts are sent to OpenRouter and may incur charges."
+        case .localServer:
+            "Uses a model from Ollama, LM Studio or another app already running on this "
+                + "Mac. Nothing leaves the machine."
         }
     }
 }
@@ -171,13 +185,22 @@ enum LLMProviders {
         contextTokens: Int? = nil
     ) -> any LLMProvider {
         switch id {
-        case .qwen35_4b: LlamaLLMProvider()
+        case .gemma4E4B: LlamaLLMProvider()
         case .appleFoundation: FoundationModelLLMProvider()
         case .openRouter:
             OpenRouterLLMProvider(
                 modelID: modelID ?? Settings.shared.openRouterNotesModelID,
                 contextTokens: contextTokens ?? Settings.shared.openRouterNotesContextTokens
             )
+        case .localServer:
+            // Which server and which of its models is a role decision, so it is read from
+            // the role store rather than passed through the notes-shaped arguments here.
+            ModelRoleStore.shared.localServerProviderForAgentRole()
+                ?? OpenAICompatibleLLMProvider(
+                    baseURL: LocalRuntimeKind.ollama.defaultBaseURL!,
+                    modelID: "",
+                    serverName: LocalRuntimeKind.ollama.displayName
+                )
         }
     }
 
@@ -186,7 +209,7 @@ enum LLMProviders {
     /// failure from someone expecting that particular model.
     ///
     /// Falling back rather than failing is deliberate: a user who turned on automatic notes
-    /// and then deleted the Qwen download should still get notes, and being told which model
+    /// and then deleted the built-in download should still get notes, and being told which model
     /// wrote them (`Meeting.notesModel`) is a better outcome than an empty Notes tab.
     static func resolve(
         preferring preferred: LLMProviderID,

@@ -167,19 +167,24 @@ enum KnowledgeExtractSelfTest {
             return ["ontology: the compiled-in copy does not parse: \(error.localizedDescription)"]
         }
         check("the current ontology is not the compiled-in one", Ontology.current == ontology)
-        check("version is not 2", ontology.version == 2)
+        check("version is not 3", ontology.version == 3)
         let expectedNodes: Set<String> = [
             "Meeting", "Person", "Decision", "ActionItem", "OpenQuestion", "Artifact", "Topic",
             "Project", "Organization", "Place", "Activity", "Goal", "Preference", "Event",
+            // Version 3: the user's own folders and files. Declared here, but never produced
+            // by extraction — they are merged in from `file-index.sqlite` when the map is drawn.
+            "Folder", "File",
         ]
         check("node types \(ontology.nodes.keys.sorted())", Set(ontology.nodes.keys) == expectedNodes)
         let optional = Set(ontology.nodes.values.filter(\.isOptional).map(\.name))
         check("optional types \(optional.sorted())",
-              optional == Set(["Topic", "Project", "Organization", "Place", "Activity", "Goal", "Preference", "Event"]))
+              optional == Set(["Topic", "Project", "Organization", "Place", "Activity", "Goal", "Preference",
+                               "Event", "Folder", "File"]))
         let expectedEdges: Set<String> = [
             "attended", "decided_in", "supersedes", "assigned_in", "owns", "raised_in", "produced",
             "discussed", "about", "mentioned_in", "works_on", "member_of", "lives_in", "located_at",
             "interested_in", "participates_in", "related_to", "aims_at", "prefers", "part_of", "occurs_at",
+            "inside", "refers_to",
         ]
         check("edge types \(ontology.edges.keys.sorted())", Set(ontology.edges.keys) == expectedEdges)
         check("about does not accept projects and goals",
@@ -413,7 +418,7 @@ enum KnowledgeExtractSelfTest {
         if let context = indexer.toolContext, let expand = KnowledgeToolCatalogue.all.first(where: { $0.id == KnowledgeToolCatalogue.expandID }),
            let timeline = KnowledgeToolCatalogue.all.first(where: { $0.id == KnowledgeToolCatalogue.timelineID }) {
             let reversal = GraphIDs.owned("Decision", meetingID: followUpID.uuidString, ordinal: 0)
-            let expanded = try? await KnowledgeGraphScope.$reader.withValue(.qwen35_4b) {
+            let expanded = try? await KnowledgeGraphScope.$reader.withValue(.gemma4E4B) {
                 try await KnowledgeToolExecutor.run(expand, arguments: ["node": reversal], context: context)
             }
             let cloud = try? await KnowledgeGraphScope.$reader.withValue(.openRouter) {
@@ -425,7 +430,7 @@ enum KnowledgeExtractSelfTest {
             check("expand_node did not show the supersedes edge with its chunk",
                   (expanded?.summary.contains("\"type\":\"supersedes\"") ?? false)
                     && (expanded?.summary.contains("\"valid_from\"") ?? false) && (expanded?.summary.contains("\"source_chunk\":\"c") ?? false))
-            let anaTimeline = try? await KnowledgeGraphScope.$reader.withValue(.qwen35_4b) {
+            let anaTimeline = try? await KnowledgeGraphScope.$reader.withValue(.gemma4E4B) {
                 try await KnowledgeToolExecutor.run(timeline, arguments: ["entity": "Ana"], context: context)
             }
             check("timeline by a person's name found nothing", anaTimeline?.summary.contains("Pricing review") ?? false)

@@ -67,10 +67,18 @@ final class AgentToolRegistry {
         for tool in MeetingToolCatalogue.all { register(tool) }
         for tool in ComputerToolCatalogue.all { register(tool) }
         for tool in FilesystemToolCatalogue.all { register(tool) }
+        // The indexed-folder tools live in the filesystem namespace and are advertised under
+        // it (`filesystem.find` / `filesystem.tree`) — the realtime planner checks the emitted
+        // name against its allow-list before an alias can be resolved. `files.*` stays a
+        // tolerated spelling for the other paths, but the prompt never asks for it.
+        for tool in FileToolCatalogue.all {
+            register(tool, aliases: ["files.\(tool.name)"])
+        }
         for tool in ShellToolCatalogue.all { register(tool) }
         for tool in BrowserToolCatalogue.all { register(tool) }
         for tool in MemoryToolCatalogue.all { register(tool) }
         for tool in ScheduleToolCatalogue.all { register(tool) }
         for tool in KnowledgeToolCatalogue.all { register(tool) }
+        for tool in SkillToolCatalogue.all { register(tool) }
     }
 }

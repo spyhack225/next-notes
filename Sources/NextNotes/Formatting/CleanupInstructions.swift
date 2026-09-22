@@ -2,7 +2,7 @@ import Foundation
 
 /// The instructions every general-purpose model is given for the cleanup pass.
 ///
-/// Shared rather than written twice so that "Apple's model is better at this than Qwen" is
+/// Shared rather than written twice so that "Apple's model is better at this than the on-device model" is
 /// a statement about the models and not about two prompts that happened to be worded
 /// differently. `--selftest-cleanup` runs both against this text.
 ///
@@ -37,15 +37,57 @@ enum CleanupInstructions {
         case .semiFormal: "Use standard written English and complete punctuation, keeping contractions."
         case .formal: "Use formal written English, complete punctuation, and expand contractions."
         }
-        // Both conditions, not either. `formatsLists` is the user saying they *like* lists;
-        // the target's capabilities are the app saying it can *show* one. A list asked for
-        // by preference and rendered as literal hyphens by the app is a worse result than
-        // the prose it replaced, so the app has the final say.
+        // Two different questions, and conflating them is what left spoken structure as prose.
+        //
+        // `formatsLists` is the user saying they want what they dictate to become structure.
+        // The target's capabilities are the app saying which *syntax* it can draw. The old
+        // rule made the second a veto on the first — an app with no line in `formatting.txt`
+        // got "keep enumerations in prose", so "start the list, first point… close the list"
+        // came out as a sentence in every app nobody had described yet. That is not what the
+        // speaker asked for; they said the words out loud.
+        //
+        // So the capability question now only decides the syntax, and a target that renders
+        // no Markdown is asked for a plain-text list ("1. item" lines) rather than for prose.
+        // `SpokenStructure` enforces the same policy in code afterwards, for the engines that
+        // never see this prompt at all.
         let targetRendersLists = target.capabilities.contains(.bullets)
             || target.capabilities.contains(.numbered)
-        let structureRule = preferences.formatsLists && targetRendersLists
-            ? "Turn clear enumerations of three or more items into Markdown lists."
-            : "Keep enumerations in prose; do not create Markdown lists."
+        let structureRule: String
+        if !preferences.formatsLists {
+            structureRule = "Keep enumerations in prose; do not create lists."
+        } else if targetRendersLists {
+            structureRule = "When the speaker clearly enumerated items — \"first\u{2026} second"
+                + "\u{2026} third\u{2026}\", \"number one\u{2026} number two\u{2026}\", or an "
+                + "explicit \"start the list\u{2026} close the list\" \u{2014} write those items "
+                + "as a Markdown list, one per line, and drop the spoken markers themselves "
+                + "(\"first point\", \"start the list\") from the text."
+        } else {
+            structureRule = "When the speaker clearly enumerated items, or said \"start the "
+                + "list\u{2026} close the list\", write those items as plain numbered lines "
+                + "(\"1. item\") with no Markdown marks, and drop the spoken markers "
+                + "themselves from the text."
+        }
+        // The safety net under the rule above, and it is load-bearing. Measured on Apple's
+        // on-device model, 2026-09-20: given "Quote, we are not shipping on Friday, end
+        // quote", it deleted both markers and wrote plain prose — so the quotation was gone
+        // *and* the deterministic pass downstream had nothing left to recognise. A model that
+        // declines to format must hand the markers on rather than eat them.
+        let preserveRule = preferences.formatsLists
+            ? "If you do not write the structure yourself, leave the speaker's structure "
+                + "words exactly where they are \u{2014} \"start the list\", \"first point\", "
+                + "\"quote\", \"end quote\", \"start the code\", \"end the code\", \"start a "
+                + "table\", \"row one\". Never silently delete one."
+            : ""
+        // Spoken quotation and spoken code are structure too, and neither has ever been
+        // mentioned in this prompt. Both are pure envelopes — the speaker says where they
+        // start and where they end — so they are safe to honour in any app, in the syntax
+        // that app can show.
+        let envelopeRule = preferences.formatsLists
+            ? "When the speaker said \"quote\u{2026} end quote\" or \"start the code\u{2026} end "
+                + "the code\", the words between those markers are a quotation or a code "
+                + "snippet. Write them as one, drop the markers, and change nothing inside "
+                + "them \u{2014} a quotation and a command are both quoted exactly."
+            : "Leave spoken words like \"quote\" or \"end quote\" as words."
         let contextRule = preferences.context == .email
             ? "Format the result as an email, with greeting, body, and sign-off spacing when present."
             : "Format the result as general prose."
@@ -66,7 +108,11 @@ enum CleanupInstructions {
             "Start a new paragraph when the speaker changes topic or begins a new request. "
                 + "A single short utterance stays one paragraph.",
             structureRule,
-            "Apply the speaker's self-corrections. \"Send it Tuesday, actually Wednesday\" "
+            envelopeRule,
+        ]
+        if !preserveRule.isEmpty { rules.append(preserveRule) }
+        rules += [
+            "Apply the speaker's self-corrections.\"Send it Tuesday, actually Wednesday\" "
                 + "becomes \"Send it Wednesday.\"",
         ]
 
@@ -78,20 +124,39 @@ enum CleanupInstructions {
                 "Fix grammar so every sentence is correct English: subject-verb agreement, "
                     + "verb tense, plurals, missing or wrong articles and prepositions, and "
                     + "tangled word order.",
-                "Delete stuttered repeats (\"we we need to to check\") and finish sentences "
-                    + "the speaker abandoned mid-way.",
+                // The three disfluency rules below are the ones this prompt was missing,
+                // measured on this user's runs.jsonl on 2026-09-20. The old single line
+                // ("delete stuttered repeats") only ever described a *doubled* word, so a
+                // speaker who restarted a whole phrase — which is what people actually do —
+                // got both attempts typed out, and the model was technically obeying.
+                "Collapse immediate repetitions and broken-off words: \"we we need to to "
+                    + "check\" is \"we need to check\", \"cle uh clean\" is \"clean\".",
+                "Resolve restarts and self-repairs to the wording the speaker finished with, "
+                    + "and delete the attempt they abandoned. \"In the formatting, in the "
+                    + "settings of the formatting\" is one phrase started twice: keep only "
+                    + "the second. Finish a sentence they broke off, using only their words.",
+                "Split a run-on into separate sentences wherever the speaker began a new "
+                    + "thought. Splitting adds punctuation and a capital letter and nothing "
+                    + "else: no clause may be dropped, and no word invented to join the ends.",
                 "Where speech recognition clearly mis-heard a word and the intended word is "
                     + "obvious from the surrounding sentence, substitute it: \"let's see how "
-                    + "it walks\" becomes \"let's see how it works\". If more than one word "
-                    + "would fit, change nothing.",
+                    + "it walks\" becomes \"let's see how it works\", \"could have claimed "
+                    + "the text\" becomes \"could have cleaned the text\". Only when the "
+                    + "replacement sounds like what was transcribed, only when exactly one "
+                    + "word fits, and at most once in a sentence. If more than one word would "
+                    + "fit, change nothing.",
                 "Rewrite the smallest span that makes the sentence correct. This is a "
                     + "repair, not a rewrite: keep the speaker's own words wherever they are "
                     + "already correct.",
+                "None of the repairs above may change the meaning, add a word that was not "
+                    + "said, or answer, continue or summarise the text. Text that is already "
+                    + "correct comes back unchanged.",
                 "Never introduce a fact, name, number, date, quantity or commitment that was "
                     + "not spoken, and never remove one. Do not resolve an ambiguity by "
                     + "guessing — if you are not sure what was meant, leave the words alone.",
-                "Leave technical terms, product names, commands, file paths, URLs and proper "
-                    + "nouns exactly as written, even when they look misspelled.",
+                "Leave names, numbers, dates, technical terms, product names, commands, file "
+                    + "names, file paths, URLs and quoted text exactly as written, even when "
+                    + "they look misspelled.",
                 "Do not expand the speaker's shorthand. \"repo\" stays \"repo\", \"docs\" "
                     + "stays \"docs\", \"app\" stays \"app\".",
                 "Keep the speaker's register. Fixing grammar must not make a casual speaker "
@@ -99,6 +164,23 @@ enum CleanupInstructions {
                     + "\"we must repair it\".",
                 "A short deliberate fragment (\"Ship it.\", \"On my way.\") is not an error. "
                     + "Leave it as it is.",
+                // Three examples, and no more: this prompt is on the dictation hot path and
+                // a five-second clean utterance pays for every line of it. Both repairs are
+                // verbatim from runs.jsonl, 2026-09-20 — the restart in the first and the
+                // broken word, the mis-hearing and the run-on in the second are the exact
+                // failures the rules above were written for. The third is the one that stops
+                // the other two from turning into a licence to edit.
+                "Example: \"Also in the formatting uh in the settings of the formatting, the "
+                    + "user is not able to scroll through the app. So can you check that for "
+                    + "us?\" becomes \"Also, in the formatting settings, the user is not able "
+                    + "to scroll through the app. Can you check that for us?\"",
+                "Example: \"we did not properly cle uh clean the text, I said it could have "
+                    + "claimed the text properly as an issue that the model is not able to "
+                    + "clean it\" becomes \"We did not properly clean the text. I said it "
+                    + "could have cleaned the text properly. The issue is that the model is "
+                    + "not able to clean it.\"",
+                "Example: \"The build is green and the tests are passing.\" is already "
+                    + "correct and comes back unchanged.",
             ]
         }
 

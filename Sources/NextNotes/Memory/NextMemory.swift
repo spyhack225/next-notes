@@ -51,10 +51,17 @@ struct MemoryEntry: Codable, Identifiable, Equatable, Sendable {
         }
 
         /// Characters, not tokens, so a budget does not change with the model.
+        ///
+        /// This is the size of the *store*, not of the prompt. What actually reaches a model
+        /// is bounded again, per path, by `AgentPromptPath.budget.memoryLimit` through
+        /// `MemorySnapshotCache.render`, which fits whole entries newest-first. Raised from
+        /// 1,200 / 2,000 once memory started learning from dictations and meetings as well
+        /// as conversations: at the old size a real profile filled up in a week and every
+        /// later fact was refused.
         var budget: Int {
             switch self {
-            case .profile: 1_200
-            case .note: 2_000
+            case .profile: 2_400
+            case .note: 4_000
             }
         }
     }
@@ -68,6 +75,9 @@ struct MemoryEntry: Codable, Identifiable, Equatable, Sendable {
         case activity
         /// Typed in Settings.
         case manual
+        /// Brought in from a file or from another assistant, after the person reviewed it.
+        /// `MemoryEntry.importedFrom` names which one.
+        case imported
 
         var displayName: String {
             switch self {
@@ -75,6 +85,18 @@ struct MemoryEntry: Codable, Identifiable, Equatable, Sendable {
             case .review: "Learned"
             case .activity: "From activity"
             case .manual: "Added by you"
+            case .imported: "Imported"
+            }
+        }
+
+        /// Whether the person made this write themselves rather than the Agent making it.
+        /// Those two are the writes that still happen while *Remember what I tell the
+        /// Agent* is off: the switch is a promise about what the Agent saves on its own,
+        /// not a lock on the person's own list.
+        var isPersonsOwnWrite: Bool {
+            switch self {
+            case .manual, .imported: true
+            case .userSaid, .review, .activity: false
             }
         }
     }
@@ -90,10 +112,30 @@ struct MemoryEntry: Codable, Identifiable, Equatable, Sendable {
     var updatedAt: Date
     /// The entry this replaced, kept in `NextMemory.superseded` for undo and Forget.
     var supersedes: UUID?
+    /// Where an imported fact came from — "Grok", "a file", "ChatGPT". Shown beside it in
+    /// the list so nobody has to wonder later where a sentence came from.
+    ///
+    /// Optional, so Swift's synthesized `init(from:)` decodes it with `decodeIfPresent` and
+    /// a `next-memory.json` written before this field existed still loads.
+    var importedFrom: String?
+    /// The one import this entry arrived in, so the whole batch can be undone together.
+    var importBatchID: UUID?
+    /// Which of the user's own channels the words came from. Optional so a `next-memory.json`
+    /// written before memory learned from anything but conversations still decodes.
+    var origin: MemoryProvenance.TrustedSource?
+    /// "your dictation on 19 Sep", "your call with Mathieu" — the rest of the plain-words
+    /// phrase the Memories list shows beside the fact.
+    var sourceLabel: String?
+    /// 0…1. How sure the Agent is, by channel: what you told it outranks what the life map
+    /// inferred. Shown as words, never as a number.
+    var confidence: Double?
 
     init(
         id: UUID = UUID(), kind: Kind, text: String, source: Source, sessionID: UUID? = nil,
-        createdAt: Date, updatedAt: Date? = nil, supersedes: UUID? = nil
+        createdAt: Date, updatedAt: Date? = nil, supersedes: UUID? = nil,
+        importedFrom: String? = nil, importBatchID: UUID? = nil,
+        origin: MemoryProvenance.TrustedSource? = nil, sourceLabel: String? = nil,
+        confidence: Double? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -103,6 +145,33 @@ struct MemoryEntry: Codable, Identifiable, Equatable, Sendable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt ?? createdAt
         self.supersedes = supersedes
+        self.importedFrom = importedFrom
+        self.importBatchID = importBatchID
+        self.origin = origin
+        self.sourceLabel = sourceLabel
+        self.confidence = confidence
+    }
+
+    /// Where this fact came from, in the words a non-technical person would use:
+    /// "You told me, 20 Sep", "From your dictation on 19 Sep", "From your call with Mathieu".
+    var whereFrom: String {
+        if let label = importLabel { return label }
+        let day = createdAt.formatted(.dateTime.day().month(.abbreviated))
+        guard let origin else {
+            // Written before origins existed, or typed in Settings.
+            return source == .manual ? "Added by you, \(day)" : "\(source.displayName), \(day)"
+        }
+        if let sourceLabel, !sourceLabel.isEmpty {
+            return "\(origin.displayName) \(sourceLabel)"
+        }
+        return "\(origin.displayName), \(day)"
+    }
+
+    /// "Imported from Grok, 19 Sep 2026", or nil when it was not imported.
+    var importLabel: String? {
+        guard let importedFrom else { return nil }
+        return "Imported from \(importedFrom), "
+            + createdAt.formatted(.dateTime.day().month(.abbreviated).year())
     }
 }
 
@@ -195,7 +264,10 @@ final class NextMemory {
     }()
 
     static let fileName = "next-memory.json"
-    static let maxEntryLength = 300
+    /// `nonisolated`, with the four pure helpers below, because the import pipeline screens
+    /// and normalises text off the main actor before any of it reaches the store. None of
+    /// them touches instance state — they are string functions that happen to live here.
+    nonisolated static let maxEntryLength = 300
 
     private(set) var items: [NextMemoryItem] = []
     /// Active profile and note entries, oldest first.
@@ -501,13 +573,20 @@ final class NextMemory {
     /// Adds one fact. Rejects a write that would exceed the kind's budget rather than trim.
     @discardableResult
     func remember(
-        kind: MemoryEntry.Kind, text raw: String, source: MemoryEntry.Source, sessionID: UUID? = nil
+        kind: MemoryEntry.Kind, text raw: String, source: MemoryEntry.Source, sessionID: UUID? = nil,
+        importedFrom: String? = nil, importBatchID: UUID? = nil,
+        origin: MemoryProvenance.TrustedSource? = nil, sourceLabel: String? = nil
     ) throws -> WriteOutcome {
-        if source != .manual, !isEnabled { throw MemoryWriteError.disabled }
+        if !source.isPersonsOwnWrite, !isEnabled { throw MemoryWriteError.disabled }
         let text = try Self.validated(raw)
         let key = Self.normalize(text)
         if let existing = entries.first(where: { $0.kind == kind && Self.normalize($0.text) == key }) {
             return WriteOutcome(entry: existing, replaced: nil, wasDuplicate: true)
+        }
+        // The same fact said twice in different words is one fact. The channel the Agent
+        // trusts more keeps its wording; the other write reports it as already known.
+        if let near = nearDuplicate(kind: kind, text: text) {
+            return WriteOutcome(entry: near, replaced: nil, wasDuplicate: true)
         }
         let used = used(kind)
         guard used + text.count <= kind.budget else {
@@ -515,9 +594,25 @@ final class NextMemory {
                                               current: unflaggedEntries(of: kind))
         }
         let date = now()
-        let entry = MemoryEntry(kind: kind, text: text, source: source, sessionID: sessionID, createdAt: date)
+        let entry = MemoryEntry(kind: kind, text: text, source: source, sessionID: sessionID,
+                                createdAt: date, importedFrom: importedFrom, importBatchID: importBatchID,
+                                origin: origin, sourceLabel: sourceLabel, confidence: origin?.confidence)
         try commit { $0.entries.append(entry) }
         return WriteOutcome(entry: entry, replaced: nil, wasDuplicate: false)
+    }
+
+    /// An active entry of the same kind that says the same thing in different words, or nil.
+    /// Three quarters of the content words shared is the same bar the review's own skip rule
+    /// uses, so a fact rejected there and a fact merged here are judged alike.
+    func nearDuplicate(kind: MemoryEntry.Kind, text: String) -> MemoryEntry? {
+        let tokens = Set(MemoryGuard.contentTokens(text))
+        guard !tokens.isEmpty else { return nil }
+        return entries.first { entry in
+            guard entry.kind == kind, flagged[entry.id] == nil else { return false }
+            let other = Set(MemoryGuard.contentTokens(entry.text))
+            guard !other.isEmpty else { return false }
+            return Double(tokens.intersection(other).count) / Double(tokens.union(other).count) >= 0.75
+        }
     }
 
     /// Replaces the one fact containing `match`. The old entry is kept under `supersedes`
@@ -525,9 +620,10 @@ final class NextMemory {
     /// keeps getting followed.
     @discardableResult
     func update(
-        match: String, text raw: String, source: MemoryEntry.Source, sessionID: UUID? = nil
+        match: String, text raw: String, source: MemoryEntry.Source, sessionID: UUID? = nil,
+        origin: MemoryProvenance.TrustedSource? = nil, sourceLabel: String? = nil
     ) throws -> WriteOutcome {
-        if source != .manual, !isEnabled { throw MemoryWriteError.disabled }
+        if !source.isPersonsOwnWrite, !isEnabled { throw MemoryWriteError.disabled }
         let old = try uniqueEntry(matching: match)
         let text = try Self.validated(raw)
         if Self.normalize(text) == Self.normalize(old.text) {
@@ -541,7 +637,9 @@ final class NextMemory {
         }
         let date = now()
         let replacement = MemoryEntry(kind: old.kind, text: text, source: source, sessionID: sessionID,
-                                      createdAt: date, supersedes: old.id)
+                                      createdAt: date, supersedes: old.id,
+                                      origin: origin, sourceLabel: sourceLabel,
+                                      confidence: origin?.confidence)
         try commit { state in
             state.entries.removeAll { $0.id == old.id }
             state.entries.append(replacement)
@@ -700,7 +798,7 @@ final class NextMemory {
             let rows = entries(of: kind)
             if rows.isEmpty { lines.append("_None._") }
             for entry in rows {
-                lines.append("- \(entry.text) — \(entry.source.displayName), \(formatter.string(from: entry.createdAt))")
+                lines.append("- \(entry.text) — \(entry.whereFrom)")
             }
             lines.append("")
         }
@@ -710,6 +808,193 @@ final class NextMemory {
             lines.append("- \(item.kind.rawValue): \(item.value)")
         }
         return lines.joined(separator: "\n") + "\n"
+    }
+
+    // MARK: - Portability
+
+    /// Every active fact, for the portable package. Flagged entries go too: they are the
+    /// person's own data, and the importer re-runs the scan on the way back in.
+    var packageMemories: [MemoryPackage.Memory] {
+        entries.sorted { $0.createdAt < $1.createdAt }.map(MemoryPackage.Memory.init)
+    }
+
+    var packageActivity: [MemoryPackage.ActivityLabel] {
+        items.sorted { $0.updatedAt < $1.updatedAt }.map(MemoryPackage.ActivityLabel.init)
+    }
+
+    /// What one import did, so the list can say it in a sentence and offer it back.
+    struct ImportReceipt: Sendable {
+        let batchID: UUID
+        var saved: [MemoryEntry] = []
+        /// Facts that did not fit, with why — a full budget, usually.
+        var notSaved: [(text: String, reason: String)] = []
+        /// Already remembered word for word; nothing was written for these.
+        var alreadyKnown: [String] = []
+
+        var isEmpty: Bool { saved.isEmpty }
+    }
+
+    /// Writes the facts the person ticked in the review step, under one batch id.
+    ///
+    /// Every write goes through `remember`, so the injection scan, the declarative rule, the
+    /// length cap and the budget all still apply — imported text is untrusted no matter how
+    /// carefully the review sheet screened it first. A fact that cannot be written does not
+    /// stop the rest: the receipt names it instead.
+    @discardableResult
+    func applyImport(
+        _ facts: [(kind: MemoryEntry.Kind, text: String)], from origin: String,
+        batchID: UUID = UUID()
+    ) -> ImportReceipt {
+        var receipt = ImportReceipt(batchID: batchID)
+        for fact in facts {
+            do {
+                let outcome = try remember(kind: fact.kind, text: fact.text, source: .imported,
+                                           importedFrom: origin, importBatchID: batchID)
+                if outcome.wasDuplicate {
+                    receipt.alreadyKnown.append(outcome.entry.text)
+                } else {
+                    receipt.saved.append(outcome.entry)
+                }
+            } catch {
+                receipt.notSaved.append((fact.text, error.localizedDescription))
+            }
+        }
+        if !receipt.saved.isEmpty { freezeSnapshot() }
+        return receipt
+    }
+
+    /// Takes back one whole import. The batch is the unit because that is what the person
+    /// did: they imported a file, not twenty separate facts.
+    /// - Returns: how many entries were removed.
+    @discardableResult
+    func undoImport(batchID: UUID) -> Int {
+        let ids = entries.filter { $0.importBatchID == batchID }.map(\.id)
+        for id in ids { try? forget(id: id, refreezeSnapshot: false) }
+        freezeSnapshot()
+        return ids.count
+    }
+
+    /// Whether an import batch is still there to be undone.
+    func importBatchCount(_ batchID: UUID) -> Int {
+        entries.filter { $0.importBatchID == batchID }.count
+    }
+
+    enum RestoreMode: String, CaseIterable, Sendable {
+        /// Everything currently remembered is replaced by the file's contents.
+        case replace
+        /// The file's facts are added beside what is already there.
+        case merge
+    }
+
+    /// Restores the memory half of one of our own packages.
+    ///
+    /// `replace` keeps the file's ids and dates, so the same package restored on two Macs
+    /// gives the same list — that is what makes the round trip lossless rather than merely
+    /// equivalent. `merge` leaves what is here and adds the rest through `applyImport`, so
+    /// the added facts carry the ordinary guards and one undoable batch id.
+    @discardableResult
+    func restore(_ package: MemoryPackage, mode: RestoreMode, batchID: UUID = UUID()) throws -> ImportReceipt {
+        switch mode {
+        case .merge:
+            let facts: [(kind: MemoryEntry.Kind, text: String)] = package.memories.compactMap { row in
+                guard let kind = MemoryEntry.Kind(rawValue: row.kind) else { return nil }
+                return (kind, row.text)
+            }
+            var receipt = applyImport(facts, from: package.assistant.name, batchID: batchID)
+            // Labels are derived data, so a merge tops them up rather than replacing them.
+            var changed = false
+            for label in package.activity {
+                guard let item = label.item else { continue }
+                changed = upsert(kind: item.kind, key: item.key, value: item.value,
+                                 source: item.source) || changed
+            }
+            if changed { try? persist() }
+            if receipt.saved.isEmpty, receipt.notSaved.isEmpty, receipt.alreadyKnown.isEmpty {
+                receipt.notSaved.append(("", "There were no memories in that file."))
+            }
+            return receipt
+        case .replace:
+            let screened = Self.screenedForRestore(package.memories)
+            let labels = package.activity.compactMap(\.item)
+            let restored = screened.entries
+            try commit { state in
+                state.entries = restored
+                state.superseded = []
+                state.items = Array(labels.suffix(Self.maxItems))
+            }
+            flagged = screened.flagged
+            freezeSnapshot()
+            var receipt = ImportReceipt(batchID: batchID, saved: restored)
+            receipt.notSaved = screened.refused
+            if screened.unplaceable > 0 {
+                receipt.notSaved.append(("", "\(screened.unplaceable) memories were written by a "
+                                         + "newer version of Next Notes and were left out."))
+            }
+            return receipt
+        }
+    }
+
+    /// What a replace is allowed to put back, and what it must leave out.
+    struct RestoreScreening {
+        var entries: [MemoryEntry] = []
+        /// Ids the injection scan caught, with its sentence. Listed in Settings, never injected.
+        var flagged: [UUID: String] = [:]
+        /// Rows that broke a rule the store enforces on every write, with why.
+        var refused: [(text: String, reason: String)] = []
+        /// Rows from a newer build whose kind this version does not have.
+        var unplaceable = 0
+    }
+
+    /// Screens the rows of a package the way `validated` screens a written sentence.
+    ///
+    /// A replace writes rows straight into `entries`, which is where `freezeSnapshot` reads
+    /// the prompt prefix from — so without this a `memory.json` carrying our format string
+    /// would be a way to put text of any length, in any voice, into the Agent's system
+    /// prompt. Every rule `validated` enforces applies here too.
+    ///
+    /// The one difference is what happens to a row the injection scan catches. A written
+    /// sentence is refused; a restored one is *kept and flagged*, because a package is the
+    /// person's own data and `packageMemories` deliberately carries their flagged memories
+    /// out so a round trip does not quietly lose them. A flagged row is listed in Settings
+    /// and never reaches the prompt, so keeping it costs nothing — and the declarative rule,
+    /// which exists to keep instructions out of the prompt, is therefore asked only of the
+    /// rows that will actually get there.
+    static func screenedForRestore(_ rows: [MemoryPackage.Memory]) -> RestoreScreening {
+        var screening = RestoreScreening()
+        var used: [MemoryEntry.Kind: Int] = [:]
+        for row in rows {
+            guard var entry = row.entry else {
+                screening.unplaceable += 1
+                continue
+            }
+            let text = collapsedWhitespace(entry.text)
+            let finding = MemoryGuard.scan(text)
+            func refuse(_ reason: String) {
+                screening.refused.append((MemoryImportPlanner.preview(row.text), reason))
+            }
+            guard !text.isEmpty else {
+                refuse("There was nothing in it.")
+                continue
+            }
+            guard text.count <= maxEntryLength else {
+                refuse("It's longer than one memory can be.")
+                continue
+            }
+            if finding == nil, !MemoryGuard.isDeclarative(text) {
+                refuse("It tells the assistant what to do instead of saying something about you.")
+                continue
+            }
+            let running = used[entry.kind, default: 0]
+            guard running + text.count <= entry.kind.budget else {
+                refuse("“\(entry.kind.displayName)” was already full.")
+                continue
+            }
+            used[entry.kind] = running + text.count
+            entry.text = text
+            screening.entries.append(entry)
+            if let finding { screening.flagged[entry.id] = finding.reason }
+        }
+        return screening
     }
 
     // MARK: - Private
@@ -731,7 +1016,7 @@ final class NextMemory {
 
     /// Newlines and runs of spaces collapse to single spaces, so nothing hides on a second
     /// line and a stray newline is not mistaken for an invisible character.
-    static func collapsedWhitespace(_ raw: String) -> String {
+    nonisolated static func collapsedWhitespace(_ raw: String) -> String {
         raw.split(whereSeparator: { $0.isNewline || $0 == "\t" })
             .joined(separator: " ")
             .split(separator: " ", omittingEmptySubsequences: true)
@@ -741,7 +1026,7 @@ final class NextMemory {
 
     /// One sentence, guarded. Newlines collapse to spaces before the scan so nothing hides
     /// on a second line; everything else invisible is refused, not stripped.
-    static func validated(_ raw: String) throws -> String {
+    nonisolated static func validated(_ raw: String) throws -> String {
         let collapsed = collapsedWhitespace(raw)
         guard !collapsed.isEmpty else { throw MemoryWriteError.empty }
         if let finding = MemoryGuard.scan(collapsed) {
@@ -874,7 +1159,7 @@ final class NextMemory {
         try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
     }
 
-    static func normalize(_ raw: String) -> String {
+    nonisolated static func normalize(_ raw: String) -> String {
         raw.precomposedStringWithCanonicalMapping
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()

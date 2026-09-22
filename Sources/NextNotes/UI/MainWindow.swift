@@ -11,7 +11,6 @@ struct MainWindow: View {
 
     @State private var navigation = NavigationState.shared
     @State private var settings = Settings.shared
-    @State private var isShowingOnboarding = false
 
     var body: some View {
         NavigationSplitView {
@@ -25,17 +24,13 @@ struct MainWindow: View {
             minWidth: DS.Size.windowMin.width,
             minHeight: DS.Size.windowMin.height
         )
-        .sheet(isPresented: $isShowingOnboarding) {
-            OnboardingSheet {
-                settings.hasCompletedOnboarding = true
-                isShowingOnboarding = false
-            }
-        }
-        // The checklist asks for microphone and Accessibility, and both prompts are modal
-        // to the app — so it can only run once there is a window to attach them to. Never
-        // during a self-test: a sheet on screen stops `NSApp.terminate` from completing.
+        // First run, in its own window rather than a sheet on this one. It can only be
+        // raised once there is an app to attach system prompts to, which is why it is here
+        // and not in `applicationDidFinishLaunching`. `OnboardingPresenter` decides whether
+        // it appears at all — including the rule that it never appears under a self-test,
+        // where a window on screen would stop `NSApp.terminate` from completing.
         .task {
-            isShowingOnboarding = !settings.hasCompletedOnboarding && !SelfTest.isRunning
+            OnboardingPresenter.presentIfNeeded(controller: controller)
         }
     }
 

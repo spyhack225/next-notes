@@ -32,7 +32,7 @@ This is the part most comparable tools do differently, so it is worth stating pr
 
 - **Transcribed on the device.** Apple's on-device speech recogniser, or NVIDIA Parakeet
   through CoreML. Audio becomes words on the machine it was spoken to.
-- **Summarised on the device.** A local language model (Qwen3.5-4B) reads the transcript
+- **Summarised on the device.** A local language model (Gemma 4 E4B) reads the transcript
   and writes the summary, the decisions, and who owes what. It is downloaded once and then
   runs offline.
 - **Stored on the device.** One folder per meeting under Application Support. Recordings

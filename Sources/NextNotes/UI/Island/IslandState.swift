@@ -21,10 +21,24 @@ struct IslandProposal: Identifiable, Equatable, Sendable {
     var canExecute = true
     /// A live meeting candidate, not a Workspace tool proposal.
     var isCandidate = false
+    /// How many things the user has to answer before this could run at all. The island is
+    /// two lines under a notch, so it says the number and sends them somewhere they can
+    /// type — it does not try to be a form. Zero is the ordinary case.
+    var needsCount = 0
+
+    /// The collapsed line. "2 things needed" is the whole point of the count: a card that
+    /// only says "Send an email to Marie" hides that it has no address.
+    var needsSummary: String? {
+        guard needsCount > 0 else { return nil }
+        return needsCount == 1 ? "1 thing needed" : "\(needsCount) things needed"
+    }
 
     /// Which button the island leads with. System-audio candidates are Prepare; a send
     /// that needs the full message is Review; everything else that may run is Approve.
     var leadAction: LeadAction {
+        // Nothing with an unanswered field can be approved from here, whatever else it is:
+        // the answer has to be typed, and this card cannot take typing.
+        if needsCount > 0 { return .review }
         if canExecute && !needsReview { return .approve }
         if isCandidate { return .prepare }
         return .review
@@ -76,6 +90,17 @@ final class IslandState {
         case agentWorking(title: String)
         /// A spoken answer, held as a notice so it can be read.
         case agentReply(String)
+        /// Something went wrong, in the words it went wrong in.
+        ///
+        /// Added because the island had no way to say so. A failed dictation is
+        /// `DictationState.error(message)`, which `shouldShowHUD` reports as "show
+        /// something" — and the only live state the island had for a dictation was
+        /// `.dictating`, whose transcript `fail()` empties on the line after it sets the
+        /// error. So the notch drew a silent orb for three seconds with the explanation
+        /// thrown away, and the user's question was literally "I do not know what it is".
+        /// Reachable from a quick tap of the push-to-talk key, a microphone that sent no
+        /// audio, and both transcription timeouts.
+        case problem(String)
 
         var isHidden: Bool { self == .hidden }
 
@@ -99,6 +124,7 @@ final class IslandState {
             case .agentListening: "agent.listening"
             case .agentWorking: "agent.working"
             case .agentReply: "agent.reply"
+            case .problem(let message): "problem:\(message)"
             }
         }
 
@@ -108,6 +134,8 @@ final class IslandState {
         var demandsAttention: Bool {
             switch self {
             case .meetingArmed, .notesReady, .agentProposal, .agentListening, .agentWorking, .agentReply: true
+            // A sentence the user has to read is no use as a badge under the notch.
+            case .problem: true
             default: false
             }
         }
@@ -144,7 +172,9 @@ final class IslandState {
             case .agentListening: .listening
             case .agentWorking: .searching
             case .agentReply: .composing
-            case .hidden, .notesReady: nil
+            // No orb. An orb is what every *working* state wears, and the whole complaint
+            // was an orb standing in for an explanation. A glyph says "stopped", not "busy".
+            case .hidden, .notesReady, .problem: nil
             }
         }
     }
@@ -185,6 +215,7 @@ final class IslandState {
         case .notesReady(_, let title): title
         case .agentProposal(let proposal): proposal.title
         case .agentListening, .agentWorking, .agentReply: AgentIdentityStore.shared.name
+        case .problem: "That didn\u{2019}t work"
         }
     }
 
@@ -388,6 +419,22 @@ final class IslandState {
         kind = next
     }
 
+    /// The card a dictation asks for, given the state it is in.
+    ///
+    /// A failure is not a dictation with an empty transcript, though that is exactly how it
+    /// used to be drawn: `fail()` sets `.error(message)` and clears the transcript on the
+    /// very next line, so the notch showed a silent orb for three seconds and the sentence
+    /// explaining what had gone wrong was thrown away. It is the same defect Command Mode
+    /// was reported for, on the path every *other* dictation failure takes — a quick tap of
+    /// the push-to-talk key, a microphone that sent no audio, either transcription timeout.
+    ///
+    /// Static and pure so `--selftest-commandkey` can prove the mapping without a
+    /// microphone and without depending on which heads-up placement the user has chosen.
+    static func card(for state: DictationController.State, transcript: String, level: Float) -> Kind {
+        if case .error(let message) = state { return .problem(message) }
+        return .dictating(transcript: transcript, level: level, isCapturing: state == .listening)
+    }
+
     private func liveKind() -> Kind {
         // Dictation first among the live states: it lasts as long as a key is held, and its
         // whole job is to prove the app heard the words being said right now. A meeting
@@ -402,12 +449,16 @@ final class IslandState {
                 level: AgentCaptureController.shared.level
             )
         }
+        // Command Mode is excluded because it draws its own card, with words on it. Shown
+        // here it became `.dictating` with an empty transcript — an orb at the notch that
+        // says nothing and is followed by nothing, which is what it was reported as.
         if let dictation, dictation.state.shouldShowHUD,
+           !dictation.commandModeOwnsHUD,
            Settings.shared.hudPlacement == .notch {
-            return .dictating(
+            return Self.card(
+                for: dictation.state,
                 transcript: dictation.transcript,
-                level: dictation.level,
-                isCapturing: dictation.state == .listening
+                level: dictation.level
             )
         }
         if let session = meetings.session, session.isRecording {
@@ -434,6 +485,7 @@ final class IslandState {
             _ = dictation?.state
             _ = dictation?.transcript
             _ = dictation?.level
+            _ = dictation?.commandMode
             _ = Settings.shared.hudPlacement
             _ = meetings.session
             _ = meetings.session?.meeting.status

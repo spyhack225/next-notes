@@ -1,175 +1,112 @@
 import SwiftUI
 
-/// Every recent node on one canvas (Part 4, Phase G) — only as a way into the local graph.
+/// The whole map: everything the assistant knows about, on one canvas you can move around.
 ///
-/// Click a node to re-centre on it in `LocalGraphView`. Without that hand-off this is a
-/// picture beside search; with it, it is how you pick where to start walking. Cap is the
-/// same 700-node budget `GraphStore.visualization` already uses.
+/// It used to be a flat panel of identical dots inside a card, and clicking one threw the
+/// pane onto a different screen. Three things changed. The canvas now runs edge to edge
+/// under its own chrome, so it reads as a place rather than as a chart in a box. A dot's
+/// size is how many things it is joined to, and the busiest ones carry their name and their
+/// symbol, so the picture has a shape before you have touched it. And a click selects and
+/// centres rather than navigating — the card that appears is where "open what's around it"
+/// lives, taken on purpose instead of by accident.
+///
+/// The filter chips are also the legend: colour, name and count in one control, and
+/// switching one off fades that family instead of deleting it, so you can still see the
+/// shape it left behind.
 struct GlobalGraphView: View {
     let expansion: KnowledgeGraphExpansion
-    var onFocus: (String) -> Void
+    var eyebrow: String?
+    var title: String
+    var subtitle: String?
+    /// Open the neighbourhood around a node — the deliberate move, not the click.
+    var onOpen: (String) -> Void
 
-    @State private var hoverID: String?
-
-    private static let primaryTypes: Set<String> = [
-        "Person", "Meeting", "Project", "Organization", "Activity",
-    ]
+    @State private var model = GraphLayoutModel()
+    @State private var camera = GraphCamera()
+    @State private var selection: String?
+    @State private var muted: Set<GraphKind> = []
 
     var body: some View {
-        GeometryReader { geo in
-            let size = geo.size
-            let layout = ForceLayout(
-                ids: expansion.nodes.map(\.id),
-                edges: expansion.edges.map { ($0.from, $0.to) },
-                size: size
-            )
-            let hoverNeighbours = neighbourIDs(of: hoverID)
-            ZStack {
-                Canvas { context, _ in
-                    let hovering = hoverID != nil
-                    for edge in expansion.edges {
-                        guard let a = layout.placements[edge.from],
-                              let b = layout.placements[edge.to] else { continue }
-                        let touchesHover = !hovering
-                            || edge.from == hoverID
-                            || edge.to == hoverID
-                        var path = Path()
-                        path.move(to: a)
-                        path.addLine(to: b)
-                        context.stroke(
-                            path,
-                            with: .color(DS.Color.textTertiary.opacity(
-                                touchesHover ? DS.Opacity.graphEdgeActive : DS.Opacity.graphEdgeDimmed
-                            )),
-                            lineWidth: touchesHover ? DS.Border.graphEdgeQuiet : DS.Border.graphEdgeFaint
-                        )
-                    }
-                    for node in expansion.nodes {
-                        guard let point = layout.placements[node.id] else { continue }
-                        let isHover = hoverID == node.id
-                        let inNeighbourhood = !hovering || hoverNeighbours.contains(node.id)
-                        let diameter = nodeDiameter(for: node, highlighted: isHover)
-                        let fill = ink(for: node).opacity(inNeighbourhood ? 1 : DS.Opacity.graphDimmed)
-
-                        if isHover {
-                            let halo = DS.Size.graphNodeHalo
-                            let haloRect = CGRect(
-                                x: point.x - halo / 2,
-                                y: point.y - halo / 2,
-                                width: halo,
-                                height: halo
-                            )
-                            context.fill(
-                                Path(ellipseIn: haloRect),
-                                with: .color(ink(for: node).opacity(DS.Opacity.graphNodeHalo))
-                            )
-                        }
-
-                        let rect = CGRect(
-                            x: point.x - diameter / 2,
-                            y: point.y - diameter / 2,
-                            width: diameter,
-                            height: diameter
-                        )
-                        context.fill(Path(ellipseIn: rect), with: .color(fill))
-
-                        if isHover {
-                            let ring = diameter + DS.Size.graphNodeRingPad * 2
-                            let ringRect = CGRect(
-                                x: point.x - ring / 2,
-                                y: point.y - ring / 2,
-                                width: ring,
-                                height: ring
-                            )
-                            context.stroke(
-                                Path(ellipseIn: ringRect),
-                                with: .color(DS.Color.text.opacity(DS.Opacity.graphHoverRing)),
-                                lineWidth: DS.Border.graphRing
-                            )
-                        }
-                    }
-                }
-                .gesture(SpatialTapGesture().onEnded { value in
-                    if let hit = nearest(value.location, in: layout) {
-                        onFocus(hit)
-                    }
-                })
-                .onContinuousHover { phase in
-                    switch phase {
-                    case .active(let point):
-                        withAnimation(DS.Motion.standard) { hoverID = nearest(point, in: layout) }
-                    case .ended:
-                        withAnimation(DS.Motion.standard) { hoverID = nil }
-                    }
-                }
-
-                if let hoverID,
-                   let node = expansion.nodes.first(where: { $0.id == hoverID }),
-                   let point = layout.placements[hoverID]
-                {
-                    hoverChip(for: node)
-                        .position(
-                            x: point.x,
-                            y: max(
-                                DS.Size.graphCanvasInset,
-                                point.y - DS.Size.graphNodeDotPrimary - DS.Space.m
-                            )
-                        )
-                        .allowsHitTesting(false)
-                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                }
+        GraphCanvas(
+            nodes: expansion.nodes,
+            edges: expansion.edges,
+            model: model,
+            selection: $selection,
+            camera: $camera,
+            mutedKinds: muted,
+            wheelNavigates: true
+        )
+        // Both bands are one row rather than two opposite-corner overlays: in a narrow
+        // detail pane the heading and the toolbar would otherwise sit on top of each other.
+        .overlay(alignment: .top) {
+            HStack(alignment: .top, spacing: DS.Space.s) {
+                header
+                Spacer(minLength: DS.Space.s)
+                GraphToolbar(camera: $camera)
             }
-            .animation(DS.Motion.standard, value: hoverID)
+            .padding(DS.Size.graphChromeInset)
         }
-        .frame(minHeight: DS.Size.graphCanvasMinHeight)
-        .accessibilityLabel("Library graph. Click a node to open its local neighbourhood.")
-    }
-
-    private func hoverChip(for node: KnowledgeGraphNode) -> some View {
-        HStack(spacing: DS.Space.xs) {
-            Circle()
-                .fill(ink(for: node))
-                .frame(width: DS.Size.graphRailSwatch, height: DS.Size.graphRailSwatch)
-            Text(node.label)
-                .font(DS.Font.caption.weight(.medium))
-                .foregroundStyle(DS.Color.text)
-                .lineLimit(2)
+        .overlay(alignment: .bottom) {
+            HStack(alignment: .bottom, spacing: DS.Space.s) {
+                footer
+                Spacer(minLength: DS.Space.s)
+                card
+            }
+            .padding(DS.Size.graphChromeInset)
         }
-        .padding(.horizontal, DS.Space.s)
-        .padding(.vertical, DS.Space.xs)
-        .frame(maxWidth: DS.Size.graphHoverLabelMaxWidth)
-        .glassSurface(cornerRadius: DS.Radius.graphHoverChip)
+        .overlay(alignment: .center) { settling }
+        .frame(minHeight: DS.Size.graphMapMinHeight)
     }
 
-    private func nodeDiameter(for node: KnowledgeGraphNode, highlighted: Bool) -> CGFloat {
-        if highlighted { return DS.Size.graphNodeDotPrimary }
-        return Self.primaryTypes.contains(node.type)
-            ? DS.Size.graphNodeDotPrimary
-            : DS.Size.graphNodeDotSecondary
+    private var header: some View {
+        SectionHeading(
+            title: title,
+            eyebrow: eyebrow,
+            subtitle: subtitle,
+            orb: .breathing,
+            isOrbAnimated: false
+        )
+        .padding(DS.Space.cardTight)
+        .frame(maxWidth: DS.Size.graphHeaderMaxWidth, alignment: .leading)
+        .glassSurface(cornerRadius: DS.Radius.graphChrome)
     }
 
-    private func neighbourIDs(of hover: String?) -> Set<String> {
-        guard let hover else { return Set(expansion.nodes.map(\.id)) }
-        var ids: Set<String> = [hover]
-        for edge in expansion.edges {
-            if edge.from == hover { ids.insert(edge.to) }
-            if edge.to == hover { ids.insert(edge.from) }
+    private var footer: some View {
+        VStack(alignment: .leading, spacing: DS.Space.xs) {
+            GraphFilterChips(counts: counts, muted: $muted)
+                .frame(maxWidth: DS.Size.graphChipsMaxWidth, alignment: .leading)
+            GraphHint()
         }
-        return ids
     }
 
-    private func ink(for node: KnowledgeGraphNode) -> Color {
-        DS.Color.graphNode(node.type)
-    }
-
-    private func nearest(_ point: CGPoint, in layout: ForceLayout) -> String? {
-        let hitRadius = DS.Size.graphNodeHitRadius
-        var best: (String, CGFloat)?
-        for (id, placed) in layout.placements {
-            let distance = hypot(placed.x - point.x, placed.y - point.y)
-            guard distance <= hitRadius else { continue }
-            if best == nil || distance < best!.1 { best = (id, distance) }
+    @ViewBuilder
+    private var card: some View {
+        if let selection, let node = expansion.nodes.first(where: { $0.id == selection }) {
+            GraphNodeCard(
+                node: node,
+                connections: model.layout.degree[selection] ?? 0,
+                onOpen: { onOpen(selection) },
+                onDismiss: { withAnimation(DS.Motion.graphHover) { self.selection = nil } }
+            )
+            .transition(.opacity)
         }
-        return best?.0
+    }
+
+    @ViewBuilder
+    private var settling: some View {
+        if model.isSettling {
+            Text("Laying out your map…")
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+                .padding(.horizontal, DS.Space.m)
+                .padding(.vertical, DS.Space.s)
+                .glassSurface(cornerRadius: DS.Radius.graphChrome)
+        }
+    }
+
+    private var counts: [GraphKind: Int] {
+        expansion.nodes.reduce(into: [:]) { totals, node in
+            totals[GraphKind.of(node.type), default: 0] += 1
+        }
     }
 }

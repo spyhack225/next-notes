@@ -95,7 +95,7 @@ final class AgentCaptureController {
     enum Limits {
         static let speechLevel: Float = 0.06
         static let silenceLevel: Float = 0.04
-        /// After speech, this much quiet commits the turn. Qwen's provider VAD is
+        /// After speech, this much quiet commits the turn. The local model's provider VAD is
         /// typically a sub-second endpoint; 900 ms is enough to finish a clause.
         static let endpointSilence: TimeInterval = 0.9
         /// A volatile recognition snapshot can arrive after mic energy falls.
@@ -103,7 +103,7 @@ final class AgentCaptureController {
         static let transcriptSettle: TimeInterval = 0.35
         static let minSpeech: TimeInterval = 0.25
         static let minCharacters = 2
-        /// No speech after a reply: go back to sleep, like Qwen's SleepController.
+        /// No speech after a reply: go back to sleep, like the local model's SleepController.
         static let idleSession: TimeInterval = 25
         static let tick: Duration = .milliseconds(100)
     }

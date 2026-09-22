@@ -59,9 +59,15 @@ final class NavigationState {
     var selectedSettingsTab: SettingsTab = .general
 
     /// Which pane the Agent section shows. Not persisted: the conversation is home.
+    ///
+    /// The graph lives here rather than under Search because it is the assistant's picture of
+    /// the user's life and their Mac — people, projects, places and the folders on disk — not
+    /// a way of finding a sentence someone said. Search kept search.
     enum AgentPane: String, CaseIterable, Identifiable {
         case conversation = "Conversation"
         case routines = "Routines"
+        case graph = "Graph"
+        case skills = "Skills"
         case about = "About"
         var id: String { rawValue }
     }
@@ -91,6 +97,19 @@ final class NavigationState {
     func showAgentAbout() {
         selectedSection = .agent
         agentPane = .about
+    }
+
+    /// Agent → Graph. The graph used to be a mode of Search, so anything that pointed at it —
+    /// a deep link, a search result, a Settings button — comes through here and keeps working.
+    func showGraph() {
+        selectedSection = .agent
+        agentPane = .graph
+    }
+
+    /// Agent → Skills.
+    func showSkills() {
+        selectedSection = .agent
+        agentPane = .skills
     }
 
     /// A moment in a meeting's transcript that a search result jumped to. The token makes a

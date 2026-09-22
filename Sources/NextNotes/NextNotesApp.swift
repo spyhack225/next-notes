@@ -11,11 +11,16 @@ struct NextNotesApp: App {
     var body: some Scene {
         // The main window. A `Window` rather than a `WindowGroup`: this app has one front
         // panel, and letting ⌘N spawn a second copy of a tape deck makes no sense.
+        //
+        // `.presented` is load-bearing on macOS 26+: without it, a restored-or-suppressed
+        // window plus a failed menu-bar extra lets SwiftUI decide no scene is keeping the
+        // process alive, and the app exits voluntarily in about a second with no crash log.
         Window(AppDelegate.mainWindowTitle, id: AppDelegate.mainWindowID) {
             MainWindow(controller: delegate.controller)
         }
         .defaultSize(width: DS.Size.windowMin.width, height: DS.Size.windowMin.height)
         .windowResizability(.contentMinSize)
+        .defaultLaunchBehavior(.presented)
         .commands {
             CommandGroup(replacing: .newItem) {}
             CommandGroup(after: .newItem) {
@@ -36,14 +41,16 @@ struct NextNotesApp: App {
         }
         .defaultSize(width: DS.Size.settingsWindowWidth, height: DS.Size.settingsWindowMinHeight)
         .windowResizability(.contentMinSize)
+        // Unified compact keeps the sidebar toggle on the same row as the traffic
+        // lights instead of the tall large-title bar `.automatic` picks for a
+        // `.sidebarAdaptable` TabView. Paired with `.toolbarTitleDisplayMode(.inline)`
+        // in SettingsWindow.
+        .windowToolbarStyle(.unifiedCompact(showsTitle: true))
 
-        // Secondary now: status and the hotkey while you're working in another app.
-        MenuBarExtra {
-            MenuContent(controller: delegate.controller)
-        } label: {
-            Image(systemName: delegate.controller.state.isActive ? "waveform.circle.fill" : "waveform")
-        }
-
+        // Menu bar item is an AppKit `NSStatusItem` owned by `AppDelegate`, not a
+        // `MenuBarExtra`. On macOS 26 MenuBarAgent can accept the SwiftUI extra and then
+        // report "No server elements for status item"; SwiftUI tears the scene down and the
+        // whole process exits. A manual status item stays alive when the icon is hidden.
     }
 }
 
@@ -181,6 +188,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// that shows and hides itself, not one that is made and thrown away.
     private var island: IslandPanel?
     private var stateObservation: NSObjectProtocol?
+    /// Menu-bar icon. Held strongly: AppKit will not keep it alive for us, and SwiftUI's
+    /// `MenuBarExtra` is unsafe on macOS 26 when MenuBarAgent hosts no server elements.
+    private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.current = self
@@ -191,10 +201,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if runRequestedSelfTest() { return }
 
+        // Dictation, the island and the menu bar must outlive an empty window list. Without
+        // this, macOS 26's MenuBarExtra failure path ends in a voluntary exit (~1 s, no
+        // crash report) once AppKit decides nothing is keeping the process open.
+        ProcessInfo.processInfo.disableAutomaticTermination("Next Notes stays armed")
+
         // A regular app now: dock icon, app menu, standard windows. The HUD is still a
         // non-activating panel, so dictating into another app never steals its focus — that
         // property belongs to the panel, not to the activation policy.
         NSApp.setActivationPolicy(.regular)
+
+        installStatusItem()
 
         hud = HUDPanel(controller: controller)
         // Both exist whatever `hudPlacement` says. The island announces meetings and
@@ -224,6 +241,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             LocalModelStore.shared.prepareS1Mini()
         }
 
+        // Setup tells the user their assistant is being fetched and that an unfinished
+        // transfer will be picked up. This is what picks it up — only for a Mac that was
+        // actually shown that screen, and never during a self-test.
+        OnboardingModelResume.start()
+
+        // Skills the user already has, from this app and from every other agent on this Mac.
+        // A few hundred small files, read-only, off the main actor.
+        Task { await SkillLibrary.shared.rescan() }
+
         // A meeting still marked as running was interrupted by a crash or a force-quit.
         // Say so, rather than leaving a row that claims to be recording forever. Runs
         // before the scheduler starts: it must not find a meeting that claims to be live.
@@ -238,6 +264,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // registers a notification observer and the island's decision handler, and both of
         // those have to exist before a proposal from a previous session is delivered.
         AgentService.shared.start()
+        // After the agent, because the watcher hands its proposals to the approval card the
+        // agent's `start()` has just wired up, and a card raised before that handler exists
+        // is a card whose buttons do nothing.
+        FunctionCallWatcher.shared.start()
         // Composio is an MCP gateway: saving the key alone used to leave zero tools in the
         // registry. Refresh after the agent is up so meta-tools exist before the first ask.
         Task { @MainActor in
@@ -257,6 +287,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // After the review scheduler: both hook the conversation, and the indexer only reads
         // what the review has already been handed. Does nothing until the index is turned on.
         KnowledgeIndexer.shared.start()
+        // The file index watches the folders the user shared. Does nothing — and asks macOS
+        // for nothing — until one has been added and the switch is on.
+        if IndexedFoldersStore.shared.isEnabled {
+            FileIndexer.shared.start()
+            FileIndexer.shared.scanAll()
+        }
         // Touch the registry so native tools exist before the first utterance, then arm
         // the agent shortcut. Wake-word audio is not started until the user turns it on.
         _ = AgentToolRegistry.shared
@@ -266,7 +302,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         observeState()
         observeMeetingBadge()
+        // Bring the main window onto a real Space. Restored frames can land with a null
+        // workspace id on a multi-display layout, which AppKit then treats as "no windows
+        // open" — the other half of the silent-exit pair with MenuBarExtra.
+        Self.showMainWindow()
         Log.app.info("Next Notes ready — hold \(Settings.shared.pushToTalkKey.displayName) to dictate")
+    }
+
+    /// Status and the hotkey while you're working in another app.
+    ///
+    /// Built as an AppKit status item rather than SwiftUI `MenuBarExtra` because on macOS 26
+    /// MenuBarAgent can accept the client, log "No server elements for status item", and then
+    /// invalidate the workspace — after which SwiftUI exits the process voluntarily. An
+    /// `NSStatusItem` we own simply becomes invisible when the system hides it.
+    private func installStatusItem() {
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        item.button?.image = statusItemImage(active: controller.state.isActive)
+        item.menu = NSHostingMenu(rootView: MenuContent(controller: controller))
+        statusItem = item
+        observeStatusItemIcon()
+    }
+
+    private func observeStatusItemIcon() {
+        withObservationTracking {
+            _ = controller.state.isActive
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.statusItem?.button?.image = self.statusItemImage(active: self.controller.state.isActive)
+                self.observeStatusItemIcon()
+            }
+        }
+    }
+
+    private func statusItemImage(active: Bool) -> NSImage? {
+        let name = active ? "waveform.circle.fill" : "waveform"
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: "Next Notes")
+        image?.isTemplate = true
+        return image
     }
 
     /// Model-only smoke tests that avoid microphone, Accessibility, and text injection.
@@ -275,6 +348,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard SelfTest.isRunning else { return false }
         startSelfTestWatchdog()
         let arguments = Set(CommandLine.arguments.dropFirst())
+        if arguments.contains("--selftest-model-roles") {
+            Task { @MainActor in
+                let failures = await ModelRoleSelfTest.run()
+                for failure in failures { SelfTest.diagnostic("model-roles · \(failure)") }
+                writeSelfTest(failures.isEmpty
+                    ? "MODEL_ROLES_OK: fallback, routing, call paths, discovery and tool-call bridging verified"
+                    : "MODEL_ROLES_FAILED: \(failures.count) problem(s)")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-tool-review") {
+            Task { @MainActor in
+                SelfTest.failed = !(await ToolCallReviewSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-openrouter-contract") {
             SelfTest.failed = !OpenRouterContractSelfTest.run()
             writeSelfTest(SelfTest.failed ? "OPENROUTER_CONTRACT_FAILED" : "OPENROUTER_CONTRACT_OK")
@@ -398,7 +489,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-cleanup-router") {
             Task { @MainActor in
-                _ = await CleanupRouter.runSelfTest()
+                // `SelfTest.failed`, not `_`. This branch is reached before the second
+                // `--selftest-cleanup-router` block further down, so the discarded result was
+                // the only one that ran: the flag reported every failure on stdout and still
+                // exited 0, which is a green suite that never passed.
+                SelfTest.failed = !(await CleanupRouter.runSelfTest())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-cleanup-structure") {
+            Task { @MainActor in
+                SelfTest.failed = !SpokenStructure.runSelfTest()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-commandkey") {
+            Task { @MainActor in
+                SelfTest.failed = !(await CommandKeySelfTest.run())
                 NSApp.terminate(nil)
             }
             return true
@@ -443,6 +552,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if arguments.contains("--selftest-memory-review") {
             Task { @MainActor in
                 SelfTest.failed = !(await MemoryReviewSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-memory-portability") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MemoryPortabilitySelfTest.run())
                 NSApp.terminate(nil)
             }
             return true
@@ -510,9 +626,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-file-index") {
+            Task { @MainActor in
+                SelfTest.failed = !(await FileIndexSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-persona") {
             Task { @MainActor in
                 SelfTest.failed = !PersonaSelfTest.run()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-onboarding") {
+            Task { @MainActor in
+                SelfTest.failed = !OnboardingSelfTest.run()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-skills") {
+            Task { @MainActor in
+                SelfTest.failed = !(await SkillsSelfTest.run())
                 NSApp.terminate(nil)
             }
             return true
@@ -1045,9 +1182,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return true
         }
+        if arguments.contains("--selftest-model-fit") {
+            Task { @MainActor in
+                SelfTest.failed = !(await ModelLibrarySelfTests.runModelFitSelfTest())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-hf-search") {
+            Task { @MainActor in
+                SelfTest.failed = !(await ModelLibrarySelfTests.runSearchSelfTest())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-model-library") {
+            SelfTest.failed = !ModelLibrarySelfTests.runModelLibrarySelfTest()
+            NSApp.terminate(nil)
+            return true
+        }
         if arguments.contains("--selftest-transcript-bus") {
             Task { @MainActor in
                 SelfTest.failed = !(await TranscriptBus.runSelfTest())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-function-calls") {
+            Task { @MainActor in
+                SelfTest.failed = !(await FunctionCallSelfTest.run())
                 NSApp.terminate(nil)
             }
             return true
@@ -1423,6 +1586,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     : "off")
                 """)
 
+            // Stage C, before any model runs. It is deterministic and engine-independent, so
+            // a suite that loads no model at all still fails when a spoken list stops
+            // becoming a list — which is the regression this whole flag exists over.
+            let structureFailures = SpokenStructure.selfTestFailures()
+            if !structureFailures.isEmpty {
+                for failure in structureFailures { writeSelfTest("  \(failure)") }
+                writeSelfTest("CLEANUP_FAILED: \(structureFailures.count) spoken-structure case(s)")
+                NSApp.terminate(nil)
+                return
+            }
+            writeSelfTest("  spoken structure: lists, quotations, code and tables all render")
+
             let requested: [String]
             switch engine {
             case "all": requested = ["guard", "rules", "apple", "apple-grammar", "s1", "chain", "qwen"]
@@ -1460,6 +1635,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 writeSelfTest("  \(CleanupGuardVectors.all.count + CleanupGuardVectors.regressions.count) guard vectors correct")
             }
+
+            // What the eval actually asserts, as opposed to prints. Collected across every
+            // engine so one flag reports them all.
+            var assertionFailures: [String] = []
 
             for name in requested where name != "guard" {
                 let formatter: (any TextFormatter)?
@@ -1512,6 +1691,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     let seconds = Date().timeIntervalSince(began)
                     timings.append(seconds)
 
+                    // Graded, not just printed. The text asserted against is what the app
+                    // would inject — the engine's answer with the router's deterministic
+                    // structure stage around it — so a case fails only where the shipped
+                    // dictation would have been wrong.
+                    let shipped = CleanupEvalCases.shippedText(
+                        input: testCase.input,
+                        modelAnswer: output
+                    )
+                    assertionFailures += CleanupEvalCases.failures(
+                        for: testCase,
+                        shipped: shipped,
+                        fixesGrammar: mode == .grammar
+                    ).map { "\(name): \($0)" }
+
                     // The formatters fall back internally, so a rejected model answer looks
                     // from out here exactly like a model that decided to change nothing.
                     // Asking the model again *without* the guard is the only way to tell
@@ -1546,6 +1739,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     if let raw, raw != output {
                         writeSelfTest("  raw : \(Self.oneLine(raw))")
                     }
+                    // What the app would type, once the deterministic structure stage has
+                    // run. This is the line the assertions grade, so it is the line to read.
+                    if shipped != output {
+                        writeSelfTest("  ship: \(Self.oneLine(shipped))")
+                    }
                 }
                 if rejections > 0 {
                     writeSelfTest("  \(rejections) of \(CleanupEvalCases.all.count) model answers "
@@ -1565,6 +1763,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     warm-median=\(String(format: "%.3f", warmMedian))s \
                     warm-max=\(String(format: "%.3f", warmMax))s
                     """)
+            }
+            guard assertionFailures.isEmpty else {
+                writeSelfTest("")
+                for failure in assertionFailures { writeSelfTest("  \(failure)") }
+                writeSelfTest("CLEANUP_FAILED: \(assertionFailures.count) assertion(s)")
+                NSApp.terminate(nil)
+                return
             }
             writeSelfTest("CLEANUP_OK")
             NSApp.terminate(nil)
@@ -3031,6 +3236,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .agentListening(transcript: "", level: 0.1),
             .agentWorking(title: "Searching mail"),
             .agentReply("Done."),
+            .problem("No microphone audio reached dictation."),
         ]
 
         var failures: [String] = []
@@ -3565,6 +3771,280 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Accent variants. These are the difference between a wake phrase that works for
+    /// one accent and one that works for the person who reported this.
+    private func wakeVariantFailures() -> [String] {
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+
+        let heyWill = ["HH", "EY1", "W", "IH1", "L"]
+        let deep = WakeWordVariants.variants(forPhones: heyWill, depth: 6)
+        check("no accent variants were generated for Hey Will", !deep.isEmpty)
+        check(
+            "the dropped-h pronunciation is missing — the commonest form of this accent",
+            deep.contains { $0.phones == ["EY1", "W", "IH1", "L"] }
+        )
+        check(
+            "the softened final consonant is missing",
+            deep.contains { $0.phones == ["HH", "EY1", "W", "IH1"] }
+        )
+        check(
+            "the tense-vowel pronunciation is missing",
+            deep.contains { $0.phones == ["HH", "EY1", "W", "IY1", "L"] }
+        )
+        check("a variant repeats the canonical pronunciation", !deep.contains { $0.phones == heyWill })
+        check("variants are not unique", Set(deep.map(\.phones)).count == deep.count)
+        check(
+            "a variant is short enough to fire on ordinary speech",
+            deep.allSatisfy { $0.phones.count >= WakeWordVariants.minimumPhones }
+        )
+        check("depth 0 still produced variants", WakeWordVariants.variants(forPhones: heyWill, depth: 0).isEmpty)
+        check("depth is not honoured", WakeWordVariants.variants(forPhones: heyWill, depth: 2).count == 2)
+        check(
+            "the first variant is not the most useful one for this accent",
+            WakeWordVariants.variants(forPhones: heyWill, depth: 1).first?.phones == ["EY1", "W", "IH1", "L"]
+        )
+        check(
+            "variants grow with depth",
+            WakeWordVariants.variants(forPhones: heyWill, depth: 6).count
+                >= WakeWordVariants.variants(forPhones: heyWill, depth: 3).count
+        )
+        check("every variant states a reason", deep.allSatisfy { !$0.rule.isEmpty })
+        check("stress digits are lost when a vowel is rewritten",
+              WakeWordVariants.tensingLastVowel(heyWill) == ["HH", "EY1", "W", "IY1", "L"])
+        check("ARPAbet vowels are not recognised", WakeWordVariants.isVowel("IH1") && !WakeWordVariants.isVowel("W"))
+
+        // The keywords file is what sherpa actually reads.
+        let sensitive = WakeWordTuning.forSensitivity(1)
+        guard let text = WakeWordKeywords.file(for: "Hey Will", tuning: sensitive) else {
+            return failures + ["Hey Will produced no keywords file"]
+        }
+        let lines = text.split(separator: "\n").map(String.init)
+        check("the keywords file lost the canonical pronunciation", lines.first == "HH EY1 W IH1 L @HEY_WILL")
+        check("the keywords file has no accent variants at maximum sensitivity", lines.count > 1)
+        check(
+            "every keyword line must name the same phrase",
+            lines.allSatisfy { $0.hasSuffix("@HEY_WILL") }
+        )
+        check(
+            "variant lines carry no threshold of their own",
+            lines.dropFirst().allSatisfy { $0.contains("#") }
+        )
+        check(
+            "the canonical line must not carry a per-keyword threshold",
+            !(lines.first ?? "").contains("#")
+        )
+        // A letter-spelled fallback here is what aborted the sherpa dylib.
+        check(
+            "an unpronounceable phrase produced a keywords file",
+            WakeWordKeywords.file(for: "Hey Xyzzy", tuning: sensitive) == nil
+        )
+        check(
+            "the conservative end still writes variants",
+            (WakeWordKeywords.file(for: "Hey Will", tuning: .forSensitivity(0)) ?? "")
+                .split(separator: "\n").count == 1
+        )
+        // The diagnostic file must name each pronunciation separately, or the Settings
+        // test cannot say which one matched.
+        guard let diagnostic = WakeWordKeywords.diagnosticFile(for: "Hey Will", tuning: sensitive) else {
+            return failures + ["no diagnostic keywords file for Hey Will"]
+        }
+        let tags = diagnostic.text.split(separator: "\n").compactMap { line in
+            line.split(separator: "@").last.map(String.init)
+        }
+        check("diagnostic keyword tags are not unique", Set(tags).count == tags.count)
+        check("a diagnostic tag has no rule attached", tags.allSatisfy { diagnostic.rules[$0] != nil })
+        return failures
+    }
+
+    /// The Sensitivity slider. It used to move one number that this model ignores.
+    private func wakeTuningFailures() -> [String] {
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+
+        let quiet = WakeWordTuning.forSensitivity(0)
+        let middle = WakeWordTuning.forSensitivity(0.5)
+        let loud = WakeWordTuning.forSensitivity(1)
+
+        check("sensitivity does not lower the threshold", loud.threshold < quiet.threshold)
+        check("the conservative end is not conservative", quiet.threshold > middle.threshold)
+        // Below 0.15 recall is flat and false accepts are not, so the slider stops there.
+        check("maximum sensitivity does not reach the measured recall ceiling", loud.threshold <= 0.15)
+        check("sensitivity pushed the threshold past the useful floor", loud.threshold >= 0.15)
+        check("the conservative end does not reach a strict threshold", quiet.threshold >= 0.40)
+        check("sensitivity does not add pronunciations", loud.variantDepth > quiet.variantDepth)
+        check("the conservative end listens for variants", quiet.variantDepth == 0)
+        check("maximum sensitivity does not reach the measured best variant count",
+              loud.variantDepth == 4)
+        // The beam is the knob that makes variants worth having at all: with sherpa's
+        // stock width of 4 they evict each other and recall falls.
+        check("sensitivity does not widen the decoder beam", loud.maxActivePaths > quiet.maxActivePaths)
+        check("the beam is too narrow to hold the variants", loud.maxActivePaths >= 24)
+        check("the conservative end does not fall back to the stock beam", quiet.maxActivePaths == 4)
+        check("variants are held to a looser bar than the phrase itself",
+              loud.variantThreshold >= loud.threshold)
+        // Two trailing blanks beat sherpa's default of one everywhere in the grid, so
+        // this is a constant rather than a slider position.
+        check("trailing blanks fell back to the sherpa default",
+              quiet.numTrailingBlanks == 2 && loud.numTrailingBlanks == 2)
+        check("tuning is not monotonic in sensitivity",
+              WakeWordTuning.forSensitivity(0.1).threshold > WakeWordTuning.forSensitivity(0.4).threshold)
+        check("the beam does not grow monotonically",
+              WakeWordTuning.forSensitivity(0.25).maxActivePaths < middle.maxActivePaths
+                  && middle.maxActivePaths < loud.maxActivePaths)
+        check("out-of-range sensitivity is not clamped",
+              WakeWordTuning.forSensitivity(4) == loud && WakeWordTuning.forSensitivity(-2) == quiet)
+        return failures
+    }
+
+    /// The phonetic second stage: “hey we need” is the phrase, a sentence is not.
+    private func wakeConfirmationFailures() -> [String] {
+        var failures: [String] = []
+        func accepts(_ transcript: String) -> Bool {
+            WakePhraseConfirmation.check(transcript: transcript, phrase: "Hey Will").accepted
+        }
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+
+        // The ASR heard this user's wake phrase as “hey we need”. Requiring the literal
+        // words is why the transcript wake path never fired for him.
+        check("“hey we need” was not accepted as the phrase", accepts("hey we need"))
+        check("the phrase as written was not accepted", accepts("hey will"))
+        check("a dropped h was not accepted", accepts("ey will"))
+        check("a tense vowel was not accepted", accepts("hey weel"))
+        check("a spelling variant was not accepted", accepts("hey wil"))
+        check("the phrase with a request after it was not accepted", accepts("hey will open chrome"))
+        // Heard clearly, so the length of the request that follows is none of this
+        // stage's business.
+        check(
+            "a clear phrase was refused for having a long request after it",
+            accepts("hey will open chrome and go to youtube and search for cats")
+        )
+
+        // Long sentences are not someone addressing the agent.
+        check("a whole sentence was accepted", !accepts("hey we need to talk about the budget"))
+        check("a longer sentence was accepted", !accepts("hey we need to talk about the budget tomorrow"))
+        check("a greeting was accepted", !accepts("hey there how are you doing today"))
+        check("unrelated speech was accepted", !accepts("let me know if you still want the report"))
+        check("a sentence mentioning the name was accepted", !accepts("the meeting with william is at four"))
+        check("an unrelated short phrase was accepted", !accepts("hello"))
+
+        let withRequest = WakePhraseConfirmation.check(transcript: "hey will open chrome", phrase: "Hey Will")
+        check("the request after the phrase was lost", withRequest.remainder == "open chrome")
+        check("the matched word count is wrong", withRequest.matchedWords == 2)
+        check("an exact match did not score 1", withRequest.closeness > 0.99)
+        check(
+            "closeness does not rank a near miss below an exact match",
+            WakePhraseConfirmation.check(transcript: "hey we need", phrase: "Hey Will").closeness
+                < withRequest.closeness
+        )
+        check("empty speech was accepted", !accepts(""))
+        check(
+            "a same-class vowel swap costs as much as a different consonant",
+            WakePhraseConfirmation.substitutionCost("IH1", "IY1")
+                < WakePhraseConfirmation.substitutionCost("IH1", "K")
+        )
+        check(
+            "the same phone with different stress is treated as a mismatch",
+            WakePhraseConfirmation.substitutionCost("EY1", "EY0") == 0
+        )
+        check(
+            "an unknown word is not spelled out into phones",
+            WakePhraseConfirmation.spelledOut("ey") == ["EY"]
+        )
+
+        // The transcript wake path is what carries this into meetings and dictation.
+        let configuration = WakeWordConfiguration(phrase: "Hey Will", sensitivity: 1, listenWhileSleeping: true)
+        check(
+            "the transcript path still needs the literal phrase",
+            WakeWordDetector.spot(in: "Hey we need", configuration: configuration) != nil
+        )
+        let literal = WakeWordDetector.spot(
+            in: "Hey Will, open Chrome and go to YouTube",
+            configuration: configuration
+        )
+        check("the literal phrase stopped being spotted", literal != nil)
+        check("the literal path lost the request", literal?.remainder.lowercased().hasPrefix("open chrome") == true)
+        check(
+            "a sound-alike is as confident as the words themselves",
+            (WakeWordDetector.spot(in: "Hey we need", configuration: configuration)?.confidence ?? 1) < 1
+        )
+        check(
+            "the transcript path accepted a whole sentence",
+            WakeWordDetector.spot(
+                in: "hey we need to talk about the budget tomorrow",
+                configuration: configuration
+            ) == nil
+        )
+        let system = TranscriptSegment(start: 0, end: 1, text: "Hey we need", source: .system)
+        check(
+            "system audio authorised a sound-alike command",
+            WakeWordDetector.command(in: system, configuration: configuration) == nil
+        )
+        let mic = TranscriptSegment(start: 0, end: 1, text: "Hey we need", source: .mic)
+        check(
+            "the microphone could not authorise a sound-alike command",
+            WakeWordDetector.command(in: mic, configuration: configuration) != nil
+        )
+        return failures
+    }
+
+    /// The watchdog state machine: believe the microphone, not the flag.
+    private func wakeWatchdogFailures() -> [String] {
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+        func restarts(
+            voiceWake: Bool = true,
+            sleepListening: Bool = true,
+            idle: Bool = true,
+            believes: Bool = true,
+            seat: Bool = true,
+            suspended: Bool = false
+        ) -> Bool {
+            WakeWordAudioMonitor.watchdogShouldRestart(
+                voiceWakeEnabled: voiceWake,
+                listenWhileSleeping: sleepListening,
+                agentIsIdle: idle,
+                believesItIsListening: believes,
+                hubHasWakeSeat: seat,
+                suspended: suspended
+            )
+        }
+
+        check("a healthy listener was restarted", !restarts())
+        // The failure the user actually hit: the flag says listening, the microphone
+        // is gone, and nothing ever looked again.
+        check("a lost microphone seat was not noticed", restarts(seat: false))
+        check("a stopped listener was not restarted", restarts(believes: false))
+        check("a suspended listener was left suspended while idle", restarts(suspended: true))
+        check("wake restarted with voice wake off", !restarts(voiceWake: false))
+        check("wake restarted with sleep listening off", !restarts(sleepListening: false))
+        check("wake restarted while the agent was mid-conversation", !restarts(idle: false, seat: false))
+        check("the watchdog interval is not set", WakeWordAudioMonitor.watchdogInterval > 0)
+
+        check(
+            "the status line does not name the phrase",
+            WakeWordAudioMonitor.Status.listening(phrase: "Hey Will").plainWords.contains("Hey Will")
+        )
+        let plain: [WakeWordAudioMonitor.Status] = [
+            .listening(phrase: "Hey Will"), .busyWithAgent, .voiceWakeOff,
+            .sleepListeningOff, .modelMissing("x"), .phraseUnusable, .failed("x"),
+        ]
+        check("a status has no plain-words form", plain.allSatisfy { !$0.plainWords.isEmpty })
+        check(
+            "a paused state reads as listening",
+            !WakeWordAudioMonitor.Status.busyWithAgent.plainWords.hasPrefix("Listening")
+        )
+        return failures
+    }
+
     private func runWakeSelfTest() {
         Task { @MainActor in
             var failures: [String] = []
@@ -3574,6 +4054,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             check("normalize collapsed spaces", WakeWordConfiguration.normalize("  Hey   Next  ") == "Hey Next")
             check("a one-letter phrase is accepted", WakeWordConfiguration(phrase: "X", sensitivity: 0.5, listenWhileSleeping: true).validatedPhrase() == nil)
+            check(
+                "an unknown English word was accepted",
+                WakeWordConfiguration(phrase: "Hey Xyzzy", sensitivity: 0.5, listenWhileSleeping: true).validatedPhrase() == nil
+            )
+            check(
+                "unknownWords names the bad token",
+                WakeWordKeywords.unknownWords(in: "Hey Xyzzy") == ["Xyzzy"]
+            )
+            let will = WakeWordConfiguration(phrase: "Hey Will", sensitivity: 0.5, listenWhileSleeping: true)
+            check("Hey Will was refused", will.validatedPhrase() == "Hey Will")
+            check("Hey Will is not ARPAbet", will.keywordsFileContents.contains("W IH1 L"))
+            if WakeWordPhoneLexicon.isAvailable {
+                let serge = WakeWordConfiguration(phrase: "Hey Serge", sensitivity: 0.5, listenWhileSleeping: true)
+                check("Hey Serge was refused with en.phone", serge.validatedPhrase() == "Hey Serge")
+                check("Hey Serge is not ARPAbet", serge.keywordsFileContents.contains("S ER1 JH"))
+                check(
+                    "en.phone missed HEY",
+                    WakeWordPhoneLexicon.phones(for: "hey") == ["HH", "EY1"]
+                )
+            }
             let configuration = WakeWordConfiguration(phrase: "Hey Next", sensitivity: 0.5, listenWhileSleeping: true)
             check("keywords file is empty", !configuration.keywordsFileContents.isEmpty)
             check("Hey Next is not ARPAbet", configuration.keywordsFileContents.contains("HH EY1"))
@@ -3618,6 +4118,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 ).accepted
             )
 
+            failures.append(contentsOf: wakeVariantFailures())
+            failures.append(contentsOf: wakeTuningFailures())
+            failures.append(contentsOf: wakeConfirmationFailures())
+            failures.append(contentsOf: wakeWatchdogFailures())
+
             if !WakeWordModelManager.isDownloaded {
                 for failure in failures { writeSelfTest("  WAKE_WRONG: \(failure)") }
                 writeSelfTest("WAKE_MODEL_MISSING: \(WakeWordModelManager.unavailableReason)")
@@ -3626,14 +4131,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             do {
-                try WakeWordModelManager.writeKeywords(configuration)
-                let spotter = try WakeWordModelManager.loadSpotter()
+                // Never the live `keywords.txt`. Writing the test's own phrase there
+                // replaced the user's configured “Hey Will” with “Hey Next” on disk,
+                // which is a silent way to stop a wake word from ever firing again.
+                let scratch = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("nextnotes-selftest-keywords.txt")
+                let liveKeywords = WakeWordModelManager.keywordsURL
+                let before = try? Data(contentsOf: liveKeywords)
+                try WakeWordModelManager.writeKeywords(configuration, to: scratch)
+                let spotter = try WakeWordModelManager.loadSpotter(
+                    keywords: scratch,
+                    tuning: configuration.tuning
+                )
                 writeSelfTest("  WAKE_LOADED: \(WakeWordModels.encoderFile)")
+                let after = try? Data(contentsOf: liveKeywords)
+                if before != after {
+                    failures.append("the self-test overwrote the configured wake phrase on disk")
+                }
                 if FileManager.default.fileExists(atPath: WakeWordModelManager.testEnglishWavURL.path),
                    FileManager.default.fileExists(atPath: WakeWordModelManager.testKeywordsURL.path) {
                     let probe = try WakeWordModelManager.loadSpotter(
                         keywords: WakeWordModelManager.testKeywordsURL,
-                        threshold: 0.1
+                        tuning: .forSensitivity(1)
                     )
                     if let keyword = try probe.spot(wav: WakeWordModelManager.testEnglishWavURL) {
                         writeSelfTest("  WAKE_SPOTTED: \(keyword)")
@@ -4683,11 +5202,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         let window = NSApp.windows.first { $0.identifier?.rawValue.contains(mainWindowID) == true }
             ?? NSApp.windows.first { $0.canBecomeMain }
-        window?.makeKeyAndOrderFront(nil)
+        guard let window else { return }
+        // A frame restored onto a disconnected display, or with a null Space id, leaves the
+        // window "open" for SwiftUI and invisible to the user — and AppKit may still claim
+        // there are no windows for automatic-termination purposes. Pull it onto this screen.
+        if let screen = NSScreen.main ?? NSScreen.screens.first {
+            let visible = screen.visibleFrame
+            var frame = window.frame
+            if !visible.intersects(frame) {
+                frame.origin.x = visible.midX - frame.width / 2
+                frame.origin.y = visible.midY - frame.height / 2
+                window.setFrame(frame, display: true)
+            }
+        }
+        window.makeKeyAndOrderFront(nil)
     }
 
     static let mainWindowTitle = "Next Notes"
     static let mainWindowID = "main"
+
+    /// Closing the main window must not quit: push-to-talk, the island and the menu bar are
+    /// the steady state, and the window is only one way in.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
+    /// Dock click / reopen while the window is closed.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            Self.showMainWindow()
+        }
+        return true
+    }
 
     func applicationWillTerminate(_ notification: Notification) {
         controller.deactivate()
@@ -4704,14 +5250,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func observeState() {
         withObservationTracking {
             _ = controller.state
+            _ = controller.commandMode
             _ = Settings.shared.hudPlacement
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
                 // The island takes dictation instead whenever it is the chosen placement,
                 // and it derives that for itself — this only has to stay out of its way.
-                if self.controller.state.shouldShowHUD,
-                   Settings.shared.hudPlacement == .bottom {
+                //
+                // Command Mode is the exception and is shown here whatever the placement
+                // says: it is the only state in the app that has to explain itself in a
+                // sentence, and the island has no room for one. The island stands down for
+                // it in `IslandState.liveKind`, so only one of the two ever appears.
+                if self.controller.commandModeOwnsHUD
+                    || (self.controller.state.shouldShowHUD
+                        && Settings.shared.hudPlacement == .bottom) {
                     self.hud?.present()
                 } else {
                     self.hud?.dismiss()

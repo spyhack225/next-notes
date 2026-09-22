@@ -5,15 +5,25 @@ import Foundation
 /// A thin value type rather than the actor itself: providers are chosen per generation and
 /// passed around, while the runtime is a process singleton that owns gigabytes.
 struct LlamaLLMProvider: LLMProvider {
-    let id = LLMProviderID.qwen35_4b
+    let id = LLMProviderID.gemma4E4B
 
     var contextTokens: Int { NotesModelRuntime.maxContextTokens }
 
+    /// Why the local model cannot answer right now.
+    ///
+    /// The active model is whichever one the Models tab has selected — a model the user
+    /// fetched from Hugging Face, or the built-in one — so the reason has to name that file
+    /// rather than always naming the built-in model. A selected model whose file has gone missing reports
+    /// as unavailable here; the runtime falls back to the built-in on its next load and says
+    /// so through `ModelLoadNotice`.
     var unavailableReason: String? {
         get async {
-            NotesModels.isDownloaded
-                ? nil
-                : "\(NotesModels.spec.displayName) isn\u{2019}t downloaded (\(NotesModels.spec.displaySize))."
+            let active = await NotesModelRuntime.shared.activeSpec()
+            if active.isDownloaded { return nil }
+            if active.fileURL == NotesModels.spec.fileURL {
+                return "\(NotesModels.spec.displayName) isn\u{2019}t downloaded (\(NotesModels.spec.displaySize))."
+            }
+            return "\(active.displayName) is no longer on this Mac. Choose a model in Models settings."
         }
     }
 
