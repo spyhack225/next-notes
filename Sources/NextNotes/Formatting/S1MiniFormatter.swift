@@ -122,7 +122,7 @@ actor S1MiniRuntime {
 
     /// Runs one cleanup pass, announcing it to `LlamaBackend` for the duration.
     ///
-    /// The announcement is what keeps the notes model from loading its 2.7 GB of weights
+    /// The announcement is what keeps the notes model from loading its gigabytes of weights
     /// into the middle of a dictation the user is waiting on. Written out rather than as a
     /// `defer`, because `defer` can't await and the release must happen before the caller
     /// resumes — a `Task { }` in a `defer` would let the notes model start loading first.

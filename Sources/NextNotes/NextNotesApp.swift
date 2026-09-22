@@ -2194,7 +2194,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ///
     /// When the notes model isn't downloaded the Metal half runs against S1-mini's own GGUF
     /// instead: what is being tested is coexistence, not which weights are loaded, and a
-    /// 2.7 GB download is not a precondition for answering that question.
+    /// multi-gigabyte download is not a precondition for answering that question.
     private func runMetalSelfTest() {
         Task { @MainActor in
             let usingNotesModel = NotesModels.isDownloaded
@@ -3405,7 +3405,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Nothing is executed: the policy is `dryRun`, so no read tool runs either, and every
     /// proposal is printed rather than performed. Two halves again — the catalogue and the
     /// parser are checked without a model, so a build whose tool schemas stopped being valid
-    /// JSON is caught on a machine with no 2.7 GB download and no Google account.
+    /// JSON is caught on a machine with no multi-gigabyte download and no Google account.
     ///
     /// - Parameter directory: a meeting folder under
     ///   `Application Support/Next Notes/Meetings/`.
@@ -3616,7 +3616,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// High-water resident memory for this process.
     ///
     /// `resident_size_max` rather than a sample of current usage: the peak is what decides
-    /// whether Parakeet and a 2.7 GB model can both be alive on this machine, and it happens
+    /// whether Parakeet and a multi-gigabyte model can both be alive on this machine, and it happens
     /// somewhere in the middle of the run rather than at the end.
     private static func peakResidentBytes() -> UInt64 {
         var info = mach_task_basic_info()

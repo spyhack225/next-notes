@@ -58,7 +58,7 @@ enum WorkClass: String, Sendable, CaseIterable, Equatable {
     /// - `meetingLive` takes whatever accelerator is free.
     /// - `background` prefers GPU but is the class that must throttle and
     ///   yield. Notes generation on the local model is the example the scheduler exists
-    ///   to stop: loading 2.7 GB of weights must not make dictation ASR lag.
+    ///   to stop: loading gigabytes of weights must not make dictation ASR lag.
     var preferredDevice: ComputeDevice {
         switch self {
         case .realtimeAudio: .cpu

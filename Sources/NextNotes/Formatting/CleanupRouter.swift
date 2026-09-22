@@ -432,7 +432,7 @@ struct CleanupRouter: TextFormatter {
         )
         // Stage D only where there is a model that takes instructions and a switch that
         // asked for formatting. Apple's is the one that is already resident and already
-        // warm; the local on-device model can do this too (`LLMStructurePlanner`) but loading it costs
+        // warm; the on-device model can do this too (`LLMStructurePlanner`) but loading it costs
         // gigabytes and seconds inside a dictation somebody is waiting on, so it is a seam
         // rather than a default.
         let planner: (any StructurePlanning)? =

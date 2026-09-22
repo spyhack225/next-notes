@@ -13,8 +13,8 @@ import llama
 /// - **The context is sized per prompt.** A 32K context on this architecture reserves
 ///   several gigabytes of KV cache whether or not the transcript needs it, so the context is
 ///   built to fit the prompt and rebuilt when the next one doesn't fit.
-/// - **The model unloads when idle.** 2.7 GB of resident weights for a meeting that ended
-///   half an hour ago is 2.7 GB the rest of the Mac could be using.
+/// - **The model unloads when idle.** Gigabytes of resident weights for a meeting that ended
+///   half an hour ago are gigabytes the rest of the Mac could be using.
 ///
 /// Compute residency (S4):
 /// - Meeting load/generation use `background`; interactive conversation uses
@@ -917,7 +917,7 @@ actor NotesModelRuntime {
     /// The load suspends twice — on the backend, and then for as long as a dictation cleanup
     /// takes to release its context — and an actor is re-entrant across both. Without one
     /// shared task, a Regenerate that arrives while an automatic summary is waiting on that
-    /// gate loads a second 2.7 GB copy of the weights and leaks the first, which is exactly
+    /// gate loads a second full copy of the weights and leaks the first, which is exactly
     /// the swapping the gate exists to prevent.
     ///
     /// When `schedulerJobID` is set (outer `withBackgroundLane`), the load checkpoints

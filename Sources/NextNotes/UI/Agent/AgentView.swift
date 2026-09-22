@@ -372,10 +372,22 @@ struct AgentView: View {
     }
 
     private var composer: some View {
-        HStack(spacing: DS.Space.s) {
-            TextField("Ask Next…", text: $draft)
+        HStack(alignment: .bottom, spacing: DS.Space.s) {
+            TextField("Ask Next…", text: $draft, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
+                .lineLimit(1...5)
                 .onSubmit { send() }
+                .onKeyPress(phases: .down) { press in
+                    // Plain Return sends; Shift/Option/Control+Return inserts a newline.
+                    guard press.key == .return else { return .ignored }
+                    if press.modifiers.contains(.shift)
+                        || press.modifiers.contains(.option)
+                        || press.modifiers.contains(.control) {
+                        return .ignored
+                    }
+                    send()
+                    return .handled
+                }
             if agent.isThinking {
                 Button("Stop") {
                     ACPConfirmationGate.shared.cancel()

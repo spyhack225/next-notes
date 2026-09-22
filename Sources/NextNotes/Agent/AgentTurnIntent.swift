@@ -73,7 +73,7 @@ enum AgentTurnIntent: Equatable {
             "ask the model", "ask model", "use the model",
             "ask the local model", "ask local model",
             "ask the on-device model", "ask the on device model",
-            "use the local model", "use local model", "ask qwen",
+            "use the local model", "use local model", "ask qwen", "ask gemma",
         ]
         guard let prefix = prefixes.first(where: {
             guard lowered.hasPrefix($0) else { return false }
@@ -96,14 +96,15 @@ enum AgentTurnIntent: Equatable {
             "ask the model", "ask model", "use the model",
             "ask the local model", "ask local model",
             "ask the on-device model", "ask the on device model",
-            "use the local model", "use local model", "ask qwen",
+            "use the local model", "use local model", "ask qwen", "ask gemma",
         ].contains(lowered)
     }
 
     static func explicitlyRequestsOnDeviceModel(_ text: String) -> Bool {
         let lowered = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return ["ask the local model", "ask local model", "ask the on-device model",
-                "ask the on device model", "use the local model", "use local model", "ask qwen"]
+                "ask the on device model", "use the local model", "use local model",
+                "ask qwen", "ask gemma"]
             .contains { lowered.hasPrefix($0) }
     }
 

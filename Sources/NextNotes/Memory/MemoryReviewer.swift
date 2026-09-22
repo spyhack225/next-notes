@@ -124,7 +124,7 @@ enum MemoryReviewRouter {
             return .wait(localWait + ", OpenRouter isn't set up and Apple Intelligence isn't available")
         case .local:
             // A background review never loads the weights itself: a voice reply that starts
-            // during a 2.7 GB load would wait behind it. Apple Intelligence is already
+            // during a multi-gigabyte load would wait behind it. Apple Intelligence is already
             // resident, so it carries the review instead of nothing happening at all.
             if localIdle { return .local }
             if appleAvailable { return .appleFoundation }

@@ -78,7 +78,7 @@ final class MemoryPortabilityController {
     /// Apple's model first: it is already on the Mac, it answers in seconds, and this runs
     /// while someone is watching a sheet. Local model next, which is worth its load time here
     /// because the person asked for this and can see it happening — unlike the background
-    /// memory review, which must never pull 2.7 GB in behind a voice reply. Neither
+    /// memory review, which must never pull gigabytes in behind a voice reply. Neither
     /// available is not a failure: `MemoryFactRewriter` does the same job with rules.
     static func liveModel() async -> (any MemoryImportModel)? {
         let apple = LLMProviders.make(.appleFoundation)

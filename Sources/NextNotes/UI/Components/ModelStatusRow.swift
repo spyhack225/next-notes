@@ -39,7 +39,7 @@ struct ModelStatusRow: View {
             HStack(spacing: DS.Space.xs) {
                 // `shaping` — a dotted outline morphing between figures — for a model being
                 // fetched and assembled. A spinner says only "wait"; this says something is
-                // being formed, which over a 2.7 GB download is the more honest claim.
+                // being formed, which over a multi-gigabyte download is the more honest claim.
                 ThinkingOrb(state: .shaping, label: "Preparing")
                 Text(message)
                     .font(DS.Font.caption)

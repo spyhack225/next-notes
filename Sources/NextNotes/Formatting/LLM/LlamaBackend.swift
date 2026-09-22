@@ -66,7 +66,7 @@ actor LlamaBackend {
 
     /// Marks a dictation cleanup as started. Paired with `endCleanup()`.
     ///
-    /// This exists for one reason: on a 16 GB Mac the notes model's 2.7 GB of weights and
+    /// This exists for one reason: on a 16 GB Mac the notes model's gigabytes of weights and
     /// S1-mini's context must not be *loaded* at the same instant. Both models running is
     /// fine; both loading is where the machine starts swapping, and the dictation pass is
     /// the one with a person waiting on it.
