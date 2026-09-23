@@ -108,6 +108,19 @@ enum ToolCallInspector {
         // A 555-01xx number is the reserved fictional range, and models reach for it.
         if lowered.range(of: #"\b555[-.\s]?01\d{2}\b"#, options: .regularExpression) != nil { return true }
 
+        // A value that parses as a JSON object is machine content, not prose with a
+        // template in it — the ACP relay hands the nested tool call over as one JSON
+        // blob (`{"title": "Edit fixture"}` in the `toolCall` argument), and the
+        // one-line brace rule below reads exactly that shape as `{{name}}`. Measured
+        // 2026-09-22: every ACP nested-tool approval was refused as a placeholder, the
+        // request never closed, and the peer's prompt ran out on the clock. What the
+        // model was unsure about would never arrive as valid JSON; if a template really
+        // hides inside, the strings inside it surface on the card the blob is shown as,
+        // and grounding labels them there.
+        if (try? JSONSerialization.jsonObject(with: Data(trimmed.utf8))) is [String: Any] {
+            return false
+        }
+
         // An angle-bracket marker inside prose is fine (`<b>`, `a < b`); a bracket marker
         // is not. For a one-line field any template marker is disqualifying.
         if trimmed.range(of: templateMarker, options: .regularExpression) != nil {

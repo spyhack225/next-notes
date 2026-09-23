@@ -993,7 +993,7 @@ enum FunctionCallSelfTest {
             "a cloud model would have been used for background listening",
             LocalModelFunctionCallProposer.onDevicePreference(.openRouter) != .openRouter
         )
-        for onDevice in [LLMProviderID.gemma4E4B, .appleFoundation, .localServer] {
+        for onDevice in [LLMProviderID.appLLM, .appleFoundation, .localServer] {
             check(
                 "an on-device choice (\(onDevice.rawValue)) was overridden",
                 LocalModelFunctionCallProposer.onDevicePreference(onDevice) == onDevice

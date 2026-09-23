@@ -103,8 +103,16 @@ enum LocalVoiceSplitResponse {
     /// Answer-stage native plan. `system` is the instructions the coordinator passed, which
     /// in production is `answerInstructions` — so the prompt the caller names is the prompt
     /// the model hears.
+    ///
+    /// The latest user message must carry the `Latest user speech:` marker. An answer
+    /// prompt built without the actual utterance is what made the on-device model ask
+    /// the person to repeat a complete question, so it fails loudly here instead of
+    /// being handed to a model that can only guess what was said.
     static func answerPlan(system: String, messages: [LLMChatMessage]) -> LocalVoicePrompt.Plan? {
-        LocalVoicePrompt.plan(system: system, messages: messages)
+        guard let plan = LocalVoicePrompt.plan(system: system, messages: messages),
+              let latest = messages.last(where: { $0.role == .user }),
+              latest.content.contains("Latest user speech:\n") else { return nil }
+        return plan
     }
 
     static let routeRules = """

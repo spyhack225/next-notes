@@ -14,50 +14,52 @@ struct GoalsView: View {
     @State private var message: String?
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DS.Space.xl) {
-                VStack(alignment: .leading, spacing: DS.Space.xs) {
-                    Text("Goals").font(DS.Font.title2)
-                    Text("Things you’re working toward. Your assistant reminds you — "
-                         + "only you say when one is done.")
-                        .font(DS.Font.callout)
-                        .foregroundStyle(DS.Color.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if goals.goals.isEmpty {
-                    VStack(alignment: .leading, spacing: DS.Space.s) {
-                        Text("No goals yet").font(DS.Font.headline)
-                        Text("Name one below, in your own words. You’ll confirm it before anything is saved.")
-                            .font(DS.Font.callout)
-                            .foregroundStyle(DS.Color.textSecondary)
+        AgentPaneScroll {
+            AgentPaneHeader(
+                title: "Goals",
+                subtitle: "Things you’re working toward. Your assistant reminds you — "
+                    + "only you say when one is done."
+            )
+            AgentSplit {
+                goalsList
+            } rail: {
+                VStack(alignment: .leading, spacing: DS.Space.s) {
+                    createSection
+                    if let message {
+                        Text(message).font(DS.Font.caption).foregroundStyle(DS.Color.warning)
                     }
-                    .padding(DS.Space.cardTight)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .glassSurface(cornerRadius: DS.Radius.card)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .onAppear { goals.reload(); schedules.reload() }
+    }
+
+    /// The goals themselves, or the empty state when there are none. Cards go in the
+    /// adaptive grid so a wide window shows several per row rather than one 640pt column.
+    @ViewBuilder
+    private var goalsList: some View {
+        if goals.goals.isEmpty {
+            VStack(alignment: .leading, spacing: DS.Space.s) {
+                Text("No goals yet").font(DS.Font.headline)
+                Text("Name one below, in your own words. You’ll confirm it before anything is saved.")
+                    .font(DS.Font.callout)
+                    .foregroundStyle(DS.Color.textSecondary)
+            }
+            .padding(DS.Space.cardTight)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassSurface(cornerRadius: DS.Radius.card)
+        } else {
+            AgentCardGrid {
                 ForEach(goals.goals.sorted { $0.createdAt > $1.createdAt }) { goal in
                     VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                        HStack {
-                            Text(goal.outcome).font(DS.Font.headline)
-                            Spacer()
-                            Text(stateLabel(goal.state))
-                                .font(DS.Font.chip)
-                                .foregroundStyle(DS.Color.textSecondary)
-                        }
+                        Text(goal.outcome).font(DS.Font.headline)
+                        Text(statusLine(goal))
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
                         Text("First step: \(goal.firstStep)")
                             .font(DS.Font.callout)
                             .foregroundStyle(DS.Color.textSecondary)
-                        if let nudgeID = goal.nudgeScheduleID,
-                           let nudge = schedules.schedule(id: nudgeID),
-                           let next = nudge.nextRunAt, nudge.enabled {
-                            Text("Next reminder " + next.formatted(date: .abbreviated, time: .shortened))
-                                .font(DS.Font.caption)
-                                .foregroundStyle(DS.Color.textSecondary)
-                        } else if goal.state == .active {
-                            Text("No reminder set")
-                                .font(DS.Font.caption)
-                                .foregroundStyle(DS.Color.textSecondary)
-                        }
                         if goal.state == .active {
                             HStack(spacing: DS.Space.s) {
                                 Button("Mark done") {
@@ -71,20 +73,11 @@ struct GoalsView: View {
                             .font(DS.Font.caption)
                         }
                     }
-                    .padding(DS.Space.cardTight)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(DS.Color.groupedFill, in: RoundedRectangle(cornerRadius: DS.Radius.card))
-                }
-                createSection
-                if let message {
-                    Text(message).font(DS.Font.caption).foregroundStyle(DS.Color.warning)
+                    .agentCardSurface()
                 }
             }
-            .padding(DS.Space.page)
-            .frame(maxWidth: DS.Size.agentAboutMaxWidth)
-            .frame(maxWidth: .infinity)
         }
-        .onAppear { goals.reload(); schedules.reload() }
     }
 
     private var createSection: some View {
@@ -120,11 +113,46 @@ struct GoalsView: View {
         .glassSurface(cornerRadius: DS.Radius.card)
     }
 
-    private func stateLabel(_ state: AgentGoal.State) -> String {
-        switch state {
-        case .active: "In progress"
-        case .stuck: "Stuck"
-        case .done: "Done"
+    /// One line of state under a goal, in the same shape as a reminder's summary: what
+    /// the person is waiting on, then when the next nudge lands.
+    private func statusLine(_ goal: AgentGoal) -> String {
+        switch goal.state {
+        case .done: return "Done"
+        case .stuck: return "Waiting on you"
+        case .active: break
+        }
+        guard let nudgeID = goal.nudgeScheduleID,
+              let nudge = schedules.schedule(id: nudgeID) else {
+            return "No reminder set"
+        }
+        var parts = [reminderLine(nudge)]
+        if let last = nudge.lastRun {
+            parts.append("last: \(RoutinesView.outcomeLabel(last.outcome).lowercased())")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    /// "Daily reminder at 06:00" — the nudge's own cadence in consumer words, never the
+    /// model's wording.
+    private func reminderLine(_ nudge: AgentSchedule) -> String {
+        guard nudge.enabled else { return "Reminder paused" }
+        guard let when = nudge.when else {
+            return nudge.nextRunAt.map {
+                "Next reminder " + $0.formatted(date: .abbreviated, time: .shortened)
+            } ?? "No reminder set"
+        }
+        let time = when.time.formatted
+        switch when.repeatRule {
+        case .once:
+            return "One reminder at \(time)"
+        case .daily:
+            return "Daily reminder at \(time)"
+        case .weekdays:
+            return "Weekday reminder at \(time)"
+        case .weekly(let days):
+            return "Weekly reminder on " + days.map(\.name).joined(separator: ", ") + " at \(time)"
+        case .monthly(let day):
+            return "Monthly reminder on day \(day) at \(time)"
         }
     }
 }

@@ -636,16 +636,15 @@ final class NextMemory {
     }
 
     /// An active entry of the same kind that says the same thing in different words, or nil.
-    /// Three quarters of the content words shared is the same bar the review's own skip rule
-    /// uses, so a fact rejected there and a fact merged here are judged alike.
+    /// `MemoryGuard.saysTheSameFact` is the bar the review's own skip rule uses too, so a
+    /// fact rejected there and a fact merged here are judged alike — including the
+    /// containment half that catches "The user is in Paris." against "The user lives in
+    /// Paris.", which the review re-proposed from current memory.
     func nearDuplicate(kind: MemoryEntry.Kind, text: String) -> MemoryEntry? {
-        let tokens = Set(MemoryGuard.contentTokens(text))
-        guard !tokens.isEmpty else { return nil }
+        guard !Set(MemoryGuard.contentTokens(text)).isEmpty else { return nil }
         return entries.first { entry in
             guard entry.kind == kind, flagged[entry.id] == nil else { return false }
-            let other = Set(MemoryGuard.contentTokens(entry.text))
-            guard !other.isEmpty else { return false }
-            return Double(tokens.intersection(other).count) / Double(tokens.union(other).count) >= 0.75
+            return MemoryGuard.saysTheSameFact(text, entry.text)
         }
     }
 

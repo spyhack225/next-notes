@@ -26,6 +26,7 @@ enum ModelRoleSelfTest {
     static func run() async -> [String] {
         var failures: [String] = []
         failures += tokenRoundTrip()
+        failures += providerIdentity()
         failures += fallbackToBuiltIn()
         failures += honoursWhatIsThere()
         failures += whatEachJobCanUse()
@@ -155,6 +156,44 @@ enum ModelRoleSelfTest {
         }
         if ModelRoleStore.defaultChoice(for: .coding) != .app(.claude) {
             failures.append("writing code does not default to Claude Code")
+        }
+        return failures
+    }
+
+    // MARK: - 0b. The provider identity follows the model on this Mac
+
+    /// The two drifts that made a notes history lie. `LLMProviderID` used to name the
+    /// model that shipped this release (`gemma4E4B`), so a machine running an installed
+    /// model recorded that model as Gemma; and a stored provider id that no longer decoded
+    /// silently became a different provider. Both are pinned here: the retired spelling
+    /// still reads, and the local provider reports the file it was told about.
+    private static func providerIdentity() -> [String] {
+        var failures: [String] = []
+
+        if LLMProviderID(rawValue: "gemma4E4B") != .appLLM {
+            failures.append("a stored gemma4E4B provider id no longer reads as the app's model")
+        }
+        if LLMProviderID(rawValue: "appLLM") != .appLLM {
+            failures.append("the app model's own provider id does not read back")
+        }
+        guard let stored = "\"gemma4E4B\"".data(using: .utf8),
+              let decoded = try? JSONDecoder().decode(LLMProviderID.self, from: stored) else {
+            failures.append("a stored gemma4E4B provider id does not survive JSON decoding")
+            return failures
+        }
+        if decoded != .appLLM {
+            failures.append("a stored gemma4E4B provider id decoded as \(decoded.rawValue)")
+        }
+        // The fallback chain and the Regenerate menu both walk `allCases`; the local model
+        // falling out of it would leave notes with only Apple's model on a Mac that has one.
+        if !LLMProviderID.allCases.contains(.appLLM) {
+            failures.append("the app's own model is missing from the provider list")
+        }
+        if LlamaLLMProvider(modelName: "An Installed Model").displayModelName != "An Installed Model" {
+            failures.append("the local provider did not report the model it was given")
+        }
+        if LlamaLLMProvider().displayModelName != NotesModels.spec.displayName {
+            failures.append("a local provider with no captured model did not name the built-in one")
         }
         return failures
     }
@@ -555,7 +594,7 @@ enum ModelRoleSelfTest {
         roles.setChoiceForTesting(.app(.claude), for: .agent)
         let answered = await roles.provider(for: .agent)
         switch answered?.id {
-        case .some(.gemma4E4B), .some(.appleFoundation):
+        case .some(.appLLM), .some(.appleFoundation):
             break
         case .none:
             if NotesModels.isDownloaded {
@@ -568,7 +607,7 @@ enum ModelRoleSelfTest {
         }
         // The same decision, through the enum every live turn calls.
         let voiced = await AgentModelRouting.provider(for: "click the send button", voice: true)
-        if let voiced, voiced.id != .gemma4E4B, voiced.id != .appleFoundation {
+        if let voiced, voiced.id != .appLLM, voiced.id != .appleFoundation {
             failures.append("a spoken turn was routed off this Mac, to \(voiced.id)")
         }
 

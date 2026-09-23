@@ -356,9 +356,13 @@ Sources/NextNotes/
 │   ├── MeetingPipeline.swift       what happens after the last window: diarize, then notes
 │   ├── MeetingDiarizer.swift       FluidAudio clustering over the system track
 │   ├── DiarizationService.swift    owns the .diarizing → next transition, per meeting
-│   ├── NotesPrompts.swift          every prompt and the five headings
+│   ├── NotesPrompts.swift          every prompt and the six headings
 │   ├── NotesGenerator.swift        single pass, or map/reduce when the transcript is long
 │   ├── NotesService.swift          owns the .summarizing → .done transition
+│   ├── MeetingNotesContext.swift   the brief connecting notes to memory, prior decisions,
+│   │                               past meetings and files, behind each source's consent
+│   ├── MeetingNotesContextSelfTest.swift  --selftest-notes-context on fixtures, plus
+│   │                               --notes-context-live against this machine's own stores
 │   ├── MeetingContext.swift        structured state: decisions, actions, candidates
 │   ├── MeetingContextExtractor.swift  transcript chunks → MeetingContext
 │   └── MeetingContextStore.swift   live context.json beside the meeting
@@ -368,7 +372,9 @@ Sources/NextNotes/
 │   ├── WorkspaceToolRunner.swift   the only place a `gws` write is performed
 │   ├── AgentModels.swift           AgentRisk, AgentProposal, AgentActionRecord
 │   ├── AgentPrompts.swift, AgentToolCall.swift, LLMProviderTools.swift
-│   ├── MeetingAgent.swift          plans over notes + transcript, returns proposals
+│   ├── MeetingAgent.swift          plans over notes + transcript, with the knowledge
+│   │                               index's read tools when the switches allow, returns
+│   │                               proposals
 │   ├── AgentService.swift          files, announces, and executes approved proposals
 │   ├── WorkspaceInstaller.swift    writes the .command scripts Terminal opens
 │   ├── RealtimeAgent.swift         routed tools, model answers and durable conversation
@@ -380,6 +386,10 @@ Sources/NextNotes/
 │   ├── RealtimeAgentLocalModelSelfTest.swift  streamed answer and interruption probe
 │   ├── RealtimeAgentToolLoopSelfTest.swift  model-selected tools and streamed speech probe
 │   ├── AgentTurnIntent.swift       ordinary turns use the selected Agent model
+│   ├── Identity/                    the assistant's name and face: AgentIdentityStore,
+│   │                               NotionAvatarConfig + Renderer (four animation layers),
+│   │                               AgentAvatarState + Choreography (the ten states),
+│   │                               --selftest-avatar; --avatar-sheet draws them all
 │   ├── MeetingLiveToolSelfTest.swift  live model proposal and evidence probe
 │   ├── Tools/                      AgentTool, registry, router, executor, catalogues
 │   ├── Permissions/                PermissionBroker above every executor; ToolCallReview
@@ -391,26 +401,52 @@ Sources/NextNotes/
 │   │                               grounded against what was actually said before the card
 │   ├── Skills/                     SKILL.md folders already on this Mac, plus search and
 │   │                               install from skills.sh over plain HTTPS
-│   ├── Tasks/                      AgentTask + manager; conversation stays free
-│   ├── Backend/                    AgentBackend, Local, ACP, harness router
-│   └── Activity/                   island activity + inspectable audit log
+│   ├── Tasks/                      AgentTask + manager; conversation stays free.
+│   │                               AgentArtifactLedger folds each run's reference/link
+│   │                               into `artifacts` so a result card can link what it made
+│   ├── Goals/                      AgentGoal + GoalStore — an outcome with a state, not a
+│   │                               job on a clock; its nudges are ordinary reminders
+│   ├── Schedules/                  reminders, routines and triggers; the morning digest
+│   │                               and the podcast routine (reads-only, silence token,
+│   │                               long-form audio rendered to a file, never the live voice)
+│   ├── Speech/                     streaming TTS, barge-in, clause queue; LongFormRenderer
+│   │                               is the file-sink path — it never touches the live graph
+│   ├── Backend/                    AgentBackend, Local, ACP, harness router;
+│   │                               VisionHandoff — the parked screenshot → consented
+│   │                               vision-model path, description + `target:` fractions
+│   │                               back into the loop
+│   └── Activity/                   island activity + inspectable audit log; the step list
+│                                   the island's n/m counter and the working card read
 ├── Knowledge/
 │   ├── KnowledgeStore.swift        chunks, embeddings and FTS5 in knowledge.sqlite
 │   ├── KnowledgeIndexer.swift, HybridSearch.swift, KnowledgeAsk.swift
 │   ├── Extractor.swift, LifeExtractor.swift, Ontology.swift, GraphStore.swift
 │   ├── EntityResolver.swift, PersonResolutionService/Store.swift
 │   ├── Embedding*.swift, StaticEmbedder.swift, Chunker.swift
+│   ├── Assembler.swift             D4: files + meetings + notes → one saved markdown
+│   │                               page with sources and 3–5 outstanding items; no model
+│   │                               still writes, saying so
+│   ├── Portrait.swift              the 7-day graph pass → 2–3 prose insight drafts,
+│   │                               nothing saves unreviewed, per-insight cross-out;
+│   │                               LifeCorners groups the graph into six area cards
+│   ├── MemoryGraphOverlay.swift    the user's memories drawn beside the extracted graph,
+│   │                               click-through to the Memories editor; a draw-time
+│   │                               overlay because a memory has no chunk to cite
 │   └── Files/                      the user's shared folders indexed by name, size and
 │                                   date only — never contents. Own file-index.sqlite,
 │                                   FSEvents watcher, and two read-only agent tools
 ├── Memory/
 │   ├── NextMemory.swift            the memory list, its budgets and the prompt snapshot
 │   ├── MemoryGuard.swift           what may never become a memory
+│   ├── MemoryCloudGate.swift       one rate-limit/backoff state shared by every producer;
+│   │                               a review is not enqueued while the gate is down
 │   ├── MemoryReviewer.swift, MemoryTools.swift, RoutineSuggestions.swift
 │   └── Portability/                export the assistant's memory as a folder; import from
 │                                   a file or from another assistant, reviewed before saving
 ├── Persona/
 │   ├── PersonaStore.swift          the editable persona, seeded from a bundled preset
+│   ├── AgentIdentityProse.swift    the free-text identity file, with the same guards
+│   ├── PersonaCareEval.swift       the care-context prompts, judged inside --selftest-persona
 │   └── AgentPromptContext.swift    every section of the agent's system prompt, in order
 ├── Activation/
 │   ├── ActivationController.swift  shortcut + wake phrase → agent session
@@ -418,12 +454,22 @@ Sources/NextNotes/
 │   ├── AgentCaptureController.swift  duplex session; VAD ends a turn, not Done
 │   └── WakeWord/                   phrase config, local keywords.txt, trainer
 ├── Computer/
-│   ├── ComputerToolExecutor.swift  NSWorkspace + Accessibility, no screenshots
+│   ├── ComputerToolExecutor.swift  NSWorkspace + Accessibility; screenshots are a gated
+│   │                               last resort, taken only after a stub tree or a reason;
+│   │                               scroll / drag / double- / right-click / wait_for; click
+│   │                               also takes normalized x,y fractions for pixel-only UIs
+│   ├── ScreenCapture.swift         ScreenCaptureKit focused-window capture, ≤1280px,
+│   │                               memory-only; LLMImage, VisionScope, VisionConsentGate,
+│   │                               ScreenshotStore, the one-retry VerifyRetry policy
 │   ├── ComputerIntent.swift        click / type / inspect parsed from an utterance
-│   ├── ComputerSelfTestHarness.swift  --selftest-computer: an owned window, then a stub
-│   ├── AccessibilitySnapshot.swift inspect_ui ids the click/set_text tools reuse
-│   ├── BrowserToolExecutor.swift   Accessibility browser fallback
-│   └── BrowserCDPClient.swift      target-bound Chromium debugger actions
+│   ├── ComputerSelfTestHarness.swift  --selftest-computer, --selftest-computer-actions and
+│   │                               --selftest-click-coordinate: owned windows, walked by
+│   │                               title so a refused activation cannot mislead
+│   ├── AccessibilitySnapshot.swift inspect_ui ids the click/set_text tools reuse, compact
+│   │                               by default; element-under-point for coordinate clicks
+│   ├── BrowserToolExecutor.swift   Accessibility browser fallback; cdp_status, guided
+│   │                               relaunch_debug, read_page, wait; screenshot + purchase
+│   ├── BrowserCDPClient.swift      target-bound Chromium debugger actions (text frames)
 ├── Shell/
 │   ├── FilesystemExecutor.swift    bounded search, read/write/trash
 │   └── ShellExecutor.swift         cancellable zsh, privileged commands refused
@@ -433,6 +479,7 @@ Sources/NextNotes/
 ├── UI/
 │   ├── DesignSystem.swift          every colour, size, radius, duration token
 │   ├── MainWindow.swift            NavigationSplitView shell
+│   ├── UIStringsLint.swift         --selftest-ui-strings: no developer words on any screen
 │   ├── Sidebar.swift               section list, plus the live "Recording" row
 │   ├── HUDPanel.swift              non-activating floating panel
 │   ├── HUDView.swift               capsule: red dot + level bar + transcript, glass
@@ -454,10 +501,18 @@ Sources/NextNotes/
 │   │                               TranscriptView, MeetingActionsView,
 │   │                               ProposalArgumentsSheet, SpeakerNamesSheet,
 │   │                               RenameMeetingSheet
-│   ├── Agent/                      AgentView — conversation, tasks, audit history;
-│   │                               RoutinesView — schedules, run history, drafts;
+│   ├── Agent/                      AgentView — conversation, activity history, audit trail;
+│   │                               ActivityView — cross-session history, approvals ledger,
+│   │                               heartbeat; IdeasView — the static gallery; GoalsView;
+│   │                               AgentWorkingCard — status pill, live view, ✓/◐ steps,
+│   │                               terminal result; FailureCard — what did and did not
+│   │                               happen, undo or "nothing to undo", ≤2 ways forward;
+│   │                               VisionConsentSheet — the thumbnail before anything leaves;
+│   │                               RoutinesView — reminders and goals, run history, drafts;
 │   │                               SkillsView; ToolReviewCard — what will happen, what is
-│   │                               missing, and where every value came from
+│   │                               missing, and where every value came from;
+│   │                               PortraitView — insight drafts and the six life-corner
+│   │                               cards, kept and crossed out one at a time
 │   ├── Knowledge/                  KnowledgeSearchView; KnowledgeGraphPane, which now
 │   │                               lives under Agent rather than under Search
 │   ├── Onboarding/                 PermissionsChecklist, plus the first-run flow:
@@ -473,7 +528,9 @@ Sources/NextNotes/
 │                                   ModelLibrary/ (browse and download from Hugging Face,
 │                                   with a plain-language "will it run on this Mac"),
 │                                   FastListeningSection, MemoryDataControls +
-│                                   MemoryImportSheet.
+│                                   MemoryImportSheet, ComputerBrowserReadiness (the
+│                                   ocu-doctor row: grants, frontmost browser, CDP port —
+│                                   each grey with the sentence for what to do).
 └── Support/
     ├── Settings.swift, LocalModelStore.swift, Permissions.swift, Log.swift
     ├── ModelDownloader.swift       one ModelSpec download path with progress + SHA-256
@@ -526,6 +583,10 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 #                                         including arming: correlation, the grant guard, ask-first
 "$S" --selftest-island                  # island geometry per display, panel invariants, states
 "$S" --selftest-orb                     # the nine ThinkingOrb states at both sizes
+"$S" --selftest-avatar                  # the character: generated faces round-trip, four layers
+#                                         compose, ten states never share a pose, tool → state
+"$S" --avatar-sheet [path]              # diagnostic: draws every avatar state at three instants
+#                                         into one PNG — no Screen Recording grant needed
 "$S" --selftest-gws                     # locate `gws`, read its version and auth state
 "$S" --selftest-agent <meeting-dir>     # proposals as JSON; executes nothing
 "$S" --selftest-cleanup [engine]        # rules / apple / s1 / app-llm / chain / all against the eval corpus
@@ -611,6 +672,15 @@ open -n -a "Next Notes" --args --selftest-microphone --selftest-out /tmp/nextnot
 "$S" --selftest-model-fit               # the "will it run on this Mac" verdict, and no jargon in it
 "$S" --selftest-hf-search               # live Hub search, then a real interrupted-and-resumed download
 "$S" --selftest-memory-portability      # export, re-import, and what the review refuses to save
+"$S" --selftest-voice-turn-routing      # the refusal-loop replay: pending intent, tool-shape gate, denial cap
+"$S" --selftest-wake-live               # hit/false-accept rates for "Hey Will" against real spotter tuning
+"$S" --selftest-computer-vision         # screenshots only after a stub tree; consent fails closed; one retry
+"$S" --selftest-seat-grid               # the D5 seat-grid chain: snapshot, cap check, consent block, receipt
+"$S" --selftest-digest                  # the morning digest routine: reads-only, silence token, consumer words
+"$S" --selftest-podcast                 # the podcast routine: render to a Library file, never the live voice
+"$S" --selftest-guided                  # D9 first success: calendar → names → proposal → approval → one offer
+"$S" --selftest-ui-strings              # no developer words (cron, artifacts, raw tool ids) on any screen
+"$S" --selftest-agent-panes             # every Agent pane has one consumer name, and Reminders ≠ Goals
 ```
 
 Each prints a single `<NAME>_OK` or `<NAME>_FAILED` line last, so they can be read by a
@@ -964,7 +1034,7 @@ this repository instead. If a release ever ships, the call to action is the thin
    server-backed higher-quality tier, but no credential storage, consent UI, or network path
    is present.
 2. **Windows local cleanup.** S1-mini by Superwhisper is a strong candidate; the integration
-   design and constraints are in the local plan `roadmap/S1-MINI-WINDOWS.md` (not in the repo).
+   design and constraints are in the local plan `roadmap/todo/S1-MINI-WINDOWS.md`.
 3. **Notarization and Windows distribution signing.** Local macOS builds use a stable
    Developer ID when available, but neither platform has a complete distribution pipeline.
 4. **Meetings and the agent on Windows.** Everything from the process tap onwards is

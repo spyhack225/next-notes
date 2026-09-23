@@ -76,6 +76,7 @@ enum SkillRegistryError: LocalizedError, Equatable {
     case tooLarge(String)
     case unsafePath(String)
     case notInstalledByUs(String)
+    case removalFailed(String)
     case emptyQuery
 
     var errorDescription: String? {
@@ -94,12 +95,28 @@ enum SkillRegistryError: LocalizedError, Equatable {
             "\(name(of: path)) tried to write outside its own folder, so it was not added."
         case .notInstalledByUs(let name):
             "\(name) came from another app on this Mac, so Next Notes cannot change or remove it."
+        case .removalFailed(let reason):
+            reason
         case .emptyQuery:
             "Type what you would like your assistant to be able to do."
         }
     }
 
     private func name(of path: String) -> String { path.isEmpty ? "That skill" : "“\(path)”" }
+}
+
+/// What a batch removal actually did. Three buckets, because "nothing happened" and "that one
+/// is not ours" are different answers and the UI has to be able to say which.
+struct SkillRemovalOutcome: Equatable, Sendable {
+    /// Folders deleted and lock entries dropped.
+    var removed: [String] = []
+    /// Asked for, but not in the lock file — another app's skill, or one placed here by hand.
+    /// Never touched.
+    var skipped: [String] = []
+    /// In the lock file, but the folder could not be removed. Name → why.
+    var failures: [String: String] = [:]
+
+    var isEmpty: Bool { removed.isEmpty && skipped.isEmpty && failures.isEmpty }
 }
 
 // MARK: - Path safety
@@ -207,8 +224,13 @@ struct SkillLockStore: Sendable {
     }
 
     func forget(name: String) throws {
+        try forget(names: [name])
+    }
+
+    /// Forgets several entries in one load-and-save, so a batch removal writes the lock once.
+    func forget(names: Set<String>) throws {
         var file = load()
-        file.skills.removeAll { $0.name == name }
+        file.skills.removeAll { names.contains($0.name) }
         try save(file)
     }
 }
@@ -463,12 +485,40 @@ struct SkillRegistryClient: Sendable {
     /// Removes a skill we installed. Another app's folder is never touched.
     func remove(name: String) throws {
         guard lock.entry(named: name) != nil else { throw SkillRegistryError.notInstalledByUs(name) }
-        let folder = try SkillPathSafety.destination(directory, for: name)
-        if FileManager.default.fileExists(atPath: folder.path) {
-            try FileManager.default.removeItem(at: folder)
+        let outcome = try remove(names: [name])
+        if let reason = outcome.failures[name] { throw SkillRegistryError.removalFailed(reason) }
+    }
+
+    /// Removes several skills in one pass: every folder first, then a single lock write.
+    ///
+    /// Only names the lock file records are candidates. A name that is not ours is reported
+    /// in `skipped` and nothing on disk is touched — that is the guarantee the whole feature
+    /// rests on, and it holds here rather than in the caller. Every path still goes through
+    /// `SkillPathSafety.destination`, so a hostile name in the lock file cannot escape the
+    /// install directory.
+    @discardableResult
+    func remove(names: [String]) throws -> SkillRemovalOutcome {
+        var outcome = SkillRemovalOutcome()
+        var file = lock.load()
+        for name in names {
+            guard file.skills.contains(where: { $0.name == name }) else {
+                outcome.skipped.append(name)
+                continue
+            }
+            do {
+                let folder = try SkillPathSafety.destination(directory, for: name)
+                if FileManager.default.fileExists(atPath: folder.path) {
+                    try FileManager.default.removeItem(at: folder)
+                }
+                file.skills.removeAll { $0.name == name }
+                outcome.removed.append(name)
+                Log.agent.info("skills: removed \(name, privacy: .public)")
+            } catch {
+                outcome.failures[name] = error.localizedDescription
+            }
         }
-        try lock.forget(name: name)
-        Log.agent.info("skills: removed \(name, privacy: .public)")
+        if !outcome.removed.isEmpty { try lock.save(file) }
+        return outcome
     }
 
     // MARK: Transport

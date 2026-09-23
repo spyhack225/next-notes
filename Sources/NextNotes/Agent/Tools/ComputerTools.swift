@@ -20,8 +20,14 @@ enum ComputerToolCatalogue {
             namespace: .computer,
             name: "inspect_ui",
             description: "A structured accessibility snapshot of the focused window: buttons, "
-                + "fields and tabs with stable element ids the click/set_text tools accept.",
+                + "fields and tabs with stable element ids the click/set_text tools accept. "
+                + "The default output is a compact list, one short line per control with "
+                + "labels cut to about forty characters and window chrome skipped; "
+                + "ask for verbose to get the full tree.",
             risk: .observe,
+            parameters: [
+                .init(name: "verbose", description: "The full tree, including unlabeled containers. Default is the compact list.", isRequired: false),
+            ],
             title: "Inspect UI"
         ),
         .native(
@@ -117,6 +123,64 @@ enum ComputerToolCatalogue {
             parameters: [
                 .init(name: "text", description: "The text to type.", kind: .multiline),
                 .init(name: "id", description: "Optional element id from inspect_ui.", isRequired: false),
+            ]
+        ),
+        .native(
+            namespace: .computer,
+            name: "scroll",
+            description: "Scroll the focused window at an element's position, or at its centre when "
+                + "no id is given. Amount is wheel clicks. A scroll whose visible text did not "
+                + "change comes back as unverified, never as success.",
+            risk: .modify,
+            parameters: [
+                .init(name: "direction", description: "up, down, left or right."),
+                .init(name: "amount", description: "Wheel clicks, 1 to 30. Default 3.", isRequired: false),
+                .init(name: "id", description: "Optional element id from inspect_ui.", isRequired: false),
+            ]
+        ),
+        .native(
+            namespace: .computer,
+            name: "drag",
+            description: "Press at one element's centre and drag to another's, by the ids inspect_ui "
+                + "returned. The drag is posted as a real mouse drag; when accessibility cannot "
+                + "observe its effect, the result says so instead of claiming success.",
+            risk: .modify,
+            parameters: [
+                .init(name: "fromId", description: "The element id to press at, from inspect_ui."),
+                .init(name: "toId", description: "The element id to drag to, from inspect_ui."),
+            ]
+        ),
+        .native(
+            namespace: .computer,
+            name: "double_click",
+            description: "Double-click an accessibility element by the id inspect_ui returned, at the "
+                + "centre of the part of it that is visible. Selects a word in a text field; opens "
+                + "what a single press would not.",
+            risk: .modify,
+            parameters: [
+                .init(name: "id", description: "The element id from inspect_ui."),
+            ]
+        ),
+        .native(
+            namespace: .computer,
+            name: "right_click",
+            description: "Right-click an accessibility element by the id inspect_ui returned. A context "
+                + "menu may open; inspect_ui afterwards shows it, and press_key with escape closes it.",
+            risk: .modify,
+            parameters: [
+                .init(name: "id", description: "The element id from inspect_ui."),
+            ]
+        ),
+        .native(
+            namespace: .computer,
+            name: "wait_for",
+            description: "Poll the focused window every quarter second until text appears — the "
+                + "alternative to re-inspecting blindly. A timeout comes back as a named failure, "
+                + "never as success.",
+            risk: .observe,
+            parameters: [
+                .init(name: "expectedText", description: "The text to wait for."),
+                .init(name: "timeoutSeconds", description: "How long to wait, up to 30. Default 5.", isRequired: false),
             ]
         ),
     ]

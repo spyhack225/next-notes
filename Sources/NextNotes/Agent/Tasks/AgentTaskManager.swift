@@ -202,11 +202,15 @@ final class AgentTaskManager {
                 outcome = try await backend.submit(task)
             }
             try Task.checkCancellation()
+            // P1-5: nested tool calls park their reference and link on the ledger; fold
+            // them in beside whatever the backend itself returned, and keep them on the
+            // task so the terminal card can link them after a relaunch.
+            let captured = AgentArtifactLedger.take(taskID: id)
             update(id) { item in
                 item.status = outcome.status
                 item.progress = outcome.progress
                 item.result = outcome.result
-                item.artifacts = outcome.artifacts
+                item.artifacts = outcome.artifacts + captured.filter { !outcome.artifacts.contains($0) }
                 item.failure = outcome.failure
             }
             AgentActivityStore.shared.finish(
@@ -218,6 +222,7 @@ final class AgentTaskManager {
             } else if let failure = outcome.failure {
                 announce(failure)
             }
+            announceArtifacts(taskID: id)
         } catch is CancellationError {
             update(id) { $0.status = .cancelled }
             announce("Cancelled.")
@@ -288,6 +293,19 @@ final class AgentTaskManager {
         AgentTaskStore.shared.save(tasks)
     }
 
+    /// Folds whatever the ledger holds for this run onto the task's artifact list.
+    /// Called from `execute` and from `--selftest-tasks`'s browser-run fixture; the
+    /// take-on-read keeps a second fold from duplicating the links.
+    func foldArtifacts(taskID: String) {
+        let captured = AgentArtifactLedger.take(taskID: taskID)
+        guard !captured.isEmpty else { return }
+        update(taskID) { item in
+            for artifact in captured where !item.artifacts.contains(artifact) {
+                item.artifacts.append(artifact)
+            }
+        }
+    }
+
     /// Background work used to finish only in the task list. A failure the conversation
     /// never hears is the same shape as a turn that never replied.
     private func announce(_ text: String) {
@@ -299,6 +317,19 @@ final class AgentTaskManager {
         AgentAuditLog.shared.record(kind: .reply, title: trimmed)
         IslandState.shared.showBackgroundAgentReply(trimmed)
         VoiceAnnouncementQueue.shared.enqueue(trimmed)
+    }
+
+    /// The artifact half of a finished run, persisted in the conversation (P1-5).
+    /// Never spoken: a URL read out loud is noise, and the links are for the result card.
+    private func announceArtifacts(taskID: String) {
+        guard let task = task(id: taskID), !task.artifacts.isEmpty else { return }
+        let lines = "What I made for you:\n"
+            + task.artifacts.map { "\u{2022} \($0)" }.joined(separator: "\n")
+        AgentSession.shared.recordAssistant(lines, contextKind: AgentSession.backgroundTaskContextKind)
+        AgentAuditLog.shared.record(kind: .reply, title: "Saved \(task.artifacts.count) result\(task.artifacts.count == 1 ? "" : "s")")
+        IslandState.shared.showBackgroundAgentReply(
+            task.artifacts.count == 1 ? "Saved 1 result." : "Saved \(task.artifacts.count) results."
+        )
     }
 }
 

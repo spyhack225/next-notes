@@ -299,7 +299,7 @@ final class ModelRoleStore {
         let adopted: ModelRoleChoice? = switch Settings.shared.agentModelProvider {
         case .openRouter: .cloud
         case .appleFoundation: .appleFoundation
-        case .localServer, .gemma4E4B: nil
+        case .localServer, .appLLM: nil
         }
         guard let adopted else { return }
         choices[.agent] = adopted
@@ -368,7 +368,7 @@ final class ModelRoleStore {
         case .builtIn, .installedModel, .app:
             // An agent app is a separate process reached through the harness router; the
             // model that answers here is still the built-in one.
-            settings.agentModelProvider = .gemma4E4B
+            settings.agentModelProvider = .appLLM
         case .appleFoundation:
             settings.agentModelProvider = .appleFoundation
         case .localServer:

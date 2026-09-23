@@ -178,7 +178,12 @@ enum AgentToolExecutor {
                 AgentActivityStore.shared.update(
                     taskID: taskID ?? "",
                     kind: AgentActivityProjector.kind(for: tool),
-                    title: publicTitle
+                    title: publicTitle,
+                    // The avatar's state is decided here, where the tool is, rather than
+                    // anywhere downstream that would have to read `publicTitle` back.
+                    avatar: AgentAvatarState.forTool(
+                        namespace: tool.namespace, name: tool.name, risk: tool.risk
+                    )
                 )
                 if taskID == nil {
                     IslandState.shared.showAgentWork(title: publicTitle)
@@ -193,7 +198,13 @@ enum AgentToolExecutor {
                     taskID: taskID,
                     meetingID: meetingID
                 )
-                return try await perform(tool, arguments: prepared.executionPlan.arguments)
+                let result = try await perform(tool, arguments: prepared.executionPlan.arguments,
+                                               taskID: taskID, authority: actionAuthority)
+                // P1-5: a run's artifacts — the reference and the link — ride with the
+                // task id so `AgentTaskManager.execute` can fold them into the result
+                // card. Same fold `LocalAgentBackend` applies to a single-tool task.
+                AgentArtifactLedger.capture(taskID: taskID, result: result)
+                return result
             }
         )
     }
@@ -285,7 +296,9 @@ enum AgentToolExecutor {
     @MainActor
     private static func perform(
         _ tool: AgentTool,
-        arguments: [String: String]
+        arguments: [String: String],
+        taskID: String? = nil,
+        authority: ActionAuthority? = nil
     ) async throws -> AgentToolResult {
         switch tool.source {
         case .mcp, .composio:
@@ -304,6 +317,27 @@ enum AgentToolExecutor {
                 arguments: arguments,
                 rationale: ""
             )
+            // §8.2's two-step ingestion consent: the first read from a newly connected
+            // account runs look → show findings → ask, even under auto-allow reads. Where
+            // nobody can answer — a scheduled run — the look does not happen at all, and the
+            // refusal says so. A self-test must not raise a card over the person's screen
+            // for an account it may legitimately hold, so the gate is skipped there.
+            if tool.risk <= .read, !SelfTest.isRunning,
+               let account = await FirstIngestionGate.unreviewedWorkspaceAccount() {
+                if authority?.isScheduled == true {
+                    return WorkspaceToolResult(summary: FirstIngestionGate.noConsentPathLine(toolID: tool.id))
+                }
+                // The look happens first; the findings decide the card, not the idea of it.
+                let looked = try await WorkspaceToolRunner.run(proposal)
+                let approved = await PermissionGate.shared.ask(
+                    FirstIngestionGate.consentRequest(
+                        toolID: tool.id, account: account, findings: looked.summary))
+                guard approved else {
+                    return WorkspaceToolResult(summary: FirstIngestionGate.notUsedLine(toolID: tool.id))
+                }
+                FirstIngestionGate.shared.markReviewed(account: account, viaTool: tool.id)
+                return looked
+            }
             return try await WorkspaceToolRunner.run(proposal)
         case .meeting:
             return try MeetingToolExecutor.run(tool, arguments: arguments)
@@ -323,6 +357,13 @@ enum AgentToolExecutor {
             // the switch, and turning it off must stop the next run too.
             guard KnowledgeToolGate.mayRun, let context = KnowledgeIndexer.shared.toolContext else {
                 throw KnowledgeToolError.off
+            }
+            // The assembler records the run's four steps itself, so it needs the task id the
+            // search tools never do.
+            if tool.id == AssemblerToolCatalogue.assembleID {
+                return try await AssemblerToolExecutor.run(
+                    tool, arguments: arguments, context: context,
+                    graph: KnowledgeIndexer.shared.graph, taskID: taskID)
             }
             return try await KnowledgeToolExecutor.run(tool, arguments: arguments, context: context)
         case .skills:

@@ -59,8 +59,8 @@ struct LocalModelFunctionCallProposer: FunctionCallProposer {
     /// so Ollama and LM Studio stay allowed without a second check here.
     static func onDevicePreference(_ preferred: LLMProviderID) -> LLMProviderID {
         switch preferred {
-        case .openRouter: .gemma4E4B
-        case .gemma4E4B, .appleFoundation, .localServer: preferred
+        case .openRouter: .appLLM
+        case .appLLM, .appleFoundation, .localServer: preferred
         }
     }
 

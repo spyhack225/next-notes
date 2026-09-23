@@ -113,7 +113,11 @@ final class PermissionGate {
                 detail: approved ? review.auditNote : "Dismissed",
                 toolID: review.toolID,
                 taskID: request?.taskID,
-                meetingID: request?.meetingID
+                meetingID: request?.meetingID,
+                // The sentence that caused the card, with the row (P0-4): a record of an
+                // approval that cannot be read against what was said is a record that has
+                // lost the only thing that made a wrong card obvious.
+                triggerQuote: review.trigger.quote
             )
         }
         // The values the executor reads back are kept until it has read them; the caller

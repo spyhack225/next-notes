@@ -302,6 +302,71 @@ enum ToolCallReviewBuilder {
         }
     }
 
+    // MARK: - Stored references (§8.3 naming map)
+
+    /// The human name for a stored tool reference — a standing grant, an audit row, a
+    /// routine's own list of what it may use. Resolved through the catalogue's own title
+    /// builders, and never a raw dotted id: a row that reads `computer.click` is a row
+    /// nobody can review or revoke.
+    @MainActor
+    static func humanTitle(forToolID id: String) -> String {
+        if let tool = AgentToolRegistry.shared.tool(named: id) {
+            let built = title(for: tool, arguments: [:], context: .empty)
+            if built != id, !built.contains(".") { return built }
+        }
+        return humanName(forToolID: id)
+    }
+
+    /// The same name without the registry, for fixtures and pure checks.
+    static func humanName(forToolID id: String) -> String {
+        if let name = nativeNames[id] { return name }
+        if let tool = WorkspaceTools.all.first(where: { $0.name == id }) {
+            let built = title(for: AgentTool.workspace(tool), arguments: [:], context: .empty)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !built.isEmpty, built != id, !built.contains(".") { return built }
+        }
+        let last = id.split(separator: ".").last.map(String.init) ?? id
+        return prettify(last)
+    }
+
+    /// Native tools whose own title builder is not written for a person. Every entry is a
+    /// sentence a person could read on a card; the fallback (`prettify`) covers anything
+    /// added later without leaking a dotted id.
+    private static let nativeNames: [String: String] = [
+        "filesystem.search": "Looking through your files",
+        "filesystem.read": "Reading a file",
+        "filesystem.write": "Writing a file",
+        "computer.active_app": "Checking which app is in front",
+        "computer.windows": "Looking at the open windows",
+        "computer.inspect_ui": "Looking at an app window",
+        "computer.screenshot": "Taking a screenshot",
+        "computer.get_selection": "Reading what you selected",
+        "computer.clipboard": "Reading the clipboard",
+        "computer.open_app": "Opening an app",
+        "computer.open_url": "Opening a web page",
+        "computer.focus": "Bringing an app forward",
+        "computer.click": "Clicking in an app",
+        "computer.press_key": "Pressing a key",
+        "computer.set_text": "Entering text",
+        "computer.type": "Typing",
+        "browser.snapshot": "Looking at a page",
+        "browser.navigate": "Opening a web page",
+        "browser.click": "Clicking on a page",
+        "browser.fill": "Filling in a form",
+        "browser.download": "Downloading a file",
+        "shell.run": "Running a command",
+        "memory.remember": "Remembering",
+        "memory.recall": "Checking memory",
+        "memory.forget": "Forgetting",
+        "schedule.list": "Checking reminders",
+        "schedule.create": "Setting a reminder",
+        "schedule.update": "Changing a reminder",
+        "schedule.pause": "Pausing a reminder",
+        "schedule.resume": "Resuming a reminder",
+        "schedule.remove": "Removing a reminder",
+        "schedule.run_now": "Running a reminder now",
+    ]
+
     /// The readable name for a recipient. An address whose owner the app knows is shown as
     /// that person; otherwise the address's own local part, capitalised, because
     /// "Send an email to marie.dupont@acme.com" is a sentence nobody reads.

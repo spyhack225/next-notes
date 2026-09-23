@@ -6,23 +6,30 @@ struct AgentAboutView: View {
     @State private var identity = AgentIdentityStore.shared
     @State private var memory = NextMemory.shared
     @State private var settings = Settings.shared
+    @State private var audit = AgentAuditLog.shared
+    @State private var navigation = NavigationState.shared
     @State private var editingName = false
     @State private var nameDraft = ""
     @State private var showAvatarEditor = false
     @State private var avatarDraft = NotionAvatarConfig.default
     @State private var showSoul = false
     @State private var showMemories = false
+    /// The fact a graph dot asked to edit, highlighted when the sheet opens.
+    @State private var memoryFocus: UUID?
+    /// When this pane was opened. The hero falls asleep after ten quiet minutes, and coming
+    /// back to a page you just opened is not quiet on any reading — so the clock starts at
+    /// the later of the last thing the agent did and now.
+    @State private var openedAt = Date()
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: DS.Space.xl) {
-                identityHeader
-                accessCards
-                AgentDataControlsCard()
-            }
-            .padding(DS.Space.page)
-            .frame(maxWidth: DS.Size.agentAboutMaxWidth)
-            .frame(maxWidth: .infinity)
+        AgentPaneScroll {
+            // The one deliberate centred column in the panes: the identity block reads as
+            // a hero, not as a header, so only this block is capped.
+            identityHeader
+                .frame(maxWidth: DS.Size.agentAboutMaxWidth)
+                .frame(maxWidth: .infinity)
+            accessCards
+            AgentDataControlsCard()
         }
         .sheet(isPresented: $showAvatarEditor) {
             NotionAvatarEditor(config: $avatarDraft) {
@@ -34,18 +41,34 @@ struct AgentAboutView: View {
             SoulEditorSheet()
         }
         .sheet(isPresented: $showMemories) {
-            MemoriesEditorSheet()
+            MemoriesEditorSheet(focus: memoryFocus)
                 .onDisappear {
                     if memory.newCount > 0 { memory.markListViewed() }
                 }
         }
+        // A graph dot navigates here before this view exists, so the request is read on
+        // appear as well as on change.
+        .onAppear { presentMemoriesIfAsked() }
+        .onChange(of: navigation.pendingMemory) { _, _ in presentMemoriesIfAsked() }
+    }
+
+    private func presentMemoriesIfAsked() {
+        guard let id = navigation.consumePendingMemory() else { return }
+        memoryFocus = id
+        showMemories = true
     }
 
     // MARK: - Identity
 
     private var identityHeader: some View {
         VStack(spacing: DS.Space.m) {
-            AgentAvatarBadge(config: identity.avatar, size: DS.Size.agentAvatarHero) {
+            AgentAvatarBadge(
+                config: identity.avatar,
+                size: DS.Size.agentAvatarHero,
+                // The agent's own history, not this pane's: anything it has done at all is
+                // what the hero is resting from.
+                restingSince: max(audit.entries.first?.at ?? .distantPast, openedAt)
+            ) {
                 avatarDraft = identity.avatar
                 showAvatarEditor = true
             }
@@ -110,8 +133,8 @@ struct AgentAboutView: View {
     // MARK: - SOUL / MEMORY cards
 
     private var accessCards: some View {
-        GlassGroup(spacing: DS.Space.m) {
-            HStack(alignment: .top, spacing: DS.Space.m) {
+        GlassGroup(spacing: DS.Space.card) {
+            AgentCardGrid(minimum: DS.Size.agentAboutCardIdeal) {
                 accessCard(
                     title: "SOUL",
                     subtitle: "ACCESS WITH CARE",
@@ -126,7 +149,6 @@ struct AgentAboutView: View {
                     symbol: "heart.fill"
                 ) { showMemories = true }
             }
-            .frame(maxWidth: .infinity)
         }
     }
 
@@ -229,6 +251,7 @@ private struct SoulEditorSheet: View {
 
 private struct MemoriesEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
+    var focus: UUID?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -242,7 +265,7 @@ private struct MemoriesEditorSheet: View {
             }
             .padding(DS.Space.card)
             Form {
-                MemoriesEditor()
+                MemoriesEditor(focus: focus)
             }
             .formStyle(.grouped)
         }

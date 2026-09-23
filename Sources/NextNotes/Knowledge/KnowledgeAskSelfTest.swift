@@ -45,6 +45,7 @@ enum KnowledgeAskSelfTest {
         let pricing = KnowledgeFixtures.pricingID
 
         failures += catalogueFailures()
+        failures += toolSelectionFailures()
         failures += await searchToolFailures(context: context)
         failures += await graphFailures(context: context)
         failures += parserFailures()
@@ -263,6 +264,34 @@ enum KnowledgeAskSelfTest {
         return failures
     }
 
+    /// What the meeting review is allowed to advertise. The graph tools are the ones with a
+    /// consent decision behind them: `search_knowledge` carries passages under the Agent's
+    /// own switch, `expand_node`/`timeline` carry the distilled graph and are withheld from
+    /// a cloud reader without the graph's consent.
+    private static func toolSelectionFailures() -> [String] {
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) { if !condition { failures.append(name) } }
+        let off = KnowledgeToolCatalogue.available(indexAvailable: false, graphOn: true, mayReadGraph: true)
+        check("knowledge tools were advertised while the Agent switch is off", off.isEmpty)
+
+        let searchOnly = KnowledgeToolCatalogue.available(indexAvailable: true, graphOn: false, mayReadGraph: true)
+        check("the graph tools were advertised while the graph is off",
+              searchOnly.map(\.id) == [KnowledgeToolCatalogue.searchID])
+
+        let cloud = KnowledgeToolCatalogue.available(indexAvailable: true, graphOn: true, mayReadGraph: false)
+        check("the graph reached a cloud reader without consent",
+              cloud.map(\.id) == [KnowledgeToolCatalogue.searchID])
+
+        let all = KnowledgeToolCatalogue.available(indexAvailable: true, graphOn: true, mayReadGraph: true)
+        check("a local reader did not get every knowledge tool",
+              Set(all.map(\.id)) == KnowledgeToolCatalogue.ids)
+
+        let schema = AgentTool.schemaJSON(for: all)
+        check("a knowledge tool has no schema for the model",
+              KnowledgeToolCatalogue.ids.allSatisfy { schema.contains("\"name\":\"\($0)\"") })
+        return failures
+    }
+
     // MARK: - search_knowledge
 
     private static func searchToolFailures(context: KnowledgeToolContext) async -> [String] {
@@ -371,7 +400,7 @@ enum KnowledgeAskSelfTest {
                 try await KnowledgeToolExecutor.run(timeline, arguments: ["entity": "person:ana"], context: consented)
             }
             check("timeline refused a cloud reader the user consented to", allowed.summary.contains("decision:ship"))
-            let expanded = try await KnowledgeGraphScope.$reader.withValue(.gemma4E4B) {
+            let expanded = try await KnowledgeGraphScope.$reader.withValue(.appLLM) {
                 try await KnowledgeToolExecutor.run(
                     expand, arguments: ["node": "person:ana", "edges": "decided, owns", "depth": "9"], context: withGraph)
             }

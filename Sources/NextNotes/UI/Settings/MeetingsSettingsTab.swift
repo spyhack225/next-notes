@@ -105,6 +105,7 @@ struct MeetingsSettingsTab: View {
 
             Section {
                 Toggle("Write notes when a meeting ends", isOn: $settings.notesAutoGenerate)
+                Toggle("Connect notes to what Next Notes knows", isOn: $settings.notesRelatedContext)
 
                 // Show the currently configured model for meeting notes.
                 // The actual configuration is done in Models settings; this row is
@@ -116,7 +117,7 @@ struct MeetingsSettingsTab: View {
             } header: {
                 Text("Notes")
             } footer: {
-                SettingsNote(text: "Choose which model writes notes in Settings \u{2192} Models \u{2192} Meeting notes. Notes are rewritten on demand from the Regenerate button in a meeting, so the choice isn\u{2019}t final.")
+                SettingsNote(text: "Choose which model writes notes in Settings \u{2192} Models \u{2192} Meeting notes. Notes are rewritten on demand from the Regenerate button in a meeting, so the choice isn\u{2019}t final. Connecting notes adds a Related context section from your saved memory, earlier decisions on the same subjects, past meetings and shared file names \u{2014} each of those still needs its own switch on, and a cloud model still needs the consent its source asks for.")
             }
 
             Section {

@@ -5,9 +5,11 @@ import Foundation
 /// When OpenRouter rate-limits the review, every retry without a gate is another 429:
 /// the scheduler burns through its queue returning nothing, and the ledger fills with
 /// identical failures. The gate holds one date — when the cloud may be tried again — so
-/// `route(.auto)` waits instead of calling, `enqueue()` and `harvestNewSources()` count
-/// a reasoned skip instead of queueing work that cannot run, and the scheduler's
-/// 1→5→15→60 backoff + 3×notice/10×disable (kept from `AgentScheduler`) has time to work.
+/// the cloud leg of `route(.auto)` is removed from the running while it is down (the review
+/// fails over to the local or Apple model on this Mac; it does not stop), `enqueue()` and
+/// `harvestNewSources()` count a reasoned skip only when nothing on this Mac can take over,
+/// and the scheduler's 1→5→15→60 backoff + 3×notice/10×disable (kept from `AgentScheduler`)
+/// has time to work.
 ///
 /// Actor-isolated because `markRateLimited` arrives from a background URL session while
 /// `isDown` is read on the main actor in `runOnce()`. The cached flag exists so the
@@ -30,9 +32,11 @@ actor MemoryCloudGate {
     /// Synchronous mirror for the sync pre-create path. Updated on every write.
     nonisolated(unsafe) private static var cachedDownUntil: Date?
 
+    /// The synchronous mirror is written only by the shared actor's own methods. A test or a
+    /// future caller that builds a local gate must not clobber what `enqueue()` reads, or a
+    /// throwaway instance would silently open the shared gate.
     init(downUntil: Date? = nil) {
         self.downUntil = downUntil
-        Self.cachedDownUntil = downUntil
     }
 
     /// OpenRouter answered 429 (or equivalent). No job is created from this; the caller

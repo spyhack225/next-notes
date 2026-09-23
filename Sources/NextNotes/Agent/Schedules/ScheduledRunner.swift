@@ -126,11 +126,42 @@ struct ScheduledRunOutcome: Equatable, Sendable {
     var calls = 0
     var refusals: [String] = []
     var taskID: String?
+    /// Files a post-processing step produced inside the run (Option B long-form audio).
+    /// Captured on the run's `AgentTask` through `AgentArtifactLedger` by the recorder.
+    var artifacts: [String] = []
 
     static func skipped(_ reason: String) -> ScheduledRunOutcome {
         ScheduledRunOutcome(status: .skipped, text: reason)
     }
 }
+
+/// A routine's final answer after `ScheduledAnswerTransform` has had it.
+///
+/// `text` is what gets recorded and delivered — an announcement, never a file path,
+/// because the delivery is also spoken and `AgentSpeechPolicy` silences anything
+/// containing a URL. `artifacts` are path-or-URL strings that ride the run's
+/// `AgentTask` for the Library.
+struct ScheduledAnswer: Sendable, Equatable {
+    var text: String
+    var artifacts: [String] = []
+
+    init(text: String, artifacts: [String] = []) {
+        self.text = text
+        self.artifacts = artifacts
+    }
+}
+
+/// Optional per-template post-processing for a routine's final answer.
+///
+/// Runs **inside the run**: after the model's last word, before the outcome is finished,
+/// delivered or recorded. This is the seam long-form audio needs — the model produces a
+/// script, deterministic code turns it into a file, and the run still reports one result.
+/// A template returns the schedule's answer unchanged when the schedule is not its own.
+///
+/// `now` is the run's own clock, so the artifact's date cannot drift from the run's.
+typealias ScheduledAnswerTransform = @MainActor (
+    _ schedule: AgentSchedule, _ answer: String, _ taskID: String, _ now: Date
+) async -> ScheduledAnswer
 
 /// Runs one routine. `AgentScheduler` holds one; the self-tests use a scripted one.
 @MainActor
@@ -179,6 +210,9 @@ final class ScheduledRunner: ScheduledRunning {
     private let memorySnapshot: MemorySnapshotCache
     private let registry: AgentToolRegistry
     private let zone: () -> TimeZone
+    /// Template-owned post-processing for a reported answer. Nil keeps every existing
+    /// routine's behaviour byte-for-byte; the podcast template is the only user.
+    private let answerTransform: ScheduledAnswerTransform?
 
     init(
         store: ScheduleStore,
@@ -188,7 +222,8 @@ final class ScheduledRunner: ScheduledRunning {
         personaStore: PersonaStore = .shared,
         memorySnapshot: MemorySnapshotCache = .shared,
         registry: AgentToolRegistry = .shared,
-        timeZone: @escaping () -> TimeZone = { .current }
+        timeZone: @escaping () -> TimeZone = { .current },
+        answerTransform: ScheduledAnswerTransform? = nil
     ) {
         self.store = store
         self.environment = environment
@@ -197,7 +232,8 @@ final class ScheduledRunner: ScheduledRunning {
         self.personaStore = personaStore
         self.memorySnapshot = memorySnapshot
         self.registry = registry
-        zone = timeZone
+        self.zone = timeZone
+        self.answerTransform = answerTransform
     }
 
     /// Mutable state the loop's closures share.
@@ -235,7 +271,7 @@ final class ScheduledRunner: ScheduledRunning {
         let loop: AgentToolLoop.Outcome
         do {
             // The graph answers a cloud route only with its own consent (`KnowledgeGraphScope`).
-            loop = try await KnowledgeGraphScope.$reader.withValue(route == .local ? .gemma4E4B : .openRouter) {
+            loop = try await KnowledgeGraphScope.$reader.withValue(route == .local ? .appLLM : .openRouter) {
                 try await AgentToolLoop.run(
                 user: schedule.prompt,
                 maxRounds: AgentToolLoop.maxRoundsBound,
@@ -270,6 +306,17 @@ final class ScheduledRunner: ScheduledRunning {
         } else if !answer.isEmpty {
             outcome.status = .reported
             outcome.text = answer
+            // The one place a template may turn its answer into a file. Artifacts are
+            // captured on the ledger here, so whoever finishes the task can fold them in;
+            // `LiveScheduledRunRecorder.finish` does exactly that.
+            if let answerTransform {
+                let processed = await answerTransform(schedule, answer, task.id, now)
+                outcome.text = processed.text
+                outcome.artifacts = processed.artifacts
+                for artifact in processed.artifacts {
+                    AgentArtifactLedger.capture(taskID: task.id, artifact: artifact)
+                }
+            }
         } else if !state.drafts.isEmpty {
             outcome.status = .reported
             outcome.text = Self.draftSummary(state.drafts)
@@ -514,6 +561,9 @@ final class LiveScheduledRunRecorder: ScheduledRunRecording {
 
     func finish(taskID: String, status: AgentTaskStatus, result: String?, failure: String?) {
         AgentTaskManager.shared.finishScheduledRun(id: taskID, status: status, result: result, failure: failure)
+        // Option B long-form audio: whatever a run's answer transform captured is folded
+        // onto the task here, so the Library sees the file on the same record as its run.
+        AgentTaskManager.shared.foldArtifacts(taskID: taskID)
     }
 
     func audit(kind: AgentAuditEntry.Kind, title: String, detail: String, toolID: String?,

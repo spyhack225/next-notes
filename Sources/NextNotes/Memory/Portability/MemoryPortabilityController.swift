@@ -89,7 +89,7 @@ final class MemoryPortabilityController {
         // availability check below is the accurate test; a built-in-only guard in front of it
         // turned a Mac with a model from the library into a Mac with none.
         guard InstalledModelLibrary.shared.hasUsableModel else { return nil }
-        let local = LLMProviders.make(.gemma4E4B)
+        let local = LLMProviders.make(.appLLM)
         return await local.unavailableReason == nil ? ProviderMemoryImportModel(provider: local) : nil
     }
 

@@ -136,7 +136,7 @@ struct PermissionPolicy: Sendable {
             return autoRead
         case .modify:
             return tool.namespace == .computer && autoComputerControl
-        case .write, .send, .destructive, .privileged:
+        case .write, .send, .purchase, .destructive, .privileged:
             return false
         }
     }

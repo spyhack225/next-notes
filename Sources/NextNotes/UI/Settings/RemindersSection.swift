@@ -3,8 +3,9 @@ import SwiftUI
 /// Settings → Agent → Reminders.
 ///
 /// The switch, quiet hours and the speech rule, and every reminder the Agent has set with
-/// its sentence, next time and last result — paused, resumed or deleted from here. Routines,
-/// with run history and drafts, live in Agent → Routines; *Open at login* is here and there.
+/// its sentence, next time and last result — paused, resumed or deleted from here.
+/// Recurring runs, with run history and drafts, live in Agent → Reminders; *Open at login*
+/// is here and there.
 struct RemindersSection: View {
     @State private var settings = Settings.shared
     @State private var store = ScheduleStore.shared
@@ -38,7 +39,7 @@ struct RemindersSection: View {
             }
 
             Toggle(isOn: $settings.agentLaunchAtLogin) {
-                rowLabel("Open Next Notes at login", "So routines can run without you opening it.")
+                rowLabel("Open Next Notes at login", "So your reminders and recurring runs can run without you opening it.")
             }
             .onChange(of: settings.agentLaunchAtLogin) { _, on in error = LaunchAtLogin.apply(on) }
 
@@ -64,13 +65,13 @@ struct RemindersSection: View {
                     .foregroundStyle(DS.Color.warning)
             }
         } header: {
-            Text("Reminders and routines")
+            Text("Reminders")
         } footer: {
             VStack(alignment: .leading, spacing: DS.Space.s) {
-                SettingsNote(text: "Reminders still arrive when Next Notes is closed. Routines run only "
-                             + "while it is open, and anything a routine would write or send waits for "
-                             + "your yes.")
-                Button("See your routines") { NavigationState.shared.showRoutines() }
+                SettingsNote(text: "Reminders still arrive when Next Notes is closed. Recurring runs "
+                             + "wait until it is open, and anything a run would write or send waits "
+                             + "for your yes.")
+                Button("See your reminders") { NavigationState.shared.showRoutines() }
                     .buttonStyle(.link)
                     .font(DS.Font.caption)
             }

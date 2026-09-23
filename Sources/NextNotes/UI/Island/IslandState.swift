@@ -87,7 +87,14 @@ final class IslandState {
         /// The dedicated agent shortcut or wake phrase is listening.
         case agentListening(transcript: String, level: Float)
         /// A bounded tool or a background task is in flight.
-        case agentWorking(title: String)
+        ///
+        /// `steps` are consumer step titles (never tool ids), `current` is the 1-based
+        /// number of the step in progress and `total` is how many are known so far. The
+        /// collapsed card shows `current/total`; the expanded card shows the current
+        /// step's title. Kept as a payload rather than read live from
+        /// `AgentActivityStore` so the case stays `Equatable` and the self-test can walk
+        /// it without a run.
+        case agentWorking(steps: [String], current: Int, total: Int)
         /// A spoken answer, held as a notice so it can be read.
         case agentReply(String)
         /// Something went wrong, in the words it went wrong in.
@@ -103,6 +110,19 @@ final class IslandState {
         case problem(String)
 
         var isHidden: Bool { self == .hidden }
+
+        /// The one-line title, with the step numbers left out. What the card leads with.
+        var agentWorkingTitle: String {
+            guard case .agentWorking(let steps, _, _) = self else { return "" }
+            return steps.last ?? "Thinking\u{2026}"
+        }
+
+        /// Compatibility constructor for call sites that only have a title — one step,
+        /// itself the whole run. `NextNotesApp`'s `--selftest-island` fixture and
+        /// `ActionRuntime`'s background-work shim both keep working through this.
+        static func agentWorking(title: String) -> Kind {
+            .agentWorking(steps: [title], current: 1, total: 1)
+        }
 
         /// What the island is saying, with the numbers left out.
         ///
@@ -122,7 +142,7 @@ final class IslandState {
             case .notesReady(let id, _): "notes:\(id)"
             case .agentProposal(let proposal): "proposal:\(proposal.id)"
             case .agentListening: "agent.listening"
-            case .agentWorking: "agent.working"
+            case .agentWorking(_, let current, let total): "agent.working:\(current)/\(total)"
             case .agentReply: "agent.reply"
             case .problem(let message): "problem:\(message)"
             }
@@ -194,6 +214,34 @@ final class IslandState {
     }
 
     var isExpanded: Bool { !kind.isHidden && (isHovered || kind.demandsAttention) }
+
+    // MARK: - The agent's character
+
+    /// What the agent's avatar is doing, or nil where the island should keep the orb.
+    ///
+    /// Only the agent's own four states wear the character. Dictation, meetings and notes
+    /// are the *app* working, and the orb is their vocabulary; the agent answering,
+    /// listening, running something and waiting on a card are the character's.
+    ///
+    /// A proposal is `waiting` rather than `searching`: the work is done and what remains
+    /// is a person's answer, which is exactly the state the orb cannot say and the
+    /// character can.
+    ///
+    /// The live state comes from `AgentActivityStore` — the tool layer's own decision —
+    /// and falls back to `thinking` only for the paths that are not a tool call at all.
+    var avatarState: AgentAvatarState? {
+        switch kind {
+        case .agentListening: .listening
+        case .agentWorking: AgentActivityStore.shared.liveAvatarState ?? .thinking
+        case .agentProposal: .waiting
+        case .agentReply: .done
+        default: nil
+        }
+    }
+
+    /// The saved face, read here rather than in the view for the same reason `cardTitle`
+    /// is: a view body is not the place to reach into another object.
+    var avatarConfig: NotionAvatarConfig { AgentIdentityStore.shared.avatar }
 
     // MARK: - Card copy
 
@@ -329,8 +377,18 @@ final class IslandState {
         // Live, not a notice: Thinking used to expire after islandNotice (8 s) while
         // `askModel` was still waiting, so the island went blank and the turn had nowhere
         // to write the reply.
+        showAgentWork(steps: [title.isEmpty ? "Thinking\u{2026}" : title], current: 1, total: 1)
+    }
+
+    /// The step-aware entry point: the island's collapsed card carries `current/total`
+    /// and the expanded one carries the current step's title (P1-1).
+    func showAgentWork(steps: [String], current: Int, total: Int) {
         notice = nil
-        kind = .agentWorking(title: title)
+        kind = .agentWorking(
+            steps: steps.isEmpty ? ["Thinking\u{2026}"] : steps,
+            current: max(1, current),
+            total: max(1, total)
+        )
         cardIdentity = kind.identity
     }
 
@@ -440,8 +498,18 @@ final class IslandState {
         // whole job is to prove the app heard the words being said right now. A meeting
         // counter losing three seconds to it costs nothing.
         if case .agentWorking = ActivationController.shared.mode {
-            let title = RealtimeAgent.shared.progressTitle
-            return .agentWorking(title: title.isEmpty ? "Thinking…" : title)
+            // P1-1: the running task's own steps, so the notch shows "3/5" and the
+            // current step rather than one opaque "Thinking…" title.
+            let feed = AgentActivityStore.shared.liveSteps
+            if feed.titles.isEmpty {
+                let title = RealtimeAgent.shared.progressTitle
+                return .agentWorking(
+                    steps: [title.isEmpty ? "Thinking\u{2026}" : title],
+                    current: 1,
+                    total: 1
+                )
+            }
+            return .agentWorking(steps: feed.titles, current: feed.current, total: feed.total)
         }
         if case .agentListening = ActivationController.shared.mode {
             return .agentListening(
@@ -500,6 +568,10 @@ final class IslandState {
             _ = AgentCaptureController.shared.lastReply
             _ = RealtimeAgent.shared.progressTitle
             _ = AgentActivityStore.shared.activities.first?.title
+            _ = AgentActivityStore.shared.taskSteps
+            _ = AgentActivityStore.shared.activeTaskID
+            _ = AgentActivityStore.shared.liveAvatarState
+            _ = AgentIdentityStore.shared.avatar
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }

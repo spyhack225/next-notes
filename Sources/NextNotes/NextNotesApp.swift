@@ -199,6 +199,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // that never sees it.
         Notifications.shared.configure()
 
+        // A diagnostic, not a self-test: it reads the live stores, which the self-test
+        // harness deliberately replaces with empty ones. Runs before `runRequestedSelfTest`
+        // so `SelfTest.isRunning` stays false and the real stores load.
+        if CommandLine.arguments.contains("--notes-context-live") {
+            runNotesContextLiveProbe()
+            return
+        }
+
+        // The same shape, for the same reason: `--avatar-sheet` reads the saved face and
+        // draws every state with `ImageRenderer`, which needs no Screen Recording grant —
+        // so the character can be reviewed by eye on a machine where the real UI cannot be
+        // screenshotted at all.
+        if CommandLine.arguments.contains("--avatar-sheet") {
+            runAvatarSheet()
+            return
+        }
+
         if runRequestedSelfTest() { return }
 
         // Dictation, the island and the menu bar must outlive an empty window list. Without
@@ -459,6 +476,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runNotesSelfTest(path: path, diarize: arguments.contains("--diarize"))
             return true
         }
+        if arguments.contains("--selftest-notes-context") {
+            runNotesContextSelfTest()
+            return true
+        }
         if arguments.contains("--selftest-llm-metal") {
             runMetalSelfTest()
             return true
@@ -577,6 +598,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-digest") {
+            Task { @MainActor in
+                SelfTest.failed = !(await DigestSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-podcast") {
+            Task { @MainActor in
+                SelfTest.failed = !(await PodcastSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-guided") {
+            Task { @MainActor in
+                SelfTest.failed = !GuidedFirstSuccessSelfTest.run()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-ui-strings") {
+            SelfTest.failed = !UIStringsLint.run()
+            NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-agent-panes") {
+            Task { @MainActor in
+                SelfTest.failed = !AgentPaneSelfTest.run()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-index") {
             Task { @MainActor in
                 SelfTest.failed = !(await KnowledgeIndexSelfTest.run())
@@ -626,6 +680,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-assemble") {
+            Task { @MainActor in
+                SelfTest.failed = !(await AssemblerSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-portrait") {
+            Task { @MainActor in
+                SelfTest.failed = !(await PortraitSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-file-index") {
             Task { @MainActor in
                 SelfTest.failed = !(await FileIndexSelfTest.run())
@@ -647,6 +715,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-avatar") {
+            Task { @MainActor in
+                SelfTest.failed = !AgentAvatarSelfTest.run()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-skills") {
             Task { @MainActor in
                 SelfTest.failed = !(await SkillsSelfTest.run())
@@ -656,6 +731,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-wake") {
             runWakeSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-wake-live") {
+            Task { @MainActor in
+                let result = WakeWordLiveSelfTest.run(
+                    fixtureDirectory: SelfTest.value(after: "--selftest-wake-live")
+                        .map { URL(fileURLWithPath: $0) }
+                )
+                SelfTest.failed = !result.passed
+                for line in result.summary { writeSelfTest(line) }
+                writeSelfTest(
+                    result.passed
+                        ? "WAKE_LIVE_OK: \(result.headline)"
+                        : "WAKE_LIVE_FAILED: \(result.headline)"
+                )
+                NSApp.terminate(nil)
+            }
             return true
         }
         if arguments.contains("--selftest-tasks") {
@@ -672,6 +764,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-computer") {
             runComputerSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-computer-vision") {
+            SelfTest.failed = !ComputerVisionSelfTest.run()
+            writeSelfTest(
+                SelfTest.failed
+                    ? "COMPUTER_VISION_FAILED"
+                    : "COMPUTER_VISION_OK: stub-gated screenshots, consent gate, pixel budget and one-retry policy verified"
+            )
+            NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-computer-actions") {
+            Task { @MainActor in
+                let ok = ComputerActionsSelfTest.run()
+                SelfTest.failed = !ok
+                writeSelfTest(
+                    ok
+                        ? "COMPUTER_ACTIONS_OK: scroll moved the text view both ways, double_click selected a word, "
+                            + "wait_for found its text and timed out honestly, and drag and right_click reported what they could not verify"
+                        : "COMPUTER_ACTIONS_FAILED"
+                )
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-click-coordinate") {
+            Task { @MainActor in
+                let ok = ClickCoordinateSelfTest.run()
+                SelfTest.failed = !ok
+                writeSelfTest(
+                    ok
+                        ? "CLICK_COORDINATE_OK: the fraction grammar refused out-of-range and missing values, the element id "
+                            + "outranked the coordinate, and the target-line parser held against canned completions"
+                        : "CLICK_COORDINATE_FAILED"
+                )
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-seat-grid") {
+            Task { @MainActor in
+                let ok = SeatGridSelfTest.run()
+                SelfTest.failed = !ok
+                writeSelfTest(
+                    ok
+                        ? "SEAT_GRID_OK: snapshot, screenshot gate, click retry, cap check, consent block and receipt verified"
+                        : "SEAT_GRID_FAILED"
+                )
+                NSApp.terminate(nil)
+            }
             return true
         }
         if arguments.contains("--selftest-mcp") {
@@ -700,6 +843,211 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-browser") {
             runBrowserSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-cdp") {
+            // P2-A: CDP end to end against a real Chromium binary. No TCC grant is
+            // involved — the browser is launched headless on an ephemeral port with a
+            // temp profile, so the only thing the test can fail on is the thing it
+            // names: the debugger answering, the snapshot coming back, the page being
+            // read, and a wait that must both succeed and time out honestly.
+            Task { @MainActor in
+                var failures: [String] = []
+                func check(_ name: String, _ condition: Bool) {
+                    if !condition { failures.append(name) }
+                }
+                do {
+                    for (id, risk) in [
+                        ("browser.cdp_status", AgentRisk.observe),
+                        ("browser.relaunch_debug", AgentRisk.modify),
+                        ("browser.read_page", AgentRisk.observe),
+                        ("browser.wait", AgentRisk.observe),
+                    ] {
+                        guard let tool = AgentToolRegistry.shared.tool(named: id) else {
+                            check("\(id) is not registered", false)
+                            continue
+                        }
+                        check("\(id) registered with the wrong risk (\(tool.risk.rawValue))", tool.risk == risk)
+                    }
+
+                    guard let browser = DebugBrowser.installed() else {
+                        SelfTest.failed = true
+                        writeSelfTest("CDP_ABSENT: no Chromium-family browser installed")
+                        NSApp.terminate(nil)
+                        return
+                    }
+                    let marker = "CDP-SELFTEST-MARKER-9182"
+                    let tempRoot = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("nextnotes-cdp-selftest-\(UUID().uuidString)", isDirectory: true)
+                    try FileManager.default.createDirectory(at: tempRoot, withIntermediateDirectories: true)
+                    defer { try? FileManager.default.removeItem(at: tempRoot) }
+                    let fixture = tempRoot.appendingPathComponent("cdp-fixture.html")
+                    try """
+                        <!doctype html>
+                        <html><head><title>CDP fixture page</title></head>
+                        <body><h1>CDP fixture heading</h1><p>Marker: \(marker)</p>
+                        <button>OK</button></body></html>
+                        """.write(to: fixture, atomically: true, encoding: .utf8)
+                    func freePort() -> Int? {
+                        let fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
+                        guard fd >= 0 else { return nil }
+                        defer { close(fd) }
+                        var address = sockaddr_in()
+                        address.sin_family = sa_family_t(AF_INET)
+                        address.sin_port = 0
+                        address.sin_addr = in_addr(s_addr: INADDR_ANY)
+                        let bound = withUnsafePointer(to: &address) { pointer in
+                            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                                Darwin.bind(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+                            }
+                        }
+                        guard bound == 0, listen(fd, 1) == 0 else { return nil }
+                        var boundAddress = sockaddr_in()
+                        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+                        let named = withUnsafeMutablePointer(to: &boundAddress) { pointer in
+                            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                                getsockname(fd, $0, &length)
+                            }
+                        }
+                        guard named == 0 else { return nil }
+                        return Int(UInt16(bigEndian: boundAddress.sin_port))
+                    }
+                    guard let port = freePort() else {
+                        throw NSError(
+                            domain: "CDPSelfTest", code: 1,
+                            userInfo: [NSLocalizedDescriptionKey: "no ephemeral port could be bound"]
+                        )
+                    }
+                    let process = try DebugBrowser.launch(browser.url, arguments: [
+                        "--headless=new",
+                        "--remote-debugging-port=\(port)",
+                        "--user-data-dir=\(tempRoot.appendingPathComponent("profile", isDirectory: true).path)",
+                        "--no-first-run",
+                        "--no-default-browser-check",
+                        fixture.absoluteString,
+                    ])
+                    defer {
+                        if process.isRunning { process.terminate() }
+                        let deadline = Date().addingTimeInterval(5)
+                        while process.isRunning && Date() < deadline {
+                            usleep(100_000)
+                        }
+                        if process.isRunning {
+                            Darwin.kill(process.processIdentifier, SIGKILL)
+                        }
+                    }
+                    var probe: BrowserCDPClient.Probe?
+                    let deadline = Date().addingTimeInterval(25)
+                    while probe == nil && Date() < deadline {
+                        probe = await BrowserCDPClient.probe(host: "127.0.0.1", port: port)
+                        if probe == nil { try? await Task.sleep(for: .milliseconds(250)) }
+                    }
+                    guard let probe else {
+                        throw NSError(
+                            domain: "CDPSelfTest", code: 2,
+                            userInfo: [NSLocalizedDescriptionKey:
+                                "the headless debugger never answered on port \(port)"]
+                        )
+                    }
+                    check(
+                        "probe reported no browser",
+                        probe.browser.isEmpty == false
+                    )
+                    let targets = try await BrowserCDPClient.listTargets(
+                        baseURL: URL(string: "http://127.0.0.1:\(port)")!
+                    )
+                    guard let fixtureTarget = targets.first(where: {
+                        $0.url.contains("cdp-fixture.html")
+                    }) else {
+                        throw NSError(
+                            domain: "CDPSelfTest", code: 3,
+                            userInfo: [NSLocalizedDescriptionKey:
+                                "the target list never advertised the fixture page "
+                                + "(saw \(targets.map(\.url).joined(separator: ", ")))"]
+                        )
+                    }
+                    check(
+                        "the fixture tab was not in the probe",
+                        probe.targets.contains { $0.id == fixtureTarget.id }
+                    )
+                    let snapshot = try await BrowserCDPClient.run(
+                        AgentToolRegistry.shared.tool(named: "browser.snapshot")!,
+                        arguments: ["targetId": fixtureTarget.id],
+                        host: "127.0.0.1",
+                        port: port
+                    )
+                    check(
+                        "the CDP snapshot did not name the fixture tab",
+                        snapshot.summary.contains("CDP targetId:")
+                            && snapshot.summary.contains("cdp-fixture.html")
+                            && snapshot.summary.contains("DOM:")
+                    )
+                    let read = try await BrowserCDPClient.run(
+                        AgentToolRegistry.shared.tool(named: "browser.read_page")!,
+                        arguments: ["targetId": fixtureTarget.id],
+                        host: "127.0.0.1",
+                        port: port
+                    )
+                    check(
+                        "read_page did not return the marker text",
+                        read.summary.contains(marker)
+                    )
+                    check(
+                        "read_page did not return the fixture title",
+                        read.summary.contains("CDP fixture page")
+                    )
+                    let waited = try await BrowserCDPClient.run(
+                        AgentToolRegistry.shared.tool(named: "browser.wait")!,
+                        arguments: [
+                            "expectedURL": "cdp-fixture.html",
+                            "targetId": fixtureTarget.id,
+                        ],
+                        host: "127.0.0.1",
+                        port: port
+                    )
+                    check(
+                        "wait claimed nothing about a URL that was already there",
+                        waited.verification != nil
+                            && waited.summary.contains(fixtureTarget.id)
+                    )
+                    let impossibleAt = Date()
+                    do {
+                        let impossible = try await BrowserCDPClient.run(
+                            AgentToolRegistry.shared.tool(named: "browser.wait")!,
+                            arguments: [
+                                "expectedURL": "never-appears-cdp-selftest",
+                                "timeoutSeconds": "2",
+                                "targetId": fixtureTarget.id,
+                            ],
+                            host: "127.0.0.1",
+                            port: port
+                        )
+                        let took = Date().timeIntervalSince(impossibleAt)
+                        check(
+                            "an impossible wait claimed success",
+                            impossible.verification == nil
+                                && impossible.summary.contains("never-appears-cdp-selftest")
+                        )
+                        check(
+                            "the impossible wait gave up in \(String(format: "%.1f", took))s instead of roughly its 2s timeout",
+                            took >= 1.5 && took < 8
+                        )
+                    } catch {
+                        failures.append(
+                            "the impossible wait threw instead of reporting honestly: "
+                                + error.localizedDescription
+                        )
+                    }
+                } catch {
+                    failures.append(error.localizedDescription)
+                }
+                for failure in failures { writeSelfTest("  CDP_WRONG: \(failure)") }
+                writeSelfTest(failures.isEmpty
+                              ? "CDP_OK: real Chromium debugger answered targets, snapshot, read_page, "
+                                  + "a waited URL and an honest timeout"
+                              : "CDP_FAILED: \(failures.count) leg(s) wrong")
+                NSApp.terminate(nil)
+            }
             return true
         }
         if arguments.contains("--selftest-settings") {
@@ -1086,6 +1434,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 for failure in failures { print("VOICE_TURNS_WRONG: \(failure)") }
                 SelfTest.failed = !failures.isEmpty
                 writeSelfTest(failures.isEmpty ? "VOICE_TURNS_OK" : "VOICE_TURNS_FAILED")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-turn-routing") {
+            Task { @MainActor in
+                SelfTest.failed = !(await VoiceCapabilityConversationSelfTest.runTurnRouting())
+                writeSelfTest(SelfTest.failed ? "VOICE_TURN_ROUTING_FAILED" : "VOICE_TURN_ROUTING_OK")
                 NSApp.terminate(nil)
             }
             return true
@@ -2101,16 +2457,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     ? await Self.diarize(run.segments, fileAt: path, log: writeSelfTest)
                     : run.segments
 
-                let preferred = Settings.shared.notesProvider
-                guard let provider = await LLMProviders.resolve(preferring: preferred) else {
+                // The seam production uses, not a legacy setting: resolving
+                // `Settings.notesProvider` tested a path nothing takes, so a machine whose
+                // notes run on an installed model reported a different one here.
+                let resolution = ModelRoleStore.shared.resolution(for: .meetingNotes)
+                guard let provider = await ModelRoleStore.shared.provider(for: .meetingNotes) else {
                     let reasons = await Self.providerReasons()
                     writeSelfTest("NOTES_FAILED: no provider available — \(reasons)")
                     NSApp.terminate(nil)
                     return
                 }
-                if provider.id != preferred {
-                    let reason = await LLMProviders.make(preferred).unavailableReason ?? ""
-                    writeSelfTest("  note: \(preferred.displayName) unavailable (\(reason))")
+                if resolution.effective != resolution.requested, let note = resolution.note {
+                    writeSelfTest("  note: \(note)")
                 }
 
                 let meeting = Meeting(
@@ -2127,7 +2485,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let missing = NotesPrompts.headings.filter { !result.markdown.contains("## \($0)") }
                 let peak = Double(Self.peakResidentBytes()) / 1_048_576
                 writeSelfTest("""
-                    NOTES_OK: \(provider.id.rawValue)\(result.usedMapReduce ? " (map-reduce)" : ""), \
+                    NOTES_OK: \(provider.displayModelName)\(result.usedMapReduce ? " (map-reduce)" : ""), \
                     \(run.segments.count) segment(s) from \
                     \(String(format: "%.1f", run.audioSeconds))s audio, \
                     \(result.generatedTokens) tokens in \
@@ -2140,6 +2498,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             } catch {
                 writeSelfTest("NOTES_FAILED: \(error.localizedDescription)")
+            }
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// `--selftest-notes-context`: fixture sources only, so it answers on a machine with no
+    /// memory, no index and no model downloaded.
+    private func runNotesContextSelfTest() {
+        Task { @MainActor in
+            _ = await MeetingNotesContextSelfTest.run { writeSelfTest($0) }
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// `--notes-context-live`: the same brief against this machine's own memory, index,
+    /// graph and folders. Read-only; prints `_EMPTY` rather than failing when there is
+    /// legitimately nothing to connect. Must not be renamed to a `--selftest-*` flag — the
+    /// harness isolates the stores and would print an empty brief that proves nothing.
+    private func runNotesContextLiveProbe() {
+        Task { @MainActor in
+            _ = await MeetingNotesContextLiveProbe.run { writeSelfTest($0) }
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// `--avatar-sheet [path]` — every avatar state at three instants, into one PNG.
+    ///
+    /// Takes its path with `SelfTest.value(after:)`, which refuses a value that starts with
+    /// `--`: without that rule a missing path would be read as the next flag and the sheet
+    /// would be written to a file named `--selftest-avatar`.
+    private func runAvatarSheet() {
+        Task { @MainActor in
+            let path = SelfTest.value(after: "--avatar-sheet")
+                ?? FileManager.default.temporaryDirectory
+                    .appendingPathComponent("nextnotes-avatar-sheet.png").path
+            if AgentAvatarSheet.write(to: path) {
+                writeSelfTest("AVATAR_SHEET_OK \(path)")
+                SelfTest.failed = false
+            } else {
+                writeSelfTest("AVATAR_SHEET_FAILED")
+                SelfTest.failed = true
             }
             NSApp.terminate(nil)
         }
@@ -3008,6 +3407,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             var failures = Self.islandStateFailures()
             failures.append(contentsOf: Self.islandViewFailures())
+            failures.append(contentsOf: AgentWorkingCard.scriptedFourStepFailures())
 
             // The one property this panel must never lose. A key island would take focus
             // away from the text field `TextInjector` is about to type into.
@@ -3451,9 +3851,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 NSApp.terminate(nil)
                 return
             }
-            guard let provider = await LLMProviders.resolve(
-                preferring: Settings.shared.notesProvider
-            ) else {
+            guard let provider = await ModelRoleStore.shared.provider(for: .agent) else {
                 let reasons = await Self.providerReasons()
                 writeSelfTest("AGENT_FAILED: no provider available — \(reasons)")
                 NSApp.terminate(nil)
@@ -3482,7 +3880,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     failures.append("proposed the unknown tool \(proposal.tool)")
                 }
                 writeSelfTest("""
-                    AGENT_\(failures.isEmpty ? "OK" : "FAILED"): \(provider.id.rawValue) \
+                    AGENT_\(failures.isEmpty ? "OK" : "FAILED"): \(provider.displayModelName) \
                     proposed \(proposals.count) action(s) in \
                     \(String(format: "%.1f", Date().timeIntervalSince(began)))s, \
                     nothing was executed
@@ -3881,9 +4279,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         check("maximum sensitivity does not reach the measured best variant count",
               loud.variantDepth == 4)
         // The beam is the knob that makes variants worth having at all: with sherpa's
-        // stock width of 4 they evict each other and recall falls.
+        // stock width of 4 they evict each other and recall falls. The measured plateau
+        // is 16 — beam 24 held the same recall on the committed corpus while letting two
+        // more near-misses through (`--selftest-wake-live`).
         check("sensitivity does not widen the decoder beam", loud.maxActivePaths > quiet.maxActivePaths)
-        check("the beam is too narrow to hold the variants", loud.maxActivePaths >= 24)
+        check("the beam is too narrow to hold the variants", loud.maxActivePaths == 16)
         check("the conservative end does not fall back to the stock beam", quiet.maxActivePaths == 4)
         check("variants are held to a looser bar than the phrase itself",
               loud.variantThreshold >= loud.threshold)

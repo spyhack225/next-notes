@@ -74,6 +74,33 @@ struct AgentTool: Sendable, Identifiable {
         )
     }
 
+    /// The `<tools>` block's contents for a mixed catalogue: one JSON object per line, in the
+    /// same Hermes shape as `WorkspaceTools.schemaJSON`, but built from `AgentTool` so the
+    /// knowledge tools render beside the Workspace ones. `JSONSerialization` rather than string
+    /// interpolation, because a description with a quote in it would truncate the block.
+    static func schemaJSON(for tools: [AgentTool]) -> String {
+        tools.compactMap { tool in
+            var properties: [String: Any] = [:]
+            for parameter in tool.parameters { properties[parameter.name] = parameter.schema }
+            let function: [String: Any] = [
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": [
+                    "type": "object",
+                    "properties": properties,
+                    "required": tool.parameters.filter(\.isRequired).map(\.name),
+                ] as [String: Any],
+            ]
+            let envelope: [String: Any] = ["type": "function", "function": function]
+            guard let data = try? JSONSerialization.data(
+                withJSONObject: envelope,
+                options: [.sortedKeys]
+            ) else { return nil }
+            return String(decoding: data, as: UTF8.self)
+        }
+        .joined(separator: "\n")
+    }
+
     /// A native tool defined in this build.
     static func native(
         namespace: AgentToolNamespace,

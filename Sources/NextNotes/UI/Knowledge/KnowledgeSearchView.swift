@@ -262,7 +262,7 @@ struct KnowledgeSearchView: View {
         case .transcript, .notes:
             UUID(uuidString: hit.sourceID).flatMap { meetings.meeting(id: $0)?.title } ?? "Deleted meeting"
         case .conversation: "Agent conversation"
-        case .routine: "Routine run"
+        case .routine: "Goal run"
         case .dictation: "Dictation"
         }
     }

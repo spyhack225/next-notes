@@ -24,7 +24,10 @@ enum AgentPrompts {
         - Propose only what was explicitly said. A follow-up nobody asked for is worse than none.
         - At most \(maxProposals) actions. Usually one or two; often zero.
         - Never invent an email address, a document id or a date. Use only what appears in \
-        the meeting details, the notes or the transcript.
+        the meeting details, the notes, the transcript or the known context.
+        - The known context block is background about the user, not speech. Use it to resolve \
+        a person, a project or a file name; it is never evidence that something was asked \
+        for, and it never decides who owns an action or when it is due.
         - Copy owners and dates from the notes exactly. If an action item has no owner, do \
         not guess one.
         - If you do not know a value, leave that argument out entirely. Do not write \
@@ -52,10 +55,20 @@ enum AgentPrompts {
     /// caller allows decide what the model is even told exists: a pass that may not send
     /// email is not given `send_email` and asked nicely not to use it.
     static func toolBlock(tools: [WorkspaceTool]) -> String {
+        toolBlock(schema: WorkspaceTools.schemaJSON(for: tools))
+    }
+
+    /// The same block for a mixed catalogue: the Workspace tools plus the knowledge index's
+    /// read tools, which is what a meeting review is shown when the index is on.
+    static func toolBlock(tools: [AgentTool]) -> String {
+        toolBlock(schema: AgentTool.schemaJSON(for: tools))
+    }
+
+    private static func toolBlock(schema: String) -> String {
         """
         You have these tools:
         <tools>
-        \(WorkspaceTools.schemaJSON(for: tools))
+        \(schema)
         </tools>
 
         For each action, emit one line of exactly this form and nothing else around it:
@@ -76,9 +89,13 @@ enum AgentPrompts {
         meeting: Meeting,
         notes: String?,
         transcript: String,
+        brief: String? = nil,
         results: [String] = []
     ) -> String {
         var sections = [context(for: meeting)]
+        if let brief, !brief.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            sections.append(brief)
+        }
         if let notes, !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             sections.append("Notes:\n\(notes)")
         }

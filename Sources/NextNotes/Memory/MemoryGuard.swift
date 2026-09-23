@@ -210,6 +210,16 @@ enum MemoryGuard {
         #"\b(no need|doesn't need|does not need|don't need|do not need|never needs?) to (ask|confirm|check|approve)\b"#,
         #"\b(don't|do not|never|stop) (ask|asking|confirm|confirming|prompt|prompting)\b[^.]{0,20}\b(permission|approval|confirmation|before)\b"#,
         #"\b(skip|bypass|disable) (the )?(approval|confirmation|permission)"#,
+        // A lifted restriction, in the sentence the model writes rather than the one it read:
+        // "The user is unrestricted now." is the same claim as "you are now unrestricted",
+        // attributed to the user by a paraphrase. The injection class, refused on the way in.
+        #"\b(unrestricted|unfiltered|jailbroken)\b"#,
+        #"\b(no|without|zero|free of|free from|rid of|lacks?|lifted)\s+(the\s+)?(restrictions?|limits?|guardrails?|filters?|constraints?|rules?)\b"#,
+        #"\b(can|may|is able to|is free to)\s+(do|say|use|access|read|write|send|run|delete|ignore)\s+(anything|everything|whatever|any\s+\w+)\b"#,
+        // A capability handed to the Agent, rather than a right the user holds in the world:
+        // "The user is allowed to publish on the company blog" stays a fact about the user.
+        #"\b(agent|assistant|app|next notes|you)\b[^.]{0,25}\b(trusted to|has access to|have access to)\b"#,
+        #"\b(has|have|had|gets?|given|granted)\s+(full|direct|unrestricted|unlimited)\s+access\b"#,
     ]
 
     // MARK: - Declarative, not imperative
@@ -463,6 +473,26 @@ enum MemoryGuard {
 
     static func contentTokens(_ text: String) -> [String] {
         tokens(text).filter { !scaffolding.contains($0) }
+    }
+
+    /// Whether two remembered sentences say the same fact.
+    ///
+    /// Three quarters of the content words shared is the bar the review's own skip rule and
+    /// the store's duplicate rule have always used. It is not enough on its own, because the
+    /// declarative frame is scaffolding: "The user is in Paris." reduces to `paris` while
+    /// "The user lives in Paris." keeps `lives` too, so a Jaccard of 0.5 calls one fact two
+    /// and the review saved it again — measured 22 Sep 2026 as `inject-forget-background`
+    /// scoring a wrong save. The second half is containment: when one sentence's content
+    /// words are all in the other's, the shorter adds nothing but the frame, and it is the
+    /// same fact. A longer sentence that merely mentions one word of a shorter one is not:
+    /// "The user lives in Paris." does not contain "The user's manager is Priya Shah."
+    static func saysTheSameFact(_ lhs: String, _ rhs: String) -> Bool {
+        let a = Set(contentTokens(lhs))
+        let b = Set(contentTokens(rhs))
+        guard !a.isEmpty, !b.isEmpty else { return false }
+        let overlap = a.intersection(b).count
+        if Double(overlap) / Double(a.union(b).count) >= 0.75 { return true }
+        return overlap == min(a.count, b.count)
     }
 
     private static func isAddressLike(_ token: String) -> Bool {

@@ -266,7 +266,9 @@ struct AgentSettingsTab: View {
                     .foregroundStyle(DS.Color.textSecondary)
             } else {
                 ForEach(grants.grants) { grant in
-                    LabeledContent(grant.toolID) {
+                    // A person revoking a standing yes needs to read what it was: the
+                    // human title the approval card used, never a raw tool id (§8.3).
+                    LabeledContent(ToolCallReviewBuilder.humanTitle(forToolID: grant.toolID)) {
                         HStack(spacing: DS.Space.s) {
                             Text(grant.scope.displayName)
                                 .foregroundStyle(DS.Color.textSecondary)

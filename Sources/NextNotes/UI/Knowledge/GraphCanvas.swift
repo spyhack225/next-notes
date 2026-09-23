@@ -310,7 +310,7 @@ struct GraphCanvas: View {
     private static let glyphTypes = [
         "Person", "Meeting", "Decision", "ActionItem", "OpenQuestion", "Artifact",
         "Topic", "Project", "Organization", "Place", "Activity", "Goal",
-        "Preference", "Event", "Folder", "File",
+        "Preference", "Event", "Folder", "File", "Memory",
     ]
 
     // MARK: - Hover chip

@@ -130,8 +130,8 @@ enum DigestSelfTest {
             check("the prompt does not name \(tool)", prompt.contains(tool))
         }
         check("the prompt reaches the web, news tools, or a feed",
-              prompt.contains("news.") || prompt.contains("browser.") || prompt.contains("http")
-                || prompt.lowercased().contains("web_search") || prompt.lowercased().contains("websearch"))
+              !(prompt.contains("news.") || prompt.contains("browser.") || prompt.contains("http")
+                || prompt.lowercased().contains("web_search") || prompt.lowercased().contains("websearch")))
         check("the prompt lost its never-browse rule", prompt.contains("Never browse the web"))
         check("the prompt lost the silence token", prompt.contains(ScheduledRunner.silenceToken))
         check("the prompt lost the source-and-date rule", prompt.contains("source and date"))
@@ -146,7 +146,7 @@ enum DigestSelfTest {
                   when.repeatRule == .weekdays && when.time == ScheduleLocalTime(hour: 6, minute: 0)
                     && when.timeZone == zone.identifier)
             let ends = try ScheduleToolExecutor.parseEndsOn(arguments["endsOn"] ?? "", timeZone: zone)
-            check("the default ends", ends != nil)
+            check("the default ends", ends == nil)
         } catch {
             failures.append("template: the create arguments do not parse: \(error.localizedDescription)")
         }
@@ -163,7 +163,7 @@ enum DigestSelfTest {
         }
         let restated = DigestTemplate.restatement().lowercased()
         check("the restatement does not name the sources in plain words",
-              !restated.contains("calendar") || !restated.contains("notes") || !restated.contains("mail"))
+              restated.contains("calendar") && restated.contains("notes") && restated.contains("mail"))
 
         // The city comes from the zone id, locally.
         check("city derivation wrong",
@@ -289,8 +289,23 @@ enum DigestSelfTest {
         }
     }
 
+    /// Forwards to the scripted model while recording the system prompt. A struct, not a
+    /// `ScriptedMemoryReviewModel`: its closure is synchronous, and the forward has to
+    /// await the inner model.
+    private struct CapturingModel: MemoryReviewModel {
+        let inner: any MemoryReviewModel
+        let capture: SystemCapture
+
+        var label: String { inner.label }
+
+        func complete(system: String, user: String) async throws -> String {
+            capture.add(system)
+            return try await inner.complete(system: system, user: user)
+        }
+    }
+
     private final class DigestEnvironment: ScheduledRunEnvironment {
-        var model: ScriptedMemoryReviewModel = ScriptedMemoryReviewModel { _, _ in "NOTHING_TO_REPORT" }
+        var model: any MemoryReviewModel = ScriptedMemoryReviewModel { _, _ in "NOTHING_TO_REPORT" }
         let capture = SystemCapture()
         var systems: [String] {
             capture.snapshot()
@@ -301,12 +316,7 @@ enum DigestSelfTest {
         func isCloudConfigured() async -> Bool { true }
         func model(for route: RoutineModelRoute) async -> (any MemoryReviewModel)? {
             if case .skip = route { return nil }
-            let capture = capture
-            let inner = model
-            return ScriptedMemoryReviewModel { system, user in
-                capture.add(system)
-                return try await inner.complete(system: system, user: user)
-            }
+            return CapturingModel(inner: model, capture: capture)
         }
     }
 

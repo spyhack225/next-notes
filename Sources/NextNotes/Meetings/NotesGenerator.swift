@@ -57,6 +57,7 @@ struct NotesGenerator: Sendable {
     func notes(
         for meeting: Meeting,
         segments: [TranscriptSegment],
+        brief: MeetingNotesBrief = .empty,
         progress: @escaping ProgressHandler = { _ in }
     ) async throws -> Result {
         let transcript = segments.plainText(speakerNames: meeting.speakerNames)
@@ -67,17 +68,28 @@ struct NotesGenerator: Sendable {
         let began = Date()
         progress(Step(message: "Reading the transcript\u{2026}", fraction: nil))
         let transcriptTokens = try await provider.countTokens(transcript)
+        // The brief shares the window with the transcript, so it is counted before the
+        // single-pass decision rather than after it: an uncounted block is a prompt the
+        // runtime rejects on exactly the meetings that have the most context to add.
+        let block = brief.promptBlock
+        let briefTokens = block.isEmpty ? 0 : try await provider.countTokens(block)
         let budget = provider.contextTokens - Self.reservedTokens
         guard budget > 0 else { throw NotesError.contextTooSmall }
 
-        if transcriptTokens <= budget {
+        if transcriptTokens + briefTokens <= budget {
             progress(Step(message: "Writing notes\u{2026}", fraction: nil))
             let completion = try await provider.complete(
                 system: NotesPrompts.notesSystem,
-                user: NotesPrompts.notesUser(meeting: meeting, transcript: transcript),
-                maxTokens: outputBudget(promptTokens: transcriptTokens)
+                user: NotesPrompts.notesUser(meeting: meeting, transcript: transcript, brief: brief),
+                maxTokens: outputBudget(promptTokens: transcriptTokens + briefTokens)
             )
-            let markdown = NotesFormatter.tidy(completion.text)
+            var markdown = NotesFormatter.tidy(completion.text)
+            // No Known context block means there is nothing true to connect, and a model
+            // asked for the section writes one anyway. The prompt says the empty marker;
+            // this is what makes that true.
+            if brief.isEmpty {
+                markdown = NotesFormatter.emptySection(NotesPrompts.relatedHeading, in: markdown)
+            }
             guard !NotesFormatter.isBlank(markdown) else { throw NotesError.emptyNotes }
             return Result(
                 markdown: markdown,
@@ -93,6 +105,8 @@ struct NotesGenerator: Sendable {
             segments: segments,
             transcript: transcript,
             transcriptTokens: transcriptTokens,
+            brief: brief,
+            briefTokens: briefTokens,
             budget: budget,
             began: began,
             progress: progress
@@ -106,6 +120,8 @@ struct NotesGenerator: Sendable {
         segments: [TranscriptSegment],
         transcript: String,
         transcriptTokens: Int,
+        brief: MeetingNotesBrief,
+        briefTokens: Int,
         budget: Int,
         began: Date,
         progress: @escaping ProgressHandler
@@ -129,6 +145,8 @@ struct NotesGenerator: Sendable {
                 message: "Reading part \(index + 1) of \(chunks.count)\u{2026}",
                 fraction: Double(index) / Double(chunks.count + 1)
             ))
+            // No brief here on purpose: the map step's job is "write only what was said",
+            // and context facts in this prompt come back as claims someone made.
             let completion = try await provider.complete(
                 system: NotesPrompts.mapSystem,
                 user: NotesPrompts.mapUser(
@@ -154,7 +172,7 @@ struct NotesGenerator: Sendable {
         // The facts can themselves outgrow the window on a very long meeting. Trimming the
         // oldest is the least-bad answer: the end of a meeting is where its decisions are.
         var joined = facts.joined(separator: "\n")
-        while try await provider.countTokens(joined) > budget, facts.count > 1 {
+        while try await provider.countTokens(joined) + briefTokens > budget, facts.count > 1 {
             facts.removeFirst()
             joined = facts.joined(separator: "\n")
         }
@@ -162,15 +180,17 @@ struct NotesGenerator: Sendable {
         let factTokens = try await provider.countTokens(joined)
         let completion = try await provider.complete(
             system: NotesPrompts.reduceSystem,
-            user: NotesPrompts.reduceUser(meeting: meeting, facts: joined),
-            maxTokens: outputBudget(promptTokens: factTokens)
+            user: NotesPrompts.reduceUser(meeting: meeting, facts: joined, brief: brief),
+            maxTokens: outputBudget(promptTokens: factTokens + briefTokens)
         )
         generated += completion.generatedTokens
 
         let markdown = NotesFormatter.tidy(completion.text)
         guard !NotesFormatter.isBlank(markdown) else { throw NotesError.emptyNotes }
         return Result(
-            markdown: markdown,
+            markdown: brief.isEmpty
+                ? NotesFormatter.emptySection(NotesPrompts.relatedHeading, in: markdown)
+                : markdown,
             providerID: provider.id,
             generatedTokens: generated,
             duration: Date().timeIntervalSince(began),
@@ -180,7 +200,7 @@ struct NotesGenerator: Sendable {
 
     private var chunkTokens: Int {
         switch provider.id {
-        case .gemma4E4B: Self.localModelChunkTokens
+        case .appLLM: Self.localModelChunkTokens
         case .appleFoundation: Self.appleChunkTokens
         // A model served over HTTP, here or in the cloud, has a window we cannot read
         // exactly, so both use the conservative local chunk size.
@@ -279,7 +299,7 @@ enum NotesFormatter {
         return lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// The five sections, in order, each present exactly once.
+    /// The six sections, in order, each present exactly once.
     static func tidy(_ text: String) -> String {
         let cleaned = stripCodeFence(stripThinking(text))
         var sections: [String: [String]] = [:]
@@ -328,6 +348,30 @@ enum NotesFormatter {
                     || trimmed == NotesPrompts.emptyMarker
                     || headingName(in: trimmed) != nil
             }
+    }
+
+    /// Replaces one section's body with the empty marker, whatever the model wrote there.
+    ///
+    /// The no-context rule is stated in the prompt, and the first live run of this feature
+    /// had Apple's model write a connection to nothing anyway — "the read path touches
+    /// billing — this aligns with known concerns", with no Known context block in the
+    /// message at all. That is the lesson `SpokenStructure` taught: a rule a deterministic
+    /// stage can enforce is not a rule to leave to a prompt. With no block there is nothing
+    /// true to say, so the section is emptied rather than trusted.
+    static func emptySection(_ name: String, in markdown: String) -> String {
+        var result: [String] = []
+        var inside = false
+        for line in markdown.components(separatedBy: .newlines) {
+            if let heading = headingName(in: line) {
+                inside = heading == name
+                result.append(line)
+                if inside { result.append(NotesPrompts.emptyMarker) }
+                continue
+            }
+            if inside { continue }
+            result.append(line)
+        }
+        return result.joined(separator: "\n")
     }
 
     /// Recognises a section heading however the model chose to mark it up.

@@ -412,10 +412,27 @@ struct MeetingDetailView: View {
     /// The key `.task` watches: the meeting, plus every write of any `notes.md`.
     private var notesKey: String { "\(meeting.id)-\(notesService.revision)" }
 
+    /// The provider the meeting-notes role resolves to right now — the effective choice, so
+    /// a role pointed at something unavailable marks the model that would actually run.
+    /// Read from the role store, not a stored provider setting: the role screen is the one
+    /// place that choice lives, and a second copy is how this menu marked the wrong row as
+    /// "(default)".
+    private var defaultNotesProvider: LLMProviderID {
+        switch ModelRoleStore.shared.resolution(for: .meetingNotes).effective {
+        case .builtIn, .installedModel, .app: .appLLM
+        case .appleFoundation: .appleFoundation
+        case .cloud: .openRouter
+        case .localServer: .localServer
+        }
+    }
+
     private func regenerateTitle(_ provider: LLMProviderID) -> String {
-        provider == settings.notesProvider
-            ? "\(provider.displayName) (default)"
+        // The app-model row names the file the runtime will actually load — the built-in
+        // download or an installed model — rather than the kind's generic name.
+        let name = provider == .appLLM
+            ? ModelRoleStore.shared.displayName(for: .builtIn, role: .meetingNotes)
             : provider.displayName
+        return provider == defaultNotesProvider ? "\(name) (default)" : name
     }
 
     /// Says why there is nothing to read. A failure is not one of the cases: that is the

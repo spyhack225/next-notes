@@ -11,6 +11,7 @@ struct MainWindow: View {
 
     @State private var navigation = NavigationState.shared
     @State private var settings = Settings.shared
+    @State private var visionConsent = VisionConsentCoordinator.shared
 
     var body: some View {
         NavigationSplitView {
@@ -24,6 +25,22 @@ struct MainWindow: View {
             minWidth: DS.Size.windowMin.width,
             minHeight: DS.Size.windowMin.height
         )
+        // P1-2: the per-run vision consent sheet. The hook is only installed while this
+        // window can show it; with the window closed, `VisionConsentGate` stays nil and
+        // a screenshot cannot leave the Mac.
+        .sheet(item: $visionConsent.pending) { pending in
+            VisionConsentSheet(
+                request: pending.request,
+                approve: { visionConsent.respond(true) },
+                deny: { visionConsent.respond(false) }
+            )
+        }
+        .task {
+            VisionConsentCoordinator.shared.install()
+        }
+        .onDisappear {
+            VisionConsentCoordinator.shared.uninstall()
+        }
         // First run, in its own window rather than a sheet on this one. It can only be
         // raised once there is an app to attach system prompts to, which is why it is here
         // and not in `applicationDidFinishLaunching`. `OnboardingPresenter` decides whether

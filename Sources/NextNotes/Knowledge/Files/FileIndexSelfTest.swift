@@ -250,7 +250,7 @@ enum FileIndexSelfTest {
             // MARK: Who may be told what is on this Mac
 
             check("an on-device reader is refused the file index",
-                  FileIndexScope.mayRead(reader: .gemma4E4B, cloudConsent: false)
+                  FileIndexScope.mayRead(reader: .appLLM, cloudConsent: false)
                       && FileIndexScope.mayRead(reader: .appleFoundation, cloudConsent: false)
                       && FileIndexScope.mayRead(reader: .localServer, cloudConsent: false))
             check("a cloud reader is handed the file index without consent",

@@ -102,6 +102,20 @@ enum KnowledgeToolCatalogue {
             previewBuilder: nil
         )
     }
+
+    /// The tools a pass may advertise, from the switches and the reader alone.
+    ///
+    /// `search_knowledge` carries passages, which the Agent's own switch already governs; the
+    /// graph tools are withheld from a cloud reader without the graph's consent, exactly as
+    /// `expand_node` refuses at execution. The meeting agent calls this so its tool block and
+    /// its validation see the same list.
+    static func available(indexAvailable: Bool, graphOn: Bool, mayReadGraph: Bool) -> [AgentTool] {
+        guard indexAvailable else { return [] }
+        return all.filter { tool in
+            let isGraph = tool.id == expandID || tool.id == timelineID
+            return !isGraph || (graphOn && mayReadGraph)
+        }
+    }
 }
 
 // MARK: - The graph seam
@@ -156,7 +170,7 @@ enum KnowledgeGraphScope {
         switch reader {
         // `localServer` is a loopback-only server on this same Mac, so it is on-device in
         // the sense that matters here: nothing leaves the machine.
-        case .gemma4E4B, .appleFoundation, .localServer: true
+        case .appLLM, .appleFoundation, .localServer: true
         case .openRouter, nil: cloudConsent
         }
     }

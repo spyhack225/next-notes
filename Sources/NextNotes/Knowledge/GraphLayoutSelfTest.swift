@@ -36,6 +36,35 @@ enum GraphLayoutSelfTest {
         let empty = ForceLayout(ids: [], edges: [], size: size)
         check("empty graph produced placements", empty.placements.isEmpty)
 
+        // MARK: Memories drawn beside the extracted graph
+
+        let memories = MemoryGraphOverlay(items: [
+            .init(id: UUID(), kind: "profile", text: "Ana prefers the pricing page shipped first."),
+            .init(id: UUID(), kind: "note", text: "The user asked about the STEP export."),
+        ])
+        let memoryNodes = memories.nodes()
+        check("a memory produced no node", memoryNodes.count == 2)
+        check("a memory node is not typed Memory", memoryNodes.allSatisfy { $0.type == "Memory" })
+        check("a memory node lost its id", memoryNodes.allSatisfy {
+            MemoryGraphOverlay.memoryID(of: $0.id) != nil
+        })
+        check("a memory node's id does not read back",
+              memories.items.allSatisfy { MemoryGraphOverlay.memoryID(of: MemoryGraphOverlay.id($0)) == $0.id })
+        check("another node's id read as a memory",
+              !MemoryGraphOverlay.isMemoryNode("person:ana") && !MemoryGraphOverlay.isMemoryNode("file:/tmp/x"))
+
+        let known = [
+            KnowledgeGraphNode(id: "person:ana", type: "Person", label: "Ana", sourceChunk: 1),
+            KnowledgeGraphNode(id: "project:pricing", type: "Project", label: "Pricing page", sourceChunk: 2),
+            KnowledgeGraphNode(id: "person:sam", type: "Person", label: "Sam", sourceChunk: 3),
+        ]
+        let mentions = memories.mentions(among: known)
+        check("a mentioned node got no edge",
+              mentions.contains { $0.from == "person:ana" && $0.type == "remembered_as" })
+        check("a node the memories never name got an edge", !mentions.contains { $0.from == "person:sam" })
+        check("a drawn edge lost its source chunk", mentions.allSatisfy { $0.sourceChunk == FileGraphOverlay.noSourceChunk })
+        check("a memory connected to itself", !mentions.contains { MemoryGraphOverlay.isMemoryNode($0.from) })
+
         // MARK: Unconnected groups do not line the frame
         //
         // The artefact this guards against: a map whose folders and files had no edge to

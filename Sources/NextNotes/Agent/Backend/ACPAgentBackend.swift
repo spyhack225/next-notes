@@ -487,32 +487,32 @@ struct ACPAgentBackend: AgentBackend {
 
     static func resolvedCLIPath(_ name: String) -> String? { which(name) }
 
+    /// Where the adapter CLI lives, or nil.
+    ///
+    /// Filesystem only, on purpose. This used to spawn `/usr/bin/which` and wait for it —
+    /// and when the first caller was a SwiftUI body update (`ModelRoleStore.shared` is
+    /// seeded on the first render of the Meetings tab, inside an AttributeGraph
+    /// transaction), `waitUntilExit` spun the main run loop mid-update and SwiftUI
+    /// aborted the process at layout: `AG::precondition_failure`, SIGABRT, measured
+    /// 2026-09-22. `/usr/bin/which` searches the current process's PATH and nothing else,
+    /// so the same answer comes from statting those directories directly — followed by
+    /// the fixed list below, which the spawn never saw either way: LaunchServices does
+    /// not inherit the interactive shell's PATH, so the installed official adapters would
+    /// otherwise be invisible to a copy of Next Notes launched from Finder or `open`.
     private static func which(_ name: String) -> String? {
         if name.contains("/") {
             return FileManager.default.isExecutableFile(atPath: name) ? name : nil
         }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = [name]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-        do { try process.run() } catch { return nil }
-        process.waitUntilExit()
-        if process.terminationStatus == 0 {
-            let path = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            if !path.isEmpty { return path }
-        }
-        // LaunchServices does not inherit the interactive shell's PATH. Homebrew's
-        // global npm prefix is therefore searched explicitly so the installed official
-        // adapters work when Next Notes is launched from Finder or `open`.
+        var directories = (ProcessInfo.processInfo.environment["PATH"] ?? "")
+            .split(separator: ":", omittingEmptySubsequences: true)
+            .map(String.init)
         let home = FileManager.default.homeDirectoryForCurrentUser.path
-        let directories = [
+        directories.append(contentsOf: [
             "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin",
             "\(home)/.local/bin", "\(home)/Library/pnpm", "\(home)/.opencode/bin",
-        ]
-        for directory in directories {
+        ])
+        var searched = Set<String>()
+        for directory in directories where searched.insert(directory).inserted {
             let candidate = URL(fileURLWithPath: directory).appendingPathComponent(name).path
             if FileManager.default.isExecutableFile(atPath: candidate) { return candidate }
         }

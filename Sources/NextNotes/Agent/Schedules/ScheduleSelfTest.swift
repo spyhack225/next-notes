@@ -29,11 +29,19 @@ enum ScheduleSelfTest {
         check("the shared store is not isolated under a self-test",
               !ScheduleStore.shared.directory.path.hasPrefix(AppIdentity.applicationSupportDirectory.path))
 
+        // `LaunchAtLogin.offer` reads the live setting. The user's real "Open at login"
+        // choice must not decide whether this suite passes, so force it off for the run
+        // (the offer string is only produced while it is off) and restore it after.
+        let launchAtLogin = Settings.shared.agentLaunchAtLogin
+        Settings.shared.agentLaunchAtLogin = false
+        defer { Settings.shared.agentLaunchAtLogin = launchAtLogin }
+
         failures += recurrenceFailures()
         failures += await schedulerFailures(root: root)
         failures += await toolFailures(root: root)
         failures += await routineFailures(root: root)
         failures += await triggerFailures(root: root)
+        failures += await GoalSelfTest.failures(root: root.appendingPathComponent("goals"))
         failures += policyFailures()
 
         for failure in failures { print("SCHEDULE_CHECK_FAILED: \(failure)") }

@@ -13,7 +13,7 @@ import SwiftUI
 /// chips work in the seven families a person would actually name out loud, and the finer
 /// type still decides the dot's ink and its glyph.
 enum GraphKind: String, CaseIterable, Identifiable, Sendable {
-    case people, meetings, decisions, work, life, topics, files
+    case people, memories, meetings, decisions, work, life, topics, files
 
     var id: String { rawValue }
 
@@ -21,6 +21,7 @@ enum GraphKind: String, CaseIterable, Identifiable, Sendable {
     var title: String {
         switch self {
         case .people: "People"
+        case .memories: "Memories"
         case .meetings: "Meetings"
         case .decisions: "Decisions"
         case .work: "Projects"
@@ -33,6 +34,7 @@ enum GraphKind: String, CaseIterable, Identifiable, Sendable {
     var symbol: String {
         switch self {
         case .people: "person.2"
+        case .memories: "brain"
         case .meetings: "calendar"
         case .decisions: "checkmark.seal"
         case .work: "briefcase"
@@ -46,6 +48,7 @@ enum GraphKind: String, CaseIterable, Identifiable, Sendable {
     var representativeType: String {
         switch self {
         case .people: "Person"
+        case .memories: "Memory"
         case .meetings: "Meeting"
         case .decisions: "Decision"
         case .work: "Project"
@@ -60,6 +63,7 @@ enum GraphKind: String, CaseIterable, Identifiable, Sendable {
     static func of(_ type: String) -> GraphKind {
         switch type {
         case "Person": .people
+        case "Memory": .memories
         case "Meeting": .meetings
         case "Decision", "ActionItem", "OpenQuestion", "Artifact": .decisions
         case "Project", "Organization", "Goal": .work

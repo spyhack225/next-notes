@@ -37,18 +37,25 @@ extension OpenRouterError: VoiceCodedError {
         case .invalidResponse: .unavailable
         case .keychain: .notConfigured
         case .http(let status, let message):
-            let lower = message.lowercased()
-            if lower.contains("quota") || lower.contains("credit") || lower.contains("balance")
-                || lower.contains("usage limit") { return .quotaExceeded }
-            switch status {
-            case 429: .rateLimited
-            case 401, 403: .notConfigured
-            case 408, 504: .timeout
-            case 500...599: .unavailable
-            default: .unknown
-            }
+            Self.voiceCode(status: status, message: message)
         case .speedProbe: .unavailable
         case .visionBlocked: .unavailable
+        }
+    }
+
+    /// A single expression so the caller can stay a switch expression.
+    private static func voiceCode(status: Int, message: String) -> VoiceProviderErrorCode {
+        let lower = message.lowercased()
+        if lower.contains("quota") || lower.contains("credit") || lower.contains("balance")
+            || lower.contains("usage limit") {
+            return .quotaExceeded
+        }
+        switch status {
+        case 429: return .rateLimited
+        case 401, 403: return .notConfigured
+        case 408, 504: return .timeout
+        case 500...599: return .unavailable
+        default: return .unknown
         }
     }
 }
@@ -580,6 +587,15 @@ extension OpenRouterLLMProvider {
         system: String, user: String, images: [LLMImage], consent: Bool, maxTokens: Int
     ) async throws -> LLMCompletion {
         guard !images.isEmpty, Self.imageParts(images, consent: consent).count == images.count else {
+            throw OpenRouterError.visionBlocked
+        }
+        // The per-run sheet cannot be forgotten at a call site: ask here, where the
+        // bytes would leave. One question for the run, the first thumbnail as the
+        // preview; a denial sends nothing.
+        if let preview = images.first,
+           !(await VisionConsentGate.requestApproval(
+               thumbnail: preview.thumbnail, reason: "send a screenshot to the online model"
+           )) {
             throw OpenRouterError.visionBlocked
         }
         guard let key = await OpenRouterKeyStore.keyAsync() else { throw OpenRouterError.missingKey }

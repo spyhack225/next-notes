@@ -3,7 +3,11 @@ import Observation
 
 /// The switches, read from defaults so the indexer and its self-test agree on keys.
 struct KnowledgeIndexSettings: Equatable, Sendable {
-    var enabled = false
+    /// On by default. Search over the user's own meetings, notes and conversations is the
+    /// feature the Knowledge screen exists for, and an index that has to be switched on is
+    /// one nobody finds. A fixture that needs the off state says so explicitly — the
+    /// isolation in a self-test is deliberate, not the product default.
+    var enabled = true
     var includeConversations = true
     var includeDictation = false
     var includeRoutines = false
@@ -27,7 +31,7 @@ struct KnowledgeIndexSettings: Equatable, Sendable {
     static var fromDefaults: KnowledgeIndexSettings {
         let defaults = UserDefaults.standard
         return KnowledgeIndexSettings(
-            enabled: defaults.object(forKey: enabledKey) as? Bool ?? false,
+            enabled: defaults.object(forKey: enabledKey) as? Bool ?? true,
             includeConversations: defaults.object(forKey: includeConversationsKey) as? Bool ?? true,
             includeDictation: defaults.object(forKey: includeDictationKey) as? Bool ?? false,
             includeRoutines: defaults.object(forKey: includeRoutinesKey) as? Bool ?? false,
@@ -139,7 +143,8 @@ enum KnowledgeDrainResult: Equatable, Sendable {
 @Observable
 final class KnowledgeIndexer {
     /// The production indexer. A self-test never reads or writes the user's files: it gets
-    /// an index in a per-process temporary directory, no sources, and the feature off.
+    /// an index in a per-process temporary directory, no sources, and the feature off —
+    /// explicitly, since the product default is now on.
     static let shared: KnowledgeIndexer = {
         if SelfTest.isRunning {
             let directory = FileManager.default.temporaryDirectory
@@ -147,7 +152,8 @@ final class KnowledgeIndexer {
                                         isDirectory: true)
             return KnowledgeIndexer(store: KnowledgeStore(directory: directory),
                                     sources: EmptyKnowledgeSources(root: directory),
-                                    environment: FixedKnowledgeIndexEnvironment())
+                                    environment: FixedKnowledgeIndexEnvironment(
+                                        settings: KnowledgeIndexSettings(enabled: false)))
         }
         return KnowledgeIndexer(store: KnowledgeStore(directory: AppIdentity.applicationSupportDirectory),
                                 sources: LiveKnowledgeSources(), environment: LiveKnowledgeIndexEnvironment())

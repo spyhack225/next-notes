@@ -175,7 +175,10 @@ struct GraphNodeCard: View {
                 }
 
                 HStack(spacing: DS.Space.xs) {
-                    Button("Open what's around it", action: onOpen)
+                    // A memory dot opens the editor; everything else opens its neighbourhood.
+                    Button(MemoryGraphOverlay.isMemoryNode(node.id)
+                           ? "Edit this memory" : "Open what's around it",
+                           action: onOpen)
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
                     if let path = FileGraphOverlay.path(of: node.id) {

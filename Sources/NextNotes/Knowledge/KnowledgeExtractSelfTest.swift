@@ -418,7 +418,7 @@ enum KnowledgeExtractSelfTest {
         if let context = indexer.toolContext, let expand = KnowledgeToolCatalogue.all.first(where: { $0.id == KnowledgeToolCatalogue.expandID }),
            let timeline = KnowledgeToolCatalogue.all.first(where: { $0.id == KnowledgeToolCatalogue.timelineID }) {
             let reversal = GraphIDs.owned("Decision", meetingID: followUpID.uuidString, ordinal: 0)
-            let expanded = try? await KnowledgeGraphScope.$reader.withValue(.gemma4E4B) {
+            let expanded = try? await KnowledgeGraphScope.$reader.withValue(.appLLM) {
                 try await KnowledgeToolExecutor.run(expand, arguments: ["node": reversal], context: context)
             }
             let cloud = try? await KnowledgeGraphScope.$reader.withValue(.openRouter) {
@@ -430,7 +430,7 @@ enum KnowledgeExtractSelfTest {
             check("expand_node did not show the supersedes edge with its chunk",
                   (expanded?.summary.contains("\"type\":\"supersedes\"") ?? false)
                     && (expanded?.summary.contains("\"valid_from\"") ?? false) && (expanded?.summary.contains("\"source_chunk\":\"c") ?? false))
-            let anaTimeline = try? await KnowledgeGraphScope.$reader.withValue(.gemma4E4B) {
+            let anaTimeline = try? await KnowledgeGraphScope.$reader.withValue(.appLLM) {
                 try await KnowledgeToolExecutor.run(timeline, arguments: ["entity": "Ana"], context: context)
             }
             check("timeline by a person's name found nothing", anaTimeline?.summary.contains("Pricing review") ?? false)

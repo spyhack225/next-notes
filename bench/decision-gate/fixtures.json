@@ -1,0 +1,19 @@
+{
+  "_comment": "Sentences somebody would actually say, with the action the app's own logic expects. gold_tool is the catalogue id, or 'none' when the correct answer is silence. The first ten are FunctionCallSelfTest.fixtures verbatim; the append/create positives come from that file's abstention and hasIntent cases ('Add that to the planning doc', 'Open the planning doc and add a line about the rollout', the two diary sentences). gold_is_request is simply gold_tool != none. family groups synonyms (see catalogue.json). The 'none' cases are the point of the gate: out-of-catalogue commands (browser, folder, media), an informational question, and ordinary conversation must all produce silence.",
+  "fixtures": [
+    {"name": "address said out loud", "utterance": "Can you email sarah@acme.com the Q3 deck and say thanks for the call?", "window": "", "gold_tool": "send_email"},
+    {"name": "no address anywhere", "utterance": "Send Marcus the updated pricing sheet.", "window": "", "gold_tool": "send_email"},
+    {"name": "address said a minute earlier", "utterance": "Alright, send her the deck then.", "window": "You: Sarah is joining late.\nOthers: Her address is sarah@acme.com.", "gold_tool": "send_email"},
+    {"name": "ordinary conversation", "utterance": "Yeah, I totally agree, that makes a lot of sense to me.", "window": "", "gold_tool": "none"},
+    {"name": "browser command (verbatim audit line)", "utterance": "You open Google Chrome and go to youtube.com.", "window": "", "gold_tool": "none"},
+    {"name": "browser command, as said", "utterance": "Open Google Chrome and go to youtube", "window": "", "gold_tool": "none"},
+    {"name": "a folder on this Mac", "utterance": "Open my Next Notes folder", "window": "", "gold_tool": "none"},
+    {"name": "media control", "utterance": "Play some music, something quiet", "window": "", "gold_tool": "none"},
+    {"name": "a question about the diary", "utterance": "What's on my calendar this afternoon?", "window": "", "gold_tool": "none"},
+    {"name": "a search somebody asked for out loud", "utterance": "Search for the pricing page and click the first result", "window": "", "gold_tool": "none"},
+    {"name": "append a line to a doc", "utterance": "Add that to the planning doc", "window": "", "gold_tool": "append_doc"},
+    {"name": "open the doc and add to it", "utterance": "Open the planning doc and add a line about the rollout", "window": "", "gold_tool": "append_doc"},
+    {"name": "diary entry for Thursday", "utterance": "Let's get the deck review in the diary for Thursday morning.", "window": "", "gold_tool": "create_event"},
+    {"name": "put the review in the diary", "utterance": "Put the review in the diary for Thursday morning", "window": "", "gold_tool": "create_event"}
+  ]
+}

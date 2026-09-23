@@ -20,17 +20,30 @@ enum PersonaCareEval {
         func check(_ name: String, _ condition: Bool) {
             if !condition { failures.append("care: \(name)") }
         }
+        // The preset is prose wrapped across lines, so the sentence is looked for with
+        // whitespace folded: a plain `contains` misses "Take care with what\nmatters" and
+        // reported the paragraph missing from a preset that plainly had it.
+        func folded(_ text: String) -> String {
+            text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        }
+        let care = "Take care with what matters"
         // The paragraph is in the preset, bundled and built-in alike.
         check("the base preset lacks the care paragraph",
-              PersonaStore.baseText.contains("Take care with what matters")
-                && PersonaStore.builtInBaseText.contains("Take care with what matters"))
+              folded(PersonaStore.baseText).contains(care)
+                && folded(PersonaStore.builtInBaseText).contains(care))
         if let bundled = PersonaStore.bundledBaseText {
-            check("bundled base preset lacks the care paragraph",
-                  bundled.contains("Take care with what matters"))
+            check("bundled base preset lacks the care paragraph", folded(bundled).contains(care))
         }
-        // Persona-before-rules ordering holds with the longer preset on every user-facing path.
+        // Every path is assembled against a throwaway store seeded from the base preset.
+        // The shared store may hold the self-test's own edit, and the live `persona.md` is
+        // free text the person wrote — a care eval run against either proves nothing about
+        // the preset and, on a machine with a real persona, can never pass.
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NextNotesSelfTest-persona-care-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = PersonaStore(directory: directory)
         for path in AgentPromptPath.userFacingPaths {
-            let context = AgentPromptContext.assemble(path, rules: "Be helpful.")
+            let context = AgentPromptContext.assemble(path, rules: "Be helpful.", personaStore: store)
             guard let personaRange = context.system.range(of: context.persona),
                   let overrideRange = context.system.range(of: AgentPromptContext.overrideLine) else {
                 failures.append("care: \(path.rawValue) has no persona or override line")
@@ -40,8 +53,7 @@ enum PersonaCareEval {
                   personaRange.upperBound <= overrideRange.lowerBound)
             if !context.persona.isEmpty {
                 check("\(path.rawValue) lost the care paragraph",
-                      context.persona.contains("Take care with what matters")
-                        || context.system.contains("Take care with what matters"))
+                      folded(context.persona).contains(care) || folded(context.system).contains(care))
             }
         }
         // The two prompts are documented here so the eval stays honest: a small model is

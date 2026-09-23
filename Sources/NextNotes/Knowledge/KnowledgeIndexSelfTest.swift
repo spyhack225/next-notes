@@ -246,9 +246,14 @@ enum KnowledgeIndexSelfTest {
             _ = await indexer.drain()
             check("excluding routines did not remove them", try store.chunkCount(kind: .routine) == 0)
 
+            // The product default is on, and the off case has to say so itself rather than
+            // inherit a fixture default that happens to match.
+            check("the index switch is not on by default", KnowledgeIndexSettings().enabled)
             let offStore = KnowledgeStore(directory: directory("off"))
             let off = KnowledgeIndexer(store: offStore, sources: sources,
-                                       environment: FixedKnowledgeIndexEnvironment(), drainsOnChange: false)
+                                       environment: FixedKnowledgeIndexEnvironment(
+                                           settings: KnowledgeIndexSettings(enabled: false)),
+                                       drainsOnChange: false)
             let offEnqueued = await off.backfill()
             off.meetingChanged(KnowledgeFixtures.pricingID)
             let offResult = await off.drain()

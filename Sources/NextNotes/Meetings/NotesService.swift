@@ -62,7 +62,7 @@ final class NotesService {
             let reason = if let preferred {
                 await LLMProviders.make(preferred).unavailableReason
             } else {
-                await LLMProviders.make(.gemma4E4B).unavailableReason
+                await LLMProviders.make(.appLLM).unavailableReason
             }
             problems[id] = reason ?? NotesError.noProvider.localizedDescription
             Log.llm.info("no notes provider available for \"\(meeting.title, privacy: .public)\"")
@@ -74,8 +74,9 @@ final class NotesService {
         defer { steps[id] = nil }
 
         do {
+            let brief = await notesBrief(for: meeting, provider: provider)
             let generator = NotesGenerator(provider: provider)
-            let result = try await generator.notes(for: meeting, segments: segments) { step in
+            let result = try await generator.notes(for: meeting, segments: segments, brief: brief) { step in
                 Task { @MainActor [weak self] in self?.steps[id] = step }
             }
             // The meeting can be deleted while the model is generating, and `saveNotes`
@@ -86,11 +87,17 @@ final class NotesService {
             revision += 1
             Log.llm.info("""
                 notes for "\(meeting.title, privacy: .public)" — \
-                \(result.providerID.rawValue, privacy: .public), \
+                \(provider.displayModelName, privacy: .public), \
                 \(result.generatedTokens, privacy: .public) tokens in \
                 \(Int(result.duration), privacy: .public)s\
                 \(result.usedMapReduce ? " (map-reduce)" : "", privacy: .public)
                 """)
+            if !brief.isEmpty {
+                Log.llm.info("""
+                    notes context for "\(meeting.title, privacy: .public)": \
+                    \(brief.sources.joined(separator: "+"), privacy: .public)
+                    """)
+            }
             return provider.displayModelName
         } catch is CancellationError {
             return nil
@@ -99,6 +106,14 @@ final class NotesService {
             Log.llm.error("notes failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
+    }
+
+    /// The connections the notes may draw on, or an empty brief while the user has the
+    /// feature off. Every source inside still applies its own switch and cloud consent —
+    /// this one toggle decides whether the notes even look.
+    private func notesBrief(for meeting: Meeting, provider: any LLMProvider) async -> MeetingNotesBrief {
+        guard Settings.shared.notesRelatedContext else { return .empty }
+        return await MeetingNotesContextAssembler.live.brief(for: meeting, reader: provider.id)
     }
 
     /// Takes a meeting from `.summarizing` to `.done`, writing `notes.md` on the way.

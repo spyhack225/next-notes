@@ -1,0 +1,94 @@
+{
+  "_comment": "The eight tools FunctionCallCatalogue selects on a native install (spokenOrder, capped at maxTools=8), plus the parameterless no_action abstention tool that FunctionCallRelevance.wireTools adds. Families group near-synonyms so the report can score exact-id and family accuracy separately: the catalogue deliberately contains synonyms (three email tools, two calendar tools, two document tools) that no fixture can distinguish by id. Descriptions are terse paraphrases of the registry's own; parameter schemas are representative and sized like the app's, which is what drives Needle's per-proposal latency.",
+  "abstention": {
+    "id": "no_action",
+    "family": "none",
+    "description": "Take no action. Ordinary conversation, a question, or a request for something outside this list.",
+    "parameters": []
+  },
+  "tools": [
+    {
+      "id": "send_email",
+      "family": "email",
+      "description": "Send an email message to someone now.",
+      "criteria": "Send an email to a recipient with a subject and body.",
+      "parameters": [
+        {"name": "to", "description": "The recipient email address.", "required": true},
+        {"name": "subject", "description": "The subject line.", "required": false},
+        {"name": "body", "description": "The message body.", "required": false}
+      ]
+    },
+    {
+      "id": "create_event",
+      "family": "calendar",
+      "description": "Create a calendar event or diary entry at a specific time.",
+      "criteria": "Create a calendar event with a title, start and end time.",
+      "parameters": [
+        {"name": "title", "description": "The event title.", "required": true},
+        {"name": "start", "description": "When it starts, RFC 3339.", "required": true},
+        {"name": "end", "description": "When it ends, RFC 3339.", "required": true}
+      ]
+    },
+    {
+      "id": "draft_email",
+      "family": "email",
+      "description": "Write a draft email to review before sending.",
+      "criteria": "Create an unsent email draft with a subject and body.",
+      "parameters": [
+        {"name": "to", "description": "The recipient email address.", "required": false},
+        {"name": "subject", "description": "The subject line.", "required": false},
+        {"name": "body", "description": "The message body.", "required": false}
+      ]
+    },
+    {
+      "id": "create_doc",
+      "family": "doc",
+      "description": "Create a new document with content.",
+      "criteria": "Create a brand new document given a title and initial content.",
+      "parameters": [
+        {"name": "title", "description": "The document title.", "required": true},
+        {"name": "content", "description": "The initial text.", "required": false}
+      ]
+    },
+    {
+      "id": "schedule.create",
+      "family": "calendar",
+      "description": "Add an item to the schedule at a date and time.",
+      "criteria": "Add a scheduled item or appointment to the diary.",
+      "parameters": [
+        {"name": "title", "description": "What it is called.", "required": true},
+        {"name": "start", "description": "When it starts, RFC 3339.", "required": true},
+        {"name": "end", "description": "When it ends, RFC 3339.", "required": false}
+      ]
+    },
+    {
+      "id": "append_doc",
+      "family": "doc",
+      "description": "Append text to an existing document.",
+      "criteria": "Add a line of text to a document that already exists.",
+      "parameters": [
+        {"name": "document_id", "description": "The document to append to.", "required": true},
+        {"name": "text", "description": "The text to add.", "required": true}
+      ]
+    },
+    {
+      "id": "memory.remember",
+      "family": "memory",
+      "description": "Remember a fact about the user or project for later.",
+      "criteria": "Store a durable note or preference to recall later.",
+      "parameters": [
+        {"name": "content", "description": "The fact to remember.", "required": true}
+      ]
+    },
+    {
+      "id": "reply_email",
+      "family": "email",
+      "description": "Reply to an existing email message.",
+      "criteria": "Reply to a received email thread with a body.",
+      "parameters": [
+        {"name": "message_id", "description": "The message being replied to.", "required": true},
+        {"name": "body", "description": "The reply text.", "required": false}
+      ]
+    }
+  ]
+}

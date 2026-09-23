@@ -175,11 +175,11 @@ struct MemoryExportSheet: View {
 
             if routineCount > 0 {
                 Toggle("Include your \(routineCount) "
-                       + (routineCount == 1 ? "routine" : "routines"), isOn: $includeRoutines)
+                       + (routineCount == 1 ? "goal" : "goals"), isOn: $includeRoutines)
                 if includeRoutines {
-                    // Written down rather than packed up: a routine runs by itself, and a
+                    // Written down rather than packed up: a goal runs by itself, and a
                     // file should not be able to start something running on another Mac.
-                    SettingsNote(text: "Routines are written down so you have a record of "
+                    SettingsNote(text: "Goals are written down so you have a record of "
                                  + "them. Reading this file back doesn't start them again — "
                                  + "you set those up yourself.")
                 }

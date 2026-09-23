@@ -6,7 +6,7 @@ import Foundation
 /// here is a change to the writing, and a change there is a change to the machinery. The two
 /// have very different rates of churn and very different ways of going wrong.
 enum NotesPrompts {
-    /// The five sections notes always have, in order.
+    /// The six sections notes always have, in order.
     ///
     /// Fixed rather than model-chosen so that every meeting's notes are skimmable the same
     /// way, and so `NotesGenerator` can tell "the model omitted a section" from "the model
@@ -17,7 +17,15 @@ enum NotesPrompts {
         "Decisions",
         "Action items",
         "Open questions",
+        relatedHeading,
     ]
+
+    /// The section connections to what the app already knows go under.
+    ///
+    /// Named rather than indexed because two other places address it by name: `Chunker.notes`
+    /// keeps it out of the search index and the extractor, since its bullets are memory and
+    /// prior decisions rather than anything said in this meeting.
+    static let relatedHeading = "Related context"
 
     /// What an empty section says. Explicit, because a missing heading reads as a bug and
     /// an empty one reads as an answer.
@@ -38,6 +46,14 @@ enum NotesPrompts {
         - ## Action items are `-` bullets shaped `- **<speaker>** — <what they will do>`, \
         where <speaker> is copied from the transcript's own speaker labels and any date they \
         gave ends the sentence. Write **Unassigned** when nobody took it.
+        - ## Related context connects this meeting to what Next Notes already knows about \
+        the user: bullets shaped `- <what is already known> — <how it relates to this \
+        meeting>`. Draw only on the Known context block when the message has one.
+        - The Known context block is background, not speech. Never attribute it to a \
+        speaker, never present it as something said in this meeting, and never let it change \
+        ## Summary, ## Key points, ## Decisions, ## Action items or ## Open questions.
+        - When there is no Known context block, or nothing in it relates, write \
+        \(emptyMarker) under ## Related context.
         - Attribute using the transcript's own speaker labels, exactly as written. "You" is \
         the person recording. Never introduce a name that is not in the transcript: an \
         invented owner is worse than no owner.
@@ -49,23 +65,33 @@ enum NotesPrompts {
         read is never a reason to return an empty section.
         - ## Summary is never \(emptyMarker). Any transcript with speech in it can be \
         described in a sentence, even if that sentence is that it was a short informal call \
-        with nothing decided. The empty marker is for the other four sections.
+        with nothing decided. The empty marker is for the other sections.
         """
 
-    static func notesUser(meeting: Meeting, transcript: String) -> String {
-        """
-        \(context(for: meeting))
+    static func notesUser(
+        meeting: Meeting,
+        transcript: String,
+        brief: MeetingNotesBrief = .empty
+    ) -> String {
+        var sections = [context(for: meeting)]
+        if let block = block(brief) { sections.append(block) }
+        sections.append("Transcript:\n\(transcript)")
+        return sections.joined(separator: "\n\n")
+    }
 
-        Transcript:
-        \(transcript)
-        """
+    /// The block the Related-context section draws from, or nil when there is nothing known
+    /// — an absent block is what tells the model to write the empty marker rather than
+    /// invent a connection.
+    private static func block(_ brief: MeetingNotesBrief) -> String? {
+        let block = brief.promptBlock
+        return block.isEmpty ? nil : block
     }
 
     // MARK: - Map / reduce
 
     /// The map step deliberately does not write notes: it extracts facts.
     ///
-    /// Asking a small model for five headings per chunk produces five thin sets of notes
+    /// Asking a small model for six headings per chunk produces six thin sets of notes
     /// that the reduce step then has to merge, and merging summaries loses more than merging
     /// facts. One flat, attributed list per chunk survives the round trip.
     static let mapSystem = """
@@ -93,14 +119,15 @@ enum NotesPrompts {
     /// there is one description of what notes look like, not two that can drift apart.
     static let reduceSystem = notesSystem
 
-    static func reduceUser(meeting: Meeting, facts: String) -> String {
-        """
-        \(context(for: meeting))
-
-        These are the facts extracted from the meeting, in order. Write the notes from them.
-
-        \(facts)
-        """
+    static func reduceUser(
+        meeting: Meeting,
+        facts: String,
+        brief: MeetingNotesBrief = .empty
+    ) -> String {
+        var sections = [context(for: meeting)]
+        if let block = block(brief) { sections.append(block) }
+        sections.append("These are the facts extracted from the meeting, in order. Write the notes from them.\n\n\(facts)")
+        return sections.joined(separator: "\n\n")
     }
 
     // MARK: - Shared header

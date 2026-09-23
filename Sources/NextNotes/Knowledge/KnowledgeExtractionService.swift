@@ -199,7 +199,7 @@ final class KnowledgeExtractionService {
 
     /// The on-device model (grammar-constrained) or Apple's on-device model. Never OpenRouter.
     static func localModel() async -> (any KnowledgeExtractionModel)? {
-        guard let provider = await LLMProviders.resolve(preferring: .gemma4E4B), provider.id != .openRouter else {
+        guard let provider = await LLMProviders.resolve(preferring: .appLLM), provider.id != .openRouter else {
             return nil
         }
         return ProviderExtractionModel(provider: provider)

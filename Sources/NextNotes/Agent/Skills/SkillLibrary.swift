@@ -46,6 +46,20 @@ enum SkillSourceApp: String, Codable, Sendable, CaseIterable {
         }
     }
 
+    /// The sentence under a group heading, so a wall of cards says where the folder is.
+    var explanation: String {
+        switch self {
+        case .nextNotes: "The ones Next Notes put in its own folder, plus anything you copied there."
+        case .claudeCode: "Found in Claude's skills folder. Next Notes reads them where they are."
+        case .claudePlugin: "Brought by a Claude plug-in. Next Notes reads them where they are."
+        case .codex: "Found in Codex's skills folder. Next Notes reads them where they are."
+        case .agents: "Found in the shared agents folder. Next Notes reads them where they are."
+        case .openCode: "Found in OpenCode's skills folder. Next Notes reads them where they are."
+        case .cursor: "Found in Cursor's skills folder. Next Notes reads them where they are."
+        case .gemini: "Found in Gemini's skills folder. Next Notes reads them where they are."
+        }
+    }
+
     /// Ours, so it may be updated or removed. Everything else is somebody else's folder.
     var isOurs: Bool { self == .nextNotes }
 }
@@ -479,12 +493,260 @@ enum SkillHash {
     static func hex(_ text: String) -> String { hex(Data(text.utf8)) }
 }
 
+// MARK: - Provenance
+
+/// Where a skill came from, as far as anything here can prove.
+///
+/// `source` says which folder a skill was found in; this says how it got there. The
+/// distinction is the whole delete rule: only what `skills-lock.json` records as ours may be
+/// removed, and a skill that merely sits in our folder without a lock entry is not ours to
+/// delete either. Everything in another assistant's folder is read-only, always.
+enum SkillOrigin: String, CaseIterable, Sendable, Identifiable {
+    /// Recorded in `skills-lock.json`: Next Notes downloaded it. The only removable kind.
+    case installed
+    /// In our own Skills folder but not in the lock — copied there by hand.
+    case inOurFolder
+    /// In another assistant's folder. Next Notes only ever reads these.
+    case shared
+
+    var id: String { rawValue }
+
+    var badge: String {
+        switch self {
+        case .installed: "Installed by Next Notes"
+        case .inOurFolder: "In your skills folder"
+        case .shared: "Shared from another assistant"
+        }
+    }
+
+    /// The one-line explanation a card shows when it is not removable, so the absence of a
+    /// Remove button is stated rather than guessed at.
+    var readOnlyExplanation: String {
+        switch self {
+        case .installed: ""
+        case .inOurFolder:
+            "You put this one in Next Notes' skills folder yourself, so Next Notes will not remove it."
+        case .shared:
+            "Another assistant keeps this one, so Next Notes only reads it. Remove it in that app."
+        }
+    }
+
+    /// How the empty-filter sentence names this origin. `badge` starts a sentence or a
+    /// heading; this finishes one.
+    var filterPhrase: String {
+        switch self {
+        case .installed: "installed by Next Notes"
+        case .inOurFolder: "in your skills folder"
+        case .shared: "shared from another assistant"
+        }
+    }
+
+    /// Only what the lock file proves we installed may be taken away.
+    var isRemovable: Bool { self == .installed }
+}
+
+// MARK: - Filtering, grouping, sorting
+
+/// Which switch positions are being asked for. An empty set means both.
+enum SkillStateFilter: String, CaseIterable, Sendable, Identifiable {
+    case on
+    case off
+
+    var id: String { rawValue }
+    var displayName: String { self == .on ? "On" : "Off" }
+}
+
+/// What the user has narrowed the list to. Every dimension is a set, so the filter can grow
+/// without the empty-reason sentence having to be rewritten: it is built from whatever is set.
+struct SkillFilter: Equatable, Sendable {
+    var text = ""
+    var states: Set<SkillStateFilter> = []
+    var sources: Set<SkillSourceApp> = []
+    var origins: Set<SkillOrigin> = []
+
+    var trimmedText: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    var isActive: Bool {
+        !trimmedText.isEmpty || !states.isEmpty || !sources.isEmpty || !origins.isEmpty
+    }
+
+    /// Pure, so the self-test drives it with fixtures and no disk. `origin` is passed in
+    /// rather than looked up because a value type cannot ask the library.
+    func matches(name: String, description: String, source: SkillSourceApp,
+                 origin: SkillOrigin, isOn: Bool) -> Bool {
+        if !states.isEmpty, !states.contains(isOn ? .on : .off) { return false }
+        if !sources.isEmpty, !sources.contains(source) { return false }
+        if !origins.isEmpty, !origins.contains(origin) { return false }
+        let needle = trimmedText.lowercased()
+        if !needle.isEmpty,
+           !name.lowercased().contains(needle),
+           !description.lowercased().contains(needle) { return false }
+        return true
+    }
+
+    func apply(to skills: [Skill], isOn: (Skill) -> Bool, origin: (Skill) -> SkillOrigin) -> [Skill] {
+        skills.filter {
+            matches(name: $0.name, description: $0.description, source: $0.source,
+                    origin: origin($0), isOn: isOn($0))
+        }
+    }
+
+    /// The active dimensions, in words, in the order they appear in the filter bar.
+    var scopeWords: [String] {
+        var words: [String] = []
+        if !states.isEmpty {
+            if states.count > 1 {
+                words.append("switched on or off")
+            } else {
+                words.append(states.contains(.on) ? "switched on" : "switched off")
+            }
+        }
+        if !sources.isEmpty {
+            let names = SkillSourceApp.allCases.filter { sources.contains($0) }.map(\.badge)
+            words.append("from " + names.joined(separator: " or "))
+        }
+        if !origins.isEmpty {
+            let names = SkillOrigin.allCases.filter { origins.contains($0) }.map(\.filterPhrase)
+            words.append(names.joined(separator: " or "))
+        }
+        if !trimmedText.isEmpty { words.append("matching “\(trimmedText)”") }
+        return words
+    }
+
+    /// The sentence shown when a filter left the grid empty. It names the filters that did
+    /// it, because "Nothing here" with four controls above it is a dead end.
+    var emptyReason: String {
+        let words = scopeWords
+        guard !words.isEmpty else { return "There are no skills to show." }
+        return "No skills are " + words.joined(separator: ", ") + "."
+    }
+
+    /// The source filter's options, derived from what is actually on the Mac. A hard-coded
+    /// list drifts from `SkillSourceApp` the moment a root is added.
+    static func availableSources(in skills: [Skill]) -> [SkillSourceApp] {
+        let present = Set(skills.map(\.source))
+        return SkillSourceApp.allCases.filter { present.contains($0) }
+    }
+
+    static func availableOrigins(in skills: [Skill],
+                                 origin: (Skill) -> SkillOrigin) -> [SkillOrigin] {
+        let present = Set(skills.map(origin))
+        return SkillOrigin.allCases.filter { present.contains($0) }
+    }
+}
+
+/// How the grid is broken up. "Reorganize" in the UI's words.
+enum SkillGrouping: String, CaseIterable, Sendable, Identifiable {
+    case app
+    case origin
+    case none
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .app: "Where they live"
+        case .origin: "Where they came from"
+        case .none: "One list"
+        }
+    }
+}
+
+/// The order inside a group.
+enum SkillSort: String, CaseIterable, Sendable, Identifiable {
+    case name
+    case recentlyAdded
+    case pages
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .name: "Name"
+        case .recentlyAdded: "Recently added"
+        case .pages: "Most pages"
+        }
+    }
+}
+
+/// One heading and the skills under it.
+struct SkillGroup: Identifiable, Equatable, Sendable {
+    var id: String
+    var title: String?
+    var subtitle: String?
+    var skills: [Skill]
+}
+
+/// Pure ordering and grouping. No disk, no library, so the self-test can pin all of it.
+enum SkillOrganizer {
+    /// `installedAt` is nil for anything the lock file does not know; "recently added" then
+    /// falls back to the folder's modification date, which is the best evidence left.
+    static func sorted(_ skills: [Skill], by sort: SkillSort,
+                       installedAt: (Skill) -> Date?) -> [Skill] {
+        switch sort {
+        case .name:
+            return skills.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        case .recentlyAdded:
+            return skills.sorted { left, right in
+                let leftDate = installedAt(left) ?? left.modifiedAt ?? .distantPast
+                let rightDate = installedAt(right) ?? right.modifiedAt ?? .distantPast
+                if leftDate != rightDate { return leftDate > rightDate }
+                return left.name < right.name
+            }
+        case .pages:
+            return skills.sorted { left, right in
+                if left.files.count != right.files.count { return left.files.count > right.files.count }
+                return left.name < right.name
+            }
+        }
+    }
+
+    /// Group order is `allCases` order — ours first, then the apps in the order the scanner
+    /// trusts them — never the order skills happened to come off disk.
+    static func groups(_ skills: [Skill], by grouping: SkillGrouping,
+                       origin: (Skill) -> SkillOrigin) -> [SkillGroup] {
+        switch grouping {
+        case .none:
+            guard !skills.isEmpty else { return [] }
+            return [SkillGroup(id: "all", title: nil, subtitle: nil, skills: skills)]
+        case .app:
+            let present = Set(skills.map(\.source))
+            return SkillSourceApp.allCases.filter { present.contains($0) }.map { source in
+                SkillGroup(id: "app-\(source.rawValue)", title: source.badge,
+                           subtitle: source.explanation,
+                           skills: skills.filter { $0.source == source })
+            }
+        case .origin:
+            let present = Set(skills.map(origin))
+            return SkillOrigin.allCases.filter { present.contains($0) }.map { value in
+                SkillGroup(id: "origin-\(value.rawValue)", title: value.badge,
+                           subtitle: value.readOnlyExplanation.isEmpty
+                               ? "Downloaded by Next Notes, and the only ones it can remove."
+                               : value.readOnlyExplanation,
+                           skills: skills.filter { origin($0) == value })
+            }
+        }
+    }
+}
+
+/// The counts the header states. Kept a value so the self-test pins the sentence.
+struct SkillCounts: Equatable, Sendable {
+    var total = 0
+    var on = 0
+    var installed = 0
+    var inOurFolder = 0
+    var shared = 0
+
+    var off: Int { total - on }
+}
+
 // MARK: - The library
 
 /// Every skill on this Mac, what the user switched off, and the folder we install into.
 ///
-/// Feature-local on purpose: one `@Observable` class plus two `UserDefaults` keys, rather than
-/// new properties on `Settings`.
+/// Feature-local on purpose: one `@Observable` class plus a handful of `UserDefaults` keys —
+/// the master switch, the switched-off ids, and the pane's grouping and sort choices — rather
+/// than new properties on `Settings`.
 @MainActor
 @Observable
 final class SkillLibrary {
@@ -494,12 +756,24 @@ final class SkillLibrary {
     static let enabledDefaultsKey = "agentSkillsEnabled"
     /// Ids of skills the user switched off individually.
     static let disabledDefaultsKey = "agentSkillsDisabledIDs"
+    /// How the Skills pane arranges the grid. Feature-local like the two above rather than a
+    /// `Settings` property: this is one pane's taste, not app configuration.
+    static let groupingDefaultsKey = "agentSkillsGrouping"
+    static let sortDefaultsKey = "agentSkillsSort"
 
     private(set) var skills: [Skill] = []
     private(set) var lastScan: Date?
     private(set) var isScanning = false
     /// Set when the last scan could not read something the user would expect to see.
     private(set) var scanNote: String?
+    /// `skills-lock.json`, by skill name. The provenance record for what we installed, and
+    /// the only thing that makes a skill removable.
+    private(set) var lockEntries: [String: SkillLockEntry] = [:]
+
+    /// How many times the disabled set has been written to disk. Only a self-test reads
+    /// this, and it exists because "a bulk switch is one pass" is otherwise unobservable:
+    /// a bulk action that wrote once per skill would produce exactly the same state.
+    private(set) var disabledWrites = 0
 
     private let defaults: UserDefaults
     private let roots: [SkillRoots.Root]
@@ -524,6 +798,8 @@ final class SkillLibrary {
         self.defaults = defaults
         isEnabled = defaults.object(forKey: Self.enabledDefaultsKey) as? Bool ?? true
         disabledIDs = Set(defaults.stringArray(forKey: Self.disabledDefaultsKey) ?? [])
+        grouping = SkillGrouping(rawValue: defaults.string(forKey: Self.groupingDefaultsKey) ?? "") ?? .app
+        sort = SkillSort(rawValue: defaults.string(forKey: Self.sortDefaultsKey) ?? "") ?? .name
     }
 
     /// Stored rather than computed off `UserDefaults`, so `@Observable` sees the change and
@@ -532,16 +808,67 @@ final class SkillLibrary {
         didSet { defaults.set(isEnabled, forKey: Self.enabledDefaultsKey) }
     }
 
+    /// How the grid is grouped and sorted. Same stored-plus-defaults shape as `isEnabled`.
+    var grouping: SkillGrouping {
+        didSet { defaults.set(grouping.rawValue, forKey: Self.groupingDefaultsKey) }
+    }
+
+    var sort: SkillSort {
+        didSet { defaults.set(sort.rawValue, forKey: Self.sortDefaultsKey) }
+    }
+
     private var disabledIDs: Set<String> {
-        didSet { defaults.set(Array(disabledIDs).sorted(), forKey: Self.disabledDefaultsKey) }
+        didSet {
+            disabledWrites += 1
+            defaults.set(Array(disabledIDs).sorted(), forKey: Self.disabledDefaultsKey)
+        }
     }
 
     func isOn(_ skill: Skill) -> Bool { !disabledIDs.contains(skill.id) }
 
     /// The switch takes effect on the Agent's next turn: the prompt index is rebuilt per
     /// request, and the executor re-checks before it runs anything.
-    func setOn(_ skill: Skill, _ on: Bool) {
-        if on { disabledIDs.remove(skill.id) } else { disabledIDs.insert(skill.id) }
+    func setOn(_ skill: Skill, _ on: Bool) { setOn([skill], on) }
+
+    /// One pass for many skills. The set is built off to the side and assigned once, so a
+    /// bulk switch is a single `UserDefaults` write rather than one per skill — and the
+    /// assignment is skipped entirely when nothing would change.
+    func setOn(_ skills: [Skill], _ on: Bool) {
+        guard !skills.isEmpty else { return }
+        var next = disabledIDs
+        for skill in skills {
+            if on { next.remove(skill.id) } else { next.insert(skill.id) }
+        }
+        guard next != disabledIDs else { return }
+        disabledIDs = next
+    }
+
+    /// Where a skill came from, per the lock file. A lock entry only counts when the skill
+    /// is in our own folder — a stale lock entry must never make another app's skill look
+    /// removable.
+    func origin(of skill: Skill) -> SkillOrigin {
+        guard skill.source.isOurs else { return .shared }
+        return lockEntries[skill.name] == nil ? .inOurFolder : .installed
+    }
+
+    /// When the lock says we added it, for "recently added". Nil for everything else.
+    func installedAt(of skill: Skill) -> Date? {
+        guard origin(of: skill) == .installed else { return nil }
+        return lockEntries[skill.name]?.installedAt
+    }
+
+    /// The numbers the header states.
+    var counts: SkillCounts {
+        var counts = SkillCounts(total: skills.count)
+        for skill in skills {
+            if isOn(skill) { counts.on += 1 }
+            switch origin(of: skill) {
+            case .installed: counts.installed += 1
+            case .inOurFolder: counts.inOurFolder += 1
+            case .shared: counts.shared += 1
+            }
+        }
+        return counts
     }
 
     /// Skills the Agent may actually use: the master switch on, not switched off, not shadowed.
@@ -550,7 +877,8 @@ final class SkillLibrary {
         return skills.filter { isOn($0) && !$0.isShadowed }
     }
 
-    /// The ones we installed, which are the only ones that can be updated or removed.
+    /// Every skill in our own folder, whether or not the lock file records it. Provenance —
+    /// and therefore removability — is `origin(of:)`, not this.
     var installed: [Skill] { skills.filter { $0.source.isOurs } }
 
     /// Everything found in another app's folder.
@@ -568,8 +896,14 @@ final class SkillLibrary {
         isScanning = true
         defer { isScanning = false }
         let roots = self.roots
-        let found = await Task.detached(priority: .utility) { SkillScanner.scan(roots: roots) }.value
+        let directory = installDirectory
+        let (found, lock) = await Task.detached(priority: .utility) {
+            (SkillScanner.scan(roots: roots), SkillLockStore(directory: directory).load())
+        }.value
         skills = found
+        var entries: [String: SkillLockEntry] = [:]
+        for entry in lock.skills { entries[entry.name] = entry }
+        lockEntries = entries
         lastScan = Date()
         scanNote = found.isEmpty ? "No skills found on this Mac yet." : nil
         Log.agent.info("skills: \(found.count, privacy: .public) found across \(roots.count, privacy: .public) folders")

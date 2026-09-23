@@ -71,6 +71,8 @@ enum DS {
         static let graphFolder = SwiftUI.Color(nsColor: .systemOrange)
         /// Individual files, a shade quieter than the folder that holds them.
         static let graphFile = SwiftUI.Color(nsColor: .systemBrown)
+        /// Core memories the user saved. Drawn by `MemoryGraphOverlay`, not the extractor.
+        static let graphMemory = SwiftUI.Color(nsColor: .systemIndigo)
 
         /// Ink for a graph node by ontology type.
         static func graphNode(_ type: String) -> SwiftUI.Color {
@@ -84,6 +86,7 @@ enum DS {
             case "Topic": graphTopic
             case "Folder": graphFolder
             case "File": graphFile
+            case "Memory": graphMemory
             default: textTertiary
             }
         }
@@ -261,18 +264,34 @@ enum DS {
         static let agentAvatarThumb: CGFloat = 56
         /// Pencil affordance overlapping the About avatar.
         static let agentAvatarEdit: CGFloat = 28
-        /// About / Routines pane content column. A centred readable column, not a grid — but
-        /// wide enough to feel coherent next to Skills' full-width card grid rather than
-        /// cramped beside it.
+        /// Agent pane layout. Every pane (Conversation, Ideas, Goals, Reminders,
+        /// Activity, Graph, Skills, About) is a full-width pane: a header, then cards
+        /// and lists that use the window they were given. A centred 640pt column in a
+        /// 2000pt window is the complaint these tokens replaced. Prose is capped so a
+        /// sentence never runs the whole window; grids and lists fill.
+        ///
+        /// The shared pieces live in `UI/Agent/AgentPaneLayout.swift` — use them rather
+        /// than adding a new column cap to a pane.
+        static let agentProseMaxWidth: CGFloat = 760
+        /// Minimum width of one card in an adaptive pane grid. Below it the grid drops
+        /// a column instead of squeezing every card.
+        static let agentCardMinWidth: CGFloat = 300
+        /// A two-column pane (list plus rail) only forms at or above this width; below
+        /// it the rail stacks under the list — same content, same order.
+        static let agentWideMinWidth: CGFloat = 960
+        /// The rail column in a two-column pane: login card, approvals, heartbeat.
+        static let agentRailWidth: CGFloat = 340
+        /// The smallest the pane switcher may measure once hosted: the current pane's
+        /// name plus its chevron. A chevron-only toolbar circle is ~44pt, so
+        /// `--selftest-agent-panes` fails when the selector renders without its label.
+        static let agentSwitcherMinWidth: CGFloat = 160
+        /// About hero avatar block. The hero stays a centred column by design; the
+        /// SOUL / MEMORY / data cards below it fill the pane like every other pane's.
         static let agentAboutMaxWidth: CGFloat = 640
         static let agentAboutCardIdeal: CGFloat = 280
         /// SOUL / MEMORY access tiles.
         static let agentAccessCardMinHeight: CGFloat = 140
-        /// Skills pane content column. Wide enough for a 2–3 column adaptive grid of skill
-        /// cards on a wide window, capped so a single card never reads as a full-width banner.
-        static let agentSkillsMaxWidth: CGFloat = 1100
-        /// Minimum width of one skill card in that adaptive grid, below which the grid drops
-        /// to fewer columns instead of squeezing every card.
+        /// Minimum width of one skill card in the pane grid.
         static let skillCardMin: CGFloat = 320
         /// A skill card's minimum height, so a row of cards with short and long descriptions
         /// still lines up its bottom row (See what it says / page count) across the row.
@@ -379,6 +398,29 @@ enum DS {
         /// design's several hundred dots overlap into grey mud, which is the whole reason
         /// the library ships two designs rather than one and a scale factor.
         static let orbInlineCeiling: CGFloat = 96
+
+        // MARK: Agent avatar
+
+        /// The avatar beside an agent state on the island. Smaller than the chat avatar
+        /// because the collapsed island is only as tall as the notch — one pixel taller
+        /// and the face would touch the bezel.
+        static let islandAvatar: CGFloat = 24
+        /// The live portrait on the first-run welcome card, beside the name field. Big
+        /// enough to show a generated face, small enough to stay a row.
+        static let avatarOnboarding: CGFloat = 44
+        /// Below this side a state's gadget is a smudge rather than a symbol, so the body
+        /// language carries the animation alone.
+        static let avatarPropMinimum: CGFloat = 36
+        /// A gadget badge, as a fraction of the avatar's side, and how far its centre sits
+        /// from the portrait's centre along each axis. Together they land it on the lower
+        /// trailing rim — the badge is deliberately not clipped to the portrait's circle,
+        /// so its edge reaches just past the face and no further than the frame.
+        static let avatarPropFraction: CGFloat = 0.32
+        static let avatarPropOffsetFraction: CGFloat = 0.32
+        /// The symbol inside the badge, as a fraction of the badge.
+        static let avatarPropGlyphFraction: CGFloat = 0.55
+        /// Stroke width of a listening ring, in points.
+        static let avatarRingWidth: CGFloat = 1.25
 
         // MARK: Empty states and cards
 
@@ -578,6 +620,12 @@ enum DS {
         /// rather than as a control.
         static let emptyStateOrb: Double = 0.85
 
+        /// A gadget badge behind the avatar's shoulder — a tint of the same ink, so it
+        /// survives the island's black substrate and a light window alike.
+        static let avatarPropFill: Double = 0.14
+        /// The loudest a listening ring gets before it falls off towards the centre.
+        static let avatarRing: Double = 0.30
+
         /// Nodes outside the hovered neighbourhood on a local graph: still there, not the
         /// thing being looked at (Phase F).
         static let graphDimmed: Double = 0.18
@@ -730,6 +778,17 @@ enum DS {
         static let orbBackdropFrameInterval: TimeInterval = 1.0 / 20
         /// The same cap for an ambient orb at reading size.
         static let orbAmbientFrameInterval: TimeInterval = 1.0 / 30
+
+        // MARK: Agent avatar
+
+        /// The redraw cap for an avatar in an ambient state — idle, waiting, asleep. These
+        /// can sit in a window all afternoon; a working avatar follows the display, the way
+        /// a working orb does.
+        static let avatarAmbientFrameInterval: TimeInterval = 1.0 / 20
+        /// How long with no agent activity before the avatar stops attending. Ten minutes:
+        /// long enough that nobody catches it napping mid-thought, short enough that a
+        /// window left open over lunch is asleep when its owner comes back.
+        static let avatarSleepAfter: TimeInterval = 600
 
         /// Content arriving over a backdrop. Slower than `standard` and without a spring:
         /// something appearing in front of a slowly moving field should not also bounce.

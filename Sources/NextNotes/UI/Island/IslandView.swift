@@ -189,7 +189,17 @@ struct IslandView: View {
     /// The orb for whatever work is running, or the glyph that stands in where none does.
     @ViewBuilder
     private var mark: some View {
-        if let orb = state.kind.orb {
+        if let avatar = state.avatarState {
+            // The agent's own states wear the character rather than the orb. Its clock is a
+            // `TimelineView` too, so `IslandAvatarMark` exists for the reason
+            // `IslandWorkMark` does: a microphone-level tick must not tear it down.
+            IslandAvatarMark(
+                config: state.avatarConfig,
+                state: avatar,
+                ink: ink
+            )
+            .equatable()
+        } else if let orb = state.kind.orb {
             // Identity is the orb's mode, not the microphone level sitting on `kind`.
             // Without `Equatable`, a VU tick would rebuild this wrapper and tear down
             // the `TimelineView` inside `ThinkingOrb` — a blank badge, several times a
@@ -255,6 +265,18 @@ struct IslandView: View {
                     .monospacedDigit()
                     .foregroundStyle(ink)
                     .accessibilityLabel(proposal.needsSummary ?? "")
+            }
+        case .agentWorking(_, let current, let total):
+            // Collapsed: the counter and the one control worth the flank (P1-1).
+            HStack(spacing: DS.Space.xs) {
+                Text("\(current)/\(total)")
+                    .font(DS.Font.counterSmall)
+                    .monospacedDigit()
+                    .foregroundStyle(ink)
+                    .contentTransition(.numericText())
+                    .accessibilityLabel("Step \(current) of \(total)")
+                Button("Stop") { state.cancelAgentWork() }
+                    .controlSize(.mini)
             }
         default:
             EmptyView()
@@ -335,17 +357,32 @@ struct IslandView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-        case .agentWorking(let title):
-            Text(title)
-                .font(DS.Font.callout)
-                .foregroundStyle(secondaryInk)
-                .lineLimit(2)
+        case .agentWorking(let steps, let current, let total):
+            // Expanded: the current step's title and the counter. Two lines is all the
+            // notch has; the step list itself lives in the Agent pane's working card.
+            VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                Text(steps.last ?? "Thinking\u{2026}")
+                    .font(DS.Font.callout)
+                    .foregroundStyle(secondaryInk)
+                    .lineLimit(2)
+                Text("Step \(current) of \(total)")
+                    .font(DS.Font.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(secondaryInk)
+                    .contentTransition(.numericText())
+            }
 
         case .agentReply(let text):
-            Text(text)
-                .font(DS.Font.callout)
-                .foregroundStyle(secondaryInk)
-                .lineLimit(3)
+            VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                Text(text)
+                    .font(DS.Font.callout)
+                    .foregroundStyle(secondaryInk)
+                    .lineLimit(3)
+                // P2-6: the disclaimer is persistent on every surface that speaks.
+                Text("Next Notes is AI and can make mistakes.")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(secondaryInk)
+            }
 
         case .summarizing(let progress), .diarizing(let progress):
             if let progress {
@@ -396,12 +433,22 @@ struct IslandView: View {
                 .controlSize(.small)
 
         case .agentListening:
-            Button("Done") { state.endAgentListen() }
+            HStack(spacing: DS.Space.s) {
+                // The one place a wake that fired on the wrong speech can be disowned.
+                // Telemetry only — the card stays up until Done.
+                Button("That wasn\u{2019}t for you") {
+                    WakeWordTelemetry.shared.recordFalseAccept(
+                        keyword: WakeWordAudioMonitor.shared.lastDetection?.keyword ?? "unknown",
+                        reason: "that-wasnt-for-you"
+                    )
+                }
+                Button("Done") { state.endAgentListen() }
+            }
             .controlSize(.small)
 
         case .agentWorking:
             Button("Stop") { state.cancelAgentWork() }
-            .controlSize(.small)
+                .controlSize(.small)
 
         case .agentReply:
             Button("Dismiss") { state.dismissNotice() }
@@ -470,5 +517,25 @@ private struct IslandWorkMark: View, Equatable {
 
     var body: some View {
         ThinkingOrb(state: orb, ink: ink)
+    }
+}
+
+/// The island's character, kept in place by the same rule and for the same reason.
+///
+/// It carries no environment of its own: `AgentAvatarView` reads Reduce Motion, and a view
+/// that reads the environment cannot be compared by value — so the comparison lives here,
+/// on the four things the island chooses.
+private struct IslandAvatarMark: View, Equatable {
+    let config: NotionAvatarConfig
+    let state: AgentAvatarState
+    let ink: Color
+
+    var body: some View {
+        AgentAvatarView(
+            config: config,
+            state: state,
+            size: DS.Size.islandAvatar,
+            ink: ink
+        )
     }
 }

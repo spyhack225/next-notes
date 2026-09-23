@@ -410,6 +410,18 @@ final class RealtimeAgent {
             PermissionGate.shared.cancelPending()
         }
         Log.agent.info("realtime · stopped")
+        // A capture session that already ended (Done, or the idle endpoint) must
+        // not gain a spoken "Stopped." row. It becomes the conversation's last
+        // assistant turn, and the next answer imitates it — the 2026-09-22
+        // session that ended this way answered "can you hear me" with a request
+        // to repeat. `endSession` has already put its own line on the island, so
+        // leave the feed and the conversation alone.
+        guard AgentCaptureController.shared.isSessionActive else {
+            isThinking = false
+            progressTitle = ""
+            ActivationController.shared.finishAgent()
+            return
+        }
         finish("Stopped.")
     }
 

@@ -79,6 +79,10 @@ final class AgentToolRegistry {
         for tool in MemoryToolCatalogue.all { register(tool) }
         for tool in ScheduleToolCatalogue.all { register(tool) }
         for tool in KnowledgeToolCatalogue.all { register(tool) }
+        // The one compose-class member of the knowledge namespace (D4). Registered beside
+        // them so a planner can resolve `assemble`; the tool loop's allow-list decides who is
+        // told about it.
+        for tool in AssemblerToolCatalogue.all { register(tool) }
         for tool in SkillToolCatalogue.all { register(tool) }
     }
 }

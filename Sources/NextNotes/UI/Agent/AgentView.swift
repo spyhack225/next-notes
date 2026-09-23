@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The persistent agent: conversation, running tasks and the audit log — and, in their own
-/// panes, Routines and About (identity, SOUL, MEMORY).
+/// panes, Ideas, Goals, Reminders, Activity and About (identity, SOUL, MEMORY).
 struct AgentView: View {
     @State private var navigation = NavigationState.shared
     @State private var session = AgentSession.shared
@@ -11,6 +11,7 @@ struct AgentView: View {
     @State private var gate = PermissionGate.shared
     @State private var acpGate = ACPConfirmationGate.shared
     @State private var identity = AgentIdentityStore.shared
+    @State private var activityStore = AgentActivityStore.shared
     @State private var draft = ""
     @State private var showsRecentTasks = false
 
@@ -75,25 +76,26 @@ struct AgentView: View {
     static let headingTitle = "Your Mac is your best personal assistant"
 
     var body: some View {
-        Group {
-            switch navigation.agentPane {
-            case .conversation: conversation
-            case .routines: RoutinesView()
-            case .graph: KnowledgeGraphPane()
-            case .skills: SkillsView()
-            case .about: AgentAboutView()
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Picker("Agent pane", selection: $navigation.agentPane) {
-                    ForEach(NavigationState.AgentPane.allCases) { pane in
-                        Text(pane.rawValue).tag(pane)
-                    }
+        VStack(spacing: 0) {
+            // The pane switcher lives in content, not the toolbar: on macOS 26 a menu in
+            // `ToolbarItem(placement: .principal)` draws as a chevron-only circle and
+            // never its label. See AgentPaneSwitcherBar.
+            AgentPaneSwitcherBar()
+            Divider()
+            Group {
+                switch navigation.agentPane {
+                case .conversation: conversation
+                case .ideas: IdeasView()
+                case .goals: GoalsView()
+                case .portrait: PortraitView()
+                case .reminders: RoutinesView()
+                case .activity: ActivityView()
+                case .graph: KnowledgeGraphPane()
+                case .skills: SkillsView()
+                case .about: AgentAboutView()
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .navigationTitle("Agent")
     }
@@ -132,11 +134,22 @@ struct AgentView: View {
                     }
                     if agent.isThinking { thinkingRow }
                     if !activeTasks.isEmpty {
-                        Text("Active tasks").font(DS.Font.sectionLabel)
-                        ForEach(activeTasks) { task in taskRow(task) }
+                        Text("Working on now").font(DS.Font.sectionLabel)
+                        ForEach(activeTasks) { task in
+                            // P1-1: a live run gets the working surface — status pill,
+                            // step list, live view, inline approval. The states that wait
+                            // on a person (compatibility CLI, an answer) keep the plain
+                            // row, which carries their own buttons.
+                            if task.status == .running || task.status == .queued
+                                || task.status == .waitingForPermission {
+                                AgentWorkingCard(task: task) { tasks.cancel(task.id) }
+                            } else {
+                                taskRow(task)
+                            }
+                        }
                     }
                     if !recentTasks.isEmpty {
-                        DisclosureGroup("Recent tasks (\(recentTasks.count))", isExpanded: $showsRecentTasks) {
+                        DisclosureGroup("Recent activity (\(recentTasks.count))", isExpanded: $showsRecentTasks) {
                             VStack(alignment: .leading, spacing: DS.Space.s) {
                                 ForEach(recentTasks) { task in taskRow(task) }
                             }
@@ -165,14 +178,31 @@ struct AgentView: View {
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: DS.Space.s) {
-                if let pending = gate.pending { permissionCard(pending) }
+                // A request that belongs to a live run is drawn inline by that run's
+                // working card, one screen above. Drawing it here too would ask the same
+                // question twice, and answering one would leave the other on screen.
+                if let pending = gate.pending, !isShownInline(pending) { permissionCard(pending) }
                 if let acp = acpGate.pending { acpConfirmCard(acp) }
                 composer
+                // P2-6: persistent, fixed position, and the same sentence the working
+                // card and the island use. It sits under the composer so it is on every
+                // conversation, including an empty one.
+                Text("Next Notes is AI and can make mistakes.")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
             .padding(.horizontal, DS.Space.page)
             .padding(.top, DS.Space.s)
             .background(DS.Color.window)
         }
+    }
+
+    /// Whether a live run's working card is already drawing this request inline.
+    private func isShownInline(_ request: PermissionRequest) -> Bool {
+        guard let taskID = request.taskID, let task = tasks.task(id: taskID) else { return false }
+        return task.status == .running || task.status == .queued
+            || task.status == .waitingForPermission
     }
 
     /// The full review — every argument, where it came from, and what is still missing.
@@ -277,10 +307,12 @@ struct AgentView: View {
         default: "circle.dotted"
         }
         let label: String = switch entry.kind {
-        case .tool: "Tool call"
-        case .task: "Task started"
-        case .permission: "Permission"
-        default: "Activity"
+        case .tool: "What it did"
+        case .task: "Started"
+        case .permission: "Approval"
+        case .wake, .wakeMiss, .wakeFalse: "Wake word"
+        case .request: "You asked"
+        case .reply: "Answered"
         }
         return HStack(alignment: .top, spacing: DS.Space.s) {
             Image(systemName: icon)
@@ -296,8 +328,15 @@ struct AgentView: View {
                 Text(entry.title).font(DS.Font.callout)
                     .textSelection(.enabled)
                 if entry.kind == .tool, !entry.detail.isEmpty {
-                    Text(entry.detail).font(DS.Font.caption)
-                        .foregroundStyle(DS.Color.textTertiary)
+                    // Progressive disclosure (§8.3): the machine's own words are one
+                    // click away, never on the line a person reads.
+                    DisclosureGroup("Details") {
+                        Text(entry.detail).font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
+                            .textSelection(.enabled)
+                    }
+                    .font(DS.Font.chip)
+                    .foregroundStyle(DS.Color.textSecondary)
                 }
             }
         }
@@ -309,7 +348,15 @@ struct AgentView: View {
 
     private var thinkingRow: some View {
         HStack(spacing: DS.Space.s) {
-            NotionAvatarView(config: identity.avatar, size: DS.Size.agentAvatar)
+            // The character, in whatever state the run is actually in — a page being read,
+            // a file being written, something being sent. `liveAvatarState` is the tool
+            // layer's own decision; `thinking` is only the fallback for a turn that has not
+            // reached a tool yet.
+            AgentAvatarView(
+                config: identity.avatar,
+                state: activityStore.liveAvatarState ?? .thinking,
+                size: DS.Size.agentAvatar
+            )
             Text(agent.progressTitle.isEmpty
                  ? "\(identity.name) is thinking…"
                  : agent.progressTitle)
@@ -324,7 +371,7 @@ struct AgentView: View {
                 .frame(width: DS.Size.orbSmall)
                 .foregroundStyle(DS.Color.textSecondary)
             VStack(alignment: .leading, spacing: DS.Space.xs) {
-                Text("Task · \(task.status == .waitingForCompatibilityCLI ? "Needs approval" : task.status.rawValue.capitalized)")
+                Text(task.status.humanState)
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
                 Text(task.objective).font(DS.Font.callout)

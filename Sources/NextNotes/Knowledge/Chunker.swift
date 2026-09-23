@@ -160,12 +160,18 @@ enum Chunker {
         let occurredAt = Int64(meetingStart.timeIntervalSince1970.rounded(.down))
         var chunks: [KnowledgeChunk] = []
         var heading: String?
+        // The Related context section is what Next Notes already knew before the meeting —
+        // memory, prior decisions, file names — not something anyone said. Indexing it would
+        // put memory facts into search under a meeting's citation, and `KnowledgeExtractor`
+        // would turn them into decisions and entities that were never spoken. It is
+        // deliberately not part of the record.
+        var skipping = false
         var item: [String] = []
 
         func flush() {
             let text = collapsed(item.joined(separator: " "))
             item = []
-            guard !text.isEmpty, text != NotesPrompts.emptyMarker, text != "None." else { return }
+            guard !skipping, !text.isEmpty, text != NotesPrompts.emptyMarker, text != "None." else { return }
             chunks.append(KnowledgeChunk(ordinal: chunks.count, text: text, heading: heading, occurredAt: occurredAt))
         }
 
@@ -177,9 +183,12 @@ enum Chunker {
             }
             if let match = line.firstMatch(of: /^#{1,6}\s+(.+)$/) {
                 flush()
-                heading = plain(String(match.1))
+                let name = plain(String(match.1))
+                skipping = name == NotesPrompts.relatedHeading
+                heading = skipping ? nil : name
                 continue
             }
+            if skipping { continue }
             if let match = line.firstMatch(of: /^(?:[-*+]|\d+[.)])\s+(.*)$/) {
                 flush()
                 item = [plain(String(match.1))]

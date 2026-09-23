@@ -26,7 +26,7 @@ struct KnowledgeSection: View {
                 .disabled(!settings.knowledgeIndexEnabled)
             Toggle("Include dictation", isOn: $settings.knowledgeIncludeDictation)
                 .disabled(!settings.knowledgeIndexEnabled)
-            Toggle("Include routine results", isOn: $settings.knowledgeIncludeRoutines)
+            Toggle("Include reminder and goal results", isOn: $settings.knowledgeIncludeRoutines)
                 .disabled(!settings.knowledgeIndexEnabled)
 
             Toggle("Let the Agent search and answer from the index", isOn: $settings.knowledgeAgentToolsEnabled)

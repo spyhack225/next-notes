@@ -55,6 +55,7 @@ struct SettingsWindow: View {
         case .calendar: CalendarSettingsTab()
         case .workspace: WorkspaceSettingsTab()
         case .agent: AgentSettingsTab()
+        case .computer: ComputerBrowserReadiness()
         case .integrations: IntegrationsSettingsTab()
         case .models: ModelsSettingsTab()
         case .permissions: PermissionsSettingsTab()
@@ -74,6 +75,7 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
     case calendar
     case workspace
     case agent
+    case computer
     case integrations
     case models
     case permissions
@@ -89,6 +91,7 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
         case .calendar: "Calendar"
         case .workspace: "Workspace"
         case .agent: "Agent"
+        case .computer: "Computer & browser"
         case .integrations: "Integrations"
         case .models: "Models"
         case .permissions: "Permissions"
@@ -106,6 +109,7 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
         case .calendar: "Where meetings are read from"
         case .workspace: "What Next Notes may do in your account"
         case .agent: "How you wake it and what it may do"
+        case .computer: "Whether the agent can act on the Mac and the browser"
         case .integrations: "Other apps it can reach"
         case .models: "Local and cloud models"
         case .permissions: "What macOS has agreed to"
@@ -116,6 +120,9 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
     /// states over the panes, and none of them borrowed to fill a hole: Permissions has
     /// none because no state in the vocabulary means "a grant", and inventing one — or
     /// bending `connecting`, which means Google — would cost the table its meaning.
+    /// Computer & browser shares that hole: its rows are a grant, a grant macOS refuses
+    /// to answer, a detection and a port probe, and no state in the vocabulary means
+    /// "ready".
     ///
     /// The rest are read straight off it. `breathing` for General because a push-to-talk
     /// app between holds is exactly present-and-idle; `listening` for Dictation, one voice
@@ -132,6 +139,7 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
         case .calendar: .searching
         case .workspace: .connecting
         case .agent: .searching
+        case .computer: nil
         case .integrations: .connecting
         case .models: .shaping
         case .permissions: nil
@@ -147,6 +155,7 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
         case .calendar: "calendar"
         case .workspace: "point.3.connected.trianglepath.dotted"
         case .agent: "ear"
+        case .computer: "cursorarrow.click"
         case .integrations: "link"
         case .models: "shippingbox"
         case .permissions: "lock.shield"
@@ -157,7 +166,7 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
     /// `--selftest-settings` fails if any drop out of `allCases`.
     static let requiredPanes: [SettingsTab] = [
         .general, .dictation, .formatting, .meetings, .calendar, .workspace,
-        .agent, .integrations, .models, .permissions,
+        .agent, .computer, .integrations, .models, .permissions,
     ]
 
     static var windowMinSize: NSSize {

@@ -218,6 +218,15 @@ final class MemoryReviewStateStore {
         persist()
     }
 
+    /// Un-ticks every source, so the next pass reads the whole history again. Only
+    /// *Look again at your past activity* calls this — see `MemoryBackfill.startAgain` —
+    /// and it is safe because the review's duplicate rules drop anything already known.
+    func resetHarvest() {
+        guard !harvested.isEmpty else { return }
+        harvested = []
+        persist()
+    }
+
     /// Suggestions still shown at the top of the Routines view.
     var openSuggestions: [RoutineSuggestion] {
         suggestions.filter { $0.resolvedAt == nil }

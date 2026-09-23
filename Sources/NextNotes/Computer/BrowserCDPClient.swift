@@ -142,7 +142,10 @@ enum BrowserCDPClient {
             throw AgentError.backendUnavailable("No local browser debugger on port \(port).")
         }
         let target = try await resolveTarget(for: tool, arguments: arguments, from: probe.targets)
-        if tool.name != "navigate" && tool.name != "download",
+        // `wait` is exempt from the pinned-page check on purpose: the page moving is what it
+        // exists to observe, and its authorized URL is captured before the navigation it is
+        // waiting for — pinning it there would turn the tool's own subject into a rejection.
+        if tool.name != "navigate" && tool.name != "download" && tool.name != "wait",
            let authorizedURL = arguments["_authorizedPageURL"],
            target.url != authorizedURL {
             throw AgentError.backendUnavailable(
@@ -186,6 +189,37 @@ enum BrowserCDPClient {
             }
         case "screenshot":
             return try await captureScreenshot(arguments: arguments, target: target)
+        case "cdp_status":
+            return AgentToolResult(
+                summary: "A CDP debugger is listening on \(host):\(port) — "
+                    + "\(probe.browser.isEmpty ? "a Chromium-family browser" : probe.browser), "
+                    + "\(probe.targets.count) page target(s). Nothing needs relaunching."
+            )
+        case "read_page":
+            let raw = try await evaluate(readPageExpression, webSocketURL: target.webSocketDebuggerURL)
+            guard let page = parsePageRead(raw) else {
+                throw AgentError.backendUnavailable(
+                    "The debugger answered but the page read came back unreadable. Snapshot again."
+                )
+            }
+            let body = page.text.isEmpty ? "(the page has no visible text)" : page.text
+            return AgentToolResult(
+                summary: "CDP read \(target.id) \(page.title) \(page.url)\n\(body)"
+            )
+        case "wait":
+            return try await waitForURL(
+                substring: arguments["expectedURL"] ?? "",
+                timeoutSeconds: arguments["timeoutSeconds"],
+                targetId: first(arguments, keys: ["targetId", "target_id", "browserTargetId", "cdpTargetId"]),
+                host: host,
+                port: port
+            )
+        case "relaunch_debug":
+            return AgentToolResult(
+                summary: "A debugger is already listening on \(host):\(port) — "
+                    + "\(probe.browser.isEmpty ? "a Chromium-family browser" : probe.browser). "
+                    + "Nothing was launched."
+            )
         case "fill", "select":
             let text = arguments["text"] ?? arguments["value"] ?? ""
             let encoded = jsonStringLiteral(text)
@@ -210,6 +244,168 @@ enum BrowserCDPClient {
         default:
             throw AgentError.unknownTool(tool.id)
         }
+    }
+
+    // MARK: - Page read, URL wait and status (P2-A)
+
+    /// One page as `read_page` reports it: what it is called, where it sits and what a
+    /// person reading the tab would see.
+    struct PageRead: Sendable, Equatable {
+        var title: String
+        var url: String
+        var text: String
+    }
+
+    /// Evaluated on the page target with `returnByValue`. `innerText` rather than
+    /// `textContent`: textContent returns the raw source of hidden nodes, and what the
+    /// model needs is what a person reading the tab would see. The slice keeps one
+    /// runaway page from filling a model's context.
+    static let readPageExpression = """
+        JSON.stringify((() => ({
+          title: document.title || '',
+          url: location.href || '',
+          text: (document.body ? document.body.innerText : '').slice(0, 8192)
+        }))())
+        """
+
+    /// `command()` unwraps to the value string on the normal path; the whole-result
+    /// serialisation is accepted here too, for the same reason `screenshotData` does.
+    static func parsePageRead(_ raw: String) -> PageRead? {
+        func decode(_ text: String) -> PageRead? {
+            guard let data = text.data(using: .utf8),
+                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            else { return nil }
+            let title = (object["title"] as? String ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let url = (object["url"] as? String ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let text = object["text"] as? String ?? ""
+            guard !title.isEmpty || !url.isEmpty || !text.isEmpty else { return nil }
+            return PageRead(title: title, url: url, text: text)
+        }
+        if let page = decode(raw) { return page }
+        guard let data = raw.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let inner = object["result"] as? [String: Any],
+              let value = inner["value"] as? String
+        else { return nil }
+        return decode(value)
+    }
+
+    /// Polls `/json/list` instead of holding one debugger socket open: a page that is
+    /// mid-navigation tears its websocket down anyway, and re-reading the target list is
+    /// the same place the live URL comes from everywhere else here. With no `targetId`,
+    /// any page target may satisfy the wait — a wait is a liveness check on where a
+    /// navigation has reached, not an element action pinned to one tab.
+    static func waitForURL(
+        substring raw: String,
+        timeoutSeconds rawTimeout: String?,
+        targetId: String?,
+        host: String = defaultHost,
+        port: Int = defaultPort
+    ) async throws -> AgentToolResult {
+        let substring = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !substring.isEmpty else {
+            throw AgentError.missingArgument(name: "expectedURL", tool: "browser.wait")
+        }
+        var timeout = 5.0
+        let trimmedTimeout = rawTimeout?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !trimmedTimeout.isEmpty {
+            guard let parsed = Double(trimmedTimeout), parsed > 0 else {
+                throw AgentError.permissionDenied("timeoutSeconds must be a number of seconds, like 5.")
+            }
+            timeout = min(parsed, 30)
+        }
+        guard let listURL = URL(string: "http://\(host):\(port)/json/list")
+            ?? URL(string: "http://\(host):\(port)/json")
+        else {
+            throw AgentError.backendUnavailable("The debugger URL for port \(port) could not be built.")
+        }
+        let deadline = Date().addingTimeInterval(timeout)
+        var lastURL: String?
+        var debuggerAnswered = false
+        while true {
+            if let data = try? await get(listURL) {
+                debuggerAnswered = true
+                let targets = parseTargets(data)
+                let pinned = targetId.flatMap { id in targets.first { $0.id == id } }
+                for target in pinned.map({ [$0] }) ?? targets {
+                    lastURL = target.url
+                    if target.url.localizedCaseInsensitiveContains(substring) {
+                        return AgentToolResult(
+                            summary: "CDP target \(target.id) is at \(target.url).",
+                            verification: "Browser page URL contains “\(substring)” "
+                                + "after waiting up to \(String(format: "%g", timeout))s"
+                        )
+                    }
+                }
+            }
+            guard Date() < deadline else { break }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        if debuggerAnswered {
+            return AgentToolResult(
+                summary: "Waited \(String(format: "%g", timeout))s for a browser page whose URL "
+                    + "contains “\(substring)” and none did (last seen: \(lastURL ?? "no page")). "
+                    + "Snapshot again or take a different approach; do not retry this wait."
+            )
+        }
+        return AgentToolResult(
+            summary: "No browser debugger answered on \(host):\(port) during a "
+                + "\(String(format: "%g", timeout))s wait for a page URL containing "
+                + "“\(substring)”. Run browser.cdp_status to see what is missing."
+        )
+    }
+
+    /// The synchronous twin of `probe`, for the Accessibility executor's switch, which is
+    /// deliberately synchronous and cannot await. Only the localhost HTTP round trips
+    /// happen inside the semaphore — they run on the session's own queue and never on the
+    /// main actor — so a port that refuses answers in milliseconds and a debugger that
+    /// stalls is bounded by the same 1.5 s request timeout `probe` uses.
+    static func probeSync(host: String = defaultHost, port: Int = defaultPort) -> Probe? {
+        guard let versionURL = URL(string: "http://\(host):\(port)/json/version"),
+              let listURL = URL(string: "http://\(host):\(port)/json/list")
+                ?? URL(string: "http://\(host):\(port)/json")
+        else {
+            return nil
+        }
+        guard let versionData = getSync(versionURL),
+              let version = parseVersion(versionData)
+        else { return nil }
+        let listData = getSync(listURL)
+        return Probe(
+            browser: version.browser,
+            webSocketDebuggerURL: version.webSocketDebuggerURL,
+            targets: listData.map { parseTargets($0) } ?? []
+        )
+    }
+
+    /// One blocking GET. The completion handler runs on the session's own queue, so a
+    /// caller that blocks waiting for the semaphore cannot deadlock it; the box is locked
+    /// rather than trusting that ordering to be obvious.
+    private static func getSync(_ url: URL) -> Data? {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 1.5
+        final class Answer: @unchecked Sendable {
+            let lock = NSLock()
+            var data: Data? = nil
+        }
+        let answer = Answer()
+        let semaphore = DispatchSemaphore(value: 0)
+        let task = URLSession.shared.dataTask(with: request) { data, response, _ in
+            defer { semaphore.signal() }
+            if let http = response as? HTTPURLResponse,
+               (200...299).contains(http.statusCode), let data {
+                answer.lock.lock()
+                answer.data = data
+                answer.lock.unlock()
+            }
+        }
+        task.resume()
+        _ = semaphore.wait(timeout: .now() + 2.5)
+        answer.lock.lock()
+        defer { answer.lock.unlock() }
+        return answer.data
     }
 
     // MARK: - Session
@@ -634,9 +830,15 @@ enum BrowserCDPClient {
         defer { task.cancel(with: .goingAway, reason: nil) }
         let id = Int.random(in: 1...10_000)
         let payload = encode(method: method, params: params, id: id)
+        // CDP is a text-frame protocol. Measured against real Chrome 153 on 2026-09-22:
+        // the same envelope sent as a binary `.data` frame makes the DevTools server tear
+        // the TCP socket down without a CLOSE frame, so the command reads as "did not
+        // answer"; sent as a text frame it replies in milliseconds. The python CDP
+        // fixture accepted binary frames, which is why `--selftest-browser` never saw
+        // this and a real browser did.
         let didSend = await withBoundedWait(.seconds(4)) { () -> Bool in
             do {
-                try await task.send(.data(payload))
+                try await task.send(.string(String(decoding: payload, as: UTF8.self)))
                 return true
             } catch {
                 return false

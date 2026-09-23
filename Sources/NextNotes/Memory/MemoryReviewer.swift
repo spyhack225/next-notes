@@ -47,7 +47,7 @@ enum MemoryReviewModelChoice: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .auto:
             "Local model when it is loaded, nothing is recording and it has been idle for a minute; "
-                + "otherwise OpenRouter if it is set up; otherwise Apple Intelligence on this Mac. "
+                + "otherwise Apple Intelligence on this Mac; otherwise OpenRouter if it is set up. "
                 + "When it uses OpenRouter, the conversation and your memories are sent to it for "
                 + "the review."
         case .local:
@@ -95,8 +95,14 @@ enum MemoryReviewRoute: Equatable, Sendable {
 /// loads on demand) and no OpenRouter key, every route was `.wait`, so the review waited for
 /// ever and the Memories list stayed empty with nothing to explain it. Apple Intelligence is
 /// on this Mac, is already the fallback everywhere else in the app, and holds no GPU — so it
-/// is the last resort for every choice but `.cloud`, and `auto` now never waits on a Mac that
-/// has it.
+/// carries `auto` whenever it is available, and a down cloud never stalls the review on a Mac
+/// that has it.
+///
+/// Automatic tries, in order: the local model once it has been idle a minute (it is the one
+/// best answer and costs nothing), Apple Intelligence (resident, free, never leaves the
+/// machine), the cloud when it is configured and its gate is up, and only then waits. The
+/// M2-a cloud gate removes the *cloud* from the running while OpenRouter is rate-limited; it
+/// must fail over to a model on this Mac, not stop the review.
 enum MemoryReviewRouter {
     /// Hermes's rule for local servers: a review that holds the GPU makes the next voice
     /// reply slow, so it waits for the model to have been idle this long.
@@ -108,18 +114,6 @@ enum MemoryReviewRouter {
         cloudDown: Bool = false
     ) -> MemoryReviewRoute {
         if isRecording { return .wait("a meeting or dictation is recording") }
-        // M2-a: while the cloud gate is down, Automatic waits instead of burning a 429.
-        // A local model that is already idle still runs — the gate is about the cloud,
-        // not about work this Mac can do itself — unless the choice needs the cloud.
-        if cloudDown, choice == .auto {
-            let localIdleNow: Bool = {
-                if case .idle(let seconds) = local { return seconds >= requiredLocalIdle }
-                return false
-            }()
-            if !localIdleNow {
-                return .wait(MemoryCloudGate.cachedReason())
-            }
-        }
         let localIdle: Bool = {
             if case .idle(let seconds) = local { return seconds >= requiredLocalIdle }
             return false
@@ -132,9 +126,15 @@ enum MemoryReviewRouter {
         switch choice {
         case .auto:
             if localIdle { return .local }
-            if cloudConfigured { return .cloud }
             if appleAvailable { return .appleFoundation }
-            return .wait(localWait + ", OpenRouter isn't set up and Apple Intelligence isn't available")
+            guard cloudConfigured else {
+                return .wait(localWait + ", OpenRouter isn't set up and Apple Intelligence isn't available")
+            }
+            // M2-a: while the cloud gate is down, Automatic waits instead of burning a 429 —
+            // but only once local and Apple have both declined, so a rate-limited cloud never
+            // stops work this Mac can do itself.
+            if cloudDown { return .wait(MemoryCloudGate.cachedReason()) }
+            return .cloud
         case .local:
             // A background review never loads the weights itself: a voice reply that starts
             // during a multi-gigabyte load would wait behind it. Apple Intelligence is already
@@ -146,6 +146,16 @@ enum MemoryReviewRouter {
             if cloudDown { return .wait(MemoryCloudGate.cachedReason()) }
             return cloudConfigured ? .cloud : .wait("OpenRouter isn't set up")
         }
+    }
+
+    /// Plain words for a wait reason, for the one status line the Memories sheet shows while
+    /// the list has nothing in it. Kept beside the reasons themselves so the two cannot drift.
+    static func waitingLine(_ reason: String) -> String {
+        if reason.hasPrefix("Local model") {
+            return "Waiting for the on-device model — " + reason.prefix(1).lowercased() + reason.dropFirst() + "."
+        }
+        if reason.contains("recording") { return "Paused while a meeting or dictation is recording." }
+        return "Waiting to look: \(reason)."
     }
 }
 
@@ -315,8 +325,43 @@ struct ProviderMemoryReviewModel: MemoryReviewModel {
 
     var label: String { provider.displayModelName }
 
+    /// The grammar a provider that can constrain decoding is held to: exactly "NONE" or the
+    /// memory tool calls the prompt asks for.
+    ///
+    /// This exists because of what the review ledger showed: every run the local model ever
+    /// made proposed **zero** calls. Left free, it answered with prose and no `<tool_call>` at
+    /// all, so an entire channel of the user's own words was read and silently discarded.
+    /// The grammar was the intended third user of `GBNFGrammar` (its own comment says so) and
+    /// was never wired up. Providers that cannot constrain decoding — Apple and OpenRouter —
+    /// still generate freely, and the parser validates what they return.
+    static let toolGrammar = GBNFGrammar(text: #"""
+    root ::= "NONE" | call+
+    call ::= "<tool_call>" ws "{" ws "\"name\"" ws ":" ws toolname ws "," ws "\"arguments\"" ws ":" ws arguments ws "}" ws "</tool_call>" ws
+    toolname ::= "\"memory.remember\"" | "\"memory.update\"" | "\"memory.forget\""
+    arguments ::= "{" ws (pair (ws "," ws pair){0,3})? ws "}"
+    pair ::= kind-pair | text-pair | match-pair
+    kind-pair ::= "\"kind\"" ws ":" ws kind
+    kind ::= "\"profile\"" | "\"note\""
+    text-pair ::= "\"text\"" ws ":" ws str
+    match-pair ::= "\"match\"" ws ":" ws str
+    str ::= "\"" [^"\\\x00-\x1F]{0,300} "\""
+    ws ::= [ \t\n]{0,8}
+    """#)
+
     func complete(system: String, user: String) async throws -> String {
-        try await provider.complete(system: system, user: user, maxTokens: maxTokens).text
+        guard provider.enforcesGrammar else {
+            return try await provider.complete(system: system, user: user, maxTokens: maxTokens).text
+        }
+        do {
+            return try await provider.complete(system: system, user: user, maxTokens: maxTokens,
+                                               grammar: Self.toolGrammar).text
+        } catch LlamaError.grammarInvalid {
+            // The native parser refused the grammar. A malformed grammar must not make every
+            // pass fail until the review disables itself; the old unconstrained behaviour is
+            // strictly better than no review at all, and the log names what happened.
+            Log.agent.error("memory review grammar was refused by the sampler; reviewing unconstrained")
+            return try await provider.complete(system: system, user: user, maxTokens: maxTokens).text
+        }
     }
 }
 
@@ -410,13 +455,7 @@ enum MemoryReviewSkipRules {
             return "not something the user said about themselves"
         }
         if tool == "memory.remember" {
-            let tokens = Set(MemoryGuard.contentTokens(text))
-            if !tokens.isEmpty, existing.contains(where: { entry in
-                let other = Set(MemoryGuard.contentTokens(entry.text))
-                guard !other.isEmpty else { return false }
-                let overlap = Double(tokens.intersection(other).count) / Double(tokens.union(other).count)
-                return overlap >= 0.75
-            }) {
+            if existing.contains(where: { MemoryGuard.saysTheSameFact(text, $0.text) }) {
                 return "already remembered"
             }
         }
@@ -426,8 +465,25 @@ enum MemoryReviewSkipRules {
     private static let environmentFailure =
         #"\b(errors?|failed|fails|failing|failure|crash(es|ed|ing)?|timed? ?out|time-?outs?|offline|outage|permission denied|no (internet|connection|network|signal)|not (working|responding|connecting|loading)|(isn't|wasn't|doesn't|didn't|won't|can't|couldn't|cannot|keeps?|stopped) (work|connect|load|respond|open|sync|start|hear|fail|crash|drop)(s|ed|ing)?|unavailable|unreachable|bug(gy|s)?)\b"#
 
+    /// A request the user made, restated as something they are doing. The first half is the
+    /// question and request shapes ("wants to know", "asked about"); the second is the
+    /// present-progress paraphrase a model reaches for when the turn only carried a tool row —
+    /// "Search my files for the budget" became "The user is searching for a budget." on
+    /// 22 Sep 2026, and no provenance check can call that wrong, because the user did say
+    /// both words. It is an activity, not a durable fact, and the review skips it.
+    ///
+    /// Only the *continuous* form of these verbs is caught. "The user checks the deploy
+    /// dashboard every morning" is a habit and stays a candidate; "The user is checking the
+    /// deploy dashboard" is what they are doing right now and does not.
     private static let oneOff =
         #"\b(wants? to know|wanted to know|would like to know|asked (about|for|to|whether|if|what|when)|is asking|was asking|requested|is looking up|today|tonight|tomorrow|yesterday|right now|this (morning|afternoon|evening|week)|at the moment|just now|for now)\b"#
+        + #"|\b(is|are|was|were|been)\s+(search\w*|look\w*|check\w*|find\w*|fetch\w*|brows\w*|seek\w*|try\w*|ask\w*|wonder\w*)\b"#
+        + #"|\b(wants?|wanted|would like) to (search|look|find|check|browse|fetch|see|read|review|try|know)\b"#
+        + #"|\b(searched|looked|checked|fetched|browsed|sought)\b"#
+        // A search is an activity, not a fact about the user: any form of the verb is a
+        // one-off, including the negative paraphrase ("The user has no files to search
+        // for the budget") that a model reaches for when the tool row is not shown to it.
+        + #"|\bsearch\w*\b"#
 
     private static func matches(_ pattern: String, _ text: String) -> Bool {
         text.range(of: pattern, options: .regularExpression) != nil
@@ -487,13 +543,15 @@ enum MemoryReviewer {
         memory. Most of it needs nothing.
 
         Tools, and the only tools that exist here:
-        - memory.remember(kind, text): kind is profile (a stable fact about the user) or note \
-        (how the user wants work done here). text is one declarative sentence that starts with \
-        "The user", in the user's own words. Never a command.
+        - memory.remember(kind, text): kind is profile (a fact or preference about the user, \
+        e.g. "The user prefers short answers.") or note (a working arrangement — which app to \
+        use, where notes, files or documents go — e.g. "The user's standup notes go to the team \
+        Drive folder."). text is one declarative sentence that starts with "The user", using only \
+        the user's own words — add nothing they did not say. Never a command.
         - memory.update(match, text): a fact the user stated changes a remembered one. match is a \
         unique part of the old fact.
-        - memory.forget(match): only when the user asked to forget something or said a remembered \
-        fact is wrong.
+        - memory.forget(match): when the user asked to forget something, or said a remembered fact \
+        is no longer true and did not say what is true instead.
 
         Save only durable facts the user said about themselves: who they are, what they work on, \
         who the people around them are and how they are related, what they prefer. Skip:
@@ -613,6 +671,10 @@ protocol MemoryReviewEnvironment: AnyObject {
     func isCloudConfigured() async -> Bool
     /// Apple Intelligence on this Mac. The last resort, so a review never waits for ever.
     func isAppleFoundationAvailable() async -> Bool
+    /// The same answer without awaiting, for the sync pre-create checks: `enqueue()` and
+    /// `harvestNewSources()` must not count a skip for a down cloud when a resident model on
+    /// this Mac can carry the review instead. Synchronous because those paths cannot await.
+    var isAppleFoundationAvailableNow: Bool { get }
 }
 
 @MainActor
@@ -684,6 +746,9 @@ final class MemoryReviewScheduler {
     /// The last pass could not run (recording, no route). The backfill reads it so it stops
     /// cleanly instead of burning through its queue returning nothing.
     private(set) var lastPassWaited = false
+    /// Why the last pass could not run, when it could not. The Memories sheet shows it while
+    /// the list is empty; nil once a pass finishes.
+    private(set) var lastWaitReason: String?
     /// Pre-create skips: `enqueue()` / `harvestNewSources()` consulted the route and found
     /// `.wait`, so no job was queued. Counted with reason (M2-a); the ledger stays quiet
     /// because nothing was read.
@@ -746,6 +811,9 @@ final class MemoryReviewScheduler {
                 }
                 // The one-time pass over what was already here. It only does work while
                 // something is left, and stops itself the moment a recording starts.
+                // The repair first: a history consumed by a pass that could not save
+                // anything is re-opened once, and then this same condition drives it.
+                MemoryBackfill.shared.repairUnproductivePassIfNeeded()
                 if case .nothingPending = pass, !MemoryBackfill.shared.state.hasRun {
                     _ = await MemoryBackfill.shared.run()
                 }
@@ -802,12 +870,15 @@ final class MemoryReviewScheduler {
         guard environment.isMemoryEnabled, let store = knowledge() else { return }
         guard !reviewDisabled else { return }
         // M2-a pre-create: consult the route before queueing work that cannot run.
-        // A recording or a down cloud records one counted skip with reason, not a job.
+        // A recording or a down cloud records one counted skip with reason, not a job. A down
+        // cloud only blocks when nothing on this Mac can take over — Apple Intelligence is
+        // resident and free, so it carries the review and the work is queued as usual.
         if environment.isRecording {
             recordPreCreateSkip(reason: "a meeting or dictation is recording")
             return
         }
-        if MemoryCloudGate.isDownCached(now: now()), choice() == .auto {
+        if MemoryCloudGate.isDownCached(now: now()), choice() == .auto,
+           !environment.isAppleFoundationAvailableNow {
             recordPreCreateSkip(reason: MemoryCloudGate.cachedReason())
             return
         }
@@ -820,17 +891,25 @@ final class MemoryReviewScheduler {
         }
     }
 
-    /// One backfill source, straight through the same pass. Returns the ids it saved.
-    func runBackfill(_ job: MemoryReviewJob) async -> [UUID] {
+    /// One backfill source, straight through the same pass.
+    ///
+    /// `nil` when the source was not read — the route waited, or the model failed — so the
+    /// backfill leaves its progress where it is and offers the same source again on a later
+    /// pass. Only a `.reviewed` pass consumes it, and it is `MemoryReviewStateStore.harvested`
+    /// that remembers that, so the source is never read twice.
+    func runBackfill(_ job: MemoryReviewJob) async -> [UUID]? {
         var backfilled = job
         backfilled.attempts = 0
+        // One source, one queued job: a previous wait or failure may have left the same
+        // source in the queue, and a second copy would be reviewed a second time.
+        pending.removeAll { $0.sourceKey == backfilled.sourceKey }
         pending.insert(backfilled, at: 0)
         let pass = await runOnce()
         if case .reviewed = pass {
             return lastOutcome?.saved.map(\.id) ?? []
         }
         // Waiting or failed: leave the queue as `runOnce` left it and let the caller stop.
-        return []
+        return nil
     }
 
     /// A newer capture of the same session replaces the older one: rows only grow, and both
@@ -843,12 +922,14 @@ final class MemoryReviewScheduler {
             return
         }
         guard !reviewDisabled else { return }
-        // M2-a pre-create: no job when the route already says wait. Counted, reasoned.
+        // M2-a pre-create: no job when the route already says wait. Counted, reasoned. A down
+        // cloud with Apple Intelligence on this Mac is not a wait — the queue is fed as usual.
         if environment.isRecording {
             recordPreCreateSkip(reason: "a meeting or dictation is recording")
             return
         }
-        if MemoryCloudGate.isDownCached(now: now()), choice() == .auto {
+        if MemoryCloudGate.isDownCached(now: now()), choice() == .auto,
+           !environment.isAppleFoundationAvailableNow {
             recordPreCreateSkip(reason: MemoryCloudGate.cachedReason())
             return
         }
@@ -874,17 +955,20 @@ final class MemoryReviewScheduler {
         guard environment.isMemoryEnabled else { return .disabled }
         if reviewDisabled { return .disabled }
         if let retryAt = retryNotBefore, now() < retryAt {
-            lastPassWaited = true
-            return .waiting("the review is backing off after failures — retrying shortly")
+            return waiting("the review is backing off after failures — retrying shortly")
         }
-        guard let job = pending.first else { return .nothingPending }
+        guard let job = pending.first else {
+            // The queue is empty, and while the cloud is down that is exactly what the
+            // pre-create checks make it: `enqueue()` and `harvestNewSources()` counted their
+            // skips and queued nothing. The one notice a down period gets has to be posted
+            // here or the person never hears that the review is waiting on anything.
+            // `lastWaitReason` is deliberately not cleared: the backfill's last attempt is
+            // still the truest thing the Memories list can say until a pass succeeds.
+            await noteCloudGateIfItBlocksWork()
+            return .nothingPending
+        }
         isRunning = true
         defer { isRunning = false }
-
-        func waiting(_ reason: String) -> MemoryReviewPass {
-            lastPassWaited = true
-            return .waiting(reason)
-        }
 
         guard !environment.isRecording else { return waiting("a meeting or dictation is recording") }
         let local = await environment.localModelState()
@@ -898,10 +982,7 @@ final class MemoryReviewScheduler {
             // M2-a: a cloud wait while down is a counted skip, and one notice per period.
             if cloudDown {
                 await MemoryCloudGate.shared.recordSkip(reason: reason, now: now())
-                if await MemoryCloudGate.shared.shouldNotify(now: now()) {
-                    problemNotices.append(reason)
-                    if problemNotices.count > 20 { problemNotices.removeFirst() }
-                }
+                await postCloudNoticeIfDue(reason: reason)
             }
             return waiting(reason)
         }
@@ -931,6 +1012,7 @@ final class MemoryReviewScheduler {
         switch result {
         case .success(let outcome):
             lastOutcome = outcome
+            lastWaitReason = nil
             consecutiveFailures = 0
             retryNotBefore = nil
             pending.removeAll { $0.id == job.id }
@@ -978,10 +1060,12 @@ final class MemoryReviewScheduler {
                 pending[index].attempts += 1
                 if pending[index].attempts >= Self.maxAttempts {
                     pending.remove(at: index)
-                    // Out of attempts: the row says so rather than the source disappearing.
+                    // Out of attempts: the row says so, but the source is *not* ticked off.
+                    // A failure is not a review — a rate-limited cloud used to consume the
+                    // source here, which is how 46 of them were never read at all.
                     state.record(run: .failed(job: job, model: route.displayName,
                                               error: error.localizedDescription, now: now()),
-                                 sourceKey: job.sourceKey)
+                                 sourceKey: nil)
                 }
             }
             return .failed(error.localizedDescription)
@@ -992,6 +1076,72 @@ final class MemoryReviewScheduler {
     func recordPreCreateSkip(reason: String) {
         preCreateSkips.append((reason: reason, at: now()))
         if preCreateSkips.count > 200 { preCreateSkips.removeFirst(preCreateSkips.count - 200) }
+    }
+
+    /// The one plain sentence the Memories sheet shows when it has no entries at all: what
+    /// the review is doing, or why it is not doing anything. The view renders it verbatim —
+    /// it is the reviewer's sentence, not the view's.
+    ///
+    /// This is the third leg of the same fix as the ledger: an empty list must never again be
+    /// indistinguishable from a review that never ran.
+    func emptyListLine(now: Date = Date()) -> String {
+        if !environment.isMemoryEnabled || state.memoryOff {
+            return "Not looking: remembering is turned off."
+        }
+        if reviewDisabled {
+            let last = problemNotices.last.map { " \($0)" } ?? ""
+            return "The review stopped itself after repeated failures.\(last)"
+        }
+        if let reason = lastWaitReason, lastPassWaited,
+           !pending.isEmpty || state.backfill.isRunning {
+            return MemoryReviewRouter.waitingLine(reason)
+        }
+        if state.backfill.isRunning {
+            return state.backfill.progressLine()
+        }
+        if let job = pending.first {
+            let work = job.label.isEmpty ? job.trigger.subject : "\(job.trigger.subject) \(job.label)"
+            return "Reviewing your \(work)…"
+        }
+        if let last = state.lastRun {
+            if let failure = last.failure { return "The last review couldn't finish — \(failure)" }
+            if last.saved.isEmpty {
+                return "Nothing worth saving yet in what it has read. \(state.lastLookedLine(now: now))"
+            }
+            return state.lastLookedLine(now: now)
+        }
+        return "Nothing to review yet — it looks after your next conversation or dictation."
+    }
+
+    /// A pass that could not run. Remembers the reason as well as the fact, so the Memories
+    /// sheet can say what the review is waiting on rather than only that it waited.
+    private func waiting(_ reason: String) -> MemoryReviewPass {
+        lastPassWaited = true
+        lastWaitReason = reason
+        return .waiting(reason)
+    }
+
+    /// With nothing queued, records a cloud skip and posts the down period's one notice —
+    /// but only when the cloud is what is blocking. A local model that is idle carries the
+    /// review even while OpenRouter is rate-limited, and a down cloud that stops nothing is
+    /// not a problem to report.
+    private func noteCloudGateIfItBlocksWork() async {
+        guard !environment.isRecording, await MemoryCloudGate.shared.isDown(now: now()) else { return }
+        let local = await environment.localModelState()
+        let cloud = await environment.isCloudConfigured()
+        let apple = await environment.isAppleFoundationAvailable()
+        let route = MemoryReviewRouter.route(choice: choice(), isRecording: false, local: local,
+                                             cloudConfigured: cloud, appleAvailable: apple, cloudDown: true)
+        guard case .wait(let reason) = route else { return }
+        await MemoryCloudGate.shared.recordSkip(reason: reason, now: now())
+        await postCloudNoticeIfDue(reason: reason)
+    }
+
+    /// One notice per down period, not one per failure (M2-a fixture asserts this).
+    private func postCloudNoticeIfDue(reason: String) async {
+        guard await MemoryCloudGate.shared.shouldNotify(now: now()) else { return }
+        problemNotices.append(reason)
+        if problemNotices.count > 20 { problemNotices.removeFirst() }
     }
 
     /// For the self-test: clear backoff/disable state without touching the queue.
@@ -1033,6 +1183,11 @@ final class LiveMemoryReviewEnvironment: MemoryReviewEnvironment {
     func isAppleFoundationAvailable() async -> Bool {
         await LLMProviders.make(.appleFoundation).unavailableReason == nil
     }
+
+    /// The same question without the await, straight from Foundation Models' own availability.
+    /// `FoundationModelFormatter.isAvailable` is already the app's synchronous answer, so the
+    /// sync pre-create paths read the same fact the router does rather than a second one.
+    var isAppleFoundationAvailableNow: Bool { FoundationModelFormatter.isAvailable }
 }
 
 @MainActor
@@ -1040,13 +1195,18 @@ final class LiveMemoryReviewModels: MemoryReviewModelProviding {
     func model(for route: MemoryReviewRoute) async -> (any MemoryReviewModel)? {
         switch route {
         case .local:
-            return ProviderMemoryReviewModel(provider: LlamaLLMProvider())
+            // Through `make`, not a bare `LlamaLLMProvider()`: the provider has to carry the
+            // name of the file the runtime will load, not the one that shipped.
+            return ProviderMemoryReviewModel(provider: LLMProviders.make(.appLLM))
         case .cloud:
             return ProviderMemoryReviewModel(provider: LLMProviders.make(
                 .openRouter, modelID: Settings.shared.openRouterAgentModelID,
                 contextTokens: Settings.shared.openRouterAgentContextTokens))
         case .appleFoundation:
-            return ProviderMemoryReviewModel(provider: LLMProviders.make(.appleFoundation))
+            // Guided generation, not the `<tool_call>` XML protocol: the on-device
+            // model measured 0 saves on all 17 fixture cases through the parser.
+            // See MemoryReviewAppleModel.
+            return AppleMemoryReviewModel()
         case .wait:
             return nil
         }

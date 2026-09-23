@@ -1,0 +1,451 @@
+{
+  "machine": "Apple M3 \u00b7 8 cores \u00b7 16 GB",
+  "results": [
+    {
+      "backend": "laya",
+      "checkpoint": "multilingual",
+      "detail": "convaiinnovations/laya/multilingual \u00b7 mmBERT-base, 1024 ctx, smallest & fastest",
+      "status": "ok",
+      "rows": [
+        {
+          "name": "address said out loud",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.816,
+          "noul": 0.327,
+          "latency_ms": 88.20605278015137
+        },
+        {
+          "name": "no address anywhere",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.923,
+          "noul": 0.84,
+          "latency_ms": 81.80403709411621
+        },
+        {
+          "name": "address said a minute earlier",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.754,
+          "noul": 0.897,
+          "latency_ms": 89.31303024291992
+        },
+        {
+          "name": "ordinary conversation",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.942,
+          "noul": 0.134,
+          "latency_ms": 85.45470237731934
+        },
+        {
+          "name": "browser command (verbatim audit line)",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.933,
+          "noul": 0.409,
+          "latency_ms": 84.72824096679688
+        },
+        {
+          "name": "browser command, as said",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.976,
+          "noul": 0.799,
+          "latency_ms": 72.08800315856934
+        },
+        {
+          "name": "a folder on this Mac",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.856,
+          "noul": 0.892,
+          "latency_ms": 76.60889625549316
+        },
+        {
+          "name": "media control",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.654,
+          "noul": 0.407,
+          "latency_ms": 81.43305778503418
+        },
+        {
+          "name": "a question about the diary",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.851,
+          "noul": 0.576,
+          "latency_ms": 78.2473087310791
+        },
+        {
+          "name": "a search somebody asked for out loud",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.954,
+          "noul": 0.736,
+          "latency_ms": 82.9470157623291
+        },
+        {
+          "name": "append a line to a doc",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.999,
+          "noul": 0.438,
+          "latency_ms": 71.56014442443848
+        },
+        {
+          "name": "open the doc and add to it",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "noul": 0.105,
+          "latency_ms": 80.06501197814941
+        },
+        {
+          "name": "diary entry for Thursday",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.338,
+          "noul": 0.178,
+          "latency_ms": 86.5328311920166
+        },
+        {
+          "name": "put the review in the diary",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.431,
+          "noul": 0.228,
+          "latency_ms": 73.42410087585449
+        }
+      ],
+      "metrics": {
+        "n": 14,
+        "exact_tool_acc": 0.571,
+        "family_acc": 0.571,
+        "is_request_acc": 0.357,
+        "silence_on_none": "5/7",
+        "fired_on_request": "4/7",
+        "latency_ms": {
+          "p50": 81.6,
+          "mean": 80.9,
+          "min": 71.6,
+          "max": 89.3
+        }
+      },
+      "size": {
+        "weight_bytes": 643835514,
+        "params": "322M"
+      },
+      "load_seconds": 28.7,
+      "peak_rss_mb": 3489.0
+    },
+    {
+      "backend": "laya",
+      "checkpoint": "typed-decisions",
+      "detail": "convaiinnovations/laya/typed-decisions \u00b7 ModernBERT-large fine-tuned on typed decisions",
+      "status": "ok",
+      "rows": [
+        {
+          "name": "address said out loud",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.45,
+          "noul": 0.365,
+          "latency_ms": 207.61418342590332
+        },
+        {
+          "name": "no address anywhere",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.206,
+          "noul": 0.44,
+          "latency_ms": 183.52794647216797
+        },
+        {
+          "name": "address said a minute earlier",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.378,
+          "noul": 0.307,
+          "latency_ms": 210.00027656555176
+        },
+        {
+          "name": "ordinary conversation",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.457,
+          "noul": 0.13,
+          "latency_ms": 205.11889457702637
+        },
+        {
+          "name": "browser command (verbatim audit line)",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.242,
+          "noul": 0.599,
+          "latency_ms": 203.46927642822266
+        },
+        {
+          "name": "browser command, as said",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.069,
+          "noul": 0.63,
+          "latency_ms": 180.83691596984863
+        },
+        {
+          "name": "a folder on this Mac",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.279,
+          "noul": 0.304,
+          "latency_ms": 185.46104431152344
+        },
+        {
+          "name": "media control",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": false,
+          "confidence": 0.016,
+          "noul": 0.463,
+          "latency_ms": 185.03308296203613
+        },
+        {
+          "name": "a question about the diary",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.26,
+          "noul": 0.168,
+          "latency_ms": 188.60793113708496
+        },
+        {
+          "name": "a search somebody asked for out loud",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.048,
+          "noul": 0.457,
+          "latency_ms": 198.23598861694336
+        },
+        {
+          "name": "append a line to a doc",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.417,
+          "noul": 0.454,
+          "latency_ms": 179.72469329833984
+        },
+        {
+          "name": "open the doc and add to it",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.65,
+          "noul": 0.414,
+          "latency_ms": 201.56097412109375
+        },
+        {
+          "name": "diary entry for Thursday",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.151,
+          "noul": 0.351,
+          "latency_ms": 197.3729133605957
+        },
+        {
+          "name": "put the review in the diary",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.239,
+          "noul": 0.357,
+          "latency_ms": 190.24300575256348
+        }
+      ],
+      "metrics": {
+        "n": 14,
+        "exact_tool_acc": 0.643,
+        "family_acc": 0.643,
+        "is_request_acc": 0.357,
+        "silence_on_none": "4/7",
+        "fired_on_request": "6/7",
+        "latency_ms": {
+          "p50": 193.8,
+          "mean": 194.1,
+          "min": 179.7,
+          "max": 210.0
+        }
+      },
+      "size": {
+        "weight_bytes": 842609220,
+        "params": "421M"
+      },
+      "load_seconds": 27.2,
+      "peak_rss_mb": 3489.0
+    },
+    {
+      "backend": "needle",
+      "detail": "Needle 3 (Cactus Compute) \u00b7 121M @ ~2bit \u00b7 CLI child process",
+      "status": "ok",
+      "rows": [
+        {
+          "name": "address said out loud",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 375.26917457580566
+        },
+        {
+          "name": "no address anywhere",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 737.3521327972412
+        },
+        {
+          "name": "address said a minute earlier",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.965,
+          "latency_ms": 796.8451976776123
+        },
+        {
+          "name": "ordinary conversation",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.502,
+          "latency_ms": 519.9422836303711
+        },
+        {
+          "name": "browser command (verbatim audit line)",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.988,
+          "latency_ms": 665.2908325195312
+        },
+        {
+          "name": "browser command, as said",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 760.5640888214111
+        },
+        {
+          "name": "a folder on this Mac",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 561.8681907653809
+        },
+        {
+          "name": "media control",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.294,
+          "latency_ms": 682.7120780944824
+        },
+        {
+          "name": "a question about the diary",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.427,
+          "latency_ms": 608.5512638092041
+        },
+        {
+          "name": "a search somebody asked for out loud",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 621.5159893035889
+        },
+        {
+          "name": "append a line to a doc",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 590.4672145843506
+        },
+        {
+          "name": "open the doc and add to it",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.963,
+          "latency_ms": 633.7237358093262
+        },
+        {
+          "name": "diary entry for Thursday",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 498.1520175933838
+        },
+        {
+          "name": "put the review in the diary",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 370.3877925872803
+        }
+      ],
+      "metrics": {
+        "n": 14,
+        "exact_tool_acc": 0.786,
+        "family_acc": 0.786,
+        "is_request_acc": 0.786,
+        "silence_on_none": "5/7",
+        "fired_on_request": "6/7",
+        "latency_ms": {
+          "p50": 615.0,
+          "mean": 601.6,
+          "min": 370.4,
+          "max": 796.8
+        }
+      },
+      "size": {
+        "weight_bytes": 36160124,
+        "params": "121M"
+      },
+      "peak_rss_mb": 98.2
+    }
+  ]
+}

@@ -1,13 +1,14 @@
 import SwiftUI
 
-/// Agent → Routines (Part 3).
+/// Agent → Reminders (Part 3). What runs and when.
 ///
 /// Triggers (R3) are listed with the rest: the event they wait for instead of a next run.
-/// Every schedule with its plain-English sentence, next run, last result and a switch; open
-/// one for its run history — skipped slots and their reasons included — the drafts it left
-/// awaiting approval, *Run now*, *Edit* and *Delete*. Routine suggestions from the memory
-/// review sit at the top with *Set it up* and *Dismiss*, and every draft still awaiting
-/// approval is listed above the schedules so none is buried in a closed row.
+/// Every reminder and run with its plain-English sentence, next run, last result and a
+/// switch; open one for its run history — skipped slots and their reasons included — the
+/// drafts it left awaiting approval, *Run now*, *Edit* and *Delete*. Suggestions from the
+/// memory review sit at the top with *Set it up* and *Dismiss*, and every draft still
+/// awaiting approval is listed above the rest so none is buried in a closed row. Goals —
+/// the outcomes these reminders are about — live one pane over.
 struct RoutinesView: View {
     @State private var store = ScheduleStore.shared
     @State private var review = MemoryReviewStateStore.shared
@@ -18,25 +19,24 @@ struct RoutinesView: View {
     @State private var message: String?
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DS.Space.xl) {
-                header
-                if !review.openSuggestions.isEmpty { suggestions }
-                if !store.awaitingDrafts.isEmpty { drafts(store.awaitingDrafts, title: "Awaiting your approval") }
-                schedulesSection
-                launchAtLogin
-                if let message {
-                    Text(message)
-                        .font(DS.Font.caption)
-                        .foregroundStyle(DS.Color.warning)
-                }
+        AgentPaneScroll {
+            AgentPaneHeader(
+                title: "Reminders",
+                subtitle: "What your assistant runs on its own, and when — reminders, recurring runs "
+                    + "and runs that wait for something to happen. Anything it would write or "
+                    + "send waits for your yes."
+            )
+            if !review.openSuggestions.isEmpty { suggestions }
+            AgentSplit {
+                listsColumn
+            } rail: {
+                railColumn
             }
-            .padding(DS.Space.page)
-            // The same centred column as Skills and About. Pinned to the leading edge, the
-            // cards stopped at 520pt while the empty state centred itself in the whole pane,
-            // and a bare checkbox sat under both — three alignments on one screen.
-            .frame(maxWidth: DS.Size.agentAboutMaxWidth)
-            .frame(maxWidth: .infinity)
+            if let message {
+                Text(message)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.warning)
+            }
         }
         .onAppear { store.reload() }
         .sheet(item: $editing) { schedule in
@@ -48,20 +48,32 @@ struct RoutinesView: View {
 
     // MARK: - Sections
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: DS.Space.xs) {
-            Text("Reminders").font(DS.Font.title2)
-            Text("Things your assistant does on its own, at a time or when something happens. "
-                 + "Anything it would write or send waits for your yes.")
-                .font(DS.Font.callout)
-                .foregroundStyle(DS.Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+    /// The left column: anything awaiting approval first — a draft is never buried in a
+    /// closed row — then the reminders, recurring runs and triggers.
+    private var listsColumn: some View {
+        VStack(alignment: .leading, spacing: DS.Space.xl) {
+            if !store.awaitingDrafts.isEmpty {
+                AgentPaneSection(title: "Awaiting your approval", count: store.awaitingDrafts.count) {
+                    ForEach(store.awaitingDrafts) { draft in draftRow(draft) }
+                }
+            }
+            schedulesSections
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The right rail: the login switch, and the empty state when nothing is set up yet.
+    /// On a narrow window `AgentSplit` stacks it under the list.
+    private var railColumn: some View {
+        VStack(alignment: .leading, spacing: DS.Space.xl) {
+            launchAtLogin
+            if store.schedules.isEmpty { emptyState }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var suggestions: some View {
-        VStack(alignment: .leading, spacing: DS.Space.s) {
-            Text("Suggested").font(DS.Font.sectionLabel)
+        AgentPaneSection(title: "Suggested", count: review.openSuggestions.count) {
             ForEach(review.openSuggestions) { suggestion in
                 VStack(alignment: .leading, spacing: DS.Space.xs) {
                     Text(suggestion.offer())
@@ -71,7 +83,7 @@ struct RoutinesView: View {
                             review.resolveSuggestion(id: suggestion.id)
                             NavigationState.shared.agentPane = .conversation
                             let request = suggestion.request
-                            Task { await RealtimeAgent.shared.handleLive("Set up a routine for this: \(request)", source: .text) }
+                            Task { await RealtimeAgent.shared.handleLive("Set this up: \(request)", source: .text) }
                         }
                         .buttonStyle(.borderedProminent)
                         Button("Dismiss") { review.resolveSuggestion(id: suggestion.id) }
@@ -103,6 +115,13 @@ struct RoutinesView: View {
                     .foregroundStyle(DS.Color.textSecondary)
             }
             Text(draft.title).font(DS.Font.headline)
+            if draft.status == .awaitingApproval {
+                // §8.2 status sublines: every tracked row carries a live one-line state,
+                // so "waiting" is never silent about what it is waiting for.
+                Text(draftSummary(draft))
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+            }
             if let preview = draft.preview, !preview.isEmpty {
                 Text(preview)
                     .font(DS.Font.callout)
@@ -130,15 +149,32 @@ struct RoutinesView: View {
         .glassSurface(cornerRadius: DS.Radius.card)
     }
 
-    private var schedulesSection: some View {
-        VStack(alignment: .leading, spacing: DS.Space.s) {
-            if !store.schedules.isEmpty {
-                Text("Your reminders").font(DS.Font.sectionLabel)
-            } else {
-                emptyState
+    /// Split by what each row is, not by which store it came from (§8.3): a reminder is
+    /// what it says, a recurring run is what it does on a schedule, and a trigger waits
+    /// for something to happen. Outcomes — the goals these runs are about — belong to the
+    /// Goals pane. The empty state lives in the rail, so nothing renders here when there
+    /// is nothing to list.
+    @ViewBuilder
+    private var schedulesSections: some View {
+        let sorted = store.schedules.sorted {
+            ($0.nextRunAt ?? .distantFuture) < ($1.nextRunAt ?? .distantFuture)
+        }
+        let reminders = sorted.filter { $0.kind == .reminder }
+        let recurring = sorted.filter { $0.kind == .routine }
+        let triggers = sorted.filter { $0.kind == .trigger }
+        if !reminders.isEmpty {
+            AgentPaneSection(title: "Your reminders", count: reminders.count) {
+                ForEach(reminders) { scheduleRow($0) }
             }
-            ForEach(store.schedules.sorted { ($0.nextRunAt ?? .distantFuture) < ($1.nextRunAt ?? .distantFuture) }) { schedule in
-                scheduleRow(schedule)
+        }
+        if !recurring.isEmpty {
+            AgentPaneSection(title: "Recurring runs", count: recurring.count) {
+                ForEach(recurring) { scheduleRow($0) }
+            }
+        }
+        if !triggers.isEmpty {
+            AgentPaneSection(title: "When something happens", count: triggers.count) {
+                ForEach(triggers) { scheduleRow($0) }
             }
         }
     }
@@ -209,10 +245,29 @@ struct RoutinesView: View {
             }
         }
         if schedule.kind != .reminder {
-            Text("What it can do: \(schedule.allowedTools.isEmpty ? "nothing extra" : schedule.allowedTools.joined(separator: ", ")) · "
-                 + "model: \(schedule.model.rawValue) · limit \(schedule.budget.maxSeconds / 60) min, \(schedule.budget.maxToolCalls) steps")
+            // The internals stay one disclosure down (§8.3 exposure discipline): what a
+            // person needs is what it may use and what stops it, in their own words —
+            // never a tool id, a model id or a step budget on the open row.
+            DisclosureGroup("What it can use") {
+                VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                    Text(schedule.allowedTools.isEmpty
+                         ? "It can use: nothing extra"
+                         : "It can use: "
+                             + schedule.allowedTools
+                                 .map(ToolCallReviewBuilder.humanName(forToolID:))
+                                 .joined(separator: ", "))
+                    Text("Runs on: \(Self.modelLabel(schedule.model))")
+                    Text("Stops after \(schedule.budget.maxToolCalls) step"
+                         + (schedule.budget.maxToolCalls == 1 ? "" : "s")
+                         + " or \(max(1, schedule.budget.maxSeconds / 60)) minute"
+                         + (schedule.budget.maxSeconds / 60 == 1 ? "" : "s"))
+                }
                 .font(DS.Font.caption)
                 .foregroundStyle(DS.Color.textSecondary)
+                .padding(.top, DS.Space.xxs)
+            }
+            .font(DS.Font.caption)
+            .foregroundStyle(DS.Color.textSecondary)
         }
         let scheduleDrafts = store.drafts(for: schedule.id)
         if !scheduleDrafts.isEmpty {
@@ -252,7 +307,7 @@ struct RoutinesView: View {
             HStack(spacing: DS.Space.m) {
                 ThinkingOrb(state: .breathing, size: DS.Size.iconLarge)
                 VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                    Text("No reminders yet").font(DS.Font.headline)
+                    Text("Nothing set up yet").font(DS.Font.headline)
                     Text("Just ask, in your own words. Try one of these:")
                         .font(DS.Font.callout)
                         .foregroundStyle(DS.Color.textSecondary)
@@ -293,7 +348,7 @@ struct RoutinesView: View {
                 .frame(width: DS.Size.iconLarge)
             VStack(alignment: .leading, spacing: DS.Space.xxs) {
                 Text("Open Next Notes at login")
-                Text("Reminders and goals only run while Next Notes is open. Timely reminders still reach you when it is closed.")
+                Text("Recurring runs wait until Next Notes is open. Reminders still reach you when it is closed.")
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -332,6 +387,48 @@ struct RoutinesView: View {
         let waiting = store.drafts(for: schedule.id).filter { $0.status == .awaitingApproval }.count
         if waiting > 0 { parts.append("\(waiting) awaiting approval") }
         return parts.joined(separator: " · ")
+    }
+
+    /// The one-line state under a draft awaiting a yes (§8.2): how long it has waited and
+    /// what it is waiting on. "Blocked on who it goes to" is answerable; "Awaiting
+    /// approval" is not.
+    private func draftSummary(_ draft: RoutineDraft) -> String {
+        var parts: [String] = []
+        let calendar = Calendar.current
+        let days = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: draft.createdAt),
+            to: calendar.startOfDay(for: Date())
+        ).day ?? 0
+        switch days {
+        case ...0: parts.append("Waiting today")
+        case 1: parts.append("Waiting 1 day")
+        default: parts.append("Waiting \(days) days")
+        }
+        let blocked = draftBlockers(draft)
+        if blocked.isEmpty {
+            parts.append("ready for your yes")
+        } else {
+            parts.append("blocked on " + blocked.prefix(2).map { $0.label.lowercased() }
+                .joined(separator: " and "))
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    /// The fields the card would still ask for. Empty means the draft is ready to run.
+    private func draftBlockers(_ draft: RoutineDraft) -> [ToolCallField] {
+        guard let tool = AgentToolRegistry.shared.tool(named: draft.toolID) else { return [] }
+        return ToolCallReviewBuilder.review(
+            id: draft.id.uuidString, tool: tool, arguments: draft.arguments
+        ).blockers
+    }
+
+    static func modelLabel(_ model: AgentSchedule.ModelChoice) -> String {
+        switch model {
+        case .auto: "Automatic"
+        case .local: "This Mac"
+        case .cloud: "OpenRouter"
+        }
     }
 
     static func outcomeLabel(_ outcome: ScheduleRunRecord.Outcome) -> String {
@@ -395,7 +492,7 @@ private struct RoutineEditor: View {
                     Text("Local model on this Mac").tag(AgentSchedule.ModelChoice.local)
                     Text("OpenRouter").tag(AgentSchedule.ModelChoice.cloud)
                 }
-                Text("When a \(schedule.kind.rawValue) uses OpenRouter, your persona, memories and what the routine reads are sent to it.")
+                Text("When one of these uses OpenRouter, your persona, memories and what it reads are sent to it.")
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
             }

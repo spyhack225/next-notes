@@ -35,11 +35,17 @@ struct MemoryReviewRun: Codable, Identifiable, Equatable, Sendable {
     /// Set when the model call itself failed, so a run that never reached a decision is not
     /// mistaken for one that decided nothing.
     var failure: String?
+    /// Whether the model was actually asked. False when the job held nothing the guards would
+    /// trust, so a run that proposed nothing for lack of material is distinguishable from one
+    /// where a model read the source and decided there was nothing worth saving. Optional so
+    /// a file written before it existed still decodes.
+    var modelCalled: Bool?
 
     /// The one sentence the Memories sheet shows, without the date.
     var summary: String {
         if let failure { return "couldn't finish — \(failure)" }
         if !saved.isEmpty { return "saved \(saved.count)" }
+        if modelCalled == false { return "nothing of yours to read" }
         let blocked = skipped.count + refused.count
         if blocked > 0 { return "nothing saved — \(blocked) didn't pass the checks" }
         return "nothing worth saving"
@@ -73,13 +79,17 @@ struct MemoryReviewRun: Codable, Identifiable, Equatable, Sendable {
             subject: job.label.isEmpty ? "your \(job.trigger.subject)" : "your \(job.trigger.subject) \(job.label)",
             model: model, proposed: outcome.proposed, saved: outcome.saved.map(\.text),
             skipped: outcome.skipped.map { Decision(text: shortened($0.call), reason: $0.reason) },
-            refused: outcome.refused.map { Decision(text: shortened($0.call), reason: $0.reason) })
+            refused: outcome.refused.map { Decision(text: shortened($0.call), reason: $0.reason) },
+            modelCalled: outcome.modelCalled)
     }
 
     /// The row for a pass whose model call failed, so a failure is as visible as a decision.
     static func failed(job: MemoryReviewJob, model: String, error: String, now: Date) -> MemoryReviewRun {
         var run = make(job: job, model: model, outcome: MemoryReviewOutcome(), now: now)
         run.failure = error
+        // The failure is the model call's — the material did reach a model, so this is not
+        // an empty job; `modelCalled` stays about whether there was anything to read.
+        run.modelCalled = true
         return run
     }
 

@@ -11,6 +11,21 @@ enum AgentTaskStatus: String, Codable, Sendable, CaseIterable {
     case completed
     case failed
     case cancelled
+
+    /// Consumer state words (§8.3 naming map). "Task · WaitingForPermission" is
+    /// machinery reaching the screen; "Waiting for you" is the state.
+    var humanState: String {
+        switch self {
+        case .queued: "Ready"
+        case .running: "Working"
+        case .waitingForPermission: "Waiting for you"
+        case .waitingForCompatibilityCLI: "Needs approval"
+        case .waitingForInput: "Waiting for your answer"
+        case .completed: "Done"
+        case .failed: "Didn\u{2019}t work"
+        case .cancelled: "Stopped"
+        }
+    }
 }
 
 /// A unit of background work. The conversational agent sees status and a result, not the
@@ -127,4 +142,31 @@ enum AgentContextReference {
     static let currentSelection = "selection://current"
     static let currentFile = "file://current"
     static let activeProject = "project://active"
+}
+
+extension AgentTask {
+    /// The failure card's first line: what did and did not happen (§8.2). The failure
+    /// string itself is the "what went wrong" half; this adds the "what did not happen"
+    /// half so the card is never a bare error.
+    var failureSummary: String {
+        let reason = (failure ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if artifacts.isEmpty {
+            return reason.isEmpty
+                ? "Nothing was created or sent."
+                : "\(reason) Nothing was created or sent."
+        }
+        return reason.isEmpty
+            ? "Something I was making did not finish."
+            : reason
+    }
+
+    /// The explicit undo line. A failed run that wrote nothing is the common case and
+    /// says so by name — "nothing to undo" is the honest answer, and silence here is
+    /// what leaves a person hunting for a bag to empty.
+    var failureUndoLine: String {
+        if artifacts.isEmpty {
+            return "Nothing was added anywhere, so nothing to undo."
+        }
+        return "Nothing was undone \u{2014} what I made is below."
+    }
 }

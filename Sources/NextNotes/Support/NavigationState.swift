@@ -64,15 +64,62 @@ final class NavigationState {
     /// the user's life and their Mac — people, projects, places and the folders on disk — not
     /// a way of finding a sentence someone said. Search kept search.
     enum AgentPane: String, CaseIterable, Identifiable {
-        case conversation = "Conversation"
-        case routines = "Routines"
-        case graph = "Graph"
-        case skills = "Skills"
-        case about = "About"
+        case conversation
+        /// Out-of-box suggestions that open a setup flow — never execute (G2).
+        case ideas
+        /// Outcomes the person is working toward (G1): their state and their nudges.
+        case goals
+        /// What the graph says about the person's week: Corners' cards, and the Portrait
+        /// sentences waiting to be kept or crossed out (P2-1, P2-2).
+        case portrait
+        /// What runs and when: reminders, recurring runs, triggers, drafts awaiting
+        /// approval and suggestions. Goals are what you are working toward; this pane is
+        /// what the assistant does about them.
+        case reminders
+        /// Cross-session history, the approvals ledger and the heartbeat (§8.2).
+        case activity
+        case graph
+        case skills
+        case about
+
         var id: String { rawValue }
+
+        /// The consumer name of the pane, and the text every control that picks or names
+        /// one draws. It must never be empty: the toolbar picker shows exactly this, and
+        /// an empty title is the chevron-only pill this replaced.
+        var title: String {
+            switch self {
+            case .conversation: "Conversation"
+            case .ideas: "Ideas"
+            case .goals: "Goals"
+            case .portrait: "Portrait"
+            case .reminders: "Reminders"
+            case .activity: "Activity"
+            case .graph: "Graph"
+            case .skills: "Skills"
+            case .about: "About"
+            }
+        }
     }
 
     var agentPane: AgentPane = .conversation
+
+    /// A memory the graph asked to open, read and cleared by the Memories sheet when it
+    /// appears. A `memory:` dot is a fact the user can change, not a place to explore, so
+    /// clicking one comes here instead of focusing a neighbourhood.
+    private(set) var pendingMemory: UUID?
+
+    /// Agent → About, with the Memories sheet opening on one fact.
+    func openMemories(_ memoryID: UUID?) {
+        pendingMemory = memoryID
+        showAgentAbout()
+    }
+
+    /// The memory waiting to be shown, consumed exactly once.
+    func consumePendingMemory() -> UUID? {
+        defer { pendingMemory = nil }
+        return pendingMemory
+    }
 
     private enum Keys {
         static let section = "navigation.section"
@@ -87,10 +134,10 @@ final class NavigationState {
         selectedSection = section
     }
 
-    /// Agent → Routines, from a routine's notification.
+    /// Agent → Reminders, from a reminder or run notification.
     func showRoutines() {
         selectedSection = .agent
-        agentPane = .routines
+        agentPane = .reminders
     }
 
     /// Agent → About (SOUL, MEMORY, name and avatar), from Settings or a deep link.

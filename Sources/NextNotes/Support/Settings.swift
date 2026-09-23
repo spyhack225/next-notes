@@ -573,15 +573,25 @@ final class Settings {
         didSet { defaults.set(notesAutoGenerate, forKey: Keys.notesAutoGenerate) }
     }
 
-    /// Which local model writes them.
+    /// Let the notes connect the meeting to what Next Notes already knows.
     ///
-    /// The built-in model by default even before it is downloaded: the picker is where the download is
-    /// explained, and silently defaulting to Apple's 4K window would hide the fact that long
-    /// meetings are then summarised in pieces. `LLMProviders.resolve` falls back to whichever
-    /// provider can actually run, so the default never blocks notes.
-    var notesProvider: LLMProviderID {
-        didSet { defaults.set(notesProvider.rawValue, forKey: Keys.notesProvider) }
+    /// On by default: a follow-up that names the wrong Sarah, or a decision that reverses one
+    /// from three weeks ago without saying so, is what notes that see only this meeting miss.
+    /// Every source keeps its own switch — memory, the graph and the file index each still
+    /// have to be on, and their cloud consents still apply — so this is one toggle for the
+    /// feature rather than a fourth copy of every privacy decision.
+    var notesRelatedContext: Bool {
+        didSet { defaults.set(notesRelatedContext, forKey: Keys.notesRelatedContext) }
     }
+
+    /// The mirror of the everyday-assistant role, written by `ModelRoleStore` whenever the
+    /// role changes and read by paths that predate the role screen (the background
+    /// function-call proposer). The role store is the source of truth; this only keeps the
+    /// old key from disagreeing with it.
+    ///
+    /// There is deliberately no `notesProvider` beside it: the meeting-notes role is the
+    /// one place that choice lives, and a second stored copy read by a self-test and a menu
+    /// label is how a notes history ends up naming a model nothing runs.
     var agentModelProvider: LLMProviderID {
         didSet { defaults.set(agentModelProvider.rawValue, forKey: Keys.agentModelProvider) }
     }
@@ -911,7 +921,7 @@ final class Settings {
         static let meetingsDiarize = "meetingsDiarize"
         static let meetingsDeleteAudioAfterNotes = "meetingsDeleteAudioAfterNotes"
         static let notesAutoGenerate = "notesAutoGenerate"
-        static let notesProvider = "notesProvider"
+        static let notesRelatedContext = "notesRelatedContext"
         static let agentModelProvider = "agentModelProvider"
         static let openRouterNotesModelID = "openRouterNotesModelID"
         static let openRouterAgentModelID = "openRouterAgentModelID"
@@ -1023,12 +1033,10 @@ final class Settings {
         meetingsDeleteAudioAfterNotes = defaults.object(forKey: Keys.meetingsDeleteAudioAfterNotes)
             as? Bool ?? false
         notesAutoGenerate = defaults.object(forKey: Keys.notesAutoGenerate) as? Bool ?? true
-        notesProvider = LLMProviderID(
-            rawValue: defaults.string(forKey: Keys.notesProvider) ?? ""
-        ) ?? .gemma4E4B
+        notesRelatedContext = defaults.object(forKey: Keys.notesRelatedContext) as? Bool ?? true
         agentModelProvider = LLMProviderID(
             rawValue: defaults.string(forKey: Keys.agentModelProvider) ?? ""
-        ) ?? .gemma4E4B
+        ) ?? .appLLM
         openRouterNotesModelID = defaults.string(forKey: Keys.openRouterNotesModelID) ?? ""
         openRouterAgentModelID = defaults.string(forKey: Keys.openRouterAgentModelID) ?? ""
         openRouterNotesContextTokens = defaults.integer(forKey: Keys.openRouterNotesContextTokens)

@@ -143,6 +143,12 @@ enum ToolCallTrigger: Sendable, Equatable, Codable {
     case fromNotes(String)
     /// A reminder or routine the user set up earlier.
     case routine(String)
+    /// The first read from a newly connected account (§8.2's two-step ingestion consent).
+    /// The app is the one asking — nobody asked it — so the card says so instead of
+    /// borrowing an attribution nobody made. The associated value is the account as the app
+    /// can name it; there is deliberately no quote, because nobody said anything for one to
+    /// quote. What the person is deciding on is the card's body: the findings themselves.
+    case firstUse(String)
     /// Nothing quotable. Said plainly rather than dressed up.
     case unattributed
 
@@ -153,7 +159,7 @@ enum ToolCallTrigger: Sendable, Equatable, Codable {
              .overheard(let quote, _, _):
             let trimmed = quote.trimmingCharacters(in: .whitespacesAndNewlines)
             return trimmed.isEmpty ? nil : trimmed
-        case .routine, .unattributed:
+        case .routine, .firstUse, .unattributed:
             return nil
         }
     }
@@ -188,6 +194,8 @@ enum ToolCallTrigger: Sendable, Equatable, Codable {
             return "The meeting notes say \u{201c}\(Self.clip(quote))\u{201d}."
         case .routine(let name):
             return "\(name) asked for this on its own schedule."
+        case .firstUse(let account):
+            return "The first time I read from \(account), I ask before anything it finds is used."
         case .unattributed:
             return "Nobody asked for this in so many words — check it before it runs."
         }
@@ -201,7 +209,7 @@ enum ToolCallTrigger: Sendable, Equatable, Codable {
         case .routine: true
         // Never. The whole point of this case is that the app is volunteering: a card that
         // claimed attribution for it would be claiming somebody asked.
-        case .overheard, .unattributed: false
+        case .overheard, .firstUse, .unattributed: false
         }
     }
 

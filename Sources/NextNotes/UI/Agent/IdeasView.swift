@@ -35,40 +35,34 @@ struct IdeasView: View {
              example: "Remind me tomorrow at 9 to …"),
     ]
 
-    /// Hook for the suggestion engine. G2 leaves the wiring as a TODO: the Routines view
+    /// Hook for the suggestion engine. G2 leaves the wiring as a TODO: the Reminders view
     /// keeps offering `RoutineSuggestion.offer()` text, and this view will render it here
     /// once the Agent pane hosts Ideas beside Reminders.
     /// TODO(G2): render `MemoryReviewStateStore.shared.openSuggestions` with Set it up /
-    /// Dismiss, reusing the Routines view's actions. This gallery stays static; suggestions
-    /// appear in a separate section above it and never execute on tap.
+    /// Dismiss, reusing the Reminders view's actions. This gallery stays static;
+    /// suggestions appear in a separate section above it and never execute on tap.
     var suggestions: [String] = []
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DS.Space.xl) {
-                VStack(alignment: .leading, spacing: DS.Space.xs) {
-                    Text("Ideas").font(DS.Font.title2)
-                    Text("Things your assistant can do for you. Pick one and make it yours — "
-                         + "nothing runs until you say yes.")
-                        .font(DS.Font.callout)
-                        .foregroundStyle(DS.Color.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if !suggestions.isEmpty {
-                    VStack(alignment: .leading, spacing: DS.Space.s) {
-                        Text("Suggested for you").font(DS.Font.sectionLabel)
-                        ForEach(suggestions, id: \.self) { suggestion in
-                            Text(suggestion).font(DS.Font.callout)
-                                .padding(DS.Space.cardTight)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .glassSurface(cornerRadius: DS.Radius.card)
-                        }
+        AgentPaneScroll {
+            AgentPaneHeader(
+                title: "Ideas",
+                subtitle: "Things your assistant can do for you. Pick one and make it yours — "
+                    + "nothing runs until you say yes."
+            )
+            if !suggestions.isEmpty {
+                AgentPaneSection(title: "Suggested for you", count: suggestions.count) {
+                    ForEach(suggestions, id: \.self) { suggestion in
+                        Text(suggestion).font(DS.Font.callout)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .agentCardSurface()
                     }
                 }
-                ForEach(Dictionary(grouping: Self.gallery, by: \.category).sorted(by: { $0.key < $1.key }),
-                        id: \.key) { category, ideas in
-                    VStack(alignment: .leading, spacing: DS.Space.s) {
-                        Text(category).font(DS.Font.sectionLabel)
+            }
+            ForEach(Dictionary(grouping: Self.gallery, by: \.category).sorted(by: { $0.key < $1.key }),
+                    id: \.key) { category, ideas in
+                AgentPaneSection(title: category, count: ideas.count) {
+                    AgentCardGrid {
                         ForEach(ideas) { idea in
                             Button {
                                 // Opens the setup flow; never executes.
@@ -84,15 +78,11 @@ struct IdeasView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .buttonStyle(.plain)
-                            .padding(DS.Space.cardTight)
-                            .background(DS.Color.groupedFill, in: RoundedRectangle(cornerRadius: DS.Radius.card))
+                            .agentCardSurface()
                         }
                     }
                 }
             }
-            .padding(DS.Space.page)
-            .frame(maxWidth: DS.Size.agentAboutMaxWidth)
-            .frame(maxWidth: .infinity)
         }
     }
 }

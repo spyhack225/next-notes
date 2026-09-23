@@ -56,10 +56,10 @@ enum VisionScope {
 
     static func maySend(_ image: LLMImage?, consent: Bool) -> Bool {
         guard image != nil else { return false }
-        switch reader {
+        return switch reader {
         // `localServer` is a loopback-only server on this same Mac, so it is on-device
         // in the sense that matters here: nothing leaves the machine.
-        case .gemma4E4B, .appleFoundation, .localServer: true
+        case .appLLM, .appleFoundation, .localServer: true
         case .openRouter, nil: consent
         }
     }
@@ -81,7 +81,7 @@ struct VisionConsentRequest: Sendable {
 /// screenshot is uploaded. Screenshots still work locally for the live view.
 enum VisionConsentGate {
     private static let lock = NSLock()
-    private static var _hook: (@Sendable (VisionConsentRequest) async -> Bool)?
+    nonisolated(unsafe) private static var _hook: (@Sendable (VisionConsentRequest) async -> Bool)?
 
     /// Wired by the surface agent to a sheet showing the thumbnail. Never set by the
     /// model path.
@@ -142,7 +142,7 @@ enum ScreenshotPolicy {
 /// picks up for a vision call evaporates instead of accumulating.
 enum ScreenshotStore {
     private static let lock = NSLock()
-    private static var images: [String: LLMImage] = [:]
+    nonisolated(unsafe) private static var images: [String: LLMImage] = [:]
 
     static func store(_ image: LLMImage, for key: String) {
         lock.lock()
@@ -169,17 +169,37 @@ enum ScreenshotStore {
 
 // MARK: - ScreenCapture
 
+/// Thread-safe hand-off for the blocking sync capture path.
+private final class CaptureOutcome: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: Result<LLMImage, Error>?
+
+    func set(_ value: Result<LLMImage, Error>) {
+        lock.lock()
+        stored = value
+        lock.unlock()
+    }
+
+    func get() -> Result<LLMImage, Error>? {
+        lock.lock()
+        defer { lock.unlock() }
+        return stored
+    }
+}
+
 /// Focused-window screenshots for the moments Accessibility cannot describe: a canvas,
 /// a seat-picker, a custom control.
 ///
-/// Two paths, one contract (focused window only, ~1x scale, ≤1280px on the long edge,
-/// JPEG bytes plus a thumbnail, never disk):
+/// One capture implementation, one contract (focused window only, ~1x scale, ≤1280px on
+/// the long edge, JPEG bytes plus a thumbnail, never disk):
 ///
-/// - `captureFocusedWindow()` — ScreenCaptureKit, the preferred path. Async, used by
-///   async executors (browser CDP fallback) and the live view.
-/// - `captureFocusedWindowSync()` — `CGWindowListCreateImage`, for the synchronous
-///   computer-tool runtime (`ComputerToolExecutor.run` is sync, and its contract is
-///   owned elsewhere). Same size and privacy contract, slightly older API.
+/// - `captureFocusedWindow()` — async, for async executors (browser CDP fallback) and
+///   the live view.
+/// - `captureFocusedWindowSync()` — the same ScreenCaptureKit capture awaited on a
+///   detached task, for the synchronous computer-tool runtime
+///   (`ComputerToolExecutor.run` is sync, and its contract is owned elsewhere).
+///   `CGWindowListCreateImage` is unavailable from macOS 26, so there is one capture
+///   path now, not two.
 enum ScreenCapture {
     /// Long edge of the captured image. A seat grid stays readable; a token bill stays
     /// small.
@@ -192,30 +212,53 @@ enum ScreenCapture {
     /// no frontmost app, it owns no on-screen window, or capture is unavailable.
     @MainActor
     static func captureFocusedWindow() async throws -> LLMImage {
-#if canImport(ScreenCaptureKit)
-        if #available(macOS 14.0, *) {
-            return try await captureViaScreenshotKit()
-        }
-#endif
-        // Below macOS 14 there is no screenshot manager; the sync path has the same
-        // contract and works everywhere.
-        return try captureFocusedWindowSync()
-    }
-
-#if canImport(ScreenCaptureKit)
-    @MainActor
-    @available(macOS 14.0, *)
-    private static func captureViaScreenshotKit() async throws -> LLMImage {
-        guard let app = NSWorkspace.shared.frontmostApplication,
-              let bundleID = app.bundleIdentifier
-        else {
+        guard let app = NSWorkspace.shared.frontmostApplication else {
             throw AgentError.backendUnavailable("There is no frontmost application to screenshot.")
         }
+        return try await captureWindow(pid: app.processIdentifier, bundleID: app.bundleIdentifier)
+    }
+
+    // MARK: Sync (for the sync computer-tool runtime)
+
+    /// Synchronous focused-window capture. Blocks on the ScreenCaptureKit path for at
+    /// most `timeout` seconds; the capture itself runs on a detached task, which does
+    /// not need the main thread, so the caller only waits.
+    @MainActor
+    static func captureFocusedWindowSync(timeout: TimeInterval = 5) throws -> LLMImage {
+        guard let app = NSWorkspace.shared.frontmostApplication else {
+            throw AgentError.backendUnavailable("There is no frontmost application to screenshot.")
+        }
+        let pid = app.processIdentifier
+        let bundleID = app.bundleIdentifier
+        let outcome = CaptureOutcome()
+        let semaphore = DispatchSemaphore(value: 0)
+        Task.detached(priority: .userInitiated) {
+            do {
+                outcome.set(.success(try await captureWindow(pid: pid, bundleID: bundleID)))
+            } catch {
+                outcome.set(.failure(error))
+            }
+            semaphore.signal()
+        }
+        guard semaphore.wait(timeout: .now() + timeout) == .success,
+              let result = outcome.get()
+        else {
+            throw AgentError.backendUnavailable("The screenshot timed out.")
+        }
+        return try result.get()
+    }
+
+    /// The one capture implementation: the focused window of the given process, or any
+    /// on-screen window of its bundle when the pid is gone. Usable from any executor.
+    static func captureWindow(pid: pid_t, bundleID: String?) async throws -> LLMImage {
+#if canImport(ScreenCaptureKit)
         let content = try await SCShareableContent.excludingDesktopWindows(
             false, onScreenWindowsOnly: true
         )
         guard let window = content.windows.first(where: {
-            $0.owningApplication?.bundleIdentifier == bundleID && $0.isOnScreen
+            ($0.owningApplication?.processID == pid
+                || (bundleID != nil && $0.owningApplication?.bundleIdentifier == bundleID))
+                && $0.isOnScreen
         }) else {
             throw AgentError.backendUnavailable(
                 "The frontmost application has no on-screen window to screenshot."
@@ -234,40 +277,9 @@ enum ScreenCapture {
             contentFilter: filter, configuration: configuration
         )
         return try encode(cgImage: image)
-    }
+#else
+        throw AgentError.backendUnavailable("Screen capture is not available on this system.")
 #endif
-
-    // MARK: Sync (window list)
-
-    /// Synchronous focused-window capture for the sync computer-tool runtime.
-    @MainActor
-    static func captureFocusedWindowSync() throws -> LLMImage {
-        guard let app = NSWorkspace.shared.frontmostApplication else {
-            throw AgentError.backendUnavailable("There is no frontmost application to screenshot.")
-        }
-        guard let info = CGWindowListCopyWindowInfo(
-            [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID
-        ) as? [[String: Any]] else {
-            throw AgentError.backendUnavailable("The window list could not be read.")
-        }
-        // Ordered front-to-back: the first on-screen window owned by the frontmost
-        // application is the focused one. Never a window owned by another app.
-        let number = info.first {
-            ($0[kCGWindowOwnerPID as String] as? Int32) == app.processIdentifier
-                && ($0[kCGWindowIsOnscreen as String] as? Bool) == true
-                && ($0[kCGWindowBounds as String] as? [String: Any]) != nil
-        }.flatMap { $0[kCGWindowNumber as String] as? CGWindowID }
-        guard let number else {
-            throw AgentError.backendUnavailable(
-                "The frontmost application has no on-screen window to screenshot."
-            )
-        }
-        guard let image = CGWindowListCreateImage(
-            .null, .optionIncludingWindow, number, [.nominalResolution]
-        ) else {
-            throw AgentError.backendUnavailable("The window could not be captured.")
-        }
-        return try encode(cgImage: image)
     }
 
     // MARK: Encoding
@@ -276,8 +288,8 @@ enum ScreenCapture {
         let (width, height) = ScaledSize.fit(
             width: cgImage.width, height: cgImage.height, maxEdge: maxEdge
         )
-        let bitmap = try bitmap(cgImage: cgImage, width: width, height: height)
-        guard let jpeg = bitmap.representation(
+        let fullBitmap = try bitmap(cgImage: cgImage, width: width, height: height)
+        guard let jpeg = fullBitmap.representation(
             using: .jpeg, properties: [.compressionFactor: 0.8]
         ) else {
             throw AgentError.backendUnavailable("The screenshot could not be encoded.")
@@ -310,12 +322,10 @@ enum ScreenCapture {
         }
         context.interpolationQuality = .medium
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-        guard let scaled = context.makeImage(),
-              let bitmap = NSBitmapImageRep(cgImage: scaled)
-        else {
+        guard let scaled = context.makeImage() else {
             throw AgentError.backendUnavailable("The screenshot could not be scaled.")
         }
-        return bitmap
+        return NSBitmapImageRep(cgImage: scaled)
     }
 
     /// Pure downscale math, so the self-test pins the pixel budget without a window.
@@ -442,7 +452,9 @@ enum ComputerVisionSelfTest {
             }
         )
         let attempts = fixtureResult?.attempts ?? []
-        let message = fixtureResult?.mismatchMessage ?? "threw"
+        // No `?? "threw"` fallback: optional chaining already flattens to `String?`, so
+        // the default would replace the legitimate nil this very check is about.
+        let message = fixtureResult?.mismatchMessage
         check("first-miss-then-succeed did not take exactly 2 attempts",
               calls == 2 && attempts.count == 2)
         check("a recovered retry still reported a mismatch", message == nil)
@@ -460,6 +472,7 @@ enum ComputerVisionSelfTest {
         check("a send was retried", sendCalls == 1 && sendAttempts.count == 1)
 
         for failure in failures {
+            print("COMPUTER_VISION_CHECK_FAILED: \(failure)")
             Log.agent.error("computer-vision selftest: \(failure, privacy: .public)")
         }
         return failures.isEmpty

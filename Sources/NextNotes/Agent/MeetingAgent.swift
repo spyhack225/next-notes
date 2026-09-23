@@ -63,15 +63,25 @@ actor MeetingAgent {
     /// follow-up is actually asked for; the notes are a summary of it, and on Apple's 4K
     /// window the two cannot both have everything.
     private static let notesShare = 3
-    /// Notes are five short sections; anything past this is a transcript with headings on
+    /// The known context's share — half the notes', because it is background for resolving a
+    /// name rather than the request itself. A brief is capped at 2,400 characters, so on any
+    /// window that is not Apple's this cut never fires.
+    private static let briefShare = 6
+    /// Notes are six short sections; anything past this is a transcript with headings on
     /// it, and tokenizing it in full to then throw most of it away costs seconds.
     private static let maxNotesCharacters = 8_000
 
     /// Plans the follow-ups for a meeting that has finished.
+    ///
+    /// - Parameter brief: the rendered known-context block from
+    ///   `MeetingNotesBrief.promptBlock`, when the notes pass assembled one. Background the
+    ///   model may use to resolve a person or a project; the transcript quote rule below
+    ///   still decides what may be proposed.
     func proposals(
         for meeting: Meeting,
         segments: [TranscriptSegment],
         notes: String?,
+        brief: String? = nil,
         provider: any LLMProvider,
         policy: AgentPolicy
     ) async throws -> [AgentProposal] {
@@ -79,10 +89,11 @@ actor MeetingAgent {
         guard !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw AgentError.emptyTranscript
         }
-        let tools = WorkspaceTools.tools(upTo: policy.allowedRisk)
+        let tools = await advertisedTools(policy: policy, provider: provider, includeKnowledge: true)
         // Fitted once, before the loop: a second round re-tokenizing an hour of speech to
         // learn the same answer costs more than the round itself.
         let fitted = try await fit(
+            brief: brief,
             notes: notes.map { String($0.prefix(Self.maxNotesCharacters)) },
             transcript: transcript,
             provider: provider,
@@ -101,6 +112,7 @@ actor MeetingAgent {
                 meeting: meeting,
                 notes: fitted.notes,
                 transcript: fitted.transcript,
+                brief: fitted.brief,
                 results: results
             )
         }
@@ -120,8 +132,11 @@ actor MeetingAgent {
         // Fitted like the review pass, and for the same reason: the excerpt is normally two
         // minutes of speech, but a pass that had to wait for the previous one carries every
         // minute since, and the tool schemas take most of Apple's window before it starts.
-        let tools = WorkspaceTools.tools(upTo: policy.allowedRisk)
+        // No knowledge tools here: this pass never looks anything up (one round), and a read
+        // proposed on its last round would be a card about the library, not about the call.
+        let tools = await advertisedTools(policy: policy, provider: provider, includeKnowledge: false)
         let fitted = try await fit(
+            brief: nil,
             notes: nil,
             transcript: excerpt,
             provider: provider,
@@ -140,6 +155,32 @@ actor MeetingAgent {
         }
     }
 
+    /// The tools a pass may name: the Workspace catalogue the policy allows, plus the
+    /// knowledge index's read tools when they exist for the Agent and this reader may see
+    /// the graph. The same list goes into the prompt and into validation, so a model can
+    /// never be refused a tool it was shown, or shown one it may not call.
+    private func advertisedTools(
+        policy: AgentPolicy,
+        provider: any LLMProvider,
+        includeKnowledge: Bool
+    ) async -> [AgentTool] {
+        var tools = WorkspaceTools.tools(upTo: policy.allowedRisk).map(AgentTool.workspace)
+        guard includeKnowledge else { return tools }
+        let access = await MainActor.run {
+            (
+                available: KnowledgeToolGate.isAvailable,
+                graphOn: KnowledgeIndexer.shared.settings.graphEnabled,
+                consent: KnowledgeIndexer.shared.settings.graphCloudConsent
+            )
+        }
+        tools += KnowledgeToolCatalogue.available(
+            indexAvailable: access.available,
+            graphOn: access.graphOn,
+            mayReadGraph: KnowledgeGraphScope.mayRead(reader: provider.id, cloudConsent: access.consent)
+        )
+        return tools
+    }
+
     // MARK: - The loop
 
     /// One planning pass: generate, run whatever read tools were asked for, generate again.
@@ -153,12 +194,15 @@ actor MeetingAgent {
         meeting: Meeting,
         provider: any LLMProvider,
         policy: AgentPolicy,
-        tools: [WorkspaceTool],
+        tools: [AgentTool],
         source: AgentProposalSource,
         transcript: String,
         user: @Sendable ([String]) -> String
     ) async throws -> [AgentProposal] {
         let system = AgentPrompts.system
+        // One lookup table, from the list the model was shown: a tool it was never advertised
+        // is not a lookup, whatever its name claims.
+        let catalogue = Dictionary(tools.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
         var results: [String] = []
 
         for round in 0..<max(1, policy.maxRounds) {
@@ -178,24 +222,33 @@ actor MeetingAgent {
             guard !calls.isEmpty else { return [] }
 
             let isLastRound = round == max(1, policy.maxRounds) - 1
-            let lookups = calls.filter { WorkspaceTools.tool(named: $0.name)?.risk == .read }
-            let actions = calls.filter { WorkspaceTools.tool(named: $0.name)?.risk != .read }
+            let lookups = calls.filter { catalogue[$0.name]?.risk == .read }
+            let actions = calls.filter { catalogue[$0.name]?.risk != .read }
 
             // A round that only wants to look things up is answered by looking them up —
             // but only while there is a round left to use the answers in. On the last round
             // a read is a proposal like any other, and the user can approve it.
             if actions.isEmpty, !lookups.isEmpty, policy.autoRunReadTools, !isLastRound {
-                results.append(contentsOf: await run(lookups, for: meeting))
+                // The reader binding is what lets `expand_node` decide for itself whether
+                // this model may see the graph; without it an unknown reader counts as cloud.
+                results.append(contentsOf: await KnowledgeGraphScope.$reader.withValue(provider.id) {
+                    await run(lookups, for: meeting)
+                })
                 results = try await trimmed(results, provider: provider)
                 continue
             }
             return proposals(
-                from: calls, meeting: meeting, policy: policy,
+                from: calls, tools: tools, meeting: meeting, policy: policy,
                 source: source, transcript: transcript
             )
         }
         return []
     }
+
+    /// What one lookup's answer may cost the next round. A knowledge search returns passages
+    /// with ids; `trimmed` drops whole answers, but one oversized answer would otherwise ride
+    /// into a prompt that was sized before it existed.
+    private static let maxLookupCharacters = 1_200
 
     /// Runs read tools and collects what they said, failures included: "that search found
     /// nothing" is information the next round needs as much as a list of hits.
@@ -210,7 +263,10 @@ actor MeetingAgent {
             )
             do {
                 let result = try await AgentToolExecutor.run(proposal, policy: .fromSettings())
-                results.append(AgentPrompts.toolResult(name: call.name, output: result.summary))
+                results.append(AgentPrompts.toolResult(
+                    name: call.name,
+                    output: Self.capped(result.summary)
+                ))
             } catch {
                 results.append(AgentPrompts.toolResult(
                     name: call.name,
@@ -219,6 +275,12 @@ actor MeetingAgent {
             }
         }
         return results
+    }
+
+    private static func capped(_ text: String) -> String {
+        guard text.count > maxLookupCharacters else { return text }
+        return String(text.prefix(maxLookupCharacters))
+            .trimmingCharacters(in: .whitespacesAndNewlines) + "…"
     }
 
     /// Turns calls into proposals, dropping the ones nobody could approve.
@@ -230,6 +292,7 @@ actor MeetingAgent {
     /// email twice with different wording.
     private func proposals(
         from calls: [AgentToolCall],
+        tools: [AgentTool],
         meeting: Meeting,
         policy: AgentPolicy,
         source: AgentProposalSource,
@@ -239,7 +302,7 @@ actor MeetingAgent {
         var proposals: [AgentProposal] = []
 
         for call in calls {
-            guard let tool = WorkspaceTools.tool(named: call.name) else {
+            guard let tool = tools.first(where: { $0.name == call.name }) else {
                 Log.agent.error("model proposed an unknown tool \(call.name, privacy: .public)")
                 continue
             }
@@ -274,7 +337,7 @@ actor MeetingAgent {
                 meetingID: meeting.id,
                 tool: tool.name,
                 arguments: call.arguments,
-                rationale: call.rationale.isEmpty ? tool.summary : call.rationale,
+                rationale: call.rationale.isEmpty ? tool.description : call.rationale,
                 source: source,
                 evidence: call.evidence
             ))
@@ -308,16 +371,21 @@ actor MeetingAgent {
     /// review a meeting at all. The transcript gets what the notes don't, because it is where
     /// a follow-up is actually asked for.
     ///
+    /// The known context is the first thing cut and the last thing that matters: it is
+    /// background for resolving a name, and a pass that has to choose between it and the
+    /// words that asked for the follow-up keeps the words.
+    ///
     /// No map-reduce here, unlike the notes: a follow-up is asked for in one sentence, and
     /// the sentences that matter are the ones near the end. Reading the whole meeting in
     /// pieces to find them would cost minutes for a pass whose usual answer is "nothing".
     private func fit(
+        brief: String?,
         notes: String?,
         transcript: String,
         provider: any LLMProvider,
-        tools: [WorkspaceTool],
+        tools: [AgentTool],
         policy: AgentPolicy
-    ) async throws -> (notes: String?, transcript: String) {
+    ) async throws -> (brief: String?, notes: String?, transcript: String) {
         let system = AgentPrompts.system + "\n\n" + AgentPrompts.toolBlock(tools: tools)
         let lookups = policy.autoRunReadTools && policy.maxRounds > 1 ? Self.lookupTokens : 0
         let reserved = try await provider.countTokens(system)
@@ -327,6 +395,17 @@ actor MeetingAgent {
         var budget = provider.contextTokens - reserved
         guard budget >= Self.minimumTranscriptTokens else { throw AgentError.contextTooSmall }
 
+        var fittedBrief: String?
+        if let brief, !brief.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let cut = try await cut(
+                brief,
+                to: budget / Self.briefShare,
+                provider: provider,
+                keepingTail: false
+            )
+            fittedBrief = cut.text.isEmpty ? nil : cut.text
+            budget -= cut.tokens
+        }
         var fittedNotes: String?
         if let notes, !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let cut = try await cut(
@@ -339,7 +418,7 @@ actor MeetingAgent {
             budget -= cut.tokens
         }
         let cut = try await cut(transcript, to: budget, provider: provider, keepingTail: true)
-        return (fittedNotes, cut.text)
+        return (fittedBrief, fittedNotes, cut.text)
     }
 
     /// One piece of text, cut to a token budget and measured on the way.

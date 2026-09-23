@@ -20,8 +20,9 @@ enum PersonaSelfTest {
         let store = PersonaStore(directory: directory)
         check("store path escaped the temporary directory",
               store.fileURL.path.hasPrefix(directory.path))
-        check("the shared store is not isolated under a self-test",
-              !PersonaStore.shared.fileURL.path.hasPrefix(AppIdentity.applicationSupportDirectory.path))
+        let sharedIsolated = !PersonaStore.shared.fileURL.path
+            .hasPrefix(AppIdentity.applicationSupportDirectory.path)
+        check("the shared store is not isolated under a self-test", sharedIsolated)
         check("a fresh store was not seeded from the base preset", store.text() == PersonaStore.baseText)
         check("seeding did not write persona.md", FileManager.default.fileExists(atPath: store.fileURL.path))
         if let bundled = PersonaStore.bundledBaseText {
@@ -32,9 +33,14 @@ enum PersonaSelfTest {
             print("PERSONA_BASE no bundled resource; using compiled-in preset")
         }
         let baseCard = PersonaStore.shortCard(of: PersonaStore.baseText)
+        // The card keeps the paragraph's own line breaks, so the prose is folded before it
+        // is compared: "instead of\nguessing." is not the sentence "instead of guessing.".
+        let baseCardProse = baseCard.kept.split(whereSeparator: \.isWhitespace).joined(separator: " ")
         check("the base preset's short card is not its first paragraph",
-              baseCard.kept.hasPrefix("You are Next Notes") && baseCard.kept.hasSuffix("when asked for one.")
-                && !baseCard.isTruncated)
+              baseCardProse.hasPrefix("You are Next Notes")
+                && baseCardProse.hasSuffix("instead of guessing.") && !baseCard.isTruncated)
+        check("the base preset's short card lost the care sentence",
+              baseCardProse.contains("lead with kindness"))
 
         let edited = "You are Juniper. Call me Serge.\n\nSpeak warmly."
         do { try store.save(edited) } catch { failures.append("save failed: \(error)") }
@@ -90,8 +96,16 @@ enum PersonaSelfTest {
         }
 
         // MARK: Every production path, through its real accessor.
-        try? PersonaStore.shared.save(PersonaStore.baseText + "\nCall the user Serge. Your name is Juniper.\n")
+        //
+        // The edit goes through the shared store only when that store is the per-process
+        // temporary one. A self-test that ran against the live file would overwrite the
+        // person's own persona, which is theirs and owes the preset nothing.
         let shared = PersonaStore.shared
+        if sharedIsolated {
+            try? shared.save(PersonaStore.baseText + "\nCall the user Serge. Your name is Juniper.\n")
+        } else {
+            failures.append("the shared persona store is not isolated; the Juniper edit was skipped")
+        }
         let sharedFull = shared.fullPersona()
         let sharedCard = shared.shortCard()
         check("shared store did not pick up the edit", sharedFull.contains("Juniper"))
@@ -162,7 +176,14 @@ enum PersonaSelfTest {
         check("the route plan carries the persona or facts",
               route.map { !$0.instructions.contains(sharedCard) && !$0.instructions.contains("fixture") } == true)
 
-        try? FileManager.default.removeItem(at: PersonaStore.shared.fileURL.deletingLastPathComponent())
+        // The care eval assembles against its own throwaway store. The shared store's
+        // directory is removed only once the isolation check proved it is the per-process
+        // temporary one: the line this replaced deleted whatever `PersonaStore.shared`
+        // pointed at, which under a broken check is the person's own persona folder.
+        failures += PersonaCareEval.failures()
+        if sharedIsolated {
+            try? FileManager.default.removeItem(at: shared.fileURL.deletingLastPathComponent())
+        }
         for failure in failures { print("PERSONA_WRONG: \(failure)") }
         print(failures.isEmpty ? "PERSONA_OK" : "PERSONA_FAILED")
         return failures.isEmpty

@@ -1,36 +1,50 @@
 import Foundation
 
-/// Which local language model writes the notes.
+/// Which text-generation model writes the notes or answers a turn.
 ///
-/// Gemma 4 E4B is a 4.98 GB download the user may not want to keep, and Apple's model
-/// needs Apple Intelligence turned on. The generator picks the configured one and falls
-/// back to the other rather than producing nothing.
+/// The local case deliberately does not name a file. What runs on this Mac is
+/// `InstalledModelLibrary.activeAgentModelID` — the built-in download or one the user
+/// fetched themselves — and the provider reports that file's own name through
+/// `displayModelName` instead of claiming to be whichever model shipped this release.
+/// A provider identity that names a model the user replaced is how a notes history ends up
+/// saying "Gemma" while MiniCPM wrote the notes.
 enum LLMProviderID: String, CaseIterable, Sendable, Codable, Identifiable {
-    case gemma4E4B
+    /// The app's own on-device runtime, loading whichever model file the library points at.
+    case appLLM
     case appleFoundation
     case openRouter
     /// A model held by an app already running on this Mac — Ollama, LM Studio, or any
     /// other OpenAI-compatible server on loopback.
     case localServer
 
+    /// Reads the stored spelling, including the retired `gemma4E4B` name. Settings and
+    /// records written by an older build must keep working: a stored value that no longer
+    /// decodes the way it once did silently becomes a different provider, which is how a
+    /// model choice changes itself without anybody touching it.
+    init?(rawValue: String) {
+        switch rawValue {
+        case "appLLM", "gemma4E4B": self = .appLLM
+        case "appleFoundation": self = .appleFoundation
+        case "openRouter": self = .openRouter
+        case "localServer": self = .localServer
+        default: return nil
+        }
+    }
+
     /// The notes and meeting pickers enumerate this to offer a model, and the fallback
     /// chain walks it. `localServer` is deliberately absent from both: it is not one model
     /// but a whole catalogue that may or may not be running, so it is chosen through the
     /// model-role rows in Settings ▸ Agent, and it is never fallen back *to* — falling
     /// back means the built-in model.
-    static var allCases: [LLMProviderID] { [.gemma4E4B, .appleFoundation, .openRouter] }
-
-    /// Role name for the app's on-device LLM, whichever file that is this release
-    /// (Qwen3.5-4B before, Gemma 4 E4B now). Routing and fallback code must prefer
-    /// `.appLLM` so the next swap changes one line; only `make(_:)`,
-    /// `LlamaLLMProvider`, `NotesModels` and the Models UI may name the file.
-    static var appLLM: Self { .gemma4E4B }
+    static var allCases: [LLMProviderID] { [.appLLM, .appleFoundation, .openRouter] }
 
     var id: String { rawValue }
 
+    /// The kind's name. The concrete model's name comes from the provider itself
+    /// (`displayModelName`), because only it knows which file the runtime will load.
     var displayName: String {
         switch self {
-        case .gemma4E4B: "Gemma 4 E4B"
+        case .appLLM: "The model on this Mac"
         case .appleFoundation: "Apple Foundation Model"
         case .openRouter: "OpenRouter"
         case .localServer: "A model app on this Mac"
@@ -40,9 +54,9 @@ enum LLMProviderID: String, CaseIterable, Sendable, Codable, Identifiable {
     /// What the difference actually means to someone choosing between them.
     var summary: String {
         switch self {
-        case .gemma4E4B:
-            "A 4.98 GB download that reads a whole meeting at once. Slower, and much better "
-                + "at long transcripts."
+        case .appLLM:
+            "The model Next Notes runs itself — the built-in download, or one you added in "
+                + "Models settings and selected."
         case .appleFoundation:
             "Already on this Mac and fast, but its short context means a long meeting is "
                 + "summarised in pieces."
@@ -216,7 +230,11 @@ enum LLMProviders {
         contextTokens: Int? = nil
     ) -> any LLMProvider {
         switch id {
-        case .gemma4E4B: LlamaLLMProvider()
+        case .appLLM:
+            // The concrete model name is read here, on the main actor, where the library
+            // lives, and carried into the provider: `displayModelName` is read from actors
+            // and from nonisolated code that cannot ask the library itself.
+            LlamaLLMProvider(modelName: InstalledModelLibrary.shared.activeModel?.displayName)
         case .appleFoundation: FoundationModelLLMProvider()
         case .openRouter:
             OpenRouterLLMProvider(

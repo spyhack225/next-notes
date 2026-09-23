@@ -37,6 +37,11 @@ enum RealtimeToolSelection {
         "computer.open_app", "computer.open_url", "computer.focus",
         "computer.click", "computer.press_key", "computer.set_text", "computer.type",
         "browser.snapshot", "browser.navigate", "browser.click", "browser.fill", "browser.select",
+        // Both screenshot tools: a capture is memory-only and its upload is gated
+        // twice more (VisionScope, then the per-run sheet), so offering the tool
+        // grants nothing by itself. Without them here the loop could never hold a
+        // parked screenshot for `VisionHandoff` to describe.
+        "computer.screenshot", "browser.screenshot",
         "filesystem.search", "filesystem.read", "filesystem.write", "filesystem.move",
         "filesystem.copy", "filesystem.reveal", "shell.run",
         // The indexed-folder tools; the model is told to call them files.find / files.tree.
@@ -45,8 +50,17 @@ enum RealtimeToolSelection {
         "schedule.list", "schedule.create", "schedule.update", "schedule.pause",
         "schedule.resume", "schedule.remove", "schedule.run_now",
         "search_knowledge", "expand_node", "timeline",
+        // Composes files + meetings + notes into one saved markdown page (D4). A
+        // read-class step that writes only its own artifact file, so the planner may
+        // run it like a search; the page lands where every artifact lands.
+        "assemble",
         "skills.search", "skills.read", "skills.install",
     ]
+
+    /// The two tools whose result parks a capture in `ScreenshotStore` instead of
+    /// returning it. After such a step `VisionHandoff` picks the capture up and hands
+    /// it to the run's model — with consent, or not at all.
+    static let screenshotToolIDs: Set<String> = ["computer.screenshot", "browser.screenshot"]
 }
 
 struct AgentModelTurnResult: Sendable {
@@ -259,11 +273,26 @@ extension RealtimeAgent {
                 progress: intent.progressTitle
             )
         case .computer(let computer):
-            return await performComputer(computer) ?? "I couldn’t do that."
+            return await runGeneralToolLoop(Self.computerUtterance(for: computer))
         case .toolLoop(let prompt):
             return await runGeneralToolLoop(prompt)
         case .capabilities, .reply, .localModel, .delegate, .unknown:
             return Self.unknownReply
+        }
+    }
+
+    /// The `.computer` case, as words the `.toolLoop` planner can act on. There is no
+    /// separate computer round any more: `resolve` never produces this intent, and a
+    /// real screen request — inspect, find the control, click — is one model-led plan
+    /// over the same computer tools, which the planner already carries.
+    static func computerUtterance(for intent: ComputerIntent) -> String {
+        switch intent {
+        case .inspect: "Inspect the focused window."
+        case .activeApp: "What app is frontmost?"
+        case .open(let name): "Open \(name)"
+        case .click(let query): "Click \(query)"
+        case .type(let text): "Type \(text)"
+        case .press(let key): "Press \(key)"
         }
     }
 
@@ -281,50 +310,6 @@ extension RealtimeAgent {
                 autoApproveReads: true
             )
             return result.summary
-        } catch {
-            return error.localizedDescription
-        }
-    }
-
-    func performComputer(_ intent: ComputerIntent) async -> String? {
-        if !Permissions.hasAccessibility {
-            _ = Permissions.promptForAccessibility()
-        }
-        switch intent {
-        case .inspect, .click, .type:
-            return await runComputerLoop(intent)
-        case .activeApp, .open, .press:
-            return await runComputerOnce(intent)
-        }
-    }
-
-    private func runComputerOnce(_ intent: ComputerIntent) async -> String? {
-        do {
-            switch intent {
-            case .activeApp:
-                return try await runComputer("computer.active_app", arguments: [:])
-            case .open(let name):
-                return try await runComputer("computer.open_app", arguments: ["name": name])
-            case .press(let key):
-                return try await runComputer("computer.press_key", arguments: ["key": key])
-            case .inspect, .click, .type:
-                return await runComputerLoop(intent)
-            }
-        } catch {
-            return error.localizedDescription
-        }
-    }
-
-    private func runComputerLoop(_ intent: ComputerIntent) async -> String? {
-        do {
-            let outcome = try await AgentToolLoop.run(
-                user: ComputerLoopPlanner.utterance(for: intent),
-                maxRounds: Settings.shared.agentResponsiveness.toolRoundLimit,
-                maxCalls: Settings.shared.agentResponsiveness.toolCallLimit,
-                complete: { user in ComputerLoopPlanner.complete(intent: intent, user: user) },
-                execute: { call in await self.executeComputerCall(call) }
-            )
-            return outcome.reply
         } catch {
             return error.localizedDescription
         }
@@ -395,7 +380,7 @@ extension RealtimeAgent {
         // A stable work item receives microphone follow-ups while this producer
         // runs. An obsolete response is discarded before it can become an action.
         let history = AgentSession.shared.chatHistoryForCurrentTurn(maxCharacters: 2_500)
-        let coldLocalModel = localModelProviderForTesting == nil && provider.id == .gemma4E4B
+        let coldLocalModel = localModelProviderForTesting == nil && provider.id == .appLLM
             ? !(await NotesModelRuntime.shared.isLoaded) : false
         if coldLocalModel { beginWork(title: "Loading local model…") }
         let limit = toolLoopLimitForTesting
@@ -1009,6 +994,27 @@ extension RealtimeAgent {
                                 }
                             )
                         }
+                        // P1-5 additive hook: a completed step's reference and link are
+                        // the run's artifacts — keep them so the terminal card can link
+                        // them. See AgentArtifactLedger; the summary path is unchanged.
+                        AgentArtifactLedger.capture(taskID: work?.id.uuidString, result: result)
+                        // P0.1, the seam this loop was missing: a screenshot step parks
+                        // its capture in `ScreenshotStore` and returns a park summary.
+                        // The run's own model — cloud or on-device, under the same
+                        // `VisionScope` plus per-run consent every provider call
+                        // enforces — is what describes the pixels, and the description
+                        // is what the planner reads next round.
+                        if RealtimeToolSelection.screenshotToolIDs.contains(call.name) {
+                            let described = await VisionHandoff.describe(
+                                provider: provider,
+                                toolID: call.name,
+                                arguments: arguments,
+                                parkSummary: result.summary,
+                                cloudConsent: Settings.shared.visionCloudConsent,
+                                request: currentRequest
+                            )
+                            return .success(described)
+                        }
                         return .success(result.summary)
                     } catch let error as MemoryWriteError where error.isRecoverable {
                         return .failure(.recoverable(error.localizedDescription))
@@ -1185,122 +1191,11 @@ extension RealtimeAgent {
             return .standDown
         }
     }
-
-    private func executeComputerCall(_ call: AgentToolCall) async -> String {
-        do {
-            return try await runComputer(call.name, arguments: call.arguments)
-        } catch {
-            return error.localizedDescription
-        }
-    }
-
-    private func runComputer(_ name: String, arguments: [String: String]) async throws -> String {
-        let result = try await AgentToolExecutor.run(
-            name,
-            arguments: arguments,
-            policy: .fromSettings(),
-            autoApproveReads: true,
-            promptIfNeeded: true
-        )
-        return result.summary
-    }
 }
 
-/// Deterministic next tool for a computer turn. There is no second model
-/// round — that wait is how mail sat in Thinking… until Stop.
-@MainActor
-enum ComputerLoopPlanner {
-    static func utterance(for intent: ComputerIntent) -> String {
-        switch intent {
-        case .inspect: "Inspect the focused window."
-        case .activeApp: "What app is frontmost?"
-        case .open(let name): "Open \(name)"
-        case .click(let query): "Click \(query)"
-        case .type(let text): "Type \(text)"
-        case .press(let key): "Press \(key)"
-        }
-    }
-
-    static func complete(intent: ComputerIntent, user: String) -> String {
-        let lowered = user.lowercased()
-        let hasInspect = lowered.contains("computer.inspect_ui returned")
-        let hasClick = lowered.contains("computer.click returned")
-        let hasType = lowered.contains("computer.type returned")
-
-        if hasClick || hasType {
-            return doneReply(for: intent)
-        }
-
-        if hasInspect {
-            switch intent {
-            case .inspect:
-                return inspectReply(from: user)
-            case .click(let query):
-                if let id = AccessibilitySnapshot.id(matching: query) {
-                    return emit(name: "computer.click", arguments: ["id": id], rationale: "click")
-                }
-                return "I couldn’t find “\(query)” in the focused window. Try inspect first."
-            case .type(let text):
-                var arguments = ["text": text]
-                if let id = AccessibilitySnapshot.firstTextFieldID() {
-                    arguments["id"] = id
-                }
-                return emit(name: "computer.type", arguments: arguments, rationale: "type")
-            default:
-                return doneReply(for: intent)
-            }
-        }
-
-        switch intent {
-        case .inspect, .click:
-            return emit(name: "computer.inspect_ui", arguments: [:], rationale: "look")
-        case .type(let text):
-            return emit(name: "computer.type", arguments: ["text": text], rationale: "type")
-        case .activeApp:
-            return emit(name: "computer.active_app", arguments: [:], rationale: "look")
-        case .open(let name):
-            return emit(name: "computer.open_app", arguments: ["name": name], rationale: "open")
-        case .press(let key):
-            return emit(name: "computer.press_key", arguments: ["key": key], rationale: "press")
-        }
-    }
-
-    private static func doneReply(for intent: ComputerIntent) -> String {
-        switch intent {
-        case .click: "Clicked."
-        case .type: "Typed."
-        case .inspect: "Inspected the focused window."
-        case .activeApp: "That’s the frontmost app."
-        case .open: "Opened."
-        case .press: "Pressed."
-        }
-    }
-
-    private static func inspectReply(from user: String) -> String {
-        let marker = "computer.inspect_ui returned:"
-        guard let range = user.range(of: marker) else {
-            return "Inspected the focused window."
-        }
-        let rest = user[range.upperBound...]
-        if let end = rest.range(of: "\n\nContinue.") {
-            return rest[..<end.lowerBound].trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        return rest.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private static func emit(
-        name: String,
-        arguments: [String: String],
-        rationale: String
-    ) -> String {
-        let object: [String: Any] = [
-            "name": name,
-            "rationale": rationale,
-            "arguments": arguments,
-        ]
-        guard let data = try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]),
-              let json = String(data: data, encoding: .utf8)
-        else { return "" }
-        return "<tool_call>\(json)</tool_call>"
-    }
-}
+/// The deterministic computer planner that once closed `runComputerLoop` was removed:
+/// nothing produced `AgentTurnIntent.computer` for it, and the mail that sat in
+/// "Thinking…" behind its second model round was the symptom, not the plan. The
+/// `.computer` case survives for its progress title and — were a producer ever to
+/// exist — is served by the `.toolLoop` path through `perform`, whose planner
+/// inspects, clicks and verifies over the same computer tools.

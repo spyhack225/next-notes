@@ -290,6 +290,15 @@ struct KnowledgeGraphPane: View {
         let folders: Int
         let focus: String?
         let expanded: Int
+        let memory: String
+    }
+
+    /// Memories are not in `knowledge.sqlite`, so nothing else here moves when one is edited
+    /// or forgotten; this is what redraws their dots.
+    private var memoryFingerprint: String {
+        let entries = NextMemory.shared.entries
+        let latest = entries.map(\.updatedAt).max()?.timeIntervalSince1970 ?? 0
+        return "\(entries.count)-\(latest)"
     }
 
     private var reloadKey: ReloadKey {
@@ -300,7 +309,8 @@ struct KnowledgeGraphPane: View {
             files: fileIndex.revision,
             folders: folders.revision,
             focus: focusID,
-            expanded: expandedFolders.count
+            expanded: expandedFolders.count,
+            memory: memoryFingerprint
         )
     }
 
@@ -311,6 +321,9 @@ struct KnowledgeGraphPane: View {
         // verdicts into `folders.accessProblems`, which re-renders this pane on its own.
         folders.refreshAccessProblems()
         let graph = indexer.graph
+        // Snapshotted here, on the main actor: `NextMemory` is main-actor state and the
+        // drawing half below runs off it.
+        let memoryOverlay = MemoryGraphOverlay.snapshot(NextMemory.shared)
         let overlay = hasFiles && fileIndex.store.existsOnDisk
             ? FileGraphOverlay(store: fileIndex.store) : nil
         guard graph != nil || overlay != nil else {
@@ -333,6 +346,15 @@ struct KnowledgeGraphPane: View {
             Result {
                 var candidates = try graph?.focusCandidates() ?? []
                 var overview = try graph?.visualization() ?? KnowledgeGraphExpansion()
+                if graph != nil {
+                    // The user's own memories, drawn beside the extracted graph. They are an
+                    // overlay rather than rows: a memory has no source chunk to cite, and
+                    // every edge in the store must have one.
+                    let memoryNodes = memoryOverlay.nodes()
+                    candidates = memoryNodes + candidates
+                    overview.nodes += memoryNodes
+                    overview.edges += memoryOverlay.mentions(among: overview.nodes)
+                }
                 if let overlay {
                     let map = try overlay.map(expanded: expanded)
                     candidates = map.nodes.filter { $0.type == "Folder" } + candidates
@@ -351,7 +373,20 @@ struct KnowledgeGraphPane: View {
                 var focusNode: KnowledgeGraphNode?
                 var moments: [PersonMeetingMoment] = []
                 if let focus {
-                    if FileGraphOverlay.isFileNode(focus) {
+                    if MemoryGraphOverlay.isMemoryNode(focus) {
+                        // A memory's neighbourhood is what its words name: the people,
+                        // projects and meetings already on the map that it mentions.
+                        let known = overview.nodes + candidates
+                        let mine = memoryOverlay.mentions(among: known)
+                            .filter { $0.from == focus || $0.to == focus }
+                        let related = Set(mine.map { $0.from == focus ? $0.to : $0.from })
+                        expansion = KnowledgeGraphExpansion(
+                            nodes: memoryOverlay.nodes().filter { $0.id == focus }
+                                + known.filter { related.contains($0.id) },
+                            edges: mine
+                        )
+                        focusNode = expansion.nodes.first { $0.id == focus }
+                    } else if FileGraphOverlay.isFileNode(focus) {
                         expansion = try overlay?.neighbourhood(of: focus) ?? KnowledgeGraphExpansion()
                         if let graph, let overlay {
                             let mentions = overlay.mentions(of: expansion.nodes, searcher: searcher, graph: graph)
@@ -429,6 +464,12 @@ struct KnowledgeGraphPane: View {
     }
 
     private func select(_ id: String) async {
+        // A memory dot is a fact, not a place to explore: a click opens the Memories editor
+        // on the fact it names, which is the only thing it could usefully do.
+        if let memoryID = MemoryGraphOverlay.memoryID(of: id) {
+            navigation.openMemories(memoryID)
+            return
+        }
         focusID = id
         showingOverview = false
         // Opening a folder is what brings its sub-folders onto the map.

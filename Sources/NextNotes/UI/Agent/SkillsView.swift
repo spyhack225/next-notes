@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Agent ▸ Skills — "things your assistant knows how to do".
@@ -8,88 +9,89 @@ import SwiftUI
 /// The words "install", "registry", "GitHub", "YAML" and "frontmatter" are all deliberately
 /// absent — "Add", "on your Mac", "the project it came from" say the same thing to someone
 /// who has never opened a terminal.
+///
+/// The list below the search field is the whole library: filter it, group it, sort it, switch
+/// several at once, and remove the ones Next Notes itself added. What it will not do is offer
+/// a delete it cannot honour — a skill in another assistant's folder says so on its card and
+/// the button is simply absent.
 struct SkillsView: View {
     init() {}
 
     @State private var library = SkillLibrary.shared
     @State private var model = SkillsSearchModel()
     @State private var query = ""
+    @State private var filter = SkillFilter()
+    @State private var selection: Set<String> = []
+    @State private var isSelecting = false
+    @State private var pendingRemoval: [Skill] = []
+    @State private var pendingSkipped = 0
+    @State private var showsRemovalConfirmation = false
     @State private var expanded: Set<String> = []
     @State private var message: String?
     @State private var messageIsProblem = true
     @State private var undo: SkillsUndo?
-    /// Appears once the list is long enough that scrolling it is worse than typing.
-    @State private var filter = ""
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DS.Space.xl) {
-                header
-                finder
-                if let undo { undoBar(undo) }
-                if let message { note(message, warning: messageIsProblem) }
-                addedByYou
-                alreadyHere
-            }
-            .padding(DS.Space.page)
-            .frame(maxWidth: DS.Size.agentSkillsMaxWidth)
-            .frame(maxWidth: .infinity)
+        AgentPaneScroll {
+            header
+            finder
+            filterBar
+            librarySection
+            if let undo { undoBar(undo) }
+            if let message { note(message, warning: messageIsProblem) }
         }
         .task {
             if library.lastScan == nil { await library.rescan() }
         }
-    }
-
-    /// The adaptive grid every card section lays out into: 2–3 columns on a wide window,
-    /// one on a narrow one, rather than a single 560pt column with the rest of the pane
-    /// sitting empty.
-    private var cardColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: DS.Size.skillCardMin), spacing: DS.Space.m)]
+        .confirmationDialog(
+            removalTitle,
+            isPresented: $showsRemovalConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Remove", role: .destructive) { performRemoval(pendingRemoval) }
+            Button("Cancel", role: .cancel) {
+                pendingRemoval = []
+                pendingSkipped = 0
+            }
+        } message: {
+            Text(removalMessage)
+        }
     }
 
     // MARK: - Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: DS.Space.xs) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Skills")
-                    .font(DS.Font.title2.weight(.semibold))
-                    .tracking(DS.Font.wordTracking)
-                Spacer()
-                Toggle("Use skills", isOn: Binding(
-                    get: { library.isEnabled },
-                    set: { library.isEnabled = $0 }
-                ))
-                .toggleStyle(.switch)
-                .labelsHidden()
-                .accessibilityLabel("Use skills")
+        VStack(alignment: .leading, spacing: DS.Space.s) {
+            AgentPaneHeader(title: "Skills", subtitle: countLine) {
+                HStack(spacing: DS.Space.s) {
+                    if library.isScanning {
+                        ProgressView().controlSize(.small)
+                    }
+                    Button("Look again") { Task { await library.rescan() } }
+                        .buttonStyle(.borderless)
+                        .font(DS.Font.caption)
+                        .disabled(library.isScanning)
+                    Toggle("Use skills", isOn: Binding(
+                        get: { library.isEnabled },
+                        set: { library.isEnabled = $0 }
+                    ))
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .accessibilityLabel("Use skills")
+                }
             }
             Text("Things your assistant knows how to do. It reads one only when it needs it.")
                 .font(DS.Font.callout)
                 .foregroundStyle(DS.Color.textSecondary)
-            HStack(spacing: DS.Space.s) {
-                if library.isScanning {
-                    ProgressView().controlSize(.small)
-                    Text("Looking…").font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
-                } else {
-                    Text(countLine)
-                        .font(DS.Font.caption)
-                        .foregroundStyle(DS.Color.textSecondary)
-                }
-                Button("Look again") { Task { await library.rescan() } }
-                    .buttonStyle(.borderless)
-                    .font(DS.Font.caption)
-                    .disabled(library.isScanning)
-            }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: DS.Size.agentProseMaxWidth, alignment: .leading)
         }
     }
 
+    /// The live counts sentence in the header. While the scan is in flight it says so
+    /// rather than showing a number from before it started.
     private var countLine: String {
-        let total = library.skills.count
-        guard total > 0 else { return "Nothing found on this Mac yet." }
-        let off = library.skills.filter { !library.isOn($0) }.count
-        let on = "\(total) skill\(total == 1 ? "" : "s") found"
-        return off == 0 ? on : "\(on), \(off) switched off"
+        library.isScanning ? "Looking…" : SkillsCopy.countLine(library.counts)
     }
 
     // MARK: - Find a new skill
@@ -112,8 +114,8 @@ struct SkillsView: View {
             }
             if let problem = model.problem { note(problem, warning: true) }
             if !model.results.isEmpty {
-                GlassGroup(spacing: DS.Space.m) {
-                    LazyVGrid(columns: cardColumns, spacing: DS.Space.m) {
+                GlassGroup(spacing: DS.Space.card) {
+                    AgentCardGrid(minimum: DS.Size.skillCardMin) {
                         ForEach(model.results) { result in
                             foundRow(result)
                         }
@@ -165,74 +167,284 @@ struct SkillsView: View {
         }
     }
 
-    // MARK: - Added by you
+    // MARK: - Everything on your Mac
 
-    @ViewBuilder
-    private var addedByYou: some View {
-        let mine = library.installed
-        if !mine.isEmpty {
-            VStack(alignment: .leading, spacing: DS.Space.s) {
-                Text("Added by you").font(DS.Font.sectionLabel)
-                GlassGroup(spacing: DS.Space.m) {
-                    LazyVGrid(columns: cardColumns, spacing: DS.Space.m) {
-                        ForEach(mine) { skill in row(skill, removable: true) }
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - Already on your Mac
-
-    @ViewBuilder
-    private var alreadyHere: some View {
-        let others = library.fromOtherApps
-        let shown = matching(others)
+    private var librarySection: some View {
         VStack(alignment: .leading, spacing: DS.Space.s) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Already on your Mac").font(DS.Font.sectionLabel)
+                Text("Everything on your Mac").font(DS.Font.sectionLabel)
                 Spacer()
-                if others.count > 12 {
-                    TextField("Narrow this list", text: $filter)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(maxWidth: DS.Size.settingsFieldWidth)
+                if !library.skills.isEmpty {
+                    Button(isSelecting ? "Done" : "Select") { toggleSelecting() }
+                        .buttonStyle(.borderless)
+                        .font(DS.Font.caption)
                 }
             }
-            if others.isEmpty {
-                note("Your other assistants have not left any skills here. Anything you add above "
-                     + "shows up under “Added by you”.", warning: false)
-            } else {
-                Text("These came with other assistants you already use. Next Notes reads them where "
-                     + "they are and never changes them.")
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
-                if shown.isEmpty {
-                    note("Nothing here matches what you typed.", warning: false)
+            if isSelecting || !selection.isEmpty { selectionBar }
+            if library.skills.isEmpty {
+                if library.isScanning {
+                    HStack(spacing: DS.Space.s) {
+                        ProgressView().controlSize(.small)
+                        Text("Looking…").font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
+                    }
+                } else {
+                    note("No skills found on this Mac yet. Search above to add one, and anything "
+                         + "your other assistants already have will show up here.", warning: false)
                 }
-                GlassGroup(spacing: DS.Space.m) {
-                    LazyVGrid(columns: cardColumns, spacing: DS.Space.m) {
-                        ForEach(shown) { skill in row(skill, removable: false) }
+            } else if visibleSkills.isEmpty {
+                note(filter.emptyReason, warning: false)
+            } else {
+                ForEach(groups) { group in
+                    VStack(alignment: .leading, spacing: DS.Space.s) {
+                        if let title = group.title { groupHeading(title, group: group) }
+                        GlassGroup(spacing: DS.Space.card) {
+                            AgentCardGrid(minimum: DS.Size.skillCardMin) {
+                                ForEach(group.skills) { skill in card(skill) }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    /// Name or description contains what was typed. A plain substring: the user is scanning a
-    /// list they can see, not running a query.
-    private func matching(_ skills: [Skill]) -> [Skill] {
-        let needle = filter.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !needle.isEmpty else { return skills }
-        return skills.filter {
-            $0.name.lowercased().contains(needle) || $0.description.lowercased().contains(needle)
+    private var visibleSkills: [Skill] {
+        let matched = filter.apply(
+            to: library.skills,
+            isOn: { library.isOn($0) },
+            origin: { library.origin(of: $0) })
+        return SkillOrganizer.sorted(matched, by: library.sort, installedAt: { library.installedAt(of: $0) })
+    }
+
+    private var groups: [SkillGroup] {
+        SkillOrganizer.groups(visibleSkills, by: library.grouping, origin: { library.origin(of: $0) })
+    }
+
+    private func groupHeading(_ title: String, group: SkillGroup) -> some View {
+        VStack(alignment: .leading, spacing: DS.Space.xxs) {
+            HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
+                Text(title).font(DS.Font.sectionLabel)
+                Text("\(group.skills.count)")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textTertiary)
+            }
+            if let subtitle = group.subtitle {
+                Text(subtitle)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+            }
         }
     }
 
-    // MARK: - One row
+    // MARK: - Filter bar
 
-    private func row(_ skill: Skill, removable: Bool) -> some View {
-        VStack(alignment: .leading, spacing: DS.Space.xs) {
+    private var filterBar: some View {
+        // A wrapping row, not an `HStack`: six controls do not fit across a 560pt pane, and a
+        // squeezed menu draws as an unreadable ellipsis.
+        FlowLayout(spacing: DS.Space.s) {
+            TextField("Narrow this list", text: $filter.text)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: DS.Size.settingsFieldWidth)
+            statePicker
+            sourceMenu
+            originMenu
+            groupingPicker
+            sortPicker
+        }
+    }
+
+    /// All / On / Off. The filter type carries a set because more than one answer may be
+    /// wanted later; the control offers the three states that make sense today.
+    private var statePicker: some View {
+        Picker("Switch", selection: Binding(
+            get: { filter.states.count == 1 ? filter.states.first : nil },
+            set: { value in filter.states = value.map { Set([$0]) } ?? [] }
+        )) {
+            Text("All").tag(nil as SkillStateFilter?)
+            ForEach(SkillStateFilter.allCases) { state in
+                Text(state.displayName).tag(state as SkillStateFilter?)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+        .accessibilityLabel("Switch position")
+    }
+
+    /// The apps are whatever the library actually found, in `allCases` order — a hard-coded
+    /// list would drift the moment a root is added or removed.
+    private var sourceMenu: some View {
+        Menu {
+            ForEach(SkillFilter.availableSources(in: library.skills), id: \.self) { source in
+                Toggle(source.badge, isOn: Binding(
+                    get: { filter.sources.contains(source) },
+                    set: { on in
+                        if on { filter.sources.insert(source) } else { filter.sources.remove(source) }
+                    }))
+            }
+            if !filter.sources.isEmpty {
+                Divider()
+                Button("Any app") { filter.sources = [] }
+            }
+        } label: {
+            Text(sourceMenuLabel)
+        }
+        .fixedSize()
+    }
+
+    private var sourceMenuLabel: String {
+        switch filter.sources.count {
+        case 0: "From: any app"
+        case 1: "From: " + (filter.sources.first?.badge ?? "")
+        default: "From: \(filter.sources.count) apps"
+        }
+    }
+
+    private var originMenu: some View {
+        Menu {
+            ForEach(SkillFilter.availableOrigins(in: library.skills, origin: { library.origin(of: $0) })) { origin in
+                Toggle(origin.badge, isOn: Binding(
+                    get: { filter.origins.contains(origin) },
+                    set: { on in
+                        if on { filter.origins.insert(origin) } else { filter.origins.remove(origin) }
+                    }))
+            }
+            if !filter.origins.isEmpty {
+                Divider()
+                Button("Any origin") { filter.origins = [] }
+            }
+        } label: {
+            Text(originMenuLabel)
+        }
+        .fixedSize()
+    }
+
+    private var originMenuLabel: String {
+        switch filter.origins.count {
+        case 0: "Came from: anywhere"
+        case 1: "Came from: " + (filter.origins.first?.badge ?? "")
+        default: "Came from: \(filter.origins.count) kinds"
+        }
+    }
+
+    private var groupingPicker: some View {
+        Picker("Group", selection: Binding(
+            get: { library.grouping },
+            set: { library.grouping = $0 }
+        )) {
+            ForEach(SkillGrouping.allCases) { grouping in
+                Text("Group: " + grouping.displayName).tag(grouping)
+            }
+        }
+        .pickerStyle(.menu)
+        .labelsHidden()
+        .fixedSize()
+        .accessibilityLabel("Group skills")
+    }
+
+    private var sortPicker: some View {
+        Picker("Sort", selection: Binding(
+            get: { library.sort },
+            set: { library.sort = $0 }
+        )) {
+            ForEach(SkillSort.allCases) { sort in
+                Text("Sort: " + sort.displayName).tag(sort)
+            }
+        }
+        .pickerStyle(.menu)
+        .labelsHidden()
+        .fixedSize()
+        .accessibilityLabel("Sort skills")
+    }
+
+    // MARK: - Selection
+
+    private var selectedSkills: [Skill] {
+        library.skills.filter { selection.contains($0.id) }
+    }
+
+    private var removableSelection: [Skill] {
+        selectedSkills.filter { library.origin(of: $0).isRemovable }
+    }
+
+    private var allVisibleSelected: Bool {
+        !visibleSkills.isEmpty && visibleSkills.allSatisfy { selection.contains($0.id) }
+    }
+
+    private var selectionBar: some View {
+        HStack(spacing: DS.Space.s) {
+            Text("\(selection.count) selected")
+                .font(DS.Font.callout)
+            Spacer(minLength: DS.Space.s)
+            Button(allVisibleSelected ? "None" : "Select all") {
+                if allVisibleSelected {
+                    selection.subtract(visibleSkills.map(\.id))
+                } else {
+                    selection.formUnion(visibleSkills.map(\.id))
+                }
+            }
+            .buttonStyle(.borderless)
+            .font(DS.Font.caption)
+            .disabled(visibleSkills.isEmpty)
+            Button("Turn on \(selection.count)") {
+                switchOn(selectedSkills, true)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(selection.isEmpty)
+            Button("Turn off \(selection.count)") {
+                switchOn(selectedSkills, false)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(selection.isEmpty)
+            Button("Remove \(removableSelection.count)…") {
+                askRemoval(selectedSkills)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(removableSelection.isEmpty)
+        }
+        .padding(DS.Space.cardTight)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassSurface(cornerRadius: DS.Radius.card)
+    }
+
+    private func toggleSelecting() {
+        if isSelecting {
+            isSelecting = false
+            selection = []
+        } else {
+            isSelecting = true
+        }
+    }
+
+    private func toggleSelection(_ skill: Skill) {
+        if selection.contains(skill.id) {
+            selection.remove(skill.id)
+        } else {
+            selection.insert(skill.id)
+            isSelecting = true
+        }
+    }
+
+    private func switchOn(_ skills: [Skill], _ on: Bool) {
+        guard !skills.isEmpty else { return }
+        library.setOn(skills, on)
+        messageIsProblem = false
+        message = "\(SkillsCopy.counted(skills.count)) switched \(on ? "on" : "off")."
+    }
+
+    // MARK: - One card
+
+    private func card(_ skill: Skill) -> some View {
+        let origin = library.origin(of: skill)
+        let selected = selection.contains(skill.id)
+        return VStack(alignment: .leading, spacing: DS.Space.xs) {
             HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
+                if isSelecting || selected {
+                    selectButton(skill, selected: selected)
+                }
                 Text(SkillsCopy.title(skill.name))
                     .font(DS.Font.headline)
                     .foregroundStyle(library.isOn(skill) ? DS.Color.text : DS.Color.textTertiary)
@@ -260,6 +472,11 @@ struct SkillsView: View {
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.warning)
             }
+            if !origin.isRemovable {
+                Text(origin.readOnlyExplanation)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textTertiary)
+            }
             Spacer(minLength: 0)
             HStack(spacing: DS.Space.m) {
                 Button(expanded.contains(skill.id) ? "Hide what it says" : "See what it says") {
@@ -267,12 +484,12 @@ struct SkillsView: View {
                 }
                 .buttonStyle(.borderless)
                 .font(DS.Font.caption)
-                if removable {
+                if origin.isRemovable {
                     Button("Update") { update(skill) }
                         .buttonStyle(.borderless)
                         .font(DS.Font.caption)
                         .disabled(model.adding.contains(skill.name))
-                    Button("Remove") { remove(skill) }
+                    Button("Remove") { askRemoval([skill]) }
                         .buttonStyle(.borderless)
                         .font(DS.Font.caption)
                 }
@@ -297,6 +514,29 @@ struct SkillsView: View {
         .frame(maxWidth: .infinity, minHeight: DS.Size.skillCardMinHeight, alignment: .leading)
         .glassSurface(cornerRadius: DS.Radius.card)
         .opacity(library.isOn(skill) ? 1 : 0.6)
+        .contentShape(Rectangle())
+        // ⌘-click selects anywhere on the card; a plain click selects only while the toolbar
+        // is up, so ordinary browsing is not turned into accidental selection. One gesture
+        // rather than an onTapGesture plus a modified one: two would both fire on ⌘-click
+        // and cancel each other out.
+        .onTapGesture {
+            if NSEvent.modifierFlags.contains(.command) || isSelecting {
+                toggleSelection(skill)
+            }
+        }
+    }
+
+    private func selectButton(_ skill: Skill, selected: Bool) -> some View {
+        Button {
+            toggleSelection(skill)
+        } label: {
+            Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(selected ? DS.Color.accent : DS.Color.textTertiary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(selected
+            ? "Deselect \(SkillsCopy.title(skill.name))"
+            : "Select \(SkillsCopy.title(skill.name))")
     }
 
     private func badge(_ text: String) -> some View {
@@ -338,6 +578,43 @@ struct SkillsView: View {
         .glassSurface(cornerRadius: DS.Radius.card)
     }
 
+    // MARK: - Removal
+
+    private var removalTitle: String {
+        guard let first = pendingRemoval.first else { return "Remove these skills?" }
+        return pendingRemoval.count == 1
+            ? "Remove “\(SkillsCopy.title(first.name))”?"
+            : "Remove \(pendingRemoval.count) skills?"
+    }
+
+    private var removalMessage: String {
+        guard !pendingRemoval.isEmpty else { return "" }
+        let named = pendingRemoval.prefix(6).map { "“\(SkillsCopy.title($0.name))”" }
+        var text = "Removes " + named.joined(separator: ", ")
+        if pendingRemoval.count > named.count {
+            text += " and \(pendingRemoval.count - named.count) more"
+        }
+        text += ". This can't be undone."
+        if pendingSkipped > 0 {
+            text += " \(SkillsCopy.counted(pendingSkipped)) you picked "
+                + (pendingSkipped == 1 ? "was" : "were")
+                + " not added by Next Notes, so "
+                + (pendingSkipped == 1 ? "it stays" : "they stay") + " where "
+                + (pendingSkipped == 1 ? "it is" : "they are") + "."
+        }
+        return text
+    }
+
+    /// Opens the confirmation for anything removable among `skills`. The shared ones are
+    /// counted so the dialog can say they are staying, rather than silently dropping them.
+    private func askRemoval(_ skills: [Skill]) {
+        let removable = skills.filter { library.origin(of: $0).isRemovable }
+        guard !removable.isEmpty else { return }
+        pendingRemoval = removable
+        pendingSkipped = skills.count - removable.count
+        showsRemovalConfirmation = true
+    }
+
     // MARK: - Actions
 
     private func search() {
@@ -371,17 +648,30 @@ struct SkillsView: View {
         }
     }
 
-    private func remove(_ skill: Skill) {
+    /// One path for one skill and for twenty: the dialog has already named what goes.
+    private func performRemoval(_ skills: [Skill]) {
+        let removing = skills
+        pendingRemoval = []
+        pendingSkipped = 0
+        guard !removing.isEmpty else { return }
         message = nil
         messageIsProblem = true
-        let source = model.origin(of: skill, library: library)
+        // Read the provenance before the lock entry is deleted — afterwards there is nothing
+        // left to rebuild an Undo from.
+        let singleSource = removing.count == 1 ? model.origin(of: removing[0], library: library) : nil
         Task {
-            if let problem = await model.remove(skill, library: library) {
+            let problem = await model.remove(names: removing.map(\.name), library: library)
+            selection.subtract(removing.map(\.id))
+            if let problem {
                 message = problem
-            } else if let source {
-                undo = SkillsUndo(
-                    message: "Removed “\(SkillsCopy.title(skill.name))”.",
-                    action: .add(source))
+            } else {
+                messageIsProblem = false
+                message = "Removed \(SkillsCopy.counted(removing.count)) from your Mac."
+                if let skill = removing.first, let singleSource {
+                    undo = SkillsUndo(
+                        message: "Removed “\(SkillsCopy.title(skill.name))”.",
+                        action: .add(singleSource))
+                }
             }
         }
     }
@@ -425,6 +715,24 @@ enum SkillsCopy {
 
     static func fileCount(_ count: Int) -> String {
         count <= 1 ? "1 page" : "\(count) pages"
+    }
+
+    static func counted(_ count: Int) -> String {
+        "\(count) skill\(count == 1 ? "" : "s")"
+    }
+
+    /// The live counts line. Every number the pane claims is in here, so the header cannot
+    /// say "177 found" while the grid shows something else.
+    static func countLine(_ counts: SkillCounts) -> String {
+        guard counts.total > 0 else { return "Nothing found on this Mac yet." }
+        var line = "\(counts.total) skill\(counts.total == 1 ? "" : "s") found — "
+            + "\(counts.on) on, \(counts.off) switched off"
+        var parts: [String] = []
+        if counts.installed > 0 { parts.append("\(counts.installed) installed by Next Notes") }
+        if counts.inOurFolder > 0 { parts.append("\(counts.inOurFolder) in your skills folder") }
+        if counts.shared > 0 { parts.append("\(counts.shared) shared") }
+        if !parts.isEmpty { line += " · " + parts.joined(separator: ", ") }
+        return line
     }
 
     /// The first part of what a skill actually says, so the user can judge it before
@@ -525,9 +833,21 @@ final class SkillsSearchModel {
     }
 
     func remove(_ skill: Skill, library: SkillLibrary) async -> String? {
+        await remove(names: [skill.name], library: library)
+    }
+
+    /// Removes several in one lock write. Returns a sentence only when something went wrong;
+    /// anything that was not installed by Next Notes is skipped inside the client.
+    func remove(names: [String], library: SkillLibrary) async -> String? {
         do {
-            try SkillRegistryClient(directory: library.installDirectory).remove(name: skill.name)
+            let outcome = try SkillRegistryClient(directory: library.installDirectory).remove(names: names)
             await library.refreshInstalled()
+            guard outcome.failures.isEmpty else {
+                return outcome.failures
+                    .sorted { $0.key < $1.key }
+                    .map { "“\(SkillsCopy.title($0.key))”: \($0.value)" }
+                    .joined(separator: " ")
+            }
             return nil
         } catch {
             return error.localizedDescription

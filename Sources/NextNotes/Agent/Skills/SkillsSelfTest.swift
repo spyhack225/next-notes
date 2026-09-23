@@ -1,7 +1,8 @@
 import Foundation
 
 /// `--selftest-skills`: discovery, de-duplication, frontmatter, path safety, prompt budgeting,
-/// the three tools, and one live search against skills.sh.
+/// the three tools, the pane's filtering/grouping/bulk-switch/removal rules, and one live
+/// search against skills.sh.
 ///
 /// Everything except the last section runs on fixtures in a temporary directory and touches
 /// neither the user's `~/.claude/skills` (read-only, and only counted) nor their installed
@@ -429,6 +430,244 @@ enum SkillsSelfTest {
         }
         check("skills.read is not in the planner's tool catalogue", planner.contains("skills.read"))
         check("skills.install is not in the planner's tool catalogue", planner.contains("skills.install"))
+
+        // MARK: 7b — filtering, grouping, sorting, bulk switches and removal
+
+        // Value-level fixtures: four skills across three apps and all three origins, two on
+        // and two off. None of this touches the disk.
+        let now = Date()
+        let fixtureSkills = [
+            Skill(id: "nextNotes/alpha", name: "alpha", description: "Writes the weekly report.",
+                  source: .nextNotes, folder: root, contentHash: "a",
+                  files: ["SKILL.md", "reference.md"], byteCount: 10,
+                  modifiedAt: now.addingTimeInterval(-300)),
+            Skill(id: "claudeCode/beta", name: "beta", description: "Fills in PDF forms.",
+                  source: .claudeCode, folder: root, contentHash: "b",
+                  files: ["SKILL.md"], byteCount: 10,
+                  modifiedAt: now.addingTimeInterval(-200)),
+            Skill(id: "codex/gamma", name: "gamma", description: "Reads a spreadsheet.",
+                  source: .codex, folder: root, contentHash: "c",
+                  files: ["SKILL.md", "a.md", "b.md"], byteCount: 10,
+                  modifiedAt: now.addingTimeInterval(-100)),
+            Skill(id: "nextNotes/delta", name: "delta", description: "Summarises meetings.",
+                  source: .nextNotes, folder: root, contentHash: "d",
+                  files: ["SKILL.md"], byteCount: 10,
+                  modifiedAt: now.addingTimeInterval(-400)),
+        ]
+        let originsByName: [String: SkillOrigin] = [
+            "alpha": .installed, "beta": .shared, "gamma": .shared, "delta": .inOurFolder,
+        ]
+        let originOf: (Skill) -> SkillOrigin = { originsByName[$0.name] ?? .shared }
+        let onNames: Set<String> = ["alpha", "delta"]
+        let isOn: (Skill) -> Bool = { onNames.contains($0.name) }
+
+        var filter = SkillFilter()
+        check("an empty filter dropped a skill",
+              filter.apply(to: fixtureSkills, isOn: isOn, origin: originOf).count == fixtureSkills.count)
+        check("an empty filter claims to be active", !filter.isActive)
+        filter.states = [.off]
+        check("the off filter did not keep only the switched-off skills",
+              filter.apply(to: fixtureSkills, isOn: isOn, origin: originOf).map(\.name).sorted()
+                == ["beta", "gamma"])
+        filter.states = [.on]
+        check("the on filter did not keep only the switched-on skills",
+              filter.apply(to: fixtureSkills, isOn: isOn, origin: originOf).map(\.name).sorted()
+                == ["alpha", "delta"])
+        filter.states = []
+        filter.sources = [.codex]
+        check("the app filter did not narrow to one app",
+              filter.apply(to: fixtureSkills, isOn: isOn, origin: originOf).map(\.name) == ["gamma"])
+        filter.sources = []
+        filter.origins = [.installed, .inOurFolder]
+        check("the origin filter did not keep the two kinds of ours",
+              filter.apply(to: fixtureSkills, isOn: isOn, origin: originOf).map(\.name).sorted()
+                == ["alpha", "delta"])
+        filter.origins = []
+        filter.text = "PDF"
+        check("the text filter is case-sensitive or matches the wrong field",
+              filter.apply(to: fixtureSkills, isOn: isOn, origin: originOf).map(\.name) == ["beta"])
+        filter.text = "meetings"
+        check("the text filter did not match a description",
+              filter.apply(to: fixtureSkills, isOn: isOn, origin: originOf).map(\.name) == ["delta"])
+        filter.text = "zzz"
+        check("the filter that emptied the list does not name its dimensions",
+              filter.emptyReason.contains("matching “zzz”"))
+        filter.text = ""
+        filter.states = [.off]
+        filter.sources = [.claudeCode]
+        check("the empty reason does not name the state and the app",
+              filter.emptyReason.contains("switched off") && filter.emptyReason.contains("Claude"))
+        check("the source filter is not derived from what is on the Mac",
+              SkillFilter.availableSources(in: fixtureSkills) == [.nextNotes, .claudeCode, .codex])
+        check("the origin filter is not derived from what is on the Mac",
+              SkillFilter.availableOrigins(in: fixtureSkills, origin: originOf)
+                == [.installed, .inOurFolder, .shared])
+        print("SKILLS_FILTER \(fixtureSkills.count) fixtures → "
+            + "\(filter.apply(to: fixtureSkills, isOn: isOn, origin: originOf).count) under "
+            + filter.emptyReason)
+
+        let appGroups = SkillOrganizer.groups(fixtureSkills, by: .app, origin: originOf)
+        check("grouping by app did not use the apps' own order",
+              appGroups.map(\.title) == ["Added by you", "Claude", "Codex"])
+        check("grouping by app dropped or mixed a skill",
+              appGroups.first { $0.title == "Added by you" }?.skills.map(\.name).sorted()
+                == ["alpha", "delta"])
+        let originGroups = SkillOrganizer.groups(fixtureSkills, by: .origin, origin: originOf)
+        check("grouping by origin did not keep the three kinds apart",
+              originGroups.map(\.title) == ["Installed by Next Notes", "In your skills folder",
+                                            "Shared from another assistant"])
+        check("grouping by origin lost the shared skills",
+              originGroups.last?.skills.map(\.name).sorted() == ["beta", "gamma"])
+        let flatGroups = SkillOrganizer.groups(fixtureSkills, by: .none, origin: originOf)
+        check("grouping by none did not produce one untitled group",
+              flatGroups.count == 1 && flatGroups.first?.title == nil)
+        check("an empty list produced a group",
+              SkillOrganizer.groups([], by: .app, origin: originOf).isEmpty)
+
+        check("sorting by name is not alphabetical",
+              SkillOrganizer.sorted(fixtureSkills, by: .name, installedAt: { _ in nil }).map(\.name)
+                == ["alpha", "beta", "delta", "gamma"])
+        check("sorting by recently added did not use the folder dates",
+              SkillOrganizer.sorted(fixtureSkills, by: .recentlyAdded, installedAt: { _ in nil }).map(\.name)
+                == ["gamma", "beta", "alpha", "delta"])
+        check("sorting by pages is not most-pages-first with a name tiebreak",
+              SkillOrganizer.sorted(fixtureSkills, by: .pages, installedAt: { _ in nil }).map(\.name)
+                == ["gamma", "alpha", "beta", "delta"])
+        check("recently added ignored the lock file's install date",
+              SkillOrganizer.sorted(fixtureSkills, by: .recentlyAdded,
+                                    installedAt: { $0.name == "delta" ? now : nil }).first?.name == "delta")
+        print("SKILLS_GROUPS \(appGroups.count) app groups, \(originGroups.count) origin groups")
+
+        check("the counts line does not state every number",
+              SkillsCopy.countLine(SkillCounts(total: 4, on: 2, installed: 1,
+                                               inOurFolder: 1, shared: 2))
+                == "4 skills found — 2 on, 2 switched off · 1 installed by Next Notes, "
+                    + "1 in your skills folder, 2 shared")
+        check("the counts line says “skills” for one skill",
+              SkillsCopy.countLine(SkillCounts(total: 1, on: 1, installed: 1,
+                                               inOurFolder: 0, shared: 0))
+                == "1 skill found — 1 on, 0 switched off · 1 installed by Next Notes")
+        check("an empty library still claims counts",
+              SkillsCopy.countLine(SkillCounts()) == "Nothing found on this Mac yet.")
+
+        // Bulk switches: one assignment, therefore one `UserDefaults` write for N skills.
+        let bulkSuite = "NextNotesSelfTest-skills-bulk-\(UUID().uuidString)"
+        let bulkDefaults = UserDefaults(suiteName: bulkSuite)!
+        defer { bulkDefaults.removePersistentDomain(forName: bulkSuite) }
+        let bulk = SkillLibrary(installDirectory: ours, roots: roots, defaults: bulkDefaults)
+        await bulk.rescan()
+        let bulkSkills = bulk.skills
+        check("the bulk-switch fixture found no skills", !bulkSkills.isEmpty)
+        let writesBefore = bulk.disabledWrites
+        bulk.setOn(bulkSkills, false)
+        check("a bulk switch off did not take", bulkSkills.allSatisfy { !bulk.isOn($0) })
+        check("a bulk switch off wrote the list once per skill", bulk.disabledWrites == writesBefore + 1)
+        bulk.setOn(bulkSkills, false)
+        check("a bulk switch that changes nothing still wrote", bulk.disabledWrites == writesBefore + 1)
+        bulk.setOn(bulkSkills, true)
+        check("a bulk switch on did not take", bulkSkills.allSatisfy { bulk.isOn($0) })
+        check("a bulk switch on wrote the list once per skill", bulk.disabledWrites == writesBefore + 2)
+        bulk.setOn([bulkSkills[0]], false)
+        let reloaded = SkillLibrary(installDirectory: ours, roots: roots, defaults: bulkDefaults)
+        await reloaded.rescan()
+        check("a switched-off skill did not survive a relaunch",
+              reloaded.skills.contains { $0.id == bulkSkills[0].id } && !reloaded.isOn(bulkSkills[0]))
+        bulk.grouping = .origin
+        bulk.sort = .pages
+        let preferences = SkillLibrary(installDirectory: ours, roots: roots, defaults: bulkDefaults)
+        check("the grouping choice did not survive a relaunch", preferences.grouping == .origin)
+        check("the sort choice did not survive a relaunch", preferences.sort == .pages)
+        print("SKILLS_SWITCH \(bulkSkills.count) skills switched in \(bulk.disabledWrites - writesBefore) writes")
+
+        // Removal: only what the lock file records is a candidate. A shared folder and a
+        // hand-placed skill are skipped without being touched, and a hostile lock entry
+        // cannot escape the install directory.
+        func lockEntry(_ name: String) -> SkillLockEntry {
+            SkillLockEntry(name: name, id: "owner/repo/\(name)", owner: "owner", repo: "repo",
+                           skillId: name, repoFolder: "skills/\(name)", commit: "abc123",
+                           contentHash: "hash-\(name)", files: ["SKILL.md"], byteCount: 40,
+                           installedAt: now, updatedAt: now)
+        }
+
+        let removalRoot = root.appendingPathComponent("removal", isDirectory: true)
+        let removalDir = removalRoot.appendingPathComponent("install", isDirectory: true)
+        write("---\nname: installed-one\ndescription: Ours.\n---\nBody.",
+              to: removalDir.appendingPathComponent("installed-one"))
+        write("---\nname: handmade\ndescription: Copied in by hand.\n---\nBody.",
+              to: removalDir.appendingPathComponent("handmade"))
+        let otherAppFolder = removalRoot.appendingPathComponent("claude/skills/shared-one", isDirectory: true)
+        write("---\nname: shared-one\ndescription: Another app's.\n---\nBody.", to: otherAppFolder)
+        let sentinel = removalRoot.appendingPathComponent("sentinel.txt")
+        try? Data("keep me".utf8).write(to: sentinel)
+
+        let removalClient = SkillRegistryClient(directory: removalDir)
+        try? removalClient.lock.record(lockEntry("installed-one"))
+        try? removalClient.lock.record(lockEntry("../sentinel.txt"))
+
+        let originRoots = [
+            SkillRoots.Root(url: removalDir, source: .nextNotes, isNested: false),
+            SkillRoots.Root(url: removalRoot.appendingPathComponent("claude/skills", isDirectory: true),
+                            source: .claudeCode, isNested: false),
+        ]
+        let originLibrary = SkillLibrary(installDirectory: removalDir, roots: originRoots,
+                                         defaults: bulkDefaults)
+        await originLibrary.rescan()
+        let byName = Dictionary(uniqueKeysWithValues: originLibrary.skills.map { ($0.name, $0) })
+        check("a skill in the lock file was not classified as installed by Next Notes",
+              byName["installed-one"].map { originLibrary.origin(of: $0) } == .installed)
+        check("a skill we did not install was called installed",
+              byName["handmade"].map { originLibrary.origin(of: $0) } == .inOurFolder)
+        check("another app's skill was called ours",
+              byName["shared-one"].map { originLibrary.origin(of: $0) } == .shared)
+        check("the lock file did not date an installed skill",
+              byName["installed-one"].flatMap { originLibrary.installedAt(of: $0) } != nil)
+        check("a shared skill was given an install date",
+              byName["shared-one"].flatMap { originLibrary.installedAt(of: $0) } == nil)
+        check("the live counts do not separate installed from shared",
+              originLibrary.counts.installed == 1 && originLibrary.counts.inOurFolder == 1
+                  && originLibrary.counts.shared == 1)
+        check("the counts line and the library disagree",
+              SkillsCopy.countLine(originLibrary.counts)
+                == "3 skills found — 3 on, 0 switched off · 1 installed by Next Notes, "
+                    + "1 in your skills folder, 1 shared")
+
+        let outcome: SkillRemovalOutcome
+        do {
+            outcome = try removalClient.remove(
+                names: ["installed-one", "handmade", "shared-one", "../sentinel.txt"])
+        } catch {
+            failures.append("the batch removal threw instead of reporting: \(error.localizedDescription)")
+            outcome = SkillRemovalOutcome()
+        }
+        check("removing what we installed did not remove it", outcome.removed == ["installed-one"])
+        check("a skill we did not install was not skipped",
+              outcome.skipped.sorted() == ["handmade", "shared-one"])
+        check("a path that escapes our folder was not refused",
+              outcome.failures["../sentinel.txt"] != nil)
+        check("the removed skill's folder is still on disk",
+              !FileManager.default.fileExists(
+                atPath: removalDir.appendingPathComponent("installed-one").path))
+        check("a hand-placed skill in our folder was deleted",
+              FileManager.default.fileExists(atPath: removalDir.appendingPathComponent("handmade").path))
+        check("another app's skill folder was touched",
+              FileManager.default.fileExists(atPath: otherAppFolder.path))
+        check("a file outside the skills folder was deleted",
+              FileManager.default.fileExists(atPath: sentinel.path))
+        check("the lock still lists a removed skill", removalClient.lock.entry(named: "installed-one") == nil)
+        check("a lock entry that could not be removed was dropped anyway",
+              removalClient.lock.entry(named: "../sentinel.txt") != nil)
+        do {
+            try removalClient.remove(name: "shared-one")
+            failures.append("a shared skill was removed through the single-skill path")
+        } catch {
+            check("the refusal does not say another app keeps it",
+                  error.localizedDescription.contains("another app"))
+        }
+        await originLibrary.rescan()
+        check("a removed skill is still listed after a rescan",
+              originLibrary.skill(named: "installed-one") == nil)
+        print("SKILLS_REMOVE removed=\(outcome.removed.count) skipped=\(outcome.skipped.count) "
+            + "refused=\(outcome.failures.count)")
 
         // MARK: 8 — one live search against skills.sh
 

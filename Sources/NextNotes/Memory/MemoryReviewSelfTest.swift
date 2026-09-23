@@ -32,7 +32,9 @@ enum MemoryReviewSelfTest {
         let modelName = SelfTest.value(after: "--model") ?? "scripted"
         failures += await fixtureFailures(root: root.appendingPathComponent("fixtures"), modelName: modelName)
         if modelName == "scripted" {
+            failures += guardFailures()
             failures += routerFailures()
+            failures += await grammarFailures()
             failures += await schedulerFailures(root: root.appendingPathComponent("scheduler"))
             failures += await boundaryFailures(root: root.appendingPathComponent("boundary"))
             failures += suggestionFailures(root: root.appendingPathComponent("suggestions"))
@@ -120,8 +122,15 @@ enum MemoryReviewSelfTest {
         switch modelName {
         case "scripted":
             realModel = nil
+        case "apple":
+            // The production Apple route: guided generation. Measured here because the
+            // XML-parsing route this replaced scored 0 on every case.
+            if let reason = await LLMProviders.make(.appleFoundation).unavailableReason {
+                return ["the apple model is unavailable: \(reason)"]
+            }
+            realModel = AppleMemoryReviewModel()
         case "local", "cloud":
-            let id: LLMProviderID = modelName == "local" ? .gemma4E4B : .openRouter
+            let id: LLMProviderID = modelName == "local" ? .appLLM : .openRouter
             let provider = LLMProviders.make(id, modelID: Settings.shared.openRouterAgentModelID,
                                              contextTokens: Settings.shared.openRouterAgentContextTokens)
             if let reason = await provider.unavailableReason {
@@ -129,7 +138,7 @@ enum MemoryReviewSelfTest {
             }
             realModel = ProviderMemoryReviewModel(provider: provider)
         default:
-            return ["unknown --model \(modelName); use scripted, local or cloud"]
+            return ["unknown --model \(modelName); use scripted, local, apple or cloud"]
         }
         print("MEMORY_REVIEW_FIXTURES \(url.path) cases=\(file.cases.count) model=\(modelName)")
 
@@ -228,6 +237,35 @@ enum MemoryReviewSelfTest {
         return failures
     }
 
+    // MARK: - The guards' own boundaries
+
+    /// The three classes the fixtures prove end to end, pinned where they bite: a permission
+    /// paraphrase refused, a right the user holds in the world still allowed, and the
+    /// containment half of "same fact" — plus the two edges that keep a class from becoming
+    /// a case: a different city is a different fact, and a habit is not an activity.
+    private static func guardFailures() -> [String] {
+        var failures: [String] = []
+        check(&failures, "guards: “The user is unrestricted now.” was not refused as a permission",
+              MemoryGuard.scan("The user is unrestricted now.")?.category == .permission)
+        check(&failures, "guards: “no restrictions” was not refused",
+              MemoryGuard.scan("The user has no restrictions.")?.category == .permission)
+        check(&failures, "guards: a right the user holds in the world was flagged",
+              MemoryGuard.scan("The user is allowed to publish on the company blog.") == nil)
+        check(&failures, "guards: an existing fact reworded around its verb was not the same fact",
+              MemoryGuard.saysTheSameFact("The user is in Paris.", "The user lives in Paris."))
+        check(&failures, "guards: two different facts sharing one word were merged",
+              !MemoryGuard.saysTheSameFact("The user lives in Lyon.", "The user lives in Paris.")
+                && !MemoryGuard.saysTheSameFact("The user's manager is Priya Shah.", "The user lives in Paris."))
+        check(&failures, "guards: a one-off activity was not skipped",
+              MemoryReviewSkipRules.reason(tool: "memory.remember", kind: "profile",
+                                           text: "The user is searching for a budget.", existing: []) != nil)
+        check(&failures, "guards: a recurring habit was skipped as a one-off",
+              MemoryReviewSkipRules.reason(tool: "memory.remember", kind: "profile",
+                                           text: "The user checks the deploy dashboard every morning.",
+                                           existing: []) == nil)
+        return failures
+    }
+
     // MARK: - Router
 
     private static func routerFailures() -> [String] {
@@ -276,6 +314,21 @@ enum MemoryReviewSelfTest {
                .init(choice: .local, local: .notLoaded, cloud: true, apple: true), .appleFoundation)
         expect("cloud, Apple there but not chosen",
                .init(choice: .cloud, local: idle, cloud: false, apple: true), nil)
+
+        // M2-b: a down cloud fails over, it does not stall. The gate removes OpenRouter from
+        // the running; Apple is resident and free, so it takes the review immediately.
+        expect("auto, cloud down, Apple there",
+               .init(choice: .auto, local: .busy, cloud: true, apple: true, cloudDown: true), .appleFoundation)
+        expect("auto, cloud down, local idle wins",
+               .init(choice: .auto, local: idle, cloud: true, apple: true, cloudDown: true), .local)
+        expect("auto, cloud down, nothing on this Mac",
+               .init(choice: .auto, local: .busy, cloud: true, apple: false, cloudDown: true), nil)
+        // Apple wins over a cloud that is up, too: it costs nothing and sends nothing away.
+        expect("auto, Apple there with cloud up",
+               .init(choice: .auto, local: .busy, cloud: true, apple: true), .appleFoundation)
+        expect("auto, cloud up and Apple unavailable",
+               .init(choice: .auto, local: .busy, cloud: true, apple: false), .cloud)
+
         for local in states where local != idle {
             let route = MemoryReviewRouter.route(choice: .auto, isRecording: true, local: local,
                                                  cloudConfigured: false, appleAvailable: true)
@@ -286,6 +339,35 @@ enum MemoryReviewSelfTest {
 
     // MARK: - Scheduler: never while recording, one notice, triggers
 
+    /// The constrained-decoding grammar for the review's own tools. Structural problems stop
+    /// a local provider before anything is decoded, so they are checked without a model, and
+    /// the provider seam is checked with a fake that records what it was handed.
+    private static func grammarFailures() async -> [String] {
+        var failures: [String] = []
+        let grammar = ProviderMemoryReviewModel.toolGrammar
+        check(&failures, "grammar: structural problems \(grammar.structuralProblems())",
+              grammar.structuralProblems().isEmpty)
+        check(&failures, "grammar: does not accept the NONE answer", grammar.matches("NONE"))
+        check(&failures, "grammar: does not accept a valid tool call", grammar.matches(
+            #"<tool_call>{"name": "memory.remember", "arguments": {"kind": "profile", "text": "The user prefers short answers."}}</tool_call>"#))
+        check(&failures, "grammar: accepts an answer with prose before the call", !grammar.matches(
+            #"Here is what I found. <tool_call>{"name": "memory.remember", "arguments": {"kind": "profile", "text": "The user prefers short answers."}}</tool_call>"#))
+        check(&failures, "grammar: accepts a tool the review may not use", !grammar.matches(
+            #"<tool_call>{"name": "filesystem.write", "arguments": {"path": "/tmp/x"}}</tool_call>"#))
+        check(&failures, "grammar: accepts an empty answer", !grammar.matches(""))
+
+        // The provider that can constrain decoding is given the grammar; the one that cannot
+        // is not asked for something it would only ignore.
+        let enforcing = GrammarCapturingProvider(kind: .enforcing)
+        _ = try? await ProviderMemoryReviewModel(provider: enforcing).complete(system: "s", user: "u")
+        check(&failures, "grammar: an enforcing provider was not constrained", enforcing.probe.value == grammar)
+        let free = GrammarCapturingProvider(kind: .free)
+        _ = try? await ProviderMemoryReviewModel(provider: free).complete(system: "s", user: "u")
+        check(&failures, "grammar: a free provider was handed a grammar it cannot enforce",
+              free.probe.value == nil)
+        return failures
+    }
+
     final class FakeEnvironment: MemoryReviewEnvironment {
         var isRecording = false
         var isMemoryEnabled = true
@@ -295,12 +377,13 @@ enum MemoryReviewSelfTest {
         func localModelState() async -> MemoryReviewLocalState { local }
         func isCloudConfigured() async -> Bool { cloud }
         func isAppleFoundationAvailable() async -> Bool { apple }
+        var isAppleFoundationAvailableNow: Bool { apple }
     }
 
     final class FakeModels: MemoryReviewModelProviding {
-        let model: ScriptedMemoryReviewModel
+        let model: any MemoryReviewModel
         var routes: [MemoryReviewRoute] = []
-        init(_ model: ScriptedMemoryReviewModel) { self.model = model }
+        init(_ model: any MemoryReviewModel) { self.model = model }
         func model(for route: MemoryReviewRoute) async -> (any MemoryReviewModel)? {
             routes.append(route)
             return model
@@ -336,6 +419,7 @@ enum MemoryReviewSelfTest {
         var current = Date(timeIntervalSince1970: 1_800_000_000)
         func now() -> Date { current }
         func advance(minutes: Double) { current += minutes * 60 }
+        func advance(seconds: TimeInterval) { current += seconds }
     }
 
     private static func schedulerFailures(root: URL) async -> [String] {
@@ -900,6 +984,20 @@ extension MemoryReviewSelfTest {
         check(&failures, "backfill: undo did not take the batch back (\(learned) learned)",
               learned > 0 && backfill.learned().isEmpty)
 
+        // The one-time repair for a pass that ran while the review could not save: a
+        // finished backfill with nothing to show re-opens the history once, and the marker
+        // makes a second automatic re-read impossible. This state is exactly the live one
+        // after `undo()` — finished, harvested full, batch empty.
+        backfill.repairUnproductivePassIfNeeded()
+        check(&failures, "backfill: an unproductive pass was not repaired",
+              state.backfill.repairedAt != nil && !state.backfill.hasRun && state.harvested.isEmpty)
+        state.markHarvested("dictation:repaired")
+        backfill.repairUnproductivePassIfNeeded()
+        check(&failures, "backfill: the repair ran twice", state.harvested == ["dictation:repaired"])
+        let reloaded = MemoryReviewStateStore(directory: root.appendingPathComponent("state"))
+        check(&failures, "backfill: the repair marker did not survive a reload",
+              reloaded.backfill.repairedAt != nil)
+
         // A review that saves nothing still records that it ran: the whole point of the
         // ledger, and the thing whose absence made an empty list unexplainable.
         let quiet = MemoryReviewJob(
@@ -912,6 +1010,84 @@ extension MemoryReviewSelfTest {
         check(&failures, "backfill: a review that saved nothing left no row", state.runs.count == rows + 1)
         check(&failures, "backfill: the row does not say nothing was worth saving",
               state.runs.last?.summary.contains("nothing") == true)
+        check(&failures, "backfill: the row does not record that the model was asked",
+              state.runs.last?.modelCalled == true)
+
+        // A job with nothing to read is not pretended to have been read: the model is never
+        // called, and the row says so instead of claiming a decision.
+        let blank = MemoryReviewJob(
+            source: .userDictated, trigger: .dictationSaved, sourceKey: "dictation:blank",
+            label: "on 1 Jan", sessionID: UUID(), userText: [], untrustedText: [], occurredAt: clock.now())
+        let callsBeforeBlank = scripted.callCount
+        _ = await scheduler.runBackfill(blank)
+        check(&failures, "backfill: an empty job called the model", scripted.callCount == callsBeforeBlank)
+        check(&failures, "backfill: an empty job's row claims the model read it",
+              state.runs.last?.modelCalled == false
+                && state.runs.last?.summary.contains("nothing of yours") == true)
+
+        // M2-b: a source the route could not read is not consumed. It stays pending, `done`
+        // does not move, and once a route exists it is read exactly once and ticked off —
+        // the invariant that keeps the pass resumable, idempotent and honest about progress.
+        do {
+            let routeDirectory = root.appendingPathComponent("route-index")
+            try FileManager.default.createDirectory(at: routeDirectory, withIntermediateDirectories: true)
+            let routeIndex = KnowledgeStore(directory: routeDirectory)
+            let routeDay = Int64(Date(timeIntervalSince1970: 1_800_000_000).timeIntervalSince1970)
+            try routeIndex.replace(kind: .dictation, sourceID: "dddddddd-dddd-dddd-dddd-dddddddddddd", chunks: [
+                KnowledgeChunk(ordinal: 0,
+                               text: "My company is called ProductFlo and it gives agents the context they need.",
+                               occurredAt: routeDay),
+            ])
+            let routeClock = Clock()
+            let routeMemory = NextMemory(directory: root.appendingPathComponent("route-memory"),
+                                         now: routeClock.now)
+            let routeState = MemoryReviewStateStore(directory: root.appendingPathComponent("route-state"))
+            let routeEnvironment = FakeEnvironment()
+            routeEnvironment.local = .busy
+            routeEnvironment.cloud = true
+            routeEnvironment.apple = false
+            let routeScripted = ScriptedMemoryReviewModel { _, user in
+                user.contains("ProductFlo")
+                    ? "<tool_call>{\"name\": \"memory.remember\", \"arguments\": {\"kind\": \"profile\", "
+                        + "\"text\": \"The user's company is called ProductFlo.\"}}</tool_call>"
+                    : "NONE"
+            }
+            let routeScheduler = MemoryReviewScheduler(
+                state: routeState, session: AgentSession(fileURL: nil, now: routeClock.now, idleMinutes: { 30 }),
+                environment: routeEnvironment, models: FakeModels(routeScripted),
+                writer: StoreMemoryReviewWriter(store: routeMemory), notifier: FakeNotifier(),
+                choice: { .auto }, now: routeClock.now, runsOnEnqueue: false, knowledge: { routeIndex })
+            let routeBackfill = MemoryBackfill(scheduler: routeScheduler)
+            await MemoryCloudGate.shared.reset()
+            await MemoryCloudGate.shared.markRateLimited(retryAfter: 3_600, now: routeClock.now())
+            let waiting = routeBackfill.pending()
+            check(&failures, "backfill: the route fixture did not offer its source", waiting.count == 1)
+            if let job = waiting.first {
+                let notRead = await routeScheduler.runBackfill(job)
+                check(&failures, "backfill: a waited source counted as read",
+                      notRead == nil && routeState.harvested.isEmpty
+                        && routeBackfill.state.done == 0 && routeScripted.callCount == 0)
+                check(&failures, "backfill: a waited source was taken out of the queue",
+                      routeBackfill.pending().count == 1)
+                // The cloud gate clears (or Apple wakes up): the same source is offered again.
+                routeEnvironment.apple = true
+                let pass = await routeBackfill.run(passes: 1)
+                check(&failures, "backfill: an unreviewed source was not picked up after the route returned",
+                      routeState.harvested.contains(job.sourceKey) && routeBackfill.pending().isEmpty)
+                check(&failures, "backfill: the recovered source was reviewed twice", routeScripted.callCount == 1)
+                check(&failures, "backfill: the recovered pass did not count exactly one source (\(pass.done))",
+                      pass.done == 1 && pass.total == 1)
+                check(&failures, "backfill: the source was not ticked off and would be read twice",
+                      routeState.harvested.contains(job.sourceKey)
+                        && !MemoryHarvest.documents(store: routeIndex, reviewed: routeState.harvested)
+                            .contains { $0.sourceKey == job.sourceKey })
+                check(&failures, "backfill: the recovered fact was not saved",
+                      routeMemory.entries.contains { $0.text.contains("ProductFlo") })
+            }
+            await MemoryCloudGate.shared.reset()
+        } catch {
+            failures.append("backfill: the route fixture threw \(error.localizedDescription)")
+        }
         return failures
     }
 
@@ -988,13 +1164,18 @@ extension MemoryReviewSelfTest {
         environment.local = .busy
         environment.cloud = true
         let scripted = ScriptedMemoryReviewModel { _, _ in "NONE" }
+        let models = FakeModels(scripted)
         let scheduler = MemoryReviewScheduler(
-            state: state, session: session, environment: environment, models: FakeModels(scripted),
+            state: state, session: session, environment: environment, models: models,
             writer: StoreMemoryReviewWriter(store: memory), notifier: FakeNotifier(),
             choice: { .auto }, now: clock.now, runsOnEnqueue: false)
         scheduler.connect()
-        // Force the shared gate down for the sync pre-create path, then restore it.
-        await MemoryCloudGate.shared.markRateLimited(retryAfter: 600, now: clock.now())
+        // Force the shared gate down for the sync pre-create path, then restore it. The
+        // retry window must outlast the 31 minutes this fixture advances to end the session:
+        // a ten-minute limit that had already expired made the gate read as clear and every
+        // check below measured an un-gated scheduler instead.
+        await MemoryCloudGate.shared.reset()
+        await MemoryCloudGate.shared.markRateLimited(retryAfter: 3_600, now: clock.now())
         session.recordUser("I prefer short answers.", source: .text)
         session.recordAssistant("Okay.")
         clock.advance(minutes: 31)
@@ -1015,6 +1196,84 @@ extension MemoryReviewSelfTest {
               scheduler.problemNotices.count == 1)
         print("MEMORY_REVIEW_CLOUD_GATE pending=\(scheduler.pending.count) skips=\(scheduler.preCreateSkips.count) notices=\(scheduler.problemNotices.count)")
         await MemoryCloudGate.shared.reset()
+
+        // M2-b: the gate removes the cloud, not the review. With Apple Intelligence on this
+        // Mac, a queued source is read through Apple while OpenRouter is still rate-limited —
+        // no skip, no notice, and the queue is fed as usual.
+        let skipsBefore = scheduler.preCreateSkips.count
+        let noticesBefore = scheduler.problemNotices.count
+        let failoverRequest = AgentSession.ReviewRequest(sessionID: UUID(), reason: .idle, messages: [
+            AgentSession.Message(role: "user", text: "I prefer short answers.", at: clock.now(), source: "text")
+        ])
+        await MemoryCloudGate.shared.markRateLimited(retryAfter: 3_600, now: clock.now())
+        environment.apple = true
+        scheduler.enqueue(failoverRequest)
+        check(&failures, "cloud-gate: a source was skipped although Apple could read it",
+              scheduler.pending.count == 1 && scheduler.preCreateSkips.count == skipsBefore)
+        check(&failures, "cloud-gate: the empty-list line does not name the work that is queued",
+              scheduler.emptyListLine(now: clock.now()).contains("Reviewing your conversation"))
+        let failoverPass = await scheduler.runOnce()
+        check(&failures, "cloud-gate: the review did not fail over to Apple (\(failoverPass))",
+              failoverPass == .reviewed(saved: 0) && models.routes.last == .appleFoundation)
+        check(&failures, "cloud-gate: failover posted a cloud notice although Apple was not blocked",
+              scheduler.problemNotices.count == noticesBefore)
+        check(&failures, "cloud-gate: the empty-list line does not report what the last pass found",
+              scheduler.emptyListLine(now: clock.now()).contains("Nothing worth saving yet"))
+        environment.apple = false
+        await MemoryCloudGate.shared.reset()
+
+        // The cloud leg's failure backoff still holds: 1→5→15→60, one notice at three in a
+        // row, and — M2-b — a failure does not tick off the source it could not read.
+        do {
+            let backoffMemory = NextMemory(directory: root.appendingPathComponent("backoff-memory"), now: clock.now)
+            let backoffState = MemoryReviewStateStore(directory: root.appendingPathComponent("backoff-state"))
+            let backoffEnvironment = FakeEnvironment()
+            backoffEnvironment.local = .busy
+            backoffEnvironment.cloud = true
+            let failing = FailingMemoryReviewModel()
+            let backoffScheduler = MemoryReviewScheduler(
+                state: backoffState, session: session, environment: backoffEnvironment,
+                models: FakeModels(failing), writer: StoreMemoryReviewWriter(store: backoffMemory),
+                notifier: FakeNotifier(), choice: { .auto }, now: clock.now, runsOnEnqueue: false)
+            // A dictation, not a conversation: a failure must not tick off a source that was
+            // never read, and only the non-conversation channels are ticked off at all.
+            let failingJob = MemoryReviewJob(
+                source: .userDictated, trigger: .dictationSaved, sourceKey: "dictation:failing",
+                label: "on 1 Jan", sessionID: UUID(),
+                userText: ["I am building Next Notes, a voice assistant that runs on this Mac."],
+                untrustedText: [], occurredAt: clock.now())
+            let firstTry = await backoffScheduler.runBackfill(failingJob)
+            check(&failures, "cloud-gate: a failed source was reported as read", firstTry == nil)
+            check(&failures, "cloud-gate: the first failure did not call the model", failing.callCount == 1)
+            let backingOff = await backoffScheduler.runOnce()
+            if case .waiting(let reason) = backingOff {
+                check(&failures, "cloud-gate: the wait does not say it is backing off",
+                      reason.contains("backing off"))
+            } else {
+                failures.append("cloud-gate: the backoff did not stop the second call (\(backingOff))")
+            }
+            check(&failures, "cloud-gate: the model was called while backing off", failing.callCount == 1)
+            check(&failures, "cloud-gate: the empty-list line does not say it is backing off",
+                  backoffScheduler.emptyListLine(now: clock.now()).contains("backing off"))
+            clock.advance(seconds: 61)
+            _ = await backoffScheduler.runOnce()
+            clock.advance(seconds: 301)
+            _ = await backoffScheduler.runOnce()
+            check(&failures, "cloud-gate: the 1→5 backoff did not let three failures through (\(failing.callCount))",
+                  failing.callCount == 3)
+            check(&failures, "cloud-gate: three failures did not post exactly one notice (\(backoffScheduler.problemNotices.count))",
+                  backoffScheduler.problemNotices.count == 1)
+            check(&failures, "cloud-gate: a failure ticked off the source it never read",
+                  backoffState.harvested.isEmpty)
+            clock.advance(seconds: 901)
+            _ = await backoffScheduler.runOnce()
+            _ = await backoffScheduler.runBackfill(failingJob)
+            check(&failures, "cloud-gate: a fourth failure posted a second notice (\(backoffScheduler.problemNotices.count))",
+                  backoffScheduler.problemNotices.count == 1 && failing.callCount == 4)
+            check(&failures, "cloud-gate: four failures turned the review off", !backoffScheduler.reviewDisabled)
+            check(&failures, "cloud-gate: the failed source is still waiting to be read",
+                  backoffState.harvested.isEmpty && !backoffScheduler.pending.isEmpty)
+        }
 
         // Dictation coalescing: two dictations six minutes apart are one job.
         do {
@@ -1055,8 +1314,58 @@ extension MemoryReviewSelfTest {
 extension MemoryReviewRoute {
     /// Shorthand for the router table above.
     @MainActor
-    init(choice: MemoryReviewModelChoice, local: MemoryReviewLocalState, cloud: Bool, apple: Bool = false) {
+    init(choice: MemoryReviewModelChoice, local: MemoryReviewLocalState, cloud: Bool, apple: Bool = false,
+         cloudDown: Bool = false) {
         self = MemoryReviewRouter.route(choice: choice, isRecording: false, local: local,
-                                        cloudConfigured: cloud, appleAvailable: apple)
+                                        cloudConfigured: cloud, appleAvailable: apple, cloudDown: cloudDown)
+    }
+}
+
+// MARK: - Test doubles for the model and provider seams
+
+/// A model call that always fails, for the failure-backoff fixture. Counts its calls so the
+/// test can see that the backoff actually stopped a call rather than merely waiting.
+private final class FailingMemoryReviewModel: MemoryReviewModel, @unchecked Sendable {
+    let label = "failing"
+    private let lock = NSLock()
+    private var calls = 0
+    var callCount: Int { lock.withLock { calls } }
+
+    func complete(system: String, user: String) async throws -> String {
+        lock.withLock { calls += 1 }
+        throw MemoryReviewTestError.modelRefused
+    }
+}
+
+private enum MemoryReviewTestError: LocalizedError {
+    case modelRefused
+    var errorDescription: String? { "the model refused the review" }
+}
+
+/// Records the grammar a provider was handed, if any.
+private final class GrammarProbe: @unchecked Sendable {
+    private let lock = NSLock()
+    private var grammar: GBNFGrammar?
+    var value: GBNFGrammar? { lock.withLock { grammar } }
+    func set(_ grammar: GBNFGrammar) { lock.withLock { self.grammar = grammar } }
+}
+
+/// An `LLMProvider` whose only job is to say whether the review constrained it.
+private struct GrammarCapturingProvider: LLMProvider {
+    enum Kind { case enforcing, free }
+    let kind: Kind
+    let probe = GrammarProbe()
+    let id = LLMProviderID.appLLM
+    var contextTokens: Int { 4_096 }
+    var unavailableReason: String? { get async { nil } }
+    var enforcesGrammar: Bool { kind == .enforcing }
+    func countTokens(_ text: String) async throws -> Int { max(1, text.count / 4) }
+    func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+        LLMCompletion(text: "NONE", generatedTokens: 1, duration: 0)
+    }
+    func complete(system: String, user: String, maxTokens: Int,
+                  grammar: GBNFGrammar) async throws -> LLMCompletion {
+        probe.set(grammar)
+        return LLMCompletion(text: "NONE", generatedTokens: 1, duration: 0)
     }
 }

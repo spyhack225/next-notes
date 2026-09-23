@@ -638,6 +638,29 @@ struct GraphStore: KnowledgeGraphReading {
         }
     }
 
+    /// People, projects, organizations and topics whose label shares a word with `query` —
+    /// what a meeting is already connected to, for the notes brief. Extraction's own types
+    /// only: a memory dot is drawn by an overlay and is not a claim about a meeting.
+    func relatedNodes(matching query: String, limit: Int = 8) throws -> [KnowledgeGraphNode] {
+        let words = Set(Self.words(in: query))
+        guard !words.isEmpty else { return [] }
+        let types: Set<String> = [
+            "Person", "Project", "Organization", "Topic", "Goal", "Activity", "Preference",
+        ]
+        return Array(
+            try focusCandidates(limit: 400)
+                .filter { types.contains($0.type) && !Set(Self.words(in: $0.label)).isDisjoint(with: words) }
+                .prefix(limit)
+        )
+    }
+
+    /// Lowercased words, punctuation stripped, one-character tokens dropped.
+    static func words(in text: String) -> [String] {
+        text.lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { $0.count >= 2 }
+    }
+
     /// The graph nodes that were extracted from these chunks — how a passage that names a
     /// file is traced back to the meeting, person or project it belongs to (Part 4, files).
     func nodes(forChunks ids: [Int64]) throws -> [KnowledgeGraphNode] {
@@ -885,6 +908,7 @@ enum GraphNodeStyle {
         case "Event": "Events"
         case "Folder": "Folders"
         case "File": "Files"
+        case "Memory": "Memories"
         default: type
         }
     }
@@ -907,6 +931,7 @@ enum GraphNodeStyle {
         case "Event": "star"
         case "Folder": "folder.fill"
         case "File": "doc.text"
+        case "Memory": "brain"
         default: "circle"
         }
     }
@@ -930,13 +955,16 @@ enum GraphNodeStyle {
         case "Event": "event"
         case "Folder": "folder"
         case "File": "file"
+        case "Memory": "memory"
         default: type.lowercased()
         }
     }
 
     /// Types the local-graph rail lists as starting points, life domains first after people.
+    /// Memories sit beside people: both are about the user, and both open something a click
+    /// can change.
     static let focusOrder = [
-        "Person", "Project", "Organization", "Activity", "Place", "Goal", "Event",
+        "Person", "Memory", "Project", "Organization", "Activity", "Place", "Goal", "Event",
         "Preference", "Topic", "Folder", "File", "Meeting",
     ]
 }

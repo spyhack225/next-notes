@@ -18,6 +18,7 @@ struct OnboardingWelcomeStep: View {
 
     @State private var identity = AgentIdentityStore.shared
     @State private var name = AgentIdentityStore.shared.name
+    @State private var avatar = AgentIdentityStore.shared.avatar
     @FocusState private var isNameFocused: Bool
 
     var body: some View {
@@ -49,6 +50,32 @@ struct OnboardingWelcomeStep: View {
                 .padding(.horizontal, DS.Space.m)
                 .padding(.vertical, DS.Space.s)
                 .frame(minHeight: DS.Onboarding.rowMinHeight)
+
+                OnboardingRowDivider()
+
+                // The face arrives with the name rather than in a settings screen: this is
+                // the moment the assistant stops being a feature and becomes somebody's.
+                // The portrait is the real animated one, idling — so what is generated
+                // here is what will be seen at work.
+                HStack(alignment: .center, spacing: DS.Space.m) {
+                    AgentAvatarView(config: avatar, state: .idle, size: DS.Size.avatarOnboarding)
+                    VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                        Text("Give it a face")
+                            .font(DS.Font.subheadline.weight(.semibold))
+                        Text("Generate one now. You can make another whenever you like.")
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: DS.Space.s)
+                    Button("Generate", systemImage: "dice", action: generate)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .accessibilityHint("Makes a new look for your assistant")
+                }
+                .padding(.horizontal, DS.Space.m)
+                .padding(.vertical, DS.Space.s)
+                .frame(minHeight: DS.Onboarding.rowMinHeight)
             }
         }
     }
@@ -61,6 +88,13 @@ struct OnboardingWelcomeStep: View {
             identity.setDisplayName(trimmed)
         }
         onContinue()
+    }
+
+    /// Saved as it is generated, not on Continue: the face on screen is the one that was
+    /// chosen, and quitting setup halfway should not throw it away.
+    private func generate() {
+        avatar = .random()
+        identity.setAvatar(avatar)
     }
 }
 

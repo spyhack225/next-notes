@@ -5,7 +5,21 @@ import Foundation
 /// A thin value type rather than the actor itself: providers are chosen per generation and
 /// passed around, while the runtime is a process singleton that owns gigabytes.
 struct LlamaLLMProvider: LLMProvider {
-    let id = LLMProviderID.gemma4E4B
+    let id = LLMProviderID.appLLM
+
+    /// The file the runtime will load, when the caller could read the library. Captured at
+    /// construction because a provider is a value handed to actors, while the library is
+    /// main-actor state; nil falls back to the built-in model's name.
+    let modelName: String?
+
+    init(modelName: String? = nil) {
+        self.modelName = modelName
+    }
+
+    /// The name of the model that will actually answer — not the model that happened to
+    /// ship this release. `Meeting.notesModel` and every log line report this, so a notes
+    /// history that says "Gemma" while MiniCPM wrote it is the bug this prevents.
+    var displayModelName: String { modelName ?? NotesModels.spec.displayName }
 
     var contextTokens: Int { NotesModelRuntime.maxContextTokens }
 

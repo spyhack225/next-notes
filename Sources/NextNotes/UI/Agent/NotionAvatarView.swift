@@ -35,11 +35,20 @@ struct NotionAvatarView: View {
 struct AgentAvatarBadge: View {
     var config: NotionAvatarConfig
     var size: CGFloat = DS.Size.agentAvatarHero
+    /// The hero is the one avatar in a settings pane, so it is the one that idles and
+    /// eventually sleeps — `restingSince` is when the agent last did anything.
+    var state: AgentAvatarState = .idle
+    var restingSince: Date?
     var onEdit: () -> Void
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            NotionAvatarView(config: config, size: size)
+            AgentAvatarView(
+                config: config,
+                state: state,
+                restingSince: restingSince,
+                size: size
+            )
             Button(action: onEdit) {
                 Image(systemName: "pencil")
                     .font(DS.Font.caption.weight(.semibold))

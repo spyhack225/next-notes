@@ -169,7 +169,11 @@ final class AgentScheduler {
             store: .shared,
             environment: LiveScheduledRunEnvironment(),
             tools: LiveScheduledToolRunner(),
-            recorder: LiveScheduledRunRecorder())
+            recorder: LiveScheduledRunRecorder(),
+            // Option B long-form audio: the morning podcast's routine answer is turned
+            // into a Library file inside the run. Every other routine's answer passes
+            // through the transform unchanged.
+            answerTransform: PodcastTemplate.resultTransform(renderer: .live()))
     )
 
     static let tickInterval: TimeInterval = 30

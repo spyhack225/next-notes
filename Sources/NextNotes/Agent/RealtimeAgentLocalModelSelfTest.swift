@@ -134,7 +134,7 @@ private actor LocalAnswerTestState {
 }
 
 private struct LocalAnswerTestProvider: LLMProvider {
-    let id = LLMProviderID.gemma4E4B
+    let id = LLMProviderID.appLLM
     let chunks: [String]
     let delay: Duration
     let state: LocalAnswerTestState

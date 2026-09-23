@@ -706,7 +706,9 @@ enum VoiceCapabilityConversationSelfTest {
         coordinator.resetForTesting()
         AgentSession.shared.clear()
         let garbleProbe = TurnRoutingProbe()
-        coordinator.streamForTesting = { _, _ in await garbleProbe.stream() }
+        coordinator.streamForTesting = { system, messages in
+            await garbleProbe.stream(system: system, messages: messages)
+        }
         coordinator.workerForTesting = { work in await garbleProbe.ranWorker(work.original) }
         let auditBeforeGarble = AgentAuditLog.shared.entries.count
         let garbled = [
@@ -738,11 +740,176 @@ enum VoiceCapabilityConversationSelfTest {
             failures.append("the parsable folder sentence was never submitted")
         }
 
+        // MARK: P0-3 producer-level — ordinary speech reaches the model; repeats escalate.
+        //
+        // The 2026-09-22 live regression: a shape heuristic clarified "Can you hear me?"
+        // five turns in a row. The gate is now an exact noise list plus a positive corpus
+        // here — every ordinary utterance must reach the model — and suppression is
+        // single-shot per session, so repeating noise escalates instead of looping.
+        coordinator.resetForTesting()
+        AgentSession.shared.clear()
+        let corpusProbe = TurnRoutingProbe()
+        coordinator.streamForTesting = { system, messages in
+            await corpusProbe.stream(system: system, messages: messages)
+        }
+        coordinator.workerForTesting = { work in await corpusProbe.ranWorker(work.original) }
+        let corpus: [(String, String)] = [
+            ("Can you hear me?", "<answer/>Yes — I can hear you."),
+            ("How are you doing?", "<answer/>Doing well, thanks."),
+            ("What time is it?", "<answer/>It's just after five."),
+            ("Thanks, that's all", "<answer/>Any time."),
+        ]
+        for (utterance, scripted) in corpus {
+            await corpusProbe.enqueueAnswer(scripted)
+            let turn = await coordinator.handle(utterance)
+            outputs.append(("corpus:\(utterance)", turn.reply))
+            if turn.reply.contains("didn't catch") {
+                failures.append("ordinary speech was clarified: \(utterance)")
+            }
+        }
+        if await corpusProbe.streamCalls != corpus.count {
+            failures.append("ordinary speech did not reach the model "
+                + "\(await corpusProbe.streamCalls)/\(corpus.count)")
+        }
+        // The first "boys" clarifies; the second must reach the model.
+        let firstNoise = await coordinator.handle("boys")
+        outputs.append(("noise-1", firstNoise.reply))
+        if await corpusProbe.streamCalls != corpus.count {
+            failures.append("a first noise fragment reached the model")
+        }
+        await corpusProbe.enqueueAnswer("<answer/>Sorry — I didn't get that.")
+        let secondNoise = await coordinator.handle("boys")
+        outputs.append(("noise-2", secondNoise.reply))
+        if await corpusProbe.streamCalls != corpus.count + 1 {
+            failures.append("a repeated noise fragment clarified again instead of escalating")
+        }
+
+        // MARK: P0-1 — the answer stage receives the complete utterance exactly once.
+        //
+        // The 2026-09-22T22:17Z live failure: the assembled answer prompt carried the
+        // user turn both as transcript history and under `Latest user speech:`, and
+        // the transcript still held the assistant's own clarifiers from earlier turns.
+        // Shown those, the on-device model reproduced "I didn't quite catch that.
+        // Could you repeat your question?" for a complete question. This pins the
+        // producer contract: the utterance is in the final message, never a history
+        // duplicate, and a repair turn is not carried into the next prompt.
+        coordinator.resetForTesting()
+        AgentSession.shared.clear()
+        AgentSession.shared.recordUser("said, can you hear me?", source: .voice)
+        _ = AgentSession.shared.recordAssistant(
+            "I didn't quite catch that. Could you repeat your question?", source: .voice)
+        AgentSession.shared.recordUser("Hello?", source: .voice)
+        _ = AgentSession.shared.recordAssistant("Stopped.", source: .voice)
+        let answerProbe = TurnRoutingProbe()
+        coordinator.streamForTesting = { system, messages in
+            await answerProbe.stream(system: system, messages: messages)
+        }
+        coordinator.workerForTesting = { work in await answerProbe.ranWorker(work.original) }
+        await answerProbe.enqueueAnswer("<answer/>Yes — I can hear you.")
+        let answered = await coordinator.handle("Can you hear me?")
+        outputs.append(("answer-prompt", answered.reply))
+        if answered.reply != "Yes — I can hear you." {
+            failures.append("a complete question was not answered: " + bounded(answered.reply))
+        }
+        let answerMessages = await answerProbe.seenMessages.last ?? []
+        let answerPrompt = answerMessages.last?.content ?? ""
+        if !answerPrompt.contains("Latest user speech:\nCan you hear me?") {
+            failures.append("the answer prompt lost the complete latest user speech: "
+                + bounded(answerPrompt))
+        }
+        let answerHistory = answerMessages.dropLast().map(\.content)
+        if answerHistory.contains(where: { $0.contains("Can you hear me?") }) {
+            failures.append("the answer prompt carried the current turn as history as well")
+        }
+        if answerHistory.contains(where: {
+            $0.contains("I didn't quite catch that") || $0 == "Stopped."
+        }) {
+            failures.append("a repair turn was carried into the next answer prompt")
+        }
+        if let plan = LocalVoiceSplitResponse.answerPlan(
+            system: LocalVoiceSplitResponse.answerInstructions, messages: answerMessages) {
+            if !plan.latestUser.contains("Can you hear me?") {
+                failures.append("the split answer plan did not select the latest user speech")
+            }
+            if plan.history.contains(where: { $0.content.contains("Can you hear me?") }) {
+                failures.append("the split answer plan duplicated the latest user turn in history")
+            }
+        } else {
+            failures.append("the split answer plan could not be built from the coordinator messages")
+        }
+        if LocalVoiceSplitResponse.answerPlan(system: "Policy", messages: [
+            .init(role: .user, content: "Can you hear me?")
+        ]) != nil {
+            failures.append("an answer plan without the latest user speech marker was accepted")
+        }
+        // Pure contract for the repair filter, independent of the coordinator.
+        let contaminated: [LLMChatMessage] = [
+            .init(role: .user, content: "Can you hear me?"),
+            .init(role: .assistant, content: "Sorry — I didn't catch that. Could you say it again?"),
+            .init(role: .user, content: "How are you doing?"),
+            .init(role: .assistant, content: "Doing well, thanks."),
+            .init(role: .user, content: "Hello?"),
+            .init(role: .assistant, content: "Stopped."),
+        ]
+        if VoiceConversationCoordinator.withoutRepairTurns(contaminated).map(\.content)
+            != ["How are you doing?", "Doing well, thanks."] {
+            failures.append("repair turns were not removed together with the prompts they answered")
+        }
+        if !VoiceConversationCoordinator.isRepairReply(
+            "I didn't quite catch that. Could you repeat your question?") {
+            failures.append("a model clarifier was not classified as a repair reply")
+        }
+        if !VoiceConversationCoordinator.isRepairReply(
+            "I’m here, but I can’t hear you clearly. Try speaking a bit louder.") {
+            failures.append("a curly-apostrophe hearing complaint was not classified as a repair reply")
+        }
+        if VoiceConversationCoordinator.isRepairReply("I can hear you clearly.") {
+            failures.append("a real answer was classified as a repair reply")
+        }
+
+        // MARK: P0-1b — an unavailable frontend says the real reason, not a failure.
+        //
+        // Apple Intelligence off, still downloading, or unsupported used to end every
+        // turn in "The local voice model failed while preparing that response." — a
+        // generic dead end for a state the person can see and fix. The reason must
+        // reach the reply, and it must not be recorded as a model failure.
+        coordinator.resetForTesting()
+        AgentSession.shared.clear()
+        coordinator.frontendUnavailableReasonForTesting =
+            "Apple Intelligence is turned off in System Settings."
+        let unavailableTurn = await coordinator.handle("What is a haiku?")
+        outputs.append(("frontend-unavailable", unavailableTurn.reply))
+        if !unavailableTurn.reply.contains("Apple Intelligence is turned off in System Settings.") {
+            failures.append("an unavailable frontend did not state the actionable reason: "
+                + bounded(unavailableTurn.reply))
+        }
+        if coordinator.lastFailure != nil {
+            failures.append("an unavailable frontend was recorded as a model failure")
+        }
+        if coordinator.inputPending {
+            failures.append("an unavailable frontend left the input barrier closed")
+        }
+        coordinator.frontendUnavailableReasonForTesting = nil
+
+        // A session that already ended must not record a spoken stop line.
+        coordinator.resetForTesting()
+        AgentSession.shared.clear()
+        await AgentCaptureController.shared.beginSession(captureAudio: false)
+        _ = RealtimeAgent.shared.beginVoiceFrontend()
+        await AgentCaptureController.shared.endSession(source: .done)
+        if AgentSession.shared.messages.contains(where: {
+            $0.role == "assistant" && $0.text == "Stopped."
+        }) {
+            failures.append("a session that ended while thinking recorded a spoken stop line")
+        }
+
         // MARK: P0-4 — the 20:45:00Z browser command through the live coordinator path.
         coordinator.resetForTesting()
         AgentSession.shared.clear()
         let browserProbe = TurnRoutingProbe()
-        coordinator.streamForTesting = { _, _ in await browserProbe.stream() }
+        coordinator.streamForTesting = { system, messages in
+            await browserProbe.stream(system: system, messages: messages)
+        }
         coordinator.workerForTesting = { work in await browserProbe.ranWorker(work.original) }
         let auditBeforeBrowser = AgentAuditLog.shared.entries.count
         let browserUtterance = "You open Google Chrome and go to youtube.com."
@@ -776,7 +943,9 @@ enum VoiceCapabilityConversationSelfTest {
         coordinator.resetForTesting()
         AgentSession.shared.clear()
         let loopProbe = TurnRoutingProbe()
-        coordinator.streamForTesting = { _, _ in await loopProbe.stream() }
+        coordinator.streamForTesting = { system, messages in
+            await loopProbe.stream(system: system, messages: messages)
+        }
         coordinator.workerForTesting = { work in await loopProbe.ranWorker(work.original) }
         let request = "Summarise my emails, list tomorrow's events."
         let rephrase = "What did my emails say today?"
@@ -871,7 +1040,9 @@ enum VoiceCapabilityConversationSelfTest {
         coordinator.resetForTesting()
         AgentSession.shared.clear()
         let failureProbe = TurnRoutingProbe()
-        coordinator.streamForTesting = { _, _ in await failureProbe.stream() }
+        coordinator.streamForTesting = { system, messages in
+            await failureProbe.stream(system: system, messages: messages)
+        }
         coordinator.workerForTesting = { work in await failureProbe.ranWorker(work.original) }
         await failureProbe.enqueueThrow()
         let failed = await coordinator.handle("Tell me a haiku about rain.")
@@ -1009,14 +1180,16 @@ private actor VoiceCapabilityProbe {
 private actor TurnRoutingProbe {
     private(set) var streamCalls = 0
     private(set) var workerPrompts: [String] = []
+    private(set) var seenMessages: [[LLMChatMessage]] = []
     private var queued: [String] = []
     private var throwNext = false
 
     func enqueueAnswer(_ body: String) { queued.append(body) }
     func enqueueThrow() { throwNext = true }
 
-    func stream() -> AsyncThrowingStream<String, Error> {
+    func stream(system: String, messages: [LLMChatMessage]) -> AsyncThrowingStream<String, Error> {
         streamCalls += 1
+        seenMessages.append(messages)
         if throwNext {
             throwNext = false
             return AsyncThrowingStream { continuation in

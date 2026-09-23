@@ -144,12 +144,15 @@ enum MemorySelfTest {
 
         // MARK: Overflow is an error carrying the current entries, never a silent trim
         do {
-            let filler = "The user keeps a long list of reading preferences covering history, "
-                + "biography, travel writing and essays, and wants them considered whenever "
-                + "books, articles or podcasts come up in conversation, starting with "
             var index = 1
-            while store.used(.profile) + filler.count + 20 <= MemoryEntry.Kind.profile.budget {
-                try store.remember(kind: .profile, text: filler + "shelf \(index) of five.", source: .manual)
+            while store.used(.profile) + 260 <= MemoryEntry.Kind.profile.budget {
+                let before = store.used(.profile)
+                try store.remember(kind: .profile, text: Self.fixtureFact(index), source: .manual)
+                guard store.used(.profile) > before else {
+                    throw MemoryWriteError.storage(
+                        "the budget fixture could not grow the profile store at fact \(index); "
+                            + "a write was merged as a near-duplicate")
+                }
                 index += 1
             }
             try topUp(store, from: index)
@@ -595,11 +598,15 @@ enum MemorySelfTest {
         // Overflow through the tool is recoverable, so the loop hands it back to the model.
         do {
             try shared.forgetEverything()
-            let filler = "The user keeps a long list of reading preferences covering history, biography, "
-                + "travel writing and essays, and wants them considered whenever books come up, shelf "
             var index = 1
-            while shared.used(.profile) + filler.count + 5 <= MemoryEntry.Kind.profile.budget {
-                try shared.remember(kind: .profile, text: filler + "\(index).", source: .manual)
+            while shared.used(.profile) + 120 <= MemoryEntry.Kind.profile.budget {
+                let before = shared.used(.profile)
+                try shared.remember(kind: .profile, text: Self.fixtureFact(index), source: .manual)
+                guard shared.used(.profile) > before else {
+                    throw MemoryWriteError.storage(
+                        "the tool budget fixture could not grow the profile store at fact \(index); "
+                            + "a write was merged as a near-duplicate")
+                }
                 index += 1
             }
             try topUp(shared, from: index)
@@ -626,13 +633,78 @@ enum MemorySelfTest {
     }
 
     /// Short entries until fewer than 40 profile characters remain, so any real sentence overflows.
+    ///
+    /// Throws rather than looping for ever when a write cannot grow the store: `nearDuplicate`
+    /// merges a fact that shares three quarters of its content words with one already there,
+    /// and a filler that varied only by its number stopped the store growing at all — which is
+    /// how this fixture hung the self-test instead of reporting its verdict (22 Sep 2026).
     private static func topUp(_ store: NextMemory, from start: Int) throws {
         var index = start
         while store.used(.profile) + 40 <= MemoryEntry.Kind.profile.budget {
+            let before = store.used(.profile)
             try store.remember(kind: .profile, text: "The user owns shelf \(index).", source: .manual)
+            guard store.used(.profile) > before else {
+                throw MemoryWriteError.storage(
+                    "the budget fixture could not grow the profile store at shelf \(index); "
+                        + "a write was merged as a near-duplicate")
+            }
             index += 1
         }
     }
+
+    /// One budget-filling profile fact, distinct from every other by more than its number.
+    ///
+    /// The store merges two facts that share three quarters of their content words, so a
+    /// filler sentence that changed only "shelf 1" to "shelf 2" was swallowed as a duplicate
+    /// from the second write on. Each fact carries its own topic, copy number and reference.
+    private static func fixtureFact(_ index: Int) -> String {
+        let topic = fixtureTopics[(index - 1) % fixtureTopics.count]
+        return "The user reads \(topic); copy \(index) sits on shelf \(index) of five, "
+            + "reference \(index * 41)."
+    }
+
+    private static let fixtureTopics: [String] = [
+        "the history of cartography",
+        "biographies of civil engineers",
+        "travel writing about the Norwegian fjords",
+        "essays on urban gardening",
+        "the archaeology of Roman roads",
+        "field guides to alpine wildflowers",
+        "the philosophy of everyday design",
+        "biographies of jazz bandleaders",
+        "the story of the London sewers",
+        "essays on restoring wooden boats",
+        "the geology of volcanic islands",
+        "biographies of early aviators",
+        "travel writing about the Silk Road",
+        "essays on typography and letterforms",
+        "the history of lighthouse keeping",
+        "field guides to coastal birds",
+        "the mathematics of music",
+        "biographies of cartographers",
+        "essays on bread and fermentation",
+        "the history of the bicycle",
+        "travel writing about Icelandic sagas",
+        "essays on household accounting",
+        "the astronomy of the southern sky",
+        "biographies of landscape architects",
+        "the history of public libraries",
+        "essays on keeping bees in cities",
+        "the craft of bookbinding",
+        "biographies of railway engineers",
+        "travel writing about desert crossings",
+        "essays on the science of sleep",
+        "the history of tea trading",
+        "field guides to mushrooms of the north",
+        "essays on repairing old clocks",
+        "the history of weather forecasting",
+        "biographies of mountain guides",
+        "essays on the architecture of bridges",
+        "the history of map making by hand",
+        "essays on the sounds of cities",
+        "biographies of naturalists",
+        "travel writing about island ferries",
+    ]
 
     // MARK: - Activity items, as before
 

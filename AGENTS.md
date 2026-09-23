@@ -43,7 +43,8 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 ```
 --selftest-s1        --selftest-parakeet   --selftest-systemaudio
 --selftest-transcribe <wav>                --selftest-calendar
---selftest-notes <wav> [--diarize]         --selftest-llm-metal
+--selftest-notes <wav> [--diarize]         --selftest-notes-context
+--selftest-llm-metal
 --selftest-island    --selftest-orb        --selftest-gws
 --selftest-agent <meeting-dir>             --selftest-cleanup [engine]
 --selftest-dictation --selftest-calls      --selftest-axreadback
@@ -93,18 +94,85 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-cleanup-structure               --selftest-commandkey
 --selftest-tool-review                     --selftest-function-calls [engine-dir]
 --selftest-skills    --selftest-file-index --selftest-onboarding
+--selftest-avatar
 --selftest-model-roles --selftest-model-fit --selftest-hf-search
 --selftest-memory-portability
+--selftest-voice-turn-routing --selftest-wake-live
+--selftest-computer-actions  --selftest-click-coordinate --selftest-cdp
+--selftest-computer-vision    --selftest-seat-grid
+--selftest-digest             --selftest-podcast
+--selftest-guided             --selftest-ui-strings
+--selftest-agent-panes
+--selftest-assemble           --selftest-portrait
 ```
 
-The last five lines were added on 2026-09-19. Three of them reach the network and say so
-when it is missing rather than passing quietly: `--selftest-skills` searches skills.sh and
-installs one real skill from GitHub into a temp folder, `--selftest-hf-search` fetches a
-3.9 MB file from the Hugging Face Hub and resumes it from a real `206`, and
-`--selftest-model-roles` starts its own loopback fixture server. `--selftest-function-calls`
-takes an optional directory holding `needle3-macos-arm64` and `needle3.cact`; without it the
-run prints `FUNCTION_CALLS_NEEDLE_ABSENT` and grades only the fallback, and it still fails
-if no *model* — Needle or the local one — produced a single call.
+`--selftest-avatar` is the 2026-09-23 addition, and it has a companion diagnostic rather than
+a self-test: `--avatar-sheet [path]` renders all ten character states at three instants into
+one PNG with `ImageRenderer`, which needs no Screen Recording grant — so the vocabulary can
+be reviewed by eye on a machine where the real UI cannot be screenshotted. The self-test
+pins what an eye cannot check twice: a generated face round-trips through
+`agent-identity.json`, the four animation layers rasterise, no two of the ten states ever
+share a pose, every activity and every tool lands on the state it should, and the island
+wears the character for the agent's own states and the orb for everything else.
+
+The last three lines were added on 2026-09-22 (the earlier five on 2026-09-19). Three of them
+reach the network and say so when it is missing rather than passing quietly:
+`--selftest-skills` searches skills.sh and installs one real skill from GitHub into a temp
+folder, `--selftest-hf-search` fetches a 3.9 MB file from the Hugging Face Hub and resumes it
+from a real `206`, and `--selftest-model-roles` starts its own loopback fixture server.
+`--selftest-function-calls` takes an optional directory holding `needle3-macos-arm64` and
+`needle3.cact`; without it the run prints `FUNCTION_CALLS_NEEDLE_ABSENT` and grades only the
+fallback, and it still fails if no *model* — Needle or the local one — produced a single call.
+
+The 2026-09-22 flags: `--selftest-voice-turn-routing` replays the five-turn
+email/calendar refusal loop (the pending-intent slot, the pre-frontend tool-shape gate and
+the denial cap) against a fake voice frontend; `--selftest-wake-live` plays a fixture set of
+24 "Hey Will" clips and 32 adversarial near-misses through the real spotter and prints
+`WAKE_HIT_RATE` — **it is still red at the shipped sensitivity (17/24 = 0.71, 3/32 false
+after the 2026-09-22 tuning pass)**, and that is the honest measurement: the tuning pass
+ran a 270-config sweep through the real spotter and took the measured trade-surface
+maximum (variant depth 2→4, threshold slope 0.36→0.30, beam plateau 24→16 — a phrase
+bonus that would buy the missing hits costs 12–18 false accepts, measured and refused),
+and the remaining fix is real-room recordings (`WAKE_MIC` has no captures on this
+machine), not a lowered bar. `--selftest-computer-vision` and
+`--selftest-seat-grid` pin the screenshot policy (stub-tree gating, consent failing closed,
+the one-retry rule, and the D5 seat-grid chain); `--selftest-digest` and `--selftest-podcast`
+pin the two scheduled content routines (reads-only, silence token, consumer words, file-sink
+only, never auto-played); `--selftest-guided` is the D9 first-success script (calendar →
+names → proposal → approval → executed → one follow-up); `--selftest-ui-strings` scans
+`UI/` user-visible strings for banned developer words (`cron`, `artifact`, raw tool ids,
+schema keys) and fails per offender.
+
+The computer/browser-use flags (also 2026-09-22, from the COMPUTER-BROWSER-USE roadmap, now in
+`roadmap/done/`):
+`--selftest-computer-actions` drives its own harness window — scroll both ways with the
+visible range as ground truth, a double click's selection, a `wait_for` that must find
+static text and one that must time out honestly, with drag and right-click posted but
+required to admit they could not be verified. It walks its own window by title rather than
+`kAXFocusedWindow`, because an agent-launched instance is refused activation outright
+(measured: `isActive false, keyWindow false` even after `activate()` and the
+`kAXFrontmostAttribute` raise), so **it is currently red on a locked screen and will pass
+the first time it runs on an unlocked one** — that is the environment answer, not a green
+lie. `--selftest-click-coordinate` pins the pixel-fallback contract with no model and no
+foreground: the fraction grammar refuses out-of-range and missing values, the element id
+outranks coordinates, and `VisionHandoff`'s `target:` parser holds against canned
+completions; the one live case degrades to `CLICK_COORDINATE_UNVERIFIED` rather than a
+claim. `--selftest-cdp` needs no grant at all: it launches headless Chrome itself against a
+fixture file and drives the real client end to end, prints `CDP_ABSENT` when no
+Chromium-family browser is installed, and its first live run caught the real bug that CDP
+commands went out as binary websocket frames — real Chrome tears the socket down on those,
+which is why `--selftest-browser`'s Python fixture had never seen the failure.
+
+The competitor-gap finalization flags (2026-09-22, from the AGENT-COMPETITOR-GAP roadmap,
+now in `roadmap/done/`): `--selftest-assemble` drives the D4 trip assembly end to end over
+a fixture corpus and fails unless ≥3 distinct sources are cited, the markdown page exists
+on disk with its source list and 3–5 outstanding items, and the artifact ledger records the
+run; its degraded path (no model) must still write the page and say it was written without
+a model pass. `--selftest-portrait` pins the Portrait contract — the graph pass produces
+drafts, nothing saves unreviewed, keep/discard/cross-out work per insight, and an absent
+graph answers honestly. The first-ingestion consent gate has no card-bearing self-test yet
+(the gate deliberately skips under the harness); its honest failure mode — no consent path,
+no ingestion — is enforced in `AgentToolExecutor`'s workspace read case.
 
 A self-test must **fail** when the thing it names did not happen. `--selftest-systemaudio`
 reporting `SYSTEM_AUDIO_SILENT` on a zero peak, and the Metal probe failing on zero
@@ -210,6 +278,73 @@ handed rendered structure instead of instructions it can delete (Apple's model a
 `quote … end quote` markers when it saw them as text); after, so a model that flattens the
 formatting back into prose loses to the pre-rendered version. Before adding a rule to a
 prompt, check which engines can actually receive it.
+
+**The Related-context brief is deliberately absent from three places.** `NotesService`
+assembles a `MeetingNotesBrief` — memory, prior decisions and the people/projects the graph
+already ties to this meeting, passages from past meetings, file names — and hands it to
+`NotesGenerator`; every source keeps its own switch and cloud consent, and `AgentService`
+assembles its own for the agent's reader rather than reusing the notes model's, because a
+brief allowed for a local reader is not allowed for a cloud one. The same brief reaches
+`MeetingAgent`'s proposal pass, and its tool block now carries the knowledge index's three
+read tools beside the Workspace ones: `search_knowledge` whenever the Agent's index switch is
+on, `expand_node`/`timeline` only while the graph is on and the reader may see it — a cloud
+reader without graph consent is never shown them, and the reader is bound around execution so
+the executor decides for the same model. The brief is still the seam that gives the meeting
+side its connections without letting a memory become evidence for a write; a read's answer is
+capped (`MeetingAgent.maxLookupCharacters`) because the next round's prompt was sized before
+it existed. Three asymmetries are the feature, not
+oversights: the brief is tokenized and
+counted against the provider window before the single-pass decision, or the meetings with
+the most context are the ones whose prompt overflows; the map step never receives it, since
+its whole job is "write only what was said" and context facts come back as claims someone
+made; and `Chunker.notes` skips the section, since indexing it would file memory facts under
+a meeting's citation and `KnowledgeExtractor` would turn them into decisions nobody spoke.
+With no brief, `NotesFormatter.emptySection` forces `_None._` regardless of what the model
+wrote — the prompt already asked for that, and the first live run had Apple's model write
+"this aligns with known concerns" about an empty block anyway.
+
+`--notes-context-live` is the read-only diagnostic that prints the brief this machine would
+assemble, and it is deliberately **not** a `--selftest-*` flag. The self-test harness
+replaces every store with an isolated one — `KnowledgeIndexer.shared` gets a temp index with
+the feature off, `NextMemory.shared` a temp memory, and `NotesModelRuntime` refuses to adopt
+the saved model — so run under the harness it prints an empty brief and Apple's model on a
+machine whose index is full and whose notes run on a downloaded one. That is a green answer
+to a question nobody asked; the flag has to be launched outside `SelfTest.isRunning`, and
+`--selftest-out` still captures its output when LaunchServices has no stdout.
+
+**Memories are drawn onto the graph, not written into it.** `MemoryGraphOverlay` assembles
+`memory:` nodes at draw time from `NextMemory` and merges them into the map; clicking one
+opens the Memories editor on that fact (`NavigationState.openMemories`). They are deliberately
+not rows in `graph_node`: every edge there must cite a real chunk (`source_chunk` is
+`NOT NULL REFERENCES chunk(id)`), `pruneSharedNodes` deletes any shared node left with no
+edge, the ontology has to declare a new node type in two synchronized copies, and
+`deleteAll()` runs whenever the graph switch is flipped — a memory fact is none of those
+things and would be deleted by three of them. The overlay also means an edited or forgotten
+memory redraws on the next reload (`KnowledgeGraphPane.memoryFingerprint`), which a copied row
+would not. The edges are conservative on purpose: a `remembered_as` edge exists only when a
+node's own label shares a word of three or more characters with the memory's words, so the map
+shows the connection rather than claiming one.
+
+**`LLMProviderID.appLLM` is a kind, not a file name, and the retired `gemma4E4B` spelling
+still decodes to it.** The app's own provider used to be identified as the model that shipped
+that release, so a Mac running an installed model recorded it as Gemma in `Meeting.notesModel`,
+every notes log line and `--selftest-notes`. The concrete model now travels separately:
+`LlamaLLMProvider.displayModelName`, captured in `LLMProviders.make` from
+`InstalledModelLibrary.activeModel`, because a provider is a value handed to actors and the
+library is main-actor state. `init?(rawValue:)` maps `gemma4E4B` to `.appLLM` on purpose — a
+stored value that no longer decodes silently becomes a different provider. `Settings.notesProvider`
+was deleted for the same reason and must not come back: nothing wrote it, a self-test and the
+Regenerate menu read it, and a real machine held a retired spelling in it while production used
+the meeting-notes role. One choice, one place.
+
+**The knowledge index is on by default, and a fixture that wants it off says so.** `enabled`
+is true in both `KnowledgeIndexSettings` and its `fromDefaults` fallback: search over the
+user's own meetings, notes and conversations is the feature the Knowledge screen exists for.
+`includeDictation`, `includeRoutines`, the graph and the embedder all stay off, so the default
+indexes meetings and ended Agent conversations, BM25 only. Self-tests still get an isolated
+store, but now through an explicit `KnowledgeIndexSettings(enabled: false)` rather than a
+fixture default that happens to match the product — `--selftest-index` pins the on-by-default
+answer so a silent flip fails a test instead of shipping.
 
 **`URL.resourceValues` answers from a cache attached to that `URL` instance.** The model
 downloader's own size check was served stale bytes from a `URL` it had held across a write,
@@ -796,6 +931,60 @@ Red is still only ever recording — a recording island shows the same
 `RecordingIndicator` dot as everywhere else, with the `weaving` orb beside it saying what
 kind of recording it is, exactly as the HUD sets an orb beside the dot and the level bar.
 
+### The agent's character
+
+The app has a second animation vocabulary, and it belongs to the agent rather than to the
+work: `Agent/Identity/AgentAvatarState.swift` is ten states that mean exactly one thing each,
+the same rule the orbs live under. The character is the Notion-style face the user generates
+in onboarding — `AgentAvatarState` says what it is doing, `AgentAvatarChoreography` is the
+whole animation specification as a pure function of `(state, time)`, and `AgentAvatarView`
+is pixels.
+
+| State | Means | Where it appears |
+|---|---|---|
+| `idle` | nothing is running; breathing, blinking, glancing | the About hero, the onboarding preview, any portrait between runs |
+| `listening` | the microphone is open *for the agent* | the island's agent-listening card (beside the red dot, never instead of it) |
+| `thinking` | the model is deciding; no tool has run yet | the pane's thinking row, the island before a step is known |
+| `browsing` | reading something it did not write — mail, calendar, a page, a file | the island and working card while a read runs |
+| `writing` | producing text: a file, a draft, a command | …while a write or a shell command runs |
+| `tool` | running something with an effect — a click, an install | …while an action runs |
+| `sending` | saying something in the user's name | …while a send-risk tool runs |
+| `waiting` | held up on a person — an approval, an answer, a time | the island's proposal card |
+| `sleeping` | ten quiet minutes and it stopped attending | the About hero after `DS.Motion.avatarSleepAfter` |
+| `done` | the run just finished; one nod, not a loop | the island's reply card |
+
+The mapping is two-layered and neither layer reads English. A **tool** decides its own state
+in `AgentAvatarState.forTool(namespace:risk:)` — risk first, because it says what the call
+will *do* rather than where it happens — and it is recorded per step by
+`AgentToolExecutor`; everything that is not a tool call reduces from the `AgentActivityKind`
+the projector already produced. Never infer a state from a progress title: the titles are
+rewritten for the user and the mapping would break the day one is reworded. The island wears
+the character only for its four agent states and keeps the orb for dictation, meetings and
+notes — the character is the agent's, the orb is the app's.
+
+How it is drawn, and the rules that are not negotiable:
+
+- **Four cached layer bitmaps in one `Canvas`** — under the eyes, the eyes, the brows, over
+  them — composed by `NotionAvatarRenderer.layers(for:side:)` from the same vendored parts
+  the flattened avatar uses. The blink compresses the eye layer about the canvas centre,
+  which is measured, not assumed: every vendored eye part centres its ink on y = 540.
+- **Reduce Motion freezes it** at `AgentAvatarChoreography.stillFrame` with no `TimelineView`
+  at all, and ambient states (idle, waiting, sleeping) run at
+  `DS.Motion.avatarAmbientFrameInterval` rather than the display's cadence.
+- **Never `scaleEffect` the portrait** — same rule and same reason as the orbs. A gadget
+  badge is the one place a transform is honest.
+- **The gadget is hidden below `DS.Size.avatarPropMinimum`** (36pt): at 24–28pt the body
+  language is the whole animation, which is why the island badge and the chat rows pass no
+  gadget and still animate.
+- **A compact row does not animate**: a `List` row draws the still `NotionAvatarView`, and
+  the animated one has no `isAnimated` escape hatch on purpose — two live avatars on one
+  screen is one too many, and a `List` of them is a battery bug.
+- **One place owns the sleep decision** — the view's clock, from `restingSince`, because a
+  pane that only re-renders when something happens would show an awake avatar hours later.
+
+The avatar is not the orb and does not replace it: where both could speak, the character is
+for the agent's own states and the orb keeps the app's. Red is still only ever recording.
+
 ### The dotted field
 
 `DottedField` is the orb's own lattice flattened out and laid behind content: the page has no
@@ -942,6 +1131,36 @@ Distinct from the list above: these are written, compile, and have a self-test w
 is possible, but the permission, model or account they need has never been available on the
 development machine. Treat anything here as unproven, and do not describe it as working.
 
+- **The character on the notch, by eye.** Every avatar state has been rendered offscreen by
+  `--avatar-sheet` and reviewed that way (2026-09-23), and `--selftest-avatar` pins the
+  vocabulary — but nobody has seen the animated portrait on the collapsed island strip it
+  was designed for, because seeing it there means a Screen Recording grant and a live
+  notch. Treat the island placement as reasoned, not observed.
+- **The screenshot and vision path with real pixels.** `ScreenCapture` has never captured a
+  real window (ScreenCaptureKit needs Screen Recording and a live window) and no consent
+  sheet has been shown. The seam that had gone missing — **`completeWithImages` with no
+  production call site** — was found unwired during the 2026-09-22 roadmap audits and
+  re-wired the same day at the tool loop's result seam, pinned by
+  `--selftest-computer-vision`; but no screenshot has ever been described by a vision
+  model on this Mac, because that needs Screen Recording, a live window and a model.
+  Screenshots work locally for the working card's live view (memory only); nothing has
+  been uploaded.
+- **The Portrait pass, Corners and the D4 assembler with real material.** All three are
+  code-complete and pinned by `--selftest-portrait` / `--selftest-assemble`, but on this
+  machine they have only ever run against fixtures and an injected model: no real graph
+  has been mined into insight drafts, no real corpus assembled into a page, and the
+  quality of the prose is unmeasured (the local model they route to is not installed;
+  the graph here has two meetings). The first-ingestion consent gate has never met a real
+  connected account either — its honest no-consent-path refusal is what is enforced.
+- **The wake word in a real room.** The 2026-09-22 tuning pass took the measured
+  trade-surface maximum on the synthetic corpus (17/24 hits @ 3/32 false at the shipped
+  default, `--selftest-wake-live` still red at its 0.8 bar); the missing clips are
+  synthetic-voice rows, and `WAKE_MIC` has no captures here. The remaining fix is
+  real-room recordings, not a lowered bar.
+- **The podcast routine with real voices.** `LongFormRenderer`'s production synthesis
+  (`LongFormSynthesisFactory.live()`, Pocket/Kokoro frame paths) has never rendered a real
+  file — neither voice model is downloaded here — and no scheduled run has produced a
+  Library audio item. The scripted self-test runs entirely through an injected fake.
 - **The system-audio tap with its TCC grant.** Every call succeeds without it and every
   sample is zero, so no meeting has yet contained an "Others" track.
 - **Gemma 4 E4B.** Never downloaded (~9 GB of free disk is needed: 4.98 GB plus the
@@ -1017,3 +1236,19 @@ the documented DSP delay and must preserve a distinct overlapping voice. The phy
 `--selftest-acoustic-live` additionally requires audible speaker bleed and real mixer
 frames. Neither a fake playback callback nor a silent microphone passes. FluidAudio EOU
 operations must remain serialized across awaits; its actor can reenter during inference.
+
+**On the conversational path, a deterministic gate may only add, never subtract.** The
+`VoiceConversationCoordinator` runs repair and routing rules before the on-device frontend
+model: hesitation, pending-intent acknowledgments, the tool-shape route, and the known-noise
+list. Repair (dictionary) and routing (tool-shaped requests) are safe by direction — they
+give the model more, not less. A rule that *suppresses* the model must earn it twice: it may
+only match **exact signatures** (the `VoiceTurnPolicy.knownNoiseFragments` list — never
+length, token count, or any other shape heuristic), and it may fire **once per distinct
+utterance per session**, with the repeat escalating to the model. The shape version of this
+gate shipped on 2026-09-22 and clarified "Can you hear me?" five turns in a row:
+`normalize()` strips leading fillers ("can", "you"), so a four-word question became a
+two-token fragment and the app stopped answering its user entirely. The fixture set that
+would have caught it — a positive corpus of ordinary questions — lives in
+`--selftest-voice-turn-routing` beside the junk corpus; the junk list without the positive
+corpus is how a green suite coexisted with an unusable app. `--selftest-voice-turns` grades
+the list itself.

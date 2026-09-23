@@ -361,6 +361,16 @@ extension OpenAICompatibleLLMProvider {
         guard !images.isEmpty, Self.imageParts(images, consent: consent).count == images.count else {
             throw LocalServerError.needsVision(serverName)
         }
+        // The per-run sheet cannot be forgotten at a call site: ask here, where the
+        // bytes would leave. One question for the run; a denial sends nothing. The
+        // server is loopback, but the thumbnail sheet is also what tells the user a
+        // screenshot is in play at all, so it is asked for local readers too.
+        if let preview = images.first,
+           !(await VisionConsentGate.requestApproval(
+               thumbnail: preview.thumbnail, reason: "send a screenshot to the local model"
+           )) {
+            throw LocalServerError.needsVision(serverName)
+        }
         let began = Date()
         let parts = Self.imageParts(images, consent: consent)
         var request = URLRequest(url: baseURL.appendingPathComponent("chat/completions"))

@@ -74,7 +74,7 @@ enum RealtimeAgentToolLoopSelfTest {
 
         // The live grounding, on this Mac, for the on-device reader.
         RealtimeAgent.publishGrounding()
-        let live = KnowledgeGraphScope.$reader.withValue(.gemma4E4B) { AgentGrounding.current() }
+        let live = KnowledgeGraphScope.$reader.withValue(.appLLM) { AgentGrounding.current() }
         check("the live grounding does not know who is using this Mac", live.hasUser)
         check("the live grounding names no reachable surface", !live.surfaces.isEmpty)
         print("GROUNDING_LIVE: \(live.assistantName) / \(live.userFullName) / "
@@ -437,7 +437,7 @@ enum RealtimeAgentToolLoopSelfTest {
         }
         let identityAnswer = identity ?? ""
         let identityLower = identityAnswer.lowercased()
-        let live = KnowledgeGraphScope.$reader.withValue(.gemma4E4B) { AgentGrounding.current() }
+        let live = KnowledgeGraphScope.$reader.withValue(.appLLM) { AgentGrounding.current() }
         let knowsUser = !identityAnswer.isEmpty && !identityLower.hasPrefix("error:")
             && (live.userShortName.isEmpty || identityLower.contains(live.userShortName.lowercased()))
             && !identityLower.contains("i don't know who")
@@ -662,7 +662,7 @@ private actor ToolLoopTestState {
 }
 
 private struct ToolLoopTestProvider: LLMProvider {
-    let id = LLMProviderID.gemma4E4B
+    let id = LLMProviderID.appLLM
     let state: ToolLoopTestState
     let firstCall: String
     let delay: Duration

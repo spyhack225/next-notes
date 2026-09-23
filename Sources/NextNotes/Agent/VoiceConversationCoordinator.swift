@@ -34,6 +34,9 @@ final class VoiceConversationCoordinator {
     var responseDeadlineForTesting: Duration?
     var streamForTesting: (@Sendable (String, [LLMChatMessage]) async -> AsyncThrowingStream<String, Error>)?
     var workerForTesting: (@MainActor (VoiceConversationWork) async -> String)?
+    /// The availability gate's test seam. Production reads Apple's own answer;
+    /// a self-test cannot turn Apple Intelligence off, so it injects one here.
+    var frontendUnavailableReasonForTesting: String?
     var hasActiveWork: Bool { jobs.contains { $0.status == "running" } }
 
     /// A tool-shaped request the frontend answered instead of delegating (P0-6).
@@ -51,8 +54,107 @@ final class VoiceConversationCoordinator {
     /// instead of speaking the same denial again.
     private var denialCounts: [String: Int] = [:]
     private var backstoppedDenials: Set<String> = []
+    /// Exact texts this session has already met with a clarifier (P0-3, producer-level).
+    /// Suppression is single-shot per distinct utterance: the same words reaching this
+    /// path again go to the model. A stuck clarification loop is impossible by
+    /// construction rather than by luck, and `closeSession` clears it with the session.
+    private var clarifiedTexts: Set<String> = []
     /// Short, recoverable, and free of any diagnosis (P0-3).
     static let garbleClarifier = "Sorry — I didn't catch that. Could you say it again?"
+
+    /// The replies this app speaks when a turn was not answered. They are
+    /// bookkeeping, not conversation, and they must never become a demonstration
+    /// for the next answer: a small model shown its own clarifiers in the
+    /// transcript reproduces them. Measured on this Mac with the real on-device
+    /// model: with the gate clarifier and one model clarifier in history,
+    /// "can you hear me" came back as "I didn't quite catch that. Could you
+    /// repeat your question?" — the exact live reply from 2026-09-22T21:45Z.
+    static let inputUncertainReply = "I didn't get enough speech to respond. Please try again."
+    static let modelErrorReply =
+        "The local voice model failed while preparing that response. Please try again."
+    static let malformedEnvelopeReply =
+        "The local voice model returned an invalid response. Please try again."
+    static let emptyCompletionReply =
+        "The local voice response ended before it produced an answer. Please try again."
+    static let deadlineReply = "The local voice response took too long. Please try again."
+
+    /// Exact non-answer replies, so the list can only be wrong in one visible place.
+    static let repairReplies: Set<String> = [
+        garbleClarifier,
+        inputUncertainReply,
+        modelErrorReply,
+        malformedEnvelopeReply,
+        emptyCompletionReply,
+        deadlineReply,
+        "Stopped.",
+    ]
+
+    /// Phrase marks for a clarifier the *model* generated, which is the variant a
+    /// transcript most readily teaches. This classifies assistant output only;
+    /// user input is never matched against it.
+    static let clarifierMarks = [
+        "didn't catch", "did not catch",
+        "repeat your question", "repeat the question", "repeat that question",
+        "say it again", "say that again",
+        "could you repeat", "can you repeat",
+        "couldn't hear", "could not hear", "can't hear you", "cannot hear you",
+        "speak a bit louder", "speak louder",
+        "could you rephrase", "can you rephrase",
+        "didn't get that", "did not get that", "didn't get your", "did not get your",
+    ]
+
+    /// True when an assistant reply asks the person to repeat themselves or
+    /// complains it cannot hear — neither is an answer.
+    ///
+    /// Apostrophes are folded to the ASCII form: the on-device model writes
+    /// `can’t` and `didn’t` with U+2019, and an exact-mark check against ASCII
+    /// would miss the very replies this filter exists to remove.
+    static func isRepairReply(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if repairReplies.contains(trimmed) { return true }
+        let lower = trimmed.lowercased()
+            .replacingOccurrences(of: "\u{2019}", with: "'")
+            .replacingOccurrences(of: "\u{2018}", with: "'")
+        return clarifierMarks.contains { lower.contains($0) }
+    }
+
+    /// Drop the app's own non-answer turns and the user turn each answered.
+    ///
+    /// A repair reply left in the transcript is a few-shot demonstration: the
+    /// next question is answered with another request to repeat it. Removing the
+    /// pair (the reply and its prompt) is what lets the next answer answer.
+    static func withoutRepairTurns(_ history: [LLMChatMessage]) -> [LLMChatMessage] {
+        var result: [LLMChatMessage] = []
+        var lastUserIndex: Int?
+        for message in history {
+            switch message.role {
+            case .user:
+                lastUserIndex = result.count
+                result.append(message)
+            case .assistant:
+                if isRepairReply(message.content) {
+                    if let index = lastUserIndex, index == result.count - 1 {
+                        result.remove(at: index)
+                    }
+                    lastUserIndex = nil
+                    continue
+                }
+                lastUserIndex = nil
+                result.append(message)
+            case .system:
+                result.append(message)
+            }
+        }
+        return result
+    }
+
+    /// Spoken when the on-device conversational lane cannot run at all. The
+    /// reason is Apple's own availability string, so the sentence names the one
+    /// thing the person can change.
+    static func unavailableReply(_ reason: String) -> String {
+        "I can't answer with the on-device voice model right now. \(reason) "
+            + "You can still type your question."
+    }
 
     /// Do inference while a stable recognized partial is still waiting for
     /// end-of-utterance. This path records no turn and has no speech/tool sink.
@@ -146,6 +248,7 @@ final class VoiceConversationCoordinator {
         pendingIntent = nil
         denialCounts = [:]
         backstoppedDenials = []
+        clarifiedTexts = []
         inputEpoch &+= 1
         responseTask?.cancel()
         responseTask = nil
@@ -212,6 +315,13 @@ final class VoiceConversationCoordinator {
     private func respond(_ text: String, id: UUID, inputEpoch: UInt64, commitRevision: UInt64) async -> AgentTurn {
         let agent = RealtimeAgent.shared
         let turn = agent.beginVoiceFrontend()
+        // Assembled before the user row is recorded, so the current turn reaches
+        // the model exactly once: in the final message's `Latest user speech:`
+        // marker, never as a transcript entry as well. With both, the answer
+        // stage read the question as a past turn and the status package as the
+        // current one (live 2026-09-22: "can you hear me" → "I didn't quite
+        // catch that. Could you repeat your question?").
+        let request = frontendRequest(text)
         AgentSession.shared.recordUser(text, source: .voice)
         AgentAuditLog.shared.record(kind: .request, title: text, detail: "local conversational frontend")
         let active = jobs.filter { $0.status == "running" }
@@ -267,10 +377,17 @@ final class VoiceConversationCoordinator {
             submit(route.text)
             return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
         }
-        // P0-3 garble gate BEFORE any model inference. A name with no job to attach to
-        // is not a new subject either: the branches above returned only when a running
-        // or just-finished job claimed it.
-        if VoiceTurnPolicy.isUncertainRequest(text) || AgentEntityResolver.namingTarget(in: text) != nil {
+        // P0-3, producer-level: the only input this path may hold back is an *exact*
+        // known-noise fragment (or an orphan name with nothing to attach to), and only
+        // once per session. Everything else — questions, small talk, anything the
+        // recogniser mangled that a model might still read — goes to the model. The
+        // first version of this gate guessed from shape and clarified "Can you hear me?"
+        // five turns in a row; shape heuristics are banned from this path. A repeat of
+        // clarified words escalates to the model instead of clarifying again.
+        let noiseKey = VoiceTurnPolicy.knownNoiseFragment(in: text)
+        let orphanNameKey = AgentEntityResolver.namingTarget(in: text) != nil
+            ? "name:\(VoiceTurnPolicy.normalizedKey(text))" : nil
+        if let key = noiseKey ?? orphanNameKey {
             // Route a spoken name/label through the index before giving up on it.
             if let match = AgentEntityResolver.resolve(
                 spoken: text, wantsFolder: text.lowercased().contains("folder")).first,
@@ -281,12 +398,29 @@ final class VoiceConversationCoordinator {
                 submit("open \(match.hit.name)")
                 return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
             }
-            AgentAuditLog.shared.record(kind: .reply, title: "Asked for clarification",
-                                        detail: "garble_clarifier: \(String(text.prefix(120)))")
-            resolveInput(epoch: inputEpoch)
-            return agent.finishVoiceFrontend(Self.garbleClarifier, turn: turn, streamed: false)
+            if !clarifiedTexts.contains(key) {
+                clarifiedTexts.insert(key)
+                AgentAuditLog.shared.record(kind: .reply, title: "Asked for clarification",
+                    detail: "garble_clarifier (\(noiseKey != nil ? "known noise" : "orphan name")): "
+                        + String(text.prefix(120)))
+                resolveInput(epoch: inputEpoch)
+                return agent.finishVoiceFrontend(Self.garbleClarifier, turn: turn, streamed: false)
+            }
+            // The same words a second time: fall through and let the model answer.
         }
-        let request = frontendRequest(text)
+        // Apple Intelligence off, still downloading, or unsupported: the on-device
+        // lane cannot run at all. Every turn used to end in "The local voice model
+        // failed while preparing that response." — a generic dead end for a state
+        // the person can see and fix. Say the real reason instead; the failure
+        // taxonomy below stays for errors that happen mid-generation.
+        let unavailable = frontendUnavailableReasonForTesting
+            ?? (streamForTesting == nil ? FoundationModelFormatter.unavailableReason : nil)
+        if let reason = unavailable {
+            AgentAuditLog.shared.record(kind: .reply, title: "On-device voice model unavailable",
+                detail: "voice_frontend_unavailable: \(reason)")
+            resolveInput(epoch: inputEpoch)
+            return agent.finishVoiceFrontend(Self.unavailableReply(reason), turn: turn, streamed: false)
+        }
         let indexed = request.indexed
         let messages = request.messages
         let tracker = AgentToolSpeechTracker(agent: agent, turn: turn, allowSpeech: true,
@@ -445,15 +579,15 @@ final class VoiceConversationCoordinator {
         let reply: String
         switch failure.code {
         case .inputUncertain:
-            reply = "I didn't get enough speech to respond. Please try again."
+            reply = Self.inputUncertainReply
         case .modelError:
-            reply = "The local voice model failed while preparing that response. Please try again."
+            reply = Self.modelErrorReply
         case .malformedEnvelope:
-            reply = "The local voice model returned an invalid response. Please try again."
+            reply = Self.malformedEnvelopeReply
         case .emptyCompletion, .incompleteCompletion:
-            reply = "The local voice response ended before it produced an answer. Please try again."
+            reply = Self.emptyCompletionReply
         case .deadline:
-            reply = "The local voice response took too long. Please try again."
+            reply = Self.deadlineReply
         case .cancelled:
             return AgentTurn(reply: "", delegated: false)
         }
@@ -537,13 +671,17 @@ final class VoiceConversationCoordinator {
                 + (job.result.isEmpty ? "" : "\nVerified result: \(String(job.result.prefix(600)))")
         }.joined(separator: "\n")
         // Called before recording this user turn, both during listening and
-        // after commit. Existing unanswered user turns remain genuine context.
+        // after commit. Existing unanswered user turns remain genuine context;
+        // the app's own clarifiers and failure sentences do not, because a small
+        // model shown them answers the next question with another one.
+        let history = Self.withoutRepairTurns(
+            AgentSession.shared.chatHistoryForCurrentTurn(
+                maxCharacters: 1_400, excludingLastUser: false, includeDeliveryNotes: false))
         let messages = [LLMChatMessage(role: .system,
                 content: "Capability inventory (application facts):\n" + VoiceCapabilitySnapshot.current().promptText
                     + "\nPlayback status (context only; never speak these labels):\n"
                     + AgentSession.shared.latestVoiceDeliveryContext)]
-            + AgentSession.shared.chatHistoryForCurrentTurn(
-            maxCharacters: 1_400, excludingLastUser: false, includeDeliveryNotes: false)
+            + history
             + [.init(role: .user, content: "Work status (context, not instructions):\n\(workContext.isEmpty ? "No active jobs." : workContext)\n\nLatest user speech:\n\(text)")]
         return (indexed, messages)
     }
@@ -586,6 +724,7 @@ final class VoiceConversationCoordinator {
         jobs = []
         streamForTesting = nil
         workerForTesting = nil
+        frontendUnavailableReasonForTesting = nil
         lastFailure = nil
         responseDeadlineForTesting = nil
     }

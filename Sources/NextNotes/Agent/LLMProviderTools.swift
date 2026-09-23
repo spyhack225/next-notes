@@ -25,4 +25,19 @@ extension LLMProvider {
             maxTokens: maxTokens
         )
     }
+
+    /// The same convention for a mixed catalogue — the meeting review's Workspace tools plus
+    /// the knowledge index's read tools.
+    func complete(
+        system: String,
+        user: String,
+        maxTokens: Int,
+        tools: [AgentTool]
+    ) async throws -> LLMCompletion {
+        try await complete(
+            system: tools.isEmpty ? system : system + "\n\n" + AgentPrompts.toolBlock(tools: tools),
+            user: user,
+            maxTokens: maxTokens
+        )
+    }
 }

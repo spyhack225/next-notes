@@ -39,39 +39,42 @@ enum VoiceTurnPolicy {
         ]).contains(normalized)
     }
 
-    /// A garbled ASR fragment that must be clarified before any planning round (P0-3).
+    // MARK: - Known noise (P0-3, producer-level)
+
+    /// Exact ASR-noise signatures observed in live logs: lowercase, punctuation
+    /// removed, whitespace collapsed. **Exact strings, never rules.**
     ///
-    /// All four must hold: short (at most 12 characters or 2 tokens), no verb carrying
-    /// an object, nothing `AgentDirectIntent` can act on, and no sound-alike of a known
-    /// entity (that is a correction, not a garble). A miss costs one short question; a
-    /// false positive would cost a full planning round on `"boys"`.
-    static func isUncertainRequest(_ utterance: String, knownEntities: [String] = []) -> Bool {
-        let normalized = AgentDirectIntent.normalize(utterance)
-        guard !normalized.isEmpty else { return true }
-        if AgentDirectIntent.parse(utterance) != nil { return false }
-        if AgentEntityResolver.namingTarget(in: utterance) != nil { return false }
-        if AgentEntityResolver.correctionTarget(in: utterance) != nil { return false }
-        let tokens = AgentEntityResolver.tokens(normalized)
-        let trimmed = utterance.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count <= 12 || tokens.count <= 2 else { return false }
-        if hasVerbObjectPair(tokens) { return false }
-        if !knownEntities.isEmpty,
-           AgentEntityResolver.soundsLike(utterance, knownEntities: knownEntities) != nil { return false }
-        return true
+    /// Producer-level rule, 2026-09-22. The first version of this gate guessed from
+    /// *shape* — "at most 12 characters or 2 tokens, no verb-object pair" — and held
+    /// "Can you hear me?" for clarification five turns in a row, because `normalize()`
+    /// strips the leading fillers "can" and "you" and the remainder looked like a
+    /// fragment. The class, not the instance, is the bug: a gate that guesses from shape
+    /// will eventually eat a real question, silently, on the one path whose entire job
+    /// is to answer people. A list that names its entries can only be wrong in one
+    /// visible place, and it is graded against a positive corpus of ordinary speech.
+    /// Everything not on this list goes to the model.
+    static let knownNoiseFragments: Set<String> = [
+        "boys", "am", "did", "take it", "okay", "ok", "hey we", "hey win",
+        "um", "uh", "huh", "mm", "hmm",
+    ]
+
+    /// The noise key the utterance exactly matches, or nil. Nothing shape-based.
+    static func knownNoiseFragment(in utterance: String) -> String? {
+        let key = normalizedKey(utterance)
+        return knownNoiseFragments.contains(key) ? key : nil
     }
 
-    /// A verb from the deterministic tables carrying a later word as its object.
-    private static func hasVerbObjectPair(_ tokens: [String]) -> Bool {
-        for (index, token) in tokens.enumerated()
-        where AgentDirectIntent.actionVerbs.contains(token) {
-            if tokens[index...].count > 1 { return true }
-        }
-        return false
+    /// Lowercase, punctuation removed, whitespace collapsed — the list's own key form.
+    static func normalizedKey(_ utterance: String) -> String {
+        utterance
+            .lowercased()
+            .split(whereSeparator: { !($0.isLetter || $0.isNumber) })
+            .joined(separator: " ")
     }
 
     /// A bare acknowledgment of a pending offer: at most 3 tokens and no action verb.
     /// Only consulted when the coordinator holds a pending intent — without one,
-    /// `"Okay."` is a garble, not an answer.
+    /// `"Okay."` is noise, not an answer.
     static func isBareAcknowledgment(_ utterance: String) -> Bool {
         let tokens = AgentEntityResolver.tokens(utterance.lowercased())
         guard !tokens.isEmpty, tokens.count <= 3 else { return false }
@@ -85,21 +88,26 @@ enum VoiceTurnPolicy {
 
     static func selfTestFailures() -> [String] {
         var failures: [String] = []
-        // P0-3 garble gate: the short real utterances from agent-conversation.json.
-        for text in ["boys", "Am", "Take it.", "Okay.", "hey win", "Hey we"]
-        where !isUncertainRequest(text) {
-            failures.append("garbled fragment was not held for clarification: \(text)")
+        // P0-3: the short fragments from agent-conversation.json, by exact signature.
+        for text in ["boys", "Am", "Take it.", "Okay.", "hey win", "Hey we", "did", "Uh"]
+        where knownNoiseFragment(in: text) == nil {
+            failures.append("a logged noise fragment was not recognised: \(text)")
         }
-        for text in ["open Safari", "Summarise my emails, list tomorrow's events",
-                     "note the four days called next note"]
-        where isUncertainRequest(text) {
-            failures.append("an actionable or answer-shaped request was held as garble: \(text)")
+        // The positive corpus — ordinary speech the gate must never touch. Questions
+        // first, because they are the class the shape heuristic ate. This half of the
+        // fixture set was missing when the gate shipped, which is why it could stay
+        // green while the app was unusable.
+        for text in ["Can you hear me?", "can you hear me", "How are you doing?",
+                     "What time is it?", "Are you there?", "What can you do?",
+                     "Thanks, that's all", "yes", "no", "please",
+                     "open Safari", "Summarise my emails, list tomorrow's events",
+                     "note the four days called next note", "next note"] {
+            if let key = knownNoiseFragment(in: text) {
+                failures.append("ordinary speech was treated as noise (\(key)): \(text)")
+            }
         }
-        if isUncertainRequest("next note", knownEntities: ["Next Notes"]) {
-            failures.append("a sound-alike of a known name was held as garble: next note")
-        }
-        if isUncertainRequest("") != true {
-            failures.append("empty input was not held as garble")
+        if knownNoiseFragment(in: "") != nil {
+            failures.append("empty input matched the noise list")
         }
         // P0-6 bare acknowledgments resolve only against a pending intent.
         for text in ["yes", "use them", "do it", "Okay", "go ahead"] where !isBareAcknowledgment(text) {

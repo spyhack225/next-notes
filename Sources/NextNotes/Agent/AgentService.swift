@@ -222,11 +222,16 @@ final class AgentService {
                 self.problems[id] = AgentError.noProvider.localizedDescription
                 return
             }
+            // Assembled here rather than handed over by the notes pass: the agent resolves
+            // its own model, and a brief assembled for a local notes model must not reach a
+            // cloud agent that the graph's and files' consents were never given for.
+            let known = await self.knownContext(for: meeting, provider: provider)
             do {
                 let proposals = try await MeetingAgent.shared.proposals(
                     for: meeting,
                     segments: self.store.transcript(for: id),
                     notes: self.store.notes(for: id),
+                    brief: known.promptBlock.isEmpty ? nil : known.promptBlock,
                     provider: provider,
                     policy: AgentPolicy.fromSettings()
                 )
@@ -273,6 +278,14 @@ final class AgentService {
             Notifications.shared.withdrawAgentProposal(id: proposal.id)
             owners[proposal.id] = nil
         }
+    }
+
+    /// What the agent may know about the user while reading this meeting — the same brief
+    /// the notes pass uses, assembled for the agent's own reader so its consent decisions
+    /// are made for the model that is actually reading.
+    private func knownContext(for meeting: Meeting, provider: any LLMProvider) async -> MeetingNotesBrief {
+        guard Settings.shared.notesRelatedContext else { return .empty }
+        return await MeetingNotesContextAssembler.live.brief(for: meeting, reader: provider.id)
     }
 
     // MARK: - Answering

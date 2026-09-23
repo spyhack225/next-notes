@@ -6,7 +6,10 @@ import Foundation
 /// local Mac. Here the frontmost browser is inspected through Accessibility and URLs are
 /// opened with `NSWorkspace` — navigate → snapshot → element id → click/fill.
 enum BrowserToolExecutor {
-    private static let browserBundleIDs: Set<String> = [
+    /// actually drive. Internal rather than private so the Settings readiness row lists
+    /// the same set; a row saying "running" for a browser the tools would refuse is
+    /// worse than none.
+    static let browserBundleIDs: Set<String> = [
         "com.apple.Safari",
         "com.google.Chrome",
         "com.google.Chrome.canary",
@@ -61,6 +64,22 @@ enum BrowserToolExecutor {
                     arguments: ["id": args["id"] ?? "", "text": args["value"] ?? ""]
                 )
             }
+        case "cdp_status":
+            return cdpStatus()
+        case "relaunch_debug":
+            return try relaunchDebug()
+        case "read_page":
+            return readPageFallback()
+        case "wait":
+            // No CDP endpoint, no target list to poll. The AX path can read one document's
+            // URL, but `computer.wait_for` already covers waiting on window text, so a
+            // second URL poller behind a different grant would only blur which tool
+            // answered. Saying what is missing beats both.
+            return AgentToolResult(
+                summary: "No CDP debugger is answering on port \(BrowserCDPClient.defaultPort), "
+                    + "so browser.wait has nothing to poll. Run browser.cdp_status to see what "
+                    + "is missing, or browser.relaunch_debug to start a browser with the port open."
+            )
         default:
             throw AgentError.unknownTool(tool.id)
         }
@@ -112,6 +131,8 @@ enum BrowserToolExecutor {
         )
     }
 
+    /// The main-actor home of every read of the frontmost browser: it reads AppKit state
+    /// and, after a Chromium nudge, pumps the run loop the nudged tree populates on.
     @MainActor
     private static func snapshot() -> String {
         guard Permissions.hasAccessibility else {
@@ -123,10 +144,19 @@ enum BrowserToolExecutor {
             return "\(name) is not a browser. stub tree, 0 names. No elements were invented."
         }
         let body = AccessibilitySnapshot.capture(processID: app.processIdentifier, limit: 80)
-        if AccessibilitySnapshot.isStub(body) {
-            return "\(app.localizedName ?? "The browser"): \(body)"
+        guard AccessibilitySnapshot.isStub(body) else { return body }
+        // Chromium builds its tree only once somebody asks, and a stub is the walk that
+        // asked too early. One nudge — the attribute VoiceOver's clients use — and the
+        // same browser answers without a relaunch, a profile or a debugging port. If it
+        // still reads as a stub, the stub is the honest answer; pixels are the fallback
+        // for what the tree would not say.
+        if DebugBrowser.isChromiumFamily(bundle) {
+            AccessibilitySnapshot.enableManualAccessibility(processID: app.processIdentifier)
+            RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+            let nudged = AccessibilitySnapshot.capture(processID: app.processIdentifier, limit: 80)
+            if !AccessibilitySnapshot.isStub(nudged) { return nudged }
         }
-        return body
+        return "\(app.localizedName ?? "The browser"): \(body)"
     }
 
     // MARK: - Screenshot (P1-2, AX fallback)
@@ -162,6 +192,97 @@ enum BrowserToolExecutor {
             summary: "Screenshot of \(app.localizedName ?? "the browser") "
                 + "(\(image.pixelWidth)x\(image.pixelHeight), memory-only, never stored). "
                 + "Parked for a vision call; uploading it needs per-run consent."
+        )
+    }
+
+    // MARK: - Debugger status, relaunch and page read (P2-A)
+
+    /// `cdp_status` on the Accessibility path. Only the router knows which backend it
+    /// picked, so this re-probes the port rather than trusting the caller's implied
+    /// answer — the two probes can be seconds apart and the port may have come up.
+    @MainActor
+    private static func cdpStatus() -> AgentToolResult {
+        let host = BrowserCDPClient.defaultHost
+        let port = BrowserCDPClient.defaultPort
+        if let probe = BrowserCDPClient.probeSync() {
+            return AgentToolResult(
+                summary: "A CDP debugger is listening on \(host):\(port) — "
+                    + "\(probe.browser.isEmpty ? "a Chromium-family browser" : probe.browser), "
+                    + "\(probe.targets.count) page target(s)."
+            )
+        }
+        let running = DebugBrowser.runningNames()
+        if running.isEmpty {
+            return AgentToolResult(
+                summary: "No CDP debugger is listening on port \(port) and no Chromium-family "
+                    + "browser is running. Run browser.relaunch_debug to start one with the "
+                    + "debugging port open on a scratch profile."
+            )
+        }
+        return AgentToolResult(
+            summary: "\(running.joined(separator: " and ")) "
+                + (running.count == 1 ? "is" : "are")
+                + " running, but no CDP debugger is listening on port \(port). Quit it and run "
+                + "browser.relaunch_debug, which starts the browser again with the port open "
+                + "on a scratch profile."
+        )
+    }
+
+    /// `relaunch_debug` on the Accessibility path — the only path that does any launching,
+    /// because a listening port routes to CDP, where the same tool reports "already
+    /// listening" instead. The probe first is a guard for direct callers, not ceremony.
+    ///
+    /// The profile is the reason this is a `.modify` tool and not an afterthought: a
+    /// debugging port on the user's real profile is a remote-control door held open by a
+    /// toggle nobody can see. The scratch profile under this app's support directory is
+    /// reused across relaunches on purpose — it starts empty, stays signed out, and one
+    /// fixed folder cannot accumulate a profile per call.
+    @MainActor
+    private static func relaunchDebug() throws -> AgentToolResult {
+        let host = BrowserCDPClient.defaultHost
+        let port = BrowserCDPClient.defaultPort
+        if let probe = BrowserCDPClient.probeSync() {
+            return AgentToolResult(
+                summary: "A debugger is already listening on \(host):\(port) — "
+                    + "\(probe.browser.isEmpty ? "a Chromium-family browser" : probe.browser). "
+                    + "Nothing was launched."
+            )
+        }
+        do {
+            _ = try DebugBrowser.launchWithDebugPort()
+        } catch is DebugBrowser.SetupError {
+            return AgentToolResult(
+                summary: "No Chromium-family browser was found in /Applications, so nothing "
+                    + "was launched. Chrome, Edge, Brave or Chromium installed there would "
+                    + "all do."
+            )
+        } catch {
+            return AgentToolResult(
+                summary: "The browser could not be launched: \(error.localizedDescription)"
+            )
+        }
+        let profile = AppIdentity.applicationSupportDirectory
+            .appendingPathComponent("BrowserDebug", isDirectory: true)
+            .appendingPathComponent("scratch-profile", isDirectory: true)
+        return AgentToolResult(
+            summary: "Launched the agent's browser with "
+                + "--remote-debugging-port=\(BrowserCDPClient.defaultPort) on a scratch "
+                + "profile at \(profile.path) — never the user's real profile. Give it a "
+                + "few seconds, then run "
+                + "browser.cdp_status and snapshot."
+        )
+    }
+
+    /// `read_page` when no debugger answers: the frontmost browser's Accessibility
+    /// snapshot is what remains. The prefix says which path produced it, because the two
+    /// return different shapes — a title/URL/text page versus a labelled element tree —
+    /// and a model that cannot tell them apart will quote an element id as page text.
+    @MainActor
+    private static func readPageFallback() -> AgentToolResult {
+        AgentToolResult(
+            summary: "No CDP debugger answered on port \(BrowserCDPClient.defaultPort), so this "
+                + "page read came from the Accessibility fallback rather than the page "
+                + "itself:\n" + snapshot()
         )
     }
 
@@ -292,6 +413,133 @@ enum BrowserPurchaseCard {
         let method = arguments["paymentRef"]?.trimmingCharacters(in: .whitespacesAndNewlines)
         let methodText = (method?.isEmpty == false) ? method! : "the saved payment method"
         return "Pay \(amount) with \(methodText) (cap \(cap))"
+    }
+}
+
+// MARK: - Chromium binary detection and a debugging launch (P2-A)
+
+/// Where a Chromium-family browser lives on this Mac and how a debuggable copy of it is
+/// started. Safari and Firefox are browsers but not Chromium, so a debugging port means
+/// nothing to them and they are deliberately absent from both lists.
+enum DebugBrowser {
+    /// Checked in order, on disk. Disk is the honest question — "is there a binary to
+    /// launch" — and the port probe, not a bundle name, answers reachability.
+    private static let binaryCandidates: [String] = [
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+        "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    ]
+
+    /// Chromium-family bundle ids, for asking what is running. Not the
+    /// `browserBundleIDs` set above: that one answers "is the frontmost app a browser"
+    /// and must include Safari and Firefox, while this one answers "could a debugging
+    /// port belong to something here".
+    private static let chromiumBundleIDs: Set<String> = [
+        "com.google.Chrome",
+        "com.google.Chrome.canary",
+        "com.microsoft.edgemac",
+        "com.brave.Browser",
+        "org.chromium.Chromium",
+        "com.operasoftware.Opera",
+        "company.thebrowser.Browser",
+    ]
+
+    /// The first installed Chromium-family binary, or nil.
+    static func installed() -> (name: String, url: URL)? {
+        let fileManager = FileManager.default
+        for path in binaryCandidates {
+            let url = URL(fileURLWithPath: path)
+            var isDirectory: ObjCBool = false
+            guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory),
+                  !isDirectory.boolValue
+            else { continue }
+            return (name: url.deletingPathExtension().lastPathComponent, url: url)
+        }
+        return nil
+    }
+
+    /// Whether a bundle id is one of the browsers a debugging port could belong to.
+    /// Internal rather than private: the accessibility snapshot path asks the same
+    /// question before nudging `AXManualAccessibility`, and two disagreeing lists would
+    /// make the nudge hit browsers the tools would never drive.
+    static func isChromiumFamily(_ bundle: String?) -> Bool {
+        guard let bundle else { return false }
+        return chromiumBundleIDs.contains(bundle)
+    }
+
+    /// One browser process, its own scratch profile, the debugging port on — the whole
+    /// setup in one call, shared by the agent's `relaunch_debug` tool and the Settings
+    /// "Set up" button so the two can never drift apart. Nothing here touches the
+    /// user's real profile: a debugging port on it would be a remote-control door.
+    @MainActor
+    static func launchWithDebugPort() throws -> (name: String, process: Process) {
+        let port = BrowserCDPClient.defaultPort
+        guard let browser = installed() else {
+            throw SetupError.noBrowserInstalled
+        }
+        let profile = AppIdentity.applicationSupportDirectory
+            .appendingPathComponent("BrowserDebug", isDirectory: true)
+            .appendingPathComponent("scratch-profile", isDirectory: true)
+        try? FileManager.default.createDirectory(at: profile, withIntermediateDirectories: true)
+        let process = try launch(browser.url, arguments: [
+            "--remote-debugging-port=\(port)",
+            "--user-data-dir=\(profile.path)",
+            "--no-first-run",
+            "--no-default-browser-check",
+        ])
+        return (browser.name, process)
+    }
+
+    enum SetupError: LocalizedError {
+        case noBrowserInstalled
+
+        var errorDescription: String? {
+            switch self {
+            case .noBrowserInstalled:
+                "No Chrome, Edge, Brave or Chromium is installed — install one of those "
+                    + "and press Check again."
+            }
+        }
+    }
+
+    @MainActor
+    static func runningNames() -> [String] {
+        NSWorkspace.shared.runningApplications.compactMap { app in
+            guard let bundle = app.bundleIdentifier, chromiumBundleIDs.contains(bundle) else {
+                return nil
+            }
+            return app.localizedName ?? bundle
+        }
+    }
+
+    /// Launches one browser process and returns it running, without waiting for it.
+    ///
+    /// Both pipes get a readability handler before `run()` and lose it in the
+    /// termination handler — the rule `ShellProcess.launch` and the Workspace client
+    /// both follow. Reading only after exit is the documented failure: the tail a child
+    /// writes between the last drain and exit is gone by then, and a pipe nobody drains
+    /// at all fills up and stalls the child instead.
+    static func launch(_ binary: URL, arguments: [String]) throws -> Process {
+        let process = Process()
+        process.executableURL = binary
+        process.arguments = arguments
+        let standardOut = Pipe()
+        let standardError = Pipe()
+        process.standardOutput = standardOut
+        process.standardError = standardError
+        standardOut.fileHandleForReading.readabilityHandler = { handle in
+            _ = handle.availableData
+        }
+        standardError.fileHandleForReading.readabilityHandler = { handle in
+            _ = handle.availableData
+        }
+        process.terminationHandler = { [standardOut, standardError] _ in
+            standardOut.fileHandleForReading.readabilityHandler = nil
+            standardError.fileHandleForReading.readabilityHandler = nil
+        }
+        try process.run()
+        return process
     }
 }
 

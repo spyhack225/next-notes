@@ -124,5 +124,51 @@ enum BrowserToolCatalogue {
             title: "Purchase",
             preview: { BrowserPurchaseCard.preview(for: $0) }
         ),
+        .native(
+            namespace: .browser,
+            name: "cdp_status",
+            description: "Report whether a Chromium-family browser is running and whether a local "
+                + "Chrome DevTools debugging endpoint is answering on 127.0.0.1:9222. Probes the "
+                + "port rather than guessing from app names, and when the port is closed names "
+                + "the one move that opens it.",
+            risk: .observe,
+            title: "Browser debugger status"
+        ),
+        .native(
+            namespace: .browser,
+            name: "relaunch_debug",
+            description: "Start the installed Chromium-family browser with --remote-debugging-port=9222 "
+                + "on a scratch profile this app owns — never the user's real profile, because a "
+                + "debugging port left on it is a remote-control door. When the port already "
+                + "answers, reports that instead of launching anything.",
+            risk: .modify,
+            title: "Relaunch browser for debugging"
+        ),
+        .native(
+            namespace: .browser,
+            name: "read_page",
+            description: "Read the CDP target's page: title, URL and body text (about 8k characters). "
+                + "When no debugger answers, falls back to an Accessibility snapshot of the "
+                + "frontmost browser and says so in the result.",
+            risk: .observe,
+            parameters: [
+                .init(name: "targetId", description: "The CDP target id from snapshot.", isRequired: false),
+            ],
+            title: "Read browser page"
+        ),
+        .native(
+            namespace: .browser,
+            name: "wait",
+            description: "Poll the CDP target's URL until it contains expectedURL (a substring), "
+                + "for up to timeoutSeconds (default 5, capped at 30). When the time runs out it "
+                + "says so plainly and names what it was waiting for.",
+            risk: .observe,
+            parameters: [
+                .init(name: "expectedURL", description: "A substring the page URL must come to contain, e.g. checkout-complete."),
+                .init(name: "timeoutSeconds", description: "How long to poll, in seconds. Default 5, capped at 30.", isRequired: false),
+                .init(name: "targetId", description: "The CDP target id from snapshot.", isRequired: false),
+            ],
+            title: "Wait for browser URL"
+        ),
     ]
 }

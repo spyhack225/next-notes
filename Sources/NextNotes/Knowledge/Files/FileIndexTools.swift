@@ -61,7 +61,7 @@ enum FileIndexScope {
     static func mayRead(reader: LLMProviderID? = KnowledgeGraphScope.reader, cloudConsent: Bool) -> Bool {
         switch reader {
         // `localServer` is a loopback server on this same Mac: nothing leaves the machine.
-        case .gemma4E4B, .appleFoundation, .localServer: true
+        case .appLLM, .appleFoundation, .localServer: true
         case .openRouter, nil: cloudConsent
         }
     }
