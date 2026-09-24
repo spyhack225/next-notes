@@ -85,6 +85,23 @@ actor NotesModelRuntime {
         prefillChunkObserverForTesting = observer
     }
 
+    /// The warm-up in flight, so two signals share one and a caller can cancel it.
+    private var prewarmInFlight = false
+    /// Test-only replacement for the questions a prewarm asks. Nil in production.
+    private var prewarmProbeForTesting: PrewarmProbeForTesting?
+
+    /// What a prewarm asks, answerable without a model file so a self-test can drive the
+    /// contract on a Mac whose model is downloaded and one whose is not, the same way.
+    struct PrewarmProbeForTesting: Sendable {
+        var isModelAvailable: @Sendable () -> Bool
+        var isLocalRoute: @Sendable (Bool) async -> Bool
+        var onPrewarm: @Sendable () async -> Void
+    }
+
+    func setPrewarmProbeForTesting(_ probe: PrewarmProbeForTesting?) {
+        prewarmProbeForTesting = probe
+    }
+
     init(spec: ModelSpec, gpuLayers: Int32) {
         self.spec = spec
         self.gpuLayers = gpuLayers
@@ -197,6 +214,8 @@ actor NotesModelRuntime {
         _ candidate: ModelSpec, parameters: llama_model_params
     ) -> (OpaquePointer, OpaquePointer)? {
         guard FileManager.default.fileExists(atPath: candidate.fileURL.path) else { return nil }
+        // P0-13's unopenable-model probe counts every full-weight open.
+        LlamaLoadProbe.noteFullWeightLoad()
         guard let loaded = llama_model_load_from_file(candidate.fileURL.path, parameters) else { return nil }
         guard let vocabulary = llama_model_get_vocab(loaded) else {
             llama_model_free(loaded)
@@ -248,6 +267,86 @@ actor NotesModelRuntime {
     /// The usable prompt budget, once the model is loaded and its trained context is known.
     var contextTokens: Int {
         trainedContext > 0 ? min(trainedContext, Self.maxContextTokens) : Self.maxContextTokens
+    }
+
+    /// The lane a prewarm holds.
+    ///
+    /// Voice asks as a voice turn, but the warm-up must never hold the class the
+    /// live frontend acquires: equal priority does not preempt, so a cold 4B load at
+    /// `.realtimeAgent` queues the next spoken turn behind 11–25 s of weights and
+    /// prefill. A prewarm at `.background` is parked at the load's checkpoint the
+    /// moment the frontend asks for `.realtimeAgent`.
+    ///
+    /// `voice` stays in the signature for the log line; both routes warm at
+    /// `.background`.
+    nonisolated static func prewarmWorkClass(voice: Bool) -> WorkClass {
+        .background
+    }
+
+    /// Warm the weights ahead of an agent turn, without generating and without UI.
+    ///
+    /// Called when someone signals they are about to use the agent — the Agent pane opens,
+    /// a wake word or the shortcut opens a voice session, a voice turn routes to work —
+    /// and **never at launch**. The weights are gigabytes and this runtime releases them
+    /// after ten quiet minutes (`idleUnload`), so a launch-time load would hold them all day
+    /// for a feature used in bursts, and would usually have let them go again before the
+    /// first turn arrived. Prewarming on intent spends the same seconds while the person is
+    /// still typing or speaking, and the ten-minute timer reclaims them when the signal
+    /// never becomes a turn.
+    ///
+    /// A no-op when the weights are resident or a load is already in flight; when the
+    /// agent's own routing would not use this runtime — voice always prefers the built-in
+    /// model whatever the assistant role says, a typed turn asks the role, and a person on
+    /// OpenRouter or Apple's model never pays for a local load; and when the model file is
+    /// not on this Mac. Fire-and-forget: the caller gets the task and may cancel it, and a
+    /// turn that arrives meanwhile shares the same `loadTask` rather than starting a second.
+    @discardableResult
+    nonisolated func prewarm(voice: Bool = false) -> Task<Void, Never> {
+        Task { await self.prewarmIfNeeded(voice: voice) }
+    }
+
+    private func prewarmIfNeeded(voice: Bool) async {
+        // A self-test must never pull gigabytes into memory as a side effect of driving
+        // the UI or a voice session; the probe is how the contract is exercised instead.
+        guard !SelfTest.isRunning || prewarmProbeForTesting != nil else { return }
+        guard model == nil, loadTask == nil, !prewarmInFlight else { return }
+        prewarmInFlight = true
+        defer { prewarmInFlight = false }
+
+        let available: Bool
+        if let probe = prewarmProbeForTesting {
+            available = probe.isModelAvailable()
+        } else {
+            available = await activeSpec().isDownloaded
+        }
+        guard available else { return }
+
+        let isLocal: Bool
+        if let probe = prewarmProbeForTesting {
+            isLocal = await probe.isLocalRoute(voice)
+        } else {
+            isLocal = await AgentModelRouting.resolvesToLocalModel(voice: voice)
+        }
+        guard isLocal else { return }
+
+        // The actor re-entered across the awaits above: a real turn may have loaded or
+        // started loading the weights in that window, and a cancelled caller no longer
+        // wants them.
+        guard !Task.isCancelled, model == nil, loadTask == nil else { return }
+
+        if let probe = prewarmProbeForTesting {
+            await probe.onPrewarm()
+            return
+        }
+        let workClass = Self.prewarmWorkClass(voice: voice)
+        let route = voice ? "voice" : "typed"
+        Log.llm.info(
+            "model prewarm lane=\(workClass.rawValue, privacy: .public) route=\(route, privacy: .public)")
+        do {
+            try await prepareForConversation(workClass: workClass)
+        } catch {
+            Log.llm.info("model prewarm skipped: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     /// Loads the weights without generating, so the first meeting to finish doesn't pay the
@@ -602,7 +701,11 @@ actor NotesModelRuntime {
                 applyPendingSpec()
             }
         }
-        let jobID = await ComputeScheduler.shared.acquire(workClass)
+        let jobID = await ComputeScheduler.shared.acquireCancellable(workClass)
+        guard let jobID else {
+            queueTrace.end(note: "app_llm class=\(workClass.rawValue) canceled")
+            throw CancellationError()
+        }
         queueTrace.end(note: "app_llm class=\(workClass.rawValue)")
         do {
             let result = try await body(jobID)
@@ -698,7 +801,218 @@ actor NotesModelRuntime {
         _ = await voice.result
         _ = await background.result
         let observed = await order.values
-        return allQueued && canceledRemoved && observed == ["voice", "background"]
+        guard allQueued && canceledRemoved && observed == ["voice", "background"] else { return false }
+        var failures: [String] = []
+
+        // Case 1 — the prewarm lane does not block the frontend. A prewarm held at
+        // `prewarmWorkClass(voice: true)` must not delay an acquire of the class the
+        // live frontend takes (`.realtimeAgent`): the prewarm has to be preemptible.
+        let prewarmClass = NotesModelRuntime.prewarmWorkClass(voice: true)
+        let holder = await ComputeScheduler.shared.acquire(prewarmClass)
+        let frontendWaiter = Task { await ComputeScheduler.shared.acquire(.realtimeAgent) }
+        let acquired = await withBoundedWait(.milliseconds(200)) { await frontendWaiter.value }
+        await ComputeScheduler.shared.release(holder)
+        let frontendJob = await frontendWaiter.value
+        await ComputeScheduler.shared.release(frontendJob)
+        if acquired == nil {
+            failures.append(
+                "prewarm lane: a prewarm at \(prewarmClass.rawValue) blocked a realtimeAgent acquire past 200 ms")
+        }
+
+        // Case 2 — a cancelled acquire leaves the queue. The waiter returns nil and
+        // stops occupying a place behind the lane holder.
+        let lane = await ComputeScheduler.shared.acquire(.realtimeAgent)
+        let cancelledWaiter = Task { await ComputeScheduler.shared.acquireCancellable(.background) }
+        try? await Task.sleep(for: .milliseconds(50))
+        cancelledWaiter.cancel()
+        let cancellationResult = await withBoundedWait(.milliseconds(100)) { await cancelledWaiter.value }
+        let backgroundStillQueued = await ComputeScheduler.shared.isBusy(.background)
+        await ComputeScheduler.shared.release(lane)
+        if let leaked = await cancelledWaiter.value {
+            await ComputeScheduler.shared.release(leaked)
+        }
+        if cancellationResult == nil {
+            failures.append("cancellable acquire: a cancelled waiter did not return within 100 ms")
+        } else if cancellationResult! != nil {
+            failures.append("cancellable acquire: a cancelled waiter returned a job id instead of nil")
+        }
+        if backgroundStillQueued {
+            failures.append("cancellable acquire: a cancelled waiter stayed in the scheduler queue")
+        }
+
+        // Case 3 — a drain-barrier timeout detaches. The first generation stays open
+        // past the 2 s barrier, so the next committed turn must continue on a fresh
+        // session instead of failing with `FrontendError.unavailable`.
+        let frontend = LocalVoiceFrontend.shared
+        let generatorCalls = VoiceDrainProbeCounter()
+        await frontend.setGenerationForTesting { _, _, _ in
+            if generatorCalls.next() == 1 {
+                return AsyncThrowingStream { continuation in
+                    DispatchQueue.global().asyncAfter(deadline: .now() + 3) {
+                        continuation.finish()
+                    }
+                }
+            }
+            return AsyncThrowingStream { continuation in
+                continuation.yield("Second.")
+                continuation.finish()
+            }
+        }
+        let system = "Voice scheduling probe."
+        let firstRequest: [LLMChatMessage] = [
+            .init(role: .user, content: "Latest user speech:\nFirst turn.")
+        ]
+        let secondRequest: [LLMChatMessage] = [
+            .init(role: .user, content: "Latest user speech:\nSecond turn.")
+        ]
+        // Turn 1: a speculation whose producer stays open past the barrier.
+        await frontend.speculate(system: system, messages: firstRequest, maxTokens: 64, revision: 1)
+        var speculationStarted = false
+        for _ in 0..<100 {
+            if generatorCalls.count >= 1 { speculationStarted = true; break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        if !speculationStarted {
+            failures.append("drain detach: the probe speculation never reached the generator")
+        }
+        // Turn 2: commit the same request, which records the drain barrier. The
+        // returned buffer is consumed by a task nothing cancels, so the old
+        // producer is not torn down before the next turn's drain.
+        let committed = await frontend.stream(
+            system: system, messages: firstRequest, maxTokens: 64, commitRevision: 2)
+        Task {
+            for try await _ in committed {}
+        }
+        try? await Task.sleep(for: .milliseconds(100))
+        // Turn 3: the next committed turn must detach from the stuck producer.
+        let next = await frontend.stream(
+            system: system, messages: secondRequest, maxTokens: 64, commitRevision: 3)
+        let outcome = await withBoundedWait(.milliseconds(2_500)) { () -> VoiceDrainOutcome in
+            var text = ""
+            do {
+                for try await delta in next { text += delta }
+                return VoiceDrainOutcome(text: text, error: nil)
+            } catch {
+                return VoiceDrainOutcome(text: text, error: error.localizedDescription)
+            }
+        }
+        await frontend.setGenerationForTesting(nil)
+        if let outcome {
+            if let error = outcome.error {
+                failures.append("drain detach: the next turn failed instead of detaching: \(error)")
+            } else if outcome.text != "Second." {
+                failures.append(
+                    "drain detach: the next turn answered '\(outcome.text)' instead of detaching to a fresh session")
+            }
+        } else {
+            failures.append("drain detach: the next turn did not answer within 2.5 s")
+        }
+
+        for failure in failures {
+            await MainActor.run { SelfTest.diagnostic("VOICE_SCHEDULING_WRONG: \(failure)") }
+        }
+        if !failures.isEmpty { return false }
+        return await prewarmSelfTest()
+    }
+
+    /// The prewarm contract, driven through the entry point with no GGUF: each gate
+    /// suppresses the warm-up, and two signals while one is in flight share it. The probe
+    /// stands in for the file and the routing question, so this is the same test on a Mac
+    /// with a model downloaded and one without. Runs under `--selftest-voice-scheduling`.
+    static func prewarmSelfTest() async -> Bool {
+        let runtime = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: 0)
+        var failures: [String] = []
+
+        // 1. A role on another model — OpenRouter, Apple's, a local server — never warms
+        //    this runtime, whatever the file situation is.
+        let blocked = PrewarmProbeCounter()
+        await runtime.setPrewarmProbeForTesting(PrewarmProbeForTesting(
+            isModelAvailable: { true },
+            isLocalRoute: { _ in false },
+            onPrewarm: { await blocked.increment() }
+        ))
+        await runtime.prewarm().value
+        if await blocked.count != 0 {
+            failures.append("a non-local assistant role warmed the local model")
+        }
+
+        // 2. A model that is not on this Mac is not a load to start.
+        let missing = PrewarmProbeCounter()
+        await runtime.setPrewarmProbeForTesting(PrewarmProbeForTesting(
+            isModelAvailable: { false },
+            isLocalRoute: { _ in true },
+            onPrewarm: { await missing.increment() }
+        ))
+        await runtime.prewarm().value
+        if await missing.count != 0 {
+            failures.append("a missing model file started a prewarm")
+        }
+
+        // 3. A second signal while the first warm-up is still running shares it. The
+        //    parked probe holds the first one open; the second must not start its own.
+        let gate = NotesShutdownProbeGate()
+        let coalesced = PrewarmProbeCounter()
+        await runtime.setPrewarmProbeForTesting(PrewarmProbeForTesting(
+            isModelAvailable: { true },
+            isLocalRoute: { _ in true },
+            onPrewarm: {
+                await coalesced.increment()
+                await gate.park()
+            }
+        ))
+        let first = runtime.prewarm()
+        for _ in 0..<100 {
+            if await gate.started { break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        guard await gate.started else {
+            await runtime.setPrewarmProbeForTesting(nil)
+            return false
+        }
+        let second = runtime.prewarm()
+        _ = await second.value
+        await gate.release()
+        _ = await first.value
+        let starts = await coalesced.count
+        if starts != 1 {
+            failures.append("concurrent prewarms started \(starts) warm-ups")
+        }
+
+        await runtime.setPrewarmProbeForTesting(nil)
+        let wiring = await prewarmWiringSelfTest()
+        if !wiring {
+            failures.append("opening a voice session did not ask the entry point for a warm-up")
+        }
+        return failures.isEmpty
+    }
+
+    /// The activation path's half of the contract: opening a voice session asks the entry
+    /// point for a warm-up. The typed half is the same one-line call from the Agent pane and
+    /// has no seam a headless test can drive; this at least pins that the seam a person
+    /// reaches first — the shortcut or the wake word — is wired, not just the runtime.
+    @MainActor
+    static func prewarmWiringSelfTest() async -> Bool {
+        let probe = PrewarmProbeCounter()
+        await NotesModelRuntime.shared.setPrewarmProbeForTesting(PrewarmProbeForTesting(
+            isModelAvailable: { true },
+            isLocalRoute: { _ in true },
+            onPrewarm: { await probe.increment() }
+        ))
+        ActivationController.shared.beginAgent(source: "selftest-prewarm")
+        var asked = false
+        for _ in 0..<100 {
+            if await probe.count > 0 { asked = true; break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        await NotesModelRuntime.shared.setPrewarmProbeForTesting(nil)
+        // `beginAgent` opens the capture session on its own task; close the one it opened
+        // before returning so this test leaves no session behind.
+        for _ in 0..<100 {
+            if AgentCaptureController.shared.isSessionActive { break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        await AgentCaptureController.shared.endSession(source: .done)
+        return asked
     }
 
     private func releaseNativeContext() {
@@ -1115,4 +1429,32 @@ private actor NotesShutdownProbeGate {
 private actor NativeReservationProbe {
     private(set) var values: [String] = []
     func append(_ value: String) { values.append(value) }
+}
+
+private actor PrewarmProbeCounter {
+    private(set) var count = 0
+    func increment() { count += 1 }
+}
+
+/// The result of one `--selftest-voice-scheduling` drain probe: the text a committed
+/// turn produced, or the error it threw, whichever came first.
+private struct VoiceDrainOutcome: Sendable {
+    let text: String
+    let error: String?
+}
+
+/// Counts `setGenerationForTesting` calls. The generator is synchronous, so the count
+/// cannot live in an actor.
+private final class VoiceDrainProbeCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+
+    func next() -> Int {
+        lock.withLock {
+            value += 1
+            return value
+        }
+    }
+
+    var count: Int { lock.withLock { value } }
 }

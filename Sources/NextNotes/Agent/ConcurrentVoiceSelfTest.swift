@@ -39,7 +39,19 @@ enum ConcurrentVoiceSelfTest {
             agent.userSpeechEnded()
             return await agent.handle(text, source: .voice)
         }
+        // P0-06: the worker prewarm belongs to plausible work, never to speech start.
+        let prewarmCount = PrewarmTriggerCounter()
+        conversation.prewarmObserverForTesting = { prewarmCount.value += 1 }
+        agent.userSpeechStarted()
+        for _ in 0..<10 where prewarmCount.value == 0 { try? await Task.sleep(for: .milliseconds(5)) }
+        check(prewarmCount.value == 0, "speech start prewarmed the worker model")
         _ = await speak("Check my calendar.")
+        for _ in 0..<50 {
+            if prewarmCount.value == 1 { break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        check(prewarmCount.value == 1, "a .newWork route did not prewarm the worker model")
+        conversation.prewarmObserverForTesting = nil
         for _ in 0..<50 {
             if await probe.count == 1 { break }
             try? await Task.sleep(for: .milliseconds(10))
@@ -123,7 +135,7 @@ enum ConcurrentVoiceSelfTest {
         conversation.resetForTesting()
         await capture.endSession(source: .done)
         synth.restoreSystemBacking()
-        for failure in failures { print("CONCURRENT_VOICE_WRONG: \(failure)") }
+        for failure in failures { SelfTest.diagnostic("CONCURRENT_VOICE_WRONG: \(failure)") }
         print(failures.isEmpty ? "CONCURRENT_VOICE_OK" : "CONCURRENT_VOICE_FAILED")
         return failures.isEmpty
     }
@@ -145,4 +157,10 @@ private actor ConcurrentWorkProbe {
         }
     }
     func releaseFrontend() { frontendReleased = true }
+}
+
+/// Counts `prewarmWorkerModel` triggers through the coordinator's test seam.
+@MainActor
+private final class PrewarmTriggerCounter {
+    var value = 0
 }

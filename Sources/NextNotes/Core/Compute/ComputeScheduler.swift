@@ -86,9 +86,11 @@ actor ComputeScheduler: ComputeScheduling {
     private var parked: [ComputeJob] = []
     private var running: ComputeJob?
 
-    /// Continuations for jobs that called `acquire` or `checkpoint` while
-    /// not currently `running`. Resumed from `start(_:)`.
-    private var resumeWaiters: [UUID: CheckedContinuation<Void, Never>] = [:]
+    /// Continuations for jobs that called `acquire` / `acquireCancellable` or
+    /// `checkpoint` while not currently `running`. Resumed from `start(_:)`
+    /// with `true` (the job is running) or from `release(_:)` / `cancelWaiter(_:)`
+    /// with `false` (the wait ended without the lane).
+    private var resumeWaiters: [UUID: CheckedContinuation<Bool, Never>] = [:]
 
     private(set) var recordedOrder: [WorkClass] = []
     private(set) var yieldEvents: [ComputeYield] = []
@@ -139,16 +141,62 @@ actor ComputeScheduler: ComputeScheduling {
     /// Registers a job of `workClass` and suspends until it is the running
     /// job. Pair with `release(_:)` (and optional `checkpoint(_:)` inside
     /// long bodies).
+    ///
+    /// This form deliberately does not observe cancellation: its callers
+    /// (dictation ASR, meeting transcription, the residency probes) have no way
+    /// to report an abandoned wait, and one that unwound without the lane would
+    /// run outside it. A wait that wants to leave the queue on cancellation
+    /// uses `acquireCancellable`.
     func acquire(_ workClass: WorkClass) async -> UUID {
         let job = ComputeJob(workClass: workClass)
         submit(job)
         if running?.id == job.id {
             return job.id
         }
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+        await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
             resumeWaiters[job.id] = continuation
         }
         return job.id
+    }
+
+    /// Registers a job of `workClass` and suspends until it is the running
+    /// job, or until the caller is cancelled while waiting. `nil` means the
+    /// caller was cancelled and nothing was acquired — the job is removed from
+    /// the queue, so a cancelled wait does not hold a place behind a
+    /// long-running body.
+    func acquireCancellable(_ workClass: WorkClass) async -> UUID? {
+        let job = ComputeJob(workClass: workClass)
+        submit(job)
+        if running?.id == job.id {
+            return job.id
+        }
+        let acquired = await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+                // The handler may already have run `cancelWaiter` before this
+                // closure was reached; the flag is set first, so this cannot
+                // register a continuation nobody will resume — and the job must
+                // not be left holding a place in the queue either way.
+                if Task.isCancelled {
+                    cancelWaiter(job.id)
+                    continuation.resume(returning: false)
+                } else {
+                    resumeWaiters[job.id] = continuation
+                }
+            }
+        } onCancel: {
+            Task { await self.cancelWaiter(job.id) }
+        }
+        return acquired ? job.id : nil
+    }
+
+    /// Drops a cancelled waiter: it leaves both queues and its continuation
+    /// resumes with `false`, so `acquireCancellable` returns nil.
+    private func cancelWaiter(_ id: UUID) {
+        parked.removeAll { $0.id == id }
+        queued.removeAll { $0.id == id }
+        if let waiter = resumeWaiters.removeValue(forKey: id) {
+            waiter.resume(returning: false)
+        }
     }
 
     /// If `id` was preempted into `parked`, suspend until it is running again.
@@ -160,9 +208,9 @@ actor ComputeScheduler: ComputeScheduling {
         if running?.id == id { return }
         let known = parked.contains { $0.id == id } || queued.contains { $0.id == id }
         guard known else { return }
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+        await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
             if running?.id == id {
-                continuation.resume()
+                continuation.resume(returning: true)
                 return
             }
             resumeWaiters[id] = continuation
@@ -179,7 +227,7 @@ actor ComputeScheduler: ComputeScheduling {
         parked.removeAll { $0.id == id }
         queued.removeAll { $0.id == id }
         if let waiter = resumeWaiters.removeValue(forKey: id) {
-            waiter.resume()
+            waiter.resume(returning: false)
         }
     }
 
@@ -210,7 +258,7 @@ actor ComputeScheduler: ComputeScheduling {
         running = job
         recordedOrder.append(job.workClass)
         if let waiter = resumeWaiters.removeValue(forKey: job.id) {
-            waiter.resume()
+            waiter.resume(returning: true)
         }
     }
 

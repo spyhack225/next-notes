@@ -37,6 +37,10 @@ final class VoiceConversationCoordinator {
     /// The availability gate's test seam. Production reads Apple's own answer;
     /// a self-test cannot turn Apple Intelligence off, so it injects one here.
     var frontendUnavailableReasonForTesting: String?
+    /// The prewarm trigger's test seam. When set, a prewarm request calls this
+    /// instead of loading the runtime, so a self-test can count triggers without
+    /// pulling gigabytes into memory. Nil in production.
+    var prewarmObserverForTesting: (@MainActor () -> Void)?
     var hasActiveWork: Bool { jobs.contains { $0.status == "running" } }
 
     /// A tool-shaped request the frontend answered instead of delegating (P0-6).
@@ -203,30 +207,36 @@ final class VoiceConversationCoordinator {
         inputPending = true
         responseTask?.cancel()
         responseID = UUID()
-        prewarmWorkerModel()
     }
 
-    /// Load the tool-planning model while the person is still speaking.
+    /// Load the tool-planning model once a turn has actually routed to work.
     ///
     /// `AgentCaptureController` takes a residency lease when the microphone opens but
     /// deliberately does not load: "opening its microphone must not load and prefill a 4B
-    /// worker before there is any work." True at microphone-open; false once somebody has
-    /// started a sentence. From `metrics.jsonl`, a cold load of the app LLM
+    /// worker before there is any work." Speech is not work either — most turns are
+    /// answered by the frontend — so the trigger is the two routes that submit a job
+    /// (the tool-shape gate and the model's `<use_tools/>` decision), fired just before
+    /// the "I'm on it." reply. From `metrics.jsonl`, a cold load of the app LLM
     /// (Qwen3.5-4B at the time) on this Mac took
     /// 11.78 s, 19.37 s, 22.00 s and 25.06 s, and on 2026-09-19T23:04 the whole of it sat
     /// between "I'm on it." and the answer.
     ///
-    /// Once per session, never when the weights are already resident, and on the scheduler's
-    /// background lane so a meeting or a dictation still outranks it.
+    /// Once per session, through the one prewarm entry point: resident weights, a load
+    /// already in flight, a role on another model and a model that is not on this Mac all
+    /// come back as a no-op there. Voice asks as a voice turn — always the built-in model —
+    /// and `NotesModelRuntime.prewarm` carries the why-not-at-launch.
     private func prewarmWorkerModel() {
-        guard !SelfTest.isRunning, streamForTesting == nil, !didPrewarmWorker else { return }
+        guard !didPrewarmWorker else { return }
+        if let prewarmObserverForTesting {
+            didPrewarmWorker = true
+            prewarmObserverForTesting()
+            return
+        }
+        guard !SelfTest.isRunning, streamForTesting == nil else { return }
         didPrewarmWorker = true
         Task { @MainActor in
-            guard AgentCaptureController.shared.isSessionActive,
-                  await !NotesModelRuntime.shared.isLoaded else { return }
-            do { try await NotesModelRuntime.shared.prepareForConversation() } catch {
-                Log.agent.info("worker prewarm skipped: \(error.localizedDescription, privacy: .public)")
-            }
+            guard AgentCaptureController.shared.isSessionActive else { return }
+            _ = NotesModelRuntime.shared.prewarm(voice: true)
         }
     }
 
@@ -374,6 +384,7 @@ final class VoiceConversationCoordinator {
             AgentAuditLog.shared.record(kind: .request, title: text,
                 detail: "tool_shape_route(\(route.route)) → newWork; planner keeps the decision")
             resolveInput(epoch: inputEpoch)
+            prewarmWorkerModel()
             submit(route.text)
             return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
         }
@@ -512,6 +523,7 @@ final class VoiceConversationCoordinator {
                                                      turn: turn, streamed: false)
                 }
                 resolveInput(epoch: inputEpoch)
+                prewarmWorkerModel()
                 submit(text)
                 return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
             case .revise(let index):
@@ -725,6 +737,7 @@ final class VoiceConversationCoordinator {
         streamForTesting = nil
         workerForTesting = nil
         frontendUnavailableReasonForTesting = nil
+        prewarmObserverForTesting = nil
         lastFailure = nil
         responseDeadlineForTesting = nil
     }
@@ -757,7 +770,7 @@ final class VoiceConversationCoordinator {
 
     /// The single-call `<answer/>`/`<use_tools/>` envelope contract. Legacy probes only.
     nonisolated static let legacyEnvelopePrompt = """
-        You speak for the Next Notes application on this Mac. The supplied inventory
+        You speak for this application on this Mac. The supplied inventory
         describes this application's implemented features, including features needing
         a connection or permission. Explain those features when asked what you can do.
         Include every inventory category in a complete overview, including features

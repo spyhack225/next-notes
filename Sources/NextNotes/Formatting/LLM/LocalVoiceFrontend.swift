@@ -108,6 +108,11 @@ actor LocalVoiceFrontend {
     private var sealedThroughEpoch: UInt64 = 0
     private var drainBarrier: Task<Void, Never>?
     private var nativeGeneration: Task<Void, Never>?
+    /// The newest generation a later turn detached from. A producer whose own
+    /// `GenerationTiming.id` is older must stop delivering text: the turn that
+    /// owned it has moved on, and its consumer may not have been cancelled (a
+    /// speculation buffer's reader survives the detach).
+    private var abandonedGeneration: UInt64 = 0
     private var generationForTesting: (@Sendable (String, [LLMChatMessage], Int) -> AsyncThrowingStream<String, Error>)?
     private var schedulerAcquiredObserverForTesting: (@Sendable () -> Void)?
 
@@ -176,6 +181,7 @@ actor LocalVoiceFrontend {
             do {
                 for try await delta in stream {
                     try Task.checkCancellation()
+                    guard timing.id >= self.abandonedGeneration else { break }
                     await buffer.append(delta)
                 }
                 await buffer.complete(error: nil)
@@ -245,7 +251,9 @@ actor LocalVoiceFrontend {
                 if let reason = FoundationModelFormatter.unavailableReason {
                     throw FrontendError.unavailable(reason)
                 }
-                let jobID = await ComputeScheduler.shared.acquire(.realtimeAgent)
+                guard let jobID = await ComputeScheduler.shared.acquireCancellable(.realtimeAgent) else {
+                    throw CancellationError()
+                }
                 do {
                     let session = LanguageModelSession(instructions: "Answer briefly.")
                     session.prewarm()
@@ -347,15 +355,20 @@ actor LocalVoiceFrontend {
         timing: GenerationTiming
     ) async -> AsyncThrowingStream<String, Error> {
         let barrierStarted = ContinuousClock.now
-        guard await Self.waitForPriorInference(drain) else {
-            Self.emitTiming(timing, "drain_barrier_failed", durationFrom: barrierStarted)
-            return AsyncThrowingStream { continuation in
-                continuation.finish(throwing: FrontendError.unavailable(
-                    "Previous voice inference did not stop."))
+        if await Self.waitForPriorInference(drain) {
+            if drain != nil {
+                Self.emitTiming(timing, "drain_barrier_done", durationFrom: barrierStarted)
             }
-        }
-        if drain != nil {
-            Self.emitTiming(timing, "drain_barrier_done", durationFrom: barrierStarted)
+        } else {
+            // The prior inference did not stop inside the barrier. A live turn cannot
+            // wait for it: detach rather than fail. Nothing the abandoned producer
+            // yields from here on is delivered, and this turn runs on a fresh session
+            // — Apple FM sessions share no inference state, so the old one is never
+            // reused and the old native task is never awaited.
+            abandonedGeneration = timing.id
+            Self.emitTiming(timing, "drain_barrier_detached", durationFrom: barrierStarted)
+            drainBarrier = nil
+            nativeGeneration = nil
         }
         if let generationForTesting {
             Self.emitTiming(timing, "testing_generator_returned")
@@ -385,7 +398,9 @@ actor LocalVoiceFrontend {
                         staged = self.takeStagedSession()
                     }
                     let schedulerStarted = ContinuousClock.now
-                    let jobID = await ComputeScheduler.shared.acquire(.realtimeAgent)
+                    guard let jobID = await ComputeScheduler.shared.acquireCancellable(.realtimeAgent) else {
+                        throw CancellationError()
+                    }
                     Self.emitTiming(timing, "scheduler_acquire_done", durationFrom: schedulerStarted)
                     acquiredObserver?()
                     do {
@@ -413,13 +428,13 @@ actor LocalVoiceFrontend {
                         }
                         var produced = false
                         if useSplitDecision {
-                            produced = try await Self.streamSplitDecision(
+                            produced = try await self.streamSplitDecision(
                                 system: system, messages: messages, maxTokens: maxTokens, continuation: continuation,
                                 timing: timing
                             )
                         } else if useTypedResponse {
                             guard let session else { throw FrontendError.typedDecisionIncomplete }
-                            produced = try await Self.streamTypedResponse(
+                            produced = try await self.streamTypedResponse(
                                 session: session, prompt: prompt, maxTokens: maxTokens,
                                 continuation: continuation, timing: timing
                             )
@@ -445,7 +460,7 @@ actor LocalVoiceFrontend {
                                 let stoppingPrefix = Self.controlEnvelopePrefix(current)
                                 let delivered = stoppingPrefix ?? current
                                 let delta = String(delivered.dropFirst(previous.count))
-                                if !delta.isEmpty { continuation.yield(delta) }
+                                if !delta.isEmpty, mayDeliver(timing) { continuation.yield(delta) }
                                 if !delta.isEmpty, stoppingPrefix == nil, !reportedFirstAnswerText {
                                     reportedFirstAnswerText = true
                                     Self.emitTiming(timing, "first_answer_text")
@@ -480,7 +495,7 @@ actor LocalVoiceFrontend {
 
     /// Resolve the two-stage route. The route is collected as a complete
     /// value before any answer text or control envelope is delivered.
-    private static func streamSplitDecision(
+    private func streamSplitDecision(
         system: String,
         messages: [LLMChatMessage],
         maxTokens: Int,
@@ -503,7 +518,7 @@ actor LocalVoiceFrontend {
         // Generable value. Partial snapshots are intentionally never routed.
         let routeCollectStarted = ContinuousClock.now
         let routeResponse = try await routeStream.collect()
-        emitTiming(timing, "typed_route_collect_done", durationFrom: routeCollectStarted)
+        Self.emitTiming(timing, "typed_route_collect_done", durationFrom: routeCollectStarted)
         try Task.checkCancellation()
         let route = routeResponse.content
         // Log the decision boundary, not private conversation content. A live
@@ -515,22 +530,22 @@ actor LocalVoiceFrontend {
 
         switch route.intent {
         case .describeCapabilities:
-            continuation.yield("<capabilities/>")
+            if mayDeliver(timing) { continuation.yield("<capabilities/>") }
             return true
         case .startExternalTask:
-            continuation.yield("<use_tools/>")
+            if mayDeliver(timing) { continuation.yield("<use_tools/>") }
             return true
         case .reviseRunningTask:
             guard let taskNumber = route.taskNumber, taskNumber > 0 else {
                 throw FrontendError.typedDecisionIncomplete
             }
-            continuation.yield("<revise id=\"\(taskNumber)\"/>")
+            if mayDeliver(timing) { continuation.yield("<revise id=\"\(taskNumber)\"/>") }
             return true
         case .cancelRunningTask:
             guard let taskNumber = route.taskNumber, taskNumber > 0 else {
                 throw FrontendError.typedDecisionIncomplete
             }
-            continuation.yield("<cancel id=\"\(taskNumber)\"/>")
+            if mayDeliver(timing) { continuation.yield("<cancel id=\"\(taskNumber)\"/>") }
             return true
         case .answerQuestion:
             try Task.checkCancellation()
@@ -552,7 +567,7 @@ actor LocalVoiceFrontend {
 
     /// Stream only the answer-stage prose. The envelope is owned by this
     /// frontend, so an answer-stage model cannot request an effect.
-    private static func streamSplitAnswer(
+    private func streamSplitAnswer(
         session: LanguageModelSession,
         prompt: String,
         maxTokens: Int,
@@ -581,12 +596,12 @@ actor LocalVoiceFrontend {
             }
             if !current.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 if !started {
-                    continuation.yield("<answer/>")
+                    if mayDeliver(timing) { continuation.yield("<answer/>") }
                     started = true
-                    emitTiming(timing, "first_answer_text")
+                    Self.emitTiming(timing, "first_answer_text")
                 }
                 let delta = String(current.dropFirst(previous.count))
-                if !delta.isEmpty { continuation.yield(delta) }
+                if !delta.isEmpty, mayDeliver(timing) { continuation.yield(delta) }
             }
             previous = current
         }
@@ -597,7 +612,7 @@ actor LocalVoiceFrontend {
     /// Consume structured snapshots without exposing the model's partial object
     /// to the coordinator. Only an answer's monotonic speech field is streamed;
     /// controls are emitted once the final intent and required task number exist.
-    private static func streamTypedResponse(
+    private func streamTypedResponse(
         session: LanguageModelSession,
         prompt: String,
         maxTokens: Int,
@@ -641,10 +656,10 @@ actor LocalVoiceFrontend {
                         Self.emitTiming(timing, "first_answer_text")
                     }
                     if emittedSpeech.isEmpty {
-                        continuation.yield("<answer/>")
+                        if mayDeliver(timing) { continuation.yield("<answer/>") }
                     }
                     let delta = String(speech.dropFirst(emittedSpeech.count))
-                    if !delta.isEmpty { continuation.yield(delta) }
+                    if !delta.isEmpty, mayDeliver(timing) { continuation.yield(delta) }
                     emittedSpeech = speech
                 }
             }
@@ -661,24 +676,30 @@ actor LocalVoiceFrontend {
             }
             return !emittedSpeech.isEmpty
         case .capabilities:
-            continuation.yield("<capabilities/>")
+            if mayDeliver(timing) { continuation.yield("<capabilities/>") }
             return true
         case .newWork:
-            continuation.yield("<use_tools/>")
+            if mayDeliver(timing) { continuation.yield("<use_tools/>") }
             return true
         case .revise:
             guard let taskNumber = latestTaskNumber, taskNumber > 0 else {
                 throw FrontendError.typedDecisionIncomplete
             }
-            continuation.yield("<revise id=\"\(taskNumber)\"/>")
+            if mayDeliver(timing) { continuation.yield("<revise id=\"\(taskNumber)\"/>") }
             return true
         case .cancel:
             guard let taskNumber = latestTaskNumber, taskNumber > 0 else {
                 throw FrontendError.typedDecisionIncomplete
             }
-            continuation.yield("<cancel id=\"\(taskNumber)\"/>")
+            if mayDeliver(timing) { continuation.yield("<cancel id=\"\(taskNumber)\"/>") }
             return true
         }
+    }
+
+    /// False once a later turn has detached from this generation: the producer
+    /// must stop delivering text, because the turn that owned it has moved on.
+    private func mayDeliver(_ timing: GenerationTiming) -> Bool {
+        timing.id >= abandonedGeneration
     }
 
     private func takeStagedSession() -> LanguageModelSession? {
