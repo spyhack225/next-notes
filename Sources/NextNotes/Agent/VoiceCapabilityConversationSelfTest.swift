@@ -182,8 +182,16 @@ enum VoiceCapabilityConversationSelfTest {
             if coordinator.hasActiveWork || !coordinator.jobs.isEmpty {
                 failures.append(label + ": response-contract failure created background work")
             }
-            if fixture != .ambiguous && !coordinator.inputPending {
-                failures.append(label + ": internal failure released the input barrier")
+            // P0-07: a failed turn is unclassified. It releases the read/planning
+            // barrier at once, and holds only effects until a later epoch is
+            // classified. `.ambiguous` is a successful answer, so it holds nothing.
+            if fixture != .ambiguous {
+                if coordinator.inputPending {
+                    failures.append(label + ": internal failure left the read barrier closed")
+                }
+                if coordinator.effectHoldEpoch == nil {
+                    failures.append(label + ": internal failure did not hold effects")
+                }
             }
             let expectedFailure: VoiceFrontendFailureCode? = switch fixture {
             case .modelError: .modelError
@@ -329,8 +337,13 @@ enum VoiceCapabilityConversationSelfTest {
         if coordinator.lastFailure?.code != .deadline {
             failures.append("deadline fixture did not actually hit its deadline")
         }
-        if !coordinator.inputPending {
-            failures.append("deadline failure released the input barrier")
+        // P0-07: a deadline is an unclassified failure too: reads resume at once,
+        // effects stay held until a later turn is classified or the session closes.
+        if coordinator.inputPending {
+            failures.append("deadline failure left the read barrier closed")
+        }
+        if coordinator.effectHoldEpoch == nil {
+            failures.append("deadline failure did not hold effects")
         }
         try? await Task.sleep(for: .milliseconds(250))
         if queued.contains(where: { $0.contains("Late stale answer") }) {

@@ -105,6 +105,21 @@ final class RealtimeAgent {
             try? await Task.sleep(for: .milliseconds(50))
         }
     }
+
+    /// P0-07: an effect may commit only once the latest input has been classified.
+    /// A read is not an effect — the round barrier already decides when it starts, and
+    /// once started it runs through user speech — so it answers `true` at once. A
+    /// voice worker asks the coordinator's write-time gate; the shared (typed) agent
+    /// keeps the round barrier it has always had.
+    func mayCommitEffect(risk: AgentRisk) async -> Bool {
+        if risk <= .read { return true }
+        if isVoiceWorker {
+            return await VoiceConversationCoordinator.shared.mayCommitEffect()
+        }
+        await waitForVoiceInput()
+        return true
+    }
+
     /// The model answer owns a child task so barge-in cancels llama / provider work even
     /// while the VAD task remains free to endpoint the next utterance.
     private var localModelTask: Task<AgentTurn, Never>?

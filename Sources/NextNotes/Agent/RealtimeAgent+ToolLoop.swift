@@ -986,6 +986,10 @@ extension RealtimeAgent {
                 else {
                     return "The tool planner requested an unavailable tool; nothing else was run."
                 }
+                // P0-07: a write may only commit while the input that planned it is
+                // classified. Reads run through user speech; the round barrier above
+                // already decided when this round started.
+                let risk = tool.risk
                 let arguments = AgentToolLoop.groundedArguments(
                     for: call.name, proposed: call.arguments, request: currentRequest
                 )
@@ -1018,7 +1022,7 @@ extension RealtimeAgent {
                                 taskID: work?.id.uuidString,
                                 autoApproveReads: true, promptIfNeeded: true,
                                 isStillValid: {
-                                    await self.waitForVoiceInput()
+                                    guard await self.mayCommitEffect(risk: risk) else { return false }
                                     return self.isCurrent(owner) && revision == (work?.revision ?? 0)
                                 }
                             )
