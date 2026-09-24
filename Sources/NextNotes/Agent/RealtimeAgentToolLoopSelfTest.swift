@@ -468,6 +468,7 @@ enum RealtimeAgentToolLoopSelfTest {
             agent.localModelProviderForTesting = nil
             agent.localModelLimitForTesting = nil
             agent.toolLoopLimitForTesting = nil
+            agent.answerDepthForTesting = nil
         }
 
         let turn = await agent.handle(
@@ -637,6 +638,58 @@ enum RealtimeAgentToolLoopSelfTest {
         await AgentCaptureController.shared.endSession(source: .done)
         AgentSpeechSynthesizer.shared.restoreSystemBacking()
 
+        // P0-05: the typed first pass's budget comes from the reader's window and the
+        // persona depth, not the fixed 112. Red-first: `AgentAnswerBudget.tokens` is a stub
+        // until the fix, so every case below records 112.
+        agent.toolLoopLimitForTesting = nil
+        let deepState = ToolLoopTestState()
+        agent.answerDepthForTesting = .deep
+        agent.localModelProviderForTesting = ToolLoopTestProvider(
+            state: deepState, firstCall: "", window: 32_768, firstPassAnswer: "<answer/>4.")
+        _ = await agent.runModelTurn("What's 2+2?", voice: false)
+        let deepMax = await deepState.firstPassMaxTokens
+        check("typed first pass asked for \(deepMax ?? -1), expected 500", deepMax == 500)
+
+        let fastState = ToolLoopTestState()
+        agent.answerDepthForTesting = .fast
+        agent.localModelProviderForTesting = ToolLoopTestProvider(
+            state: fastState, firstCall: "", window: 32_768, firstPassAnswer: "<answer/>4.")
+        _ = await agent.runModelTurn("What's 2+2?", voice: false)
+        let fastMax = await fastState.firstPassMaxTokens
+        check("fast typed first pass asked for \(fastMax ?? -1), expected 128", fastMax == 128)
+
+        // A small window: the depth budget is clamped to the room left after the prompt.
+        let smallState = ToolLoopTestState()
+        agent.answerDepthForTesting = .deep
+        let pad = String(repeating: "The quick brown fox jumps over the lazy dog. ", count: 40)
+        AgentSession.shared.recordUser(pad, source: .text)
+        AgentSession.shared.recordAssistant(pad)
+        agent.localModelProviderForTesting = ToolLoopTestProvider(
+            state: smallState, firstCall: "", window: 1_536, firstPassAnswer: "<answer/>4.")
+        _ = await agent.runModelTurn("What's 2+2?", voice: false)
+        let smallMax = await smallState.firstPassMaxTokens
+        let smallPrompt = await smallState.firstPassPromptTokens
+        let smallExpected = smallPrompt.map { max(64, min(500, 1_536 - $0 - 256)) }
+        print("ANSWER_BUDGET: deep=\(deepMax ?? -1) fast=\(fastMax ?? -1) "
+            + "small=\(smallMax ?? -1) prompt=\(smallPrompt ?? -1)")
+        check("small-window first pass asked for \(smallMax ?? -1), expected "
+            + "\(smallExpected ?? -1) from a \(smallPrompt ?? -1)-token prompt",
+              smallMax != nil && smallMax == smallExpected)
+
+        // The pure table, independent of any provider.
+        let table: [(String, AgentAnswerBudget.Kind, AgentResponsiveness, Int, Int, Int)] = [
+            ("typedAnswer/deep/262144", .typedAnswer, .deep, 262_144, 2_000, 500),
+            ("plannerRound/deep/32768", .plannerRound(background: false), .deep, 32_768, 2_000, 1_024),
+            ("plannerRound(background)/fast/8192", .plannerRound(background: true), .fast, 8_192, 2_000, 768),
+            ("finalAnswer/balanced/4096", .finalAnswer, .balanced, 4_096, 3_900, 64),
+        ]
+        for (name, kind, depth, window, prompt, expected) in table {
+            let asked = AgentAnswerBudget.tokens(
+                kind: kind, contextTokens: window, promptTokens: prompt, depth: depth)
+            check("budget table \(name) asked for \(asked), expected \(expected)", asked == expected)
+        }
+        agent.answerDepthForTesting = nil
+
         for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
         return failures.isEmpty
@@ -649,6 +702,15 @@ private actor ToolLoopTestState {
     var completed = false
     var lastSystemCharacters = 0
     var firstSystemCharacters = 0
+    /// P0-05: what the last first-pass conversation call asked for, and the prompt the
+    /// provider counted for that same system + messages.
+    var firstPassMaxTokens: Int?
+    var firstPassPromptTokens: Int?
+
+    func recordFirstPass(maxTokens: Int, promptTokens: Int?) {
+        firstPassMaxTokens = maxTokens
+        firstPassPromptTokens = promptTokens
+    }
 
     func next(user: String, system: String) -> Int {
         rounds += 1
@@ -668,20 +730,41 @@ private struct ToolLoopTestProvider: LLMProvider {
     let delay: Duration
     let secondRoundDelay: Duration
     let finalAnswer: String
-    var contextTokens: Int { 4_096 }
+    /// The window this provider reports. P0-05 varies it so the budget's room rule can be
+    /// exercised without a small model installed.
+    let window: Int
+    /// A canned first-pass answer for the budget cases; nil keeps the older script.
+    let firstPassAnswer: String?
+    var contextTokens: Int { window }
     var unavailableReason: String? { get async { nil } }
 
     init(state: ToolLoopTestState, firstCall: String = "computer.active_app",
          delay: Duration = .zero, secondRoundDelay: Duration = .zero,
-         finalAnswer: String = "The frontmost application is the one reported by the system.") {
+         finalAnswer: String = "The frontmost application is the one reported by the system.",
+         window: Int = 4_096, firstPassAnswer: String? = nil) {
         self.state = state
         self.firstCall = firstCall
         self.delay = delay
         self.secondRoundDelay = secondRoundDelay
         self.finalAnswer = finalAnswer
+        self.window = window
+        self.firstPassAnswer = firstPassAnswer
     }
 
     func countTokens(_ text: String) async throws -> Int { text.count / 4 + 1 }
+
+    /// Records what the typed/voice first pass asked for. The protocol's default would
+    /// forward to `stream`; this one also keeps the budget evidence (P0-05).
+    func streamConversation(
+        system: String, messages: [LLMChatMessage], maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        let promptTokens = try? await countTokens(
+            system + messages.map(\.content).joined(separator: "\n"))
+        await state.recordFirstPass(maxTokens: maxTokens, promptTokens: promptTokens)
+        let user = messages.map { "\($0.role.rawValue.capitalized): \($0.content)" }
+            .joined(separator: "\n\n")
+        return await stream(system: system, user: user, maxTokens: maxTokens)
+    }
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         _ = await state.next(user: user, system: system)
@@ -706,9 +789,13 @@ private struct ToolLoopTestProvider: LLMProvider {
                 do {
                     if firstCall.isEmpty {
                         _ = await state.next(user: user, system: system)
-                        continuation.yield("<answer/>First answer.")
-                        try await Task.sleep(for: delay)
-                        continuation.yield(" Second answer.")
+                        if let firstPassAnswer {
+                            continuation.yield(firstPassAnswer)
+                        } else {
+                            continuation.yield("<answer/>First answer.")
+                            try await Task.sleep(for: delay)
+                            continuation.yield(" Second answer.")
+                        }
                     } else {
                         let response = try await complete(system: system, user: user, maxTokens: maxTokens)
                         continuation.yield(response.text)
