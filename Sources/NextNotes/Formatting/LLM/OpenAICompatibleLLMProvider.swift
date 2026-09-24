@@ -23,11 +23,17 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
     /// "Ollama", "LM Studio", "127.0.0.1:8080" — what to call it on screen.
     let serverName: String
     let contextTokens: Int
+    /// Where requests go. The default keeps a person's words and the model's reply out of
+    /// the on-disk URL cache, and it is injectable so a self-test can drive a loopback
+    /// fixture.
+    let session: URLSession
 
-    init(baseURL: URL, modelID: String, serverName: String, contextTokens: Int = 0) {
+    init(baseURL: URL, modelID: String, serverName: String, contextTokens: Int = 0,
+         session: URLSession = PrivateURLSession.shared) {
         self.baseURL = baseURL
         self.modelID = modelID
         self.serverName = serverName
+        self.session = session
         // Local servers rarely publish a window. 8k is the safe assumption for a small
         // instruct model, and the notes generator only uses this to decide whether a
         // transcript has to be split.
@@ -51,7 +57,7 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
             request.timeoutInterval = LocalRuntimeDiscovery.probeTimeout
             request.cachePolicy = .reloadIgnoringLocalCacheData
             do {
-                let (_, response) = try await URLSession.shared.data(for: request)
+                let (_, response) = try await session.data(for: request)
                 guard let http = response as? HTTPURLResponse,
                       (200..<300).contains(http.statusCode) else {
                     return "\(serverName) isn’t answering right now."
@@ -78,7 +84,7 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
             maxTokens: maxTokens,
             stream: false
         )
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         try Self.validate(response, data: data, serverName: serverName)
         let text = try Self.text(fromCompletion: data)
         guard !text.isEmpty else { throw LocalServerError.emptyAnswer(serverName) }
@@ -126,7 +132,7 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
             let task = Task {
                 do {
                     let request = try makeRequest(messages: body, maxTokens: maxTokens, stream: true)
-                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
+                    let (bytes, response) = try await session.bytes(for: request)
                     guard let http = response as? HTTPURLResponse else { throw LocalServerError.unreadable }
                     guard (200..<300).contains(http.statusCode) else {
                         throw LocalServerError.http(serverName, http.statusCode)
@@ -386,7 +392,7 @@ extension OpenAICompatibleLLMProvider {
             "stream": false,
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         try Self.validate(response, data: data, serverName: serverName)
         let text = try Self.text(fromCompletion: data)
         guard !text.isEmpty else { throw LocalServerError.emptyAnswer(serverName) }

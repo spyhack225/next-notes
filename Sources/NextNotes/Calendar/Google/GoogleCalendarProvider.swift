@@ -195,7 +195,7 @@ actor GoogleCalendarProvider: CalendarProvider {
         var request = URLRequest(url: url)
         request.setValue("Bearer \(try await validAccessToken())", forHTTPHeaderField: "Authorization")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await PrivateURLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else {
             if status == 401 { throw GoogleCalendarError.accessTokenRejected }

@@ -37,7 +37,14 @@ struct NextNotesApp: App {
         // Fully qualified: this app has its own `Settings` type, which otherwise shadows
         // SwiftUI's settings scene.
         SwiftUI.Settings {
-            SettingsWindow(controller: delegate.controller)
+            // The one host that guarantees `settingsWindowMinWidth`: the window is pinned
+            // to it by `SettingsWindowFrame`, and `windowResizability(.contentMinSize)`
+            // reads this minimum as the window's own. The main window's copy passes
+            // nothing, because its detail column is narrower than this.
+            SettingsWindow(
+                controller: delegate.controller,
+                hostMinimumWidth: DS.Size.settingsWindowMinWidth
+            )
         }
         .defaultSize(width: DS.Size.settingsWindowWidth, height: DS.Size.settingsWindowMinHeight)
         .windowResizability(.contentMinSize)
@@ -216,7 +223,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // The same shape again, for the same reason: `--settings-sheet` renders every
+        // Settings pane at the widths it meets, which is the only way to review a layout
+        // fix by eye on a machine that cannot screenshot the real window.
+        if CommandLine.arguments.contains("--settings-sheet") {
+            runSettingsSheet()
+            return
+        }
+
+        // Interactive, not a self-test: records real-room wake-phrase captures into the
+        // LiveFixtures directory `--selftest-wake-live` grades. Returns before every other
+        // subsystem, so no scheduler, wake monitor or agent starts behind the microphone.
+        if WakeWordRoomRecorder.isRequested {
+            WakeWordRoomRecorder.runAndExit()
+            return
+        }
+
         if runRequestedSelfTest() { return }
+
+        // Once per install, and never under the self-test harness: earlier builds let
+        // `URLSession.shared` write model replies and account details into the on-disk URL
+        // cache (G N4). This removes what is already there and records that it ran.
+        _ = PrivateURLSession.purgeLegacyCache()
 
         // Dictation, the island and the menu bar must outlive an empty window list. Without
         // this, macOS 26's MenuBarExtra failure path ends in a voluntary exit (~1 s, no
@@ -372,6 +400,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 writeSelfTest(failures.isEmpty
                     ? "MODEL_ROLES_OK: fallback, routing, call paths, discovery and tool-call bridging verified"
                     : "MODEL_ROLES_FAILED: \(failures.count) problem(s)")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-model-unopenable") {
+            Task { @MainActor in
+                SelfTest.failed = !(await ModelSupportSelfTest.runSelfTest())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-private-network") {
+            Task { @MainActor in
+                SelfTest.failed = !(await PrivateNetworkingSelfTest.run())
                 NSApp.terminate(nil)
             }
             return true
@@ -2544,6 +2586,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// `--settings-sheet [dir] [--width <pt>]` — every Settings pane at the widths it
+    /// meets, one PNG each. The same path rule as `--avatar-sheet`: a value beginning
+    /// with `--` is never read as an argument.
+    private func runSettingsSheet() {
+        Task { @MainActor in
+            let directory = SelfTest.value(after: "--settings-sheet")
+                ?? FileManager.default.temporaryDirectory
+                    .appendingPathComponent("nextnotes-settings-sheet", isDirectory: true).path
+            var widths = SettingsSheet.widths
+            if let value = SelfTest.value(after: "--width"), let width = Double(value) {
+                widths = [CGFloat(width)]
+            }
+            if SettingsSheet.write(to: directory, controller: controller, widths: widths) {
+                writeSelfTest("SETTINGS_SHEET_OK \(directory)")
+                SelfTest.failed = false
+            } else {
+                writeSelfTest("SETTINGS_SHEET_FAILED")
+                SelfTest.failed = true
+            }
+            NSApp.terminate(nil)
+        }
+    }
+
     /// Runs the diarizer over the same file and labels the segments with what it found.
     ///
     /// The whole file rather than one channel: this takes a plain recording, not a meeting's
@@ -3673,9 +3738,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// wrong is not a crash but a blank patch or a single dot in the corner — which nobody
     /// notices in a 20pt badge. This asks the four questions a screenshot would answer:
     /// are there dots, are they finite, are they inside the frame, and do they move.
-    /// `--selftest-settings` — every Settings pane is reachable, and every heading
-    /// still contains U+0020. A toolbar `TabView` hid Integrations, Models and
-    /// Permissions behind a chevron; a compact Settings frame cropped the form off.
+    /// `--selftest-settings` — every Settings pane is reachable, every heading
+    /// still contains U+0020, and no pane asks for more width than the narrowest host
+    /// that can show it has. A toolbar `TabView` hid Integrations, Models and
+    /// Permissions behind a chevron; a compact Settings frame cropped the form off;
+    /// and a view-level minimum wider than the main window's detail column drew the
+    /// form past the right edge of a narrow window, clipped. The visual companion is
+    /// `--settings-sheet`, which renders each pane at the widths it meets.
     private func runSettingsSelfTest() {
         Task { @MainActor in
             var failures = SettingsTab.catalogFailures()
@@ -3702,7 +3771,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     "SETTINGS_OK: \(SettingsTab.allCases.count) pane(s), "
                     + "Formatting listed, "
                     + "headings contain U+0020, each form built, profile captured, "
-                    + "auto-send policy"
+                    + "auto-send policy, every pane fits the narrowest host"
                 )
             } else {
                 writeSelfTest("SETTINGS_FAILED: \(failures.count) problem(s)")
@@ -5575,14 +5644,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// `nextnotes://show` — a scriptable way to raise the window on the comparison
-    /// section. It used to open a second window; now it just steers the one that exists.
+    /// `nextnotes://show` — a scriptable way to raise the window on Comparison. It used
+    /// to open a second window; now it steers the one that exists to the Settings pane
+    /// that replaced the old sidebar section.
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls where url.scheme == "nextnotes" {
             switch url.host {
             case "show":
                 RunStore.shared.reload()
-                NavigationState.shared.show(.comparison)
+                NavigationState.shared.showComparison()
                 Self.showMainWindow()
             default:
                 break
@@ -5637,6 +5707,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         controller.deactivate()
+        // The resident fast-listening engine is a child process and nothing kills it for us.
+        // Synchronous on purpose: this method cannot await, and a `Task` here would be
+        // racing process exit. A kill during its start-up is covered by the orphan record
+        // `NeedleServer` leaves behind.
+        NeedleRunner.shared.terminateServerNow()
         // Termination can't await, so the meeting is closed with what has already been
         // transcribed; windows still in flight are lost. Better than a meeting whose file
         // says it is still recording.

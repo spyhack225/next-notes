@@ -65,7 +65,7 @@ enum ComposioBrowserAuth {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.httpBody = try JSONSerialization.data(withJSONObject: ["scope": "user"])
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await PrivateURLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200...299).contains(status) else {
             let body = String(data: data, encoding: .utf8) ?? ""
@@ -190,7 +190,7 @@ enum ComposioBrowserAuth {
         }
         var request = URLRequest(url: url)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await PrivateURLSession.shared.data(for: request)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         if code == 404 {
             throw AuthError.expired

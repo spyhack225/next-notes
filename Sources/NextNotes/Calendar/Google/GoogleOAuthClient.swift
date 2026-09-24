@@ -138,7 +138,7 @@ enum GoogleOAuthClient {
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = Data(formEncoded(fields).utf8)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await PrivateURLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else {
             let failure = try? JSONDecoder().decode(GoogleErrorResponse.self, from: data)

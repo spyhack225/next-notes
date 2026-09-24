@@ -276,7 +276,7 @@ final class MCPHTTPSession: @unchecked Sendable {
         for (key, value) in server.headers {
             request.setValue(value, forHTTPHeaderField: key)
         }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await PrivateURLSession.shared.data(for: request)
         var headers: [String: String] = [:]
         if let http = response as? HTTPURLResponse {
             if !(200...299).contains(http.statusCode) {

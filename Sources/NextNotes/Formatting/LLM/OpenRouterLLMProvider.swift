@@ -304,7 +304,7 @@ final class OpenRouterCatalog {
             var request = URLRequest(url: URL(string: "https://openrouter.ai/api/v1/models?output_modalities=text&sort=throughput-high-to-low")!)
             request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
             request.timeoutInterval = 30
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await PrivateURLSession.shared.data(for: request)
             try OpenRouterLLMProvider.validate(response, data: data)
             guard await OpenRouterKeyStore.keyAsync() == key else { return }
             let decoded = try JSONDecoder().decode(ModelResponse.self, from: data)
@@ -358,7 +358,7 @@ final class OpenRouterCatalog {
         var request = URLRequest(url: url)
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 15
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await PrivateURLSession.shared.data(for: request)
         try OpenRouterLLMProvider.validate(response, data: data)
         return try parseSpeed(data)
     }
@@ -418,7 +418,7 @@ struct OpenRouterLLMProvider: LLMProvider {
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         let began = Date()
         let request = try await makeRequest(system: system, user: user, maxTokens: maxTokens, stream: false)
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await PrivateURLSession.shared.data(for: request)
         try Self.validate(response, data: data)
         let decoded = try JSONDecoder().decode(CompletionResponse.self, from: data)
         guard let text = decoded.choices.first?.message.content, !text.isEmpty else {
@@ -450,7 +450,7 @@ struct OpenRouterLLMProvider: LLMProvider {
                     let request = try await makeRequest(
                         messages: requestMessages, maxTokens: maxTokens, stream: true
                     )
-                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
+                    let (bytes, response) = try await PrivateURLSession.shared.bytes(for: request)
                     guard let http = response as? HTTPURLResponse else { throw OpenRouterError.invalidResponse }
                     guard (200..<300).contains(http.statusCode) else {
                         throw OpenRouterError.http(http.statusCode, HTTPURLResponse.localizedString(forStatusCode: http.statusCode))
@@ -609,7 +609,7 @@ extension OpenRouterLLMProvider {
             model: modelID, system: system, user: user,
             images: images, consent: consent, maxTokens: maxTokens, stream: false
         )
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await PrivateURLSession.shared.data(for: request)
         try Self.validate(response, data: data)
         let decoded = try JSONDecoder().decode(CompletionResponse.self, from: data)
         guard let text = decoded.choices.first?.message.content, !text.isEmpty else {
@@ -627,7 +627,7 @@ enum OpenRouterSelfTest {
         guard let key = await OpenRouterKeyStore.keyAsync() else { throw OpenRouterError.missingKey }
         var request = URLRequest(url: URL(string: "https://openrouter.ai/api/v1/key")!)
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await PrivateURLSession.shared.data(for: request)
         try OpenRouterLLMProvider.validate(response, data: data)
         await OpenRouterCatalog.shared.refresh()
         if let problem = OpenRouterCatalog.shared.problem {
