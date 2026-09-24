@@ -425,6 +425,11 @@ final class DictationController {
     /// has already been replaced cannot clear its successor when its own timer fires.
     private var commandModeToken = 0
 
+    /// Generation counter for the self-clearing `.error` card, so a stale timer clears
+    /// neither a hold started from the card nor a newer error (D-05). The state check
+    /// alone is not enough: a second failure within 3 s is still `.error`.
+    private var errorToken = 0
+
     /// The app that was frontmost when this hold began.
     ///
     /// Captured at key-down rather than read at insertion time, because the tail between
@@ -517,13 +522,23 @@ final class DictationController {
 
     // MARK: - Button-driven recording
 
+    /// A press may start a hold from `.idle` or from a visible `.error` card — the
+    /// card's whole point is "hold the key again" (D-05). Presses in `.starting`,
+    /// `.listening` and `.finishing` stay refused: `.finishing` is D-13's
+    /// evidence-gated territory, not this task's.
+    private var canStartHold: Bool {
+        if case .idle = state { return true }
+        if case .error = state { return true }
+        return false
+    }
+
     /// Starts a recording from a Record button rather than the hotkey.
     ///
     /// Wispr Flow's hotkey is held down for the duration **only in compare mode**. Reaching
     /// into another app is a comparison affordance; during ordinary dictation it would mean
     /// every recording silently shipped your audio to a third party's servers.
     func startButtonRecording() {
-        guard case .idle = state else { return }
+        guard canStartHold else { return }
         if Settings.shared.compareMode { WisprTrigger.press() }
         beginDictation(intent: .dictation)
     }
@@ -572,7 +587,7 @@ final class DictationController {
     /// this decides happens before the microphone opens, and none of it is reachable from a
     /// terminal through the event tap.
     func beginCommandMode() {
-        guard case .idle = state else { return }
+        guard canStartHold else { return }
         guard FoundationModelCommandProcessor.isAvailable else {
             // Not `fail`. `fail` is the dictation failure path: it sets `.error`, which the
             // island draws as a dictation card with nothing in it — the wordless animation
@@ -619,7 +634,7 @@ final class DictationController {
     // MARK: - Dictation
 
     private func beginDictation(intent: RecordingIntent) {
-        guard case .idle = state else { return }
+        guard canStartHold else { return }
         // A Command Mode message outlives its hold by design — "Select some text first"
         // stays up for four seconds so it can be read. It must not outlive it *into the
         // next recording*: left standing, an ordinary push-to-talk dictation started inside
@@ -1376,8 +1391,13 @@ final class DictationController {
         holdStarted = nil
         releasedAt = nil
 
-        Task { @MainActor in
+        // A hold started from this card, or a newer failure, keeps its own 3 s:
+        // a stale timer must clear neither.
+        errorToken &+= 1
+        let token = errorToken
+        Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(3))
+            guard let self, self.errorToken == token else { return }
             if case .error = state { state = .idle }
         }
     }
