@@ -115,7 +115,6 @@ struct ModelsSettingsTab: View {
                              + "compilation wedges.")
             }
         }
-        .formStyle(.grouped)
         .onAppear {
             models.refresh()
             installed.refresh()
@@ -139,11 +138,20 @@ struct ModelsSettingsTab: View {
         }
         .onDisappear { if isPreviewing { stopPreview() } }
         .sheet(item: $library.pendingConfirmation) { pending in
-            ModelDownloadConfirmSheet(
-                pending: pending,
-                onConfirm: { chosenPolicy in library.confirmPendingDownload(policy: chosenPolicy) },
-                onCancel: { library.pendingConfirmation = nil }
-            )
+            if let refusal = pending.unsupportedReason {
+                UnsupportedModelDownloadSheet(
+                    pending: pending,
+                    refusal: refusal,
+                    onDownloadAnyway: { library.confirmPendingDownload() },
+                    onCancel: { library.pendingConfirmation = nil }
+                )
+            } else {
+                ModelDownloadConfirmSheet(
+                    pending: pending,
+                    onConfirm: { chosenPolicy in library.confirmPendingDownload(policy: chosenPolicy) },
+                    onCancel: { library.pendingConfirmation = nil }
+                )
+            }
         }
         .sheet(isPresented: accessSheetBinding) {
             if let request = library.accessRequest {
@@ -273,10 +281,16 @@ struct ModelsSettingsTab: View {
                     model: model,
                     fit: library.fit(for: model),
                     answersTurns: answersTurns,
-                    statusNote: fileSelected && !answersTurns
-                        ? "Loaded, but agent turns use \(roles.displayName(for: .agent))."
-                        : nil,
+                    statusNote: model.isAuxiliary
+                        ? "This file is only one piece of a model, so it can’t write answers. "
+                            + "Delete it to free the space."
+                        : (!model.isRunnable
+                            ? "Next Notes can’t run this model. Delete it to free the space."
+                            : (fileSelected && !answersTurns
+                                ? "Loaded, but agent turns use \(roles.displayName(for: .agent))."
+                                : nil)),
                     canRemove: installed.canRemove(model),
+                    canUse: !model.isAuxiliary && model.isRunnable,
                     lastUsed: installed.lastUsedDate(for: model.id),
                     onUse: {
                         library.makeActive(model)
@@ -332,9 +346,13 @@ struct ModelsSettingsTab: View {
             item: $rolePromptModel,
             actions: { model in
                 // Through the role store, not straight at the file: the next turn
-                // re-asserts the role's choice, so a file switch alone flips back.
-                Button("Use for agent turns") {
-                    roles.setChoice(.installedModel(id: model.id), for: .agent)
+                // re-asserts the role's choice, so a file switch alone flips back. Offered
+                // only for a file the probe actually opened — assigning a role to a file
+                // this build cannot run is the promise the whole guard exists to stop.
+                if model.isRunnable {
+                    Button("Use for agent turns") {
+                        roles.setChoice(.installedModel(id: model.id), for: .agent)
+                    }
                 }
                 Button("Keep file only", role: .cancel) {}
             },
@@ -453,7 +471,9 @@ struct ModelsSettingsTab: View {
         ModelBrowseRow(
             listing: listing,
             downloadState: library.state(for: listing.model.id),
-            isInstalled: installed.models.contains { $0.id.hasPrefix(listing.model.id + "/") },
+            // "On this Mac" means a model from this repo is installed — a projector or a
+            // draft head is not one, and must not hide the Download button.
+            isInstalled: installed.usableModels.contains { $0.id.hasPrefix(listing.model.id + "/") },
             onDownload: { library.startDownload(listing.model) },
             onCancel: { library.cancelDownload(listing.model.id) }
         )
@@ -896,6 +916,45 @@ struct ModelsSettingsTab: View {
         }
     }
 
+}
+
+/// Before a download this Mac cannot run: one plain sentence, and a cancel-first choice.
+///
+/// The download is still allowed — a person may be collecting files, and the app never
+/// refuses — but Cancel is the primary button, because nothing useful happens if they
+/// continue. Deliberately separate from `ModelDownloadConfirmSheet`: that sheet is about how
+/// a model will feel once it runs, and this one is about the fact that it will not.
+private struct UnsupportedModelDownloadSheet: View {
+    let pending: ModelLibraryStore.PendingDownload
+    let refusal: ModelSupportRefusal
+    let onDownloadAnyway: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.Space.m) {
+            Label("This model can’t run here", systemImage: "exclamationmark.triangle.fill")
+                .font(DS.Font.title3)
+                .foregroundStyle(DS.Color.warning)
+            Text(pending.model.name)
+                .font(DS.Font.headline)
+            Text(refusal.sentence)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("You can still download it, and delete it later to free the space. Next Notes "
+                 + "just won’t be able to answer with it.")
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button("Download anyway", action: onDownloadAnyway)
+                Button("Cancel", action: onCancel)
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(DS.Space.xl)
+        .frame(width: DS.Size.sheetWidth)
+    }
 }
 
 /// The disclosure every local model row ends in: what it actually is, once "Fast search by

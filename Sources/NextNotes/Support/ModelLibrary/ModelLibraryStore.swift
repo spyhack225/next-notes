@@ -78,6 +78,23 @@ struct PartialModelDownload: Identifiable, Equatable, Sendable {
     }
 }
 
+/// Why this app cannot run a model, according to the Hub's own metadata, before a byte is
+/// fetched. Only the architecture can be judged from the Hub; the file itself decides the
+/// rest at install time.
+enum ModelSupportRefusal: Sendable, Equatable {
+    case architecture(String)
+
+    /// The plain-words sentence the confirmation sheet shows. No file-format jargon: the
+    /// person reading it has not downloaded anything yet.
+    var sentence: String {
+        switch self {
+        case .architecture:
+            "This model is built in a way Next Notes can’t run yet, so it won’t be able to "
+                + "answer."
+        }
+    }
+}
+
 /// The Models tab's brain: what this Mac is, what is worth running on it, and what is
 /// currently being fetched.
 ///
@@ -178,6 +195,10 @@ final class ModelLibraryStore {
         /// downloader's own disk reserve would otherwise refuse. A sheet shown only because a
         /// brain is being replaced must not also waive that reserve.
         var bypassesDiskReserve: Bool
+        /// Set when the Hub itself says this build cannot run the model. The sheet leads with
+        /// Cancel, and the download is still allowed. nil on a sheet shown for any other
+        /// reason.
+        var unsupportedReason: ModelSupportRefusal? = nil
         var id: String { model.id + "/" + file.path }
     }
 
@@ -414,6 +435,22 @@ final class ModelLibraryStore {
                 }
             }
 
+            // The Hub names the build before a byte is fetched. Saying so now — rather than
+            // after three gigabytes — is the whole point of the pre-download verdict. The
+            // sheet leads with Cancel and still allows "Download anyway", because a person
+            // may be collecting files.
+            if let refusal = Self.downloadSupportVerdict(for: details) {
+                downloads[model.id] = nil
+                pendingConfirmation = PendingDownload(
+                    model: model, file: file, details: details, fit: verdict,
+                    policy: postDownloadPolicy,
+                    recommendsDeletingOld: recommendsDeletingOld(fileBytes: file.sizeBytes),
+                    bypassesDiskReserve: verdict.verdict.needsConfirmation,
+                    unsupportedReason: refusal
+                )
+                return
+            }
+
             // A poor-fit verdict always needs a "download anyway"; so does replacing a brain
             // that is already in use, so the sheet's plain sentence about what will happen
             // can be read (and changed, for this one download) before it happens rather than
@@ -494,6 +531,11 @@ final class ModelLibraryStore {
                         : .downloading(completed: progress.completedBytes, total: progress.totalBytes)
                 }
             }
+            // The file itself answers before it is adopted: the probe reads the header and
+            // the vocabulary only, never the weights. A file that cannot answer is still
+            // added — so it can be seen and deleted — but it never reaches a role, and the
+            // post-download policy never switches to it or deletes anything for it.
+            let support = await LlamaLoadProbe.probe(destination)
             let newModel = InstalledLocalModel(
                 id: "\(model.id)/\(file.path)",
                 displayName: model.name,
@@ -501,12 +543,19 @@ final class ModelLibraryStore {
                 parameterBillions: details.parameterBillions ?? model.parameterBillions,
                 quantization: file.quantization,
                 bytes: file.sizeBytes,
-                isBuiltIn: false
+                isBuiltIn: false,
+                support: support
             )
             InstalledModelLibrary.shared.add(newModel)
-            downloads[model.id] = .finished
             refreshHardware()
             Log.app.info("model library: installed \(model.id, privacy: .public)")
+            guard support.verdict == .opens else {
+                downloads[model.id] = .failed(
+                    "Next Notes can’t run this model, so it won’t answer. "
+                        + "It’s kept so you can delete it.")
+                return
+            }
+            downloads[model.id] = .finished
             await applyPostDownloadPolicy(policy, previousActiveID: previousActiveID, newModel: newModel)
         } catch is CancellationError {
             // The partial file stays; pressing Download again resumes it.
@@ -715,5 +764,19 @@ final class ModelLibraryStore {
             }
         }
         return error.localizedDescription
+    }
+}
+
+extension ModelLibraryStore {
+    /// The pre-download check. Pure, so a self-test can drive it without the network or a
+    /// download.
+    ///
+    /// The Hub reports an architecture for most repos, and the generated list is the same
+    /// one the install-time probe uses, so the two can never disagree. nil when the Hub said
+    /// nothing — then the file itself decides, after it is fetched.
+    nonisolated static func downloadSupportVerdict(
+        for details: HuggingFaceModelDetails
+    ) -> ModelSupportRefusal? {
+        details.supportVerdict
     }
 }

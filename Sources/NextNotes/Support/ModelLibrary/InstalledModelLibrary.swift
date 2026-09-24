@@ -16,6 +16,9 @@ struct InstalledLocalModel: Identifiable, Codable, Sendable, Hashable {
     let quantization: String?
     let bytes: Int64
     let isBuiltIn: Bool
+    /// What the probe said about this file, once it has been asked. nil on a row written
+    /// before the probe existed; such a row is probed lazily rather than treated as broken.
+    var support: LlamaProbeResult?
 
     init(
         id: String,
@@ -24,7 +27,8 @@ struct InstalledLocalModel: Identifiable, Codable, Sendable, Hashable {
         parameterBillions: Double?,
         quantization: String?,
         bytes: Int64,
-        isBuiltIn: Bool
+        isBuiltIn: Bool,
+        support: LlamaProbeResult? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -33,12 +37,43 @@ struct InstalledLocalModel: Identifiable, Codable, Sendable, Hashable {
         self.quantization = quantization
         self.bytes = bytes
         self.isBuiltIn = isBuiltIn
+        self.support = support
+    }
+
+    /// Hand-written on purpose: a new field must be `decodeIfPresent`, or every
+    /// `library.json` row written before it existed fails to decode and vanishes from the
+    /// list. `id`, `displayName` and `fileURL` stay required — a row without them is not a
+    /// model this app could ever use.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        displayName = try container.decode(String.self, forKey: .displayName)
+        fileURL = try container.decode(URL.self, forKey: .fileURL)
+        parameterBillions = try container.decodeIfPresent(Double.self, forKey: .parameterBillions)
+        quantization = try container.decodeIfPresent(String.self, forKey: .quantization)
+        bytes = try container.decode(Int64.self, forKey: .bytes)
+        isBuiltIn = try container.decode(Bool.self, forKey: .isBuiltIn)
+        support = try container.decodeIfPresent(LlamaProbeResult.self, forKey: .support)
     }
 
     /// "2.6 GB" — the form the settings rows use.
     var displaySize: String {
         ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
+
+    /// A file that is one piece of a model — a vision projector or an MTP draft head —
+    /// rather than a model. It cannot answer, so it is never adopted and never offered to a
+    /// role; it is listed only so its space can be reclaimed. With no repo to compare
+    /// against, the size line in `ModelFitEstimator` is what separates a head from a model
+    /// with multi-token prediction merged into it.
+    var isAuxiliary: Bool {
+        ModelFitEstimator.isAuxiliaryGGUF(
+            fileName: fileURL.lastPathComponent, bytes: bytes, comparedToLargestGGUF: nil)
+    }
+
+    /// True when this file can actually answer: the probe opened it, or it is the model the
+    /// app ships with — that one is pinned by `NotesModels.spec` and needs no probe.
+    var isRunnable: Bool { isBuiltIn || support?.verdict == .opens }
 
     /// Present and the expected length. A half-finished copy that was moved into place
     /// would otherwise look ready.
@@ -86,7 +121,7 @@ final class InstalledModelLibrary {
     var activeAgentModelID: String {
         didSet {
             guard oldValue != activeAgentModelID else { return }
-            UserDefaults.standard.set(activeAgentModelID, forKey: Self.activeDefaultsKey)
+            defaults.set(activeAgentModelID, forKey: Self.activeDefaultsKey)
             recordUse(activeAgentModelID)
             NotificationCenter.default.post(name: .installedModelLibraryActiveModelChanged, object: nil)
             adoptInRuntime()
@@ -99,13 +134,13 @@ final class InstalledModelLibrary {
     /// on the same switch that already persists `activeAgentModelID` — no extra hook, no
     /// polling.
     private func recordUse(_ id: String) {
-        var table = UserDefaults.standard.dictionary(forKey: Self.lastUsedDefaultsKey) as? [String: Double] ?? [:]
+        var table = defaults.dictionary(forKey: Self.lastUsedDefaultsKey) as? [String: Double] ?? [:]
         table[id] = Date().timeIntervalSince1970
-        UserDefaults.standard.set(table, forKey: Self.lastUsedDefaultsKey)
+        defaults.set(table, forKey: Self.lastUsedDefaultsKey)
     }
 
     func lastUsedDate(for id: String) -> Date? {
-        guard let table = UserDefaults.standard.dictionary(forKey: Self.lastUsedDefaultsKey) as? [String: Double],
+        guard let table = defaults.dictionary(forKey: Self.lastUsedDefaultsKey) as? [String: Double],
               let seconds = table[id] else { return nil }
         return Date(timeIntervalSince1970: seconds)
     }
@@ -123,10 +158,15 @@ final class InstalledModelLibrary {
     /// Where the manifest of downloaded (non-built-in) models lives.
     private let manifestURL: URL
 
-    init(manifestURL: URL? = nil) {
+    /// Where the active selection and the last-used table are persisted. Injected so a
+    /// self-test can drive a library without writing the user's own defaults.
+    private let defaults: UserDefaults
+
+    init(manifestURL: URL? = nil, defaults: UserDefaults = .standard) {
         self.manifestURL = manifestURL
             ?? ModelSpec.directory.appendingPathComponent("library.json")
-        self.activeAgentModelID = UserDefaults.standard.string(forKey: Self.activeDefaultsKey)
+        self.defaults = defaults
+        self.activeAgentModelID = defaults.string(forKey: Self.activeDefaultsKey)
             ?? Self.builtInID
         refresh()
     }
@@ -135,7 +175,7 @@ final class InstalledModelLibrary {
 
     /// The model the agent should load, or nil when only the built-in is wanted.
     var activeModel: InstalledLocalModel? {
-        models.first { $0.id == activeAgentModelID }
+        usableModels.first { $0.id == activeAgentModelID }
     }
 
     /// True when there is a model on this Mac the app can answer with.
@@ -143,7 +183,13 @@ final class InstalledModelLibrary {
     /// The question every caller actually means. Asking `NotesModels.isDownloaded` instead
     /// says "is the *built-in* model here", which reads as "no model at all" to someone whose
     /// only model came from Hugging Face.
-    var hasUsableModel: Bool { !models.isEmpty }
+    var hasUsableModel: Bool { !usableModels.isEmpty }
+
+    /// The installed files that can actually answer. A projector or a draft head is a real
+    /// file on disk and stays in `models` so it can be deleted, but it is not a brain and
+    /// must never be counted as one — and neither is a file the probe could not open. Such
+    /// a row stays in `models` so it can be seen and deleted; it never reaches a role.
+    var usableModels: [InstalledLocalModel] { models.filter { !$0.isAuxiliary && $0.isRunnable } }
 
     var builtIn: InstalledLocalModel? {
         models.first { $0.isBuiltIn }
@@ -179,9 +225,18 @@ final class InstalledModelLibrary {
         activeID != builtInID && installedIDs.contains(activeID)
     }
 
-    /// Rebuilds `models` from disk. Rows whose file has vanished are dropped rather than
-    /// shown as broken: the user deleted it in Finder, and the app should agree.
+    /// Rebuilds `models` from disk, and starts the lazy support probe for any row that has
+    /// never been classified. Rows whose file has vanished are dropped rather than shown as
+    /// broken: the user deleted it in Finder, and the app should agree.
     func refresh() {
+        reloadFromDisk()
+        // Off the main path on purpose: a probe opens a vocabulary, which is milliseconds,
+        // but it is not something the UI should wait behind. `usableModels` simply leaves an
+        // unprobed row out until the answer is in.
+        Task { await refreshSupportVerdicts() }
+    }
+
+    private func reloadFromDisk() {
         var found: [InstalledLocalModel] = []
 
         if NotesModels.isDownloaded {
@@ -205,6 +260,39 @@ final class InstalledModelLibrary {
 
         models = found
         normalizeActiveSelection()
+    }
+
+    // MARK: - Support probe
+
+    /// Probes every row whose verdict is missing, was made by a different build of
+    /// llama.cpp, or describes a different file, and persists the answers.
+    ///
+    /// Called lazily from `refresh()`, and awaited by the provider path before a turn, so a
+    /// role can never be handed a file nobody has classified. The manifest is read again
+    /// after the probes, because a download can finish while they run and a save built from
+    /// the earlier read would drop it.
+    func refreshSupportVerdicts() async {
+        var probed: [String: LlamaProbeResult] = [:]
+        for entry in loadManifest() where entry.fileIsPresent {
+            if let support = entry.support,
+               support.llamaBuildTag == LlamaArchitectures.buildTag,
+               support.fileBytes == entry.bytes {
+                continue
+            }
+            probed[entry.id] = await LlamaLoadProbe.probe(entry.fileURL)
+        }
+        guard !probed.isEmpty else { return }
+
+        var manifest = loadManifest()
+        var changed = false
+        for index in manifest.indices {
+            guard let result = probed[manifest[index].id] else { continue }
+            manifest[index].support = result
+            changed = true
+        }
+        guard changed else { return }
+        saveManifest(manifest)
+        reloadFromDisk()
     }
 
     // MARK: - Writing
@@ -234,9 +322,14 @@ final class InstalledModelLibrary {
         return true
     }
 
-    /// Falls back to the built-in whenever the selection points at something that is gone.
+    /// Falls back to the built-in whenever the selection points at something that is gone —
+    /// or at a file that is only part of a model, which can never answer.
+    ///
+    /// A row that has not been probed yet is in limbo, not broken: the lazy probe runs on
+    /// its own, and moving the selection before it answers would be a choice nobody made.
     private func normalizeActiveSelection() {
-        if models.contains(where: { $0.id == activeAgentModelID }) { return }
+        let selectable = models.filter { !$0.isAuxiliary && ($0.isRunnable || $0.support == nil) }
+        if selectable.contains(where: { $0.id == activeAgentModelID }) { return }
         if activeAgentModelID != Self.builtInID {
             activeAgentModelID = Self.builtInID
         }

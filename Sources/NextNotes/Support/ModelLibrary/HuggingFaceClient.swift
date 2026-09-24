@@ -80,8 +80,12 @@ struct HuggingFaceModelDetails: Sendable, Equatable {
     let licenseID: String?
     /// Total parameter count from the GGUF header — the real number, not a guess at the name.
     let parameterCount: Int64?
-    /// "qwen3", "llama", "gemma3". Used to warn before a download that llama.cpp may refuse.
+    /// "qwen3", "llama", "gemma3". What the pre-download verdict is decided on.
     let architecture: String?
+    /// The model's own turn markers, as the Hub publishes them. P0-04 renders prompts with
+    /// this; here it is only carried, so a download does not have to read it back out of
+    /// the file.
+    var chatTemplate: String? = nil
     let trainedContextLength: Int?
     let files: [HuggingFaceRepoFile]
 
@@ -89,11 +93,42 @@ struct HuggingFaceModelDetails: Sendable, Equatable {
         parameterCount.map { Double($0) / 1e9 }
     }
 
-    /// The file the app should download without asking: Q4_K_M when it exists, then its
-    /// neighbours. Split archives and non-GGUF files never win.
-    var recommendedFile: HuggingFaceRepoFile? {
+    /// Why this app will not be able to run the model, judged from the Hub's own metadata
+    /// before a byte is fetched. Only the architecture can be judged here; the file itself
+    /// decides the rest at install time. nil when the Hub said nothing, in which case the
+    /// install-time probe decides.
+    var supportVerdict: ModelSupportRefusal? {
+        guard let architecture, !LlamaArchitectures.isSupported(architecture) else { return nil }
+        return .architecture(architecture)
+    }
+
+    /// The largest GGUF in the repo — what an auxiliary head is a small fraction of.
+    private var largestGGUFBytes: Int64 {
         files
             .filter { $0.fileName.lowercased().hasSuffix(".gguf") && !$0.isSplitPart }
+            .map(\.sizeBytes)
+            .max() ?? 0
+    }
+
+    /// Whether this file is one piece of a model rather than a model — a projector or a
+    /// draft head. Judged against the repo's own largest GGUF, because an `mtp`-named file
+    /// is a head in one repo and the whole model in another.
+    func isAuxiliary(_ file: HuggingFaceRepoFile) -> Bool {
+        ModelFitEstimator.isAuxiliaryGGUF(
+            fileName: file.fileName, bytes: file.sizeBytes,
+            comparedToLargestGGUF: largestGGUFBytes)
+    }
+
+    /// The file the app should download without asking: Q4_K_M when it exists, then its
+    /// neighbours. Split archives, projectors, draft heads and non-GGUF files never win.
+    ///
+    /// The auxiliary exclusion is load-bearing, not tidiness: a repo that publishes an MTP
+    /// head beside the weights (`ggml-org/gemma-4-E4B-it-GGUF` is one) gives it the same
+    /// quantization label as the real file and a fraction of the size, so a size tie-break
+    /// picks the head — which llama.cpp opens and then refuses to run.
+    var recommendedFile: HuggingFaceRepoFile? {
+        files
+            .filter { $0.fileName.lowercased().hasSuffix(".gguf") && !$0.isSplitPart && !isAuxiliary($0) }
             .min { lhs, rhs in
                 let left = ModelFitEstimator.quantizationPreferenceRank(lhs.quantization)
                 let right = ModelFitEstimator.quantizationPreferenceRank(rhs.quantization)
@@ -102,10 +137,11 @@ struct HuggingFaceModelDetails: Sendable, Equatable {
             }
     }
 
-    /// Every GGUF a person could sensibly choose, best first.
+    /// Every GGUF a person could sensibly choose, best first. Projectors and draft heads are
+    /// not models and are not listed.
     var selectableFiles: [HuggingFaceRepoFile] {
         files
-            .filter { $0.fileName.lowercased().hasSuffix(".gguf") && !$0.isSplitPart }
+            .filter { $0.fileName.lowercased().hasSuffix(".gguf") && !$0.isSplitPart && !isAuxiliary($0) }
             .sorted { lhs, rhs in
                 let left = ModelFitEstimator.quantizationPreferenceRank(lhs.quantization)
                 let right = ModelFitEstimator.quantizationPreferenceRank(rhs.quantization)
@@ -239,6 +275,7 @@ enum HuggingFaceClient {
             licenseID: entry.cardData?.license ?? entry.licenseTag,
             parameterCount: entry.gguf?.total,
             architecture: entry.gguf?.architecture,
+            chatTemplate: entry.gguf?.chat_template,
             trainedContextLength: entry.gguf?.context_length,
             files: try await treeTask
         )
@@ -432,6 +469,7 @@ enum HuggingFaceClient {
         struct GGUF: Decodable {
             let total: Int64?
             let architecture: String?
+            let chat_template: String?
             let context_length: Int?
         }
         let id: String?

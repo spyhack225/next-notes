@@ -96,6 +96,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-skills    --selftest-file-index --selftest-onboarding
 --selftest-avatar
 --selftest-model-roles --selftest-model-fit --selftest-hf-search
+--selftest-model-unopenable --selftest-private-network
 --selftest-memory-portability
 --selftest-voice-turn-routing --selftest-wake-live
 --selftest-computer-actions  --selftest-click-coordinate --selftest-cdp
@@ -106,6 +107,11 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-assemble           --selftest-portrait
 ```
 
+One flag in that list's shape but not its kind: `--wake-mic-record [count]` is interactive,
+so it is a modifier rather than a `--selftest-*` test — it records real-room "Hey Will"
+captures into the `WakeWord/LiveFixtures` overlay that `--selftest-wake-live` grades
+(`0` is a dry run that prints the directory and touches no microphone).
+
 `--selftest-avatar` is the 2026-09-23 addition, and it has a companion diagnostic rather than
 a self-test: `--avatar-sheet [path]` renders all ten character states at three instants into
 one PNG with `ImageRenderer`, which needs no Screen Recording grant — so the vocabulary can
@@ -115,14 +121,25 @@ pins what an eye cannot check twice: a generated face round-trips through
 share a pose, every activity and every tool lands on the state it should, and the island
 wears the character for the agent's own states and the orb for everything else.
 
+`--settings-sheet [dir] [--width <pt>]` is the same kind of companion for the Settings
+layout, and it exists for the same reason: the embedded pane's width behaviour can only be
+judged by looking at it. It does not use `ImageRenderer` — a native grouped `Form` draws
+nothing into an `ImageRenderer` pass, and the first version of the flag produced a blank
+page under the header band — so it hosts each pane in an offscreen panel and `cacheDisplay`s
+that. Every pane is written at `settingsPaneMinWidth`, `settingsWidth` and twice
+`settingsWidth` by default, and `--width` narrows it to one width while iterating.
+
 The last three lines were added on 2026-09-22 (the earlier five on 2026-09-19). Three of them
 reach the network and say so when it is missing rather than passing quietly:
 `--selftest-skills` searches skills.sh and installs one real skill from GitHub into a temp
 folder, `--selftest-hf-search` fetches a 3.9 MB file from the Hugging Face Hub and resumes it
-from a real `206`, and `--selftest-model-roles` starts its own loopback fixture server.
+from a real `206` (and, since 2026-09-23, reads `ggml-org/gemma-4-E4B-it-GGUF` and fails if the
+file picker would choose its `mtp-` draft head over the weights), and `--selftest-model-roles`
+starts its own loopback fixture server.
 `--selftest-function-calls` takes an optional directory holding `needle3-macos-arm64` and
 `needle3.cact`; without it the run prints `FUNCTION_CALLS_NEEDLE_ABSENT` and grades only the
-fallback, and it still fails if no *model* — Needle or the local one — produced a single call.
+fallback, and it still fails if no *model* — Needle or the local one — produced a single call,
+or if the resident `--serve` engine answered none of the turns.
 
 The 2026-09-22 flags: `--selftest-voice-turn-routing` replays the five-turn
 email/calendar refusal loop (the pending-intent slot, the pre-frontend tool-shape gate and
@@ -134,8 +151,8 @@ ran a 270-config sweep through the real spotter and took the measured trade-surf
 maximum (variant depth 2→4, threshold slope 0.36→0.30, beam plateau 24→16 — a phrase
 bonus that would buy the missing hits costs 12–18 false accepts, measured and refused),
 and the remaining fix is real-room recordings (`WAKE_MIC` has no captures on this
-machine), not a lowered bar. `--selftest-computer-vision` and
-`--selftest-seat-grid` pin the screenshot policy (stub-tree gating, consent failing closed,
+machine — `--wake-mic-record` now records them), not a lowered bar.
+`--selftest-computer-vision` and `--selftest-seat-grid` pin the screenshot policy (stub-tree gating, consent failing closed,
 the one-retry rule, and the D5 seat-grid chain); `--selftest-digest` and `--selftest-podcast`
 pin the two scheduled content routines (reads-only, silence token, consumer words, file-sink
 only, never auto-played); `--selftest-guided` is the D9 first-success script (calendar →
@@ -279,6 +296,18 @@ handed rendered structure instead of instructions it can delete (Apple's model a
 formatting back into prose loses to the pre-rendered version. Before adding a rule to a
 prompt, check which engines can actually receive it.
 
+**The Agent's name is never in a prompt — the user names it.** The name in
+`agent-identity.json` reaches every speaking path through `AgentGrounding` ("You are
+<name>."), so the persona preset and the fixed rules describe a role and never the app:
+"You are a warm, personal assistant on this Mac", "You are the meeting assistant", "You are
+a conversational assistant". A hardcoded "You are Next Notes" would fight the name chosen in
+onboarding and, on a fresh install, would be said twice. The same goes for the voice: the
+first paragraph of `Resources/agent-persona-base.md` — duplicated in
+`PersonaStore.builtInBaseText`, and the two must stay byte-identical — carries "no technical
+detail or jargon" and "no filler or flattery" because the Apple voice path hears only that
+card. `--selftest-persona` fails if the preset or any production prompt names the Agent, and
+`PersonaCareEval` pins the plain-words and no-flattery rules into every user-facing path.
+
 **The Related-context brief is deliberately absent from three places.** `NotesService`
 assembles a `MeetingNotesBrief` — memory, prior decisions and the people/projects the graph
 already ties to this meeting, passages from past meetings, file names — and hands it to
@@ -390,11 +419,30 @@ first, and skip the call rather than the turn.
 
 **A confidence score from a function-calling model is not comparable across tool sets.** The
 same sentence scored 1.00 with 2 tools, 0.93 with 14 and 0.41 with the 8 this app offers, so
-a fixed 0.65 gate threw away correct proposals. Latency scales with the schemas too — 126 ms
-at 2 tools, ~1 s at 8, ~4 s at 14 — which is why `FunctionCallCatalogue` is curated and
-capped rather than "every tool we have". The real filter is grounding, not confidence: a
-model asked to "send Marcus the pricing sheet" with no address anywhere invents a
-plausible-looking one at confidence 1.0.
+a fixed 0.65 gate threw away correct proposals. The schemas bound the catalogue for two more
+reasons — Needle shares its 8K context between the system prompt, the tool schemas and the
+turn, and the static prefix's prefill scales with them — which is why `FunctionCallCatalogue`
+is curated and capped rather than "every tool we have". The prefill is now a one-time cost
+(the 126 ms at 2 tools, ~1 s at 8, ~4 s at 14 figures were measured spawning a process per
+proposal; `NeedleServer` pays it once per run and every turn after is p50 ~60 ms, measured
+2026-09-23). The real filter is grounding, not confidence: a model asked to "send Marcus the
+pricing sheet" with no address anywhere invents a plausible-looking one at confidence 1.0.
+
+**Needle is one resident `--serve` child, and its serve-mode parser wants compact JSON.**
+`NeedleServer` starts `needle3-macos-arm64 --serve --port <kernel-picked>` on the watcher's
+first transcript (warmed before the first proposal), sends `POST /reset` then
+`POST /complete {"input":…}` per turn, and stops it on feature-off, app termination, ten idle
+minutes, or the end of a self-test. Three traps, all measured on 2026-09-23: the engine's
+request parser does not accept whitespace around the colon — `{"input": "…"}` is read as an
+empty input and answered from the prefix alone, in a canned call at full speed, which is what
+made a hand-rolled client look like a broken model until the bytes were compared; `/reset`
+before every turn is what restores the statelessness the spawn path had for free (an identical
+prompt scores 0.78 fresh, 0.93 after another turn, 0.78 again after a reset); and a crash
+cannot run any stop path, so every start reaps a previous server whose owning app pid is gone
+(`server-<pid>.json` under the working directory, `proc_pidpath` checked before any signal).
+`--selftest-function-calls` prints `FUNCTION_CALLS_SERVER` and fails if the resident engine
+answered none of the turns — a run where every proposal spawned a process still produces
+correct calls, and would otherwise pass as a run of the architecture this replaced.
 
 **A new engine in `--selftest-cleanup` scores 28/28 until you give it a `rawCleanup` case.**
 The verdict compares the guarded pipeline output against an unguarded second call; with no
@@ -456,6 +504,29 @@ start against a half-deleted bundle. The wrapper verifies the executable exists 
 `codesign --verify`s the app, then runs the binary in the **foreground** (never `&`). Do
 not bare-invoke `/Applications/Next Notes.app/Contents/MacOS/NextNotes` from an agent
 shell, and do not `open` the GUI as a side effect of install.
+
+**`make acceptance` runs the catalogue in tiers so the signal is not buried.**
+`Scripts/acceptance.sh` drives the installed bundle through the same `run-selftest.sh`
+launcher, one flag at a time, and classifies each run from its own output: a final `*_OK` is
+PASS; an absent-precondition diagnostic (`*_ABSENT`, `SYSTEM_AUDIO_SILENT`, `WAKE_*_MISSING`,
+`VOICE_FRONTEND_MISSING_WORKER_MODEL`) is SKIP and is never counted in the `passed/total`
+fraction; anything else without a final `*_OK` — `*_FAILED`, `SELFTEST_TIMEOUT`, no verdict at
+all — is FAIL. **CORE** is the release gate (dictation, meeting audio capture, streaming
+transcription, wake-live, voice conversation, acoustic replay, duplex, action
+runtime/activity, meeting live, tool loop, computer use, ACP, MCP); a CORE FAIL exits
+non-zero and a known-red entry is left red rather than special-cased green. **INTEGRATION**
+covers the knowledge index/search, graph and entity resolution, memory, routines/schedule,
+browser CDP, model roles and function calls; **EXPERIMENTAL** is the rest of the catalogue,
+including the live and credential-bound diagnostics and `--selftest-cleanup` (the long pole,
+run without `--selftest-timeout` because it sizes its own budget). `make acceptance TIER=core`
+runs one tier and `make acceptance --dry-run` prints the manifest without running anything;
+logs land in `~/Library/Caches/NextNotesBuild/acceptance/`. Entries whose tier entry carries
+`via-open` (dictation, microphone, system audio, the live acoustic and AX probes) are launched
+through LaunchServices, because TCC keys a grant to the responsible process and a direct shell
+launch is denied the grant the app itself holds — without that marker those entries report a
+permission failure that says nothing about the code. The runner also fixes the launcher's
+via-open wait, which used to miss a verdict line that had a sentence after the marker
+(`DICTATION_OK: …`) and sit until its timeout on runs that had already finished.
 
 **There is no way to read the system-audio grant, and `CGPreflightScreenCaptureAccess` is not
 it.** It is tempting — the pane is called "Screen & System Audio Recording" and the tap's own
@@ -778,6 +849,28 @@ transcribed and stored separately (left and right channels of `audio.caf` when k
 is on). That is what gives "You / Others" attribution for free and what lets diarization
 run on the system track alone. The known cost: with laptop speakers and the built-in
 microphone, remote voices bleed onto the mic track.
+
+**Settings states no minimum width of its own, and its two hosts are narrower than each
+other.** The same `SettingsWindow` is the standalone ⌘, window — pinned by
+`SettingsWindowFrame.pin` to 800pt, which is the system sidebar plus the form — and the
+main window's Settings section, where the detail column is as narrow as `detailMin` (560)
+and the system sidebar takes 240 of that. A `frame(minWidth:)` on the view cannot tell the
+two apart, and in the embedded case it is a demand the host cannot meet: SwiftUI does not
+shrink it, it lays the form out at the demanded width and clips it at the window's right
+edge — measured on a 1080pt window, every picker's value was cut off mid-word and the
+settings sidebar was squeezed to make room. So the minimum is passed in by the one host
+that has one (`hostMinimumWidth`, which the ⌘, scene sets from `settingsWindowMinWidth`
+and the main window leaves nil), the pane's floor (`settingsPaneMinWidth`, derived as
+`detailMin` less the system sidebar) belongs to `SettingsPane`, and nothing else states a
+width. `--selftest-settings` hosts every pane at the floor, the embedded window at
+`detailMin` and the standalone copy at a narrower proposal than its own minimum, failing if
+any of them asks for the wrong width; `--settings-sheet` renders all twelve panes at the
+widths they meet so the layout can be *looked at*, which no grant-free self-test can do. Two things that look like they need a fix and do not: the
+adaptive card grid needs no narrow-width clamp — a pane narrower than
+`settingsCardMinWidth` renders one column at the pane's own width, pixel-for-pixel the same
+with the column minimum pinned at 560 — and `--settings-sheet` cannot use `ImageRenderer`
+the way `--avatar-sheet` does, because a native grouped `Form` draws nothing into an
+`ImageRenderer` pass; it hosts the pane in an offscreen panel and `cacheDisplay`s that.
 
 ---
 
@@ -1156,7 +1249,8 @@ development machine. Treat anything here as unproven, and do not describe it as 
   trade-surface maximum on the synthetic corpus (17/24 hits @ 3/32 false at the shipped
   default, `--selftest-wake-live` still red at its 0.8 bar); the missing clips are
   synthetic-voice rows, and `WAKE_MIC` has no captures here. The remaining fix is
-  real-room recordings, not a lowered bar.
+  real-room recordings, not a lowered bar — `--wake-mic-record` is the recorder that
+  produces them, and it has never been run with a live microphone either.
 - **The podcast routine with real voices.** `LongFormRenderer`'s production synthesis
   (`LongFormSynthesisFactory.live()`, Pocket/Kokoro frame paths) has never rendered a real
   file — neither voice model is downloaded here — and no scheduled run has produced a
