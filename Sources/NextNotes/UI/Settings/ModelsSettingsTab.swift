@@ -32,6 +32,9 @@ struct ModelsSettingsTab: View {
     /// A model just made the runtime's file, waiting on the role question: the file alone
     /// does not change what answers, so "Use this one" must ask before it can promise.
     @State private var rolePromptModel: InstalledLocalModel?
+    /// The model a trial is running on right now, so the row can show progress and a
+    /// second press cannot start a second multi-gigabyte load.
+    @State private var checkingModelID: String?
 
     var body: some View {
         Form {
@@ -292,12 +295,12 @@ struct ModelsSettingsTab: View {
                     canRemove: installed.canRemove(model),
                     canUse: !model.isAuxiliary && model.isRunnable,
                     lastUsed: installed.lastUsedDate(for: model.id),
-                    onUse: {
-                        library.makeActive(model)
-                        rolePromptModel = model
-                    },
+                    onUse: { use(model) },
                     onDelete: { library.delete(model) }
                 )
+                if needsCheck(model, answersTurns: answersTurns) {
+                    checkRow(model)
+                }
             }
             Picker("When I download a new brain", selection: $library.postDownloadPolicy) {
                 ForEach(ModelLibraryStore.PostDownloadPolicy.allCases) { policy in
@@ -347,20 +350,97 @@ struct ModelsSettingsTab: View {
             actions: { model in
                 // Through the role store, not straight at the file: the next turn
                 // re-asserts the role's choice, so a file switch alone flips back. Offered
-                // only for a file the probe actually opened — assigning a role to a file
-                // this build cannot run is the promise the whole guard exists to stop.
-                if model.isRunnable {
+                // only for a file the probe opened **and** a trial proved answers —
+                // assigning a role to a file this build cannot run is the promise the
+                // whole guard exists to stop.
+                if model.isRunnable, canAnswer(model) {
                     Button("Use for agent turns") {
                         roles.setChoice(.installedModel(id: model.id), for: .agent)
                     }
                 }
                 Button("Keep file only", role: .cancel) {}
             },
-            message: { _ in
-                Text("The Agent role decides what answers — it currently uses "
-                     + "\(roles.displayName(for: .agent)). The file stays loaded either way.")
+            message: { model in
+                if canAnswer(model) {
+                    Text("The Agent role decides what answers — it currently uses "
+                         + "\(roles.displayName(for: .agent)). The file stays loaded either way.")
+                } else {
+                    Text("Next Notes hasn’t checked that this file can answer yet. "
+                         + "Use \u{201c}Check it works\u{201d} first — if it can’t, nothing "
+                         + "is switched.")
+                }
             }
         )
+    }
+
+    /// Whether the Agent role may be promised to this file. The built-in model is pinned
+    /// by the app and needs no trial; a downloaded one is only offered once its own trial
+    /// generated a token (P0-02).
+    ///
+    /// Reads the live row rather than the copy the caller holds: the role dialog opens
+    /// with a snapshot taken before "Check it works" ran, and that snapshot still says
+    /// "never tried".
+    private func canAnswer(_ model: InstalledLocalModel) -> Bool {
+        if model.isBuiltIn { return true }
+        let current = installed.model(withID: model.id) ?? model
+        return (current.lastTrial?.answeredTokens ?? 0) > 0
+    }
+
+    /// A runnable file whose own trial has not generated a token, and which is not already
+    /// answering turns. Choosing a model is a promise it answers, and only a trial can
+    /// make that promise.
+    private func needsCheck(_ model: InstalledLocalModel, answersTurns: Bool) -> Bool {
+        guard !model.isBuiltIn, model.isRunnable, !answersTurns else { return false }
+        return (model.lastTrial?.answeredTokens ?? 0) == 0
+    }
+
+    /// The "Check it works" affordance under an untried row, with the progress that keeps
+    /// the multi-gigabyte load honest.
+    private func checkRow(_ model: InstalledLocalModel) -> some View {
+        HStack(spacing: DS.Space.s) {
+            if checkingModelID == model.id {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Checking \(model.displayName) works…")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+            } else {
+                Button("Check it works") { check(model) }
+                    .font(DS.Font.caption)
+                Text("One real answer, before anything switches to it.")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+            }
+        }
+    }
+
+    /// "Use this one" runs the trial first when the file has never answered, then makes it
+    /// active and asks about the role only if it did.
+    private func use(_ model: InstalledLocalModel) {
+        if canAnswer(model) {
+            library.makeActive(model)
+            rolePromptModel = model
+            return
+        }
+        guard checkingModelID == nil else { return }
+        checkingModelID = model.id
+        Task {
+            await library.checkModel(model)
+            checkingModelID = nil
+            if canAnswer(model) {
+                library.makeActive(model)
+                rolePromptModel = model
+            }
+        }
+    }
+
+    private func check(_ model: InstalledLocalModel) {
+        guard checkingModelID == nil else { return }
+        checkingModelID = model.id
+        Task {
+            await library.checkModel(model)
+            checkingModelID = nil
+        }
     }
 
     /// Anything left half-fetched — the app was quit, the network dropped, Stop was pressed —

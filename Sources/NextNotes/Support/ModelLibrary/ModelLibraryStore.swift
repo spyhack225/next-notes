@@ -187,9 +187,10 @@ final class ModelLibraryStore {
         /// is only ever changed for this one download — answering "not now" in the sheet
         /// below never rewrites what every future download does.
         var policy: PostDownloadPolicy
-        /// Free space after this download would fall under this app's own reserve twice
-        /// over — the point at which the sheet should say so and lean the person toward
-        /// deleting the old one, without ever choosing it for them.
+        /// Space is short *and* another installed model has answered a trial — the point
+        /// at which the sheet should say so and lean the person toward deleting the old
+        /// one, without ever choosing it for them. Never true when the old one is the only
+        /// model that answers.
         let recommendsDeletingOld: Bool
         /// True only when the *verdict* is why the sheet appeared — a poor fit that the
         /// downloader's own disk reserve would otherwise refuse. A sheet shown only because a
@@ -205,7 +206,18 @@ final class ModelLibraryStore {
     @ObservationIgnored private var tasks: [String: Task<Void, Never>] = [:]
     @ObservationIgnored private var searchTask: Task<Void, Never>?
 
-    private init() {
+    /// The installed-model library the post-download policy acts on. Injected so P0-02's
+    /// self-test can drive a real switch and a real delete against scratch files instead
+    /// of the person's models. Production uses `.shared`.
+    private let library: InstalledModelLibrary
+
+    /// The trial the post-download policy and the Models tab run on a file. **P0-02
+    /// seam:** production goes through `NotesModelRuntime.trial`; a self-test injects a
+    /// verdict so no model is loaded and no real file is touched.
+    @ObservationIgnored var verifyForTesting: ((InstalledLocalModel) async -> ModelTrialResult)?
+
+    init(library: InstalledModelLibrary = .shared) {
+        self.library = library
         hardware = HardwareProfile.current()
         postDownloadPolicy = UserDefaults.standard.string(forKey: Self.policyDefaultsKey)
             .flatMap(PostDownloadPolicy.init(rawValue:)) ?? .switchKeepOld
@@ -492,12 +504,38 @@ final class ModelLibraryStore {
         }
     }
 
-    /// Whether free space after this download would be under this app's own 4 GB reserve
-    /// twice over — the point at which the confirmation sheet leans the person toward
-    /// deleting the old brain rather than merely mentioning that the option exists.
+    /// Whether the confirmation sheet should lean toward "delete the old one".
+    ///
+    /// Space is only half the question. When no other installed model has answered a
+    /// trial, the old brain may be the only one that answers at all, and leaning toward
+    /// deleting it is how a working model was lost on 2026-09-23. The space rule only
+    /// applies once another answer exists.
     private func recommendsDeletingOld(fileBytes: Int64) -> Bool {
-        let free = ModelDownloader.availableDiskBytes()
-        return free - fileBytes < ModelDownloader.minimumFreeBytesAfterDownload * 2
+        Self.recommendsDeletingOld(
+            freeBytes: ModelDownloader.availableDiskBytes(),
+            fileBytes: fileBytes,
+            otherAnsweringModels: otherAnsweringModels)
+    }
+
+    /// Installed rows, other than the one in use, whose own trial generated a token.
+    ///
+    /// The built-in model carries no `lastTrial` — `refresh()` synthesizes it — so it is
+    /// never counted here. That is the cautious direction: the sheet only leans toward
+    /// deleting the old brain when some other installed file has proved it can answer.
+    private var otherAnsweringModels: Int {
+        let active = library.activeAgentModelID
+        return library.models.filter {
+            $0.id != active && ($0.lastTrial?.answeredTokens ?? 0) > 0
+        }.count
+    }
+
+    /// The rule above, pure and `nonisolated`, so the self-test can drive every row of the
+    /// table without a disk, a download or a store.
+    nonisolated static func recommendsDeletingOld(
+        freeBytes: Int64, fileBytes: Int64, otherAnsweringModels: Int
+    ) -> Bool {
+        guard otherAnsweringModels > 0 else { return false }
+        return freeBytes - fileBytes < ModelDownloader.minimumFreeBytesAfterDownload * 2
     }
 
     /// The transfer itself.
@@ -612,44 +650,72 @@ final class ModelLibraryStore {
         }
     }
 
-    /// Switches to the model just downloaded (unless the policy says not to), asks the
-    /// runtime to actually open it, and only then — never before — deletes the model it is
-    /// replacing.
+    /// Trials the model just downloaded (unless the policy says not to), switches to it
+    /// only if that trial generated a token, and only then — never before — deletes the
+    /// model it is replacing.
     ///
-    /// "Verified" means a real load was attempted: `NotesModelRuntime.prepare()` opens
-    /// whatever is active and, on its own, falls back to the built-in model and reports why
-    /// through `ModelLoadNotice` if that file will not open (`NotesModelRuntime.swift` §
-    /// `revertToBuiltIn`). This reuses that existing safety net rather than duplicating it:
-    /// after `prepare()` returns, `InstalledModelLibrary.activeAgentModelID` says which model
-    /// actually ended up loaded, and that is the one fact this function trusts. On a
-    /// reverted (failed) load this restores the model that was active *before* this download
-    /// — not necessarily the built-in one the runtime falls back to — so "switch back" means
-    /// what it sounds like even when the previous brain was itself a downloaded one.
+    /// "Verified" means the file itself answered: `NotesModelRuntime.trial` opens exactly
+    /// this file, builds a context, decodes a fixed prompt and samples up to eight tokens,
+    /// then frees the weights. A file that opens but cannot answer — an MTP draft head, an
+    /// architecture this build cannot run — fails here, before anything is switched. The
+    /// old body set `activeAgentModelID` first and asked `prepare()`, which only opens a
+    /// file, so the switch raced the check and the check could not tell opening from
+    /// answering.
+    ///
+    /// The Agent role is never set here: the Models tab asks, and only offers it after a
+    /// trial answered.
     private func applyPostDownloadPolicy(
         _ policy: PostDownloadPolicy,
         previousActiveID: String,
         newModel: InstalledLocalModel
     ) async {
         guard policy != .downloadOnly, previousActiveID != newModel.id else { return }
-        InstalledModelLibrary.shared.activeAgentModelID = newModel.id
-        let loadSucceeded: Bool
-        do {
-            try await NotesModelRuntime.shared.prepare()
-            loadSucceeded = InstalledModelLibrary.shared.activeAgentModelID == newModel.id
-        } catch {
-            loadSucceeded = false
-        }
+        let trialResult = await runTrial(newModel)
+        library.setLastTrial(trialResult, for: newModel.id)
+        let loadSucceeded = (trialResult.answeredTokens ?? 0) > 0
         let outcome = Self.decide(
             policy: policy, previousActiveID: previousActiveID,
             newModelID: newModel.id, loadSucceeded: loadSucceeded
         )
-        if InstalledModelLibrary.shared.activeAgentModelID != outcome.activeID {
-            InstalledModelLibrary.shared.activeAgentModelID = outcome.activeID
+        if library.activeAgentModelID != outcome.activeID {
+            library.activeAgentModelID = outcome.activeID
         }
         if let deleteID = outcome.deleteID {
-            InstalledModelLibrary.shared.remove(id: deleteID)
+            library.remove(id: deleteID)
         }
         refreshHardware()
+    }
+
+    /// The production body above, reachable from a self-test that built this store with
+    /// an isolated library.
+    ///
+    /// **P0-02 seam.** The trial and the switch both run through the real policy, so the
+    /// self-test can assert the order (trial first), the verdict recorded on the row, and
+    /// that only an `.answered` trial switches or deletes anything.
+    func applyPostDownloadPolicyForTesting(
+        _ policy: PostDownloadPolicy,
+        previousActiveID: String,
+        newModel: InstalledLocalModel
+    ) async {
+        await applyPostDownloadPolicy(policy, previousActiveID: previousActiveID, newModel: newModel)
+    }
+
+    /// Runs the real trial on one installed file and records what it found on its row.
+    ///
+    /// The Models tab's "Check it works" and its "Use this one" both go through here: a
+    /// file that has never been tried gets one real decode before anything is promised to
+    /// it. The trial loads a model, so this is `async` and the caller shows progress; the
+    /// verdict lands on the row through `setLastTrial`, which is what the UI gates on.
+    func checkModel(_ model: InstalledLocalModel) async {
+        let result = await runTrial(model)
+        library.setLastTrial(result, for: model.id)
+    }
+
+    /// The trial the post-download policy and the Models tab both run. A self-test injects
+    /// `verifyForTesting`, so no model is loaded and no real file is touched.
+    private func runTrial(_ model: InstalledLocalModel) async -> ModelTrialResult {
+        if let verifyForTesting { return await verifyForTesting(model) }
+        return await NotesModelRuntime.shared.trial(model)
     }
 
     // MARK: - Partial downloads

@@ -2728,6 +2728,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 )
                 writeSelfTest("  CPU: S1-mini normalised \u{2192} \(normalized)")
 
+                // P0-02's agent-role leg: the model the Agent role would actually answer
+                // with, tried on its own file. Read-only — no role, setting or library
+                // entry is written. The trial decodes with that exact file, so a file that
+                // opens but cannot answer (an MTP draft head, an architecture this build
+                // cannot run) fails here instead of on the person's next turn. Apple's
+                // model is informational: there is no local file to try.
+                let agentChoice = ModelRoleStore.shared.choice(for: .agent)
+                var agentModel: InstalledLocalModel?
+                if case .installedModel(let id) = agentChoice {
+                    agentModel = InstalledModelLibrary.shared.model(withID: id)
+                }
+                if let agentModel {
+                    let result = await NotesModelRuntime.shared.trial(agentModel)
+                    let tokens: Int
+                    let detail: String
+                    switch result {
+                    case .answered(let count, let seconds):
+                        tokens = count
+                        detail = String(format: " in %.2fs", seconds)
+                    case .opensButCannotAnswer(let reason):
+                        tokens = 0
+                        detail = " \u{2014} \(reason)"
+                    case .cannotOpen(let reason):
+                        tokens = 0
+                        detail = " \u{2014} \(reason)"
+                    }
+                    writeSelfTest("""
+                        LLM_METAL_AGENT_ROLE: \(agentModel.displayName) generated \
+                        \(tokens) token(s)\(detail)
+                        """)
+                    guard tokens > 0 else {
+                        writeSelfTest("""
+                            LLM_METAL_FAILED: the model the Agent role uses did not answer a trial
+                            """)
+                        NSApp.terminate(nil)
+                        return
+                    }
+                } else if agentChoice == .appleFoundation {
+                    writeSelfTest("LLM_METAL_AGENT_ROLE: apple")
+                }
+
                 let peak = Double(Self.peakResidentBytes()) / 1_048_576
                 writeSelfTest("""
                     LLM_METAL_OK: metal \(metalEnabled ? "on" : "off"), \

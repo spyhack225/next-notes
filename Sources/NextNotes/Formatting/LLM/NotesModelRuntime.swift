@@ -1,6 +1,29 @@
 import Foundation
 import llama
 
+/// What trying one installed file for real found.
+///
+/// The difference between `.opensButCannotAnswer` and `.answered` is the whole point of
+/// P0-02: a GGUF can open — llama.cpp reads its metadata and vocabulary happily — and
+/// then fail to build a context, which is exactly what an MTP draft head does. Opening
+/// is not answering, and only `.answered` with a generated token may switch the active
+/// model or delete anything.
+enum ModelTrialResult: Codable, Sendable, Equatable, Hashable {
+    case answered(tokens: Int, seconds: Double)
+    case opensButCannotAnswer(String)
+    case cannotOpen(String)
+
+    /// The token count when the file actually answered, and nil otherwise.
+    ///
+    /// The one question the post-download policy, the Models tab and the metal self-test
+    /// ask of a trial: a file that opens but produced no token has not answered, and only
+    /// an answer may switch the active model or delete anything.
+    var answeredTokens: Int? {
+        guard case .answered(let tokens, _) = self else { return nil }
+        return tokens
+    }
+}
+
 /// A general llama.cpp text-generation runtime, sized for whole meeting transcripts.
 ///
 /// Generalised from `S1MiniRuntime`, which stays as it is: that one is a hot-path
@@ -376,6 +399,132 @@ actor NotesModelRuntime {
         }
         lastUse = Date()
         scheduleIdleUnload()
+    }
+
+    /// Try one installed file for real and report what it did.
+    ///
+    /// Opening is not answering. A GGUF can open — llama.cpp reads its metadata and
+    /// vocabulary happily — and then fail to build a context, which is exactly what an MTP
+    /// draft head does. So the trial loads **this exact file**, builds a context, decodes a
+    /// fixed prompt and samples up to eight tokens; only a generated token becomes
+    /// `.answered(tokens:seconds:)`. A context or decode failure is
+    /// `.opensButCannotAnswer`, and a file that will not open at all is `.cannotOpen`.
+    ///
+    /// It never touches `InstalledModelLibrary` — the caller records the verdict on the row
+    /// — and it restores the previous spec and frees the weights before it returns, so a
+    /// trial on a scratch file cannot leave a model resident. While it holds the native
+    /// context, `useInstalledModel` records a model choice as pending rather than applying
+    /// it, which is what keeps a trial from racing the switch it exists to guard.
+    func trial(_ model: InstalledLocalModel) async -> ModelTrialResult {
+        // A voice session's lease is a deliberate hold on the resident weights, and a
+        // session can last minutes. The trial must not free them out from under it, so the
+        // caller is told to retry rather than made to wait.
+        guard conversationLeases.isEmpty else { return .cannotOpen("busy") }
+        do {
+            return try await withLane(.background) { jobID in
+                await self.trialWhileScheduled(jobID: jobID, installed: model)
+            }
+        } catch is CancellationError {
+            return .cannotOpen("busy")
+        } catch {
+            return .opensButCannotAnswer(error.localizedDescription)
+        }
+    }
+
+    /// The body of `trial`, already holding the background lane and the native context.
+    private func trialWhileScheduled(
+        jobID: UUID, installed: InstalledLocalModel
+    ) async -> ModelTrialResult {
+        // The actor re-entered while the lane was being acquired; a session that opened in
+        // that window still owns the weights.
+        guard conversationLeases.isEmpty else { return .cannotOpen("busy") }
+
+        let candidate = Self.spec(for: installed)
+        let previous = spec
+        let wasDeferred = deferredShutdown
+        let pendingBefore = pendingSpec
+        defer {
+            // A model chosen while the trial held the lane — or one already waiting for
+            // it — is a pending switch, not something this trial may drop. Put the
+            // deferral back so `withLane` applies it the moment the lane is free, and
+            // leave `spec` where it was.
+            let deferred = wasDeferred || deferredShutdown
+            shutdownNow()
+            spec = previous
+            if pendingSpec == nil { pendingSpec = pendingBefore }
+            deferredShutdown = deferred
+        }
+        shutdownNow()
+        spec = candidate
+        pendingSpec = nil
+
+        var parameters = llama_model_default_params()
+        parameters.n_gpu_layers = gpuLayers
+        parameters.load_mode = LLAMA_LOAD_MODE_MMAP
+        parameters.use_extra_bufts = false
+        await LlamaBackend.shared.initialize()
+        guard let (loaded, loadedVocabulary) = Self.openNative(candidate, parameters: parameters) else {
+            return .cannotOpen("the file would not open")
+        }
+        model = loaded
+        vocabulary = loadedVocabulary
+        trainedContext = Int(llama_model_n_ctx_train(loaded))
+
+        do {
+            return try await decodeTrialToken(jobID: jobID, vocabulary: loadedVocabulary)
+        } catch {
+            return .opensButCannotAnswer(error.localizedDescription)
+        }
+    }
+
+    /// Up to this many sampled tokens. Enough that a model which opens but cannot answer
+    /// (an MTP head, a context llama.cpp cannot run) fails at the context or the decode,
+    /// few enough that a trial on a real model costs a second.
+    private static let trialMaxTokens = 8
+
+    /// Builds a context, decodes the fixed trial prompt and samples until EOG or the cap.
+    private func decodeTrialToken(
+        jobID: UUID, vocabulary: OpaquePointer
+    ) async throws -> ModelTrialResult {
+        // The system line is deliberately neutral. Measured on this Mac: S1-mini — a
+        // normalizer, not an assistant — ends its turn on the first token when the system
+        // line itself reads as the instruction ("Answer with the single word OK."), and a
+        // trial that reports a working file as unable to answer is the bug this guards.
+        // "You are a helpful assistant." answers on S1-mini (1 token) and on Qwen3 (1).
+        let prompt = Self.chatMLPrompt(
+            system: "You are a helpful assistant.",
+            user: "Reply with the single word OK.")
+        let tokens = try LlamaHelpers.tokenize(prompt, vocabulary: vocabulary)
+        let context = try ensureContext(promptTokens: tokens.count, maxTokens: Self.trialMaxTokens)
+        llama_memory_clear(llama_get_memory(context), true)
+        try await decodePromptWhileScheduled(tokens, context: context, jobID: jobID)
+
+        guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: nil) else {
+            throw LlamaError.samplerFailed
+        }
+        defer { llama_sampler_free(sampler) }
+
+        let began = Date()
+        var generated = 0
+        var position = llama_pos(tokens.count)
+        var batch = llama_batch_init(1, 0, 1)
+        defer { llama_batch_free(batch) }
+        while generated < Self.trialMaxTokens {
+            try Task.checkCancellation()
+            await ComputeScheduler.shared.checkpoint(jobID)
+            let token = llama_sampler_sample(sampler, context, -1)
+            if llama_vocab_is_eog(vocabulary, token) { break }
+            generated += 1
+            batch.n_tokens = 0
+            LlamaHelpers.add(token, position: position, logits: true, to: &batch)
+            guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
+            position += 1
+        }
+        let seconds = Date().timeIntervalSince(began)
+        guard generated > 0 else {
+            return .opensButCannotAnswer("the model ended its turn without a token")
+        }
+        return .answered(tokens: generated, seconds: seconds)
     }
 
     /// Keep the already selected on-device model resident while a voice session is open.

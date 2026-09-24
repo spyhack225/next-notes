@@ -19,6 +19,10 @@ struct InstalledLocalModel: Identifiable, Codable, Sendable, Hashable {
     /// What the probe said about this file, once it has been asked. nil on a row written
     /// before the probe existed; such a row is probed lazily rather than treated as broken.
     var support: LlamaProbeResult?
+    /// What the last real trial of this exact file found, or nil when it has never been
+    /// tried. P0-02: `support` says the file opens; only `lastTrial` says it answers, and
+    /// the Models tab gates "Use for agent turns" on the difference.
+    var lastTrial: ModelTrialResult?
 
     init(
         id: String,
@@ -28,7 +32,8 @@ struct InstalledLocalModel: Identifiable, Codable, Sendable, Hashable {
         quantization: String?,
         bytes: Int64,
         isBuiltIn: Bool,
-        support: LlamaProbeResult? = nil
+        support: LlamaProbeResult? = nil,
+        lastTrial: ModelTrialResult? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -38,6 +43,7 @@ struct InstalledLocalModel: Identifiable, Codable, Sendable, Hashable {
         self.bytes = bytes
         self.isBuiltIn = isBuiltIn
         self.support = support
+        self.lastTrial = lastTrial
     }
 
     /// Hand-written on purpose: a new field must be `decodeIfPresent`, or every
@@ -54,6 +60,7 @@ struct InstalledLocalModel: Identifiable, Codable, Sendable, Hashable {
         bytes = try container.decode(Int64.self, forKey: .bytes)
         isBuiltIn = try container.decode(Bool.self, forKey: .isBuiltIn)
         support = try container.decodeIfPresent(LlamaProbeResult.self, forKey: .support)
+        lastTrial = try container.decodeIfPresent(ModelTrialResult.self, forKey: .lastTrial)
     }
 
     /// "2.6 GB" — the form the settings rows use.
@@ -121,12 +128,21 @@ final class InstalledModelLibrary {
     var activeAgentModelID: String {
         didSet {
             guard oldValue != activeAgentModelID else { return }
+            activeSelectionWrites += 1
             defaults.set(activeAgentModelID, forKey: Self.activeDefaultsKey)
             recordUse(activeAgentModelID)
             NotificationCenter.default.post(name: .installedModelLibraryActiveModelChanged, object: nil)
             adoptInRuntime()
         }
     }
+
+    /// How many times `activeAgentModelID` has actually changed since this store was
+    /// created.
+    ///
+    /// P0-02's post-download self-test reads it to prove the trial ran *before* the
+    /// switch: a verify closure that sees the same count it captured before the call
+    /// means nothing had been switched yet. Never read by production.
+    private(set) var activeSelectionWrites = 0
 
     private static let lastUsedDefaultsKey = "modelLibrary.lastUsedAt"
 
@@ -303,6 +319,20 @@ final class InstalledModelLibrary {
         manifest.append(model)
         saveManifest(manifest)
         refresh()
+    }
+
+    /// Records what a real trial of this file found, on its own manifest row, so "opened"
+    /// and "answered" stay apart across launches.
+    ///
+    /// The built-in model has no manifest row of its own — `refresh()` synthesizes it —
+    /// so there is nothing to rewrite for it; it is runnable by definition and no trial
+    /// has to be recorded for it to be offered.
+    func setLastTrial(_ result: ModelTrialResult?, for id: String) {
+        var manifest = loadManifest()
+        guard let index = manifest.firstIndex(where: { $0.id == id }) else { return }
+        manifest[index].lastTrial = result
+        saveManifest(manifest)
+        reloadFromDisk()
     }
 
     /// Removes the file and, for a downloaded model, the manifest row.
