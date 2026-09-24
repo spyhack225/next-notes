@@ -8,9 +8,11 @@ import Foundation
 /// one-shot tool and Foundation Models replies go through `RealtimeAudioSession.speak`,
 /// which feeds the full text into this buffer in one append + finalize.
 ///
-/// Silence rules use the accumulating buffer: if `spokenForm` is empty
-/// (URL, tool name, code, long listing), nothing is enqueued. Incomplete
-/// trailing text is held until a clause boundary or `finalize`.
+/// Silence rules use the accumulating buffer: if `isSpeakableReply` is false
+/// (URL, tool id, code, file or long listing), nothing is enqueued. Length is
+/// judged per clause by `speakableClauses`, so a long reply is still spoken in
+/// full and a clause already playing is never stopped for being long.
+/// Incomplete trailing text is held until a clause boundary or `finalize`.
 @MainActor
 final class StreamingSpeechBuffer {
     private let synthesizer: AgentSpeechSynthesizer
@@ -77,11 +79,11 @@ final class StreamingSpeechBuffer {
     // MARK: - Flush
 
     private func flush(finalize: Bool) {
-        let spoken = AgentSpeechPolicy.spokenForm(buffer)
-        // Policy silence (URL / tool / code / listing): do not speak mid-stream.
-        guard !spoken.isEmpty else { return }
+        // Whole-reply content silencers (URL / tool id / code / listing): do not
+        // start speaking. A clause already playing is never stopped here.
+        guard AgentSpeechPolicy.isSpeakableReply(buffer) else { return }
 
-        let all = AgentSpeechPolicy.splitIntoClauses(spoken)
+        let all = AgentSpeechPolicy.speakableClauses(buffer)
         let ready = finalize ? all : completePrefix(of: all)
         let newOnes = Array(ready.dropFirst(flushedCount))
         guard !newOnes.isEmpty else { return }

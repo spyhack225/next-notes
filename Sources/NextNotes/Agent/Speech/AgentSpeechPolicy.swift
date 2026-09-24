@@ -2,9 +2,13 @@ import Foundation
 
 /// What the agent may say out loud. The island still shows the full reply.
 ///
-/// Speak short answers, permission questions and task-done lines. Never speak URLs,
-/// tool names, file listings or code — those stay on the card. A long listing has
-/// an empty spoken form rather than a truncated reading.
+/// A reply is speakable unless a whole-reply content silencer applies: a URL, a tool
+/// id, code, a file listing or a long listing. Those stay on the card.
+///
+/// Length is judged per clause, never on the whole reply. Each clause from
+/// `splitIntoClauses` is spoken when it is at most `shortLimit`; a longer clause is
+/// split at its last comma or space before the limit and spoken in parts. Length is
+/// a “do not start” decision and never stops a clause that is already playing.
 ///
 /// Spoken replies are split into short clauses (sentence / semicolon / em-dash)
 /// so TTS can enqueue utterance-by-utterance and barge-in can cut mid-reply.
@@ -32,12 +36,35 @@ enum AgentSpeechPolicy {
         return ""
     }
 
-    /// Speakable clauses for streamed TTS. Empty when `spokenForm` is empty.
+    /// Speakable clauses for streamed TTS. Empty when the reply is not speakable.
     /// Boundaries: sentence end (`.!?`), semicolon, em-dash (`—`), or ` -- `.
+    /// Length is judged per clause, so a long reply is still spoken in full.
     static func spokenClauses(_ reply: String) -> [String] {
-        let spoken = spokenForm(reply)
-        guard !spoken.isEmpty else { return [] }
-        return splitIntoClauses(spoken)
+        guard isSpeakableReply(reply) else { return [] }
+        return speakableClauses(reply)
+    }
+
+    // MARK: - Streaming decisions (P0-09)
+
+    /// Whole-reply speakability. True when none of the whole-reply content
+    /// silencers apply: a URL, a tool id, code, a file listing or a long listing.
+    /// Length is not judged here — `speakableClauses` owns the per-clause cap —
+    /// so a clean reply longer than `shortLimit` is still spoken, clause by clause.
+    static func isSpeakableReply(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        return !containsURL(trimmed)
+            && !containsToolName(trimmed)
+            && !containsCode(trimmed)
+            && !isFileListing(trimmed)
+            && !isLongListing(trimmed)
+    }
+
+    /// Speakable clauses with length judged per clause: any clause over
+    /// `shortLimit` is split at its last comma, else its last space, before the
+    /// limit and spoken in parts.
+    static func speakableClauses(_ text: String) -> [String] {
+        splitIntoClauses(text).flatMap { splitLongClause($0, limit: shortLimit) }
     }
 
     /// Immediate voice form of a verified tool result. The full result remains in
@@ -169,8 +196,12 @@ enum AgentSpeechPolicy {
     }
 
     /// Streaming guard used after a clause may already have started. Once unsafe
-    /// content appears, queued speech is stopped so URLs, tool output and code never
-    /// continue through the speaker.
+    /// content appears, queued speech is stopped so URLs, tool ids, code and file
+    /// listings never continue through the speaker.
+    ///
+    /// Length is deliberately not a silencer here: it is judged per clause in
+    /// `speakableClauses`, and a long listing is a whole-reply “do not start”
+    /// decision in `isSpeakableReply`. Neither may stop a clause already playing.
     static func isUnsafeForStreaming(_ text: String) -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
@@ -178,9 +209,6 @@ enum AgentSpeechPolicy {
             || containsToolName(trimmed)
             || containsCode(trimmed)
             || isFileListing(trimmed)
-            || isLongListing(trimmed)
-            || trimmed.count > spokenCap
-            || lineCount(trimmed) > 3
     }
 
     /// Split already-speakable text into short playback clauses.
@@ -289,9 +317,14 @@ enum AgentSpeechPolicy {
             || lowered.contains("www.")
     }
 
+    /// A tool id, not a tool word: a namespace followed by `.` and an identifier
+    /// character, or one of the exact ids. “meeting.search” is an id and stays
+    /// silent; “until your 3 PM meeting.” is ordinary prose and is spoken.
     static func containsToolName(_ text: String) -> Bool {
-        let lowered = text.lowercased()
-        return toolMarks.contains { lowered.contains($0) }
+        let range = NSRange(text.startIndex..., in: text)
+        if namespacedID.firstMatch(in: text, range: range) != nil { return true }
+        let words = text.lowercased().split { !($0.isLetter || $0.isNumber || $0 == "_") }
+        return words.contains { exactIDs.contains(String($0)) }
     }
 
     static func containsCode(_ text: String) -> Bool {
@@ -459,7 +492,37 @@ enum AgentSpeechPolicy {
             failures.append("task-done replies should speak, got “\(spokenForm(done))”")
         }
 
+        failures += toolSilencerTableFailures()
         failures += clauseFailures()
+        return failures
+    }
+
+    /// P0-09 (H-audit 2026-09-23, V3): the tool silencer matches ids, not words.
+    /// Ordinary prose that happens to end in “meeting.”, “browser.”, “computer.”
+    /// or “workspace.” is speakable; a namespaced id or an exact tool id is not.
+    static func toolSilencerTableFailures() -> [String] {
+        var failures: [String] = []
+
+        let ordinaryProse = [
+            "You're free until your 3 PM meeting.",
+            "Open it in your browser.",
+            "It's on your computer.",
+            "The workspace is ready.",
+        ]
+        for sentence in ordinaryProse where spokenForm(sentence).isEmpty {
+            failures.append("ordinary prose was silenced as a tool name: “\(sentence)”")
+        }
+
+        let toolIDProse = [
+            "Use meeting.search next.",
+            "I called computer.click.",
+            "search_email returned 5 results.",
+            "Try mcp.github_list.",
+        ]
+        for sentence in toolIDProse where !spokenForm(sentence).isEmpty {
+            failures.append("a tool id was spoken: “\(sentence)”")
+        }
+
         return failures
     }
 
@@ -523,13 +586,43 @@ enum AgentSpeechPolicy {
 
     // MARK: - Private
 
-    private static let toolMarks: [String] = [
-        "filesystem.", "computer.", "shell.run", "shell.status", "shell.cancel",
-        "browser.", "meeting.", "workspace.", "mcp.",
-        "memory.remember", "memory.update", "memory.forget", "memory.recall",
-        "search_email", "get_agenda", "find_drive_files",
-        "inspect_ui", "active_app",
+    /// A namespace followed by `.` and an identifier character is an id; the same
+    /// word ending a sentence is not.
+    /// P1-03 derives these namespaces and `exactIDs` from `AgentCapabilityManifest`.
+    private static let namespacedID = try! NSRegularExpression(
+        pattern: #"\b(filesystem|computer|browser|meeting|workspace|mcp|memory|shell)\.[a-z_]"#,
+        options: [.caseInsensitive])
+
+    private static let exactIDs: Set<String> = [
+        "search_email", "get_agenda", "find_drive_files", "inspect_ui", "active_app",
     ]
+
+    /// Split a clause longer than `limit` at its last comma, else its last space,
+    /// before the limit. The tail is split again the same way, so every returned
+    /// part fits the limit.
+    private static func splitLongClause(_ clause: String, limit: Int) -> [String] {
+        let trimmed = clause.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+        guard trimmed.count > limit else { return [trimmed] }
+
+        let windowEnd = trimmed.index(trimmed.startIndex, offsetBy: limit)
+        let window = trimmed[trimmed.startIndex..<windowEnd]
+        let cut = window.lastIndex(of: ",") ?? window.lastIndex(of: " ")
+
+        let head: String
+        let tail: String
+        if let cut, cut > trimmed.startIndex {
+            head = String(trimmed[trimmed.startIndex...cut])
+            tail = String(trimmed[trimmed.index(after: cut)...])
+        } else {
+            head = String(trimmed[trimmed.startIndex..<windowEnd])
+            tail = String(trimmed[windowEnd...])
+        }
+        let cleanedHead = head.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanedTail = tail.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedTail.isEmpty else { return cleanedHead.isEmpty ? [] : [cleanedHead] }
+        return [cleanedHead] + splitLongClause(cleanedTail, limit: limit)
+    }
 
     private static func lineCount(_ text: String) -> Int {
         text.split(omittingEmptySubsequences: true, whereSeparator: \.isNewline).count
