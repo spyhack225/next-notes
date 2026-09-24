@@ -185,6 +185,13 @@ actor ChunkedTranscriber {
 
     private func enqueue(window: [Float]) {
         guard pendingCount < Self.maxPendingWindows else {
+            // M-16a: a dropped window is a marker span as well as a log line.
+            // The seconds are the dropped audio; the note names the track.
+            LatencyTrace.record(
+                .meetingWindowsDropped,
+                seconds: Double(window.count) / Self.sampleRate,
+                note: "source=\(source.rawValue)"
+            )
             Log.meeting.error("transcription backlog full — dropped window")
             return
         }

@@ -22,6 +22,39 @@ and concatenate the parts with 0.8 s of silence between them.
 
 Used by `NextNotes --selftest-transcribe Tests/Fixtures/meeting-2min.wav`.
 
+## meetings/
+
+Generated meeting speech for M-16a and the tasks that measure against it
+(M-01 transcript accuracy, M-03 speaker hints, M-04 attribution). One turn per
+script line (`A:` / `B:` / `C:`), rendered with `say` and concatenated with
+0.8 s of silence between turns, so the fixtures exercise the same pause cuts
+as `meeting-2min.wav` above.
+
+| File | Content | Used by |
+|---|---|---|
+| `fr-dialogue.wav` | 16 French turns, A and B alternating, ≈ 60 s, mono 16 kHz Int16 | M-01 |
+| `en-dialogue.wav` | the same shape in English | M-01 (control: must stay English) |
+| `fr-dialogue-phone.wav` | `fr-dialogue` band-limited through 8 kHz with white noise at −45 dBFS added — a stand-in for WhatsApp's codec and comfort noise | M-01 |
+| `fr-call-mic.wav` / `fr-call-system.wav` | one 3-person French call split into two equal-length tracks: A's turns on the mic track (silence elsewhere), B's and C's on the system track | M-03, M-04 |
+| `fr-1to1-system.wav` | B only on the system track (a 1:1 call's far end) | M-03 |
+| `manifest.json` | per file: duration, per-turn `{speaker, start, end, text}` in seconds | ground truth for all of the above |
+
+French voices are Thomas / Flo / Grandpa (French (France)), English voices
+Samantha / Reed / Rocko (English (US)). Every file is ≤ 95 s and ≤ 3 MB.
+Synthetic speech is cleaner than a real call: a fixture passing is necessary,
+not sufficient, which is why M-01 and M-04 also re-measure the owner's next
+real meeting with `--meeting-quality-report`.
+
+Regenerate:
+
+```bash
+Tests/Fixtures/meetings/generate.sh && afinfo Tests/Fixtures/meetings/fr-dialogue.wav | head -5
+```
+
+It is speech rather than silence because the whole point is to measure
+transcription, and it is generated rather than recorded so nobody's voice is
+committed to the repository.
+
 ## memory-review.json
 
 Labelled Agent sessions for the background memory review (`MemoryReviewer`). Each case has

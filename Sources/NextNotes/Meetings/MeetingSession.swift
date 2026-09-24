@@ -233,6 +233,7 @@ final class MeetingSession {
     func stop() async {
         guard !isStopping, meeting.status == .recording else { return }
         isStopping = true
+        let began = Date()
 
         AudioCaptureHub.shared.unsubscribe(.meeting)
         systemCapture.stop()
@@ -263,6 +264,13 @@ final class MeetingSession {
         writer = nil
 
         store.saveTranscript(segments, for: meeting.id)
+        // M-16a: the drain after Stop is a stage span, not a log line. Counts
+        // only — no transcript text ever rides in a span note.
+        LatencyTrace.record(
+            .meetingDrain,
+            seconds: Date().timeIntervalSince(began),
+            note: "segments=\(segments.count)"
+        )
 
         // Everything after the transcript is handed to `MeetingPipeline` rather than awaited
         // here. Identifying speakers and summarising a long meeting are each minutes of

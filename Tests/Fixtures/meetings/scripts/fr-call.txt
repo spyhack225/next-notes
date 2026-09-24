@@ -1,0 +1,12 @@
+A: Allô, tu m'entends bien de ton côté.
+B: Oui très bien, et Marc est avec moi aussi.
+C: Salut, je suis là pour la partie budget.
+A: Parfait, on garde les quarante mille euros alors.
+B: Oui, et on signe le contrat la semaine prochaine.
+C: Attention, la banque veut un devis avant vendredi.
+A: Marc s'occupe du devis, c'est déjà prévu.
+B: On prévoit la livraison pour le quinze du mois.
+C: D'accord, je bloque la somme dès demain matin.
+A: Et on se revoit lundi pour faire le point.
+B: Très bien, je t'envoie le compte rendu ce soir.
+C: Merci à tous les deux, à lundi prochain.

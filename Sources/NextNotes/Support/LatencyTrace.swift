@@ -29,6 +29,15 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
     case meetingTranscriptToContext = "meeting.transcript_to_context"
     case meetingActionPhraseToCandidate = "meeting.action_phrase_to_candidate"
     case meetingCandidateToCard = "meeting.candidate_to_card"
+    // Meeting — stage spans (M-16a). The drain after Stop, the diarization and
+    // notes passes, and one marker row per dropped transcription window. Never
+    // a model name, a token count or transcript text: model passes belong to
+    // the usage log (M-16b), these rows are stages and counters.
+    case meetingDrain = "meeting.drain"
+    case meetingFinalPass = "meeting.final_pass"
+    case meetingDiarize = "meeting.diarize"
+    case meetingNotes = "meeting.notes"
+    case meetingWindowsDropped = "meeting.windows_dropped"
 
     // Agent — §35
     case agentWakeToListeningUI = "agent.wake_to_listening_ui"
@@ -69,7 +78,9 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
              .dictationDrain, .dictationTranscribe, .dictationNames, .dictationCleanup:
             return .dictation
         case .meetingSpeechToPartial, .meetingSpeechToFinal, .meetingTranscriptToContext,
-             .meetingActionPhraseToCandidate, .meetingCandidateToCard:
+             .meetingActionPhraseToCandidate, .meetingCandidateToCard,
+             .meetingDrain, .meetingFinalPass, .meetingDiarize,
+             .meetingNotes, .meetingWindowsDropped:
             return .meeting
         case .agentWakeToListeningUI, .agentSpeechEndToTranscript,
              .agentTranscriptToFirstToken, .agentFirstTokenToFirstTTS,
@@ -427,6 +438,22 @@ struct LatencyTrace: Sendable {
         let reloaded = MetricsStore(directory: root)
         if reloaded.span(id: span.id) == nil {
             failures.append("fake span \(span.id.uuidString) missing after reload from disk")
+        }
+
+        // M-16a: every new stage span round-trips through the isolated store
+        // with the meeting pipeline. A span filed under the wrong pipeline is
+        // a row the meeting report can never find.
+        for id in [
+            LatencySpanID.meetingDrain, .meetingFinalPass, .meetingDiarize,
+            .meetingNotes, .meetingWindowsDropped,
+        ] as [LatencySpanID] {
+            let staged = LatencyTrace.record(id, seconds: 0.01, note: "m16a", store: store)
+            if staged.pipeline != .meeting {
+                failures.append("\(id.rawValue) is not in the meeting pipeline")
+            }
+            if store.spans(named: id).isEmpty {
+                failures.append("\(id.rawValue) missing from the isolated store")
+            }
         }
 
         for failure in failures { print("METRICS_WRONG: \(failure)") }

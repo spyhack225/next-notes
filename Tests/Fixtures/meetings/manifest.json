@@ -1,0 +1,515 @@
+{
+  "files": {
+    "fr-dialogue.wav": {
+      "duration": 58.407,
+      "turns": [
+        {
+          "speaker": "A",
+          "start": 0.0,
+          "end": 2.937,
+          "text": "Donc on garde le budget à quarante mille pour le moment."
+        },
+        {
+          "speaker": "B",
+          "start": 3.737,
+          "end": 6.58,
+          "text": "Oui c'est ça, je t'envoie le devis demain matin."
+        },
+        {
+          "speaker": "A",
+          "start": 7.38,
+          "end": 10.245,
+          "text": "Il faut que Marc valide avec la banque avant vendredi."
+        },
+        {
+          "speaker": "B",
+          "start": 11.045,
+          "end": 13.9,
+          "text": "Non mais attends, ce n'est pas le même prix qu'hier."
+        },
+        {
+          "speaker": "A",
+          "start": 14.7,
+          "end": 18.239,
+          "text": "On signe le contrat la semaine prochaine, sans faute."
+        },
+        {
+          "speaker": "B",
+          "start": 19.039,
+          "end": 22.251,
+          "text": "D'accord, et on prévoit la livraison pour le quinze."
+        },
+        {
+          "speaker": "A",
+          "start": 23.051,
+          "end": 25.777,
+          "text": "Le client veut trois exemplaires, pas deux."
+        },
+        {
+          "speaker": "B",
+          "start": 26.577,
+          "end": 29.72,
+          "text": "Je note ça, je préviens l'équipe cet après-midi."
+        },
+        {
+          "speaker": "A",
+          "start": 30.52,
+          "end": 33.211,
+          "text": "Tu as vu le rapport de Sophie sur les retards."
+        },
+        {
+          "speaker": "B",
+          "start": 34.011,
+          "end": 37.189,
+          "text": "Oui, elle propose de décaler la réunion à jeudi."
+        },
+        {
+          "speaker": "A",
+          "start": 37.989,
+          "end": 40.813,
+          "text": "Parfait, on confirme la salle pour neuf heures."
+        },
+        {
+          "speaker": "B",
+          "start": 41.613,
+          "end": 44.178,
+          "text": "Et on invite Karim pour la partie technique."
+        },
+        {
+          "speaker": "A",
+          "start": 44.978,
+          "end": 47.565,
+          "text": "Il reste douze mille euros sur l'enveloppe travaux."
+        },
+        {
+          "speaker": "B",
+          "start": 48.365,
+          "end": 50.746,
+          "text": "On les garde pour les imprévus de décembre."
+        },
+        {
+          "speaker": "A",
+          "start": 51.546,
+          "end": 54.446,
+          "text": "Alors c'est réglé, on se revoit lundi prochain."
+        },
+        {
+          "speaker": "B",
+          "start": 55.246,
+          "end": 58.407,
+          "text": "Très bien, je t'envoie le compte rendu ce soir."
+        }
+      ]
+    },
+    "en-dialogue.wav": {
+      "duration": 60.585,
+      "turns": [
+        {
+          "speaker": "A",
+          "start": 0.0,
+          "end": 3.244,
+          "text": "Okay so the plan is to ship the installer on Friday."
+        },
+        {
+          "speaker": "B",
+          "start": 4.044,
+          "end": 7.164,
+          "text": "Right, and then we write the release note together."
+        },
+        {
+          "speaker": "A",
+          "start": 7.964,
+          "end": 10.765,
+          "text": "We need Sam to approve the budget before Thursday."
+        },
+        {
+          "speaker": "B",
+          "start": 11.565,
+          "end": 15.078,
+          "text": "No wait, that is not the same price as yesterday."
+        },
+        {
+          "speaker": "A",
+          "start": 15.878,
+          "end": 19.085,
+          "text": "We sign the contract next week, no exceptions."
+        },
+        {
+          "speaker": "B",
+          "start": 19.885,
+          "end": 23.572,
+          "text": "Agreed, and we schedule delivery for the fifteenth."
+        },
+        {
+          "speaker": "A",
+          "start": 24.372,
+          "end": 27.089,
+          "text": "The client wants three copies, not two."
+        },
+        {
+          "speaker": "B",
+          "start": 27.889,
+          "end": 31.194,
+          "text": "Noted, I will tell the team this afternoon."
+        },
+        {
+          "speaker": "A",
+          "start": 31.994,
+          "end": 34.377,
+          "text": "Did you see Priya's report about the delays."
+        },
+        {
+          "speaker": "B",
+          "start": 35.177,
+          "end": 38.61,
+          "text": "Yes, she suggests moving the meeting to Thursday."
+        },
+        {
+          "speaker": "A",
+          "start": 39.41,
+          "end": 42.148,
+          "text": "Perfect, we book the room for nine in the morning."
+        },
+        {
+          "speaker": "B",
+          "start": 42.948,
+          "end": 45.999,
+          "text": "And we invite Jordan for the technical part."
+        },
+        {
+          "speaker": "A",
+          "start": 46.799,
+          "end": 49.654,
+          "text": "There are twelve thousand dollars left for expenses."
+        },
+        {
+          "speaker": "B",
+          "start": 50.453,
+          "end": 53.285,
+          "text": "We keep that for surprises in December."
+        },
+        {
+          "speaker": "A",
+          "start": 54.085,
+          "end": 56.909,
+          "text": "So that is settled, we meet again next Monday."
+        },
+        {
+          "speaker": "B",
+          "start": 57.709,
+          "end": 60.585,
+          "text": "Great, I will send the summary tonight."
+        }
+      ]
+    },
+    "fr-call-mic.wav": {
+      "duration": 42.074,
+      "turns": [
+        {
+          "speaker": "A",
+          "start": 0.0,
+          "end": 2.366,
+          "text": "Allô, tu m'entends bien de ton côté."
+        },
+        {
+          "speaker": "B",
+          "start": 3.166,
+          "end": 6.009,
+          "text": "Oui très bien, et Marc est avec moi aussi."
+        },
+        {
+          "speaker": "C",
+          "start": 6.809,
+          "end": 9.421,
+          "text": "Salut, je suis là pour la partie budget."
+        },
+        {
+          "speaker": "A",
+          "start": 10.221,
+          "end": 13.207,
+          "text": "Parfait, on garde les quarante mille euros alors."
+        },
+        {
+          "speaker": "B",
+          "start": 14.007,
+          "end": 17.012,
+          "text": "Oui, et on signe le contrat la semaine prochaine."
+        },
+        {
+          "speaker": "C",
+          "start": 17.812,
+          "end": 21.048,
+          "text": "Attention, la banque veut un devis avant vendredi."
+        },
+        {
+          "speaker": "A",
+          "start": 21.848,
+          "end": 24.748,
+          "text": "Marc s'occupe du devis, c'est déjà prévu."
+        },
+        {
+          "speaker": "B",
+          "start": 25.548,
+          "end": 28.102,
+          "text": "On prévoit la livraison pour le quinze du mois."
+        },
+        {
+          "speaker": "C",
+          "start": 28.901,
+          "end": 31.744,
+          "text": "D'accord, je bloque la somme dès demain matin."
+        },
+        {
+          "speaker": "A",
+          "start": 32.544,
+          "end": 34.782,
+          "text": "Et on se revoit lundi pour faire le point."
+        },
+        {
+          "speaker": "B",
+          "start": 35.582,
+          "end": 38.743,
+          "text": "Très bien, je t'envoie le compte rendu ce soir."
+        },
+        {
+          "speaker": "C",
+          "start": 39.543,
+          "end": 42.074,
+          "text": "Merci à tous les deux, à lundi prochain."
+        }
+      ]
+    },
+    "fr-call-system.wav": {
+      "duration": 42.074,
+      "turns": [
+        {
+          "speaker": "A",
+          "start": 0.0,
+          "end": 2.366,
+          "text": "Allô, tu m'entends bien de ton côté."
+        },
+        {
+          "speaker": "B",
+          "start": 3.166,
+          "end": 6.009,
+          "text": "Oui très bien, et Marc est avec moi aussi."
+        },
+        {
+          "speaker": "C",
+          "start": 6.809,
+          "end": 9.421,
+          "text": "Salut, je suis là pour la partie budget."
+        },
+        {
+          "speaker": "A",
+          "start": 10.221,
+          "end": 13.207,
+          "text": "Parfait, on garde les quarante mille euros alors."
+        },
+        {
+          "speaker": "B",
+          "start": 14.007,
+          "end": 17.012,
+          "text": "Oui, et on signe le contrat la semaine prochaine."
+        },
+        {
+          "speaker": "C",
+          "start": 17.812,
+          "end": 21.048,
+          "text": "Attention, la banque veut un devis avant vendredi."
+        },
+        {
+          "speaker": "A",
+          "start": 21.848,
+          "end": 24.748,
+          "text": "Marc s'occupe du devis, c'est déjà prévu."
+        },
+        {
+          "speaker": "B",
+          "start": 25.548,
+          "end": 28.102,
+          "text": "On prévoit la livraison pour le quinze du mois."
+        },
+        {
+          "speaker": "C",
+          "start": 28.901,
+          "end": 31.744,
+          "text": "D'accord, je bloque la somme dès demain matin."
+        },
+        {
+          "speaker": "A",
+          "start": 32.544,
+          "end": 34.782,
+          "text": "Et on se revoit lundi pour faire le point."
+        },
+        {
+          "speaker": "B",
+          "start": 35.582,
+          "end": 38.743,
+          "text": "Très bien, je t'envoie le compte rendu ce soir."
+        },
+        {
+          "speaker": "C",
+          "start": 39.543,
+          "end": 42.074,
+          "text": "Merci à tous les deux, à lundi prochain."
+        }
+      ]
+    },
+    "fr-1to1-system.wav": {
+      "duration": 26.729,
+      "turns": [
+        {
+          "speaker": "B",
+          "start": 0.0,
+          "end": 2.762,
+          "text": "Allô Marc, c'est pour le devis de vendredi."
+        },
+        {
+          "speaker": "B",
+          "start": 3.562,
+          "end": 6.312,
+          "text": "Oui, on reste à quarante mille euros au total."
+        },
+        {
+          "speaker": "B",
+          "start": 7.112,
+          "end": 9.863,
+          "text": "Non, la banque ne veut pas d'acompte cette fois."
+        },
+        {
+          "speaker": "B",
+          "start": 10.663,
+          "end": 13.459,
+          "text": "D'accord, j'envoie les papiers demain matin."
+        },
+        {
+          "speaker": "B",
+          "start": 14.259,
+          "end": 16.824,
+          "text": "Et on signe le contrat la semaine prochaine."
+        },
+        {
+          "speaker": "B",
+          "start": 17.624,
+          "end": 20.242,
+          "text": "Parfait, je te confirme tout par message."
+        },
+        {
+          "speaker": "B",
+          "start": 21.042,
+          "end": 23.676,
+          "text": "Merci beaucoup, à lundi pour faire le point."
+        },
+        {
+          "speaker": "B",
+          "start": 24.476,
+          "end": 26.729,
+          "text": "Oui, à neuf heures dans la petite salle."
+        }
+      ]
+    },
+    "fr-dialogue-phone.wav": {
+      "duration": 58.407,
+      "note": "fr-dialogue.wav band-limited through 8 kHz with -45 dBFS comfort noise",
+      "turns": [
+        {
+          "speaker": "A",
+          "start": 0.0,
+          "end": 2.937,
+          "text": "Donc on garde le budget à quarante mille pour le moment."
+        },
+        {
+          "speaker": "B",
+          "start": 3.737,
+          "end": 6.58,
+          "text": "Oui c'est ça, je t'envoie le devis demain matin."
+        },
+        {
+          "speaker": "A",
+          "start": 7.38,
+          "end": 10.245,
+          "text": "Il faut que Marc valide avec la banque avant vendredi."
+        },
+        {
+          "speaker": "B",
+          "start": 11.045,
+          "end": 13.9,
+          "text": "Non mais attends, ce n'est pas le même prix qu'hier."
+        },
+        {
+          "speaker": "A",
+          "start": 14.7,
+          "end": 18.239,
+          "text": "On signe le contrat la semaine prochaine, sans faute."
+        },
+        {
+          "speaker": "B",
+          "start": 19.039,
+          "end": 22.251,
+          "text": "D'accord, et on prévoit la livraison pour le quinze."
+        },
+        {
+          "speaker": "A",
+          "start": 23.051,
+          "end": 25.777,
+          "text": "Le client veut trois exemplaires, pas deux."
+        },
+        {
+          "speaker": "B",
+          "start": 26.577,
+          "end": 29.72,
+          "text": "Je note ça, je préviens l'équipe cet après-midi."
+        },
+        {
+          "speaker": "A",
+          "start": 30.52,
+          "end": 33.211,
+          "text": "Tu as vu le rapport de Sophie sur les retards."
+        },
+        {
+          "speaker": "B",
+          "start": 34.011,
+          "end": 37.189,
+          "text": "Oui, elle propose de décaler la réunion à jeudi."
+        },
+        {
+          "speaker": "A",
+          "start": 37.989,
+          "end": 40.813,
+          "text": "Parfait, on confirme la salle pour neuf heures."
+        },
+        {
+          "speaker": "B",
+          "start": 41.613,
+          "end": 44.178,
+          "text": "Et on invite Karim pour la partie technique."
+        },
+        {
+          "speaker": "A",
+          "start": 44.978,
+          "end": 47.565,
+          "text": "Il reste douze mille euros sur l'enveloppe travaux."
+        },
+        {
+          "speaker": "B",
+          "start": 48.365,
+          "end": 50.746,
+          "text": "On les garde pour les imprévus de décembre."
+        },
+        {
+          "speaker": "A",
+          "start": 51.546,
+          "end": 54.446,
+          "text": "Alors c'est réglé, on se revoit lundi prochain."
+        },
+        {
+          "speaker": "B",
+          "start": 55.246,
+          "end": 58.407,
+          "text": "Très bien, je t'envoie le compte rendu ce soir."
+        }
+      ]
+    }
+  }
+}

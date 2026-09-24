@@ -47,6 +47,10 @@ final class NotesService {
     ) async -> String? {
         let id = meeting.id
         guard !isRunning(id) else { return nil }
+        // M-16a: the notes pass is a stage span. The note carries the
+        // map-reduce flag (M-05 adds chunk and collapse counts), or the
+        // error's type name — never a model name, a token count or text.
+        let began = Date()
 
         // Use the role-based model selection for meeting notes.
         // If a specific provider is preferred (e.g., from Regenerate button), use that.
@@ -85,6 +89,11 @@ final class NotesService {
             guard store.meeting(id: id) != nil else { return nil }
             store.saveNotes(result.markdown, for: id)
             revision += 1
+            LatencyTrace.record(
+                .meetingNotes,
+                seconds: Date().timeIntervalSince(began),
+                note: "mapReduce=\(result.usedMapReduce)"
+            )
             Log.llm.info("""
                 notes for "\(meeting.title, privacy: .public)" — \
                 \(provider.displayModelName, privacy: .public), \
@@ -102,6 +111,11 @@ final class NotesService {
         } catch is CancellationError {
             return nil
         } catch {
+            LatencyTrace.record(
+                .meetingNotes,
+                seconds: Date().timeIntervalSince(began),
+                note: "error=\(type(of: error))"
+            )
             problems[id] = error.localizedDescription
             Log.llm.error("notes failed: \(error.localizedDescription, privacy: .public)")
             return nil

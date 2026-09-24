@@ -63,7 +63,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-acp
 --selftest-activity  --selftest-fs         --selftest-browser
 --selftest-settings  --selftest-metrics    --selftest-cleanup-router
---selftest-meeting-live --selftest-meeting-live-tools --selftest-tts
+--selftest-meeting-live --selftest-meeting-live-tools --selftest-meeting-quality --selftest-tts
 --selftest-tts-stream
 --selftest-tts-pocket
 --selftest-tts-kokoro
@@ -104,6 +104,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-digest             --selftest-podcast
 --selftest-guided             --selftest-ui-strings
 --selftest-agent-panes
+--selftest-agent-answers
 --selftest-assemble           --selftest-portrait
 ```
 
@@ -340,6 +341,11 @@ the saved model — so run under the harness it prints an empty brief and Apple'
 machine whose index is full and whose notes run on a downloaded one. That is a green answer
 to a question nobody asked; the flag has to be launched outside `SelfTest.isRunning`, and
 `--selftest-out` still captures its output when LaunchServices has no stdout.
+
+`--meeting-quality-report` is the same kind of diagnostic for meetings: one
+`MeetingQualityProbe` row per finished meeting, read from the real `MeetingStore.shared`,
+never a `--selftest-*` flag, never a save/repair/pipeline. Its in-memory counterpart is
+`--selftest-meeting-quality` (`MEETING_QUALITY_OK` / `MEETING_QUALITY_FAILED`).
 
 **Memories are drawn onto the graph, not written into it.** `MemoryGraphOverlay` assembles
 `memory:` nodes at draw time from `NextMemory` and merges them into the map; clicking one

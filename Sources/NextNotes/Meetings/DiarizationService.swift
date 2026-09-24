@@ -97,6 +97,10 @@ final class DiarizationService {
 
         progress[id] = 0
         problems[id] = nil
+        // M-16a: the diarization pass is a stage span. The note carries runs,
+        // speakers and audio seconds, or the error's type name — never the
+        // message, which can contain a path.
+        let began = Date()
 
         // Routed through the model store as well as awaited below, so that a first meeting
         // which triggers the download shows it in Settings rather than looking like a
@@ -119,6 +123,11 @@ final class DiarizationService {
             try Task.checkCancellation()
             guard !runs.isEmpty else {
                 Log.meeting.info("diarization found no speech on the system track")
+                LatencyTrace.record(
+                    .meetingDiarize,
+                    seconds: Date().timeIntervalSince(began),
+                    note: "runs=0 speakers=0 audio=\(String(format: "%.1f", Double(samples.count) / ChunkedTranscriber.sampleRate))s"
+                )
                 return false
             }
 
@@ -145,6 +154,11 @@ final class DiarizationService {
             }
 
             let speakers = MeetingDiarizer.labels(in: labelled).count
+            LatencyTrace.record(
+                .meetingDiarize,
+                seconds: Date().timeIntervalSince(began),
+                note: "runs=\(runs.count) speakers=\(speakers) audio=\(String(format: "%.1f", Double(samples.count) / ChunkedTranscriber.sampleRate))s"
+            )
             Log.meeting.info("""
                 diarized "\(meeting.title, privacy: .public)" — \
                 \(speakers, privacy: .public) speaker(s) on the system track
@@ -153,6 +167,11 @@ final class DiarizationService {
         } catch is CancellationError {
             return false
         } catch {
+            LatencyTrace.record(
+                .meetingDiarize,
+                seconds: Date().timeIntervalSince(began),
+                note: "error=\(type(of: error))"
+            )
             problems[id] = error.localizedDescription
             Log.meeting.error("diarization failed: \(error.localizedDescription, privacy: .public)")
             return false

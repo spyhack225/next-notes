@@ -2,6 +2,7 @@ import AVFoundation
 import AppKit
 import Darwin
 import FluidAudio
+import NextNotesDictionary
 import SwiftUI
 
 @main
@@ -214,6 +215,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // M-16a: the same shape, for the same reason. The quality report reads
+        // the real `MeetingStore.shared`, which the harness must not touch and
+        // should not be replaced under `SelfTest.isRunning` either — it exists
+        // to read real meetings, so it runs before `runRequestedSelfTest` and
+        // is a diagnostic, never a `--selftest-*` flag.
+        if CommandLine.arguments.contains("--meeting-quality-report") {
+            runMeetingQualityReport()
+            return
+        }
+
         // The same shape, for the same reason: `--avatar-sheet` reads the saved face and
         // draws every state with `ImageRenderer`, which needs no Screen Recording grant —
         // so the character can be reviewed by eye on a machine where the real UI cannot be
@@ -407,6 +418,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if arguments.contains("--selftest-model-unopenable") {
             Task { @MainActor in
                 SelfTest.failed = !(await ModelSupportSelfTest.runSelfTest())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-agent-answers") {
+            Task { @MainActor in
+                SelfTest.failed = !(await AgentAnswersSelfTest.runSelfTest())
                 NSApp.terminate(nil)
             }
             return true
@@ -1101,6 +1119,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return true
         }
+        if arguments.contains("--selftest-meeting-quality") {
+            let failures = MeetingQualityProbe.runSelfTest()
+            for failure in failures { writeSelfTest("MEETING_QUALITY_WRONG: \(failure)") }
+            writeSelfTest(failures.isEmpty
+                ? "MEETING_QUALITY_OK"
+                : "MEETING_QUALITY_FAILED: \(failures.count) check(s) wrong")
+            NSApp.terminate(nil)
+            return true
+        }
         if arguments.contains("--selftest-cleanup-router") {
             Task { @MainActor in
                 SelfTest.failed = !(await CleanupRouter.runSelfTest())
@@ -1643,6 +1670,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         [Float](repeating: 0, count: 16_000),
                         decoderState: &decoderState
                     )
+                    // D-04: 0.2 s of audio must transcribe, not throw the model's
+                    // 0.3 s floor. Prefers the fixture's first 0.2 s; silence
+                    // still exercises the padding. Needs the model on disk like
+                    // the inference above; an absent model keeps that failure.
+                    let shortSamples = parakeetShortFixtureSamples(count: 3_200)
+                        ?? [Float](repeating: 0, count: 3_200)
+                    let shortEngine = ParakeetEngine()
+                    let shortStream = try await shortEngine.start()
+                    let shortConsumer = Task { () throws -> String? in
+                        var final: String?
+                        for try await chunk in shortStream {
+                            if chunk.isFinal { final = chunk.text }
+                        }
+                        return final
+                    }
+                    if let shortFormat = await shortEngine.preferredInputFormat(),
+                       let shortBuffer = AVAudioPCMBuffer(
+                           pcmFormat: shortFormat,
+                           frameCapacity: AVAudioFrameCount(shortSamples.count)) {
+                        shortBuffer.frameLength = AVAudioFrameCount(shortSamples.count)
+                        if let channel = shortBuffer.floatChannelData?.pointee {
+                            for (index, sample) in shortSamples.enumerated() {
+                                channel[index] = sample
+                            }
+                        }
+                        await shortEngine.feed(AudioChunk(buffer: shortBuffer))
+                    }
+                    await shortEngine.finish()
+                    let shortText = (try await shortConsumer.value) ?? ""
+                    writeSelfTest("PARAKEET_SHORT: \(shortText.isEmpty ? "empty" : shortText)")
                     writeSelfTest("PARAKEET_OK: inference completed (\(result.text))")
                 } catch {
                     writeSelfTest("PARAKEET_FAILED: \(error.localizedDescription)")
@@ -1728,10 +1785,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                       before: "nothing changed here",
                       after: "nothing changed here",
                       expect: nil),
+                // D-10: the bad rule on disk must never be learned again.
+                .init(name: "of-a-product",
+                      before: "a nice jump plugin of a product",
+                      after: "an Altium plugin for ProductFlo",
+                      expect: nil),
+                .init(name: "of-the",
+                      before: "send the file of the day",
+                      after: "send the file for the day",
+                      expect: nil),
+                // D-10: real corrections that must keep their answers.
+                .init(name: "model-name-with-version",
+                      before: "quen 2.54b is quick",
+                      after: "Qwen 3.5 4b is quick",
+                      expect: ("quen 2.54b", "Qwen 3.5 4b")),
+                .init(name: "shouted-name",
+                      before: "we use olama here",
+                      after: "we use Ollama here",
+                      expect: ("olama", "Ollama")),
             ]
 
             var failures: [String] = []
+            var total = 0
             for test in cases {
+                total += 1
                 let got = CorrectionLearner.candidates(from: test.before, to: test.after)
                 switch test.expect {
                 case .none:
@@ -1752,11 +1829,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
 
+            func check(_ name: String, _ ok: Bool, _ detail: String = "") {
+                total += 1
+                if !ok { failures.append(detail.isEmpty ? name : "\(name): \(detail)") }
+            }
+
+            // D-10: automatic mode files only single-token or case-only changes.
+            check("auto-add-olama",
+                  CorrectionLearner.isAutoAddable(LearnedCorrection(hear: "OLAMA", write: "Ollama")))
+            check("auto-add-case-only",
+                  CorrectionLearner.isAutoAddable(
+                    LearnedCorrection(hear: "claude code", write: "Claude Code")))
+            check("auto-add-version-stays-manual",
+                  !CorrectionLearner.isAutoAddable(
+                    LearnedCorrection(hear: "quen 2.54b", write: "Qwen 3.5 4b")))
+            // D-10: re-saving an unchanged edit teaches nothing new.
+            check("re-edit-teaches-nothing",
+                  CorrectionLearner.newCandidates(
+                    original: "we use olama here",
+                    previousEdit: "we use Ollama here",
+                    edited: "we use Ollama here today"
+                  ).isEmpty)
+            // D-10: adding is idempotent on the trimmed, case-insensitive pair —
+            // even when the existing entry is switched off.
+            check("duplicate-trimmed-case",
+                  DictionaryStore.isDuplicate(
+                    .correction(hear: "OLAMA", write: "Ollama"),
+                    in: [.correction(hear: "olama ", write: "ollama")]))
+            check("duplicate-disabled-still-counts",
+                  DictionaryStore.isDuplicate(
+                    .correction(hear: "OLAMA", write: "Ollama"),
+                    in: [DictionaryEntry(
+                        kind: .correction, write: "Ollama", hear: "OLAMA", isEnabled: false)]))
+            // D-10: the review list names the bad rule and the second copy, nothing else.
+            let fixture: [DictionaryEntry] = [
+                .correction(hear: "of a product", write: "for ProductFlo"),
+                .correction(hear: "OLAMA", write: "Ollama"),
+                .correction(hear: "OLAMA", write: "Ollama"),
+            ]
+            let suspicious = DictionaryStore.suspiciousRules(in: fixture)
+            check("suspicious-rules",
+                  suspicious.count == 2, "expected 2, got \(suspicious.count)")
+
             if failures.isEmpty {
-                writeSelfTest("LEARN_OK: \(cases.count) case(s), corrections learned and rejections held")
+                writeSelfTest("LEARN_OK: \(total) case(s), corrections learned and rejections held")
             } else {
                 for failure in failures { writeSelfTest("  \(failure)") }
-                writeSelfTest("LEARN_FAILED: \(failures.count) of \(cases.count)")
+                writeSelfTest("LEARN_FAILED: \(failures.count) of \(total)")
             }
             NSApp.terminate(nil)
         }
@@ -2565,6 +2684,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// `--meeting-quality-report`: one `MeetingQualityProbe.line(…)` per finished
+    /// meeting, newest last, then `MEETING_QUALITY_REPORT_DONE`.
+    ///
+    /// Read-only: it calls no `save`, no `repairInterruptedMeetings` and no
+    /// pipeline, and it loads no model. Like `--notes-context-live` it must run
+    /// outside `SelfTest.isRunning`, because the harness isolates the stores
+    /// and a report over an empty harness store would prove nothing.
+    /// `writeSelfTest` honours `--selftest-out`, so a LaunchServices launch
+    /// with no stdout still leaves its rows in a file.
+    private func runMeetingQualityReport() {
+        Task { @MainActor in
+            let meetings = MeetingStore.shared.meetings
+                .filter { $0.status == .done }
+                .sorted { $0.start < $1.start }
+            for meeting in meetings {
+                let segments = MeetingStore.shared.transcript(for: meeting.id)
+                writeSelfTest(MeetingQualityProbe.line(
+                    for: meeting,
+                    quality: MeetingQualityProbe.measure(meeting: meeting, segments: segments)
+                ))
+            }
+            writeSelfTest("MEETING_QUALITY_REPORT_DONE: \(meetings.count) meeting(s)")
+            NSApp.terminate(nil)
+        }
+    }
+
     /// `--avatar-sheet [path]` — every avatar state at three instants, into one PNG.
     ///
     /// Takes its path with `SelfTest.value(after:)`, which refuses a value that starts with
@@ -2926,6 +3071,159 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             failures.append(contentsOf: Self.selectionPolicyFailures())
 
+            // D-05: a press during `.error` starts a new hold. `makeEngine` reads a
+            // mutable box so the hold after the failure gets a different engine.
+            final class MutableEngineShape: @unchecked Sendable {
+                var shape: SelfTestEngine.Shape
+                init(_ shape: SelfTestEngine.Shape) { self.shape = shape }
+            }
+            @MainActor
+            func makeRetryController(
+                box: MutableEngineShape,
+                inbox: SelfTestInbox
+            ) -> DictationController {
+                DictationController(
+                    formatter: RuleBasedFormatter(),
+                    makeEngine: { SelfTestEngine(shape: box.shape) },
+                    limits: limits,
+                    insert: { text, _ in
+                        inbox.append(text)
+                        return .inserted
+                    },
+                    // Discarded, not filed: fixtures, not the user's history.
+                    record: { _ in }
+                )
+            }
+
+            // 5. A failing hold, then 500 ms later a press with a good engine
+            //    behind it: `.listening` within 1 s, and the hold injects.
+            let retryBox = MutableEngineShape(.failsStart("boom"))
+            let retryInbox = SelfTestInbox()
+            let controllerE = makeRetryController(box: retryBox, inbox: retryInbox)
+            controllerE.startButtonRecording()
+            let firstErrorBy = Date().addingTimeInterval(8)
+            while Date() < firstErrorBy {
+                if case .error = controllerE.state { break }
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if case .error = controllerE.state {
+                try? await Task.sleep(for: .milliseconds(500))
+                retryBox.shape = .prompt(delay: .zero)
+                controllerE.startButtonRecording()
+                let listeningBy = Date().addingTimeInterval(1)
+                var heardListening = false
+                while Date() < listeningBy {
+                    if controllerE.state == .listening { heardListening = true; break }
+                    try? await Task.sleep(for: .milliseconds(20))
+                }
+                if !heardListening {
+                    failures.append("a press 500 ms after a failure stayed \(controllerE.state) "
+                        + "instead of starting a new hold")
+                } else {
+                    controllerE.stopButtonRecording()
+                    let retryDone = Date().addingTimeInterval(8)
+                    while Date() < retryDone, controllerE.state != .idle {
+                        try? await Task.sleep(for: .milliseconds(50))
+                    }
+                    if controllerE.state != .idle {
+                        failures.append("the hold started from the error card never came back to idle")
+                    } else if retryInbox.contents().count != 1
+                        || retryInbox.contents().first?.contains("transcript") != true {
+                        failures.append("the hold started from the error card injected \(retryInbox.contents())")
+                    }
+                }
+            } else {
+                failures.append("a failing engine did not put the controller into .error (\(controllerE.state))")
+            }
+
+            // 6. Two failures 1 s apart: the first 3 s timer must clear neither a
+            //    new hold nor the newer error, so the second message is still
+            //    shown 2.5 s after it was raised.
+            let tokenBox = MutableEngineShape(.failsStart("first failure"))
+            let tokenInbox = SelfTestInbox()
+            let controllerF = makeRetryController(box: tokenBox, inbox: tokenInbox)
+            controllerF.startButtonRecording()
+            let tokenFirstBy = Date().addingTimeInterval(8)
+            while Date() < tokenFirstBy {
+                if case .error = controllerF.state { break }
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if case .error = controllerF.state {
+                try? await Task.sleep(for: .seconds(1))
+                tokenBox.shape = .failsStart("second failure")
+                controllerF.startButtonRecording()
+                try? await Task.sleep(for: .seconds(2.5))
+                if case .error(let message) = controllerF.state {
+                    if !message.contains("second") {
+                        failures.append("the second error message was replaced by \(message)")
+                    }
+                } else {
+                    failures.append("the second error was cleared early "
+                        + "(state is \(controllerF.state) 2.5 s after it was raised)")
+                }
+            } else {
+                failures.append("the first of two failures never reached .error (\(controllerF.state))")
+            }
+
+            // 7. D-04: a raw engine error must never reach the user. A finish()
+            //    that throws FluidAudio's short-audio refusal shows the plain
+            //    sentence, not the developer string.
+            let rawShortAudio = "Invalid audio data provided. Must be at least 300ms of 16kHz audio."
+            let rawInbox = SelfTestInbox()
+            let controllerG = makeController(.throwsOnFinish(rawShortAudio), inbox: rawInbox)
+            controllerG.startButtonRecording()
+            try? await Task.sleep(for: .milliseconds(400))
+            controllerG.stopButtonRecording()
+            // The error card shows for 3 s; read it while it is up.
+            var shortError: String?
+            let shortErrorBy = Date().addingTimeInterval(8)
+            while Date() < shortErrorBy {
+                if case .error(let message) = controllerG.state { shortError = message; break }
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if let message = shortError {
+                for banned in ["Invalid audio", "16kHz", "ms of"] where message.contains(banned) {
+                    failures.append("engine error shown raw: \(message)")
+                    break
+                }
+            } else {
+                failures.append("a throwing finish() never showed an error card (state \(controllerG.state))")
+            }
+            if !rawInbox.contents().isEmpty {
+                failures.append("a throwing finish() injected \(rawInbox.contents())")
+            }
+            let shortIdleBy = Date().addingTimeInterval(8)
+            while Date() < shortIdleBy, controllerG.state != .idle {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if controllerG.state != .idle {
+                failures.append("a throwing finish() never came back to idle")
+            }
+
+            // D-04 pure checks: the padding helper pads to the model floor and
+            // leaves longer audio alone. Callers gate on minimumCapturedSamples.
+            let paddedShort = ParakeetInput.padded([Float](repeating: 0.5, count: 3_200))
+            if paddedShort.count != ParakeetInput.minimumModelSamples {
+                failures.append("padded 3,200 samples gave \(paddedShort.count), not 4,800")
+            } else if paddedShort.prefix(3_200).contains(where: { $0 != 0.5 }) {
+                failures.append("padding rewrote the real samples")
+            } else if paddedShort.suffix(1_600).contains(where: { $0 != 0 }) {
+                failures.append("padding is not zero")
+            }
+            let paddedLong = ParakeetInput.padded([Float](repeating: 0.5, count: 6_000))
+            if paddedLong.count != 6_000 {
+                failures.append("padded 6,000 samples gave \(paddedLong.count), not 6,000")
+            }
+            let paddedNone = ParakeetInput.padded([])
+            if paddedNone.count != ParakeetInput.minimumModelSamples
+                || paddedNone.contains(where: { $0 != 0 }) {
+                failures.append("padded 0 samples gave \(paddedNone.count) samples, not 4,800 zeros")
+            }
+            if ParakeetInput.minimumCapturedSamples != 1_600
+                || ParakeetInput.minimumModelSamples != 4_800 {
+                failures.append("ParakeetInput thresholds moved")
+            }
+
             for failure in failures { writeSelfTest("  DICTATION_WRONG: \(failure)") }
             writeSelfTest(failures.isEmpty
                 ? "DICTATION_OK: every hold came back to idle"
@@ -3006,7 +3304,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                       pid \(process.pid) \(flags) — \(process.name) \
                     [\(process.bundleID ?? "no bundle id")] → \(verdict), \(listed)
                     """)
+                if let reported = process.reportedBundleID {
+                    writeSelfTest(
+                        "  pid \(process.pid) reported \(reported) → owner "
+                            + "\(process.bundleID ?? "no bundle id")"
+                    )
+                }
             }
+            let ownerScore = Self.ownerTableResults()
+            writeSelfTest("  owner table: \(ownerScore.passed)/\(ownerScore.total)")
             if let candidate = CallPolicy.candidate(in: processes, ownPID: ownPID, preferring: nil) {
                 writeSelfTest("  live verdict: \(candidate.name) is on a call")
             } else {
@@ -3088,6 +3394,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             CallPolicy.AudioProcess(
                 pid: pid,
                 bundleID: bundleID,
+                reportedBundleID: nil,
                 name: bundleID ?? "pid \(pid)",
                 isRunningInput: input,
                 isRunningOutput: output
@@ -3231,6 +3538,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         failures.append(contentsOf: callArmingFailures())
+        failures.append(contentsOf: callOwnerFailures())
         return failures
     }
 
@@ -3406,6 +3714,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             CallPolicy.AudioProcess(
                 pid: pid,
                 bundleID: bundleID,
+                reportedBundleID: nil,
                 name: bundleID ?? "pid \(pid)",
                 isRunningInput: input,
                 isRunningOutput: output
@@ -3485,6 +3794,209 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             bundleID: "us.zoom.xos", autoRecord: true, answer: .ask
         ) {
             failures.append("an app answered Ask recorded itself because the global switch was on")
+        }
+
+        return failures
+    }
+
+    /// M-02: the installed apps the owner table resolves against. A fixture map, not a
+    /// probe: the point is what the rule does with a known path, not what happens to be
+    /// in `/Applications` on the machine running the test.
+    private static let ownerTableBundleIDs: [String: String] = [
+        "/Applications/Google Chrome.app": "com.google.Chrome",
+        "/Applications/Cursor.app": "com.todesktop.230313mzl4w4u92",
+        "/Applications/Firefox.app": "org.mozilla.firefox",
+        "/Users/owner/Applications/Chrome Apps.localized/Google Meet.app":
+            "com.google.Chrome.app.kjgfgldnnfoeklkmfkjfagphfepbbdan",
+    ]
+
+    /// M-02: the 8 helper-to-owner resolutions the target promises at 100 %.
+    private static let ownerTableCases: [(reported: String?, path: String?, expected: String?)] = [
+        (
+            "com.google.Chrome.helper",
+            "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/146.0.0.0/Helpers/Google Chrome Helper.app/Contents/MacOS/Google Chrome Helper",
+            "com.google.Chrome"
+        ),
+        (
+            "com.google.Chrome.helper",
+            "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/146.0.0.0/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)",
+            "com.google.Chrome"
+        ),
+        (
+            "com.todesktop.230313mzl4w4u92.helper",
+            "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper.app/Contents/MacOS/Cursor Helper",
+            "com.todesktop.230313mzl4w4u92"
+        ),
+        (
+            "org.mozilla.firefox",
+            "/Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container",
+            "org.mozilla.firefox"
+        ),
+        (
+            "com.apple.avconferenced",
+            "/usr/libexec/avconferenced",
+            "com.apple.avconferenced"
+        ),
+        (
+            "com.google.Chrome.app.kjgfgldnnfoeklkmfkjfagphfepbbdan",
+            "/Users/owner/Applications/Chrome Apps.localized/Google Meet.app/Contents/MacOS/app_mode_loader",
+            "com.google.Chrome.app.kjgfgldnnfoeklkmfkjfagphfepbbdan"
+        ),
+        ("com.google.Chrome", nil, "com.google.Chrome"),
+        (
+            "com.unknown.helper",
+            "/Applications/Unknown.app/Contents/MacOS/Unknown Helper",
+            "com.unknown.helper"
+        ),
+    ]
+
+    /// Grades the owner table, so the live run can print the passed/total score beside
+    /// `CALLS_OK`. Pure and instant; the fake map above is the whole world it sees.
+    private static func ownerTableResults() -> (passed: Int, total: Int, failures: [String]) {
+        var failures: [String] = []
+        var passed = 0
+        for (index, entry) in ownerTableCases.enumerated() {
+            let actual = AudioProcessOwner.owner(
+                reportedBundleID: entry.reported,
+                executablePath: entry.path,
+                bundleIDAt: { ownerTableBundleIDs[$0] }
+            )
+            if actual == entry.expected {
+                passed += 1
+            } else {
+                failures.append(
+                    "owner table case \(index) (\(entry.reported ?? "nil")) resolved to "
+                        + "\(actual ?? "nil"), expected \(entry.expected ?? "nil")"
+                )
+            }
+        }
+        return (passed, ownerTableCases.count, failures)
+    }
+
+    /// M-02's rules: helper processes resolve to their owning app before any policy runs,
+    /// `replayd` is never a call, helper-keyed answers migrate once, and WebKit engine
+    /// processes are ask-only. Fabricated throughout, like every other list here.
+    private static func callOwnerFailures() -> [String] {
+        var failures: [String] = []
+
+        // a. The path rule: the outermost `.app` scanning from the root.
+        let pathCases: [(path: String, expected: String?)] = [
+            (
+                "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/146.0.0.0/Helpers/Google Chrome Helper.app/Contents/MacOS/Google Chrome Helper",
+                "/Applications/Google Chrome.app"
+            ),
+            (
+                "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/146.0.0.0/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)",
+                "/Applications/Google Chrome.app"
+            ),
+            (
+                "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper.app/Contents/MacOS/Cursor Helper",
+                "/Applications/Cursor.app"
+            ),
+            (
+                "/Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container",
+                "/Applications/Firefox.app"
+            ),
+            ("/usr/libexec/avconferenced", nil),
+            (
+                "/Users/owner/Applications/Chrome Apps.localized/Google Meet.app/Contents/MacOS/app_mode_loader",
+                "/Users/owner/Applications/Chrome Apps.localized/Google Meet.app"
+            ),
+        ]
+        for entry in pathCases {
+            let actual = AudioProcessOwner.outermostAppPath(executablePath: entry.path)
+            if actual != entry.expected {
+                failures.append(
+                    "outermostAppPath(\(entry.path)) is \(actual ?? "nil"), "
+                        + "expected \(entry.expected ?? "nil")"
+                )
+            }
+        }
+
+        // b. The 8-case owner table.
+        let ownerResults = ownerTableResults()
+        failures.append(contentsOf: ownerResults.failures)
+
+        // c. A resolved Chrome helper is a browser: Ask/Never only, never unasked.
+        let chromeOwner = AudioProcessOwner.owner(
+            reportedBundleID: "com.google.Chrome.helper",
+            executablePath: "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/146.0.0.0/Helpers/Google Chrome Helper.app/Contents/MacOS/Google Chrome Helper",
+            bundleIDAt: { ownerTableBundleIDs[$0] }
+        ) ?? "com.google.Chrome.helper"
+        if CallPolicy.availableAnswers(forApp: chromeOwner).contains(.always) {
+            failures.append("a resolved Chrome helper was offered Always record")
+        }
+        if CallPolicy.recordsWithoutAsking(bundleID: chromeOwner, autoRecord: true, answer: nil) {
+            failures.append("a resolved Chrome helper recorded without being asked about")
+        }
+
+        // d. Screen recording is never a call and never an app-list row.
+        let replayd = CallPolicy.AudioProcess(
+            pid: 930,
+            bundleID: "com.apple.replayd",
+            reportedBundleID: nil,
+            name: "replayd",
+            isRunningInput: true,
+            isRunningOutput: true
+        )
+        if CallPolicy.isCall(replayd, ownPID: 501) {
+            failures.append("com.apple.replayd counted as a call")
+        }
+        if CallPolicy.isMicrophoneApp(replayd, ownPID: 501) {
+            failures.append("com.apple.replayd was listed as an app to answer for")
+        }
+
+        // e. Migration over this Mac's real dictionaries, copied as literals.
+        let answers: [String: String] = [
+            "com.google.Chrome.helper": "ask",
+            "com.google.Chrome.helper.renderer": "always",
+            "com.apple.replayd": "ask",
+            "com.openai.codex.helper": "ask",
+            "com.todesktop.230313mzl4w4u92": "always",
+            "com.todesktop.230313mzl4w4u92.helper": "never",
+            "net.whatsapp.WhatsApp": "ask",
+        ]
+        let seen: [String: String] = [
+            "com.google.Chrome.helper": "Google Chrome Helper",
+            "com.apple.replayd": "replayd",
+        ]
+        // Codex has no installed owner here; Chrome and Cursor do.
+        let installed: (String) -> Bool = {
+            ["com.google.Chrome", "com.todesktop.230313mzl4w4u92"].contains($0)
+        }
+        let migrated = AudioProcessOwner.migrate(
+            answers: answers, seen: seen, installedApp: installed
+        )
+        if migrated.answers["com.google.Chrome"] != "ask" {
+            failures.append("a Chrome helper answer did not move to com.google.Chrome as ask")
+        }
+        if migrated.answers["com.apple.replayd"] != nil {
+            failures.append("com.apple.replayd kept an answer after migration")
+        }
+        if migrated.answers["com.openai.codex.helper"] != "ask" {
+            failures.append("a helper with no installed owner was moved anyway")
+        }
+        if migrated.answers["com.todesktop.230313mzl4w4u92"] != "never" {
+            failures.append("an always+never collision did not keep the more cautious answer")
+        }
+        if migrated.seen["com.google.Chrome"] != "Google Chrome" {
+            failures.append("a Chrome helper seen-row did not move to com.google.Chrome")
+        }
+        if migrated.seen["com.apple.replayd"] != nil {
+            failures.append("com.apple.replayd kept a seen-row after migration")
+        }
+        let twice = AudioProcessOwner.migrate(
+            answers: migrated.answers, seen: migrated.seen, installedApp: installed
+        )
+        if twice.answers != migrated.answers || twice.seen != migrated.seen {
+            failures.append("running the migration twice changed something")
+        }
+
+        // f. A WebKit engine process is ask-only: it could be Safari or any app's web view.
+        if CallPolicy.recordsWithoutAsking(
+            bundleID: "com.apple.WebKit.GPU", autoRecord: true, answer: .always
+        ) {
+            failures.append("a WebKit engine process recorded without being asked about")
         }
 
         return failures
@@ -5992,6 +6504,11 @@ actor SelfTestEngine: TranscriptionEngine {
     enum Shape: Sendable {
         /// Starts after `delay`, then yields the fixture and closes cleanly.
         case prompt(delay: Duration)
+        /// `start()` throws — the model failed to load. (D-05.)
+        case failsStart(String)
+        /// `finish()` finishes the stream by throwing — a short-audio model
+        /// refusal, or any engine failure on release. (D-04.)
+        case throwsOnFinish(String)
         /// `finish()` never returns — a model load, or a queue a meeting is holding.
         case hangsOnFinish
         /// Yields the fixture but never closes the stream, so anything awaiting the
@@ -6009,6 +6526,11 @@ actor SelfTestEngine: TranscriptionEngine {
     }
 
     func start() async throws -> AsyncThrowingStream<TranscriptionChunk, Error> {
+        if case .failsStart(let message) = shape {
+            throw NSError(
+                domain: "SelfTestEngine", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: message])
+        }
         let (stream, continuation) = AsyncThrowingStream<TranscriptionChunk, Error>.makeStream()
         self.continuation = continuation
         if case .prompt(let delay) = shape, delay > .zero {
@@ -6021,6 +6543,13 @@ actor SelfTestEngine: TranscriptionEngine {
 
     func finish() async {
         switch shape {
+        case .failsStart:
+            break
+        case .throwsOnFinish(let message):
+            continuation?.finish(throwing: NSError(
+                domain: "SelfTestEngine", code: 2,
+                userInfo: [NSLocalizedDescriptionKey: message]))
+            continuation = nil
         case .hangsOnFinish:
             // Deliberately unbounded. `Task.sleep` throws on cancellation, and the point is
             // to stay here even when the caller has given up, exactly as a CoreML inference
@@ -6037,4 +6566,30 @@ actor SelfTestEngine: TranscriptionEngine {
             continuation = nil
         }
     }
+}
+
+/// First `count` mono samples of the D-04 `yes16k.wav` fixture, or nil when it is
+/// missing or unreadable (the `--selftest-parakeet` short-audio check then falls
+/// back to silence, which still exercises the padding).
+///
+/// File scope rather than a method so the shared `NextNotesApp.swift` edit stays
+/// an append: the `--selftest-parakeet` block is the only caller.
+func parakeetShortFixtureSamples(count: Int) -> [Float]? {
+    let url = FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent("Library/Caches/NextNotesBuild/dictation-meetings/fixtures/yes16k.wav")
+    guard let file = try? AVAudioFile(forReading: url),
+          file.fileFormat.sampleRate == 16_000, file.length > 0 else { return nil }
+    let frames = min(count, Int(file.length))
+    guard let format = AVAudioFormat(
+        commonFormat: .pcmFormatFloat32,
+        sampleRate: file.fileFormat.sampleRate,
+        channels: file.fileFormat.channelCount,
+        interleaved: false),
+        let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frames))
+    else { return nil }
+    buffer.frameLength = AVAudioFrameCount(frames)
+    guard (try? file.read(into: buffer)) != nil,
+          let channel = buffer.floatChannelData?.pointee
+    else { return nil }
+    return (0..<frames).map { channel[$0] }
 }
