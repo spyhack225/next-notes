@@ -117,6 +117,13 @@ final class AgentCaptureController {
         case none
     }
 
+    /// What asked `tick` to evaluate the endpoint. The VAD loop owns `.loop`;
+    /// a confirmed local EOU owns `.eou` (P0-10). Diagnostic and self-test only.
+    enum EndpointTrigger: String, Sendable {
+        case eou
+        case loop
+    }
+
     private(set) var transcript = ""
     private(set) var level: Float = 0
     /// VAD still tracks the mic while the model speaks. Keeping its 10 Hz meter
@@ -167,6 +174,17 @@ final class AgentCaptureController {
     private var localOwnsPartial = false
     private var deferFrontendForEOU = false
     private var modelEOUAt: Date?
+    /// One endpoint evaluation at a time. `tick` awaits, so the 100 ms VAD
+    /// loop and an immediate EOU evaluation could otherwise interleave and
+    /// commit the same turn twice (P0-10).
+    @ObservationIgnored private var tickInFlight = false
+    /// The trigger of the endpoint evaluation in flight. `startVAD` sets
+    /// `.loop` before each of its ticks; the local EOU callback sets `.eou`
+    /// before its own immediate evaluation (P0-10).
+    @ObservationIgnored private var lastEndpointTrigger: EndpointTrigger = .loop
+    /// The trigger of the commit that carried the last confirmed model EOU.
+    /// `nil` when no EOU committed a turn. Read by `--selftest-voice-pipeline`.
+    @ObservationIgnored private(set) var fileEOUCommitTrigger: EndpointTrigger?
     private var wordlessModelEOU = false
     private var modelPartialText = ""
     private var modelFinalText = ""
@@ -247,6 +265,7 @@ final class AgentCaptureController {
         fileLastModelPartialText = ""
         fileFirstEOUProcessSeconds = nil
         fileEOUResets = 0
+        fileEOUCommitTrigger = nil
         isSessionActive = true
         // A voice conversation does not share the CPU with an embedding backfill.
         Task { await EmbeddingRuntime.shared.stopNow() }
@@ -863,6 +882,11 @@ final class AgentCaptureController {
         vadTask?.cancel()
         vadTask = Task { @MainActor [weak self] in
             while let self, self.isSessionActive, !Task.isCancelled {
+                // A confirmed model EOU owns the trigger until its turn
+                // commits; the loop must not relabel that commit `.loop`.
+                if self.modelEOUAt == nil {
+                    self.lastEndpointTrigger = .loop
+                }
                 _ = await self.tick(force: false)
                 try? await Task.sleep(for: Limits.tick)
             }
@@ -1022,6 +1046,13 @@ final class AgentCaptureController {
             } ?? "none"
             SelfTest.diagnostic("VOICE_MODEL_EOU=sinceVoiceEnd \(fromVoiceEnd)s appleRevisionAge \(appleAge)s text=\(modelFinalText)")
         }
+        // P0-10: a confirmed model endpoint evaluates the turn immediately
+        // instead of waiting for the next VAD tick. `force: false` keeps every
+        // gate, including the silence check that protects against echo.
+        lastEndpointTrigger = .eou
+        Task { @MainActor [weak self] in
+            _ = await self?.tick(force: false)
+        }
     }
 
     private func noteModelPartial(_ modelText: String) {
@@ -1167,6 +1198,9 @@ final class AgentCaptureController {
 
     @discardableResult
     private func tick(force: Bool) async -> Bool {
+        guard !tickInFlight else { return false }
+        tickInFlight = true
+        defer { tickInFlight = false }
         guard isSessionActive else { return false }
         let now = Date()
 
@@ -1292,6 +1326,8 @@ final class AgentCaptureController {
             fileCommittedTurns += 1
             fileEndpointAt = Date()
             if let modelEOUAt {
+                fileEOUCommitTrigger = lastEndpointTrigger
+                SelfTest.diagnostic("VOICE_ENDPOINT_TRIGGER=\(lastEndpointTrigger.rawValue)")
                 SelfTest.diagnostic("VOICE_MODEL_EOU_TO_ENDPOINT=\(Date().timeIntervalSince(modelEOUAt))s")
             }
         }
@@ -1489,6 +1525,12 @@ final class AgentCaptureController {
         }
         if capture.lastEndpoint != .localEOU {
             failures.append("file speech did not end from local EOU model: \(capture.lastEndpoint.rawValue)")
+        }
+        // P0-10: a confirmed model EOU must evaluate the endpoint itself. A
+        // commit from the 100 ms VAD loop means the person waited up to a tick
+        // after Parakeet had already ended their turn.
+        if let trigger = capture.fileEOUCommitTrigger, trigger != .eou {
+            failures.append("model EOU waited for the VAD tick")
         }
         if capture.lastReply.isEmpty { failures.append("local frontend produced no answer") }
         if !firstAudioAcknowledged { failures.append("TTS supplied no first-audio acknowledgement") }
