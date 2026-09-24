@@ -754,7 +754,11 @@ final class DictationController {
                 // the transfer takes, and the utterance is lost at the end of it anyway.
                 let outcome = await withBoundedWait(limits.startup) { () -> StartOutcome in
                     do { return .started(try await engine.start()) }
-                    catch { return .failed(error.localizedDescription) }
+                    // D-04: a raw engine string never reaches the island; the raw
+                    // text goes to the log inside `plain`. (D-01b will add the
+                    // `result: .failed(.startup)` outcome mapping; `fail` keeps
+                    // its signature until then.)
+                    catch { return .failed(DictationErrorText.plain(error)) }
                 }
 
                 // Superseded or released while the model was loading: this start-up owns
@@ -896,12 +900,12 @@ final class DictationController {
                         }
                     } catch {
                         guard self.session == session else { return }
-                        self.fail(error.localizedDescription)
+                        self.fail(DictationErrorText.plain(error))
                     }
                 }
             } catch {
                 guard self.session == session else { return }
-                self.fail(error.localizedDescription)
+                self.fail(DictationErrorText.plain(error))
             }
         }
     }

@@ -200,7 +200,7 @@ actor ParakeetEngine: TranscriptionEngine {
             queuedPartial = nil
         }
 
-        guard samples.count >= 1_600 else {
+        guard samples.count >= ParakeetInput.minimumCapturedSamples else {
             Log.speech.info("Parakeet: skipped — only \(self.samples.count) samples captured")
             if let jobID { await ComputeScheduler.shared.release(jobID) }
             return
@@ -209,10 +209,10 @@ actor ParakeetEngine: TranscriptionEngine {
         let leftover = samples.count - lastCompletedPartialAt
         let reusable = !lastPartialText.isEmpty
             && leftover < reuseBelowSamples
-            && lastCompletedPartialAt >= 1_600
+            && lastCompletedPartialAt >= ParakeetInput.minimumModelSamples
 
         do {
-            let text: String
+            var text: String
             let elapsed: TimeInterval
             let audioSeconds = Double(samples.count) / 16_000
 
@@ -227,9 +227,19 @@ actor ParakeetEngine: TranscriptionEngine {
                 let manager = try await ParakeetModels.shared.manager()
                 var decoderState = try TdtDecoderState()
                 let started = Date()
-                let result = try await manager.transcribe(samples, decoderState: &decoderState)
+                // D-04: 0.1–0.3 s of audio is zero-padded to the model's 0.3 s
+                // floor. Padding silence can make the model invent words on a
+                // near-empty tap, so a long answer from almost no audio is
+                // treated as empty.
+                let realSamples = samples.count
+                let result = try await manager.transcribe(
+                    ParakeetInput.padded(samples), decoderState: &decoderState)
                 elapsed = Date().timeIntervalSince(started)
                 text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if realSamples < 3_200, text.split(whereSeparator: \.isWhitespace).count > 2 {
+                    Log.speech.info("Parakeet: padded short audio produced words from noise — treating as empty")
+                    text = ""
+                }
                 Log.speech.info("""
                     Parakeet: \(audioSeconds, format: .fixed(precision: 1))s audio in \
                     \(elapsed, format: .fixed(precision: 2))s (\(audioSeconds / max(elapsed, 0.0001), format: .fixed(precision: 0))× realtime)
@@ -263,7 +273,9 @@ actor ParakeetEngine: TranscriptionEngine {
     /// Model work runs off the feed path's critical section via one bounded task;
     /// the audio thread only ever handed us a copied buffer.
     private func maybeEmitPartial() async {
-        guard samples.count >= 1_600 else { return }
+        // A partial below the model's 0.3 s floor would only throw (D-04); it is
+        // never padded — partials keep their cadence and their own audio.
+        guard samples.count >= ParakeetInput.minimumModelSamples else { return }
         guard samples.count - lastPartialAt >= partialIntervalSamples else { return }
 
         let snapshot = samples
