@@ -108,7 +108,22 @@ struct InstalledLocalModel: Identifiable, Codable, Sendable, Hashable {
 @MainActor
 @Observable
 final class InstalledModelLibrary {
-    static let shared = InstalledModelLibrary()
+    /// The process-wide library.
+    ///
+    /// The adopter is the one thing a self-test changes here: a test injects a runtime it
+    /// owns instead of the process runtime, and the harness's default is no adopter at all
+    /// — so a test can never be handed whatever the owner of this Mac has selected.
+    /// `--selftest-agent-answers` and `--selftest-llm-metal` are the two flags that read
+    /// the real selection on purpose (read-only).
+    static let shared = InstalledModelLibrary(runtimeAdopter: sharedRuntimeAdopter)
+
+    /// The adopter the process-wide library gets. Nil under the harness unless the flag
+    /// asked to read the real selection, so a test can never be handed whatever the owner
+    /// of this Mac has selected.
+    private static var sharedRuntimeAdopter: (@Sendable (InstalledLocalModel?) async -> Void)? {
+        guard !SelfTest.isRunning || SelfTest.allowsSavedModelSelection else { return nil }
+        return { await NotesModelRuntime.shared.useInstalledModel($0) }
+    }
 
     /// The id of the model that ships with the app. `nonisolated`: a plain constant, and
     /// `canRemoveBuiltIn` below needs to read it without a main-actor hop.
@@ -163,12 +178,16 @@ final class InstalledModelLibrary {
 
     /// Tells the runtime which file to answer with next. It swaps immediately when nothing is
     /// running and waits for the work in flight when something is.
+    ///
+    /// Fire-and-forget on purpose: this is the store's own reaction to a selection change
+    /// (the Models tab, the Agent picker), and nothing is waiting on it. A turn that needs
+    /// the swap decided before it asks which provider answers calls the runtime's awaited
+    /// `select(_:)` instead — which is what removed the race the second resolution used to
+    /// lose.
     private func adoptInRuntime() {
-        // A self-test must not have its model swapped out from under it by whatever the
-        // person who owns this Mac happens to have chosen in the UI.
-        guard !SelfTest.isRunning else { return }
+        guard let runtimeAdopter else { return }
         let chosen = activeModel
-        Task { await NotesModelRuntime.shared.useInstalledModel(chosen) }
+        Task { await runtimeAdopter(chosen) }
     }
 
     /// Where the manifest of downloaded (non-built-in) models lives.
@@ -178,10 +197,20 @@ final class InstalledModelLibrary {
     /// self-test can drive a library without writing the user's own defaults.
     private let defaults: UserDefaults
 
-    init(manifestURL: URL? = nil, defaults: UserDefaults = .standard) {
+    /// Hands a newly selected model to a runtime. Nil means "this store never touches a
+    /// runtime" — the harness's default, and what a self-test passes when it wants the
+    /// selection to be recorded without a model being swapped.
+    private let runtimeAdopter: (@Sendable (InstalledLocalModel?) async -> Void)?
+
+    init(
+        manifestURL: URL? = nil,
+        defaults: UserDefaults = .standard,
+        runtimeAdopter: (@Sendable (InstalledLocalModel?) async -> Void)? = nil
+    ) {
         self.manifestURL = manifestURL
             ?? ModelSpec.directory.appendingPathComponent("library.json")
         self.defaults = defaults
+        self.runtimeAdopter = runtimeAdopter
         self.activeAgentModelID = defaults.string(forKey: Self.activeDefaultsKey)
             ?? Self.builtInID
         refresh()
@@ -312,6 +341,32 @@ final class InstalledModelLibrary {
     }
 
     // MARK: - Writing
+
+    /// Probes one row when its verdict is missing, or was made by a different build of
+    /// llama.cpp or describes a different file, and returns the row as it stands afterwards.
+    ///
+    /// The provider path awaits this before it decides, so a role is never handed a file
+    /// nobody has classified — the lazy whole-list probe may not have reached it yet.
+    @discardableResult
+    func refreshSupportVerdictIfNeeded(_ model: InstalledLocalModel) async -> InstalledLocalModel {
+        let current = self.model(withID: model.id) ?? model
+        if let support = current.support,
+           support.llamaBuildTag == LlamaArchitectures.buildTag,
+           support.fileBytes == current.bytes {
+            return current
+        }
+        let result = await LlamaLoadProbe.probe(current.fileURL)
+        var manifest = loadManifest()
+        guard let index = manifest.firstIndex(where: { $0.id == current.id }) else {
+            // The built-in model has no manifest row of its own, and is runnable by
+            // definition; there is nothing to record.
+            return current
+        }
+        manifest[index].support = result
+        saveManifest(manifest)
+        reloadFromDisk()
+        return self.model(withID: current.id) ?? current
+    }
 
     /// Records a model that has just finished downloading and makes it visible everywhere.
     func add(_ model: InstalledLocalModel) {

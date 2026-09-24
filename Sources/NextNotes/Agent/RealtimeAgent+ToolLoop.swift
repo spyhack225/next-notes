@@ -1,7 +1,10 @@
 import Foundation
 
 private enum GeneralToolStepError: Error, Sendable {
-    case message(String)
+    /// A step failed. `modelUnavailable` is true when the failure was the chosen model
+    /// itself — `LlamaError.modelUnopenable` or `.modelMissing` — which is the one failure
+    /// a turn may honestly retry on another provider.
+    case message(String, modelUnavailable: Bool)
     /// A memory write the model can correct in the same turn: over budget, no unique
     /// match, not declarative. Its message carries the current entries.
     case recoverable(String)
@@ -9,7 +12,7 @@ private enum GeneralToolStepError: Error, Sendable {
 
 private enum QuickTurnResult: Sendable {
     case text(String)
-    case failed(String)
+    case failed(String, modelUnavailable: Bool)
 }
 
 /// One allowlist for both the first-pass capability roster and the planner.
@@ -66,6 +69,41 @@ enum RealtimeToolSelection {
 struct AgentModelTurnResult: Sendable {
     let reply: String
     let usedTools: Bool
+}
+
+/// Process-wide seams for the planner path's self-tests. Computed properties on
+/// `RealtimeAgent` (below) read and write these, because Swift cannot add stored
+/// properties to a type in an extension.
+@MainActor
+private enum AgentPlannerTestSeams {
+    static var fallbackResolver: (() async -> (any LLMProvider)?)?
+    static var denyUnattendedApprovals = false
+    static var lastRoute: String?
+}
+
+extension RealtimeAgent {
+    /// Test-only replacement for the one re-resolution a turn performs after the model it
+    /// chose cannot run. Nil in production, where `AgentModelRouting` is asked again.
+    var plannerFallbackResolverForTesting: (() async -> (any LLMProvider)?)? {
+        get { AgentPlannerTestSeams.fallbackResolver }
+        set { AgentPlannerTestSeams.fallbackResolver = newValue }
+    }
+
+    /// Test-only: the typed-answer harness must never leave an approval card on screen.
+    /// When true, a call that needs a person fails visibly instead of waiting on a card
+    /// nobody will press.
+    var denyUnattendedApprovalsForTesting: Bool {
+        get { AgentPlannerTestSeams.denyUnattendedApprovals }
+        set { AgentPlannerTestSeams.denyUnattendedApprovals = newValue }
+    }
+
+    /// The route of the last model turn: `model-tools` when the plan ran tools,
+    /// `model-answer` when the first pass answered. `--selftest-agent-answers` fails the
+    /// calendar turn when it was not routed through tools.
+    static var lastRouteForTesting: String? {
+        get { AgentPlannerTestSeams.lastRoute }
+        set { AgentPlannerTestSeams.lastRoute = newValue }
+    }
 }
 
 /// Streams a plain model answer to TTS while later tokens are still arriving.
@@ -340,6 +378,7 @@ extension RealtimeAgent {
         if localModelProviderForTesting == nil {
             switch await CodexComputerUse.route(prompt) {
             case .done(let reply):
+                Self.lastRouteForTesting = "computer-handoff"
                 return AgentModelTurnResult(reply: reply, usedTools: true)
             case .fellBack(let note):
                 handoffNote = note
@@ -353,14 +392,14 @@ extension RealtimeAgent {
         } else if let selected = await AgentModelRouting.provider(for: prompt, voice: voice) {
             provider = selected
         } else {
-            return AgentModelTurnResult(
-                reply: "I can’t answer because the selected model is unavailable.", usedTools: false
-            )
+            Self.lastRouteForTesting = "no-model"
+            return AgentModelTurnResult(reply: Self.noModelReply, usedTools: false)
         }
         // The knowledge graph reaches a cloud planner only with its own consent.
         let result = await KnowledgeGraphScope.$reader.withValue(provider.id) {
             await runModelTurn(prompt, speech: speech, voice: voice, owner: owner, work: work, provider: provider)
         }
+        Self.lastRouteForTesting = result.usedTools ? "model-tools" : "model-answer"
         guard let handoffNote else { return result }
         // The person picked Codex for this. They are told once, in one sentence, why the
         // answer came from here instead — never silently.
@@ -371,8 +410,13 @@ extension RealtimeAgent {
 
     private func runModelTurn(
         _ prompt: String, speech: AgentToolSpeechTracker?, voice: Bool, owner: Int,
-        work: VoiceConversationWork?, provider: any LLMProvider
+        work: VoiceConversationWork?, provider chosenProvider: any LLMProvider
     ) async -> AgentModelTurnResult {
+        // The provider is mutable for one reason only: if this model cannot run here after
+        // all, the turn re-resolves once and continues on what can. Everything else reads
+        // the turn's single chosen provider.
+        var provider = chosenProvider
+        var fellBackOnce = false
         guard isCurrent(owner) else {
             return AgentModelTurnResult(reply: "Stopped.", usedTools: false)
         }
@@ -411,12 +455,15 @@ extension RealtimeAgent {
             }
             speech?.beginResponse()
             let responseBegan = ContinuousClock.now
+            // Captured by value: the stream closures are `@Sendable`, and `provider` is
+            // mutable for the one fallback below.
+            let currentProvider = provider
             let response: QuickTurnResult? = await withBoundedWait(remaining) {
                 do {
                     // P0-05: the visible budget comes from the reader's real window, the
                     // persona depth and the room left after the counted prompt — never a
                     // literal. Counted under the same deadline as the call it feeds.
-                    let promptTokens = (try? await provider.countTokens(
+                    let promptTokens = (try? await currentProvider.countTokens(
                         system + messages.map(\.content).joined(separator: "\n")))
                         ?? (system.count + messages.reduce(0) { $0 + $1.content.count }) / 4
                     let kind: AgentAnswerBudget.Kind = voice ? .voiceFirstPass : .typedAnswer
@@ -431,11 +478,11 @@ extension RealtimeAgent {
                     var assembled = ""
                     let stream = if voice {
                         await LatencyCorrelation.$current.withValue(correlation) {
-                            await provider.streamInteractiveConversation(
+                            await currentProvider.streamInteractiveConversation(
                                 system: system, messages: messages, maxTokens: visible)
                         }
                     } else {
-                        await provider.streamConversation(
+                        await currentProvider.streamConversation(
                             system: system, messages: messages, maxTokens: visible)
                     }
                     for try await chunk in stream {
@@ -451,12 +498,15 @@ extension RealtimeAgent {
                         case .tools:
                             return .text("<use_tools/>")
                         case .invalid:
-                            return .failed("The model returned an invalid response header.")
+                            return .failed("The model returned an invalid response header.",
+                                           modelUnavailable: false)
                         case .pending: break
                         }
                     }
                     return .text(assembled)
-                } catch { return .failed(error.localizedDescription) }
+                } catch {
+                    return .failed(error.localizedDescription, modelUnavailable: error.isModelUnavailable)
+                }
             }
             remainingBudget -= responseBegan.duration(to: .now)
             await waitForVoiceInput()
@@ -467,8 +517,22 @@ extension RealtimeAgent {
                 return AgentModelTurnResult(reply: "The model took too long to answer.", usedTools: false)
             }
             switch response {
-            case .failed(let reason):
+            case .failed(let reason, let modelUnavailable):
                 speech?.cancel()
+                if modelUnavailable {
+                    // The chosen file failed a real load even though the probe passed it.
+                    // Re-resolve once — the routing now excludes the recorded file — and
+                    // continue on the new provider; if nothing else can run, say so
+                    // honestly instead of reporting the load failure as the answer.
+                    if !fellBackOnce,
+                       let replacement = await fallbackProvider(for: prompt, voice: voice),
+                       replacement.id != provider.id {
+                        fellBackOnce = true
+                        provider = replacement
+                        continue
+                    }
+                    return AgentModelTurnResult(reply: Self.noModelReply, usedTools: false)
+                }
                 return AgentModelTurnResult(reply: "The model could not answer: " + reason, usedTools: false)
             case .text(let raw):
                 switch VoiceResponseEnvelope.parse(raw) {
@@ -476,7 +540,7 @@ extension RealtimeAgent {
                     speech?.cancel()
                     beginWork(title: "Working with tools…")
                     let trace = LatencyTrace.start(.agentToolCallToResult)
-                    let reply = await runPlannedToolLoop(prompt, speech: speech, voice: voice)
+                    let reply = await runPlannedToolLoop(prompt, speech: speech, voice: voice, provider: provider)
                     trace.end(note: "model-tools")
                     return AgentModelTurnResult(reply: reply, usedTools: true)
                 case .answer(let answer):
@@ -493,7 +557,7 @@ extension RealtimeAgent {
                         speech?.cancel()
                         beginWork(title: "Working with tools…")
                         let trace = LatencyTrace.start(.agentToolCallToResult)
-                        let reply = await runPlannedToolLoop(prompt, speech: speech, voice: voice)
+                        let reply = await runPlannedToolLoop(prompt, speech: speech, voice: voice, provider: provider)
                         trace.end(note: "refusal-escalation")
                         return AgentModelTurnResult(reply: reply, usedTools: true)
                     }
@@ -508,6 +572,22 @@ extension RealtimeAgent {
         }
         speech?.cancel()
         return AgentModelTurnResult(reply: "Stopped.", usedTools: false)
+    }
+
+    /// The honest sentence when no model on this Mac can run. It replaces "the selected
+    /// model is unavailable", which named a setting rather than the situation, and it is
+    /// the same sentence for the first resolution and for a failed in-turn fallback.
+    static var noModelReply: String {
+        "I can’t answer right now because no model on this Mac can run. "
+            + "Choose one in Settings ▸ Models."
+    }
+
+    /// The one re-resolution a turn performs after the model it chose cannot run. The
+    /// routing call now excludes the file that failed, so it answers with a different
+    /// provider or with nothing.
+    private func fallbackProvider(for prompt: String, voice: Bool) async -> (any LLMProvider)? {
+        if let resolver = plannerFallbackResolverForTesting { return await resolver() }
+        return await AgentModelRouting.provider(for: prompt, voice: voice)
     }
 
     /// The on-device/OpenRouter first pass. Persona, then these rules, via `AgentPromptContext`;
@@ -746,7 +826,8 @@ extension RealtimeAgent {
     func runPlannedToolLoop(
         _ prompt: String,
         speech: AgentToolSpeechTracker? = nil,
-        voice: Bool = false
+        voice: Bool = false,
+        provider: (any LLMProvider)? = nil
     ) async -> String {
         let owner = currentGeneration
         let background = isVoiceWorker
@@ -789,18 +870,22 @@ extension RealtimeAgent {
             case .local: notice = nil
             }
         }
-        let provider: any LLMProvider
+        // One provider per turn. A typed turn's provider is chosen by `runModelTurn` and
+        // handed in here; only the voice worker, which owns its own objective, resolves.
+        let chosen: any LLMProvider
         if let testingProvider = localModelProviderForTesting {
-            provider = testingProvider
+            chosen = testingProvider
+        } else if let provider {
+            chosen = provider
         } else if let resolvedProvider = await AgentModelRouting.provider(for: prompt, voice: voice) {
-            provider = resolvedProvider
+            chosen = resolvedProvider
         } else {
-            return "I can’t plan tool use because the selected model is unavailable."
+            return Self.noModelReply
         }
         // The knowledge graph reaches a cloud planner only with its own consent.
-        let planned: String = await KnowledgeGraphScope.$reader.withValue(provider.id) {
+        let planned: String = await KnowledgeGraphScope.$reader.withValue(chosen.id) {
             await runPlannedToolLoop(prompt, speech: speech, voice: voice, owner: owner, background: background,
-                                     work: work, tools: tools, provider: provider)
+                                     work: work, tools: tools, provider: chosen)
         }
         if let notice, !notice.isEmpty {
             return notice + "\n\n" + planned
@@ -810,8 +895,13 @@ extension RealtimeAgent {
 
     private func runPlannedToolLoop(
         _ prompt: String, speech: AgentToolSpeechTracker?, voice: Bool, owner: Int, background: Bool,
-        work: VoiceConversationWork?, tools: [AgentTool], provider: any LLMProvider
+        work: VoiceConversationWork?, tools: [AgentTool], provider chosenProvider: any LLMProvider
     ) async -> String {
+        // The turn's provider, mutable for the single in-turn fallback: a file that fails a
+        // real load here re-resolves once to something that can run, and never reports the
+        // load failure as the plan's answer.
+        var provider = chosenProvider
+        var fellBackOnce = false
         let system = Self.plannerSystem(tools: tools, voice: voice, request: prompt)
         let clock = ContinuousClock()
         let duration = toolLoopLimitForTesting
@@ -900,16 +990,19 @@ extension RealtimeAgent {
             let spokenConfirmations = memoryConfirmations.joined(separator: " ")
             let remaining = remainingBudget
             let completionBegan = clock.now
+            // Captured by value: the stream closures are `@Sendable`, and `provider` is
+            // mutable for the one fallback below.
+            let currentProvider = provider
             let completion: Result<String, GeneralToolStepError>? = await withBoundedWait(remaining) {
                 do {
                     var assembled = ""
                     let stream = if voice && !background {
                         await LatencyCorrelation.$current.withValue(correlation) {
-                            await provider.streamInteractiveConversation(
+                            await currentProvider.streamInteractiveConversation(
                                 system: system, messages: [.init(role: .user, content: user)], maxTokens: 256)
                         }
                     } else {
-                        await provider.stream(system: system, user: user, maxTokens: 256)
+                        await currentProvider.stream(system: system, user: user, maxTokens: 256)
                     }
                     for try await chunk in stream {
                         try Task.checkCancellation()
@@ -929,7 +1022,8 @@ extension RealtimeAgent {
                     }
                     return .success(assembled)
                 } catch {
-                    return .failure(.message(error.localizedDescription))
+                    return .failure(.message(error.localizedDescription,
+                                             modelUnavailable: error.isModelUnavailable))
                 }
             }
             remainingBudget -= completionBegan.duration(to: clock.now)
@@ -945,7 +1039,20 @@ extension RealtimeAgent {
             let completionText: String
             switch completion {
             case .success(let text): completionText = text
-            case .failure(.message(let message)), .failure(.recoverable(let message)):
+            case .failure(.message(let message, let modelUnavailable)):
+                speech?.cancel()
+                if modelUnavailable {
+                    if !fellBackOnce,
+                       let replacement = await fallbackProvider(for: prompt, voice: voice),
+                       replacement.id != provider.id {
+                        fellBackOnce = true
+                        provider = replacement
+                        continue
+                    }
+                    return confirmed(Self.noModelReply)
+                }
+                return confirmed("The tool planner failed: " + message)
+            case .failure(.recoverable(let message)):
                 speech?.cancel()
                 return confirmed("The tool planner failed: " + message)
             }
@@ -953,6 +1060,15 @@ extension RealtimeAgent {
             speech?.finish(hasToolCalls: !parsedCalls.isEmpty)
             if parsedCalls.isEmpty {
                 if completionText.contains("<tool_call>") || completionText.contains("</tool_call>") {
+                    // The one case where the raw completion is the only evidence: the model
+                    // reached for a tool and the parser could not read the call. Info level,
+                    // like the heard-transcript line; the unified log drops it in minutes.
+                    Log.agent.info("""
+                        tool planner call unparseable: len=\(completionText.count) \
+                        open=\(completionText.contains("<tool_call>")) \
+                        close=\(completionText.contains("</tool_call>")) \
+                        text=\(String(completionText.prefix(200)), privacy: .public)
+                        """)
                     return "The tool planner returned an invalid tool request."
                 }
                 let reply = completionText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1014,13 +1130,17 @@ extension RealtimeAgent {
                     untrustedText: untrustedOutputs,
                     readToolOutputThisTurn: readToolOutput
                 )
+                // Captured by value: this closure is `@Sendable` and `provider` is mutable
+                // for the one fallback above.
+                let executingProvider = provider
                 let execute: @Sendable () async -> Result<String, GeneralToolStepError> = {
                     do {
                         let result = try await MemoryProvenance.$current.withValue(provenance) {
                             try await AgentToolExecutor.run(
                                 call.name, arguments: arguments, policy: policy,
                                 taskID: work?.id.uuidString,
-                                autoApproveReads: true, promptIfNeeded: true,
+                                autoApproveReads: true,
+                                promptIfNeeded: !self.denyUnattendedApprovalsForTesting,
                                 isStillValid: {
                                     guard await self.mayCommitEffect(risk: risk) else { return false }
                                     return self.isCurrent(owner) && revision == (work?.revision ?? 0)
@@ -1039,7 +1159,7 @@ extension RealtimeAgent {
                         // is what the planner reads next round.
                         if RealtimeToolSelection.screenshotToolIDs.contains(call.name) {
                             let described = await VisionHandoff.describe(
-                                provider: provider,
+                                provider: executingProvider,
                                 toolID: call.name,
                                 arguments: arguments,
                                 parkSummary: result.summary,
@@ -1051,7 +1171,10 @@ extension RealtimeAgent {
                         return .success(result.summary)
                     } catch let error as MemoryWriteError where error.isRecoverable {
                         return .failure(.recoverable(error.localizedDescription))
-                    } catch { return .failure(.message(error.localizedDescription)) }
+                    } catch {
+                        return .failure(.message(error.localizedDescription,
+                                                 modelUnavailable: error.isModelUnavailable))
+                    }
                 }
                 // A write may be awaiting human approval or remote confirmation.
                 // Never detach it behind a timeout: that could say "stopped" while
@@ -1094,7 +1217,7 @@ extension RealtimeAgent {
                     completedCalls.remove(signature)
                     callsUsed += 1
                     currentToolID = nil
-                case .failure(.message(let message)):
+                case .failure(.message(let message, _)):
                     if revision != (work?.revision ?? 0) {
                         completedCalls.remove(signature)
                         currentToolID = nil
@@ -1212,7 +1335,8 @@ extension RealtimeAgent {
             let result = try await AgentToolExecutor.run(
                 name, arguments: arguments, policy: .fromSettings(),
                 taskID: voiceWork?.id.uuidString,
-                autoApproveReads: true, promptIfNeeded: true
+                autoApproveReads: true,
+                promptIfNeeded: !denyUnattendedApprovalsForTesting
             )
             return .done(result.summary)
         } catch AgentError.permissionDenied(let reason) {

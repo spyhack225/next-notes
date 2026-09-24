@@ -51,7 +51,21 @@ enum ModelTrialResult: Codable, Sendable, Equatable, Hashable {
 actor NotesModelRuntime {
     /// The shared notes and voice model. Other instances exist only in `--selftest-llm-metal`, which loads a
     /// second, smaller GGUF on the GPU to prove Metal and CPU runtimes coexist.
-    static let shared = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: NotesModelRuntime.allGPULayers)
+    ///
+    /// A file that fails a real full-weight open is recorded here, through the store the
+    /// library and the role store read, so the same file is never selected again on this
+    /// build. The record is read-only for a self-test: under the harness the store is a
+    /// per-run suite.
+    static let shared = NotesModelRuntime(
+        spec: NotesModels.spec,
+        gpuLayers: NotesModelRuntime.allGPULayers,
+        openFailureSink: { spec, reason in
+            await MainActor.run {
+                ModelOpenFailureStore.shared.record(
+                    path: spec.fileURL.path, bytes: spec.expectedBytes, reason: reason)
+            }
+        }
+    )
 
     /// Offload everything. The built-in model file is a few GB against 16 GB of unified
     /// memory, so there is no layer-splitting decision to make — either Metal is on or it isn't.
@@ -93,6 +107,17 @@ actor NotesModelRuntime {
     private var conversationLeases: Set<UUID> = []
     /// The load in flight, so two callers share one.
     private var loadTask: Task<Void, Error>?
+    /// How many times `load(schedulerJobID:)` has begun since this runtime was created.
+    /// The P0-14 self-test proves a prewarm after a failed file attempts no further load.
+    private(set) var loadAttemptCount = 0
+    /// Where a full-weight open failure is recorded. The shared runtime's is the production
+    /// store; a self-test injects its own so the record lands in an isolated suite.
+    var openFailureSink: (@Sendable (ModelSpec, String) async -> Void)?
+
+    func setOpenFailureSinkForTesting(_ sink: (@Sendable (ModelSpec, String) async -> Void)?) {
+        openFailureSink = sink
+    }
+
     /// Token for the current load in `ModelRuntimeManager`.
     private var runtimeGeneration: UInt64?
     /// Actor methods re-enter while a generation awaits a scheduler checkpoint.
@@ -125,9 +150,14 @@ actor NotesModelRuntime {
         prewarmProbeForTesting = probe
     }
 
-    init(spec: ModelSpec, gpuLayers: Int32) {
+    init(
+        spec: ModelSpec,
+        gpuLayers: Int32,
+        openFailureSink: (@Sendable (ModelSpec, String) async -> Void)? = nil
+    ) {
         self.spec = spec
         self.gpuLayers = gpuLayers
+        self.openFailureSink = openFailureSink
     }
 
     var isLoaded: Bool { model != nil }
@@ -186,6 +216,17 @@ actor NotesModelRuntime {
         }
     }
 
+    /// The awaited form of `useInstalledModel`, for a caller that needs the swap decided
+    /// before it asks which model will answer.
+    ///
+    /// `useInstalledModel` is synchronous inside the actor, so awaiting *this* is what
+    /// removes the race the old fire-and-forget `Task` created: by the time it returns,
+    /// `(pendingSpec ?? spec).fileURL` is the chosen model's — applied when nothing was
+    /// running, recorded as pending behind the work in flight otherwise.
+    func select(_ model: InstalledLocalModel?) async {
+        useInstalledModel(model)
+    }
+
     /// Whether a model chosen right now has to wait for work already in flight.
     ///
     /// Resident weights alone are **not** a reason to wait — nothing is reading them, and
@@ -224,8 +265,10 @@ actor NotesModelRuntime {
         guard !didAdoptSavedSelection else { return }
         didAdoptSavedSelection = true
         // Self-tests must not have their model swapped out from under them by whatever the
-        // person who owns this Mac happened to choose in the UI.
-        guard !SelfTest.isRunning else { return }
+        // person who owns this Mac happened to choose in the UI — except the two flags that
+        // exist to answer a question about the real model this Mac has selected (P0-14b,
+        // the Metal probe), which read it and write nothing.
+        guard !SelfTest.isRunning || SelfTest.allowsSavedModelSelection else { return }
         let chosen = await MainActor.run { InstalledModelLibrary.shared.activeModel }
         // Records the choice, and applies it straight away unless work is in flight — in
         // which case `load` below applies it, since nothing is loaded by then either.
@@ -245,20 +288,6 @@ actor NotesModelRuntime {
             return nil
         }
         return (loaded, vocabulary)
-    }
-
-    /// Goes back to the built-in model and tells the user why, in one sentence.
-    ///
-    /// The selection in `InstalledModelLibrary` moves too. Leaving it pointing at a file
-    /// that will not open would mean the Models tab says one thing while the agent does
-    /// another, and every later launch would repeat the same failed load.
-    private func revertToBuiltIn(message: String) async {
-        pendingSpec = nil
-        spec = NotesModels.spec
-        await MainActor.run {
-            InstalledModelLibrary.shared.activeAgentModelID = InstalledModelLibrary.builtInID
-            ModelLoadNotice.shared.report(message)
-        }
     }
 
     /// Swaps in the chosen model. Only safe with nothing loaded and nothing running.
@@ -1407,10 +1436,19 @@ actor NotesModelRuntime {
                 )
             } catch {
                 loadTrace.end(note: "app_llm failed")
-                if let llamaError = error as? LlamaError,
-                   case .modelMissing = llamaError {
-                    // A missing download is an expected configuration state,
-                    // not a wedged GPU/runtime. Leave the owner retryable.
+                // A missing download and a file this build cannot open are expected
+                // configuration states, not a wedged GPU/runtime. Leave the owner
+                // retryable, so a later turn can resolve to another provider.
+                let retryable: Bool
+                if let llamaError = error as? LlamaError {
+                    switch llamaError {
+                    case .modelMissing, .modelUnopenable: retryable = true
+                    default: retryable = false
+                    }
+                } else {
+                    retryable = false
+                }
+                if retryable {
                     _ = await ModelRuntimeManager.shared.markUnloaded(
                         .notes,
                         generation: generation
@@ -1434,6 +1472,7 @@ actor NotesModelRuntime {
     }
 
     private func load(schedulerJobID: UUID? = nil) async throws {
+        loadAttemptCount += 1
         // The first load of the process adopts whatever the user picked last time, unless
         // something read `activeSpec` earlier and adopted it already.
         await adoptSavedSelectionIfNeeded()
@@ -1442,13 +1481,16 @@ actor NotesModelRuntime {
         if model == nil { applyPendingSpec() }
 
         // A chosen model whose file has gone — deleted in Finder, or on a volume that is no
-        // longer mounted — is a configuration problem, not a failure: fall back and say so.
+        // longer mounted — is a configuration problem, not a failure. The runtime goes back
+        // to the built-in spec and reports `.modelMissing`; the call path names what will
+        // answer, because the runtime never touches the library and never opens a
+        // replacement file on its own.
         if !spec.isDownloaded {
             // The built-in model simply hasn't been downloaded yet — the caller handles that.
             guard !isUsingBuiltInModel else { throw LlamaError.modelMissing }
-            await revertToBuiltIn(
-                message: ModelLoadNotice.fileMissing(spec.displayName, fallback: NotesModels.spec.displayName))
-            guard spec.isDownloaded else { throw LlamaError.modelMissing }
+            spec = NotesModels.spec
+            pendingSpec = nil
+            throw LlamaError.modelMissing
         }
 
         ModelResidencyPolicy.installPressureObserver()
@@ -1484,16 +1526,19 @@ actor NotesModelRuntime {
         // here rather than crashing — but only because the load is guarded. The user chose
         // this file from a list of thousands, so "unsupported" is an ordinary outcome, and
         // the app has to keep working through it rather than refusing to write notes.
-        var opened = Self.openNative(spec, parameters: modelParameters)
-        if opened == nil, !isUsingBuiltInModel {
-            let failed = spec.displayName
-            await revertToBuiltIn(
-                message: ModelLoadNotice.couldNotOpen(failed, fallback: NotesModels.spec.displayName))
-            if spec.isDownloaded {
-                opened = Self.openNative(spec, parameters: modelParameters)
+        //
+        // The failure is remembered so no resolution path selects this file again on this
+        // build, and the runtime returns to the built-in spec **without opening it**: a
+        // silent replacement file is how the notice ended up claiming Gemma on a Mac where
+        // Gemma had never been downloaded.
+        guard let (loadedModel, loadedVocabulary) = Self.openNative(spec, parameters: modelParameters) else {
+            let failed = spec
+            if !isUsingBuiltInModel {
+                await openFailureSink?(failed, "open failed")
+                spec = NotesModels.spec
+                pendingSpec = nil
+                throw LlamaError.modelUnopenable(failed.displayName)
             }
-        }
-        guard let (loadedModel, loadedVocabulary) = opened else {
             throw LlamaError.modelLoadFailed
         }
 

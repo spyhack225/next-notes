@@ -105,6 +105,10 @@ enum LlamaHelpers {
 enum LlamaError: LocalizedError {
     case modelMissing
     case modelLoadFailed
+    /// A chosen file this build of llama.cpp cannot open at all. Distinct from
+    /// `modelLoadFailed`, which is a fault in the runtime rather than in the file: the
+    /// name is carried so the sentence can say which file cannot run here.
+    case modelUnopenable(String)
     case contextLoadFailed
     case notLoaded
     case tokenizationFailed
@@ -118,6 +122,7 @@ enum LlamaError: LocalizedError {
         switch self {
         case .modelMissing: "The model is not downloaded."
         case .modelLoadFailed: "The model could not be loaded."
+        case .modelUnopenable(let name): "\(name) can’t run on this Mac."
         case .contextLoadFailed: "Inference could not start."
         case .notLoaded: "The model is unavailable."
         case .tokenizationFailed: "The text could not be tokenized."
@@ -129,11 +134,25 @@ enum LlamaError: LocalizedError {
     }
 }
 
+extension Error {
+    /// Whether this failure means the chosen model itself cannot run here — the two cases
+    /// a turn may honestly retry on another provider (P0-14's in-turn fallback).
+    var isModelUnavailable: Bool {
+        guard let llamaError = self as? LlamaError else { return false }
+        switch llamaError {
+        case .modelUnopenable, .modelMissing: return true
+        default: return false
+        }
+    }
+}
+
 /// P0-7 error mapping only: every llama.cpp failure gets a voice code.
 extension LlamaError: VoiceCodedError {
     var voiceCode: VoiceProviderErrorCode {
         switch self {
         case .modelMissing: .modelMissing
+        case .modelUnopenable:
+            .unavailable
         case .modelLoadFailed, .contextLoadFailed, .notLoaded,
              .tokenizationFailed, .inputTooLong, .decodeFailed,
              .samplerFailed, .grammarInvalid:

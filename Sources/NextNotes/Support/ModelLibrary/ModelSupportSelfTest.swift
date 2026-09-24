@@ -1,9 +1,9 @@
 import Foundation
 
-/// `--selftest-model-unopenable` (P0-13, extended by P0-02).
+/// `--selftest-model-unopenable` (P0-13, extended by P0-02 and P0-14).
 ///
 /// Pins the guard that keeps a file this build of llama.cpp cannot open out of the agent's
-/// reach: before a download, on install, and before a role is assigned. Seven cases:
+/// reach: before a download, on install, and before a role is assigned. Eight cases:
 ///
 /// - **A** an unknown architecture is refused from the header, without loading any weights;
 /// - **B** a supported name with nothing behind it is reported as a failed open, not as an
@@ -16,13 +16,16 @@ import Foundation
 ///   opens and not the one it refuses;
 /// - **G** (P0-02) the post-download check trials the new file *before* anything is
 ///   switched or deleted, only a trial that generated a token may switch or delete, and
-///   the confirmation sheet never leans toward deleting the only model that answers.
+///   the confirmation sheet never leans toward deleting the only model that answers;
+/// - **H** (P0-14) one provider per turn, resolution read-only, a failed full load
+///   remembered and never re-selected, the load outcome honest (`.modelUnopenable`, not a
+///   wedged runtime), and an in-turn fallback that never says "the tool planner failed".
 ///
-/// P0-13's cases A–F are green. P0-02's case G is the red-first case: today's
-/// post-download policy switches the active model before it checks anything and asks
-/// `prepare()` — which only opens a file — so the trial's verdict is never recorded, the
-/// switch happens before the check, and the confirmation sheet still leans toward
-/// deleting the only model that answers.
+/// P0-13's cases A–F and P0-02's case G are green. P0-14's case H is the red-first case:
+/// resolution writes the library selection on every turn and returns a provider resolved
+/// against a runtime that has not adopted it yet, the runtime throws `.modelLoadFailed`
+/// for a file that cannot open (and wedges itself), and the planner reports the load
+/// failure to the user instead of falling back once.
 @MainActor
 enum ModelSupportSelfTest {
     static func run() async -> [String] {
@@ -45,6 +48,7 @@ enum ModelSupportSelfTest {
         failures += caseEPreDownloadVerdict()
         failures += caseFGeneratedListMatchesTheBuild()
         failures += await postDownloadVerify(scratch: scratch)
+        failures += await providerPerTurnAndFailedLoads(scratch: scratch)
         return failures
     }
 
@@ -505,6 +509,205 @@ enum ModelSupportSelfTest {
         return failures
     }
 
+    // MARK: - H. One provider per turn, failed loads remembered (P0-14)
+
+    /// Everything here is isolated: a temp manifest, a `UserDefaults` suite, a runtime this
+    /// test owns, and a library whose adopter points at that runtime — the real switch path
+    /// the harness used to skip. The one file that has to live in the app's Models folder is
+    /// the fixture itself, because `ModelSpec.fileURL` is always `Models/` plus the file
+    /// name; it is a few hundred bytes with a self-test name, and it is removed in a `defer`.
+    private static func providerPerTurnAndFailedLoads(scratch: URL) async -> [String] {
+        var failures: [String] = []
+
+        let suiteName = "NextNotesSelfTest-p0-14-\(ProcessInfo.processInfo.processIdentifier)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            return ["case H: the isolated defaults suite could not be created"]
+        }
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let directory = scratch.appendingPathComponent("p0-14", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        } catch {
+            return ["case H: the scratch folder could not be created: \(error.localizedDescription)"]
+        }
+
+        // The fixture is a legal GGUF header naming an architecture this build refuses.
+        // Its verdict is pre-seeded as `.opens` on purpose: that is the file the probe
+        // missed, and it forces the first-time full-load failure the fix must remember.
+        let fixtureName = "selftest-p0-14-unopenable-\(ProcessInfo.processInfo.processIdentifier).gguf"
+        let fixtureURL = ModelSpec.directory.appendingPathComponent(fixtureName)
+        defer { try? FileManager.default.removeItem(at: fixtureURL) }
+        do {
+            try FileManager.default.createDirectory(
+                at: ModelSpec.directory, withIntermediateDirectories: true)
+            try writeGGUF(to: fixtureURL, kv: [
+                ("general.architecture", .string("nn-selftest-unknown")),
+                ("general.alignment", .uint32(32)),
+            ])
+        } catch {
+            return ["case H: the fixture could not be written: \(error.localizedDescription)"]
+        }
+        let fixtureBytes = ModelDownloader.fileSize(at: fixtureURL)
+        let fixture = InstalledLocalModel(
+            id: "selftest/p0-14/unopenable.gguf",
+            displayName: "Self-test unopenable",
+            fileURL: fixtureURL,
+            parameterBillions: nil,
+            quantization: nil,
+            bytes: fixtureBytes,
+            isBuiltIn: false,
+            support: LlamaProbeResult(
+                verdict: .opens,
+                detail: "nn-selftest-unknown",
+                llamaBuildTag: LlamaArchitectures.buildTag,
+                fileBytes: fixtureBytes))
+
+        let runtime = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: 0)
+        let failureStore = ModelOpenFailureStore(defaults: defaults)
+        let library = InstalledModelLibrary(
+            manifestURL: directory.appendingPathComponent("library.json"),
+            defaults: defaults,
+            runtimeAdopter: { await runtime.select($0) })
+        library.add(fixture)
+        // The runtime records a failed full open the way the production sink does; the
+        // store is the test's, so nothing lands in the owner's defaults.
+        await runtime.setOpenFailureSinkForTesting { spec, reason in
+            await MainActor.run {
+                failureStore.record(
+                    path: spec.fileURL.path, bytes: spec.expectedBytes, reason: reason)
+            }
+        }
+
+        let store = ModelRoleStore(
+            defaults: defaults,
+            availability: .nothingInstalled,
+            library: library,
+            runtime: runtime,
+            failures: failureStore)
+        store.setChoiceForTesting(.installedModel(id: fixture.id), for: .agent)
+
+        // 1. A file this build cannot open throws the unopenable error — not the generic
+        //    load failure — and leaves the notes runtime retryable instead of wedged.
+        await runtime.select(fixture)
+        do {
+            try await runtime.prepare()
+            failures.append("case H 1: prepare() reported success for a file this build cannot open")
+        } catch let error as LlamaError {
+            if case .modelUnopenable(let name) = error {
+                if name != fixture.displayName {
+                    failures.append("case H 1: the unopenable error named "
+                        + "“\(name)” instead of “\(fixture.displayName)”")
+                }
+            } else {
+                failures.append("case H 1: a file this build cannot open threw "
+                    + "\(error.localizedDescription), not the unopenable error")
+            }
+        } catch {
+            failures.append("case H 1: prepare() threw \(error.localizedDescription)")
+        }
+        let notesState = await ModelRuntimeManager.shared.snapshot(.notes).state
+        if notesState == .wedged {
+            failures.append("case H 1: a file that cannot open wedged the notes runtime")
+        }
+        // Leave the process-wide registry as it was found.
+        _ = await ModelRuntimeManager.shared.markUnloaded(.notes)
+
+        // 2. Two resolutions in a row are the same answer, that answer is not the failed
+        //    file's runtime, and neither call writes the library selection (3).
+        let writesBefore = library.activeSelectionWrites
+        let first = await AgentModelRouting.provider(
+            for: "What can you do?", voice: false, roles: store)
+        let second = await AgentModelRouting.provider(
+            for: "What can you do?", voice: false, roles: store)
+        if first?.id != second?.id {
+            failures.append("case H 2: two resolutions in a row disagreed ("
+                + "\(first?.id.rawValue ?? "nil") then \(second?.id.rawValue ?? "nil"))")
+        }
+        if let first, first.id == .appLLM {
+            failures.append("case H 2: resolution chose the app's own runtime for a file "
+                + "that failed to open")
+        }
+        let writesAfter = library.activeSelectionWrites
+        if writesAfter != writesBefore {
+            failures.append("case H 3: resolution wrote the library's active selection "
+                + "(\(writesAfter - writesBefore) write(s))")
+        }
+        // The failed file must not be left selected in the runtime either. The old path's
+        // library write reaches the runtime through the adopter asynchronously, so give it
+        // a moment to land before deciding.
+        var runtimeSpec = await runtime.activeSpec()
+        for _ in 0..<20 where runtimeSpec.fileURL == fixtureURL {
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(50))
+            runtimeSpec = await runtime.activeSpec()
+        }
+        if runtimeSpec.fileURL == fixtureURL {
+            failures.append("case H 2: resolution re-selected the failed file into the runtime")
+        }
+
+        // 4. A planner turn whose model cannot open falls back once and answers. It must
+        //    never report the load failure as the reply.
+        let agent = RealtimeAgent.shared
+        let primary = P014UnopenablePlannerProvider()
+        let fallback = P014AnswerProvider(id: .appleFoundation, reply: "Done.")
+        let previousProvider = agent.localModelProviderForTesting
+        let previousResolver = agent.plannerFallbackResolverForTesting
+        let previousDeny = agent.denyUnattendedApprovalsForTesting
+        agent.localModelProviderForTesting = primary
+        agent.plannerFallbackResolverForTesting = { fallback }
+        agent.denyUnattendedApprovalsForTesting = true
+        defer {
+            agent.localModelProviderForTesting = previousProvider
+            agent.plannerFallbackResolverForTesting = previousResolver
+            agent.denyUnattendedApprovalsForTesting = previousDeny
+        }
+        let plannerReply = await agent.runGeneralToolLoop("What can you do?")
+        if plannerReply.contains("The tool planner failed:") {
+            failures.append("case H 4: the planner reported the load failure instead of "
+                + "falling back once (\(plannerReply.prefix(160)))")
+        }
+        if plannerReply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            failures.append("case H 4: the fallback produced no reply")
+        }
+
+        // 5. Prewarm asks the real routing; after the failure it is not local, so three
+        //    warm-ups attempt no load at all.
+        let attemptsBefore = await runtime.loadAttemptCount
+        let warmups = P014PrewarmCounter()
+        await runtime.setPrewarmProbeForTesting(NotesModelRuntime.PrewarmProbeForTesting(
+            isModelAvailable: { true },
+            isLocalRoute: { await AgentModelRouting.resolvesToLocalModel(voice: $0, roles: store) },
+            onPrewarm: { await warmups.increment() }))
+        for _ in 0..<3 { await runtime.prewarm().value }
+        await runtime.setPrewarmProbeForTesting(nil)
+        let attemptsAfter = await runtime.loadAttemptCount
+        if attemptsAfter != attemptsBefore {
+            failures.append("case H 5: a prewarm after the failure attempted "
+                + "\(attemptsAfter - attemptsBefore) load(s)")
+        }
+
+        // 6. The sentence names what will actually answer. "Gemma" is only true when Gemma
+        //    is on this Mac; on a machine without it the old sentence was simply false.
+        if first == nil {
+            SelfTest.diagnostic(
+                "P0-14: no fallback provider on this Mac, so the notice was not exercised")
+        } else if let message = ModelLoadNotice.shared.message {
+            if !message.contains("can’t run on this Mac") {
+                failures.append("case H 6: the notice did not say the file cannot run "
+                    + "(\(message))")
+            }
+            if !NotesModels.isDownloaded, message.contains("Gemma") {
+                failures.append("case H 6: the notice named Gemma although it is not on "
+                    + "this Mac (\(message))")
+            }
+        } else {
+            failures.append("case H 6: the fallback was taken but no notice was reported")
+        }
+
+        return failures
+    }
+
     // MARK: - Fixtures
 
     /// A value the fixture writer can serialize. Only the two types these fixtures need:
@@ -551,4 +754,63 @@ private final class PostDownloadEventLog: @unchecked Sendable {
     func record(_ event: String) { lock.withLock { value.append(event) } }
 
     var events: [String] { lock.withLock { value } }
+}
+
+/// Counts prewarm callbacks for case H, off the main actor.
+private actor P014PrewarmCounter {
+    private(set) var count = 0
+    func increment() { count += 1 }
+}
+
+/// Case H's first pass opts into tools; its planner round throws the error a real
+/// unopenable file produces, so the turn's fallback is what gets exercised.
+private struct P014UnopenablePlannerProvider: LLMProvider {
+    let id = LLMProviderID.appLLM
+    var contextTokens: Int { 4_096 }
+    var unavailableReason: String? { get async { nil } }
+    func countTokens(_ text: String) async throws -> Int { text.count / 4 + 1 }
+
+    func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+        throw LlamaError.modelUnopenable("Self-test unopenable")
+    }
+
+    func streamConversation(
+        system: String, messages: [LLMChatMessage], maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            continuation.yield("<use_tools/>")
+            continuation.finish()
+        }
+    }
+
+    func stream(
+        system: String, user: String, maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            continuation.finish(throwing: LlamaError.modelUnopenable("Self-test unopenable"))
+        }
+    }
+}
+
+/// Case H's fallback: a provider of another kind that answers, so the turn continues on
+/// it instead of reporting the failed load.
+private struct P014AnswerProvider: LLMProvider {
+    let id: LLMProviderID
+    let reply: String
+    var contextTokens: Int { 4_096 }
+    var unavailableReason: String? { get async { nil } }
+    func countTokens(_ text: String) async throws -> Int { text.count / 4 + 1 }
+
+    func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+        LLMCompletion(text: reply, generatedTokens: 1, duration: 0)
+    }
+
+    func stream(
+        system: String, user: String, maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            continuation.yield(reply)
+            continuation.finish()
+        }
+    }
 }

@@ -25,14 +25,17 @@ final class ModelLoadNotice {
 
     func clear() { message = nil }
 
-    /// The sentence shown when a chosen model will not load.
-    static func couldNotOpen(_ displayName: String, fallback: String) -> String {
-        "\(displayName) wouldn’t open on this Mac, so Next Notes went back to \(fallback). "
-            + "You can delete it in Models settings."
+    /// The sentence shown when a chosen model cannot run on this Mac.
+    ///
+    /// It names the provider that will actually answer rather than the built-in file:
+    /// "went back to Gemma 4 E4B" was false on a Mac where Gemma had never been
+    /// downloaded, and the app was answering with Apple's model the whole time.
+    static func cannotRun(_ displayName: String, answeringWith: String) -> String {
+        "\(displayName) can’t run on this Mac, so answers come from \(answeringWith)."
     }
 
     /// The sentence shown when the file has gone missing since it was chosen.
-    static func fileMissing(_ displayName: String, fallback: String) -> String {
-        "\(displayName) is no longer on this Mac, so Next Notes went back to \(fallback)."
+    static func fileMissing(_ displayName: String, answeringWith: String) -> String {
+        "\(displayName) is no longer on this Mac, so answers come from \(answeringWith)."
     }
 }

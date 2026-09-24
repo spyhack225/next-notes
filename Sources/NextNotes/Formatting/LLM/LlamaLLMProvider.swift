@@ -3,7 +3,10 @@ import Foundation
 /// The notes model, behind the provider protocol.
 ///
 /// A thin value type rather than the actor itself: providers are chosen per generation and
-/// passed around, while the runtime is a process singleton that owns gigabytes.
+/// passed around, while the runtime is a process singleton that owns gigabytes. The
+/// runtime is injected so a self-test can hand a turn a provider bound to its own runtime
+/// instead of the process-wide one — and so the provider a turn holds is the same runtime
+/// the turn's `select` completed against.
 struct LlamaLLMProvider: LLMProvider {
     let id = LLMProviderID.appLLM
 
@@ -12,8 +15,12 @@ struct LlamaLLMProvider: LLMProvider {
     /// main-actor state; nil falls back to the built-in model's name.
     let modelName: String?
 
-    init(modelName: String? = nil) {
+    /// The runtime this provider loads, generates and unloads through.
+    let runtime: NotesModelRuntime
+
+    init(modelName: String? = nil, runtime: NotesModelRuntime = .shared) {
         self.modelName = modelName
+        self.runtime = runtime
     }
 
     /// The name of the model that will actually answer — not the model that happened to
@@ -25,14 +32,14 @@ struct LlamaLLMProvider: LLMProvider {
 
     /// Why the local model cannot answer right now.
     ///
-    /// The active model is whichever one the Models tab has selected — a model the user
-    /// fetched from Hugging Face, or the built-in one — so the reason has to name that file
-    /// rather than always naming the built-in model. A selected model whose file has gone missing reports
-    /// as unavailable here; the runtime falls back to the built-in on its next load and says
+    /// The active model is whichever one the runtime holds — a model the user fetched from
+    /// Hugging Face, or the built-in one — so the reason has to name that file rather than
+    /// always naming the built-in model. A selected model whose file has gone missing
+    /// reports as unavailable here; the call path falls back to another provider and says
     /// so through `ModelLoadNotice`.
     var unavailableReason: String? {
         get async {
-            let active = await NotesModelRuntime.shared.activeSpec()
+            let active = await runtime.activeSpec()
             if active.isDownloaded { return nil }
             if active.fileURL == NotesModels.spec.fileURL {
                 return "\(NotesModels.spec.displayName) isn\u{2019}t downloaded (\(NotesModels.spec.displaySize))."
@@ -42,11 +49,11 @@ struct LlamaLLMProvider: LLMProvider {
     }
 
     func countTokens(_ text: String) async throws -> Int {
-        try await NotesModelRuntime.shared.countTokens(text)
+        try await runtime.countTokens(text)
     }
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
-        try await NotesModelRuntime.shared.complete(
+        try await runtime.complete(
             system: system,
             user: user,
             maxTokens: maxTokens
@@ -56,7 +63,7 @@ struct LlamaLLMProvider: LLMProvider {
     var enforcesGrammar: Bool { true }
 
     func complete(system: String, user: String, maxTokens: Int, grammar: GBNFGrammar) async throws -> LLMCompletion {
-        try await NotesModelRuntime.shared.complete(
+        try await runtime.complete(
             system: system, user: user, maxTokens: maxTokens, grammar: grammar)
     }
 
@@ -65,7 +72,7 @@ struct LlamaLLMProvider: LLMProvider {
         user: String,
         maxTokens: Int
     ) async -> AsyncThrowingStream<String, Error> {
-        await NotesModelRuntime.shared.stream(
+        await runtime.stream(
             system: system,
             user: user,
             maxTokens: maxTokens
@@ -77,7 +84,7 @@ struct LlamaLLMProvider: LLMProvider {
         messages: [LLMChatMessage],
         maxTokens: Int
     ) async -> AsyncThrowingStream<String, Error> {
-        await NotesModelRuntime.shared.streamConversation(
+        await runtime.streamConversation(
             system: system, messages: messages, maxTokens: maxTokens
         )
     }
@@ -87,7 +94,7 @@ struct LlamaLLMProvider: LLMProvider {
         messages: [LLMChatMessage],
         maxTokens: Int
     ) async -> AsyncThrowingStream<String, Error> {
-        await NotesModelRuntime.shared.streamInteractiveConversation(
+        await runtime.streamInteractiveConversation(
             system: system, messages: messages, maxTokens: maxTokens
         )
     }

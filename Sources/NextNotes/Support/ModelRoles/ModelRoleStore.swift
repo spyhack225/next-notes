@@ -262,6 +262,20 @@ final class ModelRoleStore {
 
     private let defaults: UserDefaults
     private let catalog: LocalRuntimeCatalog
+    /// The library resolution reads. Injected so a self-test can drive the real decision
+    /// against a store it owns, instead of the person's own installed models.
+    private let library: InstalledModelLibrary
+    /// The runtime the app's own model loads through. Injected for the same reason: the
+    /// provider a role returns must be bound to the runtime the switch happened on.
+    private let runtime: NotesModelRuntime
+    /// Files that failed a real open on this Mac, remembered so they are never re-selected.
+    private let failures: ModelOpenFailureStore
+    /// Where "that model can't run, so answers come from …" is said, once per file.
+    private let notice: ModelLoadNotice
+
+    /// `(model id, provider id)` pairs already reported this process, so a repeated turn
+    /// does not repeat the same sentence.
+    private var reportedFallbacks: Set<String> = []
 
     private(set) var availability: ModelRoleAvailability
     private(set) var isCheckingAvailability = false
@@ -271,10 +285,18 @@ final class ModelRoleStore {
     init(
         defaults: UserDefaults = .standard,
         catalog: LocalRuntimeCatalog? = nil,
-        availability: ModelRoleAvailability? = nil
+        availability: ModelRoleAvailability? = nil,
+        library: InstalledModelLibrary = .shared,
+        runtime: NotesModelRuntime = .shared,
+        failures: ModelOpenFailureStore = .shared,
+        notice: ModelLoadNotice = .shared
     ) {
         self.defaults = defaults
         self.catalog = catalog ?? LocalRuntimeCatalog.shared
+        self.library = library
+        self.runtime = runtime
+        self.failures = failures
+        self.notice = notice
         self.availability = availability ?? .nothingInstalled
         var stored: [ModelRole: ModelRoleChoice] = [:]
         for role in ModelRole.allCases {
@@ -311,7 +333,7 @@ final class ModelRoleStore {
     /// picked is missing — which is a lie that lasts until Settings is opened.
     private func seedAvailabilityFromDisk() {
         availability.builtInModelReady = NotesModels.isDownloaded
-        availability.installedModelIDs = Set(InstalledModelLibrary.shared.models.map(\.id))
+        availability.installedModelIDs = Set(library.usableModels.map(\.id))
         availability.installedApps = Self.installedAgentApps()
         availability.localServerNames = catalog.displayNamesByEndpoint
         // Filesystem only, so it is honest from the first turn rather than from the first
@@ -346,12 +368,14 @@ final class ModelRoleStore {
         choices[role] = choice
         defaults.set(choice.token, forKey: Self.key(for: role))
         guard role == .agent else { return }
-        // The agent role decides which model file the in-process runtime loads.
+        // The agent role decides which model file the in-process runtime loads. This is the
+        // person's own choice — the one place a selection may be written. Resolution is
+        // read-only and never touches it.
         switch choice {
         case .installedModel(let id):
-            InstalledModelLibrary.shared.activeAgentModelID = id
+            library.activeAgentModelID = id
         case .builtIn:
-            InstalledModelLibrary.shared.activeAgentModelID = InstalledModelLibrary.builtInID
+            library.activeAgentModelID = InstalledModelLibrary.builtInID
         default:
             break
         }
@@ -487,14 +511,14 @@ final class ModelRoleStore {
     func displayName(for choice: ModelRoleChoice, role: ModelRole) -> String {
         switch choice {
         case .builtIn:
-            let activeID = InstalledModelLibrary.shared.activeAgentModelID
+            let activeID = library.activeAgentModelID
             if activeID != InstalledModelLibrary.builtInID,
-               let active = InstalledModelLibrary.shared.model(withID: activeID) {
+               let active = library.model(withID: activeID) {
                 return active.displayName
             }
-            return InstalledModelLibrary.shared.builtIn?.displayName ?? NotesModels.spec.displayName
+            return library.builtIn?.displayName ?? NotesModels.spec.displayName
         case .installedModel(let id):
-            if let model = InstalledModelLibrary.shared.model(withID: id) {
+            if let model = library.model(withID: id) {
                 return model.displayName
             }
             return displayName(for: .builtIn, role: role)
@@ -570,24 +594,78 @@ final class ModelRoleStore {
             // The llama runtime loads whichever file the library points at. Only the
             // assistant role reaches this branch — `canUse` sent the others to the built-in
             // model above, rather than letting them take over the file it loads.
-            guard InstalledModelLibrary.shared.model(withID: id) != nil else {
-                return await builtInProvider(for: role)
+            //
+            // Resolution is read-only and deterministic. It classifies the file if nobody
+            // has yet, refuses one the probe cannot open or a real load already failed on,
+            // and completes the runtime switch *before* it returns — so two calls in a row
+            // answer the same thing and the provider it returns names the model the runtime
+            // will actually load.
+            guard let stored = library.model(withID: id) else {
+                return await fallback(for: role, because: nil, reason: .notRunnable)
             }
-            if InstalledModelLibrary.shared.activeAgentModelID != id {
-                InstalledModelLibrary.shared.activeAgentModelID = id
+            let model = await library.refreshSupportVerdictIfNeeded(stored)
+            guard model.isRunnable, !model.isAuxiliary, !failures.hasFailed(model) else {
+                return await fallback(for: role, because: model, reason: .failedBefore)
             }
-            return await LLMProviders.resolve(preferring: .appLLM)
+            await runtime.select(model)
+            let provider = LlamaLLMProvider(modelName: model.displayName, runtime: runtime)
+            if await provider.unavailableReason == nil { return provider }
+            return await fallback(for: role, because: model, reason: .missing)
 
         case .builtIn, .app:
             return await builtInProvider(for: role)
         }
     }
 
+    /// Why an installed file was not used, for the one sentence the fallback says.
+    private enum InstalledFallbackReason: Sendable {
+        /// It is not in the library at all, or the probe says this build cannot open it.
+        case notRunnable
+        /// A real full load of this exact file already failed here.
+        case failedBefore
+        /// The file has gone since it was chosen.
+        case missing
+    }
+
+    /// The one fallback every installed-file failure goes through: the built-in model, and —
+    /// at most once per file and provider per process — the sentence that names what will
+    /// actually answer.
+    private func fallback(
+        for role: ModelRole,
+        because model: InstalledLocalModel?,
+        reason: InstalledFallbackReason
+    ) async -> (any LLMProvider)? {
+        let provider = await builtInProvider(for: role)
+        guard let model, let provider else { return provider }
+        let key = "\(model.id)|\(provider.id.rawValue)"
+        guard reportedFallbacks.insert(key).inserted else { return provider }
+        let answering: String
+        switch provider.id {
+        case .appleFoundation:
+            answering = "Apple’s built-in intelligence"
+        case .appLLM:
+            // The runtime has returned to the built-in spec without opening it, so this is
+            // the file the next answer really comes from — never the failed one.
+            answering = await runtime.activeSpec().displayName
+        case .openRouter, .localServer:
+            answering = provider.displayModelName
+        }
+        let sentence = switch reason {
+        case .missing:
+            ModelLoadNotice.fileMissing(model.displayName, answeringWith: answering)
+        case .notRunnable, .failedBefore:
+            ModelLoadNotice.cannotRun(model.displayName, answeringWith: answering)
+        }
+        notice.report(sentence)
+        return provider
+    }
+
     private func builtInProvider(for role: ModelRole) async -> (any LLMProvider)? {
-        if role == .agent,
-           InstalledModelLibrary.shared.activeAgentModelID != InstalledModelLibrary.builtInID,
-           case .builtIn = choice(for: role) {
-            InstalledModelLibrary.shared.activeAgentModelID = InstalledModelLibrary.builtInID
+        if role == .agent, case .builtIn = choice(for: role) {
+            // The built-in choice names the file the app ships with, not the installed
+            // selection. Resolution never writes the library, so asking the runtime to
+            // select the built-in file is what makes the next answer come from it.
+            await runtime.select(nil)
         }
         return await LLMProviders.resolve(preferring: .appLLM)
     }
@@ -672,12 +750,12 @@ final class ModelRoleStore {
         defer { isCheckingAvailability = false }
 
         await catalog.refresh()
-        InstalledModelLibrary.shared.refresh()
+        library.refresh()
 
         var next = ModelRoleAvailability()
         next.builtInModelReady = await LLMProviders.make(.appLLM).unavailableReason == nil
         next.appleFoundationReady = await LLMProviders.make(.appleFoundation).unavailableReason == nil
-        next.installedModelIDs = Set(InstalledModelLibrary.shared.models.map(\.id))
+        next.installedModelIDs = Set(library.usableModels.map(\.id))
         next.localServerModels = catalog.modelIDsByEndpoint
         next.localServerNames = catalog.displayNamesByEndpoint
         next.cloudReady = await OpenRouterKeyStore.hasKeyAsync()
@@ -723,7 +801,9 @@ final class ModelRoleStore {
 /// conversation — and everything else goes to the role the request belongs to.
 @MainActor
 enum AgentModelRouting {
-    static func provider(for prompt: String, voice: Bool) async -> (any LLMProvider)? {
+    static func provider(
+        for prompt: String, voice: Bool, roles: ModelRoleStore = .shared
+    ) async -> (any LLMProvider)? {
         if voice { return await LLMProviders.resolve(preferring: .appLLM) }
         let role = ModelRoleStore.role(forUtterance: prompt)
         // P1-3: a long plan cannot hold on the on-device model. When the request looks
@@ -741,7 +821,19 @@ enum AgentModelRouting {
                 return cloud
             }
         }
-        return await ModelRoleStore.shared.provider(for: role)
+        return await roles.provider(for: role)
+    }
+
+    /// Whether the agent's next turn would be answered by the in-process model runtime.
+    ///
+    /// The question a prewarm asks, answered by the same resolution the turn itself uses:
+    /// a voice turn always prefers the built-in model whatever the assistant role says, and
+    /// a typed turn goes through the role — so a person on OpenRouter, Apple's model or a
+    /// local server is never charged for warming a GGUF nothing will read. The prompt is not
+    /// known when the signal arrives (the pane opened; the person is about to speak), so the
+    /// role's own routing stands in for it.
+    static func resolvesToLocalModel(voice: Bool, roles: ModelRoleStore = .shared) async -> Bool {
+        await provider(for: "", voice: voice, roles: roles)?.id == .appLLM
     }
 }
 
