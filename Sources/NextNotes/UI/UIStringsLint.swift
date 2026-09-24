@@ -2,18 +2,19 @@ import Foundation
 
 /// The consumer-naming lint (§8.3): no user-visible string in `UI/` may say `cron`,
 /// `artifact`, `AgentTask`, `TranscriptBus`, `"Task ·"`, `"Tool call"`,
-/// `"Allowed tools:"`, a schema key, or a raw dotted tool id.
+/// `"Allowed tools:"`, a schema key, or a raw dotted tool id — and no placeholder may
+/// spell the Agent's name instead of interpolating it.
 ///
 /// It reads the source tree rather than the running views on purpose: the words this
 /// catches are introduced by editing a file, and a test that walked the live view tree
 /// would need every pane on screen. `#filePath` locates `UI/`, so the check runs from the
 /// built app in the developer's checkout — which is where `--selftest-ui-strings` is used.
 ///
-/// Only the four call sites a person actually reads are checked — `Text`, `Label`,
-/// `LabeledContent`, `accessibilityLabel` — so identifiers, log lines, `print`s and
-/// comments are all invisible to it. When something legitimate must say one of these
-/// words, it is allowlisted by file and line below with a comment, never by weakening a
-/// rule.
+/// Only the five call sites a person actually reads are checked — `Text`, `Label`,
+/// `LabeledContent`, `TextField`, `accessibilityLabel` — so identifiers, log lines,
+/// `print`s and comments are all invisible to it. When something legitimate must say one
+/// of these words, it is allowlisted by file and line below with a comment, never by
+/// weakening a rule.
 enum UIStringsLint {
 
     /// The flag entry point. Prints every offender and one terminal verdict.
@@ -39,9 +40,10 @@ enum UIStringsLint {
                 ? String(file.path.dropFirst(directory.path.count + 1))
                 : file.lastPathComponent
             for literal in userVisibleLiterals(in: source) {
-                let tokens = forbiddenTokens(in: literal.text)
-                guard !tokens.isEmpty else { continue }
                 guard !isAllowlisted(file: relative, line: literal.line) else { continue }
+                let offending = spellsTheAgentName(in: literal.text)
+                    || !forbiddenTokens(in: literal.text).isEmpty
+                guard offending else { continue }
                 offenders.append("\(relative):\(literal.line): \(literal.text)")
             }
         }
@@ -87,6 +89,25 @@ enum UIStringsLint {
         return found
     }
 
+    /// Whether a user-visible string spells out the Agent's name instead of asking the
+    /// store for it.
+    ///
+    /// `AgentView`'s composer reads `"Ask \(identity.name)…"`, and `AgentIdentityStore.name`
+    /// is the name the user chose in onboarding — so a spelled-out "Ask Next…" names the
+    /// Agent wrongly on every Mac where it is called something else, and on a fresh install
+    /// it stops being right the moment they rename it. Onboarding already interpolates
+    /// (`UI/Onboarding/OnboardingOutcome.swift`); this keeps the rest of `UI/` doing the
+    /// same.
+    ///
+    /// Matched as the whole phrase, never the word "Next" alone: the app's own name is
+    /// legitimate in strings that are not about the Agent ("Next Notes is AI and can make
+    /// mistakes."), and the placeholder is the one string that must carry the name the store
+    /// holds.
+    static func spellsTheAgentName(in text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.contains("Ask Next…") || trimmed.contains("Ask Next...")
+    }
+
     /// Explicit exceptions, by file and line, each with the reason it is legitimate.
     ///
     /// Format: `"<path relative to UI/>:<line>"`. Keep this list short; every entry is a
@@ -111,7 +132,7 @@ enum UIStringsLint {
 
     /// Every string literal in `source`, comments excluded, with the line it starts on.
     ///
-    /// The four-call-site walk below answers "would a person read this?". This one answers
+    /// The call-site walk below answers "would a person read this?". This one answers
     /// "does this file say the word in a literal at all?", which is what
     /// `--selftest-agent-panes` needs: pane copy is often a continuation fragment
     /// (`"…" + "…"`) whose first half carries no banned word, and a naming rule that reads
@@ -120,9 +141,9 @@ enum UIStringsLint {
         literals(in: Array(source)).map { (line: $0.line, text: $0.text) }
     }
 
-    /// The string literals passed to `Text(`, `Label(`, `LabeledContent(` or
-    /// `accessibilityLabel(`, with interpolations removed (their code is not user-visible
-    /// text).
+    /// The string literals passed to `Text(`, `Label(`, `LabeledContent(`, `TextField(`
+    /// or `accessibilityLabel(`, with interpolations removed (their code is not
+    /// user-visible text).
     private static func userVisibleLiterals(in source: String) -> [Literal] {
         let characters = Array(source)
         return literals(in: characters).filter {
@@ -207,10 +228,11 @@ enum UIStringsLint {
         return literals
     }
 
-    /// Whether the literal opening at `index` is an argument to one of the four call
+    /// Whether the literal opening at `index` is an argument to one of the five call
     /// sites. Walks back over whitespace and `verbatim:` so `Text(verbatim: "…")` counts.
     private static func isUserVisibleCallSite(characters: [Character], before index: Int) -> Bool {
-        let callSites = ["Text(", "Label(", "LabeledContent(", "accessibilityLabel("]
+        let callSites = ["Text(", "Label(", "LabeledContent(", "TextField(",
+                         "accessibilityLabel("]
         var cursor = index - 1
         var seen = 0
         while cursor >= 0, seen < 40 {

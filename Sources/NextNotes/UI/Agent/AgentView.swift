@@ -14,6 +14,10 @@ struct AgentView: View {
     @State private var activityStore = AgentActivityStore.shared
     @State private var draft = ""
     @State private var showsRecentTasks = false
+    /// Whether the trailing inspector is open. A layout preference, so it is persisted
+    /// rather than held in `NavigationState` — which is where *places*, not pane furniture,
+    /// live.
+    @AppStorage("agent.inspector.visible") private var showsInspector = true
 
     private var isEmpty: Bool { session.messages.isEmpty && tasks.tasks.isEmpty }
     private var activeTasks: [AgentTask] {
@@ -76,45 +80,111 @@ struct AgentView: View {
     static let headingTitle = "Your Mac is your best personal assistant"
 
     var body: some View {
+        // Two arrangements of the same section: the pane with the inspector's column
+        // beside it, and the pane alone. `ViewThatFits` picks the first that fits, so on a
+        // window too narrow for a fixed-width column beside a readable conversation the
+        // panel — and the control that opens it — are simply not offered. A toggle whose
+        // panel cannot appear is worse than no toggle.
+        ViewThatFits(in: .horizontal) {
+            section(offersInspector: true)
+            section(offersInspector: false)
+        }
+        .navigationTitle("Agent")
+        // A typed turn is coming: warm the on-device model while the person types. Opening
+        // the pane and starting to type are the earliest honest signals, and `prewarm` is a
+        // no-op when it is already warm, when the assistant role is on another model, or
+        // when the model is not on this Mac. Never at launch — see `NotesModelRuntime.prewarm`.
+        .task { _ = NotesModelRuntime.shared.prewarm() }
+        .onChange(of: draft) { _, _ in _ = NotesModelRuntime.shared.prewarm() }
+    }
+
+    /// The section, laid out for a window that can (`offersInspector`) or cannot hold the
+    /// inspector's fixed column. The pane bar keeps the visible pane's own control either
+    /// way; only the toggle comes and goes with the room.
+    private func section(offersInspector: Bool) -> some View {
         VStack(spacing: 0) {
             // The pane switcher lives in content, not the toolbar: on macOS 26 a menu in
             // `ToolbarItem(placement: .principal)` draws as a chevron-only circle and
             // never its label. See AgentPaneSwitcherBar.
-            AgentPaneSwitcherBar()
+            AgentPaneSwitcherBar {
+                paneBarAccessory(offersInspector: offersInspector)
+            }
             Divider()
-            Group {
-                switch navigation.agentPane {
-                case .conversation: conversation
-                case .ideas: IdeasView()
-                case .goals: GoalsView()
-                case .portrait: PortraitView()
-                case .reminders: RoutinesView()
-                case .activity: ActivityView()
-                case .graph: KnowledgeGraphPane()
-                case .skills: SkillsView()
-                case .about: AgentAboutView()
+            HStack(spacing: 0) {
+                paneContent
+                if offersInspector, showsInspector {
+                    Divider()
+                    // Fixed. `agentWideMinWidth` is the same threshold the panes use for a
+                    // list with a rail: below it the conversation would be squeezed under
+                    // a full bubble's width and neither column would be readable.
+                    AgentInspector()
+                        .frame(width: DS.Size.agentRailWidth)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(minWidth: offersInspector && showsInspector
+                   ? DS.Size.agentWideMinWidth
+                   : nil,
+                   alignment: .topLeading)
         }
-        .navigationTitle("Agent")
+    }
+
+    /// The tab the row selected, full size — everything except the inspector column. The
+    /// six panes that used to be here are sidebar sections of their own now.
+    private var paneContent: some View {
+        Group {
+            switch navigation.agentPane {
+            case .conversation: conversation
+            case .activity: ActivityView()
+            case .about: AgentAboutView()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    /// The pane bar's trailing slot: the visible pane's own control, then the inspector's
+    /// toggle. The toggle is passed the room rather than reading it, because the bar draws
+    /// only in the arrangement `ViewThatFits` chose.
+    @ViewBuilder
+    private func paneBarAccessory(offersInspector: Bool) -> some View {
+        if navigation.agentPane == .conversation, !session.messages.isEmpty {
+            clearConversationButton
+        }
+        if offersInspector {
+            Button {
+                showsInspector.toggle()
+            } label: {
+                Image(systemName: "sidebar.trailing")
+                    .foregroundStyle(showsInspector ? DS.Color.accent : DS.Color.textSecondary)
+            }
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+            .help(showsInspector ? "Hide the inspector" : "Show the inspector")
+            .accessibilityLabel(showsInspector ? "Hide the inspector" : "Show the inspector")
+        }
+    }
+
+    /// The Conversation pane's one control, in the bar rather than the scroll.
+    ///
+    /// It was the first row of the history, which meant a conversation long enough to need
+    /// clearing was also long enough to have buried the button that clears it. The bar does
+    /// not scroll, so the way out is always in the same place.
+    private var clearConversationButton: some View {
+        Button("Clear conversation", systemImage: "trash") {
+            session.clear()
+        }
+        .buttonStyle(.borderless)
+        .controlSize(.small)
     }
 
     private var conversation: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: DS.Space.l) {
-                    HStack {
-                        Text("Conversation")
-                            .font(DS.Font.sectionLabel)
-                        Spacer()
-                        if !session.messages.isEmpty {
-                            Button("Clear conversation", systemImage: "trash") {
-                                session.clear()
-                            }
-                            .buttonStyle(.borderless)
-                        }
-                    }
+                    // A label, not a control: the Clear button lives in the pane bar above,
+                    // because a button that scrolls with the history it acts on can only be
+                    // pressed from the top of a conversation.
+                    Text("Conversation")
+                        .font(DS.Font.sectionLabel)
                     if isEmpty {
                         OrbUnavailableView(
                             .breathing,
@@ -420,7 +490,7 @@ struct AgentView: View {
 
     private var composer: some View {
         HStack(alignment: .bottom, spacing: DS.Space.s) {
-            TextField("Ask Next…", text: $draft, axis: .vertical)
+            TextField("Ask \(identity.name)…", text: $draft, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(1...5)
                 .onSubmit { send() }
