@@ -123,15 +123,21 @@ enum TranscriptCorrection {
 
         // Diffed against the transcript as originally written, not against the previous
         // edit: what the engine produced is the thing a dictionary rule has to fire on.
-        let candidates = CorrectionLearner.candidates(from: run.text, to: edited)
+        // Re-saves subtract what the previous edit already taught, so filing is idempotent.
+        let candidates = CorrectionLearner.newCandidates(
+            original: run.text, previousEdit: run.editedText, edited: edited)
         guard !candidates.isEmpty else { return [] }
 
         switch Settings.shared.dictionaryLearning {
         case .off:
             return []
         case .automatic:
-            for candidate in candidates { DictionaryStore.shared.add(candidate.entry) }
-            return []
+            // Only single-token and case-only changes go in silently; the rest are
+            // returned so the caller shows the sheet for them, exactly as in `.ask`.
+            for candidate in candidates where CorrectionLearner.isAutoAddable(candidate) {
+                DictionaryStore.shared.add(candidate.entry)
+            }
+            return candidates.filter { !CorrectionLearner.isAutoAddable($0) }
         case .ask:
             return candidates
         }

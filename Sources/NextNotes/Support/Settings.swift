@@ -408,6 +408,17 @@ final class Settings {
         didSet { defaults.set(dictionaryLearning.rawValue, forKey: Keys.dictionaryLearning) }
     }
 
+    /// Fingerprint of the suspicious dictionary rules the review notice was last
+    /// dismissed for. A new suspicious rule changes the fingerprint, so the notice
+    /// shows again; keeping the rules hides it until then.
+    var dictionaryReviewDismissedFingerprint: String {
+        didSet {
+            defaults.set(
+                dictionaryReviewDismissedFingerprint,
+                forKey: Keys.dictionaryReviewDismissedFingerprint)
+        }
+    }
+
     /// Play a short tick when capture starts and stops.
     var soundEnabled: Bool {
         didSet { defaults.set(soundEnabled, forKey: Keys.soundEnabled) }
@@ -916,6 +927,7 @@ final class Settings {
         static let autoSendEnabled = "autoSendEnabled"
         static let autoSendApps = "autoSendApps"
         static let dictionaryLearning = "dictionaryLearning"
+        static let dictionaryReviewDismissedFingerprint = "dictionaryReviewDismissedFingerprint"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let meetingsKeepAudio = "meetingsKeepAudio"
         static let meetingsDiarize = "meetingsDiarize"
@@ -1022,6 +1034,8 @@ final class Settings {
         dictionaryLearning = DictionaryLearning(
             rawValue: defaults.string(forKey: Keys.dictionaryLearning) ?? ""
         ) ?? .ask
+        dictionaryReviewDismissedFingerprint =
+            defaults.string(forKey: Keys.dictionaryReviewDismissedFingerprint) ?? ""
         switchAwayBehavior = SwitchAwayBehavior(
             rawValue: defaults.string(forKey: Keys.switchAwayBehavior) ?? ""
         ) ?? .returnToApp

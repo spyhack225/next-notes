@@ -47,8 +47,65 @@ final class DictionaryStore {
     // MARK: - Editing
 
     func add(_ entry: DictionaryEntry) {
+        // Idempotent on the trimmed, case-insensitive (hear, write) pair — `id` is a
+        // fresh UUID per entry and would dedupe nothing. A rule the user switched off
+        // must not come back, so disabled entries count as existing.
+        guard !Self.isDuplicate(entry, in: entries) else { return }
         entries.append(entry)
         save()
+    }
+
+    // MARK: - D-10: what is safe to learn
+
+    /// Whether the same correction or term is already filed, enabled or not.
+    ///
+    /// Compared case-insensitively after trimming: "OLAMA -> Ollama" and
+    /// "olama  -> ollama" are the same rule, and re-saving an edit must not file it
+    /// twice. Pure, so the self-test can exercise it without touching the user's file.
+    static func isDuplicate(_ entry: DictionaryEntry, in entries: [DictionaryEntry]) -> Bool {
+        entries.contains { existing in
+            guard existing.kind == entry.kind else { return false }
+            switch entry.kind {
+            case .correction:
+                return existing.hear.normalizedKey == entry.hear.normalizedKey
+                    && existing.write.normalizedKey == entry.write.normalizedKey
+            case .term:
+                return existing.write.normalizedKey == entry.write.normalizedKey
+            }
+        }
+    }
+
+    /// Rules the current learner would refuse, plus every duplicate after the first.
+    ///
+    /// Offered once on the Dictionary screen for a per-rule decision; nothing here
+    /// deletes anything. Order follows the file, so the notice reads as it is stored.
+    static func suspiciousRules(in entries: [DictionaryEntry]) -> [DictionaryEntry] {
+        var seen: [DictionaryEntry] = []
+        var flagged: [DictionaryEntry] = []
+        for entry in entries {
+            guard entry.kind == .correction else { continue }
+            if !CorrectionLearner.wouldLearn(hear: entry.hear, write: entry.write) {
+                flagged.append(entry)
+            } else if isDuplicate(entry, in: seen) {
+                flagged.append(entry)
+            }
+            seen.append(entry)
+        }
+        return flagged
+    }
+
+    /// Fingerprint of a review list, stable across launches.
+    ///
+    /// `hashValue` is randomised per process, so it cannot be the dismissal key: the
+    /// notice would return after every relaunch. FNV-1a over the sorted file lines is
+    /// deterministic, and any new or removed suspicious rule changes it.
+    static func reviewFingerprint(for entries: [DictionaryEntry]) -> String {
+        var hash: UInt64 = 14_695_901_396_374_025
+        for byte in entries.map(\.fileLine).sorted().joined(separator: "\n").utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 1_096_433_819_900_873
+        }
+        return String(hash, radix: 16)
     }
 
     func update(_ entry: DictionaryEntry) {
@@ -188,5 +245,12 @@ final class DictionaryStore {
         source.resume()
 
         watcher = source
+    }
+}
+
+private extension String {
+    /// The dedupe key for dictionary text: trimmed and case-insensitive.
+    var normalizedKey: String {
+        trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 }

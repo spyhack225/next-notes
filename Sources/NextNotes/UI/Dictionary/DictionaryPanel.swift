@@ -9,6 +9,7 @@ import SwiftUI
 /// by a chip on each row.
 struct DictionaryPanel: View {
     @State private var store = DictionaryStore.shared
+    @State private var settings = Settings.shared
     @State private var query = ""
     @State private var editing: DictionaryEntry?
     @State private var isAdding = false
@@ -17,6 +18,10 @@ struct DictionaryPanel: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if showsReviewNotice {
+                reviewNotice
+                Divider()
+            }
             if entries.isEmpty {
                 emptyState
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -71,6 +76,75 @@ struct DictionaryPanel: View {
         .sheet(item: $editing) { entry in
             DictionaryEditor(entry: entry) { store.update($0) }
         }
+    }
+
+    /// Rules the learner would no longer file, plus filed-twice copies.
+    ///
+    /// Shown once per set of rules: keeping them records the fingerprint, and only a
+    /// new suspicious rule brings the notice back. Nothing is removed without a click —
+    /// the file is the user's.
+    private var showsReviewNotice: Bool {
+        !suspicious.isEmpty
+            && settings.dictionaryReviewDismissedFingerprint != reviewFingerprint
+    }
+
+    private var suspicious: [DictionaryEntry] {
+        DictionaryStore.suspiciousRules(in: store.entries)
+    }
+
+    private var reviewFingerprint: String {
+        DictionaryStore.reviewFingerprint(for: suspicious)
+    }
+
+    /// The suspicious entries that are merely extra copies: the ones one click may
+    /// remove together. Whatever `wouldLearn` refuses is a judgement call per rule
+    /// and is never bulk-removed.
+    private var duplicateSuspicious: [DictionaryEntry] {
+        suspicious.filter { CorrectionLearner.wouldLearn(hear: $0.hear, write: $0.write) }
+    }
+
+    private var reviewNotice: some View {
+        VStack(alignment: .leading, spacing: DS.Space.s) {
+            Label(
+                "Some rules may change words you didn't mean to change",
+                systemImage: "exclamationmark.triangle.fill"
+            )
+            .font(DS.Font.body)
+            .foregroundStyle(DS.Color.warning)
+            Text("These came from past edits. Keep what helps, remove what does not. "
+                + "Nothing changes unless you choose it.")
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            ForEach(suspicious) { entry in
+                HStack(spacing: DS.Space.xs) {
+                    Text(entry.hear)
+                        .foregroundStyle(DS.Color.textSecondary)
+                    Image(systemName: "arrow.right")
+                        .font(DS.Font.caption2)
+                        .foregroundStyle(DS.Color.textTertiary)
+                    Text(entry.write)
+                    Spacer()
+                    // Keeping one rule keeps them all for now: the dismissal is keyed
+                    // on the whole listed set, so any new suspicious rule shows the
+                    // notice again.
+                    Button("Keep") {
+                        settings.dictionaryReviewDismissedFingerprint = reviewFingerprint
+                    }
+                    .buttonStyle(.link)
+                    Button("Remove") { store.delete(entry) }
+                        .buttonStyle(.link)
+                }
+                .font(DS.Font.body)
+            }
+            if !duplicateSuspicious.isEmpty {
+                Button("Remove duplicates") {
+                    store.delete(ids: Set(duplicateSuspicious.map(\.id)))
+                }
+                .buttonStyle(.link)
+            }
+        }
+        .padding(DS.Space.m)
     }
 
     /// Both of these are stages rather than faults, which is why neither is a grey symbol
