@@ -415,6 +415,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-store-isolation") {
+            Task { @MainActor in
+                writeSelfTest(await StoreIsolationSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-model-unopenable") {
             Task { @MainActor in
                 SelfTest.failed = !(await ModelSupportSelfTest.runSelfTest())
@@ -1126,6 +1133,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 ? "MEETING_QUALITY_OK"
                 : "MEETING_QUALITY_FAILED: \(failures.count) check(s) wrong")
             NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-notes-longform") {
+            runNotesLongformSelfTest()
             return true
         }
         if arguments.contains("--selftest-cleanup-router") {
@@ -2669,6 +2680,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func runNotesContextSelfTest() {
         Task { @MainActor in
             _ = await MeetingNotesContextSelfTest.run { writeSelfTest($0) }
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// `--selftest-notes-longform`: the map-reduce path keeps every fact (M-05), with a
+    /// collapse pass and a visible line on the last-resort path. No model, no store.
+    private func runNotesLongformSelfTest() {
+        Task { @MainActor in
+            SelfTest.failed = !(await NotesLongformSelfTest.run { writeSelfTest($0) })
             NSApp.terminate(nil)
         }
     }
