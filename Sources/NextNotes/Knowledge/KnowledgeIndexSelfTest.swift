@@ -265,6 +265,50 @@ enum KnowledgeIndexSelfTest {
             failures.append("settings gates threw: \(error.localizedDescription)")
         }
 
+        // MARK: One default for the index and the Agent's knowledge tools (P0-21)
+        do {
+            // A throwaway suite, never the user's own keys. The index reads meetings and
+            // conversations and nothing else; dictation, routines, the graph and the
+            // embedder keep their off defaults.
+            let suiteName = "NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)"
+            if let suite = UserDefaults(suiteName: suiteName) {
+                suite.removePersistentDomain(forName: suiteName)
+                defer { suite.removePersistentDomain(forName: suiteName) }
+
+                // a. With no stored key, both readers of the index switch agree and both say on.
+                let fromSettings = Settings.initialKnowledgeIndexEnabled(from: suite)
+                let fromIndexSettings = KnowledgeIndexSettings.fromDefaults(suite).enabled
+                check("the index default disagrees: Settings \(fromSettings), "
+                      + "KnowledgeIndexSettings \(fromIndexSettings)", fromSettings == fromIndexSettings)
+                check("the index switch is not on by default (Settings \(fromSettings), "
+                      + "KnowledgeIndexSettings \(fromIndexSettings))", fromSettings && fromIndexSettings)
+
+                // b. The Agent's knowledge tools are on by default too. They still only have
+                // effect while the index is on — `KnowledgeToolGate` requires both.
+                check("the Agent's knowledge tools are not on by default",
+                      Settings.initialKnowledgeAgentToolsEnabled(from: suite))
+
+                // c. A stored false wins for either key: a person who switched it off keeps it off.
+                suite.set(false, forKey: KnowledgeIndexSettings.enabledKey)
+                suite.set(false, forKey: KnowledgeToolGate.enabledKey)
+                check("a stored false knowledge index switch was overridden",
+                      !Settings.initialKnowledgeIndexEnabled(from: suite))
+                check("a stored false knowledge tools switch was overridden",
+                      !Settings.initialKnowledgeAgentToolsEnabled(from: suite))
+                suite.removeObject(forKey: KnowledgeIndexSettings.enabledKey)
+                suite.removeObject(forKey: KnowledgeToolGate.enabledKey)
+
+                // d. The gate opens on a fresh install: index on, tools on, reads auto-running.
+                check("the knowledge gate is unavailable on a fresh install",
+                      KnowledgeToolGate.isAvailable(
+                        indexEnabled: true,
+                        toolsEnabled: Settings.initialKnowledgeAgentToolsEnabled(from: suite),
+                        lookThingsUp: true))
+            } else {
+                failures.append("the P0-21 settings suite could not be created")
+            }
+        }
+
         // MARK: Resume a backfill interrupted part-way
         do {
             let resumeStore = KnowledgeStore(directory: directory("resume"))

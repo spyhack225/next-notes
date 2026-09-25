@@ -18,6 +18,11 @@ import Foundation
 enum KnowledgeToolGate {
     nonisolated static let enabledKey = "knowledgeAgentToolsEnabled"
 
+    /// One constant, read by `Settings` and the gate alike: on, because the tools are reads
+    /// over the user's own indexed meetings, notes and ended conversations. They still have
+    /// effect only while the index is on — `isAvailable` requires both.
+    nonisolated static let defaultEnabled = true
+
     /// All three: the index is on, the Agent may use it, and reads run without asking. With
     /// reads set to ask, the planner is not told about the tools at all — the tool loop
     /// auto-approves the reads it plans, so leaving them in would bypass the switch.

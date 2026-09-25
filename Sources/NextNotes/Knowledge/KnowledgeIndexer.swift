@@ -20,6 +20,12 @@ struct KnowledgeIndexSettings: Equatable, Sendable {
     /// graph is local-only unless the user gives this separate consent.
     var graphCloudConsent = false
 
+    /// One constant per switch, so `Settings` and the indexer cannot disagree about what a
+    /// fresh install starts with. On: search over the user's own meetings, notes and ended
+    /// conversations is the feature the Knowledge screen exists for. The switches that read
+    /// additional sources — dictation, routines — and the graph and embedder stay off.
+    nonisolated static let defaultEnabled = true
+
     nonisolated static let enabledKey = "knowledgeIndexEnabled"
     nonisolated static let includeConversationsKey = "knowledgeIncludeConversations"
     nonisolated static let includeDictationKey = "knowledgeIncludeDictation"
@@ -28,10 +34,13 @@ struct KnowledgeIndexSettings: Equatable, Sendable {
     nonisolated static let graphKey = "knowledgeGraphEnabled"
     nonisolated static let graphCloudConsentKey = "knowledgeGraphCloudConsent"
 
-    static var fromDefaults: KnowledgeIndexSettings {
-        let defaults = UserDefaults.standard
-        return KnowledgeIndexSettings(
-            enabled: defaults.object(forKey: enabledKey) as? Bool ?? true,
+    static var fromDefaults: KnowledgeIndexSettings { fromDefaults(.standard) }
+
+    /// The settings one defaults instance describes. The instance is a parameter so a
+    /// self-test can hand in a throwaway suite instead of the user's own keys.
+    static func fromDefaults(_ defaults: UserDefaults) -> KnowledgeIndexSettings {
+        KnowledgeIndexSettings(
+            enabled: defaults.object(forKey: enabledKey) as? Bool ?? defaultEnabled,
             includeConversations: defaults.object(forKey: includeConversationsKey) as? Bool ?? true,
             includeDictation: defaults.object(forKey: includeDictationKey) as? Bool ?? false,
             includeRoutines: defaults.object(forKey: includeRoutinesKey) as? Bool ?? false,
@@ -128,7 +137,7 @@ enum KnowledgeDrainResult: Equatable, Sendable {
 
 /// The background queue that keeps `knowledge.sqlite` in step with the files.
 ///
-/// - **Off by default** (`knowledgeIndexEnabled`). Off, nothing is read or written — except
+/// - **On by default** (`knowledgeIndexEnabled`). Off, nothing is read or written — except
 ///   deletions, which always reach an index that exists: turning the feature off must not
 ///   leave a deleted meeting citable.
 /// - **Yields to recording.** Every job checks for a live meeting or dictation first and the

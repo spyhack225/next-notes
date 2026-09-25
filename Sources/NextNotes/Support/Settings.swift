@@ -733,7 +733,7 @@ final class Settings {
     }
 
     /// Whether meetings, notes and (per the switches below) conversations are chunked into
-    /// `knowledge.sqlite` for Search and `memory.recall`. Off by default.
+    /// `knowledge.sqlite` for Search and `memory.recall`. On by default.
     var knowledgeIndexEnabled: Bool {
         didSet { defaults.set(knowledgeIndexEnabled, forKey: Keys.knowledgeIndexEnabled) }
     }
@@ -760,7 +760,7 @@ final class Settings {
     }
 
     /// Whether the Agent may use `search_knowledge`, `expand_node` and `timeline`, and Ask
-    /// may answer from the index. Off by default; needs the index on as well.
+    /// may answer from the index. On by default; needs the index on as well.
     var knowledgeAgentToolsEnabled: Bool {
         didSet { defaults.set(knowledgeAgentToolsEnabled, forKey: Keys.knowledgeAgentToolsEnabled) }
     }
@@ -1046,6 +1046,18 @@ final class Settings {
         static let mcpServersJSON = "mcpServersJSON"
     }
 
+    /// The knowledge-index switch with no stored value, from the one constant. Taking the
+    /// defaults instance is what lets a self-test read a throwaway suite rather than the
+    /// user's own keys.
+    nonisolated static func initialKnowledgeIndexEnabled(from defaults: UserDefaults) -> Bool {
+        defaults.object(forKey: Keys.knowledgeIndexEnabled) as? Bool ?? KnowledgeIndexSettings.defaultEnabled
+    }
+
+    /// The Agent's knowledge-tools switch with no stored value, from the one constant.
+    nonisolated static func initialKnowledgeAgentToolsEnabled(from defaults: UserDefaults) -> Bool {
+        defaults.object(forKey: Keys.knowledgeAgentToolsEnabled) as? Bool ?? KnowledgeToolGate.defaultEnabled
+    }
+
     private init() {
         let raw = defaults.string(forKey: Keys.pushToTalkKey) ?? PushToTalkKey.rightOption.rawValue
         pushToTalkKey = PushToTalkKey(rawValue: raw) ?? .rightOption
@@ -1145,12 +1157,12 @@ final class Settings {
         agentQuietHoursEnd = defaults.string(forKey: Keys.agentQuietHoursEnd) ?? "08:00"
         agentRoutineSpeech = defaults.string(forKey: Keys.agentRoutineSpeech) ?? "whenPresent"
         agentLaunchAtLogin = defaults.object(forKey: Keys.agentLaunchAtLogin) as? Bool ?? false
-        knowledgeIndexEnabled = defaults.object(forKey: Keys.knowledgeIndexEnabled) as? Bool ?? false
+        knowledgeIndexEnabled = Self.initialKnowledgeIndexEnabled(from: defaults)
         knowledgeIncludeConversations = defaults.object(forKey: Keys.knowledgeIncludeConversations) as? Bool ?? true
         knowledgeIncludeDictation = defaults.object(forKey: Keys.knowledgeIncludeDictation) as? Bool ?? false
         knowledgeIncludeRoutines = defaults.object(forKey: Keys.knowledgeIncludeRoutines) as? Bool ?? false
         knowledgeEmbedder = defaults.string(forKey: Keys.knowledgeEmbedder) ?? KnowledgeEmbedderChoice.none.rawValue
-        knowledgeAgentToolsEnabled = defaults.object(forKey: Keys.knowledgeAgentToolsEnabled) as? Bool ?? false
+        knowledgeAgentToolsEnabled = Self.initialKnowledgeAgentToolsEnabled(from: defaults)
         knowledgeGraphEnabled = defaults.object(forKey: Keys.knowledgeGraphEnabled) as? Bool ?? false
         knowledgeGraphCloudConsent = defaults.object(forKey: Keys.knowledgeGraphCloudConsent) as? Bool ?? false
         visionCloudConsent = defaults.object(forKey: Keys.visionCloudConsent) as? Bool ?? false
