@@ -50,8 +50,48 @@ final class MeetingSession {
     private var systemContinuation: AsyncStream<[Float]>.Continuation?
     private var clock: Task<Void, Never>?
 
+    /// The late-join retry for the system tap (M-09), armed when the first start
+    /// fails. One slot per session: armed once, cancelled by `stop`, `endAbruptly`
+    /// and `abort`, ended by success or by the attempt limit.
+    private var tapRetry: Task<Void, Never>?
+
     private var startedAt = Date()
     private var isStopping = false
+
+    /// Test-only (`--selftest-meeting-tap-retry`): replaces the transcriber model call
+    /// so the tap-retry self-test runs without Parakeet. Set by the test, cleared after.
+    nonisolated(unsafe) static var transcribeOverrideForTesting: ChunkedTranscriber.Transcribe?
+
+    /// Test-only: the cadence the M-09 tap retry waits between attempts. Production
+    /// keeps `Self.tapRetryInterval`; the self-test shortens it to fit in seconds.
+    private var tapRetryIntervalForTesting: Duration?
+
+    /// Test-only setter for the retry cadence (see `tapRetryIntervalForTesting`).
+    func setTapRetryIntervalForTesting(_ interval: Duration) {
+        tapRetryIntervalForTesting = interval
+    }
+
+    /// Test-only (`--selftest-meeting-tap-retry`): drives the track wiring and the tap
+    /// start that `start()` performs, with no microphone gate, no hub subscription and
+    /// no audio writer — the capture is injected through
+    /// `SystemAudioCapture.startCallOverrideForTesting`. Not a production path.
+    func startTapForTesting() async throws {
+        guard let format = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: ChunkedTranscriber.sampleRate,
+            channels: 1,
+            interleaved: false
+        ) else {
+            throw MeetingError.noAudioFormat
+        }
+        startedAt = Date()
+        lastSpeechAt = startedAt
+        meeting.start = startedAt
+        meeting.status = .recording
+        store.save(meeting)
+        wireTracks(outputFormat: format)
+        try await startSystemTap(outputFormat: format)
+    }
 
     init(meeting: Meeting, store: MeetingStore = .shared) {
         self.meeting = meeting
@@ -150,58 +190,16 @@ final class MeetingSession {
             }
         }
 
-        let meetingID = meeting.id
-        micTranscriber = ChunkedTranscriber(
-            source: .mic,
-            meetingID: meetingID,
-            onProvisional: { [weak self] event in
-                await self?.setProvisional(event)
-            },
-            onSegment: { [weak self] segment in
-                await self?.add(segment)
-            }
-        )
-        systemTranscriber = ChunkedTranscriber(
-            source: .system,
-            meetingID: meetingID,
-            onProvisional: { [weak self] event in
-                await self?.setProvisional(event)
-            },
-            onSegment: { [weak self] segment in
-                await self?.add(segment)
-            }
-        )
-
-        // Ordered drains, for the same reason `DictationController` uses one: a task per
-        // buffer has no ordering guarantee, and out-of-order audio transcribes as word salad.
-        let (micStream, micContinuation) = AsyncStream<[Float]>.makeStream(bufferingPolicy: .bufferingNewest(256))
-        let (systemStream, systemContinuation) = AsyncStream<[Float]>.makeStream(bufferingPolicy: .bufferingNewest(256))
-        self.micContinuation = micContinuation
-        self.systemContinuation = systemContinuation
-
-        let micTranscriber = self.micTranscriber
-        let systemTranscriber = self.systemTranscriber
-        let writer = self.writer
-        micDrain = Task.detached(priority: .userInitiated) {
-            for await samples in micStream {
-                await micTranscriber?.append(samples)
-                await writer?.append(samples, from: .mic)
-            }
-        }
-        systemDrain = Task.detached(priority: .userInitiated) {
-            for await samples in systemStream {
-                await systemTranscriber?.append(samples)
-                await writer?.append(samples, from: .system)
-            }
-        }
+        wireTracks(outputFormat: format)
 
         do {
             // Mic via the shared hub so wake KWS stays subscribed. System audio
             // stays on `SystemAudioCapture` — two tracks, two owners.
+            let micContinuation = self.micContinuation
             try AudioCaptureHub.shared.subscribe(
                 .meeting,
                 outputFormat: format,
-                onBuffer: { chunk in micContinuation.yield(AudioConversion.samples(of: chunk.buffer)) },
+                onBuffer: { chunk in micContinuation?.yield(AudioConversion.samples(of: chunk.buffer)) },
                 onLevel: { [weak self] level in
                     Task { @MainActor in self?.micLevel = level }
                 }
@@ -213,32 +211,7 @@ final class MeetingSession {
 
         // The tap is the part that can be refused. Losing it costs the other half of the
         // conversation, not the recording.
-        do {
-            try await systemCapture.start(
-                outputFormat: format,
-                onBuffer: { chunk in systemContinuation.yield(AudioConversion.samples(of: chunk.buffer)) },
-                onLevel: { [weak self] level in
-                    Task { @MainActor in self?.systemLevel = level }
-                }
-            )
-            // `stop()` can run while the bounded system-audio startup is suspended. A late
-            // successful HAL start belongs to that cancelled session and must be torn down
-            // instead of resurrecting its clock/model work.
-            guard !isStopping, meeting.status == .recording else {
-                systemCapture.stop()
-                throw MeetingError.startCancelled
-            }
-        } catch {
-            if case MeetingError.startCancelled = error {
-                throw error
-            }
-            if isStopping || meeting.status != .recording {
-                systemCapture.stop()
-                throw MeetingError.startCancelled
-            }
-            systemAudioProblem = error.localizedDescription
-            Log.systemAudio.error("meeting continues on the microphone alone: \(error.localizedDescription, privacy: .public)")
-        }
+        try await startSystemTap(outputFormat: format)
 
         clock = Task { @MainActor [weak self] in
             while !Task.isCancelled {
@@ -282,6 +255,11 @@ final class MeetingSession {
         guard !isStopping, meeting.status == .recording else { return }
         isStopping = true
         let began = Date()
+
+        // A live late-join retry dies with the recording (M-09); an attempt already in
+        // flight hits the stop-race guard below it and tears itself down.
+        tapRetry?.cancel()
+        tapRetry = nil
 
         AudioCaptureHub.shared.unsubscribe(.meeting)
         systemCapture.stop()
@@ -364,6 +342,8 @@ final class MeetingSession {
     func endAbruptly() {
         guard meeting.status == .recording else { return }
 
+        tapRetry?.cancel()
+        tapRetry = nil
         AudioCaptureHub.shared.unsubscribe(.meeting)
         systemCapture.stop()
         clock?.cancel()
@@ -397,6 +377,178 @@ final class MeetingSession {
         let path = store.directory(for: meeting.id).appendingPathComponent(name).path
         let size = (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? NSNumber
         return (size?.int64Value ?? 0) > 0
+    }
+
+    // MARK: - System tap (M-09)
+
+    /// The tap is retried while the meeting records: every `tapRetryInterval`, at most
+    /// `maxTapRetries` times. A tap without the grant returns silence, not an error, so
+    /// a retry cannot detect the missing grant and must not loop on one — this answers
+    /// start *errors and timeouts* only. Stops on Stop, abort, quit, or after the final
+    /// failure (logged once).
+    private static let tapRetryInterval: Duration = .seconds(30)
+    private static let maxTapRetries = 10
+
+    private func beginSystemTapRetry(outputFormat: AVAudioFormat) {
+        guard tapRetry == nil else { return }
+        let interval = tapRetryIntervalForTesting ?? Self.tapRetryInterval
+        let continuation = systemContinuation
+        let systemTranscriber = self.systemTranscriber
+        tapRetry = Task { [weak self] in
+            defer { self?.tapRetry = nil }
+            var attempts = 0
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: interval) } catch { return }
+                guard let self else { return }
+                // The same stop-race guard as the first start.
+                guard !self.isStopping, self.meeting.status == .recording,
+                      self.systemAudioProblem != nil else { return }
+                attempts += 1
+                guard attempts <= Self.maxTapRetries else {
+                    Log.systemAudio.error("""
+                        system-audio tap never joined; the meeting stays on the microphone \
+                        alone after \(Self.maxTapRetries) attempts
+                        """)
+                    return
+                }
+                // No buffer can have arrived while the tap was down, so the origin can
+                // still move; placing it here bounds the error when a later attempt
+                // succeeds and buffers start flowing at once.
+                await self.placeLateTapOrigin(on: systemTranscriber)
+                do {
+                    try await self.systemCapture.start(
+                        outputFormat: outputFormat,
+                        onBuffer: { chunk in continuation?.yield(AudioConversion.samples(of: chunk.buffer)) },
+                        onLevel: { [weak self] level in
+                            Task { @MainActor in self?.systemLevel = level }
+                        }
+                    )
+                    guard !self.isStopping, self.meeting.status == .recording else {
+                        self.systemCapture.stop()
+                        return
+                    }
+                    self.systemAudioProblem = nil
+                    let joinedAt = Date().timeIntervalSince(self.startedAt)
+                    Log.systemAudio.info("system audio joined late at \(Self.recordingClock(joinedAt), privacy: .public)")
+                    // Before the first real buffer wherever the drain has not already
+                    // appended one; the placement above already bounded the worst case.
+                    await self.placeLateTapOrigin(on: systemTranscriber)
+                    return
+                } catch {
+                    if self.isStopping || self.meeting.status != .recording {
+                        self.systemCapture.stop()
+                        return
+                    }
+                    self.systemAudioProblem = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    /// Moves the system track's origin to the current recording time, so the first
+    /// buffers of a late-joining tap stamp their windows with true meeting times
+    /// instead of times counted from the join. Only legal while the track still holds
+    /// nothing — true until the first buffer after the join.
+    private func placeLateTapOrigin(on transcriber: ChunkedTranscriber?) async {
+        guard let transcriber else { return }
+        let elapsedNow = Date().timeIntervalSince(startedAt)
+        await transcriber.advanceOrigin(
+            toSample: Int(elapsedNow * ChunkedTranscriber.sampleRate))
+    }
+
+    /// The `<mm:ss>` form the late-join log uses — the recording clock a person reads.
+    private static func recordingClock(_ seconds: TimeInterval) -> String {
+        let total = Int(seconds)
+        return String(format: "%d:%02d", total / 60, total % 60)
+    }
+
+    /// Builds both transcribers, the ordered drain streams and the two drain tasks.
+    /// Extracted from `start()` so the tap-retry self-test can drive the system track
+    /// without the microphone, the hub or the audio writer. The transcriber model call
+    /// goes through the shared lane unless `transcribeOverrideForTesting` is set.
+    private func wireTracks(outputFormat: AVAudioFormat) {
+        let meetingID = meeting.id
+        let transcribe = Self.transcribeOverrideForTesting
+        micTranscriber = ChunkedTranscriber(
+            source: .mic,
+            meetingID: meetingID,
+            onProvisional: { [weak self] event in
+                await self?.setProvisional(event)
+            },
+            transcribe: transcribe ?? { try await TranscriptionQueue.shared.transcribeWithLaneWait($0) },
+            onSegment: { [weak self] segment in
+                await self?.add(segment)
+            }
+        )
+        systemTranscriber = ChunkedTranscriber(
+            source: .system,
+            meetingID: meetingID,
+            onProvisional: { [weak self] event in
+                await self?.setProvisional(event)
+            },
+            transcribe: transcribe ?? { try await TranscriptionQueue.shared.transcribeWithLaneWait($0) },
+            onSegment: { [weak self] segment in
+                await self?.add(segment)
+            }
+        )
+
+        // Ordered drains, for the same reason `DictationController` uses one: a task per
+        // buffer has no ordering guarantee, and out-of-order audio transcribes as word salad.
+        let (micStream, micContinuation) = AsyncStream<[Float]>.makeStream(bufferingPolicy: .bufferingNewest(256))
+        let (systemStream, systemContinuation) = AsyncStream<[Float]>.makeStream(bufferingPolicy: .bufferingNewest(256))
+        self.micContinuation = micContinuation
+        self.systemContinuation = systemContinuation
+
+        let micTranscriber = self.micTranscriber
+        let systemTranscriber = self.systemTranscriber
+        let writer = self.writer
+        micDrain = Task.detached(priority: .userInitiated) {
+            for await samples in micStream {
+                await micTranscriber?.append(samples)
+                await writer?.append(samples, from: .mic)
+            }
+        }
+        systemDrain = Task.detached(priority: .userInitiated) {
+            for await samples in systemStream {
+                await systemTranscriber?.append(samples)
+                await writer?.append(samples, from: .system)
+            }
+        }
+    }
+
+    /// Starts the system tap once. On failure the meeting continues on the microphone
+    /// alone and the late-join retry is armed (M-09). Extracted from `start()` so the
+    /// tap-retry self-test drives the same path with the capture injected through
+    /// `SystemAudioCapture.startCallOverrideForTesting`.
+    private func startSystemTap(outputFormat: AVAudioFormat) async throws {
+        let continuation = systemContinuation
+        do {
+            try await systemCapture.start(
+                outputFormat: outputFormat,
+                onBuffer: { chunk in continuation?.yield(AudioConversion.samples(of: chunk.buffer)) },
+                onLevel: { [weak self] level in
+                    Task { @MainActor in self?.systemLevel = level }
+                }
+            )
+            // `stop()` can run while the bounded system-audio startup is suspended. A late
+            // successful HAL start belongs to that cancelled session and must be torn down
+            // instead of resurrecting its clock/model work.
+            guard !isStopping, meeting.status == .recording else {
+                systemCapture.stop()
+                throw MeetingError.startCancelled
+            }
+        } catch {
+            if case MeetingError.startCancelled = error {
+                throw error
+            }
+            if isStopping || meeting.status != .recording {
+                systemCapture.stop()
+                throw MeetingError.startCancelled
+            }
+            systemAudioProblem = error.localizedDescription
+            Log.systemAudio.error("meeting continues on the microphone alone: \(error.localizedDescription, privacy: .public)")
+            beginSystemTapRetry(outputFormat: outputFormat)
+        }
     }
 
     // MARK: - Internals
@@ -472,6 +624,8 @@ final class MeetingSession {
     }
 
     private func abort(reason: String) async {
+        tapRetry?.cancel()
+        tapRetry = nil
         AudioCaptureHub.shared.unsubscribe(.meeting)
         systemCapture.stop()
         clock?.cancel()

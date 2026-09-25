@@ -1244,6 +1244,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runMeetingBacklogSelfTest()
             return true
         }
+        if arguments.contains("--selftest-meeting-tap-retry") {
+            runMeetingTapRetrySelfTest()
+            return true
+        }
         if arguments.contains("--selftest-audio-retention") {
             runAudioRetentionSelfTest()
             return true
@@ -2840,6 +2844,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func runMeetingBacklogSelfTest() {
         Task { @MainActor in
             SelfTest.failed = !(await MeetingBacklogSelfTest.run { writeSelfTest($0) })
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// `--selftest-meeting-tap-retry`: the M-09 late tap join — the retry loop, the
+    /// origin placement for the track that joins mid-meeting, and the stop
+    /// cancellation, over an injected capture and transcriber. No microphone, no real
+    /// tap, no model; every meeting lives in `MeetingStore.isolated()`.
+    private func runMeetingTapRetrySelfTest() {
+        Task { @MainActor in
+            SelfTest.failed = !(await MeetingTapRetrySelfTest.run { writeSelfTest($0) })
             NSApp.terminate(nil)
         }
     }

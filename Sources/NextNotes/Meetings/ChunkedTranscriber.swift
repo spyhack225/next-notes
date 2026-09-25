@@ -197,6 +197,23 @@ actor ChunkedTranscriber {
         }
     }
 
+    /// M-09: moves `bufferOrigin` forward **without** transcribing, so a track whose
+    /// tap joined late stamps its first windows with true meeting times rather than
+    /// times counted from the join. Only valid before the track's first buffer — once
+    /// audio has been appended the origin is pinned to it, and moving it would desync
+    /// every window after. A call that arrives too late is answered with a log line,
+    /// never a `precondition`: a meeting must not crash over bookkeeping.
+    func advanceOrigin(toSample sample: Int) {
+        guard buffer.isEmpty, queue.isEmpty else {
+            Log.meeting.error("advanceOrigin(\(sample)) ignored — the track already holds audio")
+            return
+        }
+        guard sample > bufferOrigin else { return }
+        bufferOrigin = sample
+        scanned = 0
+        silenceRun = 0
+    }
+
     /// Transcribes whatever is left and waits for every queued window to finish. The
     /// tail joins the queue like any other window — it may merge with what is already
     /// there — and `flush` returns only once the queue has drained.

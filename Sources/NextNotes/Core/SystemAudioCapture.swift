@@ -74,6 +74,13 @@ final class SystemAudioCapture: @unchecked Sendable {
     /// Test-only seam for proving timeout/cancellation without touching Core Audio.
     nonisolated(unsafe) private static var startStackOverrideForTesting: (() throws -> Void)?
     nonisolated(unsafe) private static var startTimeoutOverrideForTesting: Duration?
+    /// Test-only seam (M-09) that replaces the whole start call, so the tap-retry
+    /// self-test can drive a `MeetingSession` with a capture that throws and then
+    /// yields audio without a microphone or a real tap. Like the two seams above it
+    /// is set by a test and cleared after; production reads nil and takes the
+    /// Core Audio path.
+    nonisolated(unsafe) static var startCallOverrideForTesting:
+        (@Sendable (AVAudioFormat, @Sendable (AudioChunk) -> Void, @Sendable (Float) -> Void) async throws -> Void)?
 
     private func withStateLock<T>(_ body: () -> T) -> T {
         stateLock.lock()
@@ -97,6 +104,10 @@ final class SystemAudioCapture: @unchecked Sendable {
         onBuffer: @escaping @Sendable (AudioChunk) -> Void,
         onLevel: @escaping @Sendable (Float) -> Void
     ) async throws {
+        if let override = Self.startCallOverrideForTesting {
+            try await override(outputFormat, onBuffer, onLevel)
+            return
+        }
         let startState = withStateLock { () -> Int in
             if isRunning { return 1 }
             if isStarting { return 2 }

@@ -66,6 +66,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-meeting-live --selftest-meeting-live-tools --selftest-meeting-quality --selftest-tts
 --selftest-notes-longform --selftest-diarize-assign --selftest-meeting-finals [<dir>]
 --selftest-meeting-resume --selftest-meeting-backlog --selftest-audio-retention
+--selftest-meeting-tap-retry
 --selftest-tts-stream
 --selftest-tts-pocket
 --selftest-tts-kokoro
