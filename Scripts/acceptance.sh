@@ -167,6 +167,9 @@ INTEGRATION_ENTRIES=(
   # long-window meeting finals (M-01): reads $NEXTNOTES_FIXTURES/meetings, needs
   # Parakeet; without either it reports MEETING_FINALS_ABSENT, counted as SKIP
   "selftest-meeting-finals|900"
+  # live transcription backlog bounded by audio seconds, windows merged (M-07):
+  # a fake transcriber behind the queue, no model and no fixtures
+  "selftest-meeting-backlog|300"
 )
 
 EXPERIMENTAL_ENTRIES=(

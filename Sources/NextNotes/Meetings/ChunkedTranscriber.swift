@@ -24,15 +24,29 @@ import Foundation
 ///
 /// One instance per `AudioSource`. They share `TranscriptionQueue`, because the two of them
 /// running CoreML concurrently on an 8-core M3 is slower than running them one at a time.
+///
+/// Each track's backlog is bounded by audio seconds (M-07), not by a window count, and the
+/// one drain task merges adjacent queued windows into a single encoder pass while the lane
+/// is behind — queued speech is waited out and merged, never dropped, until 300 s would be
+/// exceeded. Past the bound the oldest window is shed (each shed writes its
+/// `meeting.windows_dropped` span), because the final pass re-reads `audio.caf` and covers
+/// exactly what the live tier skipped.
 actor ChunkedTranscriber {
     typealias SegmentHandler = @Sendable (TranscriptSegment) async -> Void
     typealias ProvisionalHandler = @Sendable (TranscriptEvent) async -> Void
 
+    /// The model call (M-07), injected so `--selftest-meeting-backlog` can put a slow
+    /// fake behind the queue. Production passes nothing and gets the shared lane.
+    ///
+    /// The closure returns the two times the live tier's usage row needs (P0-20b) beside
+    /// the result: the seconds the call waited for the `.realtimeASR` lane, and the
+    /// seconds the model itself ran. A fake reports the times it actually spent.
+    typealias Transcribe = @Sendable ([Float]) async throws -> (
+        result: ASRResult, laneWait: TimeInterval, compute: TimeInterval
+    )
+
     /// Parakeet's training rate. Feeding anything else transcribes silently-wrong text.
     static let sampleRate: Double = 16_000
-    /// Maximum number of windows retained by one track while Parakeet catches up. Newest
-    /// windows are dropped after this point so a stalled model cannot grow memory forever.
-    static let maxPendingWindows = 8
     /// Maximum audio one track may keep queued while Parakeet catches up, in seconds
     /// (M-07). The old window count was sized for 30–60 s windows and read as 16–40 s of
     /// tolerance once the live tier moved to 2–5 s; seconds are what memory and loss are
@@ -43,6 +57,14 @@ actor ChunkedTranscriber {
     /// (anything ≤ 15 s is padded to a full 15 s pass, so a 14 s pass costs about what a
     /// 2 s pass costs). The same number M-01 measured for the final tier's maximum.
     static let maxMergedWindowSeconds: TimeInterval = StreamingASR.meetingFinalMaxSeconds
+
+    /// A window waiting for the model (M-07). `startSample` is the window's absolute
+    /// offset in the recording, in samples; merging adjacent windows is appending their
+    /// samples, since they are contiguous by construction.
+    private struct QueuedWindow {
+        let startSample: Int
+        var samples: [Float]
+    }
 
     /// Meeting ASR window sizes. Defaults are the 2–5 s provisional path; `.legacy`
     /// preserves the old 30/60 numbers for comparison in self-tests.
@@ -115,9 +137,7 @@ actor ChunkedTranscriber {
     private let meetingID: UUID?
     private let onSegment: SegmentHandler
     private let onProvisional: ProvisionalHandler?
-    /// The model call, injected so `--selftest-meeting-backlog` can put a slow fake
-    /// behind the queue (M-07). Production passes nothing and gets the shared lane.
-    private let transcribe: @Sendable ([Float]) async throws -> ASRResult
+    private let transcribe: Transcribe
 
     private var buffer: [Float] = []
     /// Absolute position of `buffer[0]` in the recording, in samples.
@@ -127,10 +147,13 @@ actor ChunkedTranscriber {
     /// Length, in samples, of the silence run ending at `scanned`.
     private var silenceRun = 0
 
-    /// Windows are transcribed in a chain rather than in parallel tasks, so segments reach
-    /// the session in the order they were spoken.
-    private var pending: Task<Void, Never>?
-    private var pendingCount = 0
+    /// Windows waiting for the model, in arrival order (M-07). One drain task walks it;
+    /// `append` never suspends, so the two only meet on the actor between awaits.
+    private var queue: [QueuedWindow] = []
+    /// Sum of the queued windows' sample counts — the backlog the seconds rule bounds.
+    private var queuedSamples = 0
+    /// The one drain task for this track. Nil when nothing is queued or draining.
+    private var drainTask: Task<Void, Never>?
     private var generation = 0
     /// Audio this track shed because the backlog was full (M-07). The seconds are logged
     /// at Stop — "the final pass covers them" when `audio.caf` exists — and each drop
@@ -146,8 +169,8 @@ actor ChunkedTranscriber {
         config: WindowConfig = .default,
         meetingID: UUID? = nil,
         onProvisional: ProvisionalHandler? = nil,
-        transcribe: @escaping @Sendable ([Float]) async throws -> ASRResult = {
-            try await TranscriptionQueue.shared.transcribe($0)
+        transcribe: @escaping Transcribe = {
+            try await TranscriptionQueue.shared.transcribeWithLaneWait($0)
         },
         onSegment: @escaping SegmentHandler
     ) {
@@ -174,7 +197,9 @@ actor ChunkedTranscriber {
         }
     }
 
-    /// Transcribes whatever is left and waits for every queued window to finish.
+    /// Transcribes whatever is left and waits for every queued window to finish. The
+    /// tail joins the queue like any other window — it may merge with what is already
+    /// there — and `flush` returns only once the queue has drained.
     func flush() async {
         if !buffer.isEmpty {
             enqueue(window: buffer)
@@ -183,8 +208,7 @@ actor ChunkedTranscriber {
             scanned = 0
             silenceRun = 0
         }
-        await pending?.value
-        pending = nil
+        await drainTask?.value
         // P0-20b: one `meeting.transcribe` row per track, assembled from the window
         // outcomes `transcribe(window:…)` noted while the queue drained.
         if let row = await MeetingTranscribeTally.shared.drain(meetingID: meetingID, source: source) {
@@ -196,9 +220,10 @@ actor ChunkedTranscriber {
     /// prevents a task that was already inside FluidAudio from publishing stale segments.
     func cancel() {
         generation &+= 1
-        pending?.cancel()
-        pending = nil
-        pendingCount = 0
+        drainTask?.cancel()
+        drainTask = nil
+        queue.removeAll(keepingCapacity: false)
+        queuedSamples = 0
         buffer.removeAll(keepingCapacity: false)
         bufferOrigin = 0
         scanned = 0
@@ -270,63 +295,81 @@ actor ChunkedTranscriber {
         return cuts
     }
 
+    /// Appends one cut window to the backlog (M-07).
+    ///
+    /// The bound is audio seconds, not a window count: the 8-window cap was sized for
+    /// 30–60 s windows and read as 16–40 s of tolerance once the live tier moved to
+    /// 2–5 s, and it shed the **newest** window when full — which is what removed live
+    /// speech for good (I2 #7). Here the newest window always joins the queue; when the
+    /// bound would be exceeded, the **oldest** queued window is shed instead. The live
+    /// view favours recent speech, and whatever was shed is recovered from `audio.caf`
+    /// by the final pass, so the oldest is the safe end to lose.
     private func enqueue(window: [Float]) {
-        guard pendingCount < Self.maxPendingWindows else {
+        let boundSamples = Int(Self.maxPendingAudioSeconds * Self.sampleRate)
+        while queuedSamples + window.count > boundSamples, !queue.isEmpty {
+            let shed = queue.removeFirst()
+            queuedSamples -= shed.samples.count
+            droppedSamples += shed.samples.count
             // M-16a: a dropped window is a marker span as well as a log line.
             // The seconds are the dropped audio; the note names the track.
-            droppedSamples += window.count
             LatencyTrace.record(
                 .meetingWindowsDropped,
-                seconds: Double(window.count) / Self.sampleRate,
+                seconds: Double(shed.samples.count) / Self.sampleRate,
                 note: "source=\(source.rawValue)"
             )
-            Log.meeting.error("transcription backlog full — dropped window")
-            return
+            Log.meeting.error("transcription backlog full — shed the oldest queued window")
         }
-        let start = Double(bufferOrigin) / Self.sampleRate
-        let source = self.source
-        let meetingID = self.meetingID
-        let handler = onSegment
-        let provisional = onProvisional
-        let emitProvisionals = config.emitsProvisionals
-        let transcribe = self.transcribe
-        let previous = pending
-        let generation = self.generation
+        queue.append(QueuedWindow(startSample: bufferOrigin, samples: window))
+        queuedSamples += window.count
+        if drainTask == nil {
+            let generation = self.generation
+            drainTask = Task { await self.drain(generation: generation) }
+        }
+    }
+
+    /// The single drain task (M-07): merges adjacent queued windows into one batch of up
+    /// to `maxMergedWindowSeconds` — one native encoder pass covers what used to be three
+    /// to five of them, so the backlog shrinks faster while the lane is behind — and
+    /// transcribes batches in arrival order until the queue is empty. Never two model
+    /// calls for one track at once, so segments reach the session in the order they
+    /// were spoken.
+    ///
+    /// A batch keeps the `start` of its first window; the merged samples are contiguous
+    /// by construction, so token timings and the provisional/final contract read the
+    /// batch exactly as they read a single window. Nothing merges across a `flush()`: the
+    /// tail joins the queue and drains like any other window.
+    private func drain(generation gen: Int) async {
+        defer { if self.generation == gen { self.drainTask = nil } }
         let shouldContinue: @Sendable () async -> Bool = { [weak self] in
             guard let self else { return false }
-            return await self.isCurrent(generation)
+            return await self.isCurrent(gen)
         }
-        pendingCount += 1
-
-        pending = Task {
-            await previous?.value
-            guard !Task.isCancelled, self.isCurrent(generation) else {
-                self.windowFinished(generation)
-                return
+        while gen == self.generation, !queue.isEmpty {
+            var batch = queue.removeFirst()
+            queuedSamples -= batch.samples.count
+            while let next = queue.first,
+                  Double(batch.samples.count + next.samples.count) / Self.sampleRate
+                      <= Self.maxMergedWindowSeconds {
+                batch.samples.append(contentsOf: next.samples)
+                queuedSamples -= next.samples.count
+                queue.removeFirst()
             }
             await Self.transcribeWindow(
-                window: window,
-                start: start,
+                window: batch.samples,
+                start: Double(batch.startSample) / Self.sampleRate,
                 source: source,
                 meetingID: meetingID,
-                emitProvisionals: emitProvisionals,
-                onProvisional: provisional,
-                onSegment: handler,
+                emitProvisionals: config.emitsProvisionals,
+                onProvisional: onProvisional,
+                onSegment: onSegment,
                 transcribe: transcribe,
                 shouldContinue: shouldContinue
             )
-            self.windowFinished(generation)
         }
     }
 
     private func isCurrent(_ generation: Int) -> Bool {
         self.generation == generation
-    }
-
-    private func windowFinished(_ generation: Int) {
-        if self.generation == generation {
-            pendingCount = max(0, pendingCount - 1)
-        }
     }
 
     /// Whether any 20 ms frame in the window is above the silence floor.
@@ -356,7 +399,7 @@ actor ChunkedTranscriber {
         emitProvisionals: Bool,
         onProvisional: ProvisionalHandler?,
         onSegment: SegmentHandler,
-        transcribe: @escaping @Sendable ([Float]) async throws -> ASRResult,
+        transcribe: Transcribe,
         shouldContinue: @escaping @Sendable () async -> Bool
     ) async {
         let duration = Double(window.count) / sampleRate
@@ -382,7 +425,11 @@ actor ChunkedTranscriber {
 
         do {
             let began = ContinuousClock.now
-            let timing = try await TranscriptionQueue.shared.transcribeWithLaneWait(window)
+            // M-07: the model call goes through the injected seam, so the backlog
+            // self-test's fake drives the same path production does. Production's seam
+            // is the shared lane, whose `transcribeWithLaneWait` returns the two times
+            // the usage row needs.
+            let timing = try await transcribe(window)
             // P0-20b: the model ran, whatever it produced — a window whose text was
             // dropped by a superseding session still spent the compute.
             await MeetingTranscribeTally.shared.note(

@@ -269,6 +269,24 @@ final class MeetingSession {
 
         await micTranscriber?.flush()
         await systemTranscriber?.flush()
+        // M-07: whatever the live tier shed under the seconds bound is named once, here —
+        // per meeting, both tracks summed. The final pass re-reads `audio.caf` and covers
+        // it, so the line says so when there is audio to read; without one the number is
+        // speech the transcript has lost.
+        let skippedSeconds = (await micTranscriber?.droppedAudioSeconds ?? 0)
+            + (await systemTranscriber?.droppedAudioSeconds ?? 0)
+        if skippedSeconds > 0.01 {
+            if meeting.audioFileName != nil {
+                Log.meeting.info("""
+                    live transcript skipped \(skippedSeconds, format: .fixed(precision: 1), privacy: .public)s; \
+                    the final pass covers them
+                    """)
+            } else {
+                Log.meeting.info("""
+                    live transcript skipped \(skippedSeconds, format: .fixed(precision: 1), privacy: .public)s
+                    """)
+            }
+        }
         micTranscriber = nil
         systemTranscriber = nil
 

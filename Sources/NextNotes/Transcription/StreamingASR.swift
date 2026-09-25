@@ -85,9 +85,21 @@ enum StreamingASR {
         if maxQueuedPartials != 1 {
             failures.append("partial backlog is not bounded to one latest snapshot")
         }
-        if ChunkedTranscriber.maxPendingWindows < 1 || ChunkedTranscriber.maxPendingWindows > 16 {
+        // M-07: the live backlog is bounded by audio seconds and merged by the drain
+        // task, not by a window count — the old 8-window cap read as 16–40 s at the
+        // 2–5 s live cut and shed the newest window when full.
+        if ChunkedTranscriber.maxPendingAudioSeconds < 60
+            || ChunkedTranscriber.maxPendingAudioSeconds > 600 {
             failures.append(
-                "meeting transcription backlog limit is unreasonable"
+                "meeting transcription backlog bound "
+                    + "\(ChunkedTranscriber.maxPendingAudioSeconds)s is unreasonable"
+            )
+        }
+        if ChunkedTranscriber.maxMergedWindowSeconds <= meetingProvisionalMaxSeconds
+            || ChunkedTranscriber.maxMergedWindowSeconds > 15 {
+            failures.append(
+                "meeting merge ceiling \(ChunkedTranscriber.maxMergedWindowSeconds)s "
+                    + "does not cover a native encoder pass above the provisional window"
             )
         }
         if !ParakeetEngine.emitsPartialsWhileHeld {
