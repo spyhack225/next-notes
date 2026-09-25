@@ -299,6 +299,14 @@ final class MeetingSession {
 
     /// Stops everything without waiting, for app termination. Whatever has already been
     /// transcribed is saved; anything still inside Parakeet is not.
+    ///
+    /// M-08: the meeting is left where the next launch resumes it, not written off here.
+    /// Anything the pipeline can still read — a transcript, or an audio file with content
+    /// that the final pass can re-transcribe — becomes `.transcribing`, and only a meeting
+    /// with neither is failed. Marking it `.done` instead is what left a recording with no
+    /// speaker names and no notes, and a temporary `audio.caf` nothing would ever release:
+    /// `pkill` (which `make install` sends) skips `applicationWillTerminate`, but a normal
+    /// Quit arrives here and used to lose the meeting all the same.
     func endAbruptly() {
         guard meeting.status == .recording else { return }
 
@@ -312,11 +320,29 @@ final class MeetingSession {
         systemDrain?.cancel()
 
         meeting.end = Date()
-        meeting.status = segments.isEmpty
-            ? .failed("Next Notes quit before anything was transcribed.")
-            : .done
+        switch MeetingStore.resumeAction(
+            for: .recording,
+            hasTranscript: !segments.isEmpty,
+            hasAudio: audioFileHasContent,
+            finalPassOn: Settings.shared.meetingsFinalPass
+        ) {
+        case .fail(let message):
+            meeting.status = .failed(message)
+        case .finalPass, .pipelineAfterTranscript, .diarize, .notes, .extractAgain, .none:
+            meeting.status = .transcribing
+        }
         store.saveTranscript(segments, for: meeting.id)
         store.save(meeting)
+    }
+
+    /// Whether the writer has put anything on disk yet. The pass can only recover speech
+    /// from a file with content, so a meeting whose writer never got a frame is the same
+    /// as one with no recording at all.
+    private var audioFileHasContent: Bool {
+        guard let name = meeting.audioFileName else { return false }
+        let path = store.directory(for: meeting.id).appendingPathComponent(name).path
+        let size = (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? NSNumber
+        return (size?.int64Value ?? 0) > 0
     }
 
     /// Free bytes available for important usage on the volume holding `url`.

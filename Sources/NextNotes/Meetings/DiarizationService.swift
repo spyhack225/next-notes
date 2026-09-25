@@ -21,6 +21,9 @@ final class DiarizationService {
     private(set) var revision = 0
 
     @ObservationIgnored private var tasks: [UUID: Task<Void, Never>] = [:]
+    /// The stall watchdog's clock: when each running pass last reported progress
+    /// (M-08). Advanced beside every `progress[id]` write, never on its own.
+    @ObservationIgnored private var lastProgressAt: [UUID: Date] = [:]
 
     private let store: MeetingStore
 
@@ -31,6 +34,10 @@ final class DiarizationService {
     func isRunning(_ id: UUID) -> Bool { tasks[id] != nil }
     func fraction(for id: UUID) -> Double? { progress[id] }
     func problem(for id: UUID) -> String? { problems[id] }
+
+    /// Advances the watchdog's clock for one pass.
+    private func noteProgress(_ id: UUID) { lastProgressAt[id] = Date() }
+
     /// Dismissing the banner also withdraws the retry it was offering, which is what
     /// `MeetingStore.releaseAudio` was holding the recording for.
     func clearProblem(for id: UUID) {
@@ -67,6 +74,7 @@ final class DiarizationService {
         tasks[id]?.cancel()
         tasks[id] = nil
         progress[id] = nil
+        lastProgressAt[id] = nil
     }
 
     // MARK: - The work
@@ -74,12 +82,37 @@ final class DiarizationService {
     private func run(_ meeting: Meeting, then next: @escaping @MainActor () -> Void) {
         let id = meeting.id
         guard tasks[id] == nil else { return }
+        noteProgress(id)
+
+        // M-08: a clustering pass that stops reporting progress is stopped rather than
+        // left showing "Identifying speakers…" until the next launch. The problem holds
+        // the recording (`releaseAudio` refuses to drop audio while one is set), and the
+        // pipeline continues with the labels it has — a diarization that failed never
+        // blocked the notes.
+        let watchdog = StageWatch(
+            limit: StageWatchdog.diarizeLimit,
+            lastProgress: { [weak self] in self?.lastProgressAt[id] ?? .distantPast },
+            isLaneBusy: { await StageWatchdog.urgentLaneBusy() },
+            onStall: { [weak self] in
+                guard let self else { return }
+                let since = Date().timeIntervalSince(self.lastProgressAt[id] ?? .distantPast)
+                Log.meeting.error("""
+                    diarize stalled · \(Int(since), privacy: .public)s without progress \
+                    on "\(meeting.title, privacy: .public)"
+                    """)
+                self.problems[id] = StageWatchdog.stallMessage
+                self.tasks[id]?.cancel()
+            }
+        )
+        watchdog.start()
 
         tasks[id] = Task { @MainActor [weak self] in
             guard let self else { return }
             defer {
+                watchdog.cancel()
                 self.tasks[id] = nil
                 self.progress[id] = nil
+                self.lastProgressAt[id] = nil
             }
             await diarize(id)
             next()
@@ -97,6 +130,7 @@ final class DiarizationService {
 
         progress[id] = 0
         problems[id] = nil
+        noteProgress(id)
         // M-16a: the diarization pass is a stage span. The note carries runs,
         // speakers and audio seconds, or the error's type name — never the
         // message, which can contain a path.
@@ -118,7 +152,10 @@ final class DiarizationService {
                 channel: MeetingAudioWriter.systemChannel
             )
             let runs = try await MeetingDiarizer.shared.speakerRuns(in: samples) { fraction in
-                Task { @MainActor [weak self] in self?.progress[id] = fraction }
+                Task { @MainActor [weak self] in
+                    self?.noteProgress(id)
+                    self?.progress[id] = fraction
+                }
             }
             try Task.checkCancellation()
             guard !runs.isEmpty else {
