@@ -32,6 +32,38 @@ struct AgentPolicy: Sendable {
     static let dryRun = AgentPolicy(autoRunReadTools: false, allowedRisk: .send, maxRounds: 1)
 }
 
+/// The usage rows one planning pass leaves for its caller (P0-20b).
+///
+/// `MeetingAgent` writes a row for every round as the round ends — except the pass's
+/// **final** one. That row carries `reconciledOut`, which is only known after
+/// `AgentService` folds the model's proposals against the extractor's candidates, so the
+/// final round's recorder is adopted here unfinished and the caller adds what it knows and
+/// finishes it. A caller that returns early still leaves the row written through `defer`;
+/// a pass that failed before any round adopted nothing and has already written its own row.
+final class MeetingUsageLedger: @unchecked Sendable {
+    private let lock = NSLock()
+    private var finalRecorder: ModelPassRecorder?
+    private var counts: [String: Int] = [:]
+
+    /// Takes the pass's final round. Only ever called once per pass, and only on success.
+    func adopt(_ recorder: ModelPassRecorder) {
+        lock.withLock { finalRecorder = recorder }
+    }
+
+    /// Counts the caller learned after the pass returned.
+    func noteCounts(_ counts: [String: Int]) {
+        lock.withLock { self.counts.merge(counts) { _, new in new } }
+    }
+
+    /// Writes the final row once. Idempotent, so a `defer` and an explicit call are safe
+    /// together.
+    func finish(reason: String = "stop") {
+        let (recorder, counts) = lock.withLock { (finalRecorder, self.counts) }
+        recorder?.noteCounts(counts)
+        recorder?.finish(reason: reason)
+    }
+}
+
 /// Reads a meeting and proposes what to do about it.
 ///
 /// An actor because one generation holds a multi-gigabyte model and two passes racing each
@@ -78,36 +110,58 @@ actor MeetingAgent {
     ///   model may use to resolve a person or a project; the transcript quote rule below
     ///   still decides what may be proposed, and a write's argument values have to survive
     ///   `argumentsGroundedInTranscript` — the brief never supplies one.
+    /// - Parameter toolsOverride: the advertised tool list. `nil` — every production
+    ///   caller — derives it from the policy exactly as before. The usage self-test passes
+    ///   `[]` so a `contextTooSmall` failure can be pinned without reaching the main-actor
+    ///   tool gate (P0-20b).
+    /// - Parameter usage: where the pass's final usage row is handed back (P0-20b). `nil`
+    ///   writes it before this call returns, which is what the self-tests and
+    ///   `--selftest-agent` want; `AgentService` passes its own ledger so it can add
+    ///   `reconciledOut` to the row once the proposals have been reconciled.
     func proposals(
         for meeting: Meeting,
         segments: [TranscriptSegment],
         notes: String?,
         brief: String? = nil,
         provider: any LLMProvider,
-        policy: AgentPolicy
+        policy: AgentPolicy,
+        toolsOverride: [AgentTool]? = nil,
+        usage: MeetingUsageLedger? = nil
     ) async throws -> [AgentProposal] {
         let transcript = segments.plainText(speakerNames: meeting.speakerNames)
         guard !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw AgentError.emptyTranscript
         }
-        let tools = await advertisedTools(policy: policy, provider: provider, includeKnowledge: true)
-        // Fitted once, before the loop: a second round re-tokenizing an hour of speech to
-        // learn the same answer costs more than the round itself.
+        let tools: [AgentTool]
+        if let toolsOverride {
+            tools = toolsOverride
+        } else {
+            tools = await advertisedTools(policy: policy, provider: provider, includeKnowledge: true)
+        }
+        let ledger = usage ?? MeetingUsageLedger()
+        // A failed fit writes its own row before throwing; `MeetingAgent` owns that row
+        // because reserved and budget are only knowable inside the fitting.
         let fitted = try await fit(
             brief: brief,
             notes: notes.map { String($0.prefix(Self.maxNotesCharacters)) },
             transcript: transcript,
             provider: provider,
             tools: tools,
-            policy: policy
+            policy: policy,
+            feature: .meetingProposals,
+            pass: "round",
+            meetingID: meeting.id
         )
-        return try await plan(
+        let planned = try await plan(
             meeting: meeting,
             provider: provider,
             policy: policy,
             tools: tools,
             source: .review,
-            transcript: fitted.transcript
+            transcript: fitted.transcript,
+            reserved: fitted.reserved,
+            budget: fitted.budget,
+            ledger: ledger
         ) { results in
             AgentPrompts.review(
                 meeting: meeting,
@@ -117,14 +171,21 @@ actor MeetingAgent {
                 results: results
             )
         }
+        // A caller that passed a ledger finishes the row itself, after reconciling.
+        if usage == nil { ledger.finish(reason: "stop") }
+        return planned
     }
 
     /// Plans from the last minutes of a meeting that is still running.
+    ///
+    /// `usage` works as in `proposals(for:…)`: `AgentService` holds the ledger so the
+    /// `meeting.live` row can carry what the reconciler dropped.
     func liveProposals(
         for meeting: Meeting,
         recent: [TranscriptSegment],
         provider: any LLMProvider,
-        policy: AgentPolicy = .live
+        policy: AgentPolicy = .live,
+        usage: MeetingUsageLedger? = nil
     ) async throws -> [AgentProposal] {
         let excerpt = recent.plainText(speakerNames: meeting.speakerNames)
         guard !excerpt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -136,24 +197,33 @@ actor MeetingAgent {
         // No knowledge tools here: this pass never looks anything up (one round), and a read
         // proposed on its last round would be a card about the library, not about the call.
         let tools = await advertisedTools(policy: policy, provider: provider, includeKnowledge: false)
+        let ledger = usage ?? MeetingUsageLedger()
         let fitted = try await fit(
             brief: nil,
             notes: nil,
             transcript: excerpt,
             provider: provider,
             tools: tools,
-            policy: policy
+            policy: policy,
+            feature: .meetingLive,
+            pass: "live",
+            meetingID: meeting.id
         )
-        return try await plan(
+        let planned = try await plan(
             meeting: meeting,
             provider: provider,
             policy: policy,
             tools: tools,
             source: .live,
-            transcript: fitted.transcript
+            transcript: fitted.transcript,
+            reserved: fitted.reserved,
+            budget: fitted.budget,
+            ledger: ledger
         ) { _ in
             AgentPrompts.live(meeting: meeting, recent: fitted.transcript)
         }
+        if usage == nil { ledger.finish(reason: "stop") }
+        return planned
     }
 
     /// The tools a pass may name: the Workspace catalogue the policy allows, plus the
@@ -198,6 +268,9 @@ actor MeetingAgent {
         tools: [AgentTool],
         source: AgentProposalSource,
         transcript: String,
+        reserved: Int,
+        budget: Int,
+        ledger: MeetingUsageLedger,
         user: @Sendable ([String]) -> String
     ) async throws -> [AgentProposal] {
         let system = AgentPrompts.system
@@ -205,24 +278,72 @@ actor MeetingAgent {
         // is not a lookup, whatever its name claims.
         let catalogue = Dictionary(tools.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
         var results: [String] = []
+        let feature: UsageFeature
+        let pass: String
+        switch source {
+        case .review:
+            feature = .meetingProposals
+            pass = "round"
+        case .live:
+            feature = .meetingLive
+            pass = "live"
+        }
+        let limits = max(1, policy.maxRounds)
 
-        for round in 0..<max(1, policy.maxRounds) {
+        for round in 0..<limits {
             try Task.checkCancellation()
-            let completion = try await provider.complete(
-                system: system,
-                user: user(results),
-                maxTokens: Self.maxOutputTokens,
-                tools: tools
+            // P0-20b: one row per round. The last round's is left for the caller, because
+            // `reconciledOut` is only known after it reconciles the proposals; a failed
+            // round finishes its own row before the error is rethrown.
+            let recorder = ModelPassRecorder(
+                feature: feature,
+                pass: pass,
+                provider: provider,
+                round: round + 1,
+                ids: UsageCorrelation(meetingID: meeting.id),
+                requestedRole: .agent
+            )
+            recorder.noteCounts(["reserved": reserved, "budget": budget])
+            let completion: LLMCompletion
+            do {
+                completion = try await ModelPassRecorder.$current.withValue(recorder) {
+                    try await provider.complete(
+                        system: system,
+                        user: user(results),
+                        maxTokens: Self.maxOutputTokens,
+                        tools: tools
+                    )
+                }
+            } catch {
+                recorder.fail(error)
+                recorder.finish(reason: error is CancellationError ? "cancelled" : "error")
+                throw error
+            }
+            // Frozen here: after the round, read tool calls may take seconds, and the row's
+            // `totalMs` is the model pass alone.
+            recorder.noteModelEnd()
+            recorder.report(
+                promptTokens: nil,
+                cachedTokens: nil,
+                completionTokens: completion.generatedTokens,
+                reasoningTokens: nil,
+                finishReason: nil,
+                estimated: provider.id == .appleFoundation
             )
             let calls = AgentToolCallParser.calls(in: completion.text)
+            recorder.proposed(calls.map(\.name))
             Log.agent.info("""
                 agent round \(round + 1, privacy: .public): \
                 \(calls.count, privacy: .public) call(s) in \
                 \(completion.generatedTokens, privacy: .public) token(s)
                 """)
-            guard !calls.isEmpty else { return [] }
+            guard !calls.isEmpty else {
+                recorder.noteCounts(["proposed": 0, "accepted": 0])
+                ledger.adopt(recorder)
+                return []
+            }
 
-            let isLastRound = round == max(1, policy.maxRounds) - 1
+            let isLastRound = round == limits - 1
             let lookups = calls.filter { catalogue[$0.name]?.risk == .read }
             let actions = calls.filter { catalogue[$0.name]?.risk != .read }
 
@@ -230,6 +351,7 @@ actor MeetingAgent {
             // but only while there is a round left to use the answers in. On the last round
             // a read is a proposal like any other, and the user can approve it.
             if actions.isEmpty, !lookups.isEmpty, policy.autoRunReadTools, !isLastRound {
+                recorder.finish(reason: "stop")
                 // The reader binding is what lets `expand_node` decide for itself whether
                 // this model may see the graph; without it an unknown reader counts as cloud.
                 results.append(contentsOf: await KnowledgeGraphScope.$reader.withValue(provider.id) {
@@ -238,10 +360,13 @@ actor MeetingAgent {
                 results = try await trimmed(results, provider: provider)
                 continue
             }
-            return proposals(
+            let planned = proposals(
                 from: calls, tools: tools, meeting: meeting, policy: policy,
                 source: source, transcript: transcript
             )
+            recorder.noteCounts(["proposed": calls.count, "accepted": planned.count])
+            ledger.adopt(recorder)
+            return planned
         }
         return []
     }
@@ -412,8 +537,11 @@ actor MeetingAgent {
         transcript: String,
         provider: any LLMProvider,
         tools: [AgentTool],
-        policy: AgentPolicy
-    ) async throws -> (brief: String?, notes: String?, transcript: String) {
+        policy: AgentPolicy,
+        feature: UsageFeature,
+        pass: String,
+        meetingID: UUID
+    ) async throws -> (brief: String?, notes: String?, transcript: String, reserved: Int, budget: Int) {
         let system = AgentPrompts.system + "\n\n" + AgentPrompts.toolBlock(tools: tools)
         let lookups = policy.autoRunReadTools && policy.maxRounds > 1 ? Self.lookupTokens : 0
         let reserved = try await provider.countTokens(system)
@@ -421,7 +549,19 @@ actor MeetingAgent {
             + Self.headroomTokens
             + lookups
         var budget = provider.contextTokens - reserved
-        guard budget >= Self.minimumTranscriptTokens else { throw AgentError.contextTooSmall }
+        guard budget >= Self.minimumTranscriptTokens else {
+            // The pass never reached a model, and that still needs a row: this is the
+            // failure that used to be visible only as an in-memory `problems[id]` (P0-20b).
+            recordUnfitContext(
+                feature: feature,
+                pass: pass,
+                provider: provider,
+                meetingID: meetingID,
+                reserved: reserved,
+                budget: budget
+            )
+            throw AgentError.contextTooSmall
+        }
 
         var fittedBrief: String?
         if let brief, !brief.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -446,7 +586,30 @@ actor MeetingAgent {
             budget -= cut.tokens
         }
         let cut = try await cut(transcript, to: budget, provider: provider, keepingTail: true)
-        return (fittedBrief, fittedNotes, cut.text)
+        return (fittedBrief, fittedNotes, cut.text, reserved, budget)
+    }
+
+    /// One `meeting.proposals` / `meeting.live` row for a pass whose window could not hold
+    /// the meeting once the tool schemas were counted (P0-20b). Counts only; the error
+    /// class is what makes the six silent meetings on this Mac answerable.
+    private func recordUnfitContext(
+        feature: UsageFeature,
+        pass: String,
+        provider: any LLMProvider,
+        meetingID: UUID,
+        reserved: Int,
+        budget: Int
+    ) {
+        let recorder = ModelPassRecorder(
+            feature: feature,
+            pass: pass,
+            provider: provider,
+            ids: UsageCorrelation(meetingID: meetingID),
+            requestedRole: .agent
+        )
+        recorder.noteCounts(["reserved": reserved, "budget": budget])
+        recorder.fail(AgentError.contextTooSmall)
+        recorder.finish(reason: "error")
     }
 
     /// One piece of text, cut to a token budget and measured on the way.

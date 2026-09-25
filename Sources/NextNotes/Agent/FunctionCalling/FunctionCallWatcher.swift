@@ -444,10 +444,18 @@ final class FunctionCallWatcher {
             facts: Self.facts(for: trigger)
         )
 
+        // P0-20b: one `meeting.needle` row per proposal call, whether it found anything,
+        // failed, or was never shown. The card count is what the row knows beyond the
+        // proposer's own "calls".
+        let began = ContinuousClock.now
         let calls: [ProposedFunctionCall]
         do {
             calls = try await proposer.propose(request)
         } catch {
+            recordNeedlePass(
+                trigger: trigger, proposer: proposer, began: began,
+                calls: 0, carded: 0, error: error
+            )
             Log.agent.info(
                 "function-call proposal failed: \(error.localizedDescription, privacy: .public)"
             )
@@ -457,6 +465,7 @@ final class FunctionCallWatcher {
             return
         }
 
+        var carded = 0
         for call in calls {
             guard seenCalls.insert(Self.identity(of: call)).inserted else { continue }
             recent.insert(call, at: 0)
@@ -467,9 +476,68 @@ final class FunctionCallWatcher {
                 seconds: call.latency,
                 note: "function call · \(call.backend.rawValue)"
             )
-            present(call, trigger: trigger)
+            if present(call, trigger: trigger) { carded += 1 }
         }
+        recordNeedlePass(
+            trigger: trigger, proposer: proposer, began: began,
+            calls: calls.count, carded: carded, error: nil
+        )
         if !store.status.isReady { await store.refreshStatus() }
+    }
+
+    /// One `meeting.needle` row. The feature is the watcher's; the provider and model id
+    /// name the backend that actually ran, because the fallback local model also comes
+    /// through here. Counts only — never the utterance, the window or an argument value.
+    private func recordNeedlePass(
+        trigger: Trigger,
+        proposer: any FunctionCallProposer,
+        began: ContinuousClock.Instant,
+        calls: Int,
+        carded: Int,
+        error: Error?
+    ) {
+        let provider: UsageProvider = proposer.backend == .needle ? .needle : .llama
+        UsageLog.shared.record(UsageRecord(
+            v: 1,
+            id: UUID(),
+            ts: Date(),
+            feature: UsageFeature.meetingNeedle.rawValue,
+            pass: "turn",
+            round: nil,
+            provider: provider.rawValue,
+            modelID: proposer.backend.rawValue,
+            locality: "local",
+            requestedRole: nil,
+            requestedModel: nil,
+            fallbackReason: nil,
+            warm: nil,
+            loadMs: nil,
+            promptTokens: nil,
+            cachedTokens: nil,
+            completionTokens: nil,
+            reasoningTokens: nil,
+            countsEstimated: nil,
+            ttftMs: nil,
+            totalMs: ModelPassRecorder.milliseconds(began.duration(to: .now)),
+            tokensPerSec: nil,
+            finishReason: error == nil ? "stop" : "error",
+            truncated: nil,
+            toolsProposed: nil,
+            toolsExecuted: nil,
+            errorClass: error.map { UsageErrorClass.classify($0).rawValue },
+            errorMessage: error.map { UsageLog.sanitise($0.localizedDescription) },
+            audioSeconds: nil,
+            realtimeFactor: nil,
+            stages: nil,
+            counts: ["calls": calls, "carded": carded],
+            turnID: nil,
+            conversationID: nil,
+            workID: nil,
+            revision: nil,
+            meetingID: trigger.meetingID,
+            dictationRunID: nil,
+            scheduleID: nil
+        ))
     }
 
     /// Starts the resident engine on a meeting's first words, long before it is needed.
@@ -528,12 +596,13 @@ final class FunctionCallWatcher {
     /// `ToolCallReviewStore` turns the absent arguments into the questions it asks, and
     /// `AgentToolExecutor` is the only thing that runs anything. What this method contributes
     /// is the request — and, crucially, arguments that contain nothing nobody said.
-    private func present(_ call: ProposedFunctionCall, trigger: Trigger) {
-        guard let tool = AgentToolRegistry.shared.tool(named: call.toolID) else { return }
+    @discardableResult
+    private func present(_ call: ProposedFunctionCall, trigger: Trigger) -> Bool {
+        guard let tool = AgentToolRegistry.shared.tool(named: call.toolID) else { return false }
         // Checked again per call, not once per turn: one utterance may produce three.
         if let reason = rateLimitReason() {
             Log.agent.info("function call not shown: \(reason, privacy: .public)")
-            return
+            return false
         }
         let request = Self.request(for: call, tool: tool, trigger: trigger)
         // The origin tag. `PermissionRequest` has no field for it (that type is not this
@@ -561,6 +630,7 @@ final class FunctionCallWatcher {
             await self?.run(call, tool: tool, requestID: request.id, meetingID: trigger.meetingID)
             self?.outstanding.remove(request.id)
         }
+        return true
     }
 
     /// Exactly what is handed over. Separated from `present` so the self-test can assert on

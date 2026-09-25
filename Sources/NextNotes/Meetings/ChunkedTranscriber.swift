@@ -33,6 +33,16 @@ actor ChunkedTranscriber {
     /// Maximum number of windows retained by one track while Parakeet catches up. Newest
     /// windows are dropped after this point so a stalled model cannot grow memory forever.
     static let maxPendingWindows = 8
+    /// Maximum audio one track may keep queued while Parakeet catches up, in seconds
+    /// (M-07). The old window count was sized for 30–60 s windows and read as 16–40 s of
+    /// tolerance once the live tier moved to 2–5 s; seconds are what memory and loss are
+    /// actually made of. ≈ 19 MB of Float32 per track at 300 s. Do not raise this above
+    /// 300 s without a memory measurement.
+    static let maxPendingAudioSeconds: TimeInterval = 300
+    /// Merging ceiling for one transcribed batch: one native FluidAudio encoder pass
+    /// (anything ≤ 15 s is padded to a full 15 s pass, so a 14 s pass costs about what a
+    /// 2 s pass costs). The same number M-01 measured for the final tier's maximum.
+    static let maxMergedWindowSeconds: TimeInterval = StreamingASR.meetingFinalMaxSeconds
 
     /// Meeting ASR window sizes. Defaults are the 2–5 s provisional path; `.legacy`
     /// preserves the old 30/60 numbers for comparison in self-tests.
@@ -105,6 +115,9 @@ actor ChunkedTranscriber {
     private let meetingID: UUID?
     private let onSegment: SegmentHandler
     private let onProvisional: ProvisionalHandler?
+    /// The model call, injected so `--selftest-meeting-backlog` can put a slow fake
+    /// behind the queue (M-07). Production passes nothing and gets the shared lane.
+    private let transcribe: @Sendable ([Float]) async throws -> ASRResult
 
     private var buffer: [Float] = []
     /// Absolute position of `buffer[0]` in the recording, in samples.
@@ -119,18 +132,30 @@ actor ChunkedTranscriber {
     private var pending: Task<Void, Never>?
     private var pendingCount = 0
     private var generation = 0
+    /// Audio this track shed because the backlog was full (M-07). The seconds are logged
+    /// at Stop — "the final pass covers them" when `audio.caf` exists — and each drop
+    /// also writes its `meeting.windows_dropped` span.
+    private var droppedSamples = 0
+
+    /// Seconds of this track's audio the live tier skipped. Nothing more than a counter:
+    /// the final pass re-reads `audio.caf` and covers what this reports.
+    var droppedAudioSeconds: Double { Double(droppedSamples) / Self.sampleRate }
 
     init(
         source: AudioSource,
         config: WindowConfig = .default,
         meetingID: UUID? = nil,
         onProvisional: ProvisionalHandler? = nil,
+        transcribe: @escaping @Sendable ([Float]) async throws -> ASRResult = {
+            try await TranscriptionQueue.shared.transcribe($0)
+        },
         onSegment: @escaping SegmentHandler
     ) {
         self.source = source
         self.config = config
         self.meetingID = meetingID
         self.onProvisional = onProvisional
+        self.transcribe = transcribe
         self.onSegment = onSegment
     }
 
@@ -160,6 +185,11 @@ actor ChunkedTranscriber {
         }
         await pending?.value
         pending = nil
+        // P0-20b: one `meeting.transcribe` row per track, assembled from the window
+        // outcomes `transcribe(window:…)` noted while the queue drained.
+        if let row = await MeetingTranscribeTally.shared.drain(meetingID: meetingID, source: source) {
+            UsageLog.shared.record(row)
+        }
     }
 
     /// Cancel queued work when a meeting session is abandoned. The generation check also
@@ -244,6 +274,7 @@ actor ChunkedTranscriber {
         guard pendingCount < Self.maxPendingWindows else {
             // M-16a: a dropped window is a marker span as well as a log line.
             // The seconds are the dropped audio; the note names the track.
+            droppedSamples += window.count
             LatencyTrace.record(
                 .meetingWindowsDropped,
                 seconds: Double(window.count) / Self.sampleRate,
@@ -258,6 +289,7 @@ actor ChunkedTranscriber {
         let handler = onSegment
         let provisional = onProvisional
         let emitProvisionals = config.emitsProvisionals
+        let transcribe = self.transcribe
         let previous = pending
         let generation = self.generation
         let shouldContinue: @Sendable () async -> Bool = { [weak self] in
@@ -272,7 +304,7 @@ actor ChunkedTranscriber {
                 self.windowFinished(generation)
                 return
             }
-            await Self.transcribe(
+            await Self.transcribeWindow(
                 window: window,
                 start: start,
                 source: source,
@@ -280,6 +312,7 @@ actor ChunkedTranscriber {
                 emitProvisionals: emitProvisionals,
                 onProvisional: provisional,
                 onSegment: handler,
+                transcribe: transcribe,
                 shouldContinue: shouldContinue
             )
             self.windowFinished(generation)
@@ -315,7 +348,7 @@ actor ChunkedTranscriber {
 
     /// Deliberately `static`: it runs off the actor so a long transcription never blocks
     /// `append`, and it touches nothing but its arguments.
-    private static func transcribe(
+    private static func transcribeWindow(
         window: [Float],
         start: TimeInterval,
         source: AudioSource,
@@ -323,21 +356,43 @@ actor ChunkedTranscriber {
         emitProvisionals: Bool,
         onProvisional: ProvisionalHandler?,
         onSegment: SegmentHandler,
+        transcribe: @escaping @Sendable ([Float]) async throws -> ASRResult,
         shouldContinue: @escaping @Sendable () async -> Bool
     ) async {
         let duration = Double(window.count) / sampleRate
-        guard window.count >= minTranscribableSamples else { return }
+        guard window.count >= minTranscribableSamples else {
+            // A tail shorter than Parakeet's encoder can read. Counted as a window the
+            // pre-model filters skipped, exactly like digital silence.
+            await MeetingTranscribeTally.shared.note(
+                meetingID: meetingID, source: source,
+                audioSeconds: 0, computeSeconds: 0, laneWait: 0,
+                outcome: .silentSkipped)
+            return
+        }
         guard !Task.isCancelled, await shouldContinue() else { return }
         // Running the model over a window of pure silence costs a second of CPU to produce
         // an empty string; the meters already say nothing was said.
-        guard containsSpeech(window) else { return }
+        guard containsSpeech(window) else {
+            await MeetingTranscribeTally.shared.note(
+                meetingID: meetingID, source: source,
+                audioSeconds: 0, computeSeconds: 0, laneWait: 0,
+                outcome: .silentSkipped)
+            return
+        }
 
         do {
-            let began = Date()
-            let result = try await TranscriptionQueue.shared.transcribe(window)
+            let began = ContinuousClock.now
+            let timing = try await TranscriptionQueue.shared.transcribeWithLaneWait(window)
+            // P0-20b: the model ran, whatever it produced — a window whose text was
+            // dropped by a superseding session still spent the compute.
+            await MeetingTranscribeTally.shared.note(
+                meetingID: meetingID, source: source,
+                audioSeconds: duration, computeSeconds: timing.compute,
+                laneWait: timing.laneWait, outcome: .transcribed)
+            let result = timing.result
             guard !Task.isCancelled, await shouldContinue() else { return }
             let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            let elapsed = Date().timeIntervalSince(began)
+            let elapsed = Self.seconds(began.duration(to: .now))
             Log.meeting.info("""
                 \(source.rawValue, privacy: .public) window \
                 \(duration, format: .fixed(precision: 1))s in \
@@ -367,8 +422,21 @@ actor ChunkedTranscriber {
                 await onSegment(segment)
             }
         } catch {
+            // Only `.transcribed` windows contribute audio, compute and lane wait, so a
+            // failure is a count on the row and nothing more (the `Outcome` doc).
+            await MeetingTranscribeTally.shared.note(
+                meetingID: meetingID, source: source,
+                audioSeconds: 0, computeSeconds: 0, laneWait: 0,
+                outcome: .failed)
             Log.meeting.error("\(source.rawValue, privacy: .public) window failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    /// Duration arithmetic for the transcribe path; `Duration.components` is the only way
+    /// to get fractional seconds out of a `ContinuousClock` measurement.
+    static func seconds(_ duration: Duration) -> TimeInterval {
+        let components = duration.components
+        return Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 
     /// Cuts one transcribed window into utterances.
@@ -463,13 +531,26 @@ actor TranscriptionQueue {
     }
 
     func transcribe(_ samples: [Float], lane: WorkClass = .realtimeASR) async throws -> ASRResult {
+        try await transcribeWithLaneWait(samples, lane: lane).result
+    }
+
+    /// As `transcribe`, plus the two times the live tier's usage row needs: how long the
+    /// call waited for `ComputeScheduler`'s lane, and how long the model itself ran.
+    ///
+    /// The wait for the chain's previous window is neither: it is compute already counted
+    /// on that window's own note. Only the `acquire` call is lane contention.
+    func transcribeWithLaneWait(
+        _ samples: [Float],
+        lane: WorkClass = .realtimeASR
+    ) async throws -> (result: ASRResult, laneWait: TimeInterval, compute: TimeInterval) {
         let previous = tail
-        let work = Task { () throws -> ASRResult in
+        let work = Task { () throws -> (ASRResult, TimeInterval, TimeInterval) in
             await previous?.value
             // After Stop nothing may run at `.realtimeASR` (P0-06): the M-01 final pass
             // acquires `.background` per window through `acquireCancellable`, so a live
             // dictation or meeting window always goes first. The chain (`tail`) is
             // shared, so final-pass windows still never run two CoreML passes at once.
+            let laneBegan = ContinuousClock.now
             let jobID: UUID
             if lane == .realtimeASR {
                 jobID = await ComputeScheduler.shared.acquire(lane)
@@ -479,14 +560,17 @@ actor TranscriptionQueue {
                 }
                 jobID = acquired
             }
+            let laneWait = ChunkedTranscriber.seconds(laneBegan.duration(to: .now))
+            let computeBegan = ContinuousClock.now
             do {
                 let manager = try await ParakeetModels.shared.manager()
                 // A fresh decoder state per window: the windows are cut at silence, so there is
                 // no context to carry, and sharing one across two tracks would splice them.
                 var decoderState = try TdtDecoderState()
                 let result = try await manager.transcribe(samples, decoderState: &decoderState)
+                let compute = ChunkedTranscriber.seconds(computeBegan.duration(to: .now))
                 await ComputeScheduler.shared.release(jobID)
-                return result
+                return (result, laneWait, compute)
             } catch {
                 await ComputeScheduler.shared.release(jobID)
                 throw error

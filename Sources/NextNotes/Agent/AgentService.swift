@@ -226,6 +226,11 @@ final class AgentService {
             // its own model, and a brief assembled for a local notes model must not reach a
             // cloud agent that the graph's and files' consents were never given for.
             let known = await self.knownContext(for: meeting, provider: provider)
+            // P0-20b: the final round's row is handed back here so `reconciledOut` can be
+            // added to it. A pass that failed before any round wrote its own row already;
+            // this `defer` is what guarantees the final row on every other exit.
+            let usage = MeetingUsageLedger()
+            defer { usage.finish(reason: "stop") }
             do {
                 let proposals = try await MeetingAgent.shared.proposals(
                     for: meeting,
@@ -233,7 +238,8 @@ final class AgentService {
                     notes: self.store.notes(for: id),
                     brief: known.promptBlock.isEmpty ? nil : known.promptBlock,
                     provider: provider,
-                    policy: AgentPolicy.fromSettings()
+                    policy: AgentPolicy.fromSettings(),
+                    usage: usage
                 )
                 // The meeting can be deleted while the model is thinking, and writing
                 // proposals for it would re-create the directory that `delete` removed.
@@ -249,6 +255,10 @@ final class AgentService {
                     actionItems: context?.actionItems ?? []
                 )
                 let dropped = proposals.count - accepted.count
+                // The reconciler's own answer, recorded on the pass that produced the
+                // proposals: "the model proposed four and two were invented" is the
+                // difference between a quiet meeting and a broken pass (P0-20b).
+                usage.noteCounts(["reconciledOut": dropped])
                 // A forced review replaces what the previous one offered. Appending would
                 // put a second copy of the same Doc and the same email on the list, and
                 // approving both copies creates both. An empty accept list still replaces
@@ -611,9 +621,13 @@ final class AgentService {
                 self.planLiveCandidatesIfNeeded()
             }
             guard let provider = await ModelRoleStore.shared.provider(for: .agent) else { return }
+            // P0-20b: as in `review`, the `meeting.live` row carries what the reconciler
+            // dropped once the pass hands its final round back.
+            let usage = MeetingUsageLedger()
+            defer { usage.finish(reason: "stop") }
             do {
                 let proposals = try await MeetingAgent.shared.liveProposals(
-                    for: meeting, recent: recent, provider: provider
+                    for: meeting, recent: recent, provider: provider, usage: usage
                 )
                 guard self.store.meeting(id: meeting.id) != nil else { return }
                 let accepted = MeetingActionReconciler.acceptedProposals(
@@ -622,6 +636,7 @@ final class AgentService {
                     mentioned: context.documentsMentioned,
                     actionItems: context.actionItems
                 )
+                usage.noteCounts(["reconciledOut": proposals.count - accepted.count])
                 self.record(accepted, for: meeting.id, announce: true)
             } catch {
                 Log.agent.info("live proposal skipped: \(error.localizedDescription, privacy: .public)")

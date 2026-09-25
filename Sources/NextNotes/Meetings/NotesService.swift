@@ -84,6 +84,9 @@ final class NotesService {
                 await LLMProviders.make(.appLLM).unavailableReason
             }
             problems[id] = reason ?? NotesError.noProvider.localizedDescription
+            // P0-20b: a pass that never reached a model still writes a row, so "did the
+            // notes run?" has an answer on disk after the process is gone.
+            recordUnavailableNotesProvider(for: meeting, preferred: preferred, reason: reason)
             Log.llm.info("no notes provider available for \"\(meeting.title, privacy: .public)\"")
             return nil
         }
@@ -95,7 +98,12 @@ final class NotesService {
 
         do {
             let brief = await notesBrief(for: meeting, provider: provider)
-            let generator = NotesGenerator(provider: provider)
+            // P0-20b: the usage row names the role that chose the model, and says when
+            // Regenerate's preferred engine overrode it rather than the role.
+            let generator = NotesGenerator(
+                provider: provider,
+                fallbackReason: preferred == nil ? nil : .preferredOverride
+            )
             let result = try await generator.notes(for: meeting, segments: segments, brief: brief) { step in
                 Task { @MainActor [weak self] in
                     self?.noteProgress(id)
@@ -155,6 +163,63 @@ final class NotesService {
     private func notesBrief(for meeting: Meeting, provider: any LLMProvider) async -> MeetingNotesBrief {
         guard Settings.shared.notesRelatedContext else { return .empty }
         return await MeetingNotesContextAssembler.live.brief(for: meeting, reader: provider.id)
+    }
+
+    /// One `meeting.notes.single` row for a pass with no provider to run (P0-20b).
+    ///
+    /// There is no model to wrap in a `ModelPassRecorder`, so the row is built directly.
+    /// It names the role's candidate model rather than claiming a pass happened: the
+    /// `errorClass` is `modelUnavailable` and `totalMs` is zero.
+    private func recordUnavailableNotesProvider(
+        for meeting: Meeting,
+        preferred: LLMProviderID?,
+        reason: String?
+    ) {
+        let named = preferred ?? .appLLM
+        let provider = LLMProviders.make(named)
+        UsageLog.shared.record(UsageRecord(
+            v: 1,
+            id: UUID(),
+            ts: Date(),
+            feature: UsageFeature.meetingNotesSingle.rawValue,
+            pass: "single",
+            round: nil,
+            provider: ModelPassRecorder.usageProvider(for: provider.id).rawValue,
+            modelID: provider.displayModelName,
+            locality: provider.id == .openRouter ? "cloud" : "local",
+            requestedRole: ModelRole.meetingNotes.rawValue,
+            requestedModel: provider.displayModelName,
+            fallbackReason: preferred == nil
+                ? nil
+                : UsageFallback.preferredOverride.rawValue,
+            warm: nil,
+            loadMs: nil,
+            promptTokens: nil,
+            cachedTokens: nil,
+            completionTokens: nil,
+            reasoningTokens: nil,
+            countsEstimated: nil,
+            ttftMs: nil,
+            totalMs: 0,
+            tokensPerSec: nil,
+            finishReason: "error",
+            truncated: nil,
+            toolsProposed: nil,
+            toolsExecuted: nil,
+            errorClass: UsageErrorClass.modelUnavailable.rawValue,
+            errorMessage: reason.map(UsageLog.sanitise),
+            audioSeconds: nil,
+            realtimeFactor: nil,
+            stages: nil,
+            counts: nil,
+            turnID: nil,
+            conversationID: nil,
+            workID: nil,
+            revision: nil,
+            meetingID: meeting.id,
+            dictationRunID: nil,
+            scheduleID: nil
+        ))
     }
 
     /// Takes a meeting from `.summarizing` to `.done`, writing `notes.md` on the way.

@@ -119,12 +119,49 @@ final class DiarizationService {
         }
     }
 
+    /// The shortest track `MeetingDiarizer.speakerRuns` clusters. Mirrors that actor's own
+    /// gate: below it the models are not worth loading, and awaiting `prepare()` here would
+    /// make a short meeting wait on a download it will never use.
+    private static let minimumDiarizableSeconds: TimeInterval = 2
+    /// Below this the diarizer was already in memory: `prepare()` returns without loading.
+    /// A model load is seconds of CoreML compilation, so the two cases cannot be confused.
+    private static let diarizerLoadThresholdMs = 50
+    /// The engine id the `meeting.diarize` row reports — FluidAudio's model folder.
+    private static let diarizerModelID = "speaker-diarization"
+
     /// - Returns: whether any speaker label was written.
     @discardableResult
     private func diarize(_ id: UUID) async -> Bool {
+        let began = ContinuousClock.now
+        var audioSeconds = 0.0
+        var runsCount = 0
+        var speakersCount = 0
+        var errorClass: UsageErrorClass?
+        var errorMessage: String?
+        var warm: Bool?
+        var loadMs: Int?
+        // P0-20b: one `meeting.diarize` row on every exit, built from whatever this pass
+        // learned. `defer` rather than a call per return path, so a new `return false`
+        // added later cannot quietly lose the row.
+        defer {
+            recordDiarize(
+                meetingID: id,
+                totalMs: ModelPassRecorder.milliseconds(began.duration(to: .now)),
+                audioSeconds: audioSeconds,
+                runs: runsCount,
+                speakers: speakersCount,
+                errorClass: errorClass,
+                errorMessage: errorMessage,
+                warm: warm,
+                loadMs: loadMs
+            )
+        }
+
         guard let meeting = store.meeting(id: id) else { return false }
         guard let audio = store.audioURL(for: meeting) else {
             problems[id] = DiarizationError.noAudio.localizedDescription
+            errorClass = .other
+            errorMessage = DiarizationError.noAudio.localizedDescription
             return false
         }
 
@@ -134,7 +171,6 @@ final class DiarizationService {
         // M-16a: the diarization pass is a stage span. The note carries runs,
         // speakers and audio seconds, or the error's type name — never the
         // message, which can contain a path.
-        let began = Date()
 
         // Routed through the model store as well as awaited below, so that a first meeting
         // which triggers the download shows it in Settings rather than looking like a
@@ -151,19 +187,36 @@ final class DiarizationService {
                 sampleRate: ChunkedTranscriber.sampleRate,
                 channel: MeetingAudioWriter.systemChannel
             )
+            audioSeconds = Double(samples.count) / ChunkedTranscriber.sampleRate
+
+            // P0-20b: awaiting the load here is what makes `warm`/`loadMs` measurable; for a
+            // track `speakerRuns` will cluster, that call does exactly this load anyway.
+            if audioSeconds >= Self.minimumDiarizableSeconds {
+                let prepareBegan = ContinuousClock.now
+                try await MeetingDiarizer.shared.prepare()
+                let prepareMs = ModelPassRecorder.milliseconds(prepareBegan.duration(to: .now))
+                if prepareMs >= Self.diarizerLoadThresholdMs {
+                    warm = false
+                    loadMs = prepareMs
+                } else {
+                    warm = true
+                }
+            }
+
             let runs = try await MeetingDiarizer.shared.speakerRuns(in: samples) { fraction in
                 Task { @MainActor [weak self] in
                     self?.noteProgress(id)
                     self?.progress[id] = fraction
                 }
             }
+            runsCount = runs.count
             try Task.checkCancellation()
             guard !runs.isEmpty else {
                 Log.meeting.info("diarization found no speech on the system track")
                 LatencyTrace.record(
                     .meetingDiarize,
-                    seconds: Date().timeIntervalSince(began),
-                    note: "runs=0 speakers=0 audio=\(String(format: "%.1f", Double(samples.count) / ChunkedTranscriber.sampleRate))s"
+                    seconds: ChunkedTranscriber.seconds(began.duration(to: .now)),
+                    note: "runs=0 speakers=0 audio=\(String(format: "%.1f", audioSeconds))s"
                 )
                 return false
             }
@@ -190,28 +243,88 @@ final class DiarizationService {
                 }
             }
 
-            let speakers = MeetingDiarizer.labels(in: labelled).count
+            speakersCount = MeetingDiarizer.labels(in: labelled).count
             LatencyTrace.record(
                 .meetingDiarize,
-                seconds: Date().timeIntervalSince(began),
-                note: "runs=\(runs.count) speakers=\(speakers) audio=\(String(format: "%.1f", Double(samples.count) / ChunkedTranscriber.sampleRate))s"
+                seconds: ChunkedTranscriber.seconds(began.duration(to: .now)),
+                note: "runs=\(runs.count) speakers=\(speakersCount) audio=\(String(format: "%.1f", audioSeconds))s"
             )
             Log.meeting.info("""
                 diarized "\(meeting.title, privacy: .public)" — \
-                \(speakers, privacy: .public) speaker(s) on the system track
+                \(speakersCount, privacy: .public) speaker(s) on the system track
                 """)
-            return speakers > 0
+            return speakersCount > 0
         } catch is CancellationError {
+            errorClass = .cancelled
             return false
         } catch {
+            errorClass = UsageErrorClass.classify(error)
+            errorMessage = error.localizedDescription
             LatencyTrace.record(
                 .meetingDiarize,
-                seconds: Date().timeIntervalSince(began),
+                seconds: ChunkedTranscriber.seconds(began.duration(to: .now)),
                 note: "error=\(type(of: error))"
             )
             problems[id] = error.localizedDescription
             Log.meeting.error("diarization failed: \(error.localizedDescription, privacy: .public)")
             return false
         }
+    }
+
+    /// One `meeting.diarize` row. Counts only — never a title, a speaker name or a path.
+    private func recordDiarize(
+        meetingID: UUID,
+        totalMs: Int,
+        audioSeconds: Double,
+        runs: Int,
+        speakers: Int,
+        errorClass: UsageErrorClass?,
+        errorMessage: String?,
+        warm: Bool?,
+        loadMs: Int?
+    ) {
+        UsageLog.shared.record(UsageRecord(
+            v: 1,
+            id: UUID(),
+            ts: Date(),
+            feature: UsageFeature.meetingDiarize.rawValue,
+            pass: "cluster",
+            round: nil,
+            provider: UsageProvider.diarizer.rawValue,
+            modelID: Self.diarizerModelID,
+            locality: "local",
+            requestedRole: nil,
+            requestedModel: nil,
+            fallbackReason: nil,
+            warm: warm,
+            loadMs: loadMs,
+            promptTokens: nil,
+            cachedTokens: nil,
+            completionTokens: nil,
+            reasoningTokens: nil,
+            countsEstimated: nil,
+            ttftMs: nil,
+            totalMs: totalMs,
+            tokensPerSec: nil,
+            finishReason: errorClass == nil ? "stop" : "error",
+            truncated: nil,
+            toolsProposed: nil,
+            toolsExecuted: nil,
+            errorClass: errorClass?.rawValue,
+            errorMessage: errorMessage.map(UsageLog.sanitise),
+            audioSeconds: audioSeconds,
+            realtimeFactor: audioSeconds > 0
+                ? Double(totalMs) / 1_000 / audioSeconds
+                : nil,
+            stages: nil,
+            counts: ["speakers": speakers, "runs": runs],
+            turnID: nil,
+            conversationID: nil,
+            workID: nil,
+            revision: nil,
+            meetingID: meetingID,
+            dictationRunID: nil,
+            scheduleID: nil
+        ))
     }
 }

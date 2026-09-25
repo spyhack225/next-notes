@@ -38,6 +38,12 @@ struct NotesGenerator: Sendable {
     }
 
     let provider: any LLMProvider
+    /// The role that chose this provider (P0-20b). `meetingNotes` is the only role that
+    /// generates notes, so it is the default; a caller that resolved the provider another
+    /// way can say so.
+    let requestedRole: ModelRole?
+    /// Why the pass ran on a model other than the role's, when it did.
+    let fallbackReason: UsageFallback?
 
     /// Held back from the prompt for the system message and the notes themselves.
     private static let reservedTokens = 1_536
@@ -60,8 +66,14 @@ struct NotesGenerator: Sendable {
     /// collapse instruction hits this cap and the line, which is honest.
     static let collapseMaxRounds = 3
 
-    init(provider: any LLMProvider) {
+    init(
+        provider: any LLMProvider,
+        requestedRole: ModelRole? = .meetingNotes,
+        fallbackReason: UsageFallback? = nil
+    ) {
         self.provider = provider
+        self.requestedRole = requestedRole
+        self.fallbackReason = fallbackReason
     }
 
     func notes(
@@ -88,7 +100,10 @@ struct NotesGenerator: Sendable {
 
         if transcriptTokens + briefTokens <= budget {
             progress(Step(message: "Writing notes\u{2026}", fraction: nil))
-            let completion = try await provider.complete(
+            let completion = try await recordedComplete(
+                feature: .meetingNotesSingle,
+                pass: "single",
+                meetingID: meeting.id,
                 system: NotesPrompts.notesSystem,
                 user: NotesPrompts.notesUser(meeting: meeting, transcript: transcript, brief: brief),
                 maxTokens: outputBudget(promptTokens: transcriptTokens + briefTokens)
@@ -164,7 +179,10 @@ struct NotesGenerator: Sendable {
             ))
             // No brief here on purpose: the map step's job is "write only what was said",
             // and context facts in this prompt come back as claims someone made.
-            let completion = try await provider.complete(
+            let completion = try await recordedComplete(
+                feature: .meetingNotesMap,
+                pass: "map",
+                meetingID: meeting.id,
                 system: NotesPrompts.mapSystem,
                 user: NotesPrompts.mapUser(
                     meeting: meeting,
@@ -241,10 +259,14 @@ struct NotesGenerator: Sendable {
         }
 
         let factTokens = try await provider.countTokens(joined)
-        let completion = try await provider.complete(
+        let completion = try await recordedComplete(
+            feature: .meetingNotesReduce,
+            pass: "reduce",
+            meetingID: meeting.id,
             system: NotesPrompts.reduceSystem,
             user: NotesPrompts.reduceUser(meeting: meeting, facts: joined, brief: brief),
-            maxTokens: outputBudget(promptTokens: factTokens + briefTokens)
+            maxTokens: outputBudget(promptTokens: factTokens + briefTokens),
+            counts: ["chunks": chunks.count, "facts": facts.count]
         )
         generated += completion.generatedTokens
 
@@ -265,6 +287,52 @@ struct NotesGenerator: Sendable {
             collapsedGroups: collapsedGroups,
             droppedFacts: dropped
         )
+    }
+
+    /// One model call, wrapped in the usage recorder that writes its row (P0-20b).
+    ///
+    /// The recorder is installed as the task-local before the provider runs, so a provider
+    /// with exact counts of its own reports into the same row. The call site still reports
+    /// the completion's token count afterwards, because a provider — a scripted self-test
+    /// one, or any backend that measures nothing — may report none at all; the last report
+    /// wins for the fields it carries.
+    private func recordedComplete(
+        feature: UsageFeature,
+        pass: String,
+        meetingID: UUID,
+        system: String,
+        user: String,
+        maxTokens: Int,
+        counts: [String: Int] = [:]
+    ) async throws -> LLMCompletion {
+        let recorder = ModelPassRecorder(
+            feature: feature,
+            pass: pass,
+            provider: provider,
+            ids: UsageCorrelation(meetingID: meetingID),
+            requestedRole: requestedRole
+        )
+        if let fallbackReason { recorder.fellBack(fallbackReason) }
+        if !counts.isEmpty { recorder.noteCounts(counts) }
+        do {
+            let completion = try await ModelPassRecorder.$current.withValue(recorder) {
+                try await provider.complete(system: system, user: user, maxTokens: maxTokens)
+            }
+            recorder.report(
+                promptTokens: nil,
+                cachedTokens: nil,
+                completionTokens: completion.generatedTokens,
+                reasoningTokens: nil,
+                finishReason: nil,
+                estimated: provider.id == .appleFoundation
+            )
+            recorder.finish(reason: "stop")
+            return completion
+        } catch {
+            recorder.fail(error)
+            recorder.finish(reason: error is CancellationError ? "cancelled" : "error")
+            throw error
+        }
     }
 
     private var chunkTokens: Int {
