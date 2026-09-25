@@ -963,24 +963,6 @@ extension RealtimeAgent {
         // P0-2: the planner sees the filtered roster; grounding keeps the full one.
         let requestForRanking = work?.original ?? prompt
         let tools = Self.relevantTools(for: requestForRanking, all: allTools)
-        // P1-3: a long plan gets one honest sentence. Voice stays on this Mac, so it
-        // never carries the cloud notice — only the slow warning.
-        let role = ModelRoleStore.role(forUtterance: requestForRanking)
-        let cloudReady = await OpenRouterKeyStore.hasKeyAsync()
-            && !Settings.shared.openRouterAgentModelID.isEmpty
-        let cloudConsent = Settings.shared.knowledgeGraphCloudConsent
-        let route = ModelRoleStore.multiStepRoute(
-            for: requestForRanking, role: role, cloudReady: cloudReady, cloudConsent: cloudConsent)
-        let notice: String?
-        if voice {
-            notice = (route == .localWithWarning) ? ModelRoleStore.slowWarningIfNeeded() : nil
-        } else {
-            switch route {
-            case .cloud: notice = ModelRoleStore.cloudSlowNotice()
-            case .localWithWarning: notice = ModelRoleStore.slowWarningIfNeeded()
-            case .local: notice = nil
-            }
-        }
         // One provider per turn. A typed turn's provider is chosen by `runModelTurn` and
         // handed in here; only the voice worker, which owns its own objective, resolves.
         let chosen: any LLMProvider
@@ -994,6 +976,14 @@ extension RealtimeAgent {
             publishAnsweringModel(nil)
             return Self.noModelReply
         }
+        // P1-3 / P0-22: the one honest sentence for a long plan is chosen from the model
+        // that will actually answer it, so it names the answerer rather than a route
+        // decision made before the provider was resolved. At most once per session.
+        let notice = MultiStepNotices.notice(
+            providerID: chosen.id,
+            modelName: chosen.displayModelName,
+            likelyMultiStep: ModelRoleStore.likelyMultiStep(requestForRanking),
+            voice: voice)
         // The voice worker owns its own objective and resolves here; the pane still names
         // whichever model actually planned the turn.
         publishAnsweringModel(chosen)

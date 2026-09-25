@@ -93,19 +93,101 @@ enum ModelRoleSelfTest {
         if driving == .cloud {
             failures.append("a computer-use request took the agent cloud route")
         }
+        failures += multiStepNoticeTable()
+        return failures
+    }
+
+    /// P0-22: the sentence a multi-step turn opens with has to name the model that actually
+    /// answers it, and may not promise a duration. Four cases, each red on today's forwarder
+    /// in `MultiStepNotices.notice`:
+    ///
+    /// - **a.** an online answer names "Ling", says "online", and never says "minute",
+    ///   "slower" or "faster" — today's names the configured account instead and says
+    ///   "slower";
+    /// - **b.** the online sentence is said once per session, not once per turn — today's
+    ///   has no flag and says it every time;
+    /// - **c.** on this Mac the sentence is exactly "This takes a few steps on this Mac.",
+    ///   and a single-step request carries nothing — today's promises "a few minutes";
+    /// - **d.** a spoken turn never carries the notice — today's voice path still emits the
+    ///   slow warning.
+    private static func multiStepNoticeTable() -> [String] {
+        var failures: [String] = []
+
+        // (a) Online: the answering model is named and no speed or duration is promised.
+        MultiStepNotices.resetForTesting()
+        let online = MultiStepNotices.notice(
+            providerID: .openRouter, modelName: "Ling", likelyMultiStep: true, voice: false
+        )
+        if let online {
+            if !online.contains("Ling") {
+                failures.append("the online notice does not name the model that answers: \(online)")
+            }
+            if !online.lowercased().contains("online") {
+                failures.append("the online notice does not say the turn goes online: \(online)")
+            }
+            for banned in ["minute", "slower", "faster"] where online.lowercased().contains(banned) {
+                failures.append("the online notice promises “\(banned)”: \(online)")
+            }
+        } else {
+            failures.append("an online model answered without saying the words leave this Mac")
+        }
+
+        // (b) Once per session, not once per turn.
+        MultiStepNotices.resetForTesting()
+        _ = MultiStepNotices.notice(
+            providerID: .openRouter, modelName: "Ling", likelyMultiStep: true, voice: false)
+        if MultiStepNotices.notice(
+            providerID: .openRouter, modelName: "Ling", likelyMultiStep: true, voice: false
+        ) != nil {
+            failures.append("the online notice appeared more than once in a session")
+        }
+
+        // (c) On this Mac, one sentence — and only for a request that takes several steps.
+        MultiStepNotices.resetForTesting()
+        let local = MultiStepNotices.notice(
+            providerID: .appLLM, modelName: "Qwen3-4B", likelyMultiStep: true, voice: false
+        )
+        if local != "This takes a few steps on this Mac." {
+            failures.append("the local multi-step notice reads “\(local ?? "nothing")”")
+        }
+        MultiStepNotices.resetForTesting()
+        if MultiStepNotices.notice(
+            providerID: .appLLM, modelName: "Qwen3-4B", likelyMultiStep: false, voice: false
+        ) != nil {
+            failures.append("a single-step request carried a multi-step notice")
+        }
+
+        // (d) The spoken path never carries this notice, whatever model answers.
+        for provider in LLMProviderID.allCases + [.localServer] {
+            MultiStepNotices.resetForTesting()
+            if MultiStepNotices.notice(
+                providerID: provider, modelName: "Ling", likelyMultiStep: true, voice: true
+            ) != nil {
+                failures.append("a spoken turn carried a multi-step notice from \(provider.rawValue)")
+            }
+        }
+        MultiStepNotices.resetForTesting()
         return failures
     }
 
     /// One honest sentence, once per session, in words a person would use — never a
-    /// tool id or a plan. The cloud notice names the configured online model.
+    /// tool id or a plan, and never a promised duration. The online notice names the
+    /// model that answers and says the words leave this Mac.
+    ///
+    /// P0-22 replaced the two forwarders this used to drive (`slowWarningIfNeeded`,
+    /// `cloudSlowNotice`) with the single `notice(…)`, so it drives that directly.
     private static func slowWarningPresent() -> [String] {
         var failures: [String] = []
-        ModelRoleStore.resetSlowWarningForTesting()
-        defer { ModelRoleStore.resetSlowWarningForTesting() }
-        guard let first = ModelRoleStore.slowWarningIfNeeded() else {
+        MultiStepNotices.resetForTesting()
+        defer { MultiStepNotices.resetForTesting() }
+        guard let first = MultiStepNotices.notice(
+            providerID: .appLLM, modelName: "Qwen3-4B", likelyMultiStep: true, voice: false
+        ) else {
             return ["the slow-plan warning never appeared"]
         }
-        if ModelRoleStore.slowWarningIfNeeded() != nil {
+        if MultiStepNotices.notice(
+            providerID: .appLLM, modelName: "Qwen3-4B", likelyMultiStep: true, voice: false
+        ) != nil {
             failures.append("the slow-plan warning appeared more than once in a session")
         }
         for id in ["computer.", "filesystem.", "browser.", "<tool_call>", "tool plan"] {
@@ -116,14 +198,17 @@ enum ModelRoleSelfTest {
         if first.isEmpty {
             failures.append("the slow-plan warning was empty")
         }
-        let notice = ModelRoleStore.cloudSlowNotice()
-        let lowered = notice.lowercased()
-        if !lowered.contains("slower") || !lowered.contains("leaves this mac") {
-            failures.append("the online notice does not say it is slower and leaves this Mac: \(notice)")
+        let notice = MultiStepNotices.notice(
+            providerID: .openRouter, modelName: "Ling", likelyMultiStep: true, voice: false) ?? ""
+        if !notice.contains("Ling") {
+            failures.append("the online notice does not name the model that answers: \(notice)")
         }
-        let expectedName = ModelRoleStore.shared.displayName(for: .cloud, role: .agent)
-        if !notice.contains(expectedName) {
-            failures.append("the online notice does not name \(expectedName): \(notice)")
+        let lowered = notice.lowercased()
+        if !lowered.contains("online") || !lowered.contains("leaves your mac") {
+            failures.append("the online notice does not say the words leave this Mac: \(notice)")
+        }
+        for banned in ["minute", "second", "slower", "faster"] where lowered.contains(banned) {
+            failures.append("the online notice promises “\(banned)”: \(notice)")
         }
         return failures
     }

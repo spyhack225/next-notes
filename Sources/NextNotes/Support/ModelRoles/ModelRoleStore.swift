@@ -983,27 +983,48 @@ enum MultiStepPlanRouting: Sendable {
     }
 }
 
-/// The one honest sentence for each long-plan path. Consumer words, no tool ids,
-/// no chain-of-thought — just what happens next and what it costs.
+/// The one honest sentence a tool turn opens with, chosen from the model that will
+/// actually answer it. Consumer words, no tool ids, no chain-of-thought and no promised
+/// duration — just what happens next.
 @MainActor
 enum MultiStepNotices {
-    static var slowWarningIssued = false
+    /// "The words left this Mac" and "this one takes a few steps" are two different facts,
+    /// so each is said once per session rather than one silencing the other.
+    static var onlineNoticeIssued = false
+    static var localStepsNoticeIssued = false
 
-    /// "This takes a while on this Mac" — once per session, not per turn.
-    static func slowWarningIfNeeded() -> String? {
-        guard !slowWarningIssued else { return nil }
-        slowWarningIssued = true
-        return "This needs a few steps, so on this Mac it takes a few minutes. "
-            + "I’ll keep going here — or connect an online model to go faster."
+    /// The sentence for this turn, or nil when there is nothing worth saying. The model
+    /// that will answer decides it — not the account settings, which can disagree with the
+    /// provider a turn actually resolved to:
+    ///
+    /// * An online answer, typed, says once per session that the words leave this Mac,
+    ///   whether or not the request takes several steps.
+    /// * A request that takes several steps and stays on this Mac says once per session
+    ///   that it takes a few steps.
+    /// * A spoken turn never carries one: it stays on this Mac, and a sentence about the
+    ///   plan would interrupt the conversation rather than inform it.
+    static func notice(
+        providerID: LLMProviderID,
+        modelName: String,
+        likelyMultiStep: Bool,
+        voice: Bool
+    ) -> String? {
+        guard !voice else { return nil }
+        switch providerID {
+        case .openRouter:
+            guard !onlineNoticeIssued else { return nil }
+            onlineNoticeIssued = true
+            return "Using \(modelName) online; this leaves your Mac."
+        case .appLLM, .appleFoundation, .localServer:
+            guard likelyMultiStep, !localStepsNoticeIssued else { return nil }
+            localStepsNoticeIssued = true
+            return "This takes a few steps on this Mac."
+        }
     }
 
-    static func resetForTesting() { slowWarningIssued = false }
-
-    /// "Online model — slower, leaves this Mac…" with the configured model name.
-    static func cloudNotice() -> String {
-        let name = ModelRoleStore.shared.displayName(for: .cloud, role: .agent)
-        return "Using \(name) online — slower, and it leaves this Mac. "
-            + "I’ll keep the steps on screen as I go."
+    static func resetForTesting() {
+        onlineNoticeIssued = false
+        localStepsNoticeIssued = false
     }
 }
 
@@ -1019,8 +1040,4 @@ extension ModelRoleStore {
     ) -> MultiStepRoute {
         MultiStepPlanRouting.route(for: text, role: role, cloudReady: cloudReady, cloudConsent: cloudConsent)
     }
-
-    static func slowWarningIfNeeded() -> String? { MultiStepNotices.slowWarningIfNeeded() }
-    static func resetSlowWarningForTesting() { MultiStepNotices.resetForTesting() }
-    static func cloudSlowNotice() -> String { MultiStepNotices.cloudNotice() }
 }
