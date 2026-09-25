@@ -101,6 +101,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-model-unopenable --selftest-private-network --selftest-store-isolation
 --selftest-chat-template
 --selftest-llm-prefix-cache
+--selftest-usage-log
 --selftest-memory-portability
 --selftest-voice-turn-routing --selftest-wake-live
 --selftest-computer-actions  --selftest-click-coordinate --selftest-cdp

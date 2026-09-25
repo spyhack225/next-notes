@@ -461,6 +461,14 @@ struct OpenRouterLLMProvider: LLMProvider {
                         "openrouter completion finish=length visible=\(text.count, privacy: .public)")
                 }
                 guard !text.isEmpty else { throw OpenRouterError.invalidResponse }
+                // P0-20a: the non-streamed response carries a full usage object.
+                ModelPassRecorder.current?.report(
+                    promptTokens: decoded.usage?.prompt_tokens,
+                    cachedTokens: nil,
+                    completionTokens: decoded.usage?.completion_tokens,
+                    reasoningTokens: nil,
+                    finishReason: decoded.choices.first?.finish_reason,
+                    estimated: decoded.usage == nil)
                 return LLMCompletion(text: text,
                                      generatedTokens: decoded.usage?.completion_tokens ?? max(1, text.utf8.count / 3),
                                      duration: Date().timeIntervalSince(began))
@@ -546,7 +554,11 @@ struct OpenRouterLLMProvider: LLMProvider {
                 return try await Self.validatedLines(moreResponse, bytes: more)
             }
         }
-        return try await Self.drain(lines: lines, retry: retry, yield: yield)
+        let summary = try await Self.drain(lines: lines, retry: retry, yield: yield)
+        // P0-20a: the stream's own usage object (P0-17's decoder), reported after the
+        // stream ended so counting never holds up a token.
+        ModelPassRecorder.current?.report(openRouter: summary.usage)
+        return summary
     }
 
     /// One SSE line's events. One line can carry content, a finish reason and usage at
@@ -760,7 +772,7 @@ struct OpenRouterLLMProvider: LLMProvider {
             let message: Message
             let finish_reason: String?
         }
-        struct Usage: Decodable { let completion_tokens: Int? }
+        struct Usage: Decodable { let prompt_tokens: Int?; let completion_tokens: Int? }
         let choices: [Choice]
         let usage: Usage?
     }

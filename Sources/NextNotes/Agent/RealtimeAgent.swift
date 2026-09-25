@@ -51,6 +51,11 @@ final class RealtimeAgent {
 
     private(set) var answeringModel: AnsweringModel?
 
+    /// One id per `handle` (P0-20a). Every model pass of one user turn writes its usage row
+    /// with this id, which is what joins the first answer to the planner rounds that
+    /// followed it.
+    private(set) var currentTurnID = UUID()
+
     /// Records the model a turn will answer with. `nil` clears it: no model answered, so
     /// the pane must not keep naming the previous turn's model beside this turn's reply.
     func publishAnsweringModel(_ provider: (any LLMProvider)?) {
@@ -166,6 +171,8 @@ final class RealtimeAgent {
 
     func runVoiceObjective() async -> String {
         guard let voiceWork else { return "The work item is unavailable." }
+        // One id per worker objective (P0-20a); a revision runs this again and gets its own.
+        currentTurnID = UUID()
         // A question about past meetings is answered from the index as this background job:
         // the frontend has already said it is on it, and the answer is announced when done.
         if voiceWork.followUps.isEmpty, KnowledgeAskRouting.isLibraryQuestion(voiceWork.original),
@@ -182,7 +189,14 @@ final class RealtimeAgent {
         let owner = currentGeneration
         let asker = KnowledgeAsker(context: context, model: ProviderKnowledgeAnswerModel(provider: provider))
         do {
-            let answer = try await KnowledgeGraphScope.$reader.withValue(provider.id) { try await asker.run(question) }
+            let answer = try await KnowledgeGraphScope.$reader.withValue(provider.id) {
+                try await ModelPassRecorder.$correlation.withValue(
+                    UsageCorrelation(turnID: currentTurnID,
+                                     conversationID: AgentSession.shared.sessionID)
+                ) {
+                    try await asker.run(question)
+                }
+            }
             guard isCurrent(owner) else { return "I stopped looking." }
             AgentAuditLog.shared.record(kind: .reply, title: "Answered from the knowledge index",
                                         detail: "\(answer.rounds) rounds · cites " + answer.citations.map(\.marker)
@@ -247,6 +261,9 @@ final class RealtimeAgent {
                 || CommandLine.arguments.contains("--selftest-voice-pipeline") {
             return await VoiceConversationCoordinator.shared.handle(utterance)
         }
+        // One turn id per handled utterance (P0-20a): the answer pass and every planner
+        // round it leads to share it.
+        currentTurnID = UUID()
         finishFirstTTSTrace(note: "superseded")
         let text = utterance.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
@@ -616,6 +633,7 @@ final class RealtimeAgent {
     /// not write either a second time.
     func answerLocallyOnce(_ prompt: String, source: AgentUtteranceSource) async -> AgentTurn {
         currentTurnSource = source
+        currentTurnID = UUID()
         return await answerLocally(
             prompt,
             forceOnDevice: true,
@@ -677,6 +695,14 @@ final class RealtimeAgent {
             )
         }
         publishAnsweringModel(provider)
+        let recorder = ModelPassRecorder(
+            feature: .agentTyped, pass: "answer", provider: provider,
+            ids: UsageCorrelation(
+                turnID: currentTurnID,
+                conversationID: AgentSession.shared.sessionID),
+            requestedRole: .agent)
+        var passReason = "stop"
+        defer { recorder.finish(reason: passReason) }
 
         let startedStreaming = currentTurnSource == .voice
             && AgentCaptureController.shared.isSessionActive
@@ -703,26 +729,31 @@ final class RealtimeAgent {
                 window=\(window) prompt=\(promptTokens) visible=\(visible)
                 """
             )
-            let chunks = if startedStreaming {
-                await LatencyCorrelation.$current.withValue(LatencyCorrelation(
-                    sessionID: AgentCaptureController.shared.sessionID, workID: work?.id,
-                    revision: work?.revision)) {
-                    await provider.streamInteractiveConversation(
-                        system: system, messages: [.init(role: .user, content: grounded)],
-                        maxTokens: visible)
+            let chunks = await ModelPassRecorder.$current.withValue(recorder) {
+                if startedStreaming {
+                    return await LatencyCorrelation.$current.withValue(LatencyCorrelation(
+                        sessionID: AgentCaptureController.shared.sessionID, workID: work?.id,
+                        revision: work?.revision)) {
+                        await provider.streamInteractiveConversation(
+                            system: system, messages: [.init(role: .user, content: grounded)],
+                            maxTokens: visible)
+                    }
+                } else {
+                    return await provider.stream(system: system, user: grounded,
+                                                 maxTokens: visible)
                 }
-            } else {
-                await provider.stream(system: system, user: grounded,
-                                      maxTokens: visible)
             }
             for try await chunk in chunks {
                 try Task.checkCancellation()
                 guard isCurrent(mine) else {
+                    passReason = "cancelled"
                     endReplyTrace("superseded")
                     return AgentTurn(reply: lastReply, delegated: false)
                 }
                 if !chunk.isEmpty {
-                    endReplyTrace("local-model")
+                    recorder.noteFirstToken()
+                    endReplyTrace(
+                        "local-model provider=\(provider.id.rawValue) model=\(provider.displayModelName)")
                 }
                 answer += chunk
                 lastReply = answer
@@ -735,11 +766,13 @@ final class RealtimeAgent {
             }
             try Task.checkCancellation()
             guard isCurrent(mine) else {
+                passReason = "cancelled"
                 endReplyTrace("superseded")
                 return AgentTurn(reply: lastReply, delegated: false)
             }
             await waitForVoiceInput()
             guard isCurrent(mine), revision == (work?.revision ?? 0) else {
+                passReason = "cancelled"
                 speech.cancel()
                 return AgentTurn(reply: "", delegated: false)
             }
@@ -759,14 +792,18 @@ final class RealtimeAgent {
             }
             return concludeStreamed(mine, answer, route: "local-model")
         } catch is CancellationError {
+            passReason = "cancelled"
             endReplyTrace("cancelled")
             if startedStreaming { finishFirstTTSTrace(note: "cancelled") }
             return AgentTurn(reply: lastReply, delegated: false)
         } catch {
             guard isCurrent(mine) else {
+                passReason = "cancelled"
                 endReplyTrace("superseded")
                 return AgentTurn(reply: lastReply, delegated: false)
             }
+            passReason = "error"
+            recorder.fail(error)
             endReplyTrace("local-model-error")
             if startedStreaming {
                 RealtimeAudioSession.shared.noteUserSpeech()
@@ -813,7 +850,11 @@ final class RealtimeAgent {
         let messageID = AgentSession.shared.recordAssistant(
             reply, contextKind: contextKind,
             source: currentTurnSource == .voice ? .voice : nil)
-        AgentAuditLog.shared.record(kind: .reply, title: reply)
+        // The audit log is internal, so the model's id may appear here (P0-20a). The pane
+        // still shows `answeringModel.name`.
+        AgentAuditLog.shared.record(
+            kind: .reply, title: reply,
+            detail: answeringModel.map { "Answered by \($0.name)" } ?? "")
         AgentCaptureController.shared.noteAssistantReply(reply)
         if AgentCaptureController.shared.isSessionActive {
             // Speak-replies is on for the open session only. Wave 2 can make this

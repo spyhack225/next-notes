@@ -847,7 +847,10 @@ actor NotesModelRuntime {
         maxTokens: Int,
         grammar: GBNFGrammar? = nil
     ) async throws -> LLMCompletion {
+        let wasLoaded = model != nil && vocabulary != nil
+        let loadBegan = ContinuousClock.now
         try await loadIfNeeded(schedulerJobID: jobID)
+        Self.reportUsageLoad(warm: wasLoaded, began: loadBegan)
         // On every exit, not just the successful one: a transcript that was too long, a
         // failed decode or a cancelled generation leaves the weights just as resident as a
         // generation that worked, and without this they would stay that way until quit.
@@ -926,6 +929,15 @@ actor NotesModelRuntime {
         for marker in ChatTemplate.controlMarkers(family) {
             text = text.replacingOccurrences(of: marker, with: "")
         }
+        // P0-20a: exact counts from the in-process tokenizer, after the pass, never
+        // blocking the stream.
+        ModelPassRecorder.current?.report(
+            promptTokens: promptTokens.count,
+            cachedTokens: lastPrefillStats?.reused,
+            completionTokens: generated,
+            reasoningTokens: nil,
+            finishReason: nil,
+            estimated: false)
         return LLMCompletion(
             text: text,
             generatedTokens: generated,
@@ -944,7 +956,10 @@ actor NotesModelRuntime {
         yield: @escaping @Sendable (String) -> Void
     ) async throws {
         let firstTokenTrace = LatencyTrace.start(.modelFirstToken)
+        let wasLoaded = model != nil && vocabulary != nil
+        let loadBegan = ContinuousClock.now
         try await loadIfNeeded(schedulerJobID: jobID)
+        Self.reportUsageLoad(warm: wasLoaded, began: loadBegan)
         defer {
             lastUse = Date()
             scheduleIdleUnload()
@@ -1045,6 +1060,28 @@ actor NotesModelRuntime {
             throw error
         }
         if !pending.isEmpty, turnEnd.isEmpty || !pending.hasPrefix(turnEnd) { yield(pending) }
+        // P0-20a: exact prompt, reused-prefix and generated counts, measured after the
+        // stream ended so the pass is never held up by bookkeeping.
+        ModelPassRecorder.current?.report(
+            promptTokens: promptTokens.count,
+            cachedTokens: reused,
+            completionTokens: generated,
+            reasoningTokens: nil,
+            finishReason: nil,
+            estimated: false)
+    }
+
+    /// P0-20a: report whether this pass paid the model load, and how long it took. Shared
+    /// by the streaming and non-streaming entrances so both rows carry the same answer.
+    private static func reportUsageLoad(warm: Bool, began: ContinuousClock.Instant) {
+        guard let recorder = ModelPassRecorder.current else { return }
+        guard !warm else {
+            recorder.noteLoad(warm: true, ms: nil)
+            return
+        }
+        recorder.noteLoad(
+            warm: false,
+            ms: ModelPassRecorder.milliseconds(began.duration(to: .now)))
     }
 
     /// Acquires the shared background lane for the duration of `body`.

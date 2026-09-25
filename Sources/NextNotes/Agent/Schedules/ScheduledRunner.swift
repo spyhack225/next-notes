@@ -280,11 +280,27 @@ final class ScheduledRunner: ScheduledRunning {
                 complete: { [state] user in
                     // A draft ends the run: nothing more is asked of the model.
                     guard state.drafts.isEmpty else { return "" }
-                    let text = try await model.complete(system: system, user: user)
-                    if AgentToolCallParser.calls(in: text).isEmpty {
-                        state.finalAnswer = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    // P0-20a: the model is built by the environment seam, which never sees
+                    // the schedule, so the id is installed here for the recorder to read.
+                    return try await ModelPassRecorder.$correlation.withValue(
+                        UsageCorrelation(scheduleID: schedule.id)
+                    ) {
+                        let recorder = model.usageRecorder()
+                        do {
+                            let text = try await ModelPassRecorder.$current.withValue(recorder) {
+                                try await model.complete(system: system, user: user)
+                            }
+                            recorder?.finish(reason: "stop")
+                            if AgentToolCallParser.calls(in: text).isEmpty {
+                                state.finalAnswer = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                            }
+                            return text
+                        } catch {
+                            recorder?.fail(error)
+                            recorder?.finish(reason: error is CancellationError ? "cancelled" : "error")
+                            throw error
+                        }
                     }
-                    return text
                 },
                 execute: { [weak self, state] call in
                     guard let self else { return "The routine stopped." }
@@ -528,11 +544,14 @@ final class LiveScheduledRunEnvironment: ScheduledRunEnvironment {
     func model(for route: RoutineModelRoute) async -> (any MemoryReviewModel)? {
         switch route {
         case .local:
-            return ProviderMemoryReviewModel(provider: LlamaLLMProvider(), maxTokens: 384)
+            return ProviderMemoryReviewModel(
+                provider: LlamaLLMProvider(), maxTokens: 384, usageFeature: .agentRoutine)
         case .cloud:
-            return ProviderMemoryReviewModel(provider: LLMProviders.make(
-                .openRouter, modelID: Settings.shared.openRouterAgentModelID,
-                contextTokens: Settings.shared.openRouterAgentContextTokens), maxTokens: 384)
+            return ProviderMemoryReviewModel(
+                provider: LLMProviders.make(
+                    .openRouter, modelID: Settings.shared.openRouterAgentModelID,
+                    contextTokens: Settings.shared.openRouterAgentContextTokens),
+                maxTokens: 384, usageFeature: .agentRoutine)
         case .skip:
             return nil
         }

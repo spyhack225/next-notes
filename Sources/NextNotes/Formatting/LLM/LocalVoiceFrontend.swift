@@ -495,7 +495,34 @@ actor LocalVoiceFrontend {
 
     /// Resolve the two-stage route. The route is collected as a complete
     /// value before any answer text or control envelope is delivered.
+    ///
+    /// P0-20a: one `agent.voice`/`frontend-route` row per route pass.
     private func streamSplitDecision(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int,
+        continuation: AsyncThrowingStream<String, Error>.Continuation,
+        timing: GenerationTiming
+    ) async throws -> Bool {
+        let recorder = ModelPassRecorder(
+            feature: .agentVoice, pass: "frontend-route",
+            provider: FoundationModelLLMProvider(),
+            ids: ModelPassRecorder.correlation ?? UsageCorrelation(),
+            requestedRole: nil)
+        do {
+            let produced = try await streamSplitDecisionBody(
+                system: system, messages: messages, maxTokens: maxTokens,
+                continuation: continuation, timing: timing)
+            recorder.finish(reason: "stop")
+            return produced
+        } catch {
+            recorder.fail(error)
+            recorder.finish(reason: error is CancellationError ? "cancelled" : "error")
+            throw error
+        }
+    }
+
+    private func streamSplitDecisionBody(
         system: String,
         messages: [LLMChatMessage],
         maxTokens: Int,
@@ -567,12 +594,40 @@ actor LocalVoiceFrontend {
 
     /// Stream only the answer-stage prose. The envelope is owned by this
     /// frontend, so an answer-stage model cannot request an effect.
+    ///
+    /// P0-20a: one `agent.voice`/`frontend-answer` row per answer pass.
     private func streamSplitAnswer(
         session: LanguageModelSession,
         prompt: String,
         maxTokens: Int,
         continuation: AsyncThrowingStream<String, Error>.Continuation,
         timing: GenerationTiming
+    ) async throws -> Bool {
+        let recorder = ModelPassRecorder(
+            feature: .agentVoice, pass: "frontend-answer",
+            provider: FoundationModelLLMProvider(),
+            ids: ModelPassRecorder.correlation ?? UsageCorrelation(),
+            requestedRole: nil)
+        do {
+            let produced = try await streamSplitAnswerBody(
+                session: session, prompt: prompt, maxTokens: maxTokens,
+                continuation: continuation, timing: timing, recorder: recorder)
+            recorder.finish(reason: "stop")
+            return produced
+        } catch {
+            recorder.fail(error)
+            recorder.finish(reason: error is CancellationError ? "cancelled" : "error")
+            throw error
+        }
+    }
+
+    private func streamSplitAnswerBody(
+        session: LanguageModelSession,
+        prompt: String,
+        maxTokens: Int,
+        continuation: AsyncThrowingStream<String, Error>.Continuation,
+        timing: GenerationTiming,
+        recorder: ModelPassRecorder
     ) async throws -> Bool {
         let response = session.streamResponse(
             to: prompt,
@@ -596,6 +651,7 @@ actor LocalVoiceFrontend {
             }
             if !current.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 if !started {
+                    recorder.noteFirstToken()
                     if mayDeliver(timing) { continuation.yield("<answer/>") }
                     started = true
                     Self.emitTiming(timing, "first_answer_text")
@@ -606,6 +662,13 @@ actor LocalVoiceFrontend {
             previous = current
         }
         guard started else { throw FrontendError.emptyResponse }
+        recorder.report(
+            promptTokens: max(1, prompt.count / 4),
+            cachedTokens: nil,
+            completionTokens: max(1, previous.count / 4),
+            reasoningTokens: nil,
+            finishReason: nil,
+            estimated: true)
         return true
     }
 

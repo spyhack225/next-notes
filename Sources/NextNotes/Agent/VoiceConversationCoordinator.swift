@@ -361,6 +361,9 @@ final class VoiceConversationCoordinator {
     private func respond(_ text: String, id: UUID, inputEpoch: UInt64, commitRevision: UInt64) async -> AgentTurn {
         let agent = RealtimeAgent.shared
         let turn = agent.beginVoiceFrontend()
+        // One id per voice turn (P0-20a). Installed as a task-local around the frontend
+        // stream, so its route and answer passes write their rows with it.
+        let usageTurnID = UUID()
         // Assembled before the user row is recorded, so the current turn reaches
         // the model exactly once: in the final message's `Latest user speech:`
         // marker, never as a transcript entry as well. With both, the answer
@@ -475,11 +478,17 @@ final class VoiceConversationCoordinator {
         tracker.beginResponse()
         var assembled = ""
         do {
-            let stream = if let streamForTesting {
-                await streamForTesting(Self.systemPrompt, messages)
-            } else {
-                await LocalVoiceFrontend.shared.stream(system: Self.systemPrompt, messages: messages,
-                    maxTokens: Self.responseTokenLimit, commitRevision: commitRevision)
+            let stream = await ModelPassRecorder.$correlation.withValue(
+                UsageCorrelation(turnID: usageTurnID,
+                                 conversationID: AgentSession.shared.sessionID)
+            ) {
+                if let streamForTesting {
+                    return await streamForTesting(Self.systemPrompt, messages)
+                } else {
+                    return await LocalVoiceFrontend.shared.stream(
+                        system: Self.systemPrompt, messages: messages,
+                        maxTokens: Self.responseTokenLimit, commitRevision: commitRevision)
+                }
             }
             let progress = VoiceFrontendStreamProgress()
             let deadline = responseDeadlineForTesting ?? .seconds(25)

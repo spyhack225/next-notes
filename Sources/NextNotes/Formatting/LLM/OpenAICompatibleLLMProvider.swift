@@ -89,6 +89,14 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
         let text = try Self.text(fromCompletion: data)
         guard !text.isEmpty else { throw LocalServerError.emptyAnswer(serverName) }
         let usage = try? JSONDecoder().decode(CompletionResponse.self, from: data).usage
+        // P0-20a: the server's own usage object when it sends one, estimates otherwise.
+        ModelPassRecorder.current?.report(
+            promptTokens: usage?.prompt_tokens,
+            cachedTokens: nil,
+            completionTokens: usage?.completion_tokens,
+            reasoningTokens: nil,
+            finishReason: nil,
+            estimated: usage == nil)
         return LLMCompletion(
             text: text,
             generatedTokens: usage?.completion_tokens ?? max(1, text.utf8.count / 3),
@@ -139,12 +147,14 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
                     }
                     var calls = ToolCallAccumulator()
                     var emitted = false
+                    var emittedCharacters = 0
                     for try await line in bytes.lines {
                         try Task.checkCancellation()
                         guard let chunk = try Self.parseStreamLine(line) else { continue }
                         if !chunk.text.isEmpty {
                             continuation.yield(chunk.text)
                             emitted = true
+                            emittedCharacters += chunk.text.count
                         }
                         // A server may put content and a call in the same delta, so both
                         // are read before the end-of-stream marker is acted on.
@@ -157,8 +167,20 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
                     if !tags.isEmpty {
                         continuation.yield(emitted ? "\n" + tags : tags)
                         emitted = true
+                        emittedCharacters += tags.count
                     }
                     guard emitted else { throw LocalServerError.emptyAnswer(serverName) }
+                    // P0-20a: no usage object on this wire, so characters / 3 and
+                    // `estimated: true`, counted after the stream ended.
+                    let promptCharacters = system.count
+                        + messages.reduce(0) { $0 + $1.content.count }
+                    ModelPassRecorder.current?.report(
+                        promptTokens: max(1, promptCharacters / 3),
+                        cachedTokens: nil,
+                        completionTokens: max(1, emittedCharacters / 3),
+                        reasoningTokens: nil,
+                        finishReason: nil,
+                        estimated: true)
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
@@ -312,7 +334,7 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
             }
             let message: Message
         }
-        struct Usage: Decodable { let completion_tokens: Int? }
+        struct Usage: Decodable { let prompt_tokens: Int?; let completion_tokens: Int? }
         let choices: [Choice]
         let usage: Usage?
     }

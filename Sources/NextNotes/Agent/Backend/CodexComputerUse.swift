@@ -185,20 +185,78 @@ enum CodexComputerUse {
         guard ModelRoleStore.role(forUtterance: prompt) == .computerUse,
               ModelRoleStore.shared.computerUseHarness == .codex else { return nil }
         let taskID = "codex-computer-" + UUID().uuidString.prefix(8)
+        let began = ContinuousClock.now
+        let outcome: Outcome
+        var errorClass: UsageErrorClass?
         do {
-            return .done(try await run(objective: prompt, taskID: String(taskID)))
+            outcome = .done(try await run(objective: prompt, taskID: String(taskID)))
         } catch HandoffError.declined {
             // A no is an answer, not a reason to do it a different way.
-            return .done("I didn’t hand that to Codex.")
+            outcome = .done("I didn’t hand that to Codex.")
+            errorClass = .permission
         } catch is CancellationError {
-            return .done("Stopped.")
+            outcome = .done("Stopped.")
+            errorClass = .cancelled
         } catch let error as HandoffError {
-            return .fellBack(
+            outcome = .fellBack(
                 (error.errorDescription ?? "Codex couldn’t do that.") + " I’ll do it myself."
             )
+            errorClass = UsageErrorClass.classify(error)
         } catch {
-            return .fellBack("Codex couldn’t do that, so I’ll do it myself.")
+            outcome = .fellBack("Codex couldn’t do that, so I’ll do it myself.")
+            errorClass = UsageErrorClass.classify(error)
         }
+        recordHandoff(began: began, errorClass: errorClass)
+        return outcome
+    }
+
+    /// One `agent.handoff` usage row per hand-off (P0-20a): provider `codex`, a wall clock
+    /// and the outcome class. A decline is a permission outcome, not a failure.
+    @MainActor
+    private static func recordHandoff(began: ContinuousClock.Instant, errorClass: UsageErrorClass?) {
+        let finishReason = errorClass == nil
+            ? "stop"
+            : (errorClass == .cancelled ? "cancelled" : "error")
+        UsageLog.shared.record(UsageRecord(
+            v: 1,
+            id: UUID(),
+            ts: Date(),
+            feature: UsageFeature.agentHandoff.rawValue,
+            pass: "handoff",
+            round: nil,
+            provider: UsageProvider.codex.rawValue,
+            modelID: resolvedCLI().map { URL(fileURLWithPath: $0).lastPathComponent } ?? "codex",
+            locality: "cloud",
+            requestedRole: ModelRole.computerUse.rawValue,
+            requestedModel: nil,
+            fallbackReason: nil,
+            warm: nil,
+            loadMs: nil,
+            promptTokens: nil,
+            cachedTokens: nil,
+            completionTokens: nil,
+            reasoningTokens: nil,
+            countsEstimated: nil,
+            ttftMs: nil,
+            totalMs: ModelPassRecorder.milliseconds(began.duration(to: .now)),
+            tokensPerSec: nil,
+            finishReason: finishReason,
+            truncated: false,
+            toolsProposed: nil,
+            toolsExecuted: nil,
+            errorClass: errorClass?.rawValue,
+            errorMessage: nil,
+            audioSeconds: nil,
+            realtimeFactor: nil,
+            stages: nil,
+            counts: nil,
+            turnID: nil,
+            conversationID: nil,
+            workID: nil,
+            revision: nil,
+            meetingID: nil,
+            dictationRunID: nil,
+            scheduleID: nil))
     }
 
     /// One ask for the whole hand-off, carrying the words the person used.

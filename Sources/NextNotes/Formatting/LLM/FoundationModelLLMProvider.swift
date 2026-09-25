@@ -40,6 +40,17 @@ struct FoundationModelLLMProvider: LLMProvider {
             )
         )
         let text = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        // P0-20a: the system model's own tokenizer where the OS has it (macOS 26.4+),
+        // characters / 4 otherwise — and `estimated` says which.
+        let prompt = await Self.measuredTokenCount(system + user)
+        let completion = await Self.measuredTokenCount(text)
+        ModelPassRecorder.current?.report(
+            promptTokens: prompt.count,
+            cachedTokens: nil,
+            completionTokens: completion.count,
+            reasoningTokens: nil,
+            finishReason: nil,
+            estimated: prompt.estimated || completion.estimated)
         return LLMCompletion(
             text: text,
             // The response carries no token count either, so tokens/second reported for this
@@ -48,6 +59,16 @@ struct FoundationModelLLMProvider: LLMProvider {
             generatedTokens: (try? await countTokens(text)) ?? 0,
             duration: Date().timeIntervalSince(began)
         )
+    }
+
+    /// The system model's own token count on macOS 26.4+, characters / 4 otherwise.
+    static func measuredTokenCount(_ text: String) async -> (count: Int, estimated: Bool) {
+        if #available(macOS 26.4, *) {
+            if let count = try? await SystemLanguageModel.default.tokenCount(for: text) {
+                return (max(1, count), false)
+            }
+        }
+        return (max(1, text.count / 4), true)
     }
 
     /// Native incremental stream supplied by Foundation Models.
@@ -87,6 +108,16 @@ struct FoundationModelLLMProvider: LLMProvider {
                         }
                         previous = current
                     }
+                    // P0-20a: counted after the stream ended, never in front of a token.
+                    let prompt = await Self.measuredTokenCount(system + user)
+                    let completion = await Self.measuredTokenCount(previous)
+                    ModelPassRecorder.current?.report(
+                        promptTokens: prompt.count,
+                        cachedTokens: nil,
+                        completionTokens: completion.count,
+                        reasoningTokens: nil,
+                        finishReason: nil,
+                        estimated: prompt.estimated || completion.estimated)
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)

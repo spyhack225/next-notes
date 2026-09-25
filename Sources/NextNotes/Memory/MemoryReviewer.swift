@@ -317,13 +317,33 @@ struct MemoryReviewJob: Identifiable, Sendable {
 protocol MemoryReviewModel: Sendable {
     var label: String { get }
     func complete(system: String, user: String) async throws -> String
+    /// The recorder this pass writes, when the model is provider-backed (P0-20a). A
+    /// scripted model has no provider, so it writes nothing.
+    func usageRecorder() -> ModelPassRecorder?
+}
+
+extension MemoryReviewModel {
+    func usageRecorder() -> ModelPassRecorder? { nil }
 }
 
 struct ProviderMemoryReviewModel: MemoryReviewModel {
     let provider: any LLMProvider
     var maxTokens = 512
+    /// Which usage feature this pass belongs to. A routine overrides it to `.agentRoutine`;
+    /// the memory review keeps the default.
+    var usageFeature: UsageFeature = .memoryReview
 
     var label: String { provider.displayModelName }
+
+    /// P0-20a: the row this pass writes. The schedule id, when a routine is running, comes
+    /// from `ModelPassRecorder.correlation`, which `ScheduledRunner` installs — the
+    /// environment seam that builds this model never sees the schedule.
+    func usageRecorder() -> ModelPassRecorder? {
+        ModelPassRecorder(
+            feature: usageFeature, pass: "review", provider: provider,
+            ids: ModelPassRecorder.correlation ?? UsageCorrelation(),
+            requestedRole: nil)
+    }
 
     /// The grammar a provider that can constrain decoding is held to: exactly "NONE" or the
     /// memory tool calls the prompt asks for.
@@ -606,10 +626,26 @@ enum MemoryReviewer {
         guard userTurns.contains(where: { !MemoryGuard.contentTokens($0.text).isEmpty }) else { return outcome }
 
         outcome.modelCalled = true
-        let output = try await model.complete(system: system(for: job.source),
-                                              user: userPrompt(job, memory: usable))
+        let recorder = model.usageRecorder()
+        let output: String
+        do {
+            output = try await ModelPassRecorder.$current.withValue(recorder) {
+                try await model.complete(system: system(for: job.source),
+                                         user: userPrompt(job, memory: usable))
+            }
+        } catch {
+            recorder?.fail(error)
+            recorder?.finish(reason: error is CancellationError ? "cancelled" : "error")
+            throw error
+        }
         // Cancelled because a recording started: nothing is written, and the job runs again later.
-        try Task.checkCancellation()
+        do {
+            try Task.checkCancellation()
+        } catch {
+            recorder?.fail(error)
+            recorder?.finish(reason: "cancelled")
+            throw error
+        }
         let calls = AgentToolCallParser.calls(in: output)
         outcome.proposed = calls.count
 
@@ -655,7 +691,27 @@ enum MemoryReviewer {
                     .filter { !after.contains($0.id) && !replaced.contains($0.id) }.map(\.text)
             }
         }
+        recorder?.noteCounts([
+            "proposed": outcome.proposed,
+            "saved": outcome.saved.count,
+            "skipped": outcome.skipped.count,
+            "refused": outcome.refused.count,
+        ])
+        recorder?.finish(reason: "stop")
         return outcome
+    }
+}
+
+/// The Apple Foundation route of the review, reported under the same feature as the
+/// provider-backed one (P0-20a). The model is a guided-generation session rather than an
+/// `LLMProvider`, so the row's provider identity is the Apple FM provider itself.
+extension AppleMemoryReviewModel {
+    func usageRecorder() -> ModelPassRecorder? {
+        ModelPassRecorder(
+            feature: .memoryReview, pass: "review",
+            provider: FoundationModelLLMProvider(),
+            ids: ModelPassRecorder.correlation ?? UsageCorrelation(),
+            requestedRole: nil)
     }
 }
 

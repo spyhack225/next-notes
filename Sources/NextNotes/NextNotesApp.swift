@@ -439,6 +439,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-usage-log") {
+            Task { @MainActor in
+                SelfTest.failed = !UsageLogSelfTest.run()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-llm-prefix-cache") {
             Task { @MainActor in
                 SelfTest.failed = !(await PrefixCacheSelfTest.runSelfTest())
@@ -1566,6 +1573,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 var failures = AgentCaptureController.turnPolicySelfTestFailures()
                 failures += await AgentCaptureController.overlappingBackchannelSelfTestFailures()
                 failures += await AgentCaptureController.reversibleListeningSelfTestFailures()
+                failures += await AgentCaptureController.disownSelfTestFailures()
                 for failure in failures { print("VOICE_TURNS_WRONG: \(failure)") }
                 SelfTest.failed = !failures.isEmpty
                 writeSelfTest(failures.isEmpty ? "VOICE_TURNS_OK" : "VOICE_TURNS_FAILED")

@@ -151,6 +151,7 @@ INTEGRATION_ENTRIES=(
   "selftest-store-isolation|300"
   "selftest-chat-template|300"
   "selftest-llm-prefix-cache|600"
+  "selftest-usage-log|600"
   # model architecture guard and private networking (P0-13, P0-19)
   "selftest-model-unopenable|300"
   "selftest-private-network|300"

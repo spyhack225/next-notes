@@ -137,7 +137,34 @@ struct ProviderKnowledgeAnswerModel: KnowledgeAnswerModel {
     let provider: any LLMProvider
 
     func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
-        await provider.stream(system: system, user: user, maxTokens: maxTokens)
+        // P0-20a: one `knowledge.ask` row per pass. The provider's own task is created
+        // inside the task-local scope below, so its end-of-stream `report` reaches the
+        // same recorder this forwarding loop finishes.
+        let recorder = ModelPassRecorder(
+            feature: .knowledgeAsk, pass: "answer", provider: provider,
+            ids: ModelPassRecorder.correlation ?? UsageCorrelation(),
+            requestedRole: nil)
+        let upstream = await ModelPassRecorder.$current.withValue(recorder) {
+            await provider.stream(system: system, user: user, maxTokens: maxTokens)
+        }
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    for try await piece in upstream {
+                        recorder.noteFirstToken()
+                        continuation.yield(piece)
+                    }
+                    if Task.isCancelled { throw CancellationError() }
+                    recorder.finish(reason: "stop")
+                    continuation.finish()
+                } catch {
+                    recorder.fail(error)
+                    recorder.finish(reason: error is CancellationError ? "cancelled" : "error")
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
     }
 }
 

@@ -54,7 +54,73 @@ struct ACPAgentBackend: AgentBackend {
         return "unavailable — \(Self.installationGuidance(for: preferred))"
     }
 
+    /// One `agent.handoff` usage row per hand-off (P0-20a), written on every exit.
     func submit(_ task: AgentTask) async throws -> AgentTaskOutcome {
+        let began = ContinuousClock.now
+        do {
+            let outcome = try await runSession(task)
+            recordHandoff(began: began, task: task, error: nil)
+            return outcome
+        } catch {
+            recordHandoff(began: began, task: task, error: error)
+            throw error
+        }
+    }
+
+    private func recordHandoff(began: ContinuousClock.Instant, task: AgentTask, error: Error?) {
+        let finishReason: String
+        var errorClass: String?
+        var errorMessage: String?
+        if let error {
+            finishReason = error is CancellationError ? "cancelled" : "error"
+            errorClass = UsageErrorClass.classify(error).rawValue
+            errorMessage = UsageLog.sanitise(error.localizedDescription)
+        } else {
+            finishReason = "stop"
+        }
+        UsageLog.shared.record(UsageRecord(
+            v: 1,
+            id: UUID(),
+            ts: Date(),
+            feature: UsageFeature.agentHandoff.rawValue,
+            pass: "handoff",
+            round: nil,
+            provider: UsageProvider.acp.rawValue,
+            modelID: task.acpCLI.isEmpty ? "acp" : task.acpCLI,
+            locality: "cloud",
+            requestedRole: nil,
+            requestedModel: nil,
+            fallbackReason: nil,
+            warm: nil,
+            loadMs: nil,
+            promptTokens: nil,
+            cachedTokens: nil,
+            completionTokens: nil,
+            reasoningTokens: nil,
+            countsEstimated: nil,
+            ttftMs: nil,
+            totalMs: ModelPassRecorder.milliseconds(began.duration(to: .now)),
+            tokensPerSec: nil,
+            finishReason: finishReason,
+            truncated: false,
+            toolsProposed: nil,
+            toolsExecuted: nil,
+            errorClass: errorClass,
+            errorMessage: errorMessage,
+            audioSeconds: nil,
+            realtimeFactor: nil,
+            stages: nil,
+            counts: nil,
+            turnID: nil,
+            conversationID: nil,
+            workID: nil,
+            revision: nil,
+            meetingID: nil,
+            dictationRunID: nil,
+            scheduleID: task.scheduleID))
+    }
+
+    private func runSession(_ task: AgentTask) async throws -> AgentTaskOutcome {
         // Before anything launches, fixture or not: a scheduled coding session is refused
         // unless its routine explicitly allows this harness — and even then it gets no
         // auto-approved permissions, so the orchestrator refuses its privileged session

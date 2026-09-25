@@ -198,6 +198,11 @@ enum AgentToolExecutor {
                     taskID: taskID,
                     meetingID: meetingID
                 )
+                // P0-20a timing seam: `fire` runs only after a card, a grant or an
+                // auto-allow has been resolved, so the clock `ToolExecutionTimer` starts
+                // here is execution time and never the wait for a person.
+                ToolExecutionTimer.current?.begin()
+                defer { ToolExecutionTimer.current?.end() }
                 let result = try await perform(tool, arguments: prepared.executionPlan.arguments,
                                                taskID: taskID, authority: actionAuthority)
                 // P1-5: a run's artifacts — the reference and the link — ride with the

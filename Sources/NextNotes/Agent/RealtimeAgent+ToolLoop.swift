@@ -121,6 +121,7 @@ final class AgentToolSpeechTracker {
     private let turn: Int
     private let allowSpeech: Bool
     private var firstTokenTrace: LatencyTrace?
+    private var modelNote: String?
     private var sentCharacters = 0
     private var outputGeneration = 0
     private var workRevision = 0
@@ -153,7 +154,7 @@ final class AgentToolSpeechTracker {
         guard acceptingResponse else { return }
         if !snapshot.isEmpty, agent.isCurrent(turn), let trace = firstTokenTrace {
             firstTokenTrace = nil
-            trace.end(note: "model")
+            trace.end(note: traceNote("model"))
         }
         guard allowSpeech, maySpeak, AgentCaptureController.shared.isSessionActive else { return }
         let leading = snapshot.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -193,8 +194,19 @@ final class AgentToolSpeechTracker {
     }
 
     func finishPendingFirstTokenTrace(note: String) {
-        firstTokenTrace?.end(note: note)
+        firstTokenTrace?.end(note: traceNote(note))
         firstTokenTrace = nil
+    }
+
+    /// Which model this turn's first token came from, appended to the
+    /// `agent.transcript_to_first_token` note (P0-20a).
+    func noteModel(_ provider: any LLMProvider) {
+        modelNote = "provider=\(provider.id.rawValue) model=\(provider.displayModelName)"
+    }
+
+    private func traceNote(_ base: String) -> String {
+        guard let modelNote else { return base }
+        return base + " " + modelNote
     }
 
     func recordVerifiedResult(toolID: String, output: String) {
@@ -492,6 +504,17 @@ extension RealtimeAgent {
             // Captured by value: the stream closures are `@Sendable`, and `provider` is
             // mutable for the one fallback below.
             let currentProvider = provider
+            speech?.noteModel(currentProvider)
+            let recorder = ModelPassRecorder(
+                feature: (voice || isVoiceWorker) ? .agentWorker : .agentTyped,
+                pass: "answer", provider: currentProvider,
+                ids: UsageCorrelation(
+                    turnID: currentTurnID,
+                    conversationID: (voice || isVoiceWorker) ? nil : AgentSession.shared.sessionID,
+                    workID: work?.id, revision: work?.revision),
+                requestedRole: .agent)
+            var passReason = "stop"
+            defer { recorder.finish(reason: passReason) }
             let response: QuickTurnResult? = await withBoundedWait(remaining) {
                 // Hoisted out of `do` so the `catch` legs can keep what was streamed
                 // before the cut-off: a `catch` clause cannot see a `do` local.
@@ -512,17 +535,20 @@ extension RealtimeAgent {
                         window=\(window) prompt=\(promptTokens) visible=\(visible)
                         """
                     )
-                    let stream = if voice {
-                        await LatencyCorrelation.$current.withValue(correlation) {
-                            await currentProvider.streamInteractiveConversation(
+                    let stream = await ModelPassRecorder.$current.withValue(recorder) {
+                        if voice {
+                            return await LatencyCorrelation.$current.withValue(correlation) {
+                                await currentProvider.streamInteractiveConversation(
+                                    system: system, messages: messages, maxTokens: visible)
+                            }
+                        } else {
+                            return await currentProvider.streamConversation(
                                 system: system, messages: messages, maxTokens: visible)
                         }
-                    } else {
-                        await currentProvider.streamConversation(
-                            system: system, messages: messages, maxTokens: visible)
                     }
                     for try await chunk in stream {
                         try Task.checkCancellation()
+                        if !chunk.isEmpty { recorder.noteFirstToken() }
                         assembled += chunk
                         switch VoiceResponseEnvelope.parse(assembled) {
                         case .answer(let answer):
@@ -549,17 +575,29 @@ extension RealtimeAgent {
                 }
             }
             remainingBudget -= responseBegan.duration(to: .now)
+            recorder.noteModelEnd()
             await waitForVoiceInput()
-            guard isCurrent(owner) else { break }
-            if revision != (work?.revision ?? 0) { continue }
+            guard isCurrent(owner) else {
+                passReason = "cancelled"
+                break
+            }
+            if revision != (work?.revision ?? 0) {
+                passReason = "cancelled"
+                continue
+            }
             guard let response else {
                 speech?.cancel()
+                passReason = "timeout"
+                recorder.fail(message: "The model took too long to answer.")
                 return AgentModelTurnResult(reply: "The model took too long to answer.", usedTools: false)
             }
             switch response {
             case .failed(let reason, let modelUnavailable):
                 speech?.cancel()
+                passReason = "error"
+                recorder.fail(message: reason)
                 if modelUnavailable {
+                    recorder.fellBack(.modelUnavailable)
                     // The chosen file failed a real load even though the probe passed it.
                     // Re-resolve once — the routing now excludes the recorded file — and
                     // continue on the new provider; if nothing else can run, say so
@@ -577,6 +615,7 @@ extension RealtimeAgent {
                 }
                 return AgentModelTurnResult(reply: "The model could not answer: " + reason, usedTools: false)
             case .cutOff(let raw):
+                passReason = "length"
                 switch VoiceResponseEnvelope.parse(raw) {
                 case .tools:
                     speech?.cancel()
@@ -1069,21 +1108,36 @@ extension RealtimeAgent {
             // Captured by value: the stream closures are `@Sendable`, and `provider` is
             // mutable for the one fallback below.
             let currentProvider = provider
+            speech?.noteModel(currentProvider)
+            let roundRecorder = ModelPassRecorder(
+                feature: (background || isVoiceWorker) ? .agentWorker : .agentTyped,
+                pass: "planner", provider: currentProvider, round: rounds + 1,
+                ids: UsageCorrelation(
+                    turnID: currentTurnID,
+                    conversationID: (background || isVoiceWorker)
+                        ? nil : AgentSession.shared.sessionID,
+                    workID: work?.id, revision: work?.revision),
+                requestedRole: .agent)
+            var roundReason = "stop"
+            defer { roundRecorder.finish(reason: roundReason) }
             let completion: Result<String, GeneralToolStepError>? = await withBoundedWait(remaining) {
                 // Hoisted out of `do` so the `catch` legs can keep what was streamed
                 // before the cut-off: a `catch` clause cannot see a `do` local.
                 var assembled = ""
                 do {
-                    let stream = if voice && !background {
-                        await LatencyCorrelation.$current.withValue(correlation) {
-                            await currentProvider.streamInteractiveConversation(
-                                system: system, messages: [.init(role: .user, content: user)], maxTokens: 256)
+                    let stream = await ModelPassRecorder.$current.withValue(roundRecorder) {
+                        if voice && !background {
+                            return await LatencyCorrelation.$current.withValue(correlation) {
+                                await currentProvider.streamInteractiveConversation(
+                                    system: system, messages: [.init(role: .user, content: user)], maxTokens: 256)
+                            }
+                        } else {
+                            return await currentProvider.stream(system: system, user: user, maxTokens: 256)
                         }
-                    } else {
-                        await currentProvider.stream(system: system, user: user, maxTokens: 256)
                     }
                     for try await chunk in stream {
                         try Task.checkCancellation()
+                        if !chunk.isEmpty { roundRecorder.noteFirstToken() }
                         assembled += chunk
                         if let speech {
                             // A memory write is said out loud: its confirmation leads the
@@ -1111,12 +1165,21 @@ extension RealtimeAgent {
                 }
             }
             remainingBudget -= completionBegan.duration(to: clock.now)
+            roundRecorder.noteModelEnd()
             await waitForVoiceInput()
-            guard isCurrent(owner) else { return "I stopped the tool plan." }
-            if revision != (work?.revision ?? 0) { continue }
+            guard isCurrent(owner) else {
+                roundReason = "cancelled"
+                return "I stopped the tool plan."
+            }
+            if revision != (work?.revision ?? 0) {
+                roundReason = "cancelled"
+                continue
+            }
             rounds += 1
             guard let completion else {
                 speech?.cancel()
+                roundReason = "timeout"
+                roundRecorder.fail(message: "The model took too long to answer.")
                 return incomplete("I stopped the tool plan because it took too long.",
                                   completed: completedToolIDs, inFlight: currentToolID)
             }
@@ -1125,7 +1188,10 @@ extension RealtimeAgent {
             case .success(let text): completionText = text
             case .failure(.message(let message, let modelUnavailable)):
                 speech?.cancel()
+                roundReason = "error"
+                roundRecorder.fail(message: message)
                 if modelUnavailable {
+                    roundRecorder.fellBack(.modelUnavailable)
                     if !fellBackOnce,
                        let replacement = await fallbackProvider(for: prompt, voice: voice),
                        replacement.id != provider.id {
@@ -1140,14 +1206,20 @@ extension RealtimeAgent {
                 return confirmed("The tool planner failed: " + message)
             case .failure(.recoverable(let message)):
                 speech?.cancel()
+                roundReason = "error"
+                roundRecorder.fail(message: message)
                 return confirmed("The tool planner failed: " + message)
             case .failure(.cutOff):
                 // The model spent its whole answer thinking: that is not a planner
                 // failure, and the cut-off's sentence is the whole reply.
                 speech?.cancel()
+                roundReason = "length"
                 return confirmed(OpenRouterError.cutOff(visibleText: false).localizedDescription)
             }
             let parsedCalls = AgentToolCallParser.calls(in: completionText)
+            roundRecorder.proposed(parsedCalls.map {
+                AgentToolRegistry.shared.tool(named: $0.name)?.id ?? $0.name
+            })
             speech?.finish(hasToolCalls: !parsedCalls.isEmpty)
             if parsedCalls.isEmpty {
                 if completionText.contains("<tool_call>") || completionText.contains("</tool_call>") {
@@ -1224,19 +1296,25 @@ extension RealtimeAgent {
                 // Captured by value: this closure is `@Sendable` and `provider` is mutable
                 // for the one fallback above.
                 let executingProvider = provider
+                // P0-20a: the timer's clock starts inside the executor's post-approval
+                // `fire`, so the recorded `ms` is execution and never the card's wait.
+                let executionTimer = ToolExecutionTimer()
+                let toolCallBegan = clock.now
                 let execute: @Sendable () async -> Result<String, GeneralToolStepError> = {
                     do {
                         let result = try await MemoryProvenance.$current.withValue(provenance) {
-                            try await AgentToolExecutor.run(
-                                call.name, arguments: arguments, policy: policy,
-                                taskID: work?.id.uuidString,
-                                autoApproveReads: true,
-                                promptIfNeeded: !self.denyUnattendedApprovalsForTesting,
-                                isStillValid: {
-                                    guard await self.mayCommitEffect(risk: risk) else { return false }
-                                    return self.isCurrent(owner) && revision == (work?.revision ?? 0)
-                                }
-                            )
+                            try await ToolExecutionTimer.$current.withValue(executionTimer) {
+                                try await AgentToolExecutor.run(
+                                    call.name, arguments: arguments, policy: policy,
+                                    taskID: work?.id.uuidString,
+                                    autoApproveReads: true,
+                                    promptIfNeeded: !self.denyUnattendedApprovalsForTesting,
+                                    isStillValid: {
+                                        guard await self.mayCommitEffect(risk: risk) else { return false }
+                                        return self.isCurrent(owner) && revision == (work?.revision ?? 0)
+                                    }
+                                )
+                            }
                         }
                         // P1-5 additive hook: a completed step's reference and link are
                         // the run's artifacts — keep them so the terminal card can link
@@ -1282,9 +1360,13 @@ extension RealtimeAgent {
                     return incomplete("I stopped the tool plan because it took too long.",
                                       completed: completedToolIDs, inFlight: call.name)
                 }
+                let executionMS = executionTimer.executionMs
+                    ?? ModelPassRecorder.milliseconds(toolCallBegan.duration(to: clock.now))
                 switch execution {
                 case .success(let output):
                     results.append(AgentPrompts.toolResult(name: call.name, output: output))
+                    roundRecorder.executed(UsageToolRun(
+                        id: tool.id, ok: true, ms: executionMS, errorClass: nil))
                     speech?.recordVerifiedResult(toolID: call.name, output: output)
                     callsUsed += 1
                     completedToolIDs.append(call.name)
@@ -1304,11 +1386,18 @@ extension RealtimeAgent {
                 case .failure(.recoverable(let message)):
                     // Hand the store's answer back so the model can merge or replace in
                     // this turn. Nothing was written, so there is nothing to rewrite.
+                    roundRecorder.executed(UsageToolRun(
+                        id: tool.id, ok: false, ms: executionMS,
+                        errorClass: UsageErrorClass.other.rawValue))
                     results.append(AgentPrompts.toolResult(name: call.name, output: message))
                     completedCalls.remove(signature)
                     callsUsed += 1
                     currentToolID = nil
-                case .failure(.message(let message, _)):
+                case .failure(.message(let message, let modelUnavailable)):
+                    roundRecorder.executed(UsageToolRun(
+                        id: tool.id, ok: false, ms: executionMS,
+                        errorClass: (modelUnavailable
+                            ? UsageErrorClass.modelUnavailable : UsageErrorClass.other).rawValue))
                     if revision != (work?.revision ?? 0) {
                         completedCalls.remove(signature)
                         currentToolID = nil
@@ -1321,6 +1410,9 @@ extension RealtimeAgent {
                 case .failure(.cutOff):
                     // Only the planner completion above produces a cut-off; a tool step
                     // cannot. If one ever did, it ends the turn the way a failed step does.
+                    roundRecorder.executed(UsageToolRun(
+                        id: tool.id, ok: false, ms: executionMS,
+                        errorClass: UsageErrorClass.cutOff.rawValue))
                     currentToolID = nil
                     return confirmed("The tool " + call.name + " did not run: "
                         + OpenRouterError.cutOff(visibleText: false).localizedDescription)
