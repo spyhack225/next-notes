@@ -2,8 +2,9 @@ import Foundation
 
 /// `--selftest-usage-log`: the usage log's writer, reader, rotation, age compaction,
 /// clear, sanitiser and harness isolation (P0-20a, U1–U7), the meeting passes (P0-20b,
-/// M1–M5), the summary and report (P0-20d, R1–R3), the dictation builder (P0-20c, D1) and
-/// the exit cases (P0-20e, E1–E4).
+/// M1–M5), the summary and report (P0-20d, R1–R3), the dictation builder (P0-20c, D1),
+/// the exit cases (P0-20e, E1–E4) and the meeting model passes M-16b wired behind
+/// P0-20b's writer (M6 collapse rows, M7 the live reconcile pass).
 ///
 /// Final marker: `USAGE_LOG_OK: <n> cases` / `USAGE_LOG_FAILED: <n> problem(s)`, with one
 /// `USAGE_LOG_WRONG: <case>: <reason>` line per failure. The marker name never changes; a
@@ -29,8 +30,8 @@ import Foundation
 /// `dictationRows` writes rows and E3 fails until the guard knows the file, so the red run
 /// is the missing dictation seam plus the missing guard entry.
 enum UsageLogSelfTest {
-    /// How many cases a green run reports: U1–U7, M1–M5, D1, R1–R3 and E1–E4.
-    private static let caseCount = 20
+    /// How many cases a green run reports: U1–U7, M1–M7, D1, R1–R3 and E1–E4.
+    private static let caseCount = 22
 
     /// `run()` is async so E1 can await the real main-actor agent path: the old synchronous
     /// runner blocked the main actor on a semaphore while its cases ran, which no
@@ -315,6 +316,16 @@ enum UsageLogSelfTest {
         let m4 = await checkM4()
         outcome.problems += labelled("M4", m4.problems)
         outcome.rows += m4.rows
+        // M-16b: the passes P0-20b left behind. M6 is the task's red-first case — the
+        // 90-minute fixture writes exactly `chunks` map rows, `collapsedGroups` collapse
+        // rows and one reduce row; M7 pins the live reconcile pass. Both run before M5
+        // so the privacy scan sees every meeting row these cases wrote.
+        let m6 = await checkM6()
+        outcome.problems += labelled("M6", m6.problems)
+        outcome.rows += m6.rows
+        let m7 = await checkM7()
+        outcome.problems += labelled("M7", m7.problems)
+        outcome.rows += m7.rows
         outcome.problems += labelled("M5", checkM5(rows: outcome.rows))
         return outcome
     }
@@ -508,11 +519,118 @@ enum UsageLogSelfTest {
         return CaseOutcome(problems: problems, rows: [row])
     }
 
-    /// M5: every row M1–M4 produced is scanned for the fixture transcript words. A run
-    /// that wrote no rows fails too: an empty scan proves nothing.
+    // MARK: - M6/M7: the passes M-16b wired (the collapse pass, the live reconcile)
+
+    /// M6 (M-16b, red-first): the 90-minute case through the real map-reduce path writes
+    /// exactly `chunks` map rows, `collapsedGroups` collapse rows and one reduce row, all
+    /// carrying the same meeting id. Reuses the longform fixture — the worst-case provider
+    /// M-05 calibrated, whose collapse pass the P0-20b wrappers did not reach.
+    private static func checkM6() async -> CaseOutcome {
+        let meeting = fixtureMeeting("Zarquon longform")
+        let result: NotesGenerator.Result?
+        do {
+            result = try await NotesGenerator(provider: LongformNotesProvider(contextTokens: 4_096))
+                .notes(
+                    for: meeting,
+                    segments: NotesLongformSelfTest.longSegments(),
+                    brief: NotesLongformSelfTest.bigBrief()
+                )
+        } catch {
+            return CaseOutcome(problems: ["the 90-min notes call threw: \(error)"])
+        }
+        guard let result else {
+            return CaseOutcome(problems: ["the 90-min notes call returned no result"])
+        }
+        guard result.usedMapReduce, result.collapsedGroups >= 1 else {
+            return CaseOutcome(problems: [
+                "the 90-min case took no collapse pass (chunks=\(result.chunks) "
+                    + "collapsed=\(result.collapsedGroups)), so the row-count check proves nothing",
+            ])
+        }
+        UsageLog.shared.flush()
+        let all = UsageLog.shared.load().filter { $0.meetingID == meeting.id }
+        let maps = all.filter { $0.feature == UsageFeature.meetingNotesMap.rawValue }
+        let collapses = all.filter { $0.feature == UsageFeature.meetingNotesCollapse.rawValue }
+        let reduces = all.filter { $0.feature == UsageFeature.meetingNotesReduce.rawValue }
+        var problems: [String] = []
+        if maps.count != result.chunks {
+            problems.append("wrote \(maps.count) meeting.notes.map row(s), expected result.chunks \(result.chunks)")
+        }
+        if collapses.count != result.collapsedGroups {
+            problems.append("wrote \(collapses.count) meeting.notes.collapse row(s), "
+                            + "expected result.collapsedGroups \(result.collapsedGroups)")
+        }
+        if reduces.count != 1 {
+            problems.append("wrote \(reduces.count) meeting.notes.reduce row(s), expected 1")
+        }
+        if all.count != maps.count + collapses.count + reduces.count {
+            problems.append("the meeting wrote \(all.count) row(s) across all features, "
+                            + "expected only map + collapse + reduce")
+        }
+        if let collapse = collapses.first(where: { $0.pass != "collapse" }) {
+            problems.append("a collapse row's pass was \(collapse.pass), expected collapse")
+        }
+        if collapses.contains(where: { $0.provider != UsageProvider.appleFM.rawValue }) {
+            // The longform fixture's provider is Apple's, unlike M1/M2's scripted llama.
+            problems.append("a collapse row did not carry provider \(UsageProvider.appleFM.rawValue)")
+        }
+        if let reduce = reduces.first {
+            if reduce.counts?["chunks"] != result.chunks {
+                problems.append("the reduce row's chunks was "
+                                + "\(reduce.counts?["chunks"].map { String($0) } ?? "nil"), "
+                                + "expected \(result.chunks)")
+            }
+            if reduce.counts?["facts"] == nil {
+                problems.append("the reduce row has no facts count")
+            }
+        }
+        return CaseOutcome(problems: problems, rows: all)
+    }
+
+    /// M7 (M-16b): the live reconcile model pass — `MeetingContextReconciler`'s
+    /// `ModelCompleter`, previously a bare `provider.complete` — writes one
+    /// `meeting.reconcile` row for its meeting. Driven through the same recorded pass
+    /// production runs, with the scripted provider `refine` resolves in production.
+    private static func checkM7() async -> CaseOutcome {
+        let meeting = fixtureMeeting("Zarquon reconcile")
+        do {
+            _ = try await MeetingContextReconciler.ModelCompleter.recordedComplete(
+                system: "Refine a live meeting context for the usage self-test.",
+                user: "The recent transcript is not part of this row.",
+                provider: ScriptedUsageProvider(contextTokens: 32_768),
+                meetingID: meeting.id,
+                maxTokens: 400
+            )
+        } catch {
+            return CaseOutcome(problems: ["the reconcile pass threw: \(error)"])
+        }
+        let rows = usageRows(meetingID: meeting.id, feature: .meetingReconcile)
+        guard rows.count == 1, let row = rows.first else {
+            return CaseOutcome(
+                problems: ["expected exactly 1 meeting.reconcile row, wrote \(rows.count)"],
+                rows: rows)
+        }
+        var problems: [String] = []
+        if row.pass != "reconcile" {
+            problems.append("pass was \(row.pass), expected reconcile")
+        }
+        if row.provider != UsageProvider.llama.rawValue {
+            problems.append("provider was \(row.provider), expected \(UsageProvider.llama.rawValue)")
+        }
+        if (row.completionTokens ?? 0) <= 0 {
+            problems.append("completionTokens was \(row.completionTokens.map { String($0) } ?? "nil"), expected > 0")
+        }
+        if row.totalMs <= 0 {
+            problems.append("totalMs was \(row.totalMs), expected > 0")
+        }
+        return CaseOutcome(problems: problems, rows: rows)
+    }
+
+    /// M5: every row M1–M4 and M6–M7 produced is scanned for the fixture transcript words.
+    /// A run that wrote no rows fails too: an empty scan proves nothing.
     private static func checkM5(rows: [UsageRecord]) -> [String] {
         guard !rows.isEmpty else {
-            return ["M1–M4 produced no rows, so there is nothing to scan for transcript text"]
+            return ["the meeting cases produced no rows, so there is nothing to scan for transcript text"]
         }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601

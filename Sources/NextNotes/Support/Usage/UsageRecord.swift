@@ -17,8 +17,8 @@ struct UsageRecord: Codable, Sendable, Equatable {
     /// `UsageFeature.rawValue`.
     var feature: String
     /// "answer" | "planner" | "final" | "frontend-route" | "frontend-answer" | "round" |
-    /// "single" | "map" | "reduce" | "review" | "live" | "window-batch" | "cluster" |
-    /// "engine" | "cleanup" | "handoff" | "turn".
+    /// "single" | "map" | "collapse" | "reduce" | "reconcile" | "review" | "live" |
+    /// "window-batch" | "cluster" | "engine" | "cleanup" | "handoff" | "turn".
     var pass: String
     var round: Int?
     /// `UsageProvider.rawValue`.
@@ -107,7 +107,9 @@ enum UsageFeature: String, Codable, Sendable, CaseIterable {
     case meetingDiarize = "meeting.diarize"
     case meetingNotesSingle = "meeting.notes.single"
     case meetingNotesMap = "meeting.notes.map"
+    case meetingNotesCollapse = "meeting.notes.collapse"
     case meetingNotesReduce = "meeting.notes.reduce"
+    case meetingReconcile = "meeting.reconcile"
     case meetingProposals = "meeting.proposals"
     case meetingLive = "meeting.live"
     case meetingNeedle = "meeting.needle"

@@ -186,9 +186,13 @@ enum MeetingContextReconciler {
                     modelID: selection.1,
                     contextTokens: selection.2
                 ) else { return .empty }
-                let completion = try await provider.complete(
+                // M-16b: the reconcile's model pass writes its row like every other
+                // meeting pass, with the meeting id as the correlation id.
+                let completion = try await Self.recordedComplete(
                     system: system,
                     user: user,
+                    provider: provider,
+                    meetingID: context.meetingID,
                     maxTokens: 400
                 )
                 return Self.parse(
@@ -200,6 +204,46 @@ enum MeetingContextReconciler {
                     "meeting context reconcile skipped · \(error.localizedDescription, privacy: .public)"
                 )
                 return .empty
+            }
+        }
+
+        /// The one model call, wrapped in the usage recorder that writes its row (M-16b).
+        ///
+        /// `refine` resolves the provider first — the pass that never found a provider is
+        /// not a model pass and writes no row — and hands it here, so the row names the
+        /// model that actually ran. Internal for the usage self-test, which drives this
+        /// recorded pass directly with a scripted provider.
+        static func recordedComplete(
+            system: String,
+            user: String,
+            provider: any LLMProvider,
+            meetingID: UUID,
+            maxTokens: Int
+        ) async throws -> LLMCompletion {
+            let recorder = ModelPassRecorder(
+                feature: .meetingReconcile,
+                pass: "reconcile",
+                provider: provider,
+                ids: UsageCorrelation(meetingID: meetingID)
+            )
+            do {
+                let completion = try await ModelPassRecorder.$current.withValue(recorder) {
+                    try await provider.complete(system: system, user: user, maxTokens: maxTokens)
+                }
+                recorder.report(
+                    promptTokens: nil,
+                    cachedTokens: nil,
+                    completionTokens: completion.generatedTokens,
+                    reasoningTokens: nil,
+                    finishReason: nil,
+                    estimated: provider.id == .appleFoundation
+                )
+                recorder.finish(reason: "stop")
+                return completion
+            } catch {
+                recorder.fail(error)
+                recorder.finish(reason: error is CancellationError ? "cancelled" : "error")
+                throw error
             }
         }
 

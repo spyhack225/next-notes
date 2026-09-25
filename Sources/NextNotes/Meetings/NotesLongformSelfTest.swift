@@ -117,7 +117,8 @@ enum NotesLongformSelfTest {
 
     /// 1,800 segments of 3 s: 90 minutes. 45 characters of speech each, the agenda
     /// marker in the first segment — the fact the old front-trimming deleted first.
-    static func longSegments() -> [TranscriptSegment] {
+    /// `nonisolated`: the usage-log self-test calls these from its own nonisolated cases.
+    nonisolated static func longSegments() -> [TranscriptSegment] {
         (0..<1_800).map { i in
             let body = i == 0
                 ? "AGENDA-ITEM-ONE kickoff and the plan ahead"
@@ -145,13 +146,13 @@ enum NotesLongformSelfTest {
         }
     }
 
-    static func fit45(_ s: String) -> String {
+    nonisolated static func fit45(_ s: String) -> String {
         if s.count >= 45 { return String(s.prefix(45)) }
         return s + String(repeating: ".", count: 45 - s.count)
     }
 
     /// Memory + decisions at roughly 2,800 characters: a full brief, like a real meeting.
-    static func bigBrief() -> MeetingNotesBrief {
+    nonisolated static func bigBrief() -> MeetingNotesBrief {
         MeetingNotesBrief(
             memory: String(repeating: "m", count: 1_400),
             decisions: String(repeating: "d", count: 1_400)
@@ -163,7 +164,10 @@ enum NotesLongformSelfTest {
 /// map step's answers are as large as the budget allows. The collapse step keeps every
 /// `FACT-P<n>` token and the agenda marker and halves the filler — unless
 /// `stubbornCollapse` is set, in which case it returns its input unchanged.
-private final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
+///
+/// Internal so the usage-log self-test (M6, M-16b) can drive the same 90-minute case
+/// and count the rows each pass writes, rather than rebuild the worst case beside it.
+final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
     static let agendaMarker = "AGENDA-ITEM-ONE"
 
     let id = LLMProviderID.appleFoundation

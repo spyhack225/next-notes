@@ -235,7 +235,13 @@ struct NotesGenerator: Sendable {
                 if group.count == 1, round > 1 { next.append(group[0]); continue }
                 let text = group.joined(separator: "\n")
                 let groupTokens = try await provider.countTokens(text)
-                let completion = try await provider.complete(
+                // M-16b: the collapse pass is a model pass like the map and reduce steps
+                // around it, so it writes its own `meeting.notes.collapse` row — one per
+                // group per round, which is what `Result.collapsedGroups` counts.
+                let completion = try await recordedComplete(
+                    feature: .meetingNotesCollapse,
+                    pass: "collapse",
+                    meetingID: meeting.id,
                     system: NotesPrompts.collapseSystem,
                     user: NotesPrompts.collapseUser(meeting: meeting, facts: text),
                     maxTokens: max(150, groupTokens / 2)
