@@ -3356,6 +3356,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             if fedA < 24_000 {
                 failures.append("pre-roll lost: fed \(fedA) frames of ~40000")
+            } else {
+                writeSelfTest("  DICTATION_NOTE: pre-roll fed \(fedA) frames of ~40000 with a 1.5 s start")
             }
             if inboxA.contents().count != 1 || inboxA.contents().first?.contains("transcript") != true {
                 failures.append("a hold past a slow start injected \(inboxA.contents())")
@@ -3371,6 +3373,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let captureSeconds = controllerH.keyDownToCaptureSeconds {
                 if captureSeconds > 0.15 {
                     failures.append("key-down to capture took \(captureSeconds)s with a 1.5 s start")
+                } else {
+                    writeSelfTest("  DICTATION_NOTE: key-down to capture \(captureSeconds)s with a 1.5 s start")
                 }
             } else {
                 failures.append("no key-down to capture time recorded for a 2.5 s hold")
@@ -3427,6 +3431,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             if inboxD.contents().count != 1 || inboxD.contents().first?.contains("transcript") != true {
                 failures.append("the hold after a cancelled start-up injected \(inboxD.contents())")
+            }
+
+            // D-02e. Tap faster than the subscribe: the release lands before the
+            // microphone even opened (no await sits between the two button calls,
+            // so the start Task cannot have run yet). The hold must still come
+            // back to idle with its transcript — never stuck in `.finishing`.
+            let tapInbox = SelfTestInbox()
+            let controllerK = makeController(.prompt(delay: .zero), inbox: tapInbox)
+            controllerK.startButtonRecording()
+            controllerK.stopButtonRecording()
+            if case .finishing = controllerK.state {} else {
+                failures.append("an immediate release went \(controllerK.state) instead of .finishing")
+            }
+            let idleEBy = Date().addingTimeInterval(8)
+            while Date() < idleEBy, controllerK.state != .idle {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if tapInbox.contents().count != 1 || tapInbox.contents().first?.contains("transcript") != true {
+                failures.append("a tap faster than the subscribe injected \(tapInbox.contents())")
+            }
+            if controllerK.state != .idle {
+                failures.append("a tap faster than the subscribe never came back to idle")
             }
 
             for failure in failures { writeSelfTest("  DICTATION_WRONG: \(failure)") }

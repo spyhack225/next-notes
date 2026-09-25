@@ -13,7 +13,7 @@ import SwiftUI
 struct HUDView: View {
     @Bindable var controller: DictationController
 
-    private var isRecording: Bool { controller.state == .listening }
+    private var isRecording: Bool { controller.state == .listening || controller.isCapturingAudio }
 
     var body: some View {
         // Both conditions, not just the status: a Command Mode message outlives its hold on
@@ -63,9 +63,10 @@ struct HUDView: View {
 
     /// Which orb the capsule shows. While listening the orb stays `listening` even when
     /// Parakeet is already painting partials into the label; after release the wait is
-    /// real work (finalize + cleanup) and says so with `working`.
+    /// real work (finalize + cleanup) and says so with `working`. A hold still `.starting`
+    /// with the pre-roll running is capturing too (D-02).
     private var orb: OrbGeometry.State {
-        controller.state == .listening ? .listening : .working
+        controller.state == .listening || controller.isCapturingAudio ? .listening : .working
     }
 
     private var isError: Bool {
@@ -75,9 +76,11 @@ struct HUDView: View {
 
     private var label: String {
         switch controller.state {
-        // Not "Listening…": the microphone is not open yet in `.starting`, and on a cold
-        // Parakeet that is eleven seconds of the HUD claiming to hear you.
-        case .starting: "Getting ready…"
+        // "Getting ready…" only while the pre-roll has not opened the mic yet. Once it
+        // runs (D-02) the hold is capturing, so it reads as listening instead of setup.
+        case .starting: controller.isCapturingAudio
+            ? (controller.transcript.isEmpty ? "Listening…" : controller.transcript)
+            : "Getting ready…"
         case .listening: controller.transcript.isEmpty ? "Listening…" : controller.transcript
         // Prefer live / stabilized text when the engine already filled it during the hold.
         case .finishing: controller.transcript.isEmpty ? "Transcribing…" : controller.transcript

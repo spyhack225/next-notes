@@ -279,16 +279,16 @@ enum CommandKeySelfTest {
         let problem = IslandState.Kind.problem(failure)
         check(
             "a failed dictation is drawn as its words",
-            IslandState.card(for: .error(failure), transcript: "", level: 0) == problem
+            IslandState.card(for: .error(failure), transcript: "", level: 0, isCapturing: false) == problem
         )
         check(
             "a live dictation is still drawn as one",
-            IslandState.card(for: .listening, transcript: "hello", level: 0.4)
+            IslandState.card(for: .listening, transcript: "hello", level: 0.4, isCapturing: true)
                 == .dictating(transcript: "hello", level: 0.4, isCapturing: true)
         )
         check(
             "and the wait after the key comes up is not capturing",
-            IslandState.card(for: .finishing, transcript: "hello", level: 0)
+            IslandState.card(for: .finishing, transcript: "hello", level: 0, isCapturing: false)
                 == .dictating(transcript: "hello", level: 0, isCapturing: false)
         )
         check("a failure is not drawn as an orb", problem.orb == nil)

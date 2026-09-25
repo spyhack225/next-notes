@@ -49,11 +49,42 @@ private actor RaceGate<T: Sendable> {
 private final class DictationAudioCounter: @unchecked Sendable {
     private let lock = NSLock()
     private var count = 0
+    /// Frames yielded into the engine stream but not yet fed (D-02 pre-roll depth).
+    private var pending = 0
+    /// Hub worker overflows and pre-roll cap drops (D-01b's `droppedHubBuffers`
+    /// and `droppedStreamBuffers`; filed once the usage rows land).
+    private var hubDrops = 0
+    private var streamDrops = 0
 
     func add(_ frames: Int) {
         lock.lock()
         count += frames
         lock.unlock()
+    }
+
+    /// Reserve room for `frames` more under `cap`. False means the buffer is not
+    /// yielded and the drop is counted; the hold still transcribes what it kept.
+    func reserve(_ frames: Int, cap: Int) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard pending + frames <= cap else {
+            streamDrops += 1
+            return false
+        }
+        pending += frames
+        return true
+    }
+
+    func release(_ frames: Int) {
+        lock.lock()
+        defer { lock.unlock() }
+        pending = max(0, pending - frames)
+    }
+
+    func addHubDrops(_ n: Int) {
+        lock.lock()
+        defer { lock.unlock() }
+        hubDrops += n
     }
 
     var frames: Int {
@@ -136,6 +167,19 @@ final class DictationController {
     private var firstPartialTrace: LatencyTrace?
     /// Open from key-down until hub subscribe succeeds — keyDown → capture started.
     private var keyDownToCaptureTrace: LatencyTrace?
+    /// Key-down → hub subscribe, in seconds, set when the pre-roll subscribe succeeds.
+    /// Read by `--selftest-dictation` (D-02 case c); D-01b will file it as
+    /// `counts["keyDownToCaptureMs"]` once the usage rows land (P0-20a still todo).
+    private(set) var keyDownToCaptureSeconds: TimeInterval?
+    /// True from the pre-roll hub subscribe until the microphone closes. The island
+    /// and the HUD read it so a hold shows as capturing while `.starting` (D-02):
+    /// the mic is open and the utterance is being kept, even though no partial
+    /// has arrived yet.
+    private(set) var isCapturingAudio = false
+    /// The session whose key was released while `.starting`. The start Task feeds
+    /// that session's pre-roll into the engine and runs the normal tail for it
+    /// instead of failing (D-02). Reset on every new hold.
+    private var releasedDuringStartup: Int?
 
     private let hotkey = HotkeyMonitor()
     private let commandHotkey = HotkeyMonitor()
@@ -723,6 +767,8 @@ final class DictationController {
         transcript = ""
         audioCounter = DictationAudioCounter()
         holdStarted = Date()
+        keyDownToCaptureSeconds = nil
+        releasedDuringStartup = nil
         keyDownToCaptureTrace = LatencyTrace.start(.dictationKeyDownToCapture)
         if case .dictation = intent {
             isComparing = Settings.shared.compareMode
@@ -749,9 +795,104 @@ final class DictationController {
                 let engine = makeEngine()
                 self.engine = engine
 
+                // The input format is known before the engine has started (D-02), so
+                // capture can open at key-down instead of after the model load.
+                //
+                // Compare mode captures in *Apple's* format, not a format of our choosing.
+                //
+                // SpeechAnalyzer enforces `Audio sample data must be 16-bit signed integers`
+                // as a hard precondition — feeding it float32 doesn't fail gracefully, it
+                // kills the process. Parakeet is the flexible one (its `feed` converts
+                // int16/int32/float32), so the strict engine picks the format and the
+                // tolerant engine adapts. Both still replay the identical buffers.
+                let formatOwner: any TranscriptionEngine = isComparing ? AppleSpeechEngine() : engine
+                let format = await formatOwner.preferredInputFormat()
+                guard let format else {
+                    await engine.finish()
+                    if self.session == session { self.engine = nil }
+                    throw TranscriptionError.noAudioFormat
+                }
+
+                // Last chance to notice a newer hold before the microphone opens:
+                // after this line the slots and the hub belong to this session, and
+                // every exit below has to unwind them. A release that already landed
+                // (`releasedDuringStartup`, e.g. a tap faster than the permission
+                // check) is still this session's hold: continue below — subscribe,
+                // start, and run the tail on whatever was captured, which for a pure
+                // tap is room silence and goes quietly idle. Only a newer session
+                // bails out here.
+                guard self.session == session,
+                      self.state == .starting || releasedDuringStartup == session else {
+                    await engine.finish()
+                    if self.session == session { self.engine = nil }
+                    return
+                }
+
+                // Audio must reach the engine in capture order. A stream plus a single
+                // draining task guarantees that; spawning a Task per buffer would not.
+                //
+                // Unbounded, because the pre-roll accumulates while `engine.start()`
+                // loads the model and nothing drains it meanwhile. The bound is the
+                // 30 s cap below, not the stream policy: at 16 kHz mono Float32 that
+                // is ~1.9 MB a hold, and beyond it newer buffers are dropped and
+                // counted while the hold still transcribes what it kept.
+                let (audioStream, audioContinuation) = AsyncStream<AudioChunk>.makeStream(
+                    bufferingPolicy: .unbounded
+                )
+                let preRollFrameCap = 30 * Int(format.sampleRate)
+
+                // Capture starts at key-down, into an in-memory pre-roll owned by
+                // this session, and is replayed into the engine once it has started
+                // (D-02). A superseded start-up never touches the hub — only the
+                // session that owns the slots unsubscribes. Measured reason: on
+                // 2026-09-23 a cold start after a 52 s model load put 4.40 s between
+                // key-down and capture, and the hold was lost.
+                //
+                // The engine is NOT fed here: Apple needs its contextual strings set
+                // before the first buffer arrives, and Parakeet's partial state is
+                // reset in `start()`. The feed task below starts after `start()`
+                // returns and drains the pre-roll first, because it was yielded first.
+                // Hub subscribe so wake KWS can stay on the same input engine.
+                do {
+                    let audioCounter = self.audioCounter
+                    try AudioCaptureHub.shared.subscribe(
+                        .dictation,
+                        outputFormat: format,
+                        onBuffer: { chunk in
+                            let frames = Int(chunk.buffer.frameLength)
+                            audioCounter?.add(frames)
+                            if audioCounter?.reserve(frames, cap: preRollFrameCap) == true {
+                                audioContinuation.yield(chunk)
+                            }
+                        },
+                        onLevel: { [weak self] level in
+                            Task { @MainActor in self?.updateLevel(level) }
+                        },
+                        // Counted per hold for D-01b's `droppedHubBuffers` (P0-20a
+                        // still todo); the log line the default callback wrote moves
+                        // into those rows rather than firing per overflow.
+                        onOverflow: { n in audioCounter?.addHubDrops(n) }
+                    )
+                } catch {
+                    audioContinuation.finish()
+                    self.engine = nil
+                    await engine.finish()
+                    fail(error.localizedDescription)
+                    return
+                }
+
+                self.audioContinuation = audioContinuation
+                self.isCapturingAudio = true
+                if let holdStarted {
+                    self.keyDownToCaptureSeconds = Date().timeIntervalSince(holdStarted)
+                }
+                self.keyDownToCaptureTrace?.end()
+                self.keyDownToCaptureTrace = nil
+
                 // Bounded, because this is where the model load lives. Without a deadline a
                 // first-run download sits behind a HUD that says "Listening…" for as long as
-                // the transfer takes, and the utterance is lost at the end of it anyway.
+                // the transfer takes. The pre-roll above means the utterance is kept while
+                // it loads instead of being lost at the end of it.
                 let outcome = await withBoundedWait(limits.startup) { () -> StartOutcome in
                     do { return .started(try await engine.start()) }
                     // D-04: a raw engine string never reaches the island; the raw
@@ -761,12 +902,12 @@ final class DictationController {
                     catch { return .failed(DictationErrorText.plain(error)) }
                 }
 
-                // Superseded or released while the model was loading: this start-up owns
-                // nothing but its own engine, and must not touch the slots of whoever came
-                // after it.
-                guard self.session == session, case .starting = self.state else {
+                // Superseded while the model was loading: this start-up owns nothing
+                // but its own engine and its own continuation. It finishes both and
+                // never calls `unsubscribe` — that would cut the next hold's mic.
+                guard self.session == session else {
+                    audioContinuation.finish()
                     await engine.finish()
-                    if self.session == session { self.engine = nil }
                     return
                 }
 
@@ -788,90 +929,38 @@ final class DictationController {
                 }
 
                 // Apple does local ASR but does not touch the scheduler itself
-                // (ParakeetEngine owns that path). Acquire here so notes
-                // checkpoints park for the Apple hold too. Kept in a local
-                // until this session commits to `.listening`, so a superseded
-                // start releases its own id without touching a later hold.
+                // (ParakeetEngine owns that path). Acquired after `start()` returns
+                // so a superseded start-up never holds a lane: it releases its own
+                // id below without touching a later hold.
                 var appleLane: UUID?
                 if engine is AppleSpeechEngine {
                     appleLane = await ComputeScheduler.shared.acquire(.realtimeASR)
                 }
 
-                // Compare mode captures in *Apple's* format, not a format of our choosing.
-                //
-                // SpeechAnalyzer enforces `Audio sample data must be 16-bit signed integers`
-                // as a hard precondition — feeding it float32 doesn't fail gracefully, it
-                // kills the process. Parakeet is the flexible one (its `feed` converts
-                // int16/int32/float32), so the strict engine picks the format and the
-                // tolerant engine adapts. Both still replay the identical buffers.
-                let formatOwner: any TranscriptionEngine = isComparing ? AppleSpeechEngine() : engine
-                let format = await formatOwner.preferredInputFormat()
-
-                // Last chance to notice a release or a newer hold: after this line the
-                // controller's slots and the microphone belong to this session, and every
-                // exit below has to unwind them.
-                guard self.session == session, case .starting = self.state else {
-                    await engine.finish()
+                // A cancel may have landed while the lane was acquired.
+                guard self.session == session else {
                     if let appleLane {
                         await ComputeScheduler.shared.release(appleLane)
                     }
-                    if self.session == session { self.engine = nil }
+                    audioContinuation.finish()
+                    await engine.finish()
                     return
                 }
-                guard let format else {
-                    if let appleLane {
-                        await ComputeScheduler.shared.release(appleLane)
-                    }
-                    throw TranscriptionError.noAudioFormat
-                }
-
-                // Audio must reach the engine in capture order. A stream plus a single
-                // draining task guarantees that; spawning a Task per buffer would not.
-                let (audioStream, audioContinuation) = AsyncStream<AudioChunk>.makeStream(
-                    bufferingPolicy: .bufferingNewest(64)
-                )
 
                 // The recording is accumulated *inside* the ordered drain, not by spawning
                 // a task per buffer. Unstructured tasks have no ordering guarantee, so
                 // collecting them separately could assemble the replay audio out of order
                 // and silently produce word-salad from the comparison.
+                let audioCounter = self.audioCounter
                 let comparing = isComparing
                 let feedTask = Task.detached(priority: .userInitiated) { () -> [AudioChunk] in
                     var recording: [AudioChunk] = []
                     for await chunk in audioStream {
+                        audioCounter?.release(Int(chunk.buffer.frameLength))
                         if comparing { recording.append(chunk) }
                         await engine.feed(chunk)
                     }
                     return recording
-                }
-
-                // Capture starts *after* the guard above, not before it. Started first, a
-                // start-up that has already been superseded opens the microphone on behalf
-                // of a recording nobody asked for, and only closes it again a line later.
-                // Hub subscribe so wake KWS can stay on the same input engine.
-                do {
-                    let audioCounter = self.audioCounter
-                    try AudioCaptureHub.shared.subscribe(
-                        .dictation,
-                        outputFormat: format,
-                        onBuffer: { chunk in
-                            audioCounter?.add(Int(chunk.buffer.frameLength))
-                            audioContinuation.yield(chunk)
-                        },
-                        onLevel: { [weak self] level in
-                            Task { @MainActor in self?.updateLevel(level) }
-                        }
-                    )
-                } catch {
-                    audioContinuation.finish()
-                    feedTask.cancel()
-                    self.engine = nil
-                    await engine.finish()
-                    if let appleLane {
-                        await ComputeScheduler.shared.release(appleLane)
-                    }
-                    fail(error.localizedDescription)
-                    return
                 }
 
                 // Commit the Apple lane to the controller slots so end/fail/cancel
@@ -880,13 +969,7 @@ final class DictationController {
                     self.asrLaneID = appleLane
                     self.asrLaneSession = session
                 }
-                self.audioContinuation = audioContinuation
                 self.feedTask = feedTask
-                self.state = .listening
-                self.keyDownToCaptureTrace?.end()
-                self.keyDownToCaptureTrace = nil
-                self.firstPartialTrace = LatencyTrace.start(.dictationSpeechToFirstPartial)
-                if Settings.shared.soundEnabled { NSSound(named: "Tink")?.play() }
 
                 self.consumeTask = Task { @MainActor in
                     do {
@@ -903,6 +986,21 @@ final class DictationController {
                         self.fail(DictationErrorText.plain(error))
                     }
                 }
+
+                // Released while starting: the stream is already finished, so the
+                // drain below returns as soon as the kept pre-roll is fed. No await
+                // sits between this check and the `.listening` assignment, so a
+                // release cannot land between them on this actor.
+                if releasedDuringStartup == session {
+                    let capturedFrames = self.audioCounter?.frames ?? 0
+                    self.audioCounter = nil
+                    await runTail(session: session, capturedFrames: capturedFrames)
+                    return
+                }
+
+                self.state = .listening
+                self.firstPartialTrace = LatencyTrace.start(.dictationSpeechToFirstPartial)
+                if Settings.shared.soundEnabled { NSSound(named: "Tink")?.play() }
             } catch {
                 guard self.session == session else { return }
                 self.fail(DictationErrorText.plain(error))
@@ -924,15 +1022,22 @@ final class DictationController {
         guard state.isActive, state != .finishing else { return }
         guard expected == nil || recordingIntent.kind == expected else { return }
 
-        // A release that lands before hub subscribe ran has no audio behind it: the
-        // engine was still loading and the microphone was never opened. Going quietly back
-        // to `.idle` here is what "I held the key, spoke, and nothing arrived" actually
-        // looks like from the outside, so say it instead. Bumping the session tells the
-        // start-up still in flight to unwind itself rather than come up listening to a key
-        // that is no longer held.
+        // A release that lands while `.starting` (D-02): the pre-roll holds the
+        // utterance, so the hold is transcribed instead of failed. The hub closes,
+        // the finished stream ends after the kept buffers, and the start Task runs
+        // the normal tail as soon as the engine is up.
         if case .starting = state {
-            session &+= 1
-            fail("Next Notes was still starting up, so that recording was lost. Hold the key again.")
+            releasedDuringStartup = session
+            AudioCaptureHub.shared.unsubscribe(.dictation)
+            isCapturingAudio = false
+            level = 0
+            audioContinuation?.finish()
+            if recordingIntent.kind == .command { showCommandMode(.rewriting) }
+            releasedAt = Date()
+            // Key-up before any partial: close the open speech→partial span rather than drop it.
+            firstPartialTrace?.end(note: "key-up")
+            firstPartialTrace = nil
+            state = .finishing
             return
         }
 
@@ -947,6 +1052,7 @@ final class DictationController {
         let capturedFrames = audioCounter?.frames ?? 0
         audioCounter = nil
         AudioCaptureHub.shared.unsubscribe(.dictation)
+        isCapturingAudio = false
         level = 0
         releasedAt = Date()
         // Key-up before any partial: close the open speech→partial span rather than drop it.
@@ -955,203 +1061,216 @@ final class DictationController {
         let session = self.session
 
         Task { @MainActor in
-            // Drain every captured buffer into the engine before asking it to finalize,
-            // or the tail of the utterance gets dropped.
-            let audioContinuation = self.audioContinuation
-            let feedTask = self.feedTask
-            let engine = self.engine
-            let consumeTask = self.consumeTask
-            self.audioContinuation = nil
-            self.feedTask = nil
-            self.engine = nil
-            self.consumeTask = nil
+            await runTail(session: session, capturedFrames: capturedFrames)
+        }
+    }
 
-            let began = Date()
-            audioContinuation?.finish()
-            recorded = await withBoundedWait(limits.drain) {
-                await feedTask?.value ?? []
-            } ?? []
-            let drained = Date().timeIntervalSince(began)
-            // Same numbers the info log already prints — record them rather than a second clock.
-            LatencyTrace.record(.dictationDrain, seconds: drained)
+    /// The tail every finished hold runs: drain, transcribe, clean up, inject.
+    ///
+    /// Factored out of `endDictation` (D-02) so a release during `.starting` can run
+    /// the same tail once the engine has started: the start Task calls this directly
+    /// with the pre-roll it kept, while a release from `.listening` goes through the
+    /// `Task` above. Either way the stream is already finished on entry, so the
+    /// drain returns as soon as the kept audio is fed.
+    private func runTail(session: Int, capturedFrames: Int) async {
+        // Drain every captured buffer into the engine before asking it to finalize,
+        // or the tail of the utterance gets dropped.
+        let audioContinuation = self.audioContinuation
+        let feedTask = self.feedTask
+        let engine = self.engine
+        let consumeTask = self.consumeTask
+        self.audioContinuation = nil
+        self.feedTask = nil
+        self.engine = nil
+        self.consumeTask = nil
 
-            // Prefer text already stabilized while the key was held. Streaming engines
-            // (Apple always; Parakeet every ~2 s) keep `transcript` current — finish still
-            // runs to close the session, but a timed-out finish must not wipe ready text.
-            let stabilized = self.transcript
+        let began = Date()
+        audioContinuation?.finish()
+        recorded = await withBoundedWait(limits.drain) {
+            await feedTask?.value ?? []
+        } ?? []
+        let drained = Date().timeIntervalSince(began)
+        // Same numbers the info log already prints — record them rather than a second clock.
+        LatencyTrace.record(.dictationDrain, seconds: drained)
 
-            // `finish()` and the transcript stream are one leg: with a batch-on-release
-            // engine the transcription happens inside `finish()` and the stream yields once
-            // at the end of it, so bounding them separately would only mean two ways to hang.
-            // With near-streaming Parakeet, finish often reuses the last partial.
-            let transcribed = await withBoundedWait(limits.transcribe) { () -> Bool in
-                await engine?.finish()
-                await consumeTask?.value
-                return true
-            } ?? false
-            // Apple lane lives on the controller; Parakeet already released inside finish().
-            await releaseASRLane(for: session)
-            let transcribedAt = Date().timeIntervalSince(began)
+        // Prefer text already stabilized while the key was held. Streaming engines
+        // (Apple always; Parakeet every ~2 s) keep `transcript` current — finish still
+        // runs to close the session, but a timed-out finish must not wipe ready text.
+        let stabilized = self.transcript
+
+        // `finish()` and the transcript stream are one leg: with a batch-on-release
+        // engine the transcription happens inside `finish()` and the stream yields once
+        // at the end of it, so bounding them separately would only mean two ways to hang.
+        // With near-streaming Parakeet, finish often reuses the last partial.
+        let transcribed = await withBoundedWait(limits.transcribe) { () -> Bool in
+            await engine?.finish()
+            await consumeTask?.value
+            return true
+        } ?? false
+        // Apple lane lives on the controller; Parakeet already released inside finish().
+        await releaseASRLane(for: session)
+        let transcribedAt = Date().timeIntervalSince(began)
+        LatencyTrace.record(
+            .dictationTranscribe,
+            seconds: transcribedAt - drained,
+            note: transcribed ? nil : "timeout"
+        )
+        if let releasedAt {
             LatencyTrace.record(
-                .dictationTranscribe,
-                seconds: transcribedAt - drained,
+                .dictationKeyUpToASRFinal,
+                seconds: Date().timeIntervalSince(releasedAt),
                 note: transcribed ? nil : "timeout"
             )
-            if let releasedAt {
-                LatencyTrace.record(
-                    .dictationKeyUpToASRFinal,
-                    seconds: Date().timeIntervalSince(releasedAt),
-                    note: transcribed ? nil : "timeout"
-                )
-            }
-            if !transcribed {
-                Log.speech.error("transcription did not finish within \(String(describing: self.limits.transcribe), privacy: .public)")
-            }
+        }
+        if !transcribed {
+            Log.speech.error("transcription did not finish within \(String(describing: self.limits.transcribe), privacy: .public)")
+        }
 
-            guard self.session == session else { return }
+        guard self.session == session else { return }
 
-            if isComparing {
-                await runComparison()
+        if isComparing {
+            await runComparison()
+            return
+        }
+
+        let raw = self.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? stabilized
+            : self.transcript
+        guard !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            if capturedFrames == 0 {
+                fail("No microphone audio reached dictation. Check the selected input device, then try again.")
                 return
             }
-
-            let raw = self.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                ? stabilized
-                : self.transcript
-            guard !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                if capturedFrames == 0 {
-                    fail("No microphone audio reached dictation. Check the selected input device, then try again.")
-                    return
-                }
-                // A timed-out transcription leaves nothing to inject, and silence is the
-                // one thing the user must not be told it was.
-                if transcribed {
-                    finishIdle()
-                } else {
-                    fail("Transcription didn't finish in time; that recording was lost.")
-                }
-                return
-            }
-
-            if case .command(let selection) = recordingIntent {
-                await applyCommand(raw, to: selection)
-                return
-            }
-
-            // On a cleanup timeout the raw transcript is used rather than dropped: badly
-            // punctuated text in the right field beats nothing at all.
-            var cleaned = raw
-            // Timed separately from the cleanup it feeds, because it used to be billed to it.
-            // Scoring the screen names is arithmetic in this process and cleanup is a language
-            // model; a tail that reads "cleanup 3.4s" when three of those seconds went on
-            // narrowing sends whoever reads it to the wrong machine entirely.
-            var narrowedAt = transcribedAt
-            var cleanupTimedOut = false
-            // Outside the cleanup block because the file tagging below reads it too.
-            var screen = ScreenContext.empty
-            // Filled in by the pass itself and filed on the run below, so the Dictation
-            // history can say what happened to these words rather than only what came out.
-            var cleanupRecord: CleanupRecord?
-            if Settings.shared.cleanupEnabled {
-                screen = await screenNames(mentionedIn: raw)
-                narrowedAt = Date().timeIntervalSince(began)
-                guard self.session == session else { return }
-                let trace = CleanupTrace()
-                let formatter = activeFormatter(context: screen, trace: trace)
-                if let formatted = await withBoundedWait(limits.cleanup, { await formatter.format(raw) }) {
-                    cleaned = formatted
-                } else {
-                    cleanupTimedOut = true
-                    trace.noteModelFailed(
-                        reason: "tidying up took too long, so your words were used as spoken",
-                        seconds: Date().timeIntervalSince(began) - narrowedAt
-                    )
-                    trace.noteOutput(raw, seconds: Date().timeIntervalSince(began) - narrowedAt)
-                    Log.speech.error("cleanup did not finish within \(String(describing: self.limits.cleanup), privacy: .public) — using the raw transcript")
-                }
-                cleanupRecord = trace.snapshot
-            }
-
-            // The split, every time, at info level. `runs.jsonl` records one number for the
-            // whole tail, and a run that took three minutes when it should have taken two
-            // seconds is not diagnosable from one number: draining, transcribing, narrowing the
-            // screen names and cleaning up are four different machines and any of them can be
-            // the slow one.
-            let cleanedAt = Date().timeIntervalSince(began)
-            LatencyTrace.record(.dictationNames, seconds: narrowedAt - transcribedAt)
-            LatencyTrace.record(
-                .dictationCleanup,
-                seconds: cleanedAt - narrowedAt,
-                note: cleanupTimedOut ? "timeout" : nil
-            )
-            LatencyTrace.record(
-                .dictationASRFinalToCleanup,
-                seconds: cleanedAt - transcribedAt,
-                note: cleanupTimedOut ? "timeout" : nil
-            )
-            Log.speech.info("""
-                dictation tail · drain \(drained, format: .fixed(precision: 2))s · \
-                transcribe \(transcribedAt - drained, format: .fixed(precision: 2))s · \
-                names \(narrowedAt - transcribedAt, format: .fixed(precision: 2))s · \
-                cleanup \(cleanedAt - narrowedAt, format: .fixed(precision: 2))s
-                """)
-
-            guard self.session == session else { return }
-
-            // The dictionary runs last, and runs regardless of the cleanup setting. Biasing
-            // only raises the odds of the right word; this is the pass that guarantees it,
-            // so it must not be something the user can accidentally switch off.
-            let (corrected, corrections) = DictionaryStore.shared.corrector.apply(to: cleaned)
-            if !corrections.isEmpty {
-                Log.speech.info("dictionary · \(corrections.count, privacy: .public) correction(s) applied")
-            }
-
-            // Last text pass before injection: after the dictionary, so a correction can fix a
-            // misheard word inside a file name first, and with nothing after it that could
-            // rewrite the reference it writes.
-            let output = await tagFileReferences(in: corrected, screen: screen)
-            guard self.session == session else { return }
-
-            // Recorded before injection, deliberately. If the text cannot be placed, the
-            // Dictation list is the other way back to it, and an utterance that is hard to
-            // deliver is exactly the one worth having filed.
-            recordRun(text: output, corrections: corrections, cleanup: cleanupRecord)
-
-            let injectBegan = Date()
-            let outcome = await insert(output, origin)
-            let injectSeconds = Date().timeIntervalSince(injectBegan)
-            LatencyTrace.record(.dictationCleanupToInjection, seconds: injectSeconds)
-            if let releasedAt {
-                LatencyTrace.record(
-                    .dictationKeyUpToInjection,
-                    seconds: Date().timeIntervalSince(releasedAt)
-                )
-            }
-
-            switch outcome {
-            case .inserted:
-                if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
+            // A timed-out transcription leaves nothing to inject, and silence is the
+            // one thing the user must not be told it was.
+            if transcribed {
                 finishIdle()
-
-            case .copiedByChoice:
-                // The setting asked for this, so it is a success and gets the success
-                // sound. Saying "that went to your clipboard" every time would be nagging
-                // someone about a choice they already made.
-                if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
-                finishIdle()
-
-            case .couldNotReturn(let appName):
-                // Not silent. The old behaviour here was to paste into whatever the user
-                // had switched to — or nowhere — and say nothing, which is indistinguishable
-                // from the app losing the recording.
-                fail("Couldn't switch back to \(appName). That dictation is on your clipboard.")
+            } else {
+                fail("Transcription didn't finish in time; that recording was lost.")
             }
+            return
+        }
+
+        if case .command(let selection) = recordingIntent {
+            await applyCommand(raw, to: selection)
+            return
+        }
+
+        // On a cleanup timeout the raw transcript is used rather than dropped: badly
+        // punctuated text in the right field beats nothing at all.
+        var cleaned = raw
+        // Timed separately from the cleanup it feeds, because it used to be billed to it.
+        // Scoring the screen names is arithmetic in this process and cleanup is a language
+        // model; a tail that reads "cleanup 3.4s" when three of those seconds went on
+        // narrowing sends whoever reads it to the wrong machine entirely.
+        var narrowedAt = transcribedAt
+        var cleanupTimedOut = false
+        // Outside the cleanup block because the file tagging below reads it too.
+        var screen = ScreenContext.empty
+        // Filled in by the pass itself and filed on the run below, so the Dictation
+        // history can say what happened to these words rather than only what came out.
+        var cleanupRecord: CleanupRecord?
+        if Settings.shared.cleanupEnabled {
+            screen = await screenNames(mentionedIn: raw)
+            narrowedAt = Date().timeIntervalSince(began)
+            guard self.session == session else { return }
+            let trace = CleanupTrace()
+            let formatter = activeFormatter(context: screen, trace: trace)
+            if let formatted = await withBoundedWait(limits.cleanup, { await formatter.format(raw) }) {
+                cleaned = formatted
+            } else {
+                cleanupTimedOut = true
+                trace.noteModelFailed(
+                    reason: "tidying up took too long, so your words were used as spoken",
+                    seconds: Date().timeIntervalSince(began) - narrowedAt
+                )
+                trace.noteOutput(raw, seconds: Date().timeIntervalSince(began) - narrowedAt)
+                Log.speech.error("cleanup did not finish within \(String(describing: self.limits.cleanup), privacy: .public) — using the raw transcript")
+            }
+            cleanupRecord = trace.snapshot
+        }
+
+        // The split, every time, at info level. `runs.jsonl` records one number for the
+        // whole tail, and a run that took three minutes when it should have taken two
+        // seconds is not diagnosable from one number: draining, transcribing, narrowing the
+        // screen names and cleaning up are four different machines and any of them can be
+        // the slow one.
+        let cleanedAt = Date().timeIntervalSince(began)
+        LatencyTrace.record(.dictationNames, seconds: narrowedAt - transcribedAt)
+        LatencyTrace.record(
+            .dictationCleanup,
+            seconds: cleanedAt - narrowedAt,
+            note: cleanupTimedOut ? "timeout" : nil
+        )
+        LatencyTrace.record(
+            .dictationASRFinalToCleanup,
+            seconds: cleanedAt - transcribedAt,
+            note: cleanupTimedOut ? "timeout" : nil
+        )
+        Log.speech.info("""
+            dictation tail · drain \(drained, format: .fixed(precision: 2))s · \
+            transcribe \(transcribedAt - drained, format: .fixed(precision: 2))s · \
+            names \(narrowedAt - transcribedAt, format: .fixed(precision: 2))s · \
+            cleanup \(cleanedAt - narrowedAt, format: .fixed(precision: 2))s
+            """)
+
+        guard self.session == session else { return }
+
+        // The dictionary runs last, and runs regardless of the cleanup setting. Biasing
+        // only raises the odds of the right word; this is the pass that guarantees it,
+        // so it must not be something the user can accidentally switch off.
+        let (corrected, corrections) = DictionaryStore.shared.corrector.apply(to: cleaned)
+        if !corrections.isEmpty {
+            Log.speech.info("dictionary · \(corrections.count, privacy: .public) correction(s) applied")
+        }
+
+        // Last text pass before injection: after the dictionary, so a correction can fix a
+        // misheard word inside a file name first, and with nothing after it that could
+        // rewrite the reference it writes.
+        let output = await tagFileReferences(in: corrected, screen: screen)
+        guard self.session == session else { return }
+
+        // Recorded before injection, deliberately. If the text cannot be placed, the
+        // Dictation list is the other way back to it, and an utterance that is hard to
+        // deliver is exactly the one worth having filed.
+        recordRun(text: output, corrections: corrections, cleanup: cleanupRecord)
+
+        let injectBegan = Date()
+        let outcome = await insert(output, origin)
+        let injectSeconds = Date().timeIntervalSince(injectBegan)
+        LatencyTrace.record(.dictationCleanupToInjection, seconds: injectSeconds)
+        if let releasedAt {
+            LatencyTrace.record(
+                .dictationKeyUpToInjection,
+                seconds: Date().timeIntervalSince(releasedAt)
+            )
+        }
+
+        switch outcome {
+        case .inserted:
+            if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
+            finishIdle()
+
+        case .copiedByChoice:
+            // The setting asked for this, so it is a success and gets the success
+            // sound. Saying "that went to your clipboard" every time would be nagging
+            // someone about a choice they already made.
+            if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
+            finishIdle()
+
+        case .couldNotReturn(let appName):
+            // Not silent. The old behaviour here was to paste into whatever the user
+            // had switched to — or nowhere — and say nothing, which is indistinguishable
+            // from the app losing the recording.
+            fail("Couldn't switch back to \(appName). That dictation is on your clipboard.")
         }
     }
 
     /// The one way back to rest after a successful run.
     private func finishIdle() {
         AudioCaptureHub.shared.unsubscribe(.dictation)
+        isCapturingAudio = false
+        releasedDuringStartup = nil
         audioCounter = nil
         level = 0
         state = .idle
@@ -1206,10 +1325,15 @@ final class DictationController {
         case failed(String)
     }
 
-    private func cancelDictation() {
+    /// Internal (not private) so `--selftest-dictation` can prove a superseded
+    /// start-up never cuts the next hold's microphone (D-02 case d). Production
+    /// callers are `deactivate()` and the Command Mode cancel path below.
+    func cancelDictation() {
         let releasing = session
         session &+= 1
         AudioCaptureHub.shared.unsubscribe(.dictation)
+        isCapturingAudio = false
+        releasedDuringStartup = nil
         audioCounter = nil
         audioContinuation?.finish()
         audioContinuation = nil
@@ -1362,6 +1486,8 @@ final class DictationController {
         let releasing = session
         session &+= 1
         AudioCaptureHub.shared.unsubscribe(.dictation)
+        isCapturingAudio = false
+        releasedDuringStartup = nil
         audioCounter = nil
         audioContinuation?.finish()
         audioContinuation = nil

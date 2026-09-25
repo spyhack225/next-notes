@@ -516,11 +516,15 @@ final class IslandState {
     /// was reported for, on the path every *other* dictation failure takes — a quick tap of
     /// the push-to-talk key, a microphone that sent no audio, either transcription timeout.
     ///
+    /// `isCapturing` is passed in rather than derived from `state` (D-02): the pre-roll
+    /// opens the microphone while `.starting`, so the state alone cannot say whether
+    /// audio is being kept.
+    ///
     /// Static and pure so `--selftest-commandkey` can prove the mapping without a
     /// microphone and without depending on which heads-up placement the user has chosen.
-    static func card(for state: DictationController.State, transcript: String, level: Float) -> Kind {
+    static func card(for state: DictationController.State, transcript: String, level: Float, isCapturing: Bool) -> Kind {
         if case .error(let message) = state { return .problem(message) }
-        return .dictating(transcript: transcript, level: level, isCapturing: state == .listening)
+        return .dictating(transcript: transcript, level: level, isCapturing: isCapturing)
     }
 
     private func liveKind() -> Kind {
@@ -556,7 +560,8 @@ final class IslandState {
             return Self.card(
                 for: dictation.state,
                 transcript: dictation.transcript,
-                level: dictation.level
+                level: dictation.level,
+                isCapturing: dictation.state == .listening || dictation.isCapturingAudio
             )
         }
         // M-06: the unanswered detected-call question. Agent and dictation stay above
