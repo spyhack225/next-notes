@@ -29,8 +29,10 @@ import Observation
 /// and it was 1.5 s of pure delay on every meeting proposal that avoided no contention at
 /// all. Both backends are already handled by something that actually owns the decision:
 ///
-/// - Needle runs in a child process (`NeedleRunner`, ~130 ms, ~90 MB) and never touches the
-///   in-process lane, so there is nothing to yield.
+/// - Needle runs in a child process (`NeedleServer`, one resident `--serve` engine, p50
+///   ~60 ms warm and ~98 MB) and never touches the in-process lane, so there is nothing to
+///   yield. The first transcript of a meeting starts it in the background, so the one slow
+///   turn — model load and static-prefix prefill — is spent before the first proposal.
 /// - The fallback goes through `NotesModelRuntime`, which acquires `.background` from
 ///   `ComputeScheduler` — the class whose entire job is to yield to `.realtimeASR`.
 ///
@@ -273,7 +275,14 @@ final class FunctionCallWatcher {
 
     /// One transcript event from a meeting.
     func ingest(_ event: TranscriptEvent) {
-        guard event.meetingID != nil, event.isFinal, store.isEnabled else { return }
+        guard event.meetingID != nil, store.isEnabled else { return }
+
+        // Before anything is armed: a meeting's first words are the cheapest moment to start
+        // the resident engine, and doing it here is what keeps the first *proposal* of a
+        // meeting from paying the one slow turn. See `warmEngine`.
+        warmEngine(for: event)
+
+        guard event.isFinal else { return }
         // The user already has a switch for "let the agent work during a meeting", and it
         // means this too. A second switch that had to be found separately would be a way of
         // ignoring the first one. Read through the store rather than from `Settings`
@@ -463,13 +472,37 @@ final class FunctionCallWatcher {
         if !store.status.isReady { await store.refreshStatus() }
     }
 
+    /// Starts the resident engine on a meeting's first words, long before it is needed.
+    ///
+    /// The first inference on a fresh `--serve` child costs about a second — the tool schemas
+    /// and the session facts are prefilled once and then reused — while the spawn path the
+    /// server replaced paid only its own launch. Left to the first proposal, that would make
+    /// the first card of a meeting slower than the design this removed. Warming on the first
+    /// transcript instead spends the second while the meeting is still starting.
+    ///
+    /// It is a no-op when the engine is already warm for the same tools and facts, so it is
+    /// safe on every event, and it is never awaited: nothing here may delay the transcript.
+    private func warmEngine(for event: TranscriptEvent) {
+        guard store.noticesMeetings else { return }
+        let tools = FunctionCallCatalogue.current()
+        guard !tools.isEmpty else { return }
+        let facts = Self.facts(for: event.meetingID)
+        Task(priority: .utility) {
+            await NeedleRunner.shared.warm(tools: tools, facts: facts)
+        }
+    }
+
     /// Session facts the model may use. Sentences, not a JSON blob: this is a 121M model.
     static func facts(for trigger: Trigger) -> [String] {
+        facts(for: trigger.meetingID)
+    }
+
+    static func facts(for meetingID: UUID?) -> [String] {
         var facts: [String] = []
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE, d MMMM yyyy"
         facts.append("Today is \(formatter.string(from: Date())).")
-        if let context = MeetingContextStore.shared.current, context.meetingID == trigger.meetingID {
+        if let context = MeetingContextStore.shared.current, context.meetingID == meetingID {
             facts.append("A meeting called \(context.title) is being recorded.")
             if !context.participants.isEmpty {
                 facts.append("The people in it are \(context.participants.joined(separator: ", ")).")

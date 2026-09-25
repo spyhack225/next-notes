@@ -56,7 +56,6 @@ struct ComputerBrowserReadiness: View {
                                  + "changing anything.")
             }
         }
-        .formStyle(.grouped)
         .onAppear { refresh() }
     }
 

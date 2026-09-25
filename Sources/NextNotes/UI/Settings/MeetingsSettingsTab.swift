@@ -132,7 +132,6 @@ struct MeetingsSettingsTab: View {
                              + "other participants are missing from the transcript.")
             }
         }
-        .formStyle(.grouped)
     }
 
     // MARK: - Calls

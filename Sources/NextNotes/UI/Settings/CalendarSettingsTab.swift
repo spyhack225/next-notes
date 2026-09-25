@@ -29,7 +29,6 @@ struct CalendarSettingsTab: View {
             googleSection
             statusSection
         }
-        .formStyle(.grouped)
         .task { await calendar.refreshGoogleCalendars() }
         .fileImporter(isPresented: $isImportingClient, allowedContentTypes: [.json]) { result in
             switch result {

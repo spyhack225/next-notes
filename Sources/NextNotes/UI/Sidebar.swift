@@ -34,6 +34,14 @@ struct Sidebar: View {
                         .tag(section)
                 }
             }
+
+            // Settings sits below the group rather than in it: it is a way into the app's
+            // own controls, not one of the places dictation and meetings live. The row
+            // opens the same Settings view the ⌘, window shows, inside this window.
+            Section {
+                Label(SidebarSection.settings.title, systemImage: SidebarSection.settings.systemImage)
+                    .tag(SidebarSection.settings)
+            }
         }
         // Finer than the default step, because the column is a quarter of the window wide:
         // at `DS.Field.spacing` there are barely a dozen columns of lattice to read and it
@@ -90,10 +98,15 @@ struct Sidebar: View {
         return controller.state == .finishing ? .working : .listening
     }
 
-    /// Search appears once the knowledge index is on — or while it is the selection, so a
-    /// relaunch into it never shows a detail without its row.
+    /// The sections that get a row. Comparison moved into Settings and the Settings row is
+    /// drawn below the group, so neither belongs here; both stay in `allCases` so a stored
+    /// raw value keeps decoding. Search appears once the knowledge index is on — or while
+    /// it is the selection, so a relaunch into it never shows a detail without its row.
     private var visibleSections: [SidebarSection] {
-        SidebarSection.allCases.filter { $0 != .search || settings.knowledgeIndexEnabled || selection == .search }
+        SidebarSection.allCases.filter {
+            if $0 == .comparison || $0 == .settings { return false }
+            return $0 != .search || settings.knowledgeIndexEnabled || selection == .search
+        }
     }
 
     private var isRecording: Bool {

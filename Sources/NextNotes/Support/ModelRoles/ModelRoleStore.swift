@@ -258,7 +258,19 @@ struct ModelRoleResolution: Sendable, Equatable {
 @MainActor
 @Observable
 final class ModelRoleStore {
-    static let shared = ModelRoleStore()
+    static let shared = ModelRoleStore(defaults: sharedDefaults)
+
+    /// The defaults `.shared` reads and writes.
+    ///
+    /// P0-11: under `SelfTest.isRunning` this is the per-process
+    /// `UserDefaults(suiteName: "NextNotesSelfTest-<pid>")` in `SelfTestHarnessDefaults`,
+    /// so a self-test that drives `.shared` cannot move the owner's `modelRoles.*` keys.
+    /// When `SelfTest.allowsSavedModelSelection` asked for the owner's real selection the
+    /// suite was seeded with it — read-only; every write still lands in the suite. A real
+    /// run keeps `.standard`.
+    private static var sharedDefaults: UserDefaults {
+        SelfTest.isRunning ? SelfTestHarnessDefaults.shared : .standard
+    }
 
     private let defaults: UserDefaults
     private let catalog: LocalRuntimeCatalog

@@ -35,7 +35,7 @@ enum AssemblerToolCatalogue {
                 + "still owed. Slower than a search; use it when the person asks for the whole "
                 + "picture of something.",
             parameters: [
-                .init(name: "topic", description: "what to pull together, e.g. the Next Notes launch"),
+                .init(name: "topic", description: "what to pull together, e.g. the launch plan"),
             ],
             risk: .read,
             source: .native,

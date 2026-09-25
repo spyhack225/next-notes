@@ -415,6 +415,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-store-isolation") {
+            Task { @MainActor in
+                writeSelfTest(await StoreIsolationSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-model-unopenable") {
             Task { @MainActor in
                 SelfTest.failed = !(await ModelSupportSelfTest.runSelfTest())
@@ -1126,6 +1133,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 ? "MEETING_QUALITY_OK"
                 : "MEETING_QUALITY_FAILED: \(failures.count) check(s) wrong")
             NSApp.terminate(nil)
+            return true
+        }
+        if arguments.contains("--selftest-notes-longform") {
+            runNotesLongformSelfTest()
             return true
         }
         if arguments.contains("--selftest-cleanup-router") {
@@ -2673,6 +2684,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// `--selftest-notes-longform`: the map-reduce path keeps every fact (M-05), with a
+    /// collapse pass and a visible line on the last-resort path. No model, no store.
+    private func runNotesLongformSelfTest() {
+        Task { @MainActor in
+            SelfTest.failed = !(await NotesLongformSelfTest.run { writeSelfTest($0) })
+            NSApp.terminate(nil)
+        }
+    }
+
     /// `--notes-context-live`: the same brief against this machine's own memory, index,
     /// graph and folders. Read-only; prints `_EMPTY` rather than failing when there is
     /// legitimately nothing to connect. Must not be renamed to a `--selftest-*` flag — the
@@ -3137,8 +3157,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             // 6. Two failures 1 s apart: the first 3 s timer must clear neither a
-            //    new hold nor the newer error, so the second message is still
-            //    shown 2.5 s after it was raised.
+            //    new hold nor the newer error, so the second plain message is still
+            //    shown 2.5 s after it was raised (D-04 maps both raw errors to the
+            //    same plain sentence; the token timing is what this pins).
             let tokenBox = MutableEngineShape(.failsStart("first failure"))
             let tokenInbox = SelfTestInbox()
             let controllerF = makeRetryController(box: tokenBox, inbox: tokenInbox)
@@ -3154,8 +3175,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 controllerF.startButtonRecording()
                 try? await Task.sleep(for: .seconds(2.5))
                 if case .error(let message) = controllerF.state {
-                    if !message.contains("second") {
-                        failures.append("the second error message was replaced by \(message)")
+                    if message != DictationErrorText.unrecognized {
+                        failures.append("the second error was not the plain sentence: \(message)")
                     }
                 } else {
                     failures.append("the second error was cleared early "
@@ -4199,6 +4220,63 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             bare.listeningDetail("hello") == "hello"
         )
         check("an empty listen still has a line", !bare.listeningDetail("").isEmpty)
+
+        // M-06: a detected call's question outlives its 8 s notice as a collapsed pill
+        // until the call ends or is answered. Title is the current `event.title` path;
+        // the M-02 owner name arrives with that task.
+        let callEvent = MeetingEvent(
+            id: "selftest-call",
+            providerID: .detectedCall,
+            title: "WhatsApp call",
+            start: Date().addingTimeInterval(-30),
+            end: Date().addingTimeInterval(-30),
+            attendees: [],
+            isOrganizerOrSelfAccepted: true,
+            conferenceURL: nil,
+            calendarName: "WhatsApp",
+            isAllDay: false
+        )
+        let callState = IslandState()
+        callState.announceArmed(callEvent)
+        check("a detected call shows its card", callState.kind == .meetingArmed(callEvent))
+        check("a detected call card opens by itself", callState.isExpanded)
+        callState.expireNotice()
+        check("kind == .callQuestion", callState.kind == .callQuestion(callEvent))
+        check("the call pill stays collapsed", !callState.isExpanded)
+        check("the call pill breathes", callState.kind.orb == .breathing)
+        check("the call pill asks nothing red", callState.cardTitle == callEvent.title)
+        check(
+            "the call pill does not demand attention",
+            !IslandState.Kind.callQuestion(callEvent).demandsAttention
+        )
+        check(
+            "the call pill identity names it",
+            callState.cardIdentity == "call-question:\(callEvent.id)"
+        )
+        callState.isHovered = true
+        check("hovering the call pill expands it", callState.isExpanded)
+        callState.isHovered = false
+
+        // b. A later notice covers the pill; when it goes away the question is back.
+        callState.announceNotesReady(meeting)
+        check(
+            "notes cover the call pill",
+            callState.kind == .notesReady(meetingID: meeting.id, title: meeting.title)
+        )
+        callState.dismissNotice()
+        check("the call pill returns after notes", callState.kind == .callQuestion(callEvent))
+
+        // c. Answering takes the pill down for good.
+        callState.clearArmed(callEvent)
+        check("answering a call takes the pill down", callState.kind == .hidden)
+        check("answering a call forgets it", callState.armedCall == nil)
+
+        // d. Calendar meetings get no pill: expiry leaves nothing behind.
+        let calendarState = IslandState()
+        calendarState.announceArmed(event)
+        calendarState.expireNotice()
+        check("a calendar card leaves no pill", calendarState.kind == .hidden)
+        check("a calendar card is forgotten", calendarState.armedCall == nil)
 
         return failures
     }

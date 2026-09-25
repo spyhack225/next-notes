@@ -4,7 +4,7 @@ import Observation
 /// The in-memory view of `runs.jsonl`, observed by every view that shows history.
 ///
 /// It exists because `RunLog` is a file and SwiftUI can't watch one. Every mutation on
-/// `RunLog` reloads this store, so the Dictation list and the Comparison section always
+/// `RunLog` reloads this store, so the Dictation list and the Comparison pane always
 /// agree without either of them polling.
 @MainActor
 @Observable

@@ -14,6 +14,5 @@ struct PermissionsSettingsTab: View {
                              + "Reinstalling Next Notes can reset them.")
             }
         }
-        .formStyle(.grouped)
     }
 }

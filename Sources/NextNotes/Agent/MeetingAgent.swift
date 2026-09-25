@@ -76,7 +76,8 @@ actor MeetingAgent {
     /// - Parameter brief: the rendered known-context block from
     ///   `MeetingNotesBrief.promptBlock`, when the notes pass assembled one. Background the
     ///   model may use to resolve a person or a project; the transcript quote rule below
-    ///   still decides what may be proposed.
+    ///   still decides what may be proposed, and a write's argument values have to survive
+    ///   `argumentsGroundedInTranscript` — the brief never supplies one.
     func proposals(
         for meeting: Meeting,
         segments: [TranscriptSegment],
@@ -329,14 +330,21 @@ actor MeetingAgent {
                     continue
                 }
             }
+            // The quote says the meeting asked for the action; this says the values in the
+            // call came from the meeting too. The brief is in the prompt so the model can
+            // tell what a sentence means, and without this a recipient or a document id
+            // that lives only there reaches the card as though the transcript had it.
+            let arguments = tool.risk > .read
+                ? Self.argumentsGroundedInTranscript(call.arguments, tool: tool, transcript: transcript)
+                : call.arguments
 
-            let fingerprint = "\(tool.name)|\(call.arguments.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: "|"))"
+            let fingerprint = "\(tool.name)|\(arguments.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: "|"))"
             guard seen.insert(fingerprint).inserted else { continue }
 
             proposals.append(AgentProposal(
                 meetingID: meeting.id,
                 tool: tool.name,
-                arguments: call.arguments,
+                arguments: arguments,
                 rationale: call.rationale.isEmpty ? tool.description : call.rationale,
                 source: source,
                 evidence: call.evidence
@@ -354,6 +362,26 @@ actor MeetingAgent {
         let body = transcript.split(whereSeparator: { $0.isWhitespace })
             .joined(separator: " ").lowercased()
         return cleaned.count >= 12 && body.contains(cleaned)
+    }
+
+    /// The argument half of the transcript rule.
+    ///
+    /// `isTranscriptEvidence` above decides whether the meeting asked for the action. This
+    /// decides whether the values in the call came from the meeting too. A value the
+    /// transcript cannot support is dropped rather than proposed, so the card asks for it —
+    /// a memory, a graph node, a past meeting or a file name never answers in the meeting's
+    /// place — and the shapes come along because a grounded word that is not an address is
+    /// still not a recipient.
+    static func argumentsGroundedInTranscript(
+        _ arguments: [String: String],
+        tool: AgentTool,
+        transcript: String
+    ) -> [String: String] {
+        FunctionCallGrounding.groundedArguments(
+            arguments,
+            tool: FunctionCallCatalogue.descriptor(for: tool),
+            source: transcript
+        )
     }
 
     // MARK: - Fitting

@@ -102,6 +102,12 @@ struct AgentPaneSection<Content: View>: View {
 
 /// A card grid that adds columns as the window grows and drops them as it shrinks.
 /// Use it instead of a row of fixed-width cards or a single-column stack.
+///
+/// It is for a pane with several cards. `LazyVGrid` chooses its column count from the
+/// minimum, not from how many cards there are, so with exactly two cards every column
+/// past the second is left empty and no minimum fills a wide pane — a two-card pane
+/// uses a `ViewThatFits` pair instead (Agent → About's SOUL / MEMORY, see
+/// `DS.Size.agentAboutCardsMinWidth`).
 struct AgentCardGrid<Content: View>: View {
     var minimum: CGFloat = DS.Size.agentCardMinWidth
     @ViewBuilder var content: () -> Content

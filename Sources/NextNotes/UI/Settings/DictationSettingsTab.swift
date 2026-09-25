@@ -195,7 +195,6 @@ struct DictationSettingsTab: View {
                 }
             }
         }
-        .formStyle(.grouped)
         .animation(DS.Motion.standard, value: settings.cleanupEnabled)
         .animation(DS.Motion.standard, value: settings.autoSendEnabled)
         .sheet(isPresented: $isPickingAutoSendApp) {
@@ -284,7 +283,7 @@ struct DictationSettingsTab: View {
     private var engineNote: String {
         if settings.compareMode {
             return "Every engine transcribes each recording and the results appear in the "
-                + "Comparison section. Nothing is typed into the focused app in this mode."
+                + "Comparison pane in Settings. Nothing is typed into the focused app in this mode."
         }
         switch settings.engine {
         case .apple:

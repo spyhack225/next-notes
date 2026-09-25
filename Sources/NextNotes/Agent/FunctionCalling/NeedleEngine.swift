@@ -6,20 +6,24 @@ import Foundation
 /// ## Why this one, and why as a child process
 ///
 /// Needle 3 is 121M parameters quantized to ~2 bits, shipped as a single 35 MB `.cact` file
-/// that the engine memory-maps and reads in place. Measured on this Mac on 2026-09-19,
-/// wall clock for a complete proposal including process launch and model load:
+/// that the engine memory-maps and reads in place. It runs as a child process rather than a
+/// linked library (the four routes are below), and the child is **persistent**: `NeedleServer`
+/// starts one `--serve` engine on the first proposal and keeps it resident, because spawning
+/// per proposal paid launch, weight mapping and the static prefix's prefill on every sentence.
+/// Measured on this Mac, on the decision-gate benchmark's fixtures and this app's own 8-tool
+/// catalogue:
 ///
-/// | Tools declared | Per proposal | Peak RSS |
-/// |---|---|---|
-/// | 2 | **126 ms** | 92 MB |
-/// | 8 (what this app offers) | **~0.97 s** | ~105 MB |
-/// | 14 | ~4 s | ~105 MB |
+/// | Route | Per proposal | Start-up | Peak RSS |
+/// |---|---|---|---|
+/// | spawn per proposal (2026-09-19, by tools declared) | 126 ms @ 2, ~0.97 s @ 8, ~4 s @ 14 | — | ~105 MB |
+/// | spawn per proposal (2026-09-22 bench, 8 tools) | p50 615 ms | — | 98 MB |
+/// | `--serve`, warm (2026-09-23, 8 tools) | **p50 56 ms** | 430 ms once | ~92 MB |
 ///
-/// The cost is in the tool schemas, not the sentence, which is why `FunctionCallCatalogue`
-/// is short rather than complete. At eight tools a card lands about a second and a half
-/// after the speaker stops — inside the same breath of conversation — on ~100 MB of RSS in
-/// a process that exits afterwards, which is the property the feature needs: it runs while
-/// Parakeet is still transcribing without taking a lane the ASR wants.
+/// The tool schemas still bound the catalogue — start-up and context budget both scale with
+/// them, which is why `FunctionCallCatalogue` is short rather than complete — but their cost
+/// is now paid once per run of the feature instead of once per sentence. The resident child
+/// exits after ten quiet minutes, when the feature is switched off, and on app termination,
+/// so the 92 MB is kept only while the feature is actually being used.
 ///
 /// The repo ships four ways to run it on macOS, and only one of them is honest here:
 ///
@@ -246,7 +250,11 @@ struct JSONScalar: Decodable, Sendable {
 ///
 /// An actor for the same reason `MeetingAgent` is one: the watcher can be asked twice inside
 /// a second by two transcript windows, and two runners racing would double the machine's
-/// load for an answer that is 130 ms away anyway.
+/// load for an answer that is a tenth of a second away anyway.
+///
+/// A turn is answered by the resident `NeedleServer` when it can be reached and by a one-off
+/// spawn when it cannot. The two routes compute the same thing from the same model, the same
+/// tool file and the same system facts; the difference is whether the model is already warm.
 actor NeedleRunner {
     static let shared = NeedleRunner()
 
@@ -313,9 +321,28 @@ actor NeedleRunner {
     }
 
     /// One turn. `facts` become the `--system` file: today's date, who the user is.
+    ///
+    /// Answered by the resident `--serve` child when it can be reached, and by a one-off
+    /// spawn when it cannot. The fallback is deliberate: the server is a latency
+    /// optimisation, not a dependency, so a machine where it cannot start keeps the feature
+    /// at the old speed rather than losing it.
     func run(input: String, tools: [FunctionCallTool], facts: [String]) async throws -> NeedleResponse {
         try prepare(tools: tools)
         guard let toolsFileURL else { throw FunctionCallError.notReady("no tool list") }
+
+        do {
+            let response = try await NeedleServer.shared.complete(
+                input: input,
+                configuration: serverConfiguration(toolsFile: toolsFileURL, facts: facts)
+            )
+            serverTurns += 1
+            return response
+        } catch {
+            Log.agent.info(
+                "fast listening server unavailable (\(error.localizedDescription, privacy: .public)); spawning one turn instead"
+            )
+        }
+        spawnedTurns += 1
 
         var systemURL: URL?
         if !facts.isEmpty {
@@ -357,6 +384,73 @@ actor NeedleRunner {
         } catch {
             throw FunctionCallError.badOutput(String(describing: error))
         }
+    }
+
+    // MARK: - The resident engine
+
+    /// What the resident child is launched with. One builder for `run` and `warm`, so the
+    /// two can never disagree about which turn they are warming for.
+    private func serverConfiguration(
+        toolsFile: URL,
+        facts: [String]
+    ) -> NeedleServer.Configuration {
+        NeedleServer.Configuration(
+            executable: NeedleModels.engineURL,
+            weights: NeedleModels.weightsURL,
+            toolsFile: toolsFile,
+            facts: facts.joined(separator: "\n"),
+            workingDirectory: workingDirectory
+        )
+    }
+
+    /// Which route answered, how often, and what starting the child cost. Read by
+    /// `--selftest-function-calls` so a run in which every proposal spawned a process
+    /// cannot pass as a run of the thing this architecture exists for.
+    private(set) var serverTurns = 0
+    private(set) var spawnedTurns = 0
+
+    struct Diagnostics: Sendable {
+        var serverTurns: Int
+        var spawnedTurns: Int
+        var serverPID: pid_t?
+        var lastStartSeconds: TimeInterval?
+    }
+
+    func diagnostics() async -> Diagnostics {
+        Diagnostics(
+            serverTurns: serverTurns,
+            spawnedTurns: spawnedTurns,
+            serverPID: await NeedleServer.shared.liveProcessIdentifier(),
+            lastStartSeconds: await NeedleServer.shared.lastStartSeconds
+        )
+    }
+
+    /// Starts the resident engine before it is needed, and pays the first turn's prefill.
+    ///
+    /// Called from `FunctionCallWatcher.ingest` on a meeting's first transcript, so the one
+    /// slow turn happens while nobody is waiting. Never throws: there is nobody to report to
+    /// yet, and the first real proposal reports whatever is actually wrong.
+    func warm(tools: [FunctionCallTool], facts: [String]) async {
+        do {
+            try prepare(tools: tools)
+        } catch {
+            return
+        }
+        guard let toolsFileURL else { return }
+        await NeedleServer.shared.warm(
+            configuration: serverConfiguration(toolsFile: toolsFileURL, facts: facts)
+        )
+    }
+
+    /// Stops the resident engine. Called when the feature is switched off and at the end of
+    /// a self-test; the app's termination hook uses the synchronous form below.
+    func stopServer() async {
+        await NeedleServer.shared.stop()
+    }
+
+    /// The same, without awaiting. `applicationWillTerminate` cannot.
+    nonisolated func terminateServerNow() {
+        NeedleServer.shared.terminateNow()
     }
 
     /// Stable, short identity for a tool set, so the file on disk is reused between turns.
@@ -487,7 +581,7 @@ private final class NeedleProcessBox: @unchecked Sendable {
     }
 }
 
-private final class NeedleBuffers: @unchecked Sendable {
+final class NeedleBuffers: @unchecked Sendable {
     private let lock = NSLock()
     private var _out = Data()
     private var _error = Data()

@@ -15,6 +15,18 @@ import FoundationModels
 /// - **Guarded.** Output is rejected by `CleanupGuard` if it looks like the model answered
 ///   the text instead of cleaning it — the classic failure when dictation reads as an
 ///   instruction.
+/// What one model call needs to report, in the order it happens: whether a staged session was
+/// used (known *before* the call), then the answer.
+///
+/// Production passes nil and reaches Apple's model through `CleanupSessionWarmer`; only
+/// self-tests pass a value, so no test ever wakes the real model. Added by D-01a; D-07,
+/// D-08 and D-11 reuse it.
+struct CleanupModelCall: Sendable {
+    /// True when a staged session was taken for these instructions.
+    var takeSession: @Sendable (_ instructions: String) async -> Bool
+    var respond: @Sendable (_ user: String) async throws -> String
+}
+
 struct FoundationModelFormatter: TextFormatter {
     /// Deterministic fallback used on timeout, unavailability, or a rejected response.
     /// What to return when the model is unavailable, times out, or its output is rejected.
@@ -48,6 +60,13 @@ struct FoundationModelFormatter: TextFormatter {
     /// is what makes "the model was rejected" distinguishable from "the model changed
     /// nothing" after the fact. Nil everywhere but the live dictation path.
     private let trace: CleanupTrace?
+
+    /// Stands in for `CleanupSessionWarmer.take` + `session.respond` (and for the
+    /// `isAvailable` gate). Nil in production; only self-tests set it. (D-01a.)
+    var modelCall: CleanupModelCall? = nil
+    /// Pins the per-call budget. Nil in production; tests set it so a timeout case runs
+    /// in milliseconds. D-07 replaces this with `timeScale` and updates the case. (D-01a.)
+    var timeoutOverride: Duration? = nil
 
     init(
         preferences: CleanupPreferences = CleanupPreferences(
@@ -93,7 +112,7 @@ struct FoundationModelFormatter: TextFormatter {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return trimmed }
 
-        guard Self.isAvailable else {
+        guard modelCall != nil || Self.isAvailable else {
             Log.speech.info("Foundation model unavailable — using rule-based cleanup")
             trace?.noteModelFailed(
                 reason: Self.unavailableReason ?? "Apple's on-device model is unavailable",
@@ -104,7 +123,7 @@ struct FoundationModelFormatter: TextFormatter {
 
         let began = Date()
         do {
-            let budget = Self.timeout(for: trimmed)
+            let budget = timeoutOverride ?? Self.timeout(for: trimmed)
             let (cleaned, prewarmed) = try await withThrowingTaskGroup(of: (String, Bool).self) { group in
                 group.addTask {
                     try await Self.cleanReporting(
@@ -112,7 +131,9 @@ struct FoundationModelFormatter: TextFormatter {
                         preferences: preferences,
                         fixesGrammar: fixesGrammar,
                         target: target,
-                        context: context
+                        context: context,
+                        trace: trace,
+                        modelCall: modelCall
                     )
                 }
                 group.addTask {
@@ -206,7 +227,9 @@ struct FoundationModelFormatter: TextFormatter {
             preferences: preferences,
             fixesGrammar: fixesGrammar,
             target: target,
-            context: context
+            context: context,
+            trace: nil,
+            modelCall: nil
         ).text
     }
 
@@ -218,7 +241,9 @@ struct FoundationModelFormatter: TextFormatter {
         preferences: CleanupPreferences,
         fixesGrammar: Bool,
         target: OutputProfile = .plain(bundleID: "", displayName: "the focused app"),
-        context: ScreenContext = .empty
+        context: ScreenContext = .empty,
+        trace: CleanupTrace?,
+        modelCall: CleanupModelCall?
     ) async throws -> (text: String, prewarmed: Bool) {
         let instructions = CleanupInstructions.system(
             for: preferences,

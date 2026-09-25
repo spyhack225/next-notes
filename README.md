@@ -396,7 +396,7 @@ Sources/NextNotes/
 │   │                               + Inspector + Context + Builder + Store + Validation —
 │   │                               the approval card is built from the tool's schema, so a
 │   │                               missing argument is a question rather than nothing
-│   ├── FunctionCalling/            Needle 3 (a child process) and a local-model fallback
+│   ├── FunctionCalling/            Needle 3 (a resident `--serve` child) and a local-model fallback
 │   │                               propose actions from live speech; every value is
 │   │                               grounded against what was actually said before the card
 │   ├── Skills/                     SKILL.md folders already on this Mac, plus search and
@@ -523,7 +523,14 @@ Sources/NextNotes/
 │                                   General, Dictation, Formatting, Meetings, Calendar,
 │                                   Workspace, Agent, Integrations, Models, Permissions.
 │                                   `--selftest-settings` fails if any drop out of
-│                                   `SettingsTab.allCases`. Sections added here:
+│                                   `SettingsTab.allCases`, and if a pane asks for more
+│                                   width than the narrowest host that can show it has;
+│                                   `--settings-sheet` renders every pane at the widths
+│                                   it meets for review by eye. Settings has two hosts —
+│                                   the standalone window (pinned to 800pt) and the main
+│                                   window's detail column (down to `detailMin`) — so the
+│                                   minimum is passed in as `hostMinimumWidth` and the
+│                                   embedded copy states none. Sections added here:
 │                                   ModelRoleSection (which model does which job),
 │                                   ModelLibrary/ (browse and download from Hugging Face,
 │                                   with a plain-language "will it run on this Mac"),
@@ -617,7 +624,10 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-activity                # tool runs project Inspecting… / Clicking… (no CoT)
 "$S" --selftest-fs                      # write/search/read a temp file; sudo is refused
 "$S" --selftest-browser                 # non-browser snapshot invents no elements
-"$S" --selftest-settings                # every Settings pane is listed; headings keep U+0020
+"$S" --selftest-settings                # every Settings pane is listed; headings keep U+0020;
+#                                         no pane asks for more width than its narrowest host
+"$S" --settings-sheet [dir] [--width n]  # diagnostic: renders every Settings pane at the
+#                                         widths it meets — no Screen Recording grant needed
 "$S" --selftest-metrics                 # persist a fake span; fail if it is missing
 "$S" --selftest-cleanup-router          # short + clean stays off the model seam
 "$S" --selftest-meeting-live            # cadence, cards, and the authority split
@@ -684,7 +694,16 @@ open -n -a "Next Notes" --args --selftest-microphone --selftest-out /tmp/nextnot
 ```
 
 Each prints a single `<NAME>_OK` or `<NAME>_FAILED` line last, so they can be read by a
-script. Two are worth knowing about in detail:
+script. `make acceptance` runs the whole catalogue that way, in tiers — `CORE` for release
+blockers, `INTEGRATION` for the knowledge, memory, routine and agent seams, `EXPERIMENTAL`
+for the rest — and prints one line per tier plus a reason for every failure or skip. A final
+`*_OK` is a pass, an absent-precondition diagnostic (`*_ABSENT`, `SYSTEM_AUDIO_SILENT`,
+`WAKE_*_MISSING`) is a skip that never counts as a pass, and anything else without an `*_OK`
+is a failure. `make acceptance TIER=core` is the release gate (a CORE failure exits
+non-zero); `make acceptance --dry-run` prints the manifest without running anything. See
+`Scripts/acceptance.sh` for the membership and the accounting rules.
+
+Two are worth knowing about in detail:
 
 `--selftest-dictation` is the one that guards the tail. It drives `DictationController`
 with a real microphone but a fake engine: an engine whose `finish()` never returns, one that

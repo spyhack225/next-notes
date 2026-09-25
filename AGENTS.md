@@ -64,6 +64,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-activity  --selftest-fs         --selftest-browser
 --selftest-settings  --selftest-metrics    --selftest-cleanup-router
 --selftest-meeting-live --selftest-meeting-live-tools --selftest-meeting-quality --selftest-tts
+--selftest-notes-longform
 --selftest-tts-stream
 --selftest-tts-pocket
 --selftest-tts-kokoro
@@ -96,7 +97,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-skills    --selftest-file-index --selftest-onboarding
 --selftest-avatar
 --selftest-model-roles --selftest-model-fit --selftest-hf-search
---selftest-model-unopenable --selftest-private-network
+--selftest-model-unopenable --selftest-private-network --selftest-store-isolation
 --selftest-memory-portability
 --selftest-voice-turn-routing --selftest-wake-live
 --selftest-computer-actions  --selftest-click-coordinate --selftest-cdp

@@ -54,18 +54,36 @@ struct MainWindow: View {
     @ViewBuilder
     private var detail: some View {
         switch navigation.selectedSection {
-        case .dictation:
-            DictationView(controller: controller)
-        case .meetings:
-            MeetingsView()
-        case .search:
-            KnowledgeSearchView()
         case .agent:
             AgentView()
+        case .meetings:
+            MeetingsView()
+        case .dictation:
+            DictationView(controller: controller)
+        // The Agent's panes that are places rather than conversation modes. They used to
+        // live in the Agent's switcher; each carries its own title here because they are no
+        // longer drawn inside a view that sets one.
+        case .graph:
+            KnowledgeGraphPane().navigationTitle(SidebarSection.graph.title)
+        case .portrait:
+            PortraitView().navigationTitle(SidebarSection.portrait.title)
+        case .ideas:
+            IdeasView().navigationTitle(SidebarSection.ideas.title)
+        case .goals:
+            GoalsView().navigationTitle(SidebarSection.goals.title)
+        case .reminders:
+            RoutinesView().navigationTitle(SidebarSection.reminders.title)
+        case .skills:
+            SkillsView().navigationTitle(SidebarSection.skills.title)
+        case .search:
+            KnowledgeSearchView()
         case .dictionary:
             DictionaryPanel()
-        case .comparison:
-            ComparisonView(controller: controller)
+        case .comparison, .settings:
+            // Settings, in this window. The retired Comparison section steers here too —
+            // `NavigationState` opens the pane that replaced it — and the ⌘, scene keeps
+            // its own copy of this same view.
+            SettingsWindow(controller: controller)
         }
     }
 }

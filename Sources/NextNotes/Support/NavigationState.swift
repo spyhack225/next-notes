@@ -1,37 +1,71 @@
 import Foundation
 import Observation
 
-/// The sidebar sections of the main window.
+/// The sidebar sections of the main window, in the order they are drawn.
+///
+/// The Agent's own panes are destinations here — Graph, Portrait, Idea, Goals, Reminders,
+/// Skills — because they are places to go, not modes of the conversation. The Agent
+/// section's tab row keeps the three that are read *with* the conversation: Conversation,
+/// Activity and About.
+///
+/// Two cases are not rows: `comparison` is retired (it is a Settings pane now) and
+/// `settings` is the row drawn below the group. `CaseIterable` cannot express "every case
+/// except these two", so `Sidebar.visibleSections` does that, and both stay here so a
+/// stored raw value keeps decoding.
 enum SidebarSection: String, CaseIterable, Identifiable, Sendable {
-    case dictation
+    case agent
     case meetings
+    case dictation
+    case graph
+    case portrait
+    case ideas
+    case goals
+    case reminders
+    case skills
     /// Search across the knowledge index. Listed only while the index is on.
     case search
-    case agent
     case dictionary
+    /// Retired from the spine; Comparison moved into Settings. Kept so a machine left on
+    /// the old row keeps decoding, and `NavigationState` opens the pane that replaced it.
     case comparison
+    /// The in-app way into Settings. Drawn below the section group, never persisted.
+    case settings
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .dictation: "Dictation"
-        case .meetings: "Meetings"
-        case .search: "Search"
         case .agent: "Agent"
+        case .meetings: "Meeting"
+        case .dictation: "Dictation"
+        case .graph: "Graph"
+        case .portrait: "Portrait"
+        case .ideas: "Idea"
+        case .goals: "Goals"
+        case .reminders: "Reminders"
+        case .skills: "Skills"
+        case .search: "Search"
         case .dictionary: "Dictionary"
         case .comparison: "Comparison"
+        case .settings: "Settings"
         }
     }
 
     var systemImage: String {
         switch self {
-        case .dictation: "waveform"
-        case .meetings: "person.2.wave.2"
-        case .search: "text.magnifyingglass"
         case .agent: "ear"
+        case .meetings: "person.2.wave.2"
+        case .dictation: "waveform"
+        case .graph: "point.3.connected.trianglepath.dotted"
+        case .portrait: "person.text.rectangle"
+        case .ideas: "lightbulb"
+        case .goals: "target"
+        case .reminders: "calendar.badge.clock"
+        case .skills: "books.vertical"
+        case .search: "text.magnifyingglass"
         case .dictionary: "character.book.closed"
         case .comparison: "rectangle.split.2x1"
+        case .settings: "gearshape"
         }
     }
 }
@@ -45,7 +79,14 @@ final class NavigationState {
     static let shared = NavigationState()
 
     var selectedSection: SidebarSection {
-        didSet { UserDefaults.standard.set(selectedSection.rawValue, forKey: Keys.section) }
+        didSet {
+            // The Settings row is a way in, not where the window reopens: a machine quit
+            // while looking at Settings comes back to the section it was working in.
+            // `comparison` is guarded for the same reason — it has no row, and a value
+            // stored before the move is replaced at launch rather than restored.
+            guard selectedSection != .settings, selectedSection != .comparison else { return }
+            UserDefaults.standard.set(selectedSection.rawValue, forKey: Keys.section)
+        }
     }
 
     /// The meeting shown in the Meetings detail column, if any.
@@ -58,45 +99,25 @@ final class NavigationState {
     /// window that is usually closed, and reopening on General is the least surprising.
     var selectedSettingsTab: SettingsTab = .general
 
-    /// Which pane the Agent section shows. Not persisted: the conversation is home.
-    ///
-    /// The graph lives here rather than under Search because it is the assistant's picture of
-    /// the user's life and their Mac — people, projects, places and the folders on disk — not
-    /// a way of finding a sentence someone said. Search kept search.
+    /// Which tab the Agent section shows. Three only, and that is the layout rule: the
+    /// conversation and the two panels read beside it. The rest of the old panes — Ideas,
+    /// Goals, Portrait, Reminders, Graph, Skills — are `SidebarSection` destinations of
+    /// their own, because they are places to go rather than modes of the conversation.
     enum AgentPane: String, CaseIterable, Identifiable {
         case conversation
-        /// Out-of-box suggestions that open a setup flow — never execute (G2).
-        case ideas
-        /// Outcomes the person is working toward (G1): their state and their nudges.
-        case goals
-        /// What the graph says about the person's week: Corners' cards, and the Portrait
-        /// sentences waiting to be kept or crossed out (P2-1, P2-2).
-        case portrait
-        /// What runs and when: reminders, recurring runs, triggers, drafts awaiting
-        /// approval and suggestions. Goals are what you are working toward; this pane is
-        /// what the assistant does about them.
-        case reminders
         /// Cross-session history, the approvals ledger and the heartbeat (§8.2).
         case activity
-        case graph
-        case skills
         case about
 
         var id: String { rawValue }
 
         /// The consumer name of the pane, and the text every control that picks or names
-        /// one draws. It must never be empty: the toolbar picker shows exactly this, and
-        /// an empty title is the chevron-only pill this replaced.
+        /// one draws. It must never be empty: the tab row shows exactly this, and an empty
+        /// title is the chevron-only pill this replaced.
         var title: String {
             switch self {
             case .conversation: "Conversation"
-            case .ideas: "Ideas"
-            case .goals: "Goals"
-            case .portrait: "Portrait"
-            case .reminders: "Reminders"
             case .activity: "Activity"
-            case .graph: "Graph"
-            case .skills: "Skills"
             case .about: "About"
             }
         }
@@ -127,17 +148,47 @@ final class NavigationState {
 
     private init() {
         let raw = UserDefaults.standard.string(forKey: Keys.section) ?? ""
-        selectedSection = SidebarSection(rawValue: raw) ?? .dictation
+        var restored = SidebarSection(rawValue: raw) ?? .dictation
+
+        // Comparison moved into Settings. A machine left on the old row opens the pane
+        // that replaced it, once — Settings, showing Comparison — and the retired value is
+        // then replaced with Dictation so the next launch does not reopen Settings. A
+        // stored `settings` could only come from a build that persisted the row, which
+        // this one does not.
+        if restored == .comparison {
+            selectedSettingsTab = .comparison
+            restored = .settings
+        } else if restored == .settings {
+            restored = .dictation
+        }
+        selectedSection = restored
+        // `settings` is deliberately not written back: the migration lands there once, and
+        // the next launch must come back to a real section rather than reopen Settings.
+        if raw != restored.rawValue, restored != .settings {
+            UserDefaults.standard.set(restored.rawValue, forKey: Keys.section)
+        }
     }
 
     func show(_ section: SidebarSection) {
+        // Comparison is a Settings pane now; anything still steering at the retired
+        // section — the `nextnotes://show` deep link — lands on the pane that replaced it.
+        if section == .comparison {
+            showComparison()
+            return
+        }
         selectedSection = section
     }
 
-    /// Agent → Reminders, from a reminder or run notification.
+    /// Settings → Comparison. The screen used to be a sidebar section of its own.
+    func showComparison() {
+        selectedSettingsTab = .comparison
+        selectedSection = .settings
+    }
+
+    /// Reminders, from a reminder or run notification. It is its own sidebar section now,
+    /// so this is a place to go rather than a tab of the Agent.
     func showRoutines() {
-        selectedSection = .agent
-        agentPane = .reminders
+        selectedSection = .reminders
     }
 
     /// Agent → About (SOUL, MEMORY, name and avatar), from Settings or a deep link.
@@ -146,17 +197,16 @@ final class NavigationState {
         agentPane = .about
     }
 
-    /// Agent → Graph. The graph used to be a mode of Search, so anything that pointed at it —
-    /// a deep link, a search result, a Settings button — comes through here and keeps working.
+    /// Graph. The graph used to be a mode of Search, then a pane of the Agent; anything
+    /// that pointed at it — a deep link, a search result, a Settings button — comes through
+    /// here and keeps working.
     func showGraph() {
-        selectedSection = .agent
-        agentPane = .graph
+        selectedSection = .graph
     }
 
-    /// Agent → Skills.
+    /// Skills.
     func showSkills() {
-        selectedSection = .agent
-        agentPane = .skills
+        selectedSection = .skills
     }
 
     /// A moment in a meeting's transcript that a search result jumped to. The token makes a

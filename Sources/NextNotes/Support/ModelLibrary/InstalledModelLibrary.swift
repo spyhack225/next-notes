@@ -115,7 +115,22 @@ final class InstalledModelLibrary {
     /// — so a test can never be handed whatever the owner of this Mac has selected.
     /// `--selftest-agent-answers` and `--selftest-llm-metal` are the two flags that read
     /// the real selection on purpose (read-only).
-    static let shared = InstalledModelLibrary(runtimeAdopter: sharedRuntimeAdopter)
+    static let shared = InstalledModelLibrary(
+        defaults: sharedDefaults,
+        runtimeAdopter: sharedRuntimeAdopter
+    )
+
+    /// The defaults `.shared` reads and writes.
+    ///
+    /// P0-11: under `SelfTest.isRunning` this is the per-process
+    /// `UserDefaults(suiteName: "NextNotesSelfTest-<pid>")` in `SelfTestHarnessDefaults`,
+    /// so a self-test that drives `.shared` cannot move the owner's `modelLibrary.*` keys.
+    /// When `SelfTest.allowsSavedModelSelection` asked for the owner's real selection the
+    /// suite was seeded with it — read-only; every write still lands in the suite. A real
+    /// run keeps `.standard`.
+    private static var sharedDefaults: UserDefaults {
+        SelfTest.isRunning ? SelfTestHarnessDefaults.shared : .standard
+    }
 
     /// The adopter the process-wide library gets. Nil under the harness unless the flag
     /// asked to read the real selection, so a test can never be handed whatever the owner

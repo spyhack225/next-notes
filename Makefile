@@ -85,7 +85,7 @@ DMG_STAGE    := $(STAGE)/dmg-root
 DMG          := $(STAGE)/NextNotes-$(VERSION).dmg
 DMG_STABLE   := $(STAGE)/NextNotes.dmg
 
-.PHONY: all build test app run install selftest clean icon signing-cert release dmg webrtc-audio
+.PHONY: all build test app run install selftest acceptance clean icon signing-cert release dmg webrtc-audio
 
 all: app
 
@@ -201,6 +201,21 @@ install: app
 SELFTEST_ARGS ?=
 selftest:
 	@Scripts/run-selftest.sh $(SELFTEST_ARGS)
+
+## Tiered acceptance over the whole self-test catalogue. Never builds and never installs:
+## it drives the installed bundle through `Scripts/run-selftest.sh`, which waits on the
+## install lock, and prints one PASS/SKIP/FAIL line per tier plus a reason for every
+## failure or skip. CORE failures make it exit non-zero; a CORE skip is reported but
+## never counts as a pass. See Scripts/acceptance.sh for the membership and the
+## accounting rules.
+##   make acceptance                     # all three tiers (the EXPERIMENTAL sweep is long)
+##   make acceptance TIER=core           # release blockers only
+##   make acceptance --dry-run           # print the manifest; run nothing
+##   make acceptance ARGS='--only ui-strings'
+## The `+` keeps `--dry-run` working: make's own -n prints the recipe but does not run
+## it, and the script only receives --dry-run when make was actually asked to dry-run.
+acceptance:
+	+@Scripts/acceptance.sh $(if $(TIER),--tier $(TIER)) $(if $(filter n,$(MAKEFLAGS)),--dry-run) $(ARGS)
 
 ## Release configuration of the same bundle `make app` builds. Stamps the version from
 ## the current git tag (or 0.1.0 if there isn't one). Does not pass `-DPAID_BUILD` —

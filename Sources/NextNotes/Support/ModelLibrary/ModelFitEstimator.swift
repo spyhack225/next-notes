@@ -304,6 +304,45 @@ enum ModelFitEstimator {
         return best
     }
 
+    /// True for a GGUF that is one *piece* of a model rather than a model: a multimodal
+    /// projector (`mmproj…`), or a multi-token-prediction head (`mtp…`) that is a small
+    /// fraction of the weights it drafts for.
+    ///
+    /// `mtp` alone is not the rule, and this is measured rather than guessed. On the Hub
+    /// both shapes exist: `mtp-gemma-4-E4B-it-Q4_0.gguf` is a 59.7 MB head beside 4.59 GB
+    /// of weights, and `Qwen3.8-27B-iMatrix-NVFP4-MTP.gguf` is a 17 GB model with
+    /// multi-token prediction merged into it. Only the size tells them apart, so the caller
+    /// passes what it has: the repo's largest GGUF when the file list is in hand, or the
+    /// file's own size alone.
+    ///
+    /// Both are valid GGUFs, both heads are tens of megabytes, and llama.cpp opens a head
+    /// and then refuses to build a context for it — so a picker that breaks a quantization
+    /// tie by size lands on one, and every turn answers "Inference could not start".
+    static func isAuxiliaryGGUF(
+        fileName: String,
+        bytes: Int64,
+        comparedToLargestGGUF largestBytes: Int64?
+    ) -> Bool {
+        var stem = fileName.lowercased()
+        if stem.hasSuffix(".gguf") { stem.removeLast(".gguf".count) }
+        let tokens = stem.split(whereSeparator: { $0 == "-" || $0 == "_" || $0 == "." })
+        if tokens.contains("mmproj") { return true }
+        guard tokens.contains("mtp") else { return false }
+        // A head is one or two per cent of the model it drafts for; a merged model is the
+        // largest file in its own repo. A tenth is the line.
+        let ceiling: Int64
+        if let largestBytes, largestBytes > 0 {
+            ceiling = max(1, largestBytes / 10)
+        } else {
+            ceiling = Self.auxiliaryHeadSizeCeiling
+        }
+        return bytes < ceiling
+    }
+
+    /// The line a file with no repo to compare against is judged by. Every head seen in the
+    /// wild is under half a gigabyte and every merged model is over seven.
+    static let auxiliaryHeadSizeCeiling: Int64 = 1_000_000_000
+
     /// The quantization label in a GGUF file name: "Q4_K_M", "Q8_0", "IQ4_XS", "BF16".
     static func quantization(fromFileName fileName: String) -> String? {
         let stem = fileName.replacingOccurrences(of: ".gguf", with: "")

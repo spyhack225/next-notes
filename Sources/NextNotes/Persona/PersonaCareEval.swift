@@ -34,6 +34,17 @@ enum PersonaCareEval {
         if let bundled = PersonaStore.bundledBaseText {
             check("bundled base preset lacks the care paragraph", folded(bundled).contains(care))
         }
+        // The voice rules the preset must carry: everyday words with no technical detail,
+        // and no flattery. They live in the first paragraph so even the Apple voice path —
+        // which hears only the short card — is bound by them.
+        let plainWords = "no technical detail"
+        let noFlattery = "no filler or flattery"
+        check("the base preset lacks the plain-words rule",
+              folded(PersonaStore.baseText).contains(plainWords)
+                && folded(PersonaStore.builtInBaseText).contains(plainWords))
+        check("the base preset lacks the no-flattery rule",
+              folded(PersonaStore.baseText).contains(noFlattery)
+                && folded(PersonaStore.builtInBaseText).contains(noFlattery))
         // Every path is assembled against a throwaway store seeded from the base preset.
         // The shared store may hold the self-test's own edit, and the live `persona.md` is
         // free text the person wrote — a care eval run against either proves nothing about
@@ -54,6 +65,8 @@ enum PersonaCareEval {
             if !context.persona.isEmpty {
                 check("\(path.rawValue) lost the care paragraph",
                       folded(context.persona).contains(care) || folded(context.system).contains(care))
+                check("\(path.rawValue) lost the plain-words rule",
+                      folded(context.system).contains(plainWords))
             }
         }
         // The two prompts are documented here so the eval stays honest: a small model is

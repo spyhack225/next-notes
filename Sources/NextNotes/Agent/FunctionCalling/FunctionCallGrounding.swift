@@ -83,6 +83,38 @@ enum FunctionCallGrounding {
         return filtered
     }
 
+    /// The same rule with no proposal around it: only the values the source can support.
+    ///
+    /// `filter` wraps this rule around a `ProposedFunctionCall` because the live backends
+    /// deal in proposals; a caller that only has arguments and a source gets the values it
+    /// may keep. The meeting pass is that caller: its brief — memory, the graph, past
+    /// meetings, file names — is background for understanding a sentence, never a source of
+    /// argument values, and running a write's arguments through here is what keeps a
+    /// recipient or a document id that lives only there from being proposed as though the
+    /// transcript had supplied it.
+    ///
+    /// The echo rule runs only when an utterance is supplied: it compares against the
+    /// sentence that asked for the action, which not every caller has.
+    static func groundedArguments(
+        _ arguments: [String: String],
+        tool: FunctionCallTool?,
+        source: String,
+        utterance: String = ""
+    ) -> [String: String] {
+        var grounded: [String: String] = [:]
+        let haystack = normalize(source)
+        for (name, value) in arguments {
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            let shape = tool?.parameters.first { $0.name == name }?.shape ?? .text
+            guard hasShape(trimmed, shape),
+                  isGrounded(trimmed, in: haystack),
+                  !isEcho(trimmed, of: utterance) else { continue }
+            grounded[name] = value
+        }
+        return grounded
+    }
+
     /// Whether the value is the kind of thing the field takes at all.
     ///
     /// Measured, not imagined: asked to "send Marcus the updated pricing sheet" with the
@@ -170,7 +202,19 @@ enum FunctionCallGrounding {
             return normalizedSource.contains(normalize(trimmed)) || containsTimeExpression(normalizedSource)
         }
         if isIdentityShaped(trimmed) {
-            return normalizedSource.contains(normalize(trimmed))
+            if normalizedSource.contains(normalize(trimmed)) { return true }
+            // A sentence-ending period is glued to the token, because `normalize` keeps `.`
+            // inside words — so "…send it to sarah@acme.com." does not contain
+            // " sarah@acme.com " and a real address the speaker ended a sentence with was
+            // refused as ungrounded. Only a period followed by whitespace is removed, which
+            // leaves the dots inside an address, a domain or a file name alone. (Commas and
+            // the other sentence marks never survive `normalize` at all.)
+            let loosened = normalizedSource.replacingOccurrences(
+                of: #"\.(?=\s)"#,
+                with: "",
+                options: [.regularExpression]
+            )
+            return loosened.contains(normalize(trimmed))
         }
 
         let normalizedValue = normalize(trimmed)

@@ -53,6 +53,10 @@ final class ActivationController {
             RealtimeAgent.shared.interrupt()
         }
         mode = .agentListening
+        // The person is about to speak a turn, so the on-device model warms while they do.
+        // A no-op when it is already warm, when the assistant role is on another model, or
+        // when the model is not on this Mac; why not at launch is on `prewarm`.
+        _ = NotesModelRuntime.shared.prewarm(voice: true)
         // The island is the acknowledgement, so it goes first. This used to sit behind
         // `WakeWordAudioMonitor.sync()`, which — being the only microphone subscriber —
         // stopped the shared AVAudioEngine synchronously on this actor before anything

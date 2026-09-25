@@ -14,7 +14,7 @@
           "pred_is_request": false,
           "confidence": 0.816,
           "noul": 0.327,
-          "latency_ms": 88.20605278015137
+          "latency_ms": 214.8299217224121
         },
         {
           "name": "no address anywhere",
@@ -23,7 +23,7 @@
           "pred_is_request": true,
           "confidence": 0.923,
           "noul": 0.84,
-          "latency_ms": 81.80403709411621
+          "latency_ms": 167.4811840057373
         },
         {
           "name": "address said a minute earlier",
@@ -32,7 +32,7 @@
           "pred_is_request": true,
           "confidence": 0.754,
           "noul": 0.897,
-          "latency_ms": 89.31303024291992
+          "latency_ms": 166.23306274414062
         },
         {
           "name": "ordinary conversation",
@@ -41,7 +41,7 @@
           "pred_is_request": false,
           "confidence": 0.942,
           "noul": 0.134,
-          "latency_ms": 85.45470237731934
+          "latency_ms": 157.49311447143555
         },
         {
           "name": "browser command (verbatim audit line)",
@@ -50,7 +50,7 @@
           "pred_is_request": false,
           "confidence": 0.933,
           "noul": 0.409,
-          "latency_ms": 84.72824096679688
+          "latency_ms": 151.4899730682373
         },
         {
           "name": "browser command, as said",
@@ -59,7 +59,7 @@
           "pred_is_request": true,
           "confidence": 0.976,
           "noul": 0.799,
-          "latency_ms": 72.08800315856934
+          "latency_ms": 132.24482536315918
         },
         {
           "name": "a folder on this Mac",
@@ -68,7 +68,7 @@
           "pred_is_request": true,
           "confidence": 0.856,
           "noul": 0.892,
-          "latency_ms": 76.60889625549316
+          "latency_ms": 138.59295845031738
         },
         {
           "name": "media control",
@@ -77,7 +77,7 @@
           "pred_is_request": false,
           "confidence": 0.654,
           "noul": 0.407,
-          "latency_ms": 81.43305778503418
+          "latency_ms": 135.8339786529541
         },
         {
           "name": "a question about the diary",
@@ -86,7 +86,7 @@
           "pred_is_request": true,
           "confidence": 0.851,
           "noul": 0.576,
-          "latency_ms": 78.2473087310791
+          "latency_ms": 138.52691650390625
         },
         {
           "name": "a search somebody asked for out loud",
@@ -95,7 +95,7 @@
           "pred_is_request": true,
           "confidence": 0.954,
           "noul": 0.736,
-          "latency_ms": 82.9470157623291
+          "latency_ms": 147.7518081665039
         },
         {
           "name": "append a line to a doc",
@@ -104,7 +104,7 @@
           "pred_is_request": false,
           "confidence": 0.999,
           "noul": 0.438,
-          "latency_ms": 71.56014442443848
+          "latency_ms": 123.92282485961914
         },
         {
           "name": "open the doc and add to it",
@@ -113,7 +113,7 @@
           "pred_is_request": false,
           "confidence": 1.0,
           "noul": 0.105,
-          "latency_ms": 80.06501197814941
+          "latency_ms": 117.31100082397461
         },
         {
           "name": "diary entry for Thursday",
@@ -122,7 +122,7 @@
           "pred_is_request": false,
           "confidence": 0.338,
           "noul": 0.178,
-          "latency_ms": 86.5328311920166
+          "latency_ms": 132.89570808410645
         },
         {
           "name": "put the review in the diary",
@@ -131,29 +131,911 @@
           "pred_is_request": false,
           "confidence": 0.431,
           "noul": 0.228,
-          "latency_ms": 73.42410087585449
+          "latency_ms": 111.846923828125
+        },
+        {
+          "name": "email the team the release notes",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.718,
+          "noul": 0.861,
+          "latency_ms": 125.6110668182373
+        },
+        {
+          "name": "send the invoice to billing",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.567,
+          "noul": 0.971,
+          "latency_ms": 128.10111045837402
+        },
+        {
+          "name": "shoot an email to Dana",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.997,
+          "noul": 0.968,
+          "latency_ms": 97.58305549621582
+        },
+        {
+          "name": "send the notes to James",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.989,
+          "noul": 0.718,
+          "latency_ms": 115.96298217773438
+        },
+        {
+          "name": "draft email about the renewal",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "noul": 0.87,
+          "latency_ms": 94.0239429473877
+        },
+        {
+          "name": "write a draft asking for a quote",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.963,
+          "noul": 0.835,
+          "latency_ms": 103.00874710083008
+        },
+        {
+          "name": "draft but do not send",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.581,
+          "noul": 0.763,
+          "latency_ms": 111.03272438049316
+        },
+        {
+          "name": "compose and leave it in drafts",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "noul": 0.937,
+          "latency_ms": 95.14713287353516
+        },
+        {
+          "name": "write up a rough draft of the follow-up",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.974,
+          "noul": 0.134,
+          "latency_ms": 104.97403144836426
+        },
+        {
+          "name": "reply to Sarah's email",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.976,
+          "noul": 0.196,
+          "latency_ms": 96.1458683013916
+        },
+        {
+          "name": "reply to the vendor thread",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.999,
+          "noul": 0.101,
+          "latency_ms": 95.3221321105957
+        },
+        {
+          "name": "answer Marcus's email",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.667,
+          "noul": 0.037,
+          "latency_ms": 89.6902084350586
+        },
+        {
+          "name": "get back to Dana's email",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.886,
+          "noul": 0.502,
+          "latency_ms": 90.2700424194336
+        },
+        {
+          "name": "send a reply on the pricing thread",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.617,
+          "noul": 0.671,
+          "latency_ms": 90.50774574279785
+        },
+        {
+          "name": "dentist on Friday morning",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "noul": 0.207,
+          "latency_ms": 88.04988861083984
+        },
+        {
+          "name": "team sync tomorrow at three",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.517,
+          "noul": 0.34,
+          "latency_ms": 78.84907722473145
+        },
+        {
+          "name": "lunch next Tuesday",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.518,
+          "noul": 0.456,
+          "latency_ms": 85.81089973449707
+        },
+        {
+          "name": "design review with ISO timestamps",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "noul": 0.649,
+          "latency_ms": 111.99522018432617
+        },
+        {
+          "name": "standup next Monday",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": false,
+          "confidence": 0.988,
+          "noul": 0.089,
+          "latency_ms": 88.7441635131836
+        },
+        {
+          "name": "flight on the 14th",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": false,
+          "confidence": 0.949,
+          "noul": 0.101,
+          "latency_ms": 92.41795539855957
+        },
+        {
+          "name": "schedule a chat with Marcus",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": false,
+          "confidence": 0.982,
+          "noul": 0.005,
+          "latency_ms": 80.66916465759277
+        },
+        {
+          "name": "schedule the boiler service",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": false,
+          "confidence": 0.953,
+          "noul": 0.338,
+          "latency_ms": 87.71204948425293
+        },
+        {
+          "name": "schedule a dentist checkup",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.759,
+          "noul": 0.712,
+          "latency_ms": 81.31098747253418
+        },
+        {
+          "name": "workshop in the schedule",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.956,
+          "noul": 0.884,
+          "latency_ms": 85.62684059143066
+        },
+        {
+          "name": "schedule an appointment with the bank",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": false,
+          "confidence": 0.972,
+          "noul": 0.332,
+          "latency_ms": 82.72099494934082
+        },
+        {
+          "name": "start a new doc for Q4 planning",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "noul": 0.879,
+          "latency_ms": 82.30400085449219
+        },
+        {
+          "name": "make a document for the offsite",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.927,
+          "noul": 0.637,
+          "latency_ms": 91.25709533691406
+        },
+        {
+          "name": "create a launch retro doc",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.871,
+          "noul": 0.46,
+          "latency_ms": 87.43977546691895
+        },
+        {
+          "name": "new doc for the vendor list",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "noul": 0.76,
+          "latency_ms": 90.58475494384766
+        },
+        {
+          "name": "write up the meeting notes doc",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "noul": 0.685,
+          "latency_ms": 86.43293380737305
+        },
+        {
+          "name": "add a line about the delay",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.994,
+          "noul": 0.04,
+          "latency_ms": 87.4171257019043
+        },
+        {
+          "name": "append the venue decision",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.992,
+          "noul": 0.017,
+          "latency_ms": 85.83903312683105
+        },
+        {
+          "name": "add the budget figure to the plan",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.969,
+          "noul": 0.027,
+          "latency_ms": 80.52492141723633
+        },
+        {
+          "name": "put a paragraph into the proposal",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.984,
+          "noul": 0.015,
+          "latency_ms": 79.06627655029297
+        },
+        {
+          "name": "remember morning meetings",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.996,
+          "noul": 0.303,
+          "latency_ms": 79.76293563842773
+        },
+        {
+          "name": "remember the deposit deadline",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.999,
+          "noul": 0.012,
+          "latency_ms": 80.04498481750488
+        },
+        {
+          "name": "make a note about procurement",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.636,
+          "noul": 0.15,
+          "latency_ms": 87.19301223754883
+        },
+        {
+          "name": "keep in mind the pronunciation",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.666,
+          "noul": 0.1,
+          "latency_ms": 83.74810218811035
+        },
+        {
+          "name": "don't forget the code freeze",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.862,
+          "noul": 0.83,
+          "latency_ms": 86.84110641479492
+        },
+        {
+          "name": "time said earlier, pronoun now",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.312,
+          "noul": 0.726,
+          "latency_ms": 100.7392406463623
+        },
+        {
+          "name": "address said earlier, send it to her",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.497,
+          "noul": 0.991,
+          "latency_ms": 103.38711738586426
+        },
+        {
+          "name": "doc name said earlier, add to it",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.994,
+          "noul": 0.862,
+          "latency_ms": 100.19183158874512
+        },
+        {
+          "name": "event topic said earlier, no time anywhere",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "noul": 0.666,
+          "latency_ms": 92.81706809997559
+        },
+        {
+          "name": "recipient said earlier, no address anywhere",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.729,
+          "noul": 0.937,
+          "latency_ms": 99.5628833770752
+        },
+        {
+          "name": "no time anywhere in the diary request",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.404,
+          "noul": 0.662,
+          "latency_ms": 104.05826568603516
+        },
+        {
+          "name": "a value in the window is not a request",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.866,
+          "noul": 0.006,
+          "latency_ms": 299.90100860595703
+        },
+        {
+          "name": "grounded address, refusal now",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.599,
+          "noul": 0.952,
+          "latency_ms": 95.22581100463867
+        },
+        {
+          "name": "don't send that after all",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.722,
+          "noul": 0.93,
+          "latency_ms": 90.32392501831055
+        },
+        {
+          "name": "not to him",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.868,
+          "noul": 0.039,
+          "latency_ms": 82.08918571472168
+        },
+        {
+          "name": "forget the email to the vendor",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.733,
+          "noul": 0.715,
+          "latency_ms": 87.50295639038086
+        },
+        {
+          "name": "hold off on the invite",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.537,
+          "noul": 0.528,
+          "latency_ms": 82.64303207397461
+        },
+        {
+          "name": "never mind the doc",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.908,
+          "noul": 0.487,
+          "latency_ms": 93.20378303527832
+        },
+        {
+          "name": "don't remember that",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.968,
+          "noul": 0.047,
+          "latency_ms": 89.74909782409668
+        },
+        {
+          "name": "don't create the standup",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.611,
+          "noul": 0.757,
+          "latency_ms": 101.94683074951172
+        },
+        {
+          "name": "open Safari to the pricing page",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.944,
+          "noul": 0.23,
+          "latency_ms": 83.15706253051758
+        },
+        {
+          "name": "click the Send button",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.636,
+          "noul": 0.88,
+          "latency_ms": 94.27285194396973
+        },
+        {
+          "name": "type into a web form",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": true,
+          "confidence": 0.595,
+          "noul": 0.846,
+          "latency_ms": 93.24002265930176
+        },
+        {
+          "name": "scroll the results page",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.856,
+          "noul": 0.667,
+          "latency_ms": 83.52208137512207
+        },
+        {
+          "name": "download a PDF from a link",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.544,
+          "noul": 0.271,
+          "latency_ms": 84.89680290222168
+        },
+        {
+          "name": "take a screenshot",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.821,
+          "noul": 0.824,
+          "latency_ms": 80.7960033416748
+        },
+        {
+          "name": "launch an app",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.797,
+          "noul": 0.225,
+          "latency_ms": 83.40096473693848
+        },
+        {
+          "name": "open the Downloads folder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.423,
+          "noul": 0.459,
+          "latency_ms": 81.36439323425293
+        },
+        {
+          "name": "show the invoices folder",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.484,
+          "noul": 0.749,
+          "latency_ms": 84.03205871582031
+        },
+        {
+          "name": "reveal the export in Finder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.692,
+          "noul": 0.176,
+          "latency_ms": 83.10103416442871
+        },
+        {
+          "name": "switch to the exports folder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.882,
+          "noul": 0.343,
+          "latency_ms": 82.19385147094727
+        },
+        {
+          "name": "move the invoices into the archive",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.903,
+          "noul": 0.195,
+          "latency_ms": 86.1198902130127
+        },
+        {
+          "name": "play the focus playlist",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.839,
+          "noul": 0.434,
+          "latency_ms": 80.93023300170898
+        },
+        {
+          "name": "pause the music",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.933,
+          "noul": 0.062,
+          "latency_ms": 85.59489250183105
+        },
+        {
+          "name": "mute the music",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.906,
+          "noul": 0.691,
+          "latency_ms": 82.42416381835938
+        },
+        {
+          "name": "skip this song",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.86,
+          "noul": 0.779,
+          "latency_ms": 88.1190299987793
+        },
+        {
+          "name": "turn the volume down",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.973,
+          "noul": 0.006,
+          "latency_ms": 84.61117744445801
+        },
+        {
+          "name": "what did Marcus say about the budget",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.883,
+          "noul": 0.011,
+          "latency_ms": 81.66980743408203
+        },
+        {
+          "name": "when is the design review",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.552,
+          "noul": 0.395,
+          "latency_ms": 81.9997787475586
+        },
+        {
+          "name": "did we send the deck",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.906,
+          "noul": 0.007,
+          "latency_ms": 81.18581771850586
+        },
+        {
+          "name": "who is on the vendor thread",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.401,
+          "noul": 0.489,
+          "latency_ms": 82.427978515625
+        },
+        {
+          "name": "can you hear me",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.703,
+          "noul": 0.685,
+          "latency_ms": 83.64391326904297
+        },
+        {
+          "name": "what time is the standup",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.531,
+          "noul": 0.28,
+          "latency_ms": 81.24065399169922
+        },
+        {
+          "name": "search the web for a CRM",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.8,
+          "noul": 0.879,
+          "latency_ms": 84.26809310913086
+        },
+        {
+          "name": "search Google for a phone number",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.916,
+          "noul": 0.581,
+          "latency_ms": 80.91211318969727
+        },
+        {
+          "name": "look up what EBITDA means",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.942,
+          "noul": 0.166,
+          "latency_ms": 85.02888679504395
+        },
+        {
+          "name": "open a browser tab and look something up",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.72,
+          "noul": 0.759,
+          "latency_ms": 88.68670463562012
+        },
+        {
+          "name": "google the venue's phone number",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.882,
+          "noul": 0.682,
+          "latency_ms": 84.59615707397461
+        },
+        {
+          "name": "thanks, then the real request",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.588,
+          "noul": 0.236,
+          "latency_ms": 95.73888778686523
+        },
+        {
+          "name": "agree, then book the room",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.857,
+          "noul": 0.107,
+          "latency_ms": 90.27266502380371
+        },
+        {
+          "name": "aside, then remember",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.7,
+          "noul": 0.025,
+          "latency_ms": 95.79801559448242
+        },
+        {
+          "name": "opinion, then append",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.974,
+          "noul": 0.572,
+          "latency_ms": 94.40279006958008
+        },
+        {
+          "name": "question, then reply",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.718,
+          "noul": 0.091,
+          "latency_ms": 97.71180152893066
+        },
+        {
+          "name": "greeting, then draft",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.996,
+          "noul": 0.36,
+          "latency_ms": 98.33073616027832
+        },
+        {
+          "name": "two actions: draft then send",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "noul": 0.983,
+          "latency_ms": 98.59037399291992
+        },
+        {
+          "name": "two actions: email and book",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.521,
+          "noul": 0.872,
+          "latency_ms": 91.83001518249512
+        },
+        {
+          "name": "two actions: remember and append",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.998,
+          "noul": 0.012,
+          "latency_ms": 93.31703186035156
+        },
+        {
+          "name": "two actions: reply and schedule",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.653,
+          "noul": 0.569,
+          "latency_ms": 89.68806266784668
+        },
+        {
+          "name": "I'll email you later",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.711,
+          "noul": 0.323,
+          "latency_ms": 82.34000205993652
+        },
+        {
+          "name": "let's schedule a chat",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.61,
+          "noul": 0.881,
+          "latency_ms": 83.25672149658203
+        },
+        {
+          "name": "we should send an invite",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.457,
+          "noul": 0.709,
+          "latency_ms": 80.82199096679688
+        },
+        {
+          "name": "I was going to email the vendor",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.813,
+          "noul": 0.037,
+          "latency_ms": 88.90080451965332
+        },
+        {
+          "name": "if you email him, mention the deadline",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.377,
+          "noul": 0.034,
+          "latency_ms": 80.44290542602539
+        },
+        {
+          "name": "should I send the deck",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.928,
+          "noul": 0.105,
+          "latency_ms": 80.19566535949707
         }
       ],
       "metrics": {
-        "n": 14,
-        "exact_tool_acc": 0.571,
-        "family_acc": 0.571,
-        "is_request_acc": 0.357,
-        "silence_on_none": "5/7",
-        "fired_on_request": "4/7",
+        "n": 112,
+        "exact_tool_acc": 0.696,
+        "family_acc": 0.714,
+        "is_request_acc": 0.509,
+        "silence_on_none": "38/50",
+        "fired_on_request": "47/62",
         "latency_ms": {
-          "p50": 81.6,
-          "mean": 80.9,
-          "min": 71.6,
-          "max": 89.3
+          "p50": 89.3,
+          "mean": 98.6,
+          "min": 78.8,
+          "max": 299.9
         }
       },
       "size": {
         "weight_bytes": 643835514,
         "params": "322M"
       },
-      "load_seconds": 28.7,
-      "peak_rss_mb": 3489.0
+      "load_seconds": 29.1,
+      "peak_rss_mb": 2518.5
     },
     {
       "backend": "laya",
@@ -168,7 +1050,7 @@
           "pred_is_request": false,
           "confidence": 0.45,
           "noul": 0.365,
-          "latency_ms": 207.61418342590332
+          "latency_ms": 241.65701866149902
         },
         {
           "name": "no address anywhere",
@@ -177,7 +1059,7 @@
           "pred_is_request": false,
           "confidence": 0.206,
           "noul": 0.44,
-          "latency_ms": 183.52794647216797
+          "latency_ms": 219.36583518981934
         },
         {
           "name": "address said a minute earlier",
@@ -186,7 +1068,7 @@
           "pred_is_request": false,
           "confidence": 0.378,
           "noul": 0.307,
-          "latency_ms": 210.00027656555176
+          "latency_ms": 264.21308517456055
         },
         {
           "name": "ordinary conversation",
@@ -195,7 +1077,7 @@
           "pred_is_request": false,
           "confidence": 0.457,
           "noul": 0.13,
-          "latency_ms": 205.11889457702637
+          "latency_ms": 256.8039894104004
         },
         {
           "name": "browser command (verbatim audit line)",
@@ -204,7 +1086,7 @@
           "pred_is_request": true,
           "confidence": 0.242,
           "noul": 0.599,
-          "latency_ms": 203.46927642822266
+          "latency_ms": 252.0298957824707
         },
         {
           "name": "browser command, as said",
@@ -213,7 +1095,7 @@
           "pred_is_request": true,
           "confidence": 0.069,
           "noul": 0.63,
-          "latency_ms": 180.83691596984863
+          "latency_ms": 248.45480918884277
         },
         {
           "name": "a folder on this Mac",
@@ -222,7 +1104,7 @@
           "pred_is_request": false,
           "confidence": 0.279,
           "noul": 0.304,
-          "latency_ms": 185.46104431152344
+          "latency_ms": 278.1531810760498
         },
         {
           "name": "media control",
@@ -231,7 +1113,7 @@
           "pred_is_request": false,
           "confidence": 0.016,
           "noul": 0.463,
-          "latency_ms": 185.03308296203613
+          "latency_ms": 321.8538761138916
         },
         {
           "name": "a question about the diary",
@@ -240,7 +1122,7 @@
           "pred_is_request": false,
           "confidence": 0.26,
           "noul": 0.168,
-          "latency_ms": 188.60793113708496
+          "latency_ms": 374.99427795410156
         },
         {
           "name": "a search somebody asked for out loud",
@@ -249,7 +1131,7 @@
           "pred_is_request": false,
           "confidence": 0.048,
           "noul": 0.457,
-          "latency_ms": 198.23598861694336
+          "latency_ms": 462.1319770812988
         },
         {
           "name": "append a line to a doc",
@@ -258,7 +1140,7 @@
           "pred_is_request": false,
           "confidence": 0.417,
           "noul": 0.454,
-          "latency_ms": 179.72469329833984
+          "latency_ms": 440.4730796813965
         },
         {
           "name": "open the doc and add to it",
@@ -267,7 +1149,7 @@
           "pred_is_request": false,
           "confidence": 0.65,
           "noul": 0.414,
-          "latency_ms": 201.56097412109375
+          "latency_ms": 435.11199951171875
         },
         {
           "name": "diary entry for Thursday",
@@ -276,7 +1158,7 @@
           "pred_is_request": false,
           "confidence": 0.151,
           "noul": 0.351,
-          "latency_ms": 197.3729133605957
+          "latency_ms": 385.47682762145996
         },
         {
           "name": "put the review in the diary",
@@ -285,29 +1167,911 @@
           "pred_is_request": false,
           "confidence": 0.239,
           "noul": 0.357,
-          "latency_ms": 190.24300575256348
+          "latency_ms": 333.1162929534912
+        },
+        {
+          "name": "email the team the release notes",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.496,
+          "noul": 0.422,
+          "latency_ms": 335.8449935913086
+        },
+        {
+          "name": "send the invoice to billing",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.265,
+          "noul": 0.496,
+          "latency_ms": 327.53586769104004
+        },
+        {
+          "name": "shoot an email to Dana",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.428,
+          "noul": 0.56,
+          "latency_ms": 323.7111568450928
+        },
+        {
+          "name": "send the notes to James",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.239,
+          "noul": 0.517,
+          "latency_ms": 350.74615478515625
+        },
+        {
+          "name": "draft email about the renewal",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.653,
+          "noul": 0.584,
+          "latency_ms": 380.6111812591553
+        },
+        {
+          "name": "write a draft asking for a quote",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.556,
+          "noul": 0.575,
+          "latency_ms": 436.10191345214844
+        },
+        {
+          "name": "draft but do not send",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.282,
+          "noul": 0.49,
+          "latency_ms": 470.31497955322266
+        },
+        {
+          "name": "compose and leave it in drafts",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.367,
+          "noul": 0.457,
+          "latency_ms": 448.99988174438477
+        },
+        {
+          "name": "write up a rough draft of the follow-up",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.577,
+          "noul": 0.42,
+          "latency_ms": 370.47505378723145
+        },
+        {
+          "name": "reply to Sarah's email",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.308,
+          "noul": 0.476,
+          "latency_ms": 423.07305335998535
+        },
+        {
+          "name": "reply to the vendor thread",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.43,
+          "noul": 0.195,
+          "latency_ms": 425.1999855041504
+        },
+        {
+          "name": "answer Marcus's email",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.288,
+          "noul": 0.482,
+          "latency_ms": 386.1081600189209
+        },
+        {
+          "name": "get back to Dana's email",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.175,
+          "noul": 0.546,
+          "latency_ms": 404.0248394012451
+        },
+        {
+          "name": "send a reply on the pricing thread",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.482,
+          "noul": 0.479,
+          "latency_ms": 393.9971923828125
+        },
+        {
+          "name": "dentist on Friday morning",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.433,
+          "noul": 0.544,
+          "latency_ms": 390.1679515838623
+        },
+        {
+          "name": "team sync tomorrow at three",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.494,
+          "noul": 0.551,
+          "latency_ms": 357.022762298584
+        },
+        {
+          "name": "lunch next Tuesday",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.255,
+          "noul": 0.522,
+          "latency_ms": 394.747257232666
+        },
+        {
+          "name": "design review with ISO timestamps",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": false,
+          "confidence": 0.674,
+          "noul": 0.438,
+          "latency_ms": 388.7031078338623
+        },
+        {
+          "name": "standup next Monday",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.335,
+          "noul": 0.553,
+          "latency_ms": 358.4561347961426
+        },
+        {
+          "name": "flight on the 14th",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.116,
+          "noul": 0.448,
+          "latency_ms": 364.92180824279785
+        },
+        {
+          "name": "schedule a chat with Marcus",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.337,
+          "noul": 0.515,
+          "latency_ms": 357.2988510131836
+        },
+        {
+          "name": "schedule the boiler service",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.234,
+          "noul": 0.518,
+          "latency_ms": 396.8701362609863
+        },
+        {
+          "name": "schedule a dentist checkup",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": false,
+          "confidence": 0.183,
+          "noul": 0.466,
+          "latency_ms": 406.97503089904785
+        },
+        {
+          "name": "workshop in the schedule",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.384,
+          "noul": 0.547,
+          "latency_ms": 438.8749599456787
+        },
+        {
+          "name": "schedule an appointment with the bank",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.332,
+          "noul": 0.519,
+          "latency_ms": 444.9772834777832
+        },
+        {
+          "name": "start a new doc for Q4 planning",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.405,
+          "noul": 0.448,
+          "latency_ms": 438.7807846069336
+        },
+        {
+          "name": "make a document for the offsite",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.174,
+          "noul": 0.447,
+          "latency_ms": 469.5916175842285
+        },
+        {
+          "name": "create a launch retro doc",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.535,
+          "noul": 0.419,
+          "latency_ms": 473.76298904418945
+        },
+        {
+          "name": "new doc for the vendor list",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.548,
+          "noul": 0.41,
+          "latency_ms": 452.84485816955566
+        },
+        {
+          "name": "write up the meeting notes doc",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.296,
+          "noul": 0.501,
+          "latency_ms": 491.1510944366455
+        },
+        {
+          "name": "add a line about the delay",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.647,
+          "noul": 0.468,
+          "latency_ms": 490.97681045532227
+        },
+        {
+          "name": "append the venue decision",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.51,
+          "noul": 0.436,
+          "latency_ms": 462.28909492492676
+        },
+        {
+          "name": "add the budget figure to the plan",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.192,
+          "noul": 0.413,
+          "latency_ms": 467.7250385284424
+        },
+        {
+          "name": "put a paragraph into the proposal",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.577,
+          "noul": 0.489,
+          "latency_ms": 468.5060977935791
+        },
+        {
+          "name": "remember morning meetings",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.588,
+          "noul": 0.188,
+          "latency_ms": 414.01004791259766
+        },
+        {
+          "name": "remember the deposit deadline",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.265,
+          "noul": 0.319,
+          "latency_ms": 437.061071395874
+        },
+        {
+          "name": "make a note about procurement",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.356,
+          "noul": 0.283,
+          "latency_ms": 478.36804389953613
+        },
+        {
+          "name": "keep in mind the pronunciation",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.358,
+          "noul": 0.165,
+          "latency_ms": 476.27806663513184
+        },
+        {
+          "name": "don't forget the code freeze",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.103,
+          "noul": 0.367,
+          "latency_ms": 477.8130054473877
+        },
+        {
+          "name": "time said earlier, pronoun now",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.163,
+          "noul": 0.354,
+          "latency_ms": 561.939001083374
+        },
+        {
+          "name": "address said earlier, send it to her",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.774,
+          "noul": 0.53,
+          "latency_ms": 611.1390590667725
+        },
+        {
+          "name": "doc name said earlier, add to it",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.576,
+          "noul": 0.385,
+          "latency_ms": 531.8729877471924
+        },
+        {
+          "name": "event topic said earlier, no time anywhere",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.663,
+          "noul": 0.54,
+          "latency_ms": 577.7761936187744
+        },
+        {
+          "name": "recipient said earlier, no address anywhere",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.629,
+          "noul": 0.499,
+          "latency_ms": 573.2841491699219
+        },
+        {
+          "name": "no time anywhere in the diary request",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.144,
+          "noul": 0.44,
+          "latency_ms": 592.5440788269043
+        },
+        {
+          "name": "a value in the window is not a request",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.277,
+          "noul": 0.107,
+          "latency_ms": 404.8337936401367
+        },
+        {
+          "name": "grounded address, refusal now",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.686,
+          "noul": 0.34,
+          "latency_ms": 531.0840606689453
+        },
+        {
+          "name": "don't send that after all",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.664,
+          "noul": 0.492,
+          "latency_ms": 496.49810791015625
+        },
+        {
+          "name": "not to him",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.141,
+          "noul": 0.18,
+          "latency_ms": 400.41232109069824
+        },
+        {
+          "name": "forget the email to the vendor",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.201,
+          "noul": 0.278,
+          "latency_ms": 448.8062858581543
+        },
+        {
+          "name": "hold off on the invite",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.1,
+          "noul": 0.266,
+          "latency_ms": 474.6441841125488
+        },
+        {
+          "name": "never mind the doc",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.385,
+          "noul": 0.192,
+          "latency_ms": 529.7107696533203
+        },
+        {
+          "name": "don't remember that",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.686,
+          "noul": 0.115,
+          "latency_ms": 455.60407638549805
+        },
+        {
+          "name": "don't create the standup",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": false,
+          "confidence": 0.093,
+          "noul": 0.257,
+          "latency_ms": 503.3547878265381
+        },
+        {
+          "name": "open Safari to the pricing page",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.111,
+          "noul": 0.589,
+          "latency_ms": 466.48406982421875
+        },
+        {
+          "name": "click the Send button",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.785,
+          "noul": 0.644,
+          "latency_ms": 479.7530174255371
+        },
+        {
+          "name": "type into a web form",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.271,
+          "noul": 0.641,
+          "latency_ms": 521.8250751495361
+        },
+        {
+          "name": "scroll the results page",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.152,
+          "noul": 0.416,
+          "latency_ms": 626.1858940124512
+        },
+        {
+          "name": "download a PDF from a link",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.165,
+          "noul": 0.467,
+          "latency_ms": 948.195219039917
+        },
+        {
+          "name": "take a screenshot",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.118,
+          "noul": 0.554,
+          "latency_ms": 593.3711528778076
+        },
+        {
+          "name": "launch an app",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.079,
+          "noul": 0.595,
+          "latency_ms": 634.0539455413818
+        },
+        {
+          "name": "open the Downloads folder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.227,
+          "noul": 0.513,
+          "latency_ms": 585.5779647827148
+        },
+        {
+          "name": "show the invoices folder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.242,
+          "noul": 0.318,
+          "latency_ms": 461.3039493560791
+        },
+        {
+          "name": "reveal the export in Finder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.086,
+          "noul": 0.308,
+          "latency_ms": 483.86406898498535
+        },
+        {
+          "name": "switch to the exports folder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.134,
+          "noul": 0.357,
+          "latency_ms": 548.187255859375
+        },
+        {
+          "name": "move the invoices into the archive",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.128,
+          "noul": 0.366,
+          "latency_ms": 462.24117279052734
+        },
+        {
+          "name": "play the focus playlist",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.052,
+          "noul": 0.354,
+          "latency_ms": 455.8601379394531
+        },
+        {
+          "name": "pause the music",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.02,
+          "noul": 0.398,
+          "latency_ms": 534.3339443206787
+        },
+        {
+          "name": "mute the music",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.047,
+          "noul": 0.239,
+          "latency_ms": 607.4061393737793
+        },
+        {
+          "name": "skip this song",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.18,
+          "noul": 0.234,
+          "latency_ms": 576.6358375549316
+        },
+        {
+          "name": "turn the volume down",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.081,
+          "noul": 0.294,
+          "latency_ms": 572.7450847625732
+        },
+        {
+          "name": "what did Marcus say about the budget",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.129,
+          "noul": 0.129,
+          "latency_ms": 578.8779258728027
+        },
+        {
+          "name": "when is the design review",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.099,
+          "noul": 0.368,
+          "latency_ms": 519.6919441223145
+        },
+        {
+          "name": "did we send the deck",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.49,
+          "noul": 0.176,
+          "latency_ms": 512.9551887512207
+        },
+        {
+          "name": "who is on the vendor thread",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.137,
+          "noul": 0.299,
+          "latency_ms": 539.9031639099121
+        },
+        {
+          "name": "can you hear me",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.154,
+          "noul": 0.223,
+          "latency_ms": 557.9969882965088
+        },
+        {
+          "name": "what time is the standup",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.185,
+          "noul": 0.117,
+          "latency_ms": 604.6619415283203
+        },
+        {
+          "name": "search the web for a CRM",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.05,
+          "noul": 0.548,
+          "latency_ms": 1452.9249668121338
+        },
+        {
+          "name": "search Google for a phone number",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.056,
+          "noul": 0.33,
+          "latency_ms": 851.7630100250244
+        },
+        {
+          "name": "look up what EBITDA means",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.161,
+          "noul": 0.274,
+          "latency_ms": 606.0569286346436
+        },
+        {
+          "name": "open a browser tab and look something up",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": true,
+          "confidence": 0.17,
+          "noul": 0.572,
+          "latency_ms": 411.1809730529785
+        },
+        {
+          "name": "google the venue's phone number",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.105,
+          "noul": 0.366,
+          "latency_ms": 353.7306785583496
+        },
+        {
+          "name": "thanks, then the real request",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.649,
+          "noul": 0.386,
+          "latency_ms": 405.4691791534424
+        },
+        {
+          "name": "agree, then book the room",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": false,
+          "confidence": 0.335,
+          "noul": 0.498,
+          "latency_ms": 501.2249946594238
+        },
+        {
+          "name": "aside, then remember",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.736,
+          "noul": 0.246,
+          "latency_ms": 668.942928314209
+        },
+        {
+          "name": "opinion, then append",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": false,
+          "confidence": 0.409,
+          "noul": 0.284,
+          "latency_ms": 653.933048248291
+        },
+        {
+          "name": "question, then reply",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.461,
+          "noul": 0.469,
+          "latency_ms": 522.9029655456543
+        },
+        {
+          "name": "greeting, then draft",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.528,
+          "noul": 0.507,
+          "latency_ms": 498.6438751220703
+        },
+        {
+          "name": "two actions: draft then send",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.482,
+          "noul": 0.534,
+          "latency_ms": 475.600004196167
+        },
+        {
+          "name": "two actions: email and book",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.257,
+          "noul": 0.512,
+          "latency_ms": 454.26011085510254
+        },
+        {
+          "name": "two actions: remember and append",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": false,
+          "confidence": 0.376,
+          "noul": 0.376,
+          "latency_ms": 401.2329578399658
+        },
+        {
+          "name": "two actions: reply and schedule",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.315,
+          "noul": 0.582,
+          "latency_ms": 473.86693954467773
+        },
+        {
+          "name": "I'll email you later",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.278,
+          "noul": 0.477,
+          "latency_ms": 494.87900733947754
+        },
+        {
+          "name": "let's schedule a chat",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": false,
+          "confidence": 0.234,
+          "noul": 0.413,
+          "latency_ms": 513.9141082763672
+        },
+        {
+          "name": "we should send an invite",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.579,
+          "noul": 0.487,
+          "latency_ms": 525.3381729125977
+        },
+        {
+          "name": "I was going to email the vendor",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.4,
+          "noul": 0.268,
+          "latency_ms": 432.96289443969727
+        },
+        {
+          "name": "if you email him, mention the deadline",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.395,
+          "noul": 0.503,
+          "latency_ms": 464.55907821655273
+        },
+        {
+          "name": "should I send the deck",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": false,
+          "confidence": 0.435,
+          "noul": 0.347,
+          "latency_ms": 390.0730609893799
         }
       ],
       "metrics": {
-        "n": 14,
-        "exact_tool_acc": 0.643,
-        "family_acc": 0.643,
-        "is_request_acc": 0.357,
-        "silence_on_none": "4/7",
-        "fired_on_request": "6/7",
+        "n": 112,
+        "exact_tool_acc": 0.741,
+        "family_acc": 0.786,
+        "is_request_acc": 0.527,
+        "silence_on_none": "32/50",
+        "fired_on_request": "58/62",
         "latency_ms": {
-          "p50": 193.8,
-          "mean": 194.1,
-          "min": 179.7,
-          "max": 210.0
+          "p50": 462.3,
+          "mean": 472.4,
+          "min": 219.4,
+          "max": 1452.9
         }
       },
       "size": {
         "weight_bytes": 842609220,
         "params": "421M"
       },
-      "load_seconds": 27.2,
-      "peak_rss_mb": 3489.0
+      "load_seconds": 28.9,
+      "peak_rss_mb": 2518.5
     },
     {
       "backend": "needle",
@@ -320,7 +2084,7 @@
           "pred_family": "email",
           "pred_is_request": true,
           "confidence": 1.0,
-          "latency_ms": 375.26917457580566
+          "latency_ms": 986.9260787963867
         },
         {
           "name": "no address anywhere",
@@ -328,31 +2092,31 @@
           "pred_family": "email",
           "pred_is_request": true,
           "confidence": 1.0,
-          "latency_ms": 737.3521327972412
+          "latency_ms": 883.0678462982178
         },
         {
           "name": "address said a minute earlier",
           "pred_tool": "send_email",
           "pred_family": "email",
           "pred_is_request": true,
-          "confidence": 0.965,
-          "latency_ms": 796.8451976776123
+          "confidence": 0.967,
+          "latency_ms": 780.8940410614014
         },
         {
           "name": "ordinary conversation",
           "pred_tool": "none",
           "pred_family": "none",
           "pred_is_request": false,
-          "confidence": 0.502,
-          "latency_ms": 519.9422836303711
+          "confidence": 0.494,
+          "latency_ms": 583.6458206176758
         },
         {
           "name": "browser command (verbatim audit line)",
           "pred_tool": "none",
           "pred_family": "none",
           "pred_is_request": false,
-          "confidence": 0.988,
-          "latency_ms": 665.2908325195312
+          "confidence": 0.987,
+          "latency_ms": 622.7529048919678
         },
         {
           "name": "browser command, as said",
@@ -360,31 +2124,31 @@
           "pred_family": "none",
           "pred_is_request": false,
           "confidence": 1.0,
-          "latency_ms": 760.5640888214111
+          "latency_ms": 581.9308757781982
         },
         {
           "name": "a folder on this Mac",
           "pred_tool": "none",
           "pred_family": "none",
           "pred_is_request": false,
-          "confidence": 1.0,
-          "latency_ms": 561.8681907653809
+          "confidence": 0.984,
+          "latency_ms": 472.3539352416992
         },
         {
           "name": "media control",
-          "pred_tool": "create_doc",
-          "pred_family": "doc",
-          "pred_is_request": true,
-          "confidence": 0.294,
-          "latency_ms": 682.7120780944824
-        },
-        {
-          "name": "a question about the diary",
           "pred_tool": "create_event",
           "pred_family": "calendar",
           "pred_is_request": true,
-          "confidence": 0.427,
-          "latency_ms": 608.5512638092041
+          "confidence": 0.415,
+          "latency_ms": 618.3719635009766
+        },
+        {
+          "name": "a question about the diary",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.432,
+          "latency_ms": 655.3900241851807
         },
         {
           "name": "a search somebody asked for out loud",
@@ -392,7 +2156,7 @@
           "pred_family": "none",
           "pred_is_request": false,
           "confidence": 1.0,
-          "latency_ms": 621.5159893035889
+          "latency_ms": 555.3007125854492
         },
         {
           "name": "append a line to a doc",
@@ -400,15 +2164,15 @@
           "pred_family": "doc",
           "pred_is_request": true,
           "confidence": 1.0,
-          "latency_ms": 590.4672145843506
+          "latency_ms": 879.8000812530518
         },
         {
           "name": "open the doc and add to it",
           "pred_tool": "append_doc",
           "pred_family": "doc",
           "pred_is_request": true,
-          "confidence": 0.963,
-          "latency_ms": 633.7237358093262
+          "confidence": 0.922,
+          "latency_ms": 1153.5758972167969
         },
         {
           "name": "diary entry for Thursday",
@@ -416,7 +2180,7 @@
           "pred_family": "calendar",
           "pred_is_request": true,
           "confidence": 1.0,
-          "latency_ms": 498.1520175933838
+          "latency_ms": 748.9070892333984
         },
         {
           "name": "put the review in the diary",
@@ -424,28 +2188,1736 @@
           "pred_family": "none",
           "pred_is_request": false,
           "confidence": 1.0,
-          "latency_ms": 370.3877925872803
+          "latency_ms": 714.4110202789307
+        },
+        {
+          "name": "email the team the release notes",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.958,
+          "latency_ms": 652.9541015625
+        },
+        {
+          "name": "send the invoice to billing",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 677.9029369354248
+        },
+        {
+          "name": "shoot an email to Dana",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 699.5091438293457
+        },
+        {
+          "name": "send the notes to James",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.981,
+          "latency_ms": 674.5269298553467
+        },
+        {
+          "name": "draft email about the renewal",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.428,
+          "latency_ms": 638.0572319030762
+        },
+        {
+          "name": "write a draft asking for a quote",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.86,
+          "latency_ms": 965.0490283966064
+        },
+        {
+          "name": "draft but do not send",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 1937.3040199279785
+        },
+        {
+          "name": "compose and leave it in drafts",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.998,
+          "latency_ms": 2520.221948623657
+        },
+        {
+          "name": "write up a rough draft of the follow-up",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 1161.910057067871
+        },
+        {
+          "name": "reply to Sarah's email",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.924,
+          "latency_ms": 1122.147798538208
+        },
+        {
+          "name": "reply to the vendor thread",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 805.0081729888916
+        },
+        {
+          "name": "answer Marcus's email",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.993,
+          "latency_ms": 780.8408737182617
+        },
+        {
+          "name": "get back to Dana's email",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 766.3290500640869
+        },
+        {
+          "name": "send a reply on the pricing thread",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.984,
+          "latency_ms": 949.0411281585693
+        },
+        {
+          "name": "dentist on Friday morning",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.0,
+          "latency_ms": 1209.0680599212646
+        },
+        {
+          "name": "team sync tomorrow at three",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.564,
+          "latency_ms": 942.1310424804688
+        },
+        {
+          "name": "lunch next Tuesday",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.763,
+          "latency_ms": 1220.6368446350098
+        },
+        {
+          "name": "design review with ISO timestamps",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.989,
+          "latency_ms": 1059.0198040008545
+        },
+        {
+          "name": "standup next Monday",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.254,
+          "latency_ms": 1042.754888534546
+        },
+        {
+          "name": "flight on the 14th",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.0,
+          "latency_ms": 3634.0651512145996
+        },
+        {
+          "name": "schedule a chat with Marcus",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.953,
+          "latency_ms": 809.0312480926514
+        },
+        {
+          "name": "schedule the boiler service",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.957,
+          "latency_ms": 760.6239318847656
+        },
+        {
+          "name": "schedule a dentist checkup",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.884,
+          "latency_ms": 769.12522315979
+        },
+        {
+          "name": "workshop in the schedule",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.96,
+          "latency_ms": 1198.2579231262207
+        },
+        {
+          "name": "schedule an appointment with the bank",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.959,
+          "latency_ms": 1264.1148567199707
+        },
+        {
+          "name": "start a new doc for Q4 planning",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.935,
+          "latency_ms": 1254.3680667877197
+        },
+        {
+          "name": "make a document for the offsite",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.75,
+          "latency_ms": 1014.3427848815918
+        },
+        {
+          "name": "create a launch retro doc",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.976,
+          "latency_ms": 789.8433208465576
+        },
+        {
+          "name": "new doc for the vendor list",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.917,
+          "latency_ms": 732.0239543914795
+        },
+        {
+          "name": "write up the meeting notes doc",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.849,
+          "latency_ms": 674.109935760498
+        },
+        {
+          "name": "add a line about the delay",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.869,
+          "latency_ms": 690.8888816833496
+        },
+        {
+          "name": "append the venue decision",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 707.7279090881348
+        },
+        {
+          "name": "add the budget figure to the plan",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 949.5058059692383
+        },
+        {
+          "name": "put a paragraph into the proposal",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.623,
+          "latency_ms": 1047.0640659332275
+        },
+        {
+          "name": "remember morning meetings",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 1021.2569236755371
+        },
+        {
+          "name": "remember the deposit deadline",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 1238.8522624969482
+        },
+        {
+          "name": "make a note about procurement",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.557,
+          "latency_ms": 1800.3039360046387
+        },
+        {
+          "name": "keep in mind the pronunciation",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.526,
+          "latency_ms": 1320.2321529388428
+        },
+        {
+          "name": "don't forget the code freeze",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.987,
+          "latency_ms": 1103.727102279663
+        },
+        {
+          "name": "time said earlier, pronoun now",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.994,
+          "latency_ms": 1121.8490600585938
+        },
+        {
+          "name": "address said earlier, send it to her",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.96,
+          "latency_ms": 1264.4541263580322
+        },
+        {
+          "name": "doc name said earlier, add to it",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.371,
+          "latency_ms": 1296.8590259552002
+        },
+        {
+          "name": "event topic said earlier, no time anywhere",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.318,
+          "latency_ms": 4713.247060775757
+        },
+        {
+          "name": "recipient said earlier, no address anywhere",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.204,
+          "latency_ms": 5027.894973754883
+        },
+        {
+          "name": "no time anywhere in the diary request",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.398,
+          "latency_ms": 4573.513031005859
+        },
+        {
+          "name": "a value in the window is not a request",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 1925.630807876587
+        },
+        {
+          "name": "grounded address, refusal now",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.25,
+          "latency_ms": 1630.0668716430664
+        },
+        {
+          "name": "don't send that after all",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.367,
+          "latency_ms": 1286.2629890441895
+        },
+        {
+          "name": "not to him",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.436,
+          "latency_ms": 1691.7088031768799
+        },
+        {
+          "name": "forget the email to the vendor",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 1602.2741794586182
+        },
+        {
+          "name": "hold off on the invite",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.406,
+          "latency_ms": 2184.235095977783
+        },
+        {
+          "name": "never mind the doc",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.916,
+          "latency_ms": 1049.09086227417
+        },
+        {
+          "name": "don't remember that",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 994.5788383483887
+        },
+        {
+          "name": "don't create the standup",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.579,
+          "latency_ms": 1252.990961074829
+        },
+        {
+          "name": "open Safari to the pricing page",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.949,
+          "latency_ms": 863.8982772827148
+        },
+        {
+          "name": "click the Send button",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.864,
+          "latency_ms": 1228.6930084228516
+        },
+        {
+          "name": "type into a web form",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.332,
+          "latency_ms": 1109.05122756958
+        },
+        {
+          "name": "scroll the results page",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.98,
+          "latency_ms": 893.9399719238281
+        },
+        {
+          "name": "download a PDF from a link",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 1452.1450996398926
+        },
+        {
+          "name": "take a screenshot",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.582,
+          "latency_ms": 994.7731494903564
+        },
+        {
+          "name": "launch an app",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.923,
+          "latency_ms": 988.7700080871582
+        },
+        {
+          "name": "open the Downloads folder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 875.136137008667
+        },
+        {
+          "name": "show the invoices folder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 848.048210144043
+        },
+        {
+          "name": "reveal the export in Finder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 870.1963424682617
+        },
+        {
+          "name": "switch to the exports folder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.883,
+          "latency_ms": 992.3098087310791
+        },
+        {
+          "name": "move the invoices into the archive",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 999.9260902404785
+        },
+        {
+          "name": "play the focus playlist",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.596,
+          "latency_ms": 1307.5788021087646
+        },
+        {
+          "name": "pause the music",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.481,
+          "latency_ms": 1177.5801181793213
+        },
+        {
+          "name": "mute the music",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 1710.2210521697998
+        },
+        {
+          "name": "skip this song",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.676,
+          "latency_ms": 1500.0362396240234
+        },
+        {
+          "name": "turn the volume down",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.387,
+          "latency_ms": 1229.3949127197266
+        },
+        {
+          "name": "what did Marcus say about the budget",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.983,
+          "latency_ms": 967.8900241851807
+        },
+        {
+          "name": "when is the design review",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.73,
+          "latency_ms": 945.9128379821777
+        },
+        {
+          "name": "did we send the deck",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.981,
+          "latency_ms": 1010.596752166748
+        },
+        {
+          "name": "who is on the vendor thread",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.995,
+          "latency_ms": 825.8419036865234
+        },
+        {
+          "name": "can you hear me",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.884,
+          "latency_ms": 674.447774887085
+        },
+        {
+          "name": "what time is the standup",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.684,
+          "latency_ms": 834.399938583374
+        },
+        {
+          "name": "search the web for a CRM",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.908,
+          "latency_ms": 718.7929153442383
+        },
+        {
+          "name": "search Google for a phone number",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 842.4139022827148
+        },
+        {
+          "name": "look up what EBITDA means",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.875,
+          "latency_ms": 728.0011177062988
+        },
+        {
+          "name": "open a browser tab and look something up",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 755.5868625640869
+        },
+        {
+          "name": "google the venue's phone number",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.924,
+          "latency_ms": 730.6771278381348
+        },
+        {
+          "name": "thanks, then the real request",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.673,
+          "latency_ms": 822.0391273498535
+        },
+        {
+          "name": "agree, then book the room",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.656,
+          "latency_ms": 824.9540328979492
+        },
+        {
+          "name": "aside, then remember",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 1416.130781173706
+        },
+        {
+          "name": "opinion, then append",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 868.5011863708496
+        },
+        {
+          "name": "question, then reply",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.991,
+          "latency_ms": 1321.0742473602295
+        },
+        {
+          "name": "greeting, then draft",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.457,
+          "latency_ms": 1502.5410652160645
+        },
+        {
+          "name": "two actions: draft then send",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.971,
+          "latency_ms": 1181.3828945159912
+        },
+        {
+          "name": "two actions: email and book",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 1094.2139625549316
+        },
+        {
+          "name": "two actions: remember and append",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": true,
+          "confidence": 0.988,
+          "latency_ms": 1052.450180053711
+        },
+        {
+          "name": "two actions: reply and schedule",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.575,
+          "latency_ms": 958.3508968353271
+        },
+        {
+          "name": "I'll email you later",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.659,
+          "latency_ms": 971.1079597473145
+        },
+        {
+          "name": "let's schedule a chat",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.482,
+          "latency_ms": 1126.4710426330566
+        },
+        {
+          "name": "we should send an invite",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.912,
+          "latency_ms": 1066.255807876587
+        },
+        {
+          "name": "I was going to email the vendor",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.544,
+          "latency_ms": 1113.6701107025146
+        },
+        {
+          "name": "if you email him, mention the deadline",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.217,
+          "latency_ms": 1186.3679885864258
+        },
+        {
+          "name": "should I send the deck",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.79,
+          "latency_ms": 1214.951992034912
         }
       ],
       "metrics": {
-        "n": 14,
-        "exact_tool_acc": 0.786,
-        "family_acc": 0.786,
+        "n": 112,
+        "exact_tool_acc": 0.732,
+        "family_acc": 0.768,
         "is_request_acc": 0.786,
-        "silence_on_none": "5/7",
-        "fired_on_request": "6/7",
+        "silence_on_none": "35/50",
+        "fired_on_request": "53/62",
         "latency_ms": {
-          "p50": 615.0,
-          "mean": 601.6,
-          "min": 370.4,
-          "max": 796.8
+          "p50": 994.7,
+          "mean": 1163.0,
+          "min": 472.4,
+          "max": 5027.9
         }
       },
       "size": {
         "weight_bytes": 36160124,
         "params": "121M"
       },
-      "peak_rss_mb": 98.2
+      "peak_rss_mb": 100.7
+    },
+    {
+      "backend": "needle-serve",
+      "detail": "Needle 3 (Cactus Compute) \u00b7 121M @ ~2bit \u00b7 resident HTTP server, reset per turn",
+      "status": "ok",
+      "rows": [
+        {
+          "name": "address said out loud",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 343.3852195739746
+        },
+        {
+          "name": "no address anywhere",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 439.3448829650879
+        },
+        {
+          "name": "address said a minute earlier",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.967,
+          "latency_ms": 404.4818878173828
+        },
+        {
+          "name": "ordinary conversation",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.494,
+          "latency_ms": 141.53599739074707
+        },
+        {
+          "name": "browser command (verbatim audit line)",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.987,
+          "latency_ms": 249.30477142333984
+        },
+        {
+          "name": "browser command, as said",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 161.58699989318848
+        },
+        {
+          "name": "a folder on this Mac",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.984,
+          "latency_ms": 396.1827754974365
+        },
+        {
+          "name": "media control",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.415,
+          "latency_ms": 530.5449962615967
+        },
+        {
+          "name": "a question about the diary",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.432,
+          "latency_ms": 413.36607933044434
+        },
+        {
+          "name": "a search somebody asked for out loud",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 240.85092544555664
+        },
+        {
+          "name": "append a line to a doc",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 539.7491455078125
+        },
+        {
+          "name": "open the doc and add to it",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.922,
+          "latency_ms": 1357.8078746795654
+        },
+        {
+          "name": "diary entry for Thursday",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 3699.821949005127
+        },
+        {
+          "name": "put the review in the diary",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 2079.0481567382812
+        },
+        {
+          "name": "email the team the release notes",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.958,
+          "latency_ms": 2771.5468406677246
+        },
+        {
+          "name": "send the invoice to billing",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 2139.8446559906006
+        },
+        {
+          "name": "shoot an email to Dana",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 1615.8509254455566
+        },
+        {
+          "name": "send the notes to James",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.981,
+          "latency_ms": 1552.304983139038
+        },
+        {
+          "name": "draft email about the renewal",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.428,
+          "latency_ms": 1433.7010383605957
+        },
+        {
+          "name": "write a draft asking for a quote",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.86,
+          "latency_ms": 990.2348518371582
+        },
+        {
+          "name": "draft but do not send",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 619.5640563964844
+        },
+        {
+          "name": "compose and leave it in drafts",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.998,
+          "latency_ms": 305.25898933410645
+        },
+        {
+          "name": "write up a rough draft of the follow-up",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 484.03406143188477
+        },
+        {
+          "name": "reply to Sarah's email",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.924,
+          "latency_ms": 290.8189296722412
+        },
+        {
+          "name": "reply to the vendor thread",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 348.62279891967773
+        },
+        {
+          "name": "answer Marcus's email",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.993,
+          "latency_ms": 483.76917839050293
+        },
+        {
+          "name": "get back to Dana's email",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 276.9300937652588
+        },
+        {
+          "name": "send a reply on the pricing thread",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.984,
+          "latency_ms": 724.6401309967041
+        },
+        {
+          "name": "dentist on Friday morning",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.0,
+          "latency_ms": 973.9649295806885
+        },
+        {
+          "name": "team sync tomorrow at three",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.564,
+          "latency_ms": 360.0020408630371
+        },
+        {
+          "name": "lunch next Tuesday",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.763,
+          "latency_ms": 384.03987884521484
+        },
+        {
+          "name": "design review with ISO timestamps",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.989,
+          "latency_ms": 338.4079933166504
+        },
+        {
+          "name": "standup next Monday",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.254,
+          "latency_ms": 306.52427673339844
+        },
+        {
+          "name": "flight on the 14th",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.0,
+          "latency_ms": 5234.202146530151
+        },
+        {
+          "name": "schedule a chat with Marcus",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.953,
+          "latency_ms": 323.1527805328369
+        },
+        {
+          "name": "schedule the boiler service",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.957,
+          "latency_ms": 286.6649627685547
+        },
+        {
+          "name": "schedule a dentist checkup",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.884,
+          "latency_ms": 278.23901176452637
+        },
+        {
+          "name": "workshop in the schedule",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.96,
+          "latency_ms": 336.9259834289551
+        },
+        {
+          "name": "schedule an appointment with the bank",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.959,
+          "latency_ms": 427.7820587158203
+        },
+        {
+          "name": "start a new doc for Q4 planning",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.935,
+          "latency_ms": 227.94008255004883
+        },
+        {
+          "name": "make a document for the offsite",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.75,
+          "latency_ms": 415.9107208251953
+        },
+        {
+          "name": "create a launch retro doc",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.976,
+          "latency_ms": 208.77885818481445
+        },
+        {
+          "name": "new doc for the vendor list",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.917,
+          "latency_ms": 223.02603721618652
+        },
+        {
+          "name": "write up the meeting notes doc",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.849,
+          "latency_ms": 161.33403778076172
+        },
+        {
+          "name": "add a line about the delay",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.869,
+          "latency_ms": 205.20401000976562
+        },
+        {
+          "name": "append the venue decision",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 196.303129196167
+        },
+        {
+          "name": "add the budget figure to the plan",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 203.76920700073242
+        },
+        {
+          "name": "put a paragraph into the proposal",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.623,
+          "latency_ms": 252.8061866760254
+        },
+        {
+          "name": "remember morning meetings",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 314.5411014556885
+        },
+        {
+          "name": "remember the deposit deadline",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 189.18728828430176
+        },
+        {
+          "name": "make a note about procurement",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.557,
+          "latency_ms": 276.9961357116699
+        },
+        {
+          "name": "keep in mind the pronunciation",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.526,
+          "latency_ms": 134.73033905029297
+        },
+        {
+          "name": "don't forget the code freeze",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.987,
+          "latency_ms": 347.51296043395996
+        },
+        {
+          "name": "time said earlier, pronoun now",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.994,
+          "latency_ms": 335.19601821899414
+        },
+        {
+          "name": "address said earlier, send it to her",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.96,
+          "latency_ms": 309.1719150543213
+        },
+        {
+          "name": "doc name said earlier, add to it",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.371,
+          "latency_ms": 306.1091899871826
+        },
+        {
+          "name": "event topic said earlier, no time anywhere",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.318,
+          "latency_ms": 227.6909351348877
+        },
+        {
+          "name": "recipient said earlier, no address anywhere",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.204,
+          "latency_ms": 323.6989974975586
+        },
+        {
+          "name": "no time anywhere in the diary request",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.398,
+          "latency_ms": 510.72001457214355
+        },
+        {
+          "name": "a value in the window is not a request",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 234.08079147338867
+        },
+        {
+          "name": "grounded address, refusal now",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.25,
+          "latency_ms": 564.946174621582
+        },
+        {
+          "name": "don't send that after all",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.367,
+          "latency_ms": 307.9509735107422
+        },
+        {
+          "name": "not to him",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.436,
+          "latency_ms": 275.6960391998291
+        },
+        {
+          "name": "forget the email to the vendor",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 226.7911434173584
+        },
+        {
+          "name": "hold off on the invite",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.406,
+          "latency_ms": 221.16422653198242
+        },
+        {
+          "name": "never mind the doc",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.916,
+          "latency_ms": 159.93595123291016
+        },
+        {
+          "name": "don't remember that",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 107.20014572143555
+        },
+        {
+          "name": "don't create the standup",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.579,
+          "latency_ms": 196.4092254638672
+        },
+        {
+          "name": "open Safari to the pricing page",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.949,
+          "latency_ms": 91.51506423950195
+        },
+        {
+          "name": "click the Send button",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.864,
+          "latency_ms": 86.52687072753906
+        },
+        {
+          "name": "type into a web form",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.332,
+          "latency_ms": 255.98526000976562
+        },
+        {
+          "name": "scroll the results page",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.98,
+          "latency_ms": 101.98497772216797
+        },
+        {
+          "name": "download a PDF from a link",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 98.16884994506836
+        },
+        {
+          "name": "take a screenshot",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.582,
+          "latency_ms": 90.9719467163086
+        },
+        {
+          "name": "launch an app",
+          "pred_tool": "create_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 0.923,
+          "latency_ms": 173.82001876831055
+        },
+        {
+          "name": "open the Downloads folder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 93.38593482971191
+        },
+        {
+          "name": "show the invoices folder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 102.7517318725586
+        },
+        {
+          "name": "reveal the export in Finder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 134.49978828430176
+        },
+        {
+          "name": "switch to the exports folder",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.883,
+          "latency_ms": 82.45086669921875
+        },
+        {
+          "name": "move the invoices into the archive",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 107.32483863830566
+        },
+        {
+          "name": "play the focus playlist",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.596,
+          "latency_ms": 94.1462516784668
+        },
+        {
+          "name": "pause the music",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.481,
+          "latency_ms": 148.06199073791504
+        },
+        {
+          "name": "mute the music",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 112.51306533813477
+        },
+        {
+          "name": "skip this song",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.676,
+          "latency_ms": 99.95508193969727
+        },
+        {
+          "name": "turn the volume down",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.387,
+          "latency_ms": 391.2942409515381
+        },
+        {
+          "name": "what did Marcus say about the budget",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.983,
+          "latency_ms": 275.7701873779297
+        },
+        {
+          "name": "when is the design review",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.73,
+          "latency_ms": 142.07887649536133
+        },
+        {
+          "name": "did we send the deck",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.981,
+          "latency_ms": 247.23362922668457
+        },
+        {
+          "name": "who is on the vendor thread",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.995,
+          "latency_ms": 244.58885192871094
+        },
+        {
+          "name": "can you hear me",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.884,
+          "latency_ms": 99.72310066223145
+        },
+        {
+          "name": "what time is the standup",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.684,
+          "latency_ms": 118.36791038513184
+        },
+        {
+          "name": "search the web for a CRM",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.908,
+          "latency_ms": 96.90690040588379
+        },
+        {
+          "name": "search Google for a phone number",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 162.69803047180176
+        },
+        {
+          "name": "look up what EBITDA means",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.875,
+          "latency_ms": 83.71877670288086
+        },
+        {
+          "name": "open a browser tab and look something up",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 72.4480152130127
+        },
+        {
+          "name": "google the venue's phone number",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 0.924,
+          "latency_ms": 96.44293785095215
+        },
+        {
+          "name": "thanks, then the real request",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.673,
+          "latency_ms": 198.34494590759277
+        },
+        {
+          "name": "agree, then book the room",
+          "pred_tool": "create_event",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.656,
+          "latency_ms": 211.0130786895752
+        },
+        {
+          "name": "aside, then remember",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 318.0961608886719
+        },
+        {
+          "name": "opinion, then append",
+          "pred_tool": "append_doc",
+          "pred_family": "doc",
+          "pred_is_request": true,
+          "confidence": 1.0,
+          "latency_ms": 341.8688774108887
+        },
+        {
+          "name": "question, then reply",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.991,
+          "latency_ms": 524.4758129119873
+        },
+        {
+          "name": "greeting, then draft",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.457,
+          "latency_ms": 583.9581489562988
+        },
+        {
+          "name": "two actions: draft then send",
+          "pred_tool": "draft_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.971,
+          "latency_ms": 648.5991477966309
+        },
+        {
+          "name": "two actions: email and book",
+          "pred_tool": "none",
+          "pred_family": "none",
+          "pred_is_request": false,
+          "confidence": 1.0,
+          "latency_ms": 497.1809387207031
+        },
+        {
+          "name": "two actions: remember and append",
+          "pred_tool": "memory.remember",
+          "pred_family": "memory",
+          "pred_is_request": true,
+          "confidence": 0.988,
+          "latency_ms": 751.3322830200195
+        },
+        {
+          "name": "two actions: reply and schedule",
+          "pred_tool": "reply_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.575,
+          "latency_ms": 437.1650218963623
+        },
+        {
+          "name": "I'll email you later",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.659,
+          "latency_ms": 340.84510803222656
+        },
+        {
+          "name": "let's schedule a chat",
+          "pred_tool": "schedule.create",
+          "pred_family": "calendar",
+          "pred_is_request": true,
+          "confidence": 0.482,
+          "latency_ms": 244.40717697143555
+        },
+        {
+          "name": "we should send an invite",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.912,
+          "latency_ms": 239.32123184204102
+        },
+        {
+          "name": "I was going to email the vendor",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.544,
+          "latency_ms": 304.72493171691895
+        },
+        {
+          "name": "if you email him, mention the deadline",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.217,
+          "latency_ms": 253.39078903198242
+        },
+        {
+          "name": "should I send the deck",
+          "pred_tool": "send_email",
+          "pred_family": "email",
+          "pred_is_request": true,
+          "confidence": 0.79,
+          "latency_ms": 223.9069938659668
+        }
+      ],
+      "metrics": {
+        "n": 112,
+        "exact_tool_acc": 0.732,
+        "family_acc": 0.768,
+        "is_request_acc": 0.786,
+        "silence_on_none": "35/50",
+        "fired_on_request": "53/62",
+        "latency_ms": {
+          "p50": 277.0,
+          "mean": 464.0,
+          "min": 72.4,
+          "max": 5234.2
+        }
+      },
+      "size": {
+        "weight_bytes": 36160124,
+        "params": "121M"
+      },
+      "startup_seconds": 0.897,
+      "warmup_ms": 247.8,
+      "peak_rss_mb": 101.2
     }
   ]
 }

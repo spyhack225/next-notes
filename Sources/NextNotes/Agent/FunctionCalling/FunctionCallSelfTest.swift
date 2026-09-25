@@ -143,6 +143,13 @@ enum FunctionCallSelfTest {
             !FunctionCallGrounding.isGrounded("sarah@acme.co", in: said)
         )
         check(
+            "an address the speaker ended a sentence with was refused",
+            FunctionCallGrounding.isGrounded(
+                "sarah@acme.com",
+                in: FunctionCallGrounding.normalize("Send the deck to sarah@acme.com.")
+            )
+        )
+        check(
             "a rewritten subject line was refused",
             FunctionCallGrounding.isGrounded("Q3 deck", in: said)
         )
@@ -262,6 +269,64 @@ enum FunctionCallSelfTest {
         check(
             "a short utterance tripped the echo rule on anything at all",
             !FunctionCallGrounding.isEcho("Deck", of: "send it")
+        )
+
+        // MARK: The brief, which is not evidence
+        //
+        // Memory, the knowledge graph, a past meeting and a file name reach the meeting
+        // pass as a `Known context about the user` block. They may tell the model what a
+        // sentence means; they are never a source of argument values, and the rule that
+        // governs the live path governs them. Here the transcript has never heard of
+        // Marcus's address and a memory has, which is exactly the shape that used to be
+        // able to arrive as a recipient.
+        let emailTool = FunctionCallCatalogue.descriptor(
+            for: AgentTool.workspace(WorkspaceTools.tool(named: "send_email")!)
+        )
+        let briefTranscript = "Can you send Marcus the pricing sheet?"
+        let fromBrief = FunctionCallGrounding.groundedArguments(
+            [
+                "to": "marcus.chen@proton.me",
+                "subject": "Q3 budget approval",
+                "body": "Here is the pricing sheet.",
+            ],
+            tool: emailTool,
+            source: briefTranscript
+        )
+        check(
+            "AN ADDRESS ONLY MEMORY KNEW SURVIVED AS A RECIPIENT: "
+                + (fromBrief["to"] ?? "-"),
+            fromBrief["to"] == nil
+        )
+        check(
+            "a subject only the brief could have supplied survived",
+            fromBrief["subject"] == nil
+        )
+        check(
+            "the transcript's own words were thrown away with the brief's value",
+            fromBrief["body"] != nil
+        )
+        check(
+            "a spoken address was thrown away",
+            FunctionCallGrounding.groundedArguments(
+                ["to": "sarah@acme.com"], tool: emailTool,
+                source: "Send the deck to sarah@acme.com"
+            )["to"] == "sarah@acme.com"
+        )
+        let briefOnly = FunctionCallGrounding.filter(
+            ProposedFunctionCall(
+                toolID: "send_email",
+                arguments: ["to": "marcus.chen@proton.me"],
+                confidence: 0.9,
+                span: TranscriptSpan(text: briefTranscript),
+                backend: .localModel
+            ),
+            tool: emailTool,
+            source: briefTranscript,
+            utterance: briefTranscript
+        )
+        check(
+            "the filter kept an address only the brief knew",
+            briefOnly.arguments["to"] == nil && briefOnly.missingArguments.contains("to")
         )
 
         // MARK: Abstention
@@ -621,6 +686,49 @@ enum FunctionCallSelfTest {
             )
             modelCalls += needleCalls
             failures.append(contentsOf: needleFailures)
+
+            // The architecture this file now pins: one resident `--serve` child answers the
+            // turns, not a fresh process per proposal. The spawn path stays as the fallback,
+            // so a run in which every turn spawned would still produce correct calls and
+            // pass every rule above — while being exactly the 615 ms design this replaced.
+            let engine = await NeedleRunner.shared.diagnostics()
+            let pid = engine.serverPID.map { "pid \($0)" } ?? "not running"
+            let start = engine.lastStartSeconds.map { String(format: "%.0f ms", $0 * 1_000) }
+                ?? "n/a"
+            SelfTest.diagnostic(
+                "FUNCTION_CALLS_SERVER: \(engine.serverTurns) resident turn(s) (\(pid), "
+                    + "start \(start)), \(engine.spawnedTurns) spawned"
+            )
+            check(
+                "the resident engine never answered a turn \u{2014} every proposal spawned a "
+                    + "process, which is the slow path this architecture exists to remove",
+                engine.serverTurns > 0
+            )
+            // No orphan left behind: the child is not owned by anything after this process
+            // exits, and a self-test is not allowed to leave state on a real machine.
+            await NeedleRunner.shared.stopServer()
+
+            // The warm path, which is what keeps the first proposal of a meeting from paying
+            // the one slow turn. With no child at all, `warm` has to start one and prefill it
+            // without that turn being mistaken for a served proposal.
+            await NeedleRunner.shared.warm(
+                tools: catalogue,
+                facts: ["Today is \(Date().formatted(date: .complete, time: .omitted))."]
+            )
+            let warmed = await NeedleRunner.shared.diagnostics()
+            let warmPid = warmed.serverPID.map(String.init) ?? "none"
+            let warmStart = warmed.lastStartSeconds.map { String(format: "%.0f ms", $0 * 1_000) }
+                ?? "n/a"
+            SelfTest.diagnostic(
+                "FUNCTION_CALLS_WARM: pid \(warmPid), start \(warmStart), "
+                    + "\(warmed.serverTurns - engine.serverTurns) counted turn(s)"
+            )
+            check("warming the resident engine did not start one", warmed.serverPID != nil)
+            check(
+                "the warm-up turn was counted as a served proposal",
+                warmed.serverTurns == engine.serverTurns
+            )
+            await NeedleRunner.shared.stopServer()
         }
 
         // MARK: The fallback, against whatever model is really on this Mac
@@ -752,10 +860,16 @@ enum FunctionCallSelfTest {
                 // offered, every argument stripped, or a turn that did not finish — and the
                 // proposal alone cannot tell them apart. Ask the engine again and print what
                 // it actually said, so the failure is diagnosable from the terminal.
+                //
+                // `wireTools` here, not `tools`: the first attempt was made with the
+                // abstention tool declared, and asking again without it is not the same
+                // question. With the resident engine it is worse than that — a different
+                // tool file is a different configuration, so the re-ask used to restart the
+                // server and every fixture after it paid a fresh cold start.
                 if proposer.backend == .needle,
                    let raw = try? await NeedleRunner.shared.run(
                        input: NeedleFunctionCallProposer.input(for: request),
-                       tools: tools,
+                       tools: FunctionCallRelevance.wireTools(for: tools),
                        facts: request.facts
                    ) {
                     SelfTest.diagnostic(

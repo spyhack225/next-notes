@@ -66,7 +66,7 @@ struct IdeasView: View {
                         ForEach(ideas) { idea in
                             Button {
                                 // Opens the setup flow; never executes.
-                                NavigationState.shared.agentPane = .conversation
+                                NavigationState.shared.showConversation()
                                 Task { await RealtimeAgent.shared.handleLive(idea.example, source: .text) }
                             } label: {
                                 VStack(alignment: .leading, spacing: DS.Space.xxs) {
