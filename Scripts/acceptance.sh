@@ -107,6 +107,9 @@ CORE_ENTRIES=(
   "selftest-activity|300"
   # meeting live
   "selftest-meeting-live|300"
+  # interrupted meetings resume at their stage (M-08). A lost meeting is a
+  # release blocker, so this is CORE
+  "selftest-meeting-resume|300"
   # tool loop
   "selftest-toolloop|300"
   # computer use — inspect/click/type on an owned window. Needs Accessibility, so

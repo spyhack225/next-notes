@@ -6682,6 +6682,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
+    /// ⌘Q while a meeting is recording asks first (M-08).
+    ///
+    /// One alert, because quitting is the one moment a recording is lost by choice rather
+    /// than by accident: "Stop and Quit" closes the meeting with everything said so far —
+    /// the transcript is written and the next launch resumes the rest of the pipeline — and
+    /// "Keep Recording" calls the whole thing off. Never shown under `SelfTest.isRunning`,
+    /// where a modal would keep `NSApp.terminate` from ever completing.
+    ///
+    /// SIGTERM (`pkill`, which `make install` sends) cannot be caught and needs no alert:
+    /// it lands on `endAbruptly`, which now leaves the meeting resumable.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard !SelfTest.isRunning, meetings.isRecording else { return .terminateNow }
+        let alert = NSAlert()
+        alert.messageText = "A meeting is being recorded"
+        alert.informativeText = "Stop the recording and quit? What was said so far is kept."
+        alert.addButton(withTitle: "Stop and Quit")
+        alert.addButton(withTitle: "Keep Recording")
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertFirstButtonReturn else { return .terminateCancel }
+        // Bounded like every other wait on a stage: a stop that never comes must not hold
+        // the quit hostage either. `.terminateLater` buys the seconds, and the reply is
+        // sent when the bounded stop returns — not when the unbounded one does.
+        Task { @MainActor in
+            _ = await withBoundedWait(.seconds(10)) {
+                await MeetingController.shared.stop()
+            }
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         controller.deactivate()
         // The resident fast-listening engine is a child process and nothing kills it for us.

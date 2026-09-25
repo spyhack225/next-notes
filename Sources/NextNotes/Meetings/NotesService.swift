@@ -20,6 +20,12 @@ final class NotesService {
     private(set) var revision = 0
 
     @ObservationIgnored private var tasks: [UUID: Task<Void, Never>] = [:]
+    /// The stall watchdog's clock (M-08): when each running pass last changed its
+    /// step. Advanced beside every `steps[id]` write, never on its own.
+    @ObservationIgnored private var lastProgressAt: [UUID: Date] = [:]
+    /// Passes the stall watchdog stopped. Their recording is kept: the problem says
+    /// "Try again", and there is nothing to try again with without it.
+    @ObservationIgnored private var stoppedByWatchdog: Set<UUID> = []
 
     private let store: MeetingStore
 
@@ -31,6 +37,15 @@ final class NotesService {
     func isRunning(_ id: UUID) -> Bool { steps[id] != nil }
     func problem(for id: UUID) -> String? { problems[id] }
     func clearProblem(for id: UUID) { problems[id] = nil }
+
+    /// Advances the watchdog's clock for one pass.
+    private func noteProgress(_ id: UUID) { lastProgressAt[id] = Date() }
+
+    /// Test-only seam for the resume self-test's stalled-stage fake, which drives
+    /// `StageWatch` directly instead of running a model (the
+    /// `startTimeoutOverrideForTesting` pattern). Production sets problems only
+    /// from its own passes and the watchdog below.
+    func setProblemForTesting(_ message: String?, for id: UUID) { problems[id] = message }
 
     // MARK: - Generating
 
@@ -75,13 +90,17 @@ final class NotesService {
 
         steps[id] = NotesGenerator.Step(message: "Preparing\u{2026}", fraction: nil)
         problems[id] = nil
+        noteProgress(id)
         defer { steps[id] = nil }
 
         do {
             let brief = await notesBrief(for: meeting, provider: provider)
             let generator = NotesGenerator(provider: provider)
             let result = try await generator.notes(for: meeting, segments: segments, brief: brief) { step in
-                Task { @MainActor [weak self] in self?.steps[id] = step }
+                Task { @MainActor [weak self] in
+                    self?.noteProgress(id)
+                    self?.steps[id] = step
+                }
             }
             // The meeting can be deleted while the model is generating, and `saveNotes`
             // would re-create the directory that `delete` just removed — a meeting the user
@@ -155,10 +174,37 @@ final class NotesService {
     ) {
         let id = meeting.id
         guard !isRunning(id), tasks[id] == nil else { return }
+        noteProgress(id)
+
+        // M-08: a generation that stops changing its step is stopped rather than left
+        // showing "Writing notes…" until the next launch — a launch that used to delete
+        // the recording behind it. The pass is cancelled into its own failure path, which
+        // parks the meeting at `.done` with the problem below.
+        let watchdog = StageWatch(
+            limit: StageWatchdog.notesLimit,
+            lastProgress: { [weak self] in self?.lastProgressAt[id] ?? .distantPast },
+            isLaneBusy: { await StageWatchdog.urgentLaneBusy() },
+            onStall: { [weak self] in
+                guard let self else { return }
+                let since = Date().timeIntervalSince(self.lastProgressAt[id] ?? .distantPast)
+                Log.llm.error("""
+                    notes stalled · \(Int(since), privacy: .public)s without a step \
+                    on "\(meeting.title, privacy: .public)"
+                    """)
+                self.problems[id] = StageWatchdog.stallMessage
+                self.stoppedByWatchdog.insert(id)
+                self.tasks[id]?.cancel()
+            }
+        )
+        watchdog.start()
 
         tasks[id] = Task { @MainActor [weak self] in
             guard let self else { return }
-            defer { self.tasks[id] = nil }
+            defer {
+                watchdog.cancel()
+                self.tasks[id] = nil
+                self.stoppedByWatchdog.remove(id)
+            }
 
             guard var updated = store.meeting(id: id) else { return }
             let previousStatus = updated.status
@@ -184,10 +230,15 @@ final class NotesService {
             finished.status = extracts ? .extracting : finalStatus
             store.save(finished)
             // The last thing that had a use for the recording has finished with it — but
-            // only on the automatic pass. Regenerate replays work that has already been
-            // done, and a button offering to write the notes again is not a button that may
-            // delete the recording they were written from.
-            if announce { store.releaseAudio(for: id, notesWritten: model != nil) }
+            // only on the automatic pass, and never when the pass was stopped by the stall
+            // watchdog: the problem it left offers "Try again", and a recording is the one
+            // copy of the meeting that a retry of diarization can still read. Regenerate
+            // replays work that has already been done, and a button offering to write the
+            // notes again is not a button that may delete the recording they were written
+            // from.
+            if announce, !stoppedByWatchdog.contains(id) {
+                store.releaseAudio(for: id, notesWritten: model != nil)
+            }
             // The agent reads the notes, so it is asked once they exist rather than when
             // the transcript did. Only on the automatic pass: Regenerate rewrites notes the
             // user is looking at, and a second set of proposals for the same meeting is not
@@ -220,5 +271,7 @@ final class NotesService {
         tasks[id]?.cancel()
         tasks[id] = nil
         steps[id] = nil
+        lastProgressAt[id] = nil
+        stoppedByWatchdog.remove(id)
     }
 }

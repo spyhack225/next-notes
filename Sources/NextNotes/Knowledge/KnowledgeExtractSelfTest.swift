@@ -266,9 +266,17 @@ enum KnowledgeExtractSelfTest {
               (try? decoder.decode(MeetingStatus.self, from: Data(#"{"state":"summarizing"}"#.utf8))) == .summarizing)
         check("extracting is not active", MeetingStatus.extracting.isActive)
         check("extracting has no name", MeetingStatus.extracting.displayName == "Extracting decisions")
-        check("a crash while extracting is not repaired to done", MeetingStore.repairedStatus(.extracting) == .done)
-        check("a crash while recording is repaired to done", MeetingStore.repairedStatus(.recording).isFailure)
-        check("a finished meeting was repaired", MeetingStore.repairedStatus(.done) == .done)
+        // M-08 replaced `repairedStatus` with the pure resume planner; extraction's
+        // row in that table is what pins the same three facts now.
+        check("a crash while extracting is queued again, not resumed as a stage",
+              MeetingStore.resumeAction(for: .extracting, hasTranscript: true, hasAudio: true, finalPassOn: true)
+                == .extractAgain)
+        check("a crash while recording with nothing to read is a failure",
+              MeetingStore.resumeAction(for: .recording, hasTranscript: false, hasAudio: false, finalPassOn: true)
+                == .fail("Next Notes quit before anything was transcribed."))
+        check("a finished meeting is left alone",
+              MeetingStore.resumeAction(for: .done, hasTranscript: true, hasAudio: true, finalPassOn: true)
+                == .none)
         return failures
     }
 

@@ -65,6 +65,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-settings  --selftest-metrics    --selftest-cleanup-router
 --selftest-meeting-live --selftest-meeting-live-tools --selftest-meeting-quality --selftest-tts
 --selftest-notes-longform --selftest-diarize-assign --selftest-meeting-finals [<dir>]
+--selftest-meeting-resume
 --selftest-tts-stream
 --selftest-tts-pocket
 --selftest-tts-kokoro
@@ -671,6 +672,40 @@ button — alive for all of them. The session hands the meeting over at `.diariz
 to `.done`. So the Record button comes back long before the Notes tab fills in, and that is
 the intended order.
 
+**An interrupted meeting is resumed, not written off.** `make install` stops a running app
+with `pkill -x NextNotes`, a SIGTERM that skips `applicationWillTerminate`, and it is run many
+times a day on a development Mac. A meeting recording at that moment used to come back
+`.failed` at the next launch although `transcript.json` is written after every segment and is
+intact; one interrupted while diarizing or summarising came back `.done` without speakers or
+notes, with its temporary audio already deleted — so it could never be re-diarized. Launch
+repair is now "plan, then resume": `MeetingStore.resumeAction` is the pure table,
+`MeetingStore.repairInterruptedMeetings()` repairs the statuses and returns the plan, and
+`MeetingResumer` runs it one meeting at a time behind the same busy gate the extraction
+resume waits on. `MeetingStore` takes a root, and `MeetingStore.isolated()` is the test seam —
+no seeded meeting ever touches the user's `Meetings/`.
+
+| Status on disk | transcript | audio | resumes as |
+|---|---|---|---|
+| `.recording` / `.transcribing` | any | yes, final pass on | the final pass (M-01), then the pipeline |
+| `.recording` / `.transcribing` | non-empty | no (or pass off) | the pipeline from the transcript |
+| `.recording` / `.transcribing` | empty | no | `.failed("Next Notes quit before anything was transcribed.")` |
+| `.diarizing` | — | yes | diarization, then notes |
+| `.diarizing` | — | no | notes |
+| `.summarizing` | — | — | notes |
+| `.extracting` | — | — | `.done`, re-extraction queued |
+
+Nothing releases audio during repair: the stage that finishes reaches `releaseAudio`, whose
+three-line rule is unchanged. `MeetingSession.endAbruptly()` leaves a meeting `.transcribing`
+rather than `.done` for the same reason, and a normal Quit is caught before that —
+`applicationShouldTerminate` offers "Stop and Quit" (a ten-second bounded stop) or
+"Keep Recording", and SIGTERM gets no alert because it cannot be caught. Both model stages
+also carry a stall watchdog (`StageWatchdog`): diarization with no progress for 5 minutes,
+notes with no new step for 10 minutes, minus any time `.realtimeASR` or `.realtimeAgent` held
+the machine. A stalled pass is cancelled into the plain problem "This took much longer than it
+should, so it was stopped. Try again." and **keeps its recording**, so the retry the problem
+offers has something to read. `--selftest-meeting-resume` is the gate (CORE); it seeds its
+meetings through `MeetingStore.isolated()` and injects its stage runners.
+
 **The notes model unloads itself.** `NotesModelRuntime` frees its weights ten minutes after
 the last generation, so the first meeting summarised after a quiet afternoon pays a cold
 start again. That is deliberate on a 16 GB machine: 2.7 GB resident for a meeting that
@@ -691,8 +726,9 @@ that one method, and it is: a recording made only for a pipeline stage (diarizat
 the final pass) goes; a recording the user
 kept goes only when "delete after notes" is on *and* notes were actually written; and
 nothing goes while a failed diarization pass is still offering "Identify again", which has
-nothing to read without it. Nothing else deletes a recording, so if a file is being kept
-that shouldn't be, that is the method to read.
+nothing to read without it — or while the stall watchdog has stopped a notes pass, whose
+"Try again" is in the same position. Nothing else deletes a recording, so if a file is being
+kept that shouldn't be, that is the method to read.
 
 **A transcript segment is a sentence, not a window, and punctuation is what makes it one.**
 The live tier cuts 2–5 second windows for provisional text (not 30–60: that number is

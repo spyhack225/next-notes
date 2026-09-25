@@ -65,7 +65,25 @@ final class MeetingStore {
         return directory
     }
 
-    private init() {
+    /// The directory this instance reads and writes. The production store uses
+    /// `Self.root`; seeded-meeting self-tests use `isolated()` (M-08). The static
+    /// root stays the answer for `KnowledgeIndexer.meetingsRoot`, which always
+    /// means the production store's path.
+    private let root: URL
+
+    /// Test seam (M-08): a store rooted at a fresh temporary directory, so seeded
+    /// interrupted meetings never touch the user's real `Meetings/`.
+    static func isolated() -> MeetingStore {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "NextNotesMeetingResumeTest-\(UUID().uuidString)", isDirectory: true
+            )
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return MeetingStore(root: url)
+    }
+
+    private init(root: URL = MeetingStore.root) {
+        self.root = root
         reload()
     }
 
@@ -73,7 +91,7 @@ final class MeetingStore {
 
     func reload() {
         let contents = (try? FileManager.default.contentsOfDirectory(
-            at: Self.root,
+            at: root,
             includingPropertiesForKeys: nil
         )) ?? []
 
@@ -88,57 +106,113 @@ final class MeetingStore {
         meetings.first { $0.id == id }
     }
 
-    /// Marks meetings that were still running when the app died.
+    /// Plans what each still-running meeting resumes as, repairs the statuses, and
+    /// returns the plan for `MeetingResumer`.
     ///
-    /// Nothing else can clear those states: the session that owned them is gone, and a row
-    /// that says "Recording" on a machine that is recording nothing is the kind of lie that
-    /// makes a user stop trusting the whole feature. Called once at launch.
-    func repairInterruptedMeetings() {
+    /// Nothing releases audio here: a recording made only for a pipeline stage goes
+    /// when that stage finishes, through the unchanged `releaseAudio` rule — never
+    /// in repair. Called once at launch, before the scheduler starts.
+    @discardableResult
+    func repairInterruptedMeetings() -> [(UUID, ResumeAction)] {
+        var plan: [(UUID, ResumeAction)] = []
         var interruptedExtractions: [UUID] = []
         for meeting in meetings where meeting.status.isActive {
+            let action = Self.resumeAction(
+                for: meeting.status,
+                hasTranscript: !transcript(for: meeting.id).isEmpty,
+                hasAudio: audioURL(for: meeting) != nil,
+                finalPassOn: Settings.shared.meetingsFinalPass
+            )
             var repaired = meeting
-            let hadTranscript = Self.hadTranscript(meeting.status)
-            repaired.status = Self.repairedStatus(meeting.status)
-            if repaired.end == nil { repaired.end = Date() }
+            switch action {
+            case .finalPass, .pipelineAfterTranscript:
+                repaired.status = .transcribing
+            case .diarize:
+                repaired.status = .diarizing
+            case .notes:
+                repaired.status = .summarizing
+            case .extractAgain:
+                repaired.status = .done
+                interruptedExtractions.append(meeting.id)
+            case .fail(let message):
+                repaired.status = .failed(message)
+            case .none:
+                continue
+            }
+            if repaired.end == nil {
+                let lastEnd = transcript(for: meeting.id).map(\.end).max()
+                repaired.end = lastEnd.map { meeting.start.addingTimeInterval($0) } ?? Date()
+            }
             save(repaired)
-            // A meeting repaired to done is finished, and nothing will run on it again:
-            // `MeetingPipeline` and `NotesService` only walk a meeting that is still on its
-            // way to done. Without this, a recording written purely for a diarization pass
-            // that the crash interrupted would sit under Application Support for good.
-            // `.extracting` comes after the notes were written, so the recording goes the way
-            // it would have once notes were done.
-            if hadTranscript { releaseAudio(for: repaired.id, notesWritten: meeting.status == .extracting) }
-            if meeting.status == .extracting { interruptedExtractions.append(meeting.id) }
+            plan.append((meeting.id, action))
             Log.meeting.info("repaired interrupted meeting \"\(meeting.title, privacy: .public)\"")
         }
         // Extraction is idempotent and queued: an interrupted one runs again once nothing in
         // the foreground needs the machine, rather than waiting for *Extract past meetings*.
-        guard !interruptedExtractions.isEmpty else { return }
+        guard !interruptedExtractions.isEmpty else { return plan }
         Task { @MainActor [weak self] in
             for id in interruptedExtractions {
                 while LiveKnowledgeIndexEnvironment.isForegroundBusy || LiveKnowledgeIndexEnvironment.isVoiceBusy,
                       !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(30))
                 }
-                guard let self, let meeting = self.meeting(id: id), meeting.status == .done,
-                      KnowledgeExtractionService.shared.isEnabled else { continue }
-                await KnowledgeExtractionService.shared.extract(meeting, directory: self.directory(for: id))
+                guard let self, let meeting = self.meeting(id: id), meeting.status == .done else { continue }
+                if KnowledgeExtractionService.shared.isEnabled {
+                    await KnowledgeExtractionService.shared.extract(meeting, directory: self.directory(for: id))
+                }
+                // Not in repair: this is the stage that finishes. The notes were already
+                // written when the meeting was interrupted, so the recording goes the way
+                // it would have once notes were done — whether or not the extraction ran.
+                self.releaseAudio(for: id, notesWritten: true)
             }
         }
+        return plan
     }
 
-    /// A meeting interrupted while diarising, summarising or extracting is not a lost meeting:
-    /// the transcript was written before any of them started, so it is finished — just
-    /// without speaker names, notes or a graph, which Regenerate can write whenever the user
-    /// wants them.
-    nonisolated static func hadTranscript(_ status: MeetingStatus) -> Bool {
-        status == .diarizing || status == .summarizing || status == .extracting
-    }
-
-    /// What an interrupted meeting becomes at launch. Inactive states are left alone.
-    nonisolated static func repairedStatus(_ status: MeetingStatus) -> MeetingStatus {
-        guard status.isActive else { return status }
-        return hadTranscript(status) ? .done : .failed("Next Notes quit while this meeting was recording.")
+    /// Where an interrupted meeting resumes (M-08 Target 1). Pure, so the repair, the
+    /// session's own abrupt end and the self-test decide the same way.
+    /// `finalPassOn` is `meetingsFinalPass`: with audio on disk the final pass (M-01)
+    /// can recover speech even from an empty live transcript.
+    ///
+    /// | Status on disk | transcript | audio | Action |
+    /// |---|---|---|---|
+    /// | `.recording` / `.transcribing` | any | yes, final pass on | the final pass, then the pipeline |
+    /// | `.recording` / `.transcribing` | non-empty | no (or pass off) | the pipeline from the transcript |
+    /// | `.recording` / `.transcribing` | empty | no | failed — nothing was said |
+    /// | `.diarizing` | — | yes | diarization, then notes |
+    /// | `.diarizing` | — | no | notes |
+    /// | `.summarizing` | — | — | notes |
+    /// | `.extracting` | — | — | finished; re-extraction is queued |
+    nonisolated static func resumeAction(
+        for status: MeetingStatus,
+        hasTranscript: Bool,
+        hasAudio: Bool,
+        finalPassOn: Bool
+    ) -> ResumeAction {
+        switch status {
+        case .recording, .transcribing:
+            // M-01's own seam decides whether the pass runs — one answer to "is there
+            // a recording worth re-reading", shared with `MeetingPipeline`. With it on
+            // and audio on disk the pass recovers speech even from an empty transcript;
+            // everything else resumes from the transcript, or is a meeting nobody said
+            // anything in.
+            switch MeetingPipeline.finalPassDecision(settingOn: finalPassOn, hasAudio: hasAudio) {
+            case .run:
+                return .finalPass
+            case .skip:
+                return hasTranscript
+                    ? .pipelineAfterTranscript
+                    : .fail("Next Notes quit before anything was transcribed.")
+            }
+        case .diarizing:
+            return hasAudio ? .diarize : .notes
+        case .summarizing:
+            return .notes
+        case .extracting:
+            return .extractAgain
+        case .scheduled, .armed, .done, .failed:
+            return .none
+        }
     }
 
     /// Writes the record and refreshes the list in place.
@@ -220,7 +294,7 @@ final class MeetingStore {
     // MARK: - Artefacts
 
     func directory(for id: UUID) -> URL {
-        Self.root.appendingPathComponent(id.uuidString, isDirectory: true)
+        root.appendingPathComponent(id.uuidString, isDirectory: true)
     }
 
     func transcript(for id: UUID) -> [TranscriptSegment] {
@@ -380,7 +454,7 @@ final class MeetingStore {
         guard !pending.isEmpty else { return }
         searchInvalidated.subtract(pending)
 
-        let root = Self.root
+        let root = self.root
         let built = await Task.detached(priority: .utility) {
             pending.reduce(into: [UUID: String]()) { haystacks, id in
                 haystacks[id] = Self.searchText(in: root.appendingPathComponent(id.uuidString, isDirectory: true))
