@@ -101,6 +101,12 @@ actor NotesModelRuntime {
     private var vocabulary: OpaquePointer?
     private var contextSize = 0
     private var trainedContext = 0
+    /// The turn markers the loaded file's own template names (P0-04). Every prompt this
+    /// runtime renders, every stop marker its decode loops look for, comes from here.
+    private(set) var family: ChatTemplateFamily = .chatmlThinking
+    /// True when the template asks for BOS and the vocabulary does not add it itself
+    /// (MiniCPM5). The token is prepended to the token list, never written as text.
+    private var explicitBOS = false
 
     private var lastUse = Date()
     private var idleTask: Task<Void, Never>?
@@ -422,8 +428,8 @@ actor NotesModelRuntime {
             guard context == nil else { return }
             try await streamWhileScheduled(
                 jobID: jobID,
-                prompt: Self.chatMLPrompt(
-                    system: RealtimeAgent.voiceRoutingSystem(voice: true), user: "Hello."),
+                system: RealtimeAgent.voiceRoutingSystem(voice: true),
+                messages: [.init(role: .user, content: "Hello.")],
                 maxTokens: 1, yield: { _ in })
         }
         lastUse = Date()
@@ -498,6 +504,20 @@ actor NotesModelRuntime {
         model = loaded
         vocabulary = loadedVocabulary
         trainedContext = Int(llama_model_n_ctx_train(loaded))
+        let metadata = GGUFMetadata.read(candidate.fileURL)
+        let template = Self.chatTemplate(for: loaded) ?? metadata?.chatTemplate
+        family = ChatTemplate.detect(
+            template: template,
+            architecture: metadata?.architecture,
+            preTokenizer: metadata?.preTokenizer)
+        // A file whose turn markers this build cannot spell would open and then answer in
+        // a format the parser cannot read. The trial is where that is refused (P0-04).
+        guard family != .unsupported else {
+            return .opensButCannotAnswer("Next Notes can’t talk to this model yet.")
+        }
+        explicitBOS = ChatTemplate.needsExplicitBOS(
+            template: template,
+            vocabularyAddsBOS: llama_vocab_get_add_bos(loadedVocabulary))
 
         do {
             return try await decodeTrialToken(jobID: jobID, vocabulary: loadedVocabulary)
@@ -520,10 +540,11 @@ actor NotesModelRuntime {
         // line itself reads as the instruction ("Answer with the single word OK."), and a
         // trial that reports a working file as unable to answer is the bug this guards.
         // "You are a helpful assistant." answers on S1-mini (1 token) and on Qwen3 (1).
-        let prompt = Self.chatMLPrompt(
+        let prompt = Self.render(
+            forFamily: family,
             system: "You are a helpful assistant.",
-            user: "Reply with the single word OK.")
-        let tokens = try LlamaHelpers.tokenize(prompt, vocabulary: vocabulary)
+            messages: [.init(role: .user, content: "Reply with the single word OK.")])
+        let tokens = try tokenizePrompt(prompt, vocabulary: vocabulary)
         let context = try ensureContext(promptTokens: tokens.count, maxTokens: Self.trialMaxTokens)
         llama_memory_clear(llama_get_memory(context), true)
         try await decodePromptWhileScheduled(tokens, context: context, jobID: jobID)
@@ -611,12 +632,21 @@ actor NotesModelRuntime {
 
     /// Native token stream for interactive agent answers. The task is owned by the
     /// returned sequence, so cancelling a consumer reaches the llama loop between tokens.
+    ///
+    /// Special rendering is on: this is the typed planner's own path
+    /// (`LlamaLLMProvider.stream` → here `stream` → `streamPrompt`), and a model whose
+    /// `<tool_call>` is a control token loses it otherwise (P0-04, P0-14b's calendar turn).
     func stream(
         system: String,
         user: String,
         maxTokens: Int
     ) -> AsyncThrowingStream<String, Error> {
-        streamPrompt(Self.chatMLPrompt(system: system, user: user), maxTokens: maxTokens)
+        streamPrompt(
+            system: system,
+            messages: [.init(role: .user, content: user)],
+            maxTokens: maxTokens,
+            renderSpecial: true
+        )
     }
 
     func streamConversation(
@@ -624,7 +654,12 @@ actor NotesModelRuntime {
         messages: [LLMChatMessage],
         maxTokens: Int
     ) -> AsyncThrowingStream<String, Error> {
-        streamPrompt(Self.chatMLPrompt(system: system, messages: messages), maxTokens: maxTokens)
+        streamPrompt(
+            system: system,
+            messages: messages,
+            maxTokens: maxTokens,
+            renderSpecial: true
+        )
     }
 
     func streamInteractiveConversation(
@@ -633,16 +668,20 @@ actor NotesModelRuntime {
         maxTokens: Int
     ) -> AsyncThrowingStream<String, Error> {
         streamPrompt(
-            Self.chatMLPrompt(system: system, messages: messages),
+            system: system,
+            messages: messages,
             maxTokens: maxTokens,
-            workClass: .realtimeAgent
+            workClass: .realtimeAgent,
+            renderSpecial: true
         )
     }
 
     private func streamPrompt(
-        _ prompt: String,
+        system: String,
+        messages: [LLMChatMessage],
         maxTokens: Int,
-        workClass: WorkClass = .background
+        workClass: WorkClass = .background,
+        renderSpecial: Bool = false
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
@@ -650,8 +689,10 @@ actor NotesModelRuntime {
                     try await self.withLane(workClass) { jobID in
                         try await self.streamWhileScheduled(
                             jobID: jobID,
-                            prompt: prompt,
+                            system: system,
+                            messages: messages,
                             maxTokens: maxTokens,
+                            renderSpecial: renderSpecial,
                             yield: { piece in continuation.yield(piece) }
                         )
                     }
@@ -708,8 +749,11 @@ actor NotesModelRuntime {
         }
         guard let vocabulary else { throw LlamaError.notLoaded }
 
-        let prompt = Self.chatMLPrompt(system: system, user: user)
-        let promptTokens = try LlamaHelpers.tokenize(prompt, vocabulary: vocabulary)
+        let prompt = Self.render(
+            forFamily: family,
+            system: system,
+            messages: [.init(role: .user, content: user)])
+        let promptTokens = try tokenizePrompt(prompt, vocabulary: vocabulary)
         guard promptTokens.count + maxTokens + Self.contextHeadroom <= contextTokens else {
             throw LlamaError.inputTooLong
         }
@@ -728,6 +772,10 @@ actor NotesModelRuntime {
         var output = ""
         var generated = 0
         var position = llama_pos(promptTokens.count)
+        // The family's own turn boundary, not ChatML's: some GGUF conversions emit the
+        // terminator as text rather than as an end-of-generation token, and without this
+        // the model keeps writing a second turn.
+        let turnEnd = ChatTemplate.stopMarker(family)
 
         var batch = llama_batch_init(1, 0, 1)
         defer { llama_batch_free(batch) }
@@ -744,10 +792,8 @@ actor NotesModelRuntime {
             if llama_vocab_is_eog(vocabulary, token) { break }
             output += LlamaHelpers.piece(token, vocabulary: vocabulary)
             generated += 1
-            // Some GGUF conversions emit the turn terminator as text rather than as an
-            // end-of-generation token; without this the model keeps writing a second turn.
-            if output.hasSuffix(Self.turnEnd) {
-                output.removeLast(Self.turnEnd.count)
+            if !turnEnd.isEmpty, output.hasSuffix(turnEnd) {
+                output.removeLast(turnEnd.count)
                 break
             }
 
@@ -757,8 +803,14 @@ actor NotesModelRuntime {
             position += 1
         }
 
+        // Control markers never reach the notes text: MiniCPM5's `<function …>` and every
+        // family's turn markers are vocabulary tokens, not words anyone wrote.
+        var text = output.trimmingCharacters(in: .whitespacesAndNewlines)
+        for marker in ChatTemplate.controlMarkers(family) {
+            text = text.replacingOccurrences(of: marker, with: "")
+        }
         return LLMCompletion(
-            text: output.trimmingCharacters(in: .whitespacesAndNewlines),
+            text: text,
             generatedTokens: generated,
             duration: Date().timeIntervalSince(began)
         )
@@ -768,8 +820,10 @@ actor NotesModelRuntime {
     /// the context is shared with notes generation and must never be touched concurrently.
     private func streamWhileScheduled(
         jobID: UUID,
-        prompt: String,
+        system: String,
+        messages: [LLMChatMessage],
         maxTokens: Int,
+        renderSpecial: Bool = false,
         yield: @escaping @Sendable (String) -> Void
     ) async throws {
         let firstTokenTrace = LatencyTrace.start(.modelFirstToken)
@@ -780,7 +834,10 @@ actor NotesModelRuntime {
         }
         guard let vocabulary else { throw LlamaError.notLoaded }
 
-        let promptTokens = try LlamaHelpers.tokenize(prompt, vocabulary: vocabulary)
+        // Rendered here, after the load: the family is only known once the file is open,
+        // and a prompt rendered before that would use the wrong template on a cold start.
+        let prompt = Self.render(forFamily: family, system: system, messages: messages)
+        let promptTokens = try tokenizePrompt(prompt, vocabulary: vocabulary)
         guard promptTokens.count + maxTokens + Self.contextHeadroom <= contextTokens else {
             throw LlamaError.inputTooLong
         }
@@ -806,6 +863,9 @@ actor NotesModelRuntime {
         var position = llama_pos(promptTokens.count)
         var batch = llama_batch_init(1, 0, 1)
         defer { llama_batch_free(batch) }
+        // The family's own turn boundary, not ChatML's. With `renderSpecial` on, a control
+        // token that is not the vocabulary's EOG arrives as text and is held back here.
+        let turnEnd = ChatTemplate.stopMarker(family)
 
         while generated < maxTokens {
             try Task.checkCancellation()
@@ -813,7 +873,15 @@ actor NotesModelRuntime {
 
             let token = llama_sampler_sample(sampler, context, -1)
             if llama_vocab_is_eog(vocabulary, token) { break }
-            let piece = LlamaHelpers.piece(token, vocabulary: vocabulary)
+            var piece = LlamaHelpers.piece(
+                token, vocabulary: vocabulary, renderSpecial: renderSpecial)
+            if renderSpecial {
+                // A plain answer must not speak a family's turn or thinking markers. The
+                // stop marker is excluded: the holdback below needs it to end the turn.
+                for marker in ChatTemplate.controlMarkers(family) where marker != turnEnd {
+                    piece = piece.replacingOccurrences(of: marker, with: "")
+                }
+            }
             if !reportedFirstToken {
                 reportedFirstToken = true
                 firstTokenTrace.end(note: "app_llm")
@@ -821,15 +889,15 @@ actor NotesModelRuntime {
             output += piece
             generated += 1
             pending += piece
-            // Hold a suffix that could still become the ChatML terminator. This avoids
-            // sending `<|im_end|>` fragments into the spoken-reply bridge.
-            let maxHeld = min(Self.turnEnd.count, pending.count)
+            // Hold a suffix that could still become the family's terminator. This avoids
+            // sending its fragments into the spoken-reply bridge.
+            let maxHeld = min(turnEnd.count, pending.count)
             let held: Int
             if maxHeld == 0 {
                 held = 0
             } else {
                 held = (1...maxHeld).reversed().first {
-                    String(pending.suffix($0)) == String(Self.turnEnd.prefix($0))
+                    String(pending.suffix($0)) == String(turnEnd.prefix($0))
                 } ?? 0
             }
             let safeCount = pending.count - held
@@ -837,7 +905,7 @@ actor NotesModelRuntime {
                 yield(String(pending.prefix(safeCount)))
                 pending.removeFirst(safeCount)
             }
-            if pending == Self.turnEnd {
+            if !turnEnd.isEmpty, pending == turnEnd {
                 pending = ""
                 break
             }
@@ -847,7 +915,7 @@ actor NotesModelRuntime {
             guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
             position += 1
         }
-        if !pending.isEmpty, !pending.hasPrefix(Self.turnEnd) { yield(pending) }
+        if !pending.isEmpty, turnEnd.isEmpty || !pending.hasPrefix(turnEnd) { yield(pending) }
     }
 
     /// Acquires the shared background lane for the duration of `body`.
@@ -1250,6 +1318,8 @@ actor NotesModelRuntime {
             self.model = nil
             vocabulary = nil
             trainedContext = 0
+            family = .chatmlThinking
+            explicitBOS = false
         }
     }
 
@@ -1328,32 +1398,46 @@ actor NotesModelRuntime {
 
     // MARK: - Prompt
 
-    /// ChatML with the thinking block pre-closed.
-    ///
-    /// The on-device model is a hybrid reasoning model: left to itself it opens `<think>` and
-    /// spends hundreds of tokens deliberating before writing anything. Notes are an extraction
-    /// task, not a reasoning one, and on a 4B model the deliberation mostly costs minutes.
-    /// Supplying an already-closed, empty think block is the documented way to start the
-    /// answer immediately.
-    static func chatMLPrompt(system: String, user: String) -> String {
-        chatMLPrompt(system: system, messages: [.init(role: .user, content: user)])
+    /// The prompt renderer the runtime's call sites use (P0-04). The family table lives in
+    /// `ChatTemplate`, one renderer per family, including the already-closed empty think
+    /// block a hybrid reasoning model needs to start answering immediately.
+    static func render(
+        forFamily family: ChatTemplateFamily,
+        system: String,
+        messages: [LLMChatMessage]
+    ) -> String {
+        ChatTemplate.render(family, system: system, messages: messages)
     }
 
-    static func chatMLPrompt(system: String, messages: [LLMChatMessage]) -> String {
-        func safe(_ text: String) -> String {
-            text.replacingOccurrences(of: "<|", with: "< |")
-                .replacingOccurrences(of: "|>", with: "| >")
-        }
-        var prompt = "<|im_start|>system\n\(safe(system))<|im_end|>\n"
-        for message in messages {
-            prompt += "<|im_start|>\(message.role.rawValue)\n"
-                + safe(message.content) + "<|im_end|>\n"
-        }
-        prompt += "<|im_start|>assistant\n<think>\n\n</think>\n\n"
-        return prompt
+    /// The planner decode path's piece renderer (P0-04). Control tokens — MiniCPM5's
+    /// `<function …>`, Qwen's `<tool_call>`, every family's turn markers — survive into the
+    /// text the parser sees because the planner asks for special rendering.
+    static func plannerPiece(_ token: llama_token, vocabulary: OpaquePointer) -> String {
+        LlamaHelpers.piece(token, vocabulary: vocabulary, renderSpecial: true)
     }
 
-    private static let turnEnd = "<|im_end|>"
+    /// The vocabulary's own default chat template, if it carries one.
+    private static func chatTemplate(for model: OpaquePointer) -> String? {
+        guard let pointer = llama_model_chat_template(model, nil) else { return nil }
+        let template = String(cString: pointer)
+        return template.isEmpty ? nil : template
+    }
+
+    /// Tokenizes a rendered prompt, prepending BOS as a token when the file's template asks
+    /// for it and its vocabulary does not add it itself (MiniCPM5). `LlamaHelpers.tokenize`
+    /// keeps `add_special` on; this rule is separate and explicit, and BOS is never written
+    /// as the text `<s>`.
+    private func tokenizePrompt(
+        _ prompt: String, vocabulary: OpaquePointer
+    ) throws -> [llama_token] {
+        var tokens = try LlamaHelpers.tokenize(prompt, vocabulary: vocabulary)
+        guard explicitBOS else { return tokens }
+        let bos = llama_vocab_bos(vocabulary)
+        if bos >= 0, tokens.first != bos {
+            tokens.insert(bos, at: 0)
+        }
+        return tokens
+    }
 
     // MARK: - Sampling
 
@@ -1545,6 +1629,23 @@ actor NotesModelRuntime {
         model = loadedModel
         vocabulary = loadedVocabulary
         trainedContext = Int(llama_model_n_ctx_train(loadedModel))
+        // P0-04: the file itself names its turn markers. `llama_model_chat_template` is the
+        // default template the vocabulary carries; the GGUF key is the same string and is
+        // only read when the model reports none, for architecture and pre-tokenizer too.
+        let metadata = GGUFMetadata.read(spec.fileURL)
+        let template = Self.chatTemplate(for: loadedModel) ?? metadata?.chatTemplate
+        family = ChatTemplate.detect(
+            template: template,
+            architecture: metadata?.architecture,
+            preTokenizer: metadata?.preTokenizer)
+        explicitBOS = ChatTemplate.needsExplicitBOS(
+            template: template,
+            vocabularyAddsBOS: llama_vocab_get_add_bos(loadedVocabulary))
+        Log.llm.info(
+            """
+            \(self.spec.displayName, privacy: .public) template family=\
+            \(self.family.rawValue, privacy: .public) explicitBOS=\(self.explicitBOS)
+            """)
         // The timer starts at the load, not at the first generation: weights loaded by the
         // Models tab, or by a generation that then failed, are as resident as weights that
         // wrote notes, and would otherwise stay loaded until the app quits.

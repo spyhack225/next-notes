@@ -146,6 +146,7 @@ INTEGRATION_ENTRIES=(
   # store isolation (P0-11): a harness run leaves the owner's real files and
   # modelRoles./modelLibrary./agent defaults untouched
   "selftest-store-isolation|300"
+  "selftest-chat-template|300"
   # model architecture guard and private networking (P0-13, P0-19)
   "selftest-model-unopenable|300"
   "selftest-private-network|300"

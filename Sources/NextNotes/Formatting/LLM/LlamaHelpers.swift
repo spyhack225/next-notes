@@ -38,12 +38,22 @@ enum LlamaHelpers {
     /// The two-pass shape is load-bearing: `llama_token_to_piece` returns a *negative*
     /// required length when the buffer is too small, and a single-pass version silently
     /// drops any piece longer than the guess — which in practice means emoji and CJK.
-    static func piece(_ token: llama_token, vocabulary: OpaquePointer) -> String {
+    ///
+    /// `renderSpecial` is the planner flag (P0-04): when true, control tokens (MiniCPM5's
+    /// `<function …>`, `<|tool_call>`, `<|im_end|>`) render as their literal text instead of
+    /// "". Notes generation keeps it false and strips the family's markers afterwards.
+    static func piece(
+        _ token: llama_token,
+        vocabulary: OpaquePointer,
+        renderSpecial: Bool = false
+    ) -> String {
         var storage = [CChar](repeating: 0, count: 16)
-        var count = llama_token_to_piece(vocabulary, token, &storage, Int32(storage.count), 0, false)
+        var count = llama_token_to_piece(
+            vocabulary, token, &storage, Int32(storage.count), 0, renderSpecial)
         if count < 0 {
             storage = [CChar](repeating: 0, count: Int(-count))
-            count = llama_token_to_piece(vocabulary, token, &storage, Int32(storage.count), 0, false)
+            count = llama_token_to_piece(
+                vocabulary, token, &storage, Int32(storage.count), 0, renderSpecial)
         }
         guard count > 0 else { return "" }
         return String(decoding: storage.prefix(Int(count)).map(UInt8.init(bitPattern:)), as: UTF8.self)

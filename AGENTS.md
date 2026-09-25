@@ -98,6 +98,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-avatar
 --selftest-model-roles --selftest-model-fit --selftest-hf-search
 --selftest-model-unopenable --selftest-private-network --selftest-store-isolation
+--selftest-chat-template
 --selftest-memory-portability
 --selftest-voice-turn-routing --selftest-wake-live
 --selftest-computer-actions  --selftest-click-coordinate --selftest-cdp
@@ -644,8 +645,7 @@ again, and two start-up tasks are in flight against one set of slots. Unguarded,
 one writes its engine over the live one's, and `endDictation` then finishes engine B while
 awaiting engine A's stream — a stream nobody will ever close. Every continuation that writes
 back into those slots re-checks `session` first, and a superseded start-up finishes its own
-engine and touches nothing else. It is also why capture is started *after* that check rather
-than before it.
+engine and touches nothing else. Capture starts at key-down, into an in-memory pre-roll owned by that session, and is replayed into the engine once it has started; a superseded start-up never touches the hub — only the session that owns the slots unsubscribes. Measured reason: on 2026-09-23 a cold start after a 52 s model load put 4.40 s between key-down and capture, and the hold was lost.
 
 **The dictation tail logs its own split.** `runs.jsonl` records one `processSeconds` for
 everything between key-up and injected text, and one number cannot say which of draining,
