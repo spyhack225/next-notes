@@ -48,7 +48,7 @@ final class NotesService {
         let id = meeting.id
         guard !isRunning(id) else { return nil }
         // M-16a: the notes pass is a stage span. The note carries the
-        // map-reduce flag (M-05 adds chunk and collapse counts), or the
+        // map-reduce flag with chunk, collapse and drop counts (M-05), or the
         // error's type name — never a model name, a token count or text.
         let began = Date()
 
@@ -92,7 +92,8 @@ final class NotesService {
             LatencyTrace.record(
                 .meetingNotes,
                 seconds: Date().timeIntervalSince(began),
-                note: "mapReduce=\(result.usedMapReduce)"
+                note: "mapReduce=\(result.usedMapReduce) chunks=\(result.chunks)"
+                    + " collapsed=\(result.collapsedGroups) dropped=\(result.droppedFacts)"
             )
             Log.llm.info("""
                 notes for "\(meeting.title, privacy: .public)" — \
@@ -101,6 +102,13 @@ final class NotesService {
                 \(Int(result.duration), privacy: .public)s\
                 \(result.usedMapReduce ? " (map-reduce)" : "", privacy: .public)
                 """)
+            if result.usedMapReduce {
+                Log.llm.info("""
+                    notes map-reduce · chunks \(result.chunks, privacy: .public) · \
+                    collapsed \(result.collapsedGroups, privacy: .public) · \
+                    dropped \(result.droppedFacts, privacy: .public)
+                    """)
+            }
             if !brief.isEmpty {
                 Log.llm.info("""
                     notes context for "\(meeting.title, privacy: .public)": \

@@ -106,13 +106,23 @@ enum NotesPrompts {
         - Write only what was said. Never infer or conclude.
         """
 
-    static func mapUser(meeting: Meeting, part: Int, of total: Int, transcript: String) -> String {
-        """
+    static func mapUser(
+        meeting: Meeting,
+        part: Int,
+        of total: Int,
+        transcript: String,
+        wordLimit: Int? = nil
+    ) -> String {
+        var prompt = """
         \(context(for: meeting))
 
         Part \(part) of \(total) of the transcript:
         \(transcript)
         """
+        if let wordLimit {
+            prompt += "\n\nKeep this list under about \(wordLimit) words."
+        }
+        return prompt
     }
 
     /// The reduce step is the single-pass prompt again, fed facts instead of speech — so
@@ -128,6 +138,39 @@ enum NotesPrompts {
         if let block = block(brief) { sections.append(block) }
         sections.append("These are the facts extracted from the meeting, in order. Write the notes from them.\n\n\(facts)")
         return sections.joined(separator: "\n\n")
+    }
+
+    // MARK: - Collapse (M-05)
+
+    /// The collapse step shortens fact lists so they fit the reduce window. Like the map
+    /// step it never sees the brief: its job is "shorten what was said", and context
+    /// facts in this prompt would come back as claims someone made.
+    static let collapseSystem = """
+        You shorten a list of facts from a meeting so it takes less space.
+
+        Rules:
+        - Output a flat list of `-` bullets and nothing else.
+        - Keep every decision, commitment, owner, date, number, name and unanswered question.
+        - Keep the speaker label at the start of each bullet.
+        - Merge bullets that say the same thing. Remove repetition and small talk only.
+        - Keep the order. Never add anything that is not in the list.
+        """
+
+    static func collapseUser(meeting: Meeting, facts: String) -> String {
+        """
+        \(context(for: meeting))
+
+        Shorten these facts:
+
+        \(facts)
+        """
+    }
+
+    /// The honest last line when even the collapse pass could not fit: nothing is ever
+    /// dropped without saying so on the page.
+    static func truncatedLine(dropped: Int, of total: Int) -> String {
+        "_Part of this meeting could not be included in these notes "
+            + "(\(dropped) of \(total) parts left out)._"
     }
 
     // MARK: - Shared header

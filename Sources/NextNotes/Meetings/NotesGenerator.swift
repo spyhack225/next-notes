@@ -25,6 +25,12 @@ struct NotesGenerator: Sendable {
         let generatedTokens: Int
         let duration: TimeInterval
         let usedMapReduce: Bool
+        /// Transcript chunks the map step read. 1 on the single-pass path.
+        let chunks: Int
+        /// Collapse groups the model condensed (M-05). 0 on the single-pass path.
+        let collapsedGroups: Int
+        /// Facts left out after the collapse pass, always with a visible line.
+        let droppedFacts: Int
 
         var tokensPerSecond: Double {
             duration > 0 ? Double(generatedTokens) / duration : 0
@@ -49,6 +55,10 @@ struct NotesGenerator: Sendable {
     private static let appleChunkTokens = 2_000
     /// A chunk's facts are far shorter than the chunk.
     private static let maxFactTokens = 600
+    /// How many times the collapse pass may re-condense the facts before the last
+    /// resort: a visible line saying what was left out. A model that ignores the
+    /// collapse instruction hits this cap and the line, which is honest.
+    static let collapseMaxRounds = 3
 
     init(provider: any LLMProvider) {
         self.provider = provider
@@ -96,7 +106,10 @@ struct NotesGenerator: Sendable {
                 providerID: provider.id,
                 generatedTokens: completion.generatedTokens,
                 duration: Date().timeIntervalSince(began),
-                usedMapReduce: false
+                usedMapReduce: false,
+                chunks: 1,
+                collapsedGroups: 0,
+                droppedFacts: 0
             )
         }
 
@@ -137,6 +150,10 @@ struct NotesGenerator: Sendable {
 
         var facts: [String] = []
         var generated = 0
+        // Every chunk's facts share one reduce window with the brief, so the budget is
+        // split before asking: a fixed 600-token allowance per chunk is what used to
+        // overflow the reduce on any meeting past half an hour.
+        let factBudget = max(150, min(Self.maxFactTokens, (budget - briefTokens) / max(1, chunks.count)))
         for (index, chunk) in chunks.enumerated() {
             try Task.checkCancellation()
             // The map step's own progress is the only honest number in the whole operation:
@@ -153,9 +170,10 @@ struct NotesGenerator: Sendable {
                     meeting: meeting,
                     part: index + 1,
                     of: chunks.count,
-                    transcript: chunk
+                    transcript: chunk,
+                    wordLimit: factBudget * 3 / 4
                 ),
-                maxTokens: Self.maxFactTokens
+                maxTokens: factBudget
             )
             generated += completion.generatedTokens
             let cleaned = NotesFormatter.stripThinking(completion.text)
@@ -169,11 +187,56 @@ struct NotesGenerator: Sendable {
             fraction: Double(chunks.count) / Double(chunks.count + 1)
         ))
 
-        // The facts can themselves outgrow the window on a very long meeting. Trimming the
-        // oldest is the least-bad answer: the end of a meeting is where its decisions are.
+        // The facts can themselves outgrow the window on a very long meeting. Deleting
+        // the oldest ones is not the answer — on a 90-minute meeting that is the agenda
+        // and the first decisions. Instead a collapse pass merges adjacent fact lists
+        // into shorter ones with the model, keeping every decision, owner, date, number
+        // and open question, until they fit or the round cap is reached. Only then is
+        // anything left out, and never without the visible line below.
         var joined = facts.joined(separator: "\n")
+        var collapsedGroups = 0
+        var round = 0
+        while try await provider.countTokens(joined) + briefTokens > budget,
+              round < Self.collapseMaxRounds {
+            round += 1
+            // Group adjacent fact lists so each group's prompt fits:
+            // at most half the budget, at most one chunk.
+            let groups = try await Self.group(
+                facts,
+                targetTokens: min(chunkTokens, budget / 2)
+            ) { try await provider.countTokens($0) }
+            var next: [String] = []
+            for (index, group) in groups.enumerated() {
+                try Task.checkCancellation()
+                progress(Step(
+                    message: "Condensing part \(index + 1) of \(groups.count)\u{2026}",
+                    fraction: Double(chunks.count) / Double(chunks.count + 1)
+                ))
+                // A group that survived a whole round alone has nothing left to merge
+                // with; asking again only spends a model call to get the same list back.
+                if group.count == 1, round > 1 { next.append(group[0]); continue }
+                let text = group.joined(separator: "\n")
+                let groupTokens = try await provider.countTokens(text)
+                let completion = try await provider.complete(
+                    system: NotesPrompts.collapseSystem,
+                    user: NotesPrompts.collapseUser(meeting: meeting, facts: text),
+                    maxTokens: max(150, groupTokens / 2)
+                )
+                generated += completion.generatedTokens
+                let cleaned = NotesFormatter.stripThinking(completion.text)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                // An empty answer never deletes facts.
+                next.append(cleaned.isEmpty ? text : cleaned)
+                collapsedGroups += 1
+            }
+            facts = next
+            joined = facts.joined(separator: "\n")
+        }
+        var dropped = 0
+        let totalParts = facts.count
         while try await provider.countTokens(joined) + briefTokens > budget, facts.count > 1 {
             facts.removeFirst()
+            dropped += 1
             joined = facts.joined(separator: "\n")
         }
 
@@ -187,14 +250,20 @@ struct NotesGenerator: Sendable {
 
         let markdown = NotesFormatter.tidy(completion.text)
         guard !NotesFormatter.isBlank(markdown) else { throw NotesError.emptyNotes }
+        let body = brief.isEmpty
+            ? NotesFormatter.emptySection(NotesPrompts.relatedHeading, in: markdown)
+            : markdown
         return Result(
-            markdown: brief.isEmpty
-                ? NotesFormatter.emptySection(NotesPrompts.relatedHeading, in: markdown)
-                : markdown,
+            markdown: dropped > 0
+                ? body + NotesPrompts.truncatedLine(dropped: dropped, of: totalParts) + "\n"
+                : body,
             providerID: provider.id,
             generatedTokens: generated,
             duration: Date().timeIntervalSince(began),
-            usedMapReduce: true
+            usedMapReduce: true,
+            chunks: chunks.count,
+            collapsedGroups: collapsedGroups,
+            droppedFacts: dropped
         )
     }
 
@@ -225,6 +294,33 @@ struct NotesGenerator: Sendable {
     /// Below this there is no room to write anything worth keeping, and the caller is
     /// better served by the runtime refusing the prompt outright.
     private static let minNotesTokens = 256
+
+    /// Groups adjacent fact lists so each group's collapse prompt fits `targetTokens`.
+    ///
+    /// Greedy and order-preserving: a fact joins the current group while it fits, else
+    /// it starts the next one. A single fact larger than the target stands alone rather
+    /// than joining nothing.
+    static func group(
+        _ facts: [String],
+        targetTokens: Int,
+        count: (String) async throws -> Int
+    ) async throws -> [[String]] {
+        var groups: [[String]] = []
+        var current: [String] = []
+        var currentTokens = 0
+        for fact in facts {
+            let tokens = try await count(fact)
+            if !current.isEmpty, currentTokens + tokens > targetTokens {
+                groups.append(current)
+                current = []
+                currentTokens = 0
+            }
+            current.append(fact)
+            currentTokens += tokens
+        }
+        if !current.isEmpty { groups.append(current) }
+        return groups
+    }
 
     /// Splits the transcript at segment boundaries into pieces of roughly `targetTokens`.
     ///
