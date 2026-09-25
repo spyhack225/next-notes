@@ -215,6 +215,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // P0-20d: the same shape, for the same reason. `--usage-report` reads this
+        // machine's real `usage.jsonl`, which the harness replaces with an empty temp
+        // store, so it runs before `runRequestedSelfTest` and is a diagnostic, never a
+        // `--selftest-*` flag.
+        if CommandLine.arguments.contains("--usage-report") {
+            runUsageReport()
+            return
+        }
+
         // M-16a: the same shape, for the same reason. The quality report reads
         // the real `MeetingStore.shared`, which the harness must not touch and
         // should not be replaced under `SelfTest.isRunning` either — it exists
@@ -441,7 +450,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-usage-log") {
             Task { @MainActor in
-                SelfTest.failed = !UsageLogSelfTest.run()
+                // P0-20d's R1–R3 ride this flag's one marker: `UsageLogSelfTest`'s
+                // `USAGE_LOG_OK` / `USAGE_LOG_FAILED` is the verdict, the summary cases
+                // print as `USAGE_LOG_WRONG` lines, and a combined verdict is written
+                // last when they fail.
+                let coreOK = UsageLogSelfTest.run()
+                let summaryProblems = UsageSummarySelfTest.problems()
+                for problem in summaryProblems { writeSelfTest("USAGE_LOG_WRONG: \(problem)") }
+                if !summaryProblems.isEmpty {
+                    writeSelfTest("USAGE_LOG_FAILED: \(summaryProblems.count) problem(s) in the summary cases")
+                }
+                SelfTest.failed = !coreOK || !summaryProblems.isEmpty
                 NSApp.terminate(nil)
             }
             return true
@@ -1190,6 +1209,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-meeting-resume") {
             runMeetingResumeSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-meeting-backlog") {
+            runMeetingBacklogSelfTest()
             return true
         }
         if arguments.contains("--selftest-diarize-assign") {
@@ -2778,6 +2801,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// `--selftest-meeting-backlog`: the M-07 live backlog — bounded by audio seconds,
+    /// merged while the lane is behind, and nothing dropped below the bound. A fake
+    /// transcriber sleeps behind the queue; no model, no store, no microphone.
+    private func runMeetingBacklogSelfTest() {
+        Task { @MainActor in
+            SelfTest.failed = !(await MeetingBacklogSelfTest.run { writeSelfTest($0) })
+            NSApp.terminate(nil)
+        }
+    }
+
     /// `--notes-context-live`: the same brief against this machine's own memory, index,
     /// graph and folders. Read-only; prints `_EMPTY` rather than failing when there is
     /// legitimately nothing to connect. Must not be renamed to a `--selftest-*` flag — the
@@ -2785,6 +2818,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func runNotesContextLiveProbe() {
         Task { @MainActor in
             _ = await MeetingNotesContextLiveProbe.run { writeSelfTest($0) }
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// `--usage-report [--usage-days N] [--usage-feature <prefix>]`: one line per model
+    /// or engine that ran, read from this machine's own `usage.jsonl`.
+    ///
+    /// A diagnostic, not a `--selftest-*` flag, for the reason AGENTS.md documents for
+    /// `--notes-context-live`: under the harness `UsageLog.shared` is an empty temp store,
+    /// so the report would prove nothing. It therefore runs before
+    /// `runRequestedSelfTest`, while `SelfTest.isRunning` is still false. `writeSelfTest`
+    /// honours `--selftest-out`, so a LaunchServices launch with no stdout still leaves
+    /// its rows in a file.
+    private func runUsageReport() {
+        Task { @MainActor in
+            for line in await UsageReport.run(arguments: CommandLine.arguments) {
+                writeSelfTest(line)
+            }
             NSApp.terminate(nil)
         }
     }
@@ -3533,7 +3584,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 try? await Task.sleep(for: .milliseconds(50))
             }
             if let message = speechMessage {
-                if !message.contains("couldn't make out") {
+                // The app's apostrophe is typographic, and this pins the card the user
+                // actually reads rather than a straight-quoted approximation of it.
+                if !message.contains("couldn\u{2019}t make out") {
                     failures.append("empty transcript over speech showed the wrong card: \(message)")
                 }
             } else if sawSpeechIdle {
@@ -6857,6 +6910,15 @@ private struct MenuContent: View {
             }
         }
         .disabled(meetings.isFinishing)
+
+        // D-03: a hold that came back with nothing to type is kept in memory so it can be
+        // tried again. The island's card only shows for as long as the message does; this
+        // is the path that outlives it, and it is here whenever there is something kept.
+        if controller.canRetryLastHold {
+            Button("Try the last recording again") {
+                controller.retryLastFailedHold()
+            }
+        }
 
         Divider()
 

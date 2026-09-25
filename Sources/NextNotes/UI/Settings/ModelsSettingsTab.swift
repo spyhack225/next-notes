@@ -41,6 +41,8 @@ struct ModelsSettingsTab: View {
             yourMac
             diskUsage
             installedModels
+            // P0-20d: what the models above have actually been doing, in plain words.
+            UsageSection()
             recommendedModels
             findAModel
 
