@@ -36,8 +36,12 @@ enum PersonaSelfTest {
         // The card keeps the paragraph's own line breaks, so the prose is folded before it
         // is compared: "instead of\nguessing." is not the sentence "instead of guessing.".
         let baseCardProse = baseCard.kept.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        // The preset never names the Agent: the name comes from `agent-identity.json`
+        // through `AgentGrounding`, so a hardcoded name here would fight the user's choice.
+        check("the base preset names the Agent",
+              !baseCardProse.contains("Next Notes") && !PersonaStore.baseText.contains("Next Notes"))
         check("the base preset's short card is not its first paragraph",
-              baseCardProse.hasPrefix("You are Next Notes")
+              baseCardProse.hasPrefix("You are a warm, personal assistant")
                 && baseCardProse.hasSuffix("instead of guessing.") && !baseCard.isTruncated)
         check("the base preset's short card lost the care sentence",
               baseCardProse.contains("lead with kindness"))
@@ -158,6 +162,9 @@ enum PersonaSelfTest {
             } else {
                 check("\(entry.name) has no override line", false)
             }
+            // The Agent's name comes from `agent-identity.json` through `AgentGrounding`;
+            // a prompt that hardcodes one fights the name the user chose.
+            check("\(entry.name) hardcodes the Agent's name", !entry.system.contains("Next Notes"))
         }
         check("the planner's tool inventory is not after the rules",
               isAfterOverride(RealtimeAgent.plannerSystem(tools: tools, voice: false), "Available tools:"))
@@ -166,9 +173,11 @@ enum PersonaSelfTest {
         check("VoiceConversationCoordinator.systemPrompt is not the production answer prompt",
               VoiceConversationCoordinator.systemPrompt == LocalVoiceSplitResponse.answerInstructions)
         let facts = LLMChatMessage(role: .system, content: "Application facts: fixture.")
+        // The production answer stage is handed the utterance behind the marker; a bare
+        // question is refused by `answerPlan` on purpose, so the fixture carries it.
         let plan = LocalVoiceSplitResponse.answerPlan(
             system: VoiceConversationCoordinator.systemPrompt,
-            messages: [facts, .init(role: .user, content: "Hello?")])
+            messages: [facts, .init(role: .user, content: "Latest user speech:\nHello?")])
         check("the split answer plan ignores the coordinator's instructions",
               plan?.instructions.hasPrefix(sharedCard) == true
                 && plan?.instructions.hasSuffix("Application facts: fixture.") == true)

@@ -2,14 +2,23 @@ import AppKit
 import Foundation
 import SwiftUI
 
-/// `--selftest-agent-panes` — the Agent pane picker's contract, the panes' naming, and the
-/// pane layout rule.
+/// `--selftest-agent-panes` — the Agent tab row's contract, the sidebar's destinations,
+/// and the pane layout rule.
 ///
-/// The toolbar used to draw a chevron-only pill over an empty popup: a menu-style `Picker`
-/// with `labelsHidden()` inside `ToolbarItem(placement: .principal)` has no label to draw
-/// there, and the toolbar bridge dropped its items. So this pins both halves of the fix —
-/// every pane carries a non-empty, unique title the control can show, and the Reminders
-/// pane never borrows Goals' words (or the reverse).
+/// The switcher is a tab row: one titled tab per pane, in a horizontal scroll. Before it,
+/// the toolbar drew a chevron-only pill over an empty popup (a menu-style `Picker` with
+/// `labelsHidden()` inside `ToolbarItem(placement: .principal)` has no label to draw
+/// there, and the toolbar bridge dropped its items), and the content `Menu` that replaced
+/// it named only the current pane. So this pins the naming half — every pane carries a
+/// non-empty, unique title the row can draw, and the Reminders pane never borrows Goals'
+/// words (or the reverse) — and the drawing half against the hosted row: it must be wider
+/// than a label-less control, and at least as wide as all the tab titles side by side.
+///
+/// The row keeps three tabs — Conversation, Activity, About — and the six panes that used
+/// to share it are sidebar destinations of their own. This pins that split: the sidebar
+/// draws Agent first and the six between Dictation and Search, each with a title and a
+/// mark; and a pane that is both a tab and a row would be two ways to the same place, so
+/// the tab list is exactly the three.
 ///
 /// The layout half answers the other visible complaint: every pane capped its content to a
 /// ~640pt centred column, so a wide window showed a card floating in empty space. The rule
@@ -17,8 +26,8 @@ import SwiftUI
 /// column-cap tokens (`agentAboutMaxWidth` outside the About hero, the removed
 /// `agentSkillsMaxWidth`) must not reappear in a pane.
 ///
-/// A value-level test by design: it reads `AgentPane` and the panes' own source files, so
-/// it needs no window, no Accessibility grant and no fixtures.
+/// A value-level test by design: it reads `AgentPane`, `SidebarSection` and the panes' own
+/// source files, so it needs no window, no Accessibility grant and no fixtures.
 @MainActor
 enum AgentPaneSelfTest {
     /// Files whose copy belongs to these panes. `UIStringsLint.swift` and this file hold
@@ -92,6 +101,38 @@ enum AgentPaneSelfTest {
             failures.append("the pane the app opens on is not in allCases")
         }
 
+        // The split: the row is exactly Conversation, Activity, About, and the six panes
+        // that left it are sidebar destinations. A pane in both places is two ways to the
+        // same screen; a pane in neither is unreachable.
+        let tabs = Set(panes.map(\.rawValue))
+        if tabs != ["conversation", "activity", "about"] {
+            failures.append("the Agent row lists \(tabs.sorted()) — the layout is "
+                            + "Conversation, Activity, About")
+        }
+        let moved = ["graph", "portrait", "ideas", "goals", "reminders", "skills"]
+        let order = SidebarSection.allCases.map(\.rawValue)
+        if order.first != "agent" {
+            failures.append("Agent is not the first sidebar row")
+        }
+        for name in moved {
+            guard let section = SidebarSection(rawValue: name) else {
+                failures.append("\(name) has no sidebar row")
+                continue
+            }
+            if section.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                failures.append("\(name) has no sidebar title")
+            }
+            if section.systemImage.isEmpty {
+                failures.append("\(name) has no sidebar mark")
+            }
+            guard let index = order.firstIndex(of: name),
+                  let dictation = order.firstIndex(of: "dictation"),
+                  let search = order.firstIndex(of: "search") else { continue }
+            if index < dictation || index > search {
+                failures.append("\(name) is not between Dictation and Search in the sidebar")
+            }
+        }
+
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -139,10 +180,12 @@ enum AgentPaneSelfTest {
             }
         }
 
-        // The switcher itself, hosted. The toolbar version rendered as a chevron-only
-        // circle over an empty popup on macOS 26; a menu in content draws its label.
-        // Measuring the hosted view is the falsifiable half: a control that shows no
-        // text cannot reach `agentSwitcherMinWidth`.
+        // The switcher itself, hosted. The tab row draws one titled tab per pane; the
+        // toolbar version rendered as a chevron-only circle over an empty popup, and the
+        // content menu named only the current pane. Measuring the hosted view is the
+        // falsifiable half: a control that shows no text cannot reach
+        // `agentSwitcherMinWidth`, and one that names only the selected pane cannot reach
+        // the width of every title at once.
         do {
             let host = NSHostingView(rootView: AgentPaneSwitcherBar())
             host.layoutSubtreeIfNeeded()
@@ -150,6 +193,36 @@ enum AgentPaneSelfTest {
             if width < DS.Size.agentSwitcherMinWidth {
                 failures.append("the pane switcher measured \(Int(width))pt "
                                 + "(< \(Int(DS.Size.agentSwitcherMinWidth))pt) — it is showing no label")
+            }
+            var titlesWidth: CGFloat = 0
+            for pane in panes {
+                let title = NSHostingView(rootView: Text(pane.title).font(DS.Font.callout))
+                title.layoutSubtreeIfNeeded()
+                titlesWidth += title.fittingSize.width
+            }
+            if width < titlesWidth {
+                failures.append("the pane row measured \(Int(width))pt "
+                                + "(< \(Int(titlesWidth))pt for \(panes.count) titles) — "
+                                + "it is not drawing every pane's title")
+            }
+        }
+
+        // The bar's trailing slot, which the Conversation pane's Clear button uses. That
+        // button used to be the first row of the history, so a conversation long enough to
+        // need clearing had already scrolled the way to clear it out of reach. This pins
+        // the half a source scan cannot: the slot draws.
+        do {
+            let bare = NSHostingView(rootView: AgentPaneSwitcherBar())
+            let withAccessory = NSHostingView(rootView: AgentPaneSwitcherBar {
+                Button("Clear conversation", systemImage: "trash") {}
+            })
+            bare.layoutSubtreeIfNeeded()
+            withAccessory.layoutSubtreeIfNeeded()
+            let growth = withAccessory.fittingSize.width - bare.fittingSize.width
+            if growth < DS.Size.agentAvatar {
+                failures.append("the pane bar did not draw a trailing accessory "
+                                + "(grew \(Int(growth))pt) — the Conversation pane's Clear "
+                                + "control would be invisible")
             }
         }
 

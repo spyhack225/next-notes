@@ -22,6 +22,11 @@ struct OpenRouterModelSelection: View {
                 Text(catalog.model(id: modelID)?.name ?? (modelID.isEmpty ? "Choose a model" : modelID))
                     .foregroundStyle(modelID.isEmpty ? DS.Color.warning : DS.Color.textSecondary)
             }
+            if chosenModelReasons {
+                Text("This model thinks before it answers, so its first words come later.")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+            }
             HStack(spacing: DS.Space.s) {
                 TextField("Search OpenRouter models", text: $query)
                     .textFieldStyle(.roundedBorder)
@@ -52,6 +57,7 @@ struct OpenRouterModelSelection: View {
                 Button {
                     modelID = model.id
                     contextTokens = model.context_length ?? 8_192
+                    Settings.shared.openRouterModelReasons[model.id] = model.supportsReasoning
                 } label: {
                     HStack(alignment: .top, spacing: DS.Space.s) {
                         Image(systemName: modelID == model.id ? "checkmark.circle.fill" : "circle")
@@ -102,6 +108,14 @@ struct OpenRouterModelSelection: View {
 
     private var providerNames: [String] {
         Array(Set(catalog.models.filter(\.isTextModel).map(\.providerName))).sorted()
+    }
+
+    /// Whether the selected model reasons. The catalog is authoritative while it is
+    /// loaded; the recorded status covers a model chosen in an earlier session.
+    private var chosenModelReasons: Bool {
+        catalog.model(id: modelID)?.supportsReasoning
+            ?? Settings.shared.openRouterModelReasons[modelID]
+            ?? false
     }
 
     private var matches: [OpenRouterModel] {

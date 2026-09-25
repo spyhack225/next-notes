@@ -8,10 +8,17 @@ private enum GeneralToolStepError: Error, Sendable {
     /// A memory write the model can correct in the same turn: over budget, no unique
     /// match, not declarative. Its message carries the current entries.
     case recoverable(String)
+    /// The planner's model pass was cut off before it wrote anything visible. The reply is
+    /// the cut-off's own sentence, never "The tool planner failed: …".
+    case cutOff
 }
 
 private enum QuickTurnResult: Sendable {
     case text(String)
+    /// The model was stopped mid-answer. The associated text is what it wrote before the
+    /// cut-off — empty when nothing visible was written — and the result switch decides
+    /// what the person is told.
+    case cutOff(String)
     case failed(String, modelUnavailable: Bool)
 }
 
@@ -459,6 +466,9 @@ extension RealtimeAgent {
             // mutable for the one fallback below.
             let currentProvider = provider
             let response: QuickTurnResult? = await withBoundedWait(remaining) {
+                // Hoisted out of `do` so the `catch` legs can keep what was streamed
+                // before the cut-off: a `catch` clause cannot see a `do` local.
+                var assembled = ""
                 do {
                     // P0-05: the visible budget comes from the reader's real window, the
                     // persona depth and the room left after the counted prompt — never a
@@ -475,7 +485,6 @@ extension RealtimeAgent {
                         window=\(window) prompt=\(promptTokens) visible=\(visible)
                         """
                     )
-                    var assembled = ""
                     let stream = if voice {
                         await LatencyCorrelation.$current.withValue(correlation) {
                             await currentProvider.streamInteractiveConversation(
@@ -504,6 +513,10 @@ extension RealtimeAgent {
                         }
                     }
                     return .text(assembled)
+                } catch OpenRouterError.cutOff(let visibleText) {
+                    // A cut-off is not a failure and its text is not thrown away: keep what
+                    // was written, and let the result switch say a cut-off happened.
+                    return .cutOff(visibleText ? assembled : "")
                 } catch {
                     return .failed(error.localizedDescription, modelUnavailable: error.isModelUnavailable)
                 }
@@ -534,6 +547,36 @@ extension RealtimeAgent {
                     return AgentModelTurnResult(reply: Self.noModelReply, usedTools: false)
                 }
                 return AgentModelTurnResult(reply: "The model could not answer: " + reason, usedTools: false)
+            case .cutOff(let raw):
+                switch VoiceResponseEnvelope.parse(raw) {
+                case .tools:
+                    speech?.cancel()
+                    beginWork(title: "Working with tools…")
+                    let trace = LatencyTrace.start(.agentToolCallToResult)
+                    let reply = await runPlannedToolLoop(prompt, speech: speech, voice: voice, provider: provider)
+                    trace.end(note: "model-tools")
+                    return AgentModelTurnResult(reply: reply, usedTools: true)
+                case .answer(let answer):
+                    speech?.finish(hasToolCalls: false)
+                    let text = answer.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !text.isEmpty else {
+                        // A cut-off that produced no readable answer is still a cut-off,
+                        // not a model failure, and it says so in its own words.
+                        return AgentModelTurnResult(
+                            reply: OpenRouterError.cutOff(visibleText: false).localizedDescription,
+                            usedTools: false)
+                    }
+                    // Voice adds nothing: a spoken sentence interrupted mid-way is heard
+                    // as one, while the typed answer keeps its text and names the cause.
+                    return AgentModelTurnResult(
+                        reply: voice ? text : text + "\n\n(The answer was cut off.)",
+                        usedTools: false)
+                case .pending, .invalid:
+                    speech?.cancel()
+                    return AgentModelTurnResult(
+                        reply: OpenRouterError.cutOff(visibleText: false).localizedDescription,
+                        usedTools: false)
+                }
             case .text(let raw):
                 switch VoiceResponseEnvelope.parse(raw) {
                 case .tools:
@@ -994,8 +1037,10 @@ extension RealtimeAgent {
             // mutable for the one fallback below.
             let currentProvider = provider
             let completion: Result<String, GeneralToolStepError>? = await withBoundedWait(remaining) {
+                // Hoisted out of `do` so the `catch` legs can keep what was streamed
+                // before the cut-off: a `catch` clause cannot see a `do` local.
+                var assembled = ""
                 do {
-                    var assembled = ""
                     let stream = if voice && !background {
                         await LatencyCorrelation.$current.withValue(correlation) {
                             await currentProvider.streamInteractiveConversation(
@@ -1021,6 +1066,12 @@ extension RealtimeAgent {
                         }
                     }
                     return .success(assembled)
+                } catch OpenRouterError.cutOff(let visibleText) {
+                    // A truncated plan keeps what it wrote — a later task repairs a partial
+                    // call — and a plan with nothing visible says why in its own words
+                    // rather than as "The tool planner failed:".
+                    if visibleText { return .success(assembled) }
+                    return .failure(.cutOff)
                 } catch {
                     return .failure(.message(error.localizedDescription,
                                              modelUnavailable: error.isModelUnavailable))
@@ -1055,6 +1106,11 @@ extension RealtimeAgent {
             case .failure(.recoverable(let message)):
                 speech?.cancel()
                 return confirmed("The tool planner failed: " + message)
+            case .failure(.cutOff):
+                // The model spent its whole answer thinking: that is not a planner
+                // failure, and the cut-off's sentence is the whole reply.
+                speech?.cancel()
+                return confirmed(OpenRouterError.cutOff(visibleText: false).localizedDescription)
             }
             let parsedCalls = AgentToolCallParser.calls(in: completionText)
             speech?.finish(hasToolCalls: !parsedCalls.isEmpty)
@@ -1227,6 +1283,12 @@ extension RealtimeAgent {
                     // optimistic rewrite. A failed tool ends this turn visibly.
                     currentToolID = nil
                     return confirmed("The tool " + call.name + " did not run: " + message)
+                case .failure(.cutOff):
+                    // Only the planner completion above produces a cut-off; a tool step
+                    // cannot. If one ever did, it ends the turn the way a failed step does.
+                    currentToolID = nil
+                    return confirmed("The tool " + call.name + " did not run: "
+                        + OpenRouterError.cutOff(visibleText: false).localizedDescription)
                 }
             }
         }

@@ -1,10 +1,12 @@
 import SwiftUI
 
-/// The Comparison section: one recording, every engine, side by side.
+/// The Comparison pane: one recording, every engine, side by side.
 ///
-/// This used to be its own window, and before that a generated HTML file opened in the
-/// browser. Both had the same problem — a second place to look, holding data that may or
-/// may not be current. As a sidebar section it is one destination, always live.
+/// This used to be its own window, then a generated HTML file opened in the browser, then
+/// a sidebar section. All three had the same problem — a second place to look, holding data
+/// that may or may not be current — and as a Settings pane it is one destination, always
+/// live. It draws no window title of its own: the band above it names the chapter, and the
+/// title belongs to whichever window is hosting Settings.
 struct ComparisonView: View {
     @Bindable var controller: DictationController
     @State private var store = RunStore.shared
@@ -49,8 +51,6 @@ struct ComparisonView: View {
             alignment: .bottomTrailing,
             isAnimated: isBackdropAnimated
         )
-        .navigationTitle(SidebarSection.comparison.title)
-        .navigationSubtitle("\(store.runs.count) recording\(store.runs.count == 1 ? "" : "s")")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 // This section and the Dictation list read the same log, so clearing here

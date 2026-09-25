@@ -10,6 +10,9 @@ enum OpenRouterError: LocalizedError {
     case keychain(Int)
     case http(Int, String)
     case speedProbe(String)
+    /// The model hit the answer limit. `visibleText` says whether any of its answer was
+    /// already shown: a cut-off with text keeps it, one without says why nothing came.
+    case cutOff(visibleText: Bool)
     /// The vision call refused to build: consent is off, so no `image_url` part
     /// exists and nothing left the Mac.
     case visionBlocked
@@ -23,6 +26,10 @@ enum OpenRouterError: LocalizedError {
         case .http(429, _): "OpenRouter rate-limited this model. Choose another Agent model or try again later."
         case .http(let status, let message): "OpenRouter HTTP \(status): \(message)"
         case .speedProbe(let message): "OpenRouter speed check: \(message)"
+        case .cutOff(let visibleText):
+            visibleText
+                ? "The answer was cut off."
+                : "The model spent its whole answer thinking and wrote nothing. Try again, or pick a model without the Reasoning label in Settings ▸ Agent."
         case .visionBlocked: "The screenshot was not sent: vision consent is off. Nothing left this Mac."
         }
     }
@@ -39,6 +46,7 @@ extension OpenRouterError: VoiceCodedError {
         case .http(let status, let message):
             Self.voiceCode(status: status, message: message)
         case .speedProbe: .unavailable
+        case .cutOff: .unavailable
         case .visionBlocked: .unavailable
         }
     }
@@ -391,10 +399,18 @@ struct OpenRouterLLMProvider: LLMProvider {
     let id = LLMProviderID.openRouter
     let modelID: String
     let contextTokens: Int
+    /// How a request treats this model's reasoning pass (P0-17). `.off` is the body the
+    /// provider sent before reasoning control existed.
+    let reasoning: OpenRouterReasoningPolicy
     var displayModelName: String { modelID }
 
-    init(modelID: String, contextTokens: Int) {
+    init(
+        modelID: String,
+        contextTokens: Int,
+        reasoning: OpenRouterReasoningPolicy = .off
+    ) {
         self.modelID = modelID
+        self.reasoning = reasoning
         // The catalog provides the real context window; leave a safety margin for
         // approximate token counting and provider-specific chat templates.
         let publishedWindow = contextTokens > 0 ? contextTokens : 8_192
@@ -417,16 +433,43 @@ struct OpenRouterLLMProvider: LLMProvider {
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         let began = Date()
-        let request = try await makeRequest(system: system, user: user, maxTokens: maxTokens, stream: false)
-        let (data, response) = try await PrivateURLSession.shared.data(for: request)
-        try Self.validate(response, data: data)
-        let decoded = try JSONDecoder().decode(CompletionResponse.self, from: data)
-        guard let text = decoded.choices.first?.message.content, !text.isEmpty else {
-            throw OpenRouterError.invalidResponse
+        let messages = [
+            LLMChatMessage(role: .system, content: system),
+            LLMChatMessage(role: .user, content: user),
+        ]
+        // Two one-shot recoveries: a provider that refuses the reasoning field gets the
+        // same request without it, and a pass that hit the limit before writing anything
+        // gets a doubled allowance. Anything else is the answer.
+        var policy = reasoning
+        var attempt = 0
+        while true {
+            attempt += 1
+            do {
+                let request = try await makeRequest(
+                    messages: messages, maxTokens: maxTokens, stream: false, policy: policy)
+                let (data, response) = try await PrivateURLSession.shared.data(for: request)
+                try Self.validate(response, data: data)
+                let decoded = try JSONDecoder().decode(CompletionResponse.self, from: data)
+                let text = decoded.choices.first?.message.content ?? ""
+                if decoded.choices.first?.finish_reason == "length" {
+                    if text.isEmpty, attempt == 1, case .capped = policy {
+                        policy = policy.doubled(contextTokens: contextTokens)
+                        continue
+                    }
+                    guard !text.isEmpty else { throw OpenRouterError.cutOff(visibleText: false) }
+                    Log.agent.info(
+                        "openrouter completion finish=length visible=\(text.count, privacy: .public)")
+                }
+                guard !text.isEmpty else { throw OpenRouterError.invalidResponse }
+                return LLMCompletion(text: text,
+                                     generatedTokens: decoded.usage?.completion_tokens ?? max(1, text.utf8.count / 3),
+                                     duration: Date().timeIntervalSince(began))
+            } catch let error as OpenRouterError {
+                guard attempt == 1, policy != .off, Self.rejectsReasoning(error) else { throw error }
+                await Self.rememberNoReasoning(modelID: modelID)
+                policy = .off
+            }
         }
-        return LLMCompletion(text: text,
-                             generatedTokens: decoded.usage?.completion_tokens ?? max(1, text.utf8.count / 3),
-                             duration: Date().timeIntervalSince(began))
     }
 
     func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
@@ -442,29 +485,13 @@ struct OpenRouterLLMProvider: LLMProvider {
         messages: [LLMChatMessage],
         maxTokens: Int
     ) async -> AsyncThrowingStream<String, Error> {
-        let requestMessages = [ChatRequest.Message(role: "system", content: system)]
-            + messages.map { ChatRequest.Message(role: $0.role.rawValue, content: $0.content) }
+        let requestMessages = [LLMChatMessage(role: .system, content: system)] + messages
         return AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    let request = try await makeRequest(
-                        messages: requestMessages, maxTokens: maxTokens, stream: true
-                    )
-                    let (bytes, response) = try await PrivateURLSession.shared.bytes(for: request)
-                    guard let http = response as? HTTPURLResponse else { throw OpenRouterError.invalidResponse }
-                    guard (200..<300).contains(http.statusCode) else {
-                        throw OpenRouterError.http(http.statusCode, HTTPURLResponse.localizedString(forStatusCode: http.statusCode))
+                    _ = try await performStream(messages: requestMessages, maxTokens: maxTokens) {
+                        continuation.yield($0)
                     }
-                    var emitted = false
-                    for try await line in bytes.lines {
-                        try Task.checkCancellation()
-                        if line == "data: [DONE]" { break }
-                        if let chunk = try Self.parseStreamLine(line) {
-                            continuation.yield(chunk)
-                            emitted = true
-                        }
-                    }
-                    guard emitted else { throw OpenRouterError.invalidResponse }
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
@@ -474,26 +501,209 @@ struct OpenRouterLLMProvider: LLMProvider {
         }
     }
 
-    static func parseStreamLine(_ line: String) throws -> String? {
-        guard line.hasPrefix("data: ") else { return nil }
+    /// One streamed pass with the provider's two one-shot recoveries: a provider that
+    /// refuses the reasoning field gets the same request without it, and a pass cut off
+    /// before any visible text gets one retry with a doubled allowance. The summary is what
+    /// the stream itself reported — visible text, reasoning characters, `finish_reason`
+    /// and usage — and the live diagnostic reads it.
+    func performStream(
+        messages: [LLMChatMessage],
+        maxTokens: Int,
+        yield: @Sendable (String) -> Void
+    ) async throws -> OpenRouterStreamSummary {
+        var policy = reasoning
+        do {
+            return try await performStream(
+                messages: messages, maxTokens: maxTokens, policy: policy, yield: yield)
+        } catch let error as OpenRouterError {
+            guard policy != .off, Self.rejectsReasoning(error) else { throw error }
+            await Self.rememberNoReasoning(modelID: modelID)
+            policy = .off
+            return try await performStream(
+                messages: messages, maxTokens: maxTokens, policy: policy, yield: yield)
+        }
+    }
+
+    private func performStream(
+        messages: [LLMChatMessage],
+        maxTokens: Int,
+        policy: OpenRouterReasoningPolicy,
+        yield: @Sendable (String) -> Void
+    ) async throws -> OpenRouterStreamSummary {
+        let request = try await makeRequest(
+            messages: messages, maxTokens: maxTokens, stream: true, policy: policy)
+        let (bytes, response) = try await PrivateURLSession.shared.bytes(for: request)
+        let lines = try await Self.validatedLines(response, bytes: bytes)
+        // The retry is built only where another attempt is allowed: a reasoning pass that
+        // wrote nothing visible and still has an allowance to grow.
+        var retry: (@Sendable () async throws -> AsyncLineSequence<URLSession.AsyncBytes>)?
+        if case .capped(let allowance) = policy, allowance > 0 {
+            let retryPolicy = policy.doubled(contextTokens: contextTokens)
+            retry = {
+                let request = try await makeRequest(
+                    messages: messages, maxTokens: maxTokens, stream: true, policy: retryPolicy)
+                let (more, moreResponse) = try await PrivateURLSession.shared.bytes(for: request)
+                return try await Self.validatedLines(moreResponse, bytes: more)
+            }
+        }
+        return try await Self.drain(lines: lines, retry: retry, yield: yield)
+    }
+
+    /// One SSE line's events. One line can carry content, a finish reason and usage at
+    /// once, so this is a list; a line that carries none is empty. Reasoning text is
+    /// counted as characters and never returned as content.
+    static func parseStreamEvents(_ line: String) throws -> [OpenRouterStreamEvent] {
+        guard line.hasPrefix("data: ") else { return [] }
         let payload = String(line.dropFirst(6))
-        guard payload != "[DONE]", let data = payload.data(using: .utf8) else { return nil }
+        guard payload != "[DONE]", let data = payload.data(using: .utf8) else { return [] }
         let event = try JSONDecoder().decode(StreamEvent.self, from: data)
         if let error = event.error {
             throw OpenRouterError.http(error.code ?? 500, error.message)
         }
-        return event.choices?.first?.delta.content
+        var events: [OpenRouterStreamEvent] = []
+        if let choice = event.choices?.first {
+            if let reasoning = choice.delta.reasoning, !reasoning.isEmpty {
+                events.append(.reasoning(characters: reasoning.count))
+            }
+            if let content = choice.delta.content, !content.isEmpty {
+                events.append(.content(content))
+            }
+            if let finish = choice.finish_reason, !finish.isEmpty {
+                events.append(.finish(finish))
+            }
+        }
+        if let usage = event.usage {
+            events.append(.usage(usage.openRouterUsage))
+        }
+        return events
     }
 
-    private func makeRequest(system: String, user: String, maxTokens: Int, stream: Bool) async throws -> URLRequest {
-        try await makeRequest(
-            messages: [.init(role: "system", content: system), .init(role: "user", content: user)],
-            maxTokens: maxTokens, stream: stream
-        )
+    /// The pre-P0-17 view of one line: the content it carried, or nil. Kept because the
+    /// older contract cases and callers read a line this way.
+    static func parseStreamLine(_ line: String) throws -> String? {
+        let content = try parseStreamEvents(line).compactMap { event -> String? in
+            if case .content(let text) = event { return text }
+            return nil
+        }
+        return content.isEmpty ? nil : content.joined()
+    }
+
+    /// Drains one streamed pass and reports what it produced.
+    ///
+    /// A pass that hits the answer limit is a cut-off, not an unreadable response: with
+    /// visible text it yields that text and then throws `cutOff(visibleText: true)`; with
+    /// none it throws `cutOff(visibleText: false)`. `retry` is the one second attempt such
+    /// a pass is allowed — the caller builds it only when the reasoning allowance permits
+    /// another try — and `[DONE]` ends a pass normally.
+    static func drain<S: AsyncSequence & Sendable>(
+        lines: S,
+        retry: (@Sendable () async throws -> S)? = nil,
+        yield: @Sendable (String) -> Void
+    ) async throws -> OpenRouterStreamSummary where S.Element == String {
+        var summary = try await drainOnce(lines: lines, yield: yield)
+        if summary.finishReason == "length" {
+            guard summary.visibleCharacters == 0, let retry else {
+                throw OpenRouterError.cutOff(visibleText: summary.visibleCharacters > 0)
+            }
+            summary = try await drainOnce(lines: try await retry(), yield: yield)
+            if summary.finishReason == "length" {
+                throw OpenRouterError.cutOff(visibleText: summary.visibleCharacters > 0)
+            }
+        }
+        guard summary.visibleCharacters > 0 else { throw OpenRouterError.invalidResponse }
+        return summary
+    }
+
+    private static func drainOnce<S: AsyncSequence & Sendable>(
+        lines: S,
+        yield: @Sendable (String) -> Void
+    ) async throws -> OpenRouterStreamSummary where S.Element == String {
+        var summary = OpenRouterStreamSummary()
+        for try await line in lines {
+            try Task.checkCancellation()
+            if line == "data: [DONE]" { break }
+            for event in try Self.parseStreamEvents(line) {
+                switch event {
+                case .content(let text):
+                    yield(text)
+                    summary.visibleCharacters += text.count
+                case .reasoning(let characters):
+                    summary.reasoningCharacters += characters
+                case .finish(let reason):
+                    summary.finishReason = reason
+                case .usage(let usage):
+                    summary.usage = usage
+                }
+            }
+        }
+        return summary
+    }
+
+    /// The lines of a 2xx streaming response. A non-2xx one is read as an error body, so
+    /// the message can name what the provider refused — the reasoning fallback reads it.
+    private static func validatedLines(
+        _ response: URLResponse, bytes: URLSession.AsyncBytes
+    ) async throws -> AsyncLineSequence<URLSession.AsyncBytes> {
+        guard let http = response as? HTTPURLResponse else { throw OpenRouterError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            var body = Data()
+            for try await byte in bytes { body.append(byte) }
+            let message = (try? JSONDecoder().decode(ErrorResponse.self, from: body).error.message)
+                ?? HTTPURLResponse.localizedString(forStatusCode: http.statusCode)
+            throw OpenRouterError.http(http.statusCode, String(message.prefix(300)))
+        }
+        return bytes.lines
+    }
+
+    /// A provider that answers HTTP 400 and names `reasoning` means the model's recorded
+    /// status was wrong. The one recovery is the same request without the field.
+    static func rejectsReasoning(_ error: OpenRouterError) -> Bool {
+        guard case .http(400, let message) = error else { return false }
+        return message.lowercased().contains("reasoning")
+    }
+
+    /// Remember that this model refused the reasoning field, so the next request never
+    /// sends it. On the main actor because `Settings` is; the API key is never logged.
+    static func rememberNoReasoning(modelID: String) async {
+        await MainActor.run {
+            Settings.shared.openRouterModelReasons[modelID] = false
+        }
+    }
+
+    /// The one place a chat request body is built. `visibleMaxTokens` is the caller's
+    /// visible budget; the reasoning policy adds its allowance on top and, for a model that
+    /// reasons, asks the provider to keep the reasoning text out of the visible answer.
+    /// `.off` leaves the body identical to the one the provider sent before reasoning
+    /// control existed.
+    static func requestBody(
+        model: String,
+        messages: [LLMChatMessage],
+        visibleMaxTokens: Int,
+        stream: Bool,
+        policy: OpenRouterReasoningPolicy
+    ) throws -> Data {
+        try JSONEncoder().encode(ChatRequest(
+            model: model,
+            messages: messages.map { ChatRequest.Message(role: $0.role.rawValue, content: $0.content) },
+            max_tokens: visibleMaxTokens + policy.allowance,
+            stream: stream,
+            reasoning: reasoningField(policy)
+        ))
+    }
+
+    /// What the body asks for: nothing for `.off`, the cheap capped pass otherwise.
+    private static func reasoningField(
+        _ policy: OpenRouterReasoningPolicy
+    ) -> ChatRequest.Reasoning? {
+        switch policy {
+        case .off: nil
+        case .capped: ChatRequest.Reasoning(effort: "low", exclude: true)
+        }
     }
 
     private func makeRequest(
-        messages: [ChatRequest.Message], maxTokens: Int, stream: Bool
+        messages: [LLMChatMessage], maxTokens: Int, stream: Bool,
+        policy: OpenRouterReasoningPolicy? = nil
     ) async throws -> URLRequest {
         guard !modelID.isEmpty else { throw OpenRouterError.missingModel }
         guard let key = await OpenRouterKeyStore.keyAsync() else { throw OpenRouterError.missingKey }
@@ -502,13 +712,27 @@ struct OpenRouterLLMProvider: LLMProvider {
         request.timeoutInterval = stream ? 120 : 300
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(ChatRequest(
+        request.httpBody = try Self.requestBody(
             model: modelID,
             messages: messages,
-            max_tokens: maxTokens,
-            stream: stream
-        ))
+            visibleMaxTokens: maxTokens,
+            stream: stream,
+            policy: await boundedPolicy(
+                policy ?? reasoning, messages: messages, visible: maxTokens)
+        )
         return request
+    }
+
+    /// The allowance is added to the caller's visible budget, never allowed to overrun the
+    /// room left in the reader's window.
+    private func boundedPolicy(
+        _ policy: OpenRouterReasoningPolicy, messages: [LLMChatMessage], visible: Int
+    ) async -> OpenRouterReasoningPolicy {
+        guard case .capped = policy else { return policy }
+        let promptTokens = (try? await countTokens(
+            messages.map(\.content).joined(separator: "\n"))) ?? 0
+        return policy.bounded(
+            room: contextTokens - promptTokens - AgentAnswerBudget.safetyTokens, visible: visible)
     }
 
     static func validate(_ response: URLResponse, data: Data) throws {
@@ -522,22 +746,53 @@ struct OpenRouterLLMProvider: LLMProvider {
 
     private struct ChatRequest: Encodable {
         struct Message: Encodable, Sendable { let role: String; let content: String }
+        struct Reasoning: Encodable, Sendable { let effort: String; let exclude: Bool }
         let model: String
         let messages: [Message]
         let max_tokens: Int
         let stream: Bool
+        /// Nil for `.off`; the synthesized encoder omits it, so that body is unchanged.
+        let reasoning: Reasoning?
     }
     private struct CompletionResponse: Decodable {
-        struct Choice: Decodable { struct Message: Decodable { let content: String? }; let message: Message }
+        struct Choice: Decodable {
+            struct Message: Decodable { let content: String? }
+            let message: Message
+            let finish_reason: String?
+        }
         struct Usage: Decodable { let completion_tokens: Int? }
         let choices: [Choice]
         let usage: Usage?
     }
     private struct StreamEvent: Decodable {
-        struct Choice: Decodable { struct Delta: Decodable { let content: String? }; let delta: Delta }
+        struct Choice: Decodable {
+            struct Delta: Decodable {
+                let content: String?
+                let reasoning: String?
+            }
+            let delta: Delta
+            let finish_reason: String?
+        }
         struct APIError: Decodable { let code: Int?; let message: String }
+        struct Usage: Decodable {
+            struct PromptDetails: Decodable { let cached_tokens: Int? }
+            struct CompletionDetails: Decodable { let reasoning_tokens: Int? }
+            let prompt_tokens: Int?
+            let completion_tokens: Int?
+            let prompt_tokens_details: PromptDetails?
+            let completion_tokens_details: CompletionDetails?
+
+            var openRouterUsage: OpenRouterUsage {
+                OpenRouterUsage(
+                    promptTokens: prompt_tokens,
+                    cachedTokens: prompt_tokens_details?.cached_tokens,
+                    completionTokens: completion_tokens,
+                    reasoningTokens: completion_tokens_details?.reasoning_tokens)
+            }
+        }
         let choices: [Choice]?
         let error: APIError?
+        let usage: Usage?
     }
     private struct ErrorResponse: Decodable {
         struct APIError: Decodable { let message: String }
@@ -563,7 +818,8 @@ extension OpenRouterLLMProvider {
     /// user message is the same plain string `makeRequest` sends.
     static func chatBody(
         model: String, system: String, user: String,
-        images: [LLMImage], consent: Bool, maxTokens: Int, stream: Bool
+        images: [LLMImage], consent: Bool, maxTokens: Int, stream: Bool,
+        policy: OpenRouterReasoningPolicy = .off
     ) throws -> Data {
         let parts = imageParts(images, consent: consent)
         let userMessage: [String: Any]
@@ -572,12 +828,15 @@ extension OpenRouterLLMProvider {
         } else {
             userMessage = ["role": "user", "content": [["type": "text", "text": user]] + parts]
         }
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": model,
             "messages": [["role": "system", "content": system], userMessage],
-            "max_tokens": maxTokens,
+            "max_tokens": maxTokens + policy.allowance,
             "stream": stream,
         ]
+        if case .capped = policy {
+            body["reasoning"] = ["effort": "low", "exclude": true]
+        }
         return try JSONSerialization.data(withJSONObject: body)
     }
 
@@ -605,9 +864,20 @@ extension OpenRouterLLMProvider {
         request.timeoutInterval = 300
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let visionPolicy: OpenRouterReasoningPolicy
+        switch reasoning {
+        case .off:
+            visionPolicy = .off
+        case .capped:
+            let promptTokens = (try? await countTokens(system + "\n" + user)) ?? 0
+            visionPolicy = reasoning.bounded(
+                room: contextTokens - promptTokens - AgentAnswerBudget.safetyTokens,
+                visible: maxTokens)
+        }
         request.httpBody = try Self.chatBody(
             model: modelID, system: system, user: user,
-            images: images, consent: consent, maxTokens: maxTokens, stream: false
+            images: images, consent: consent, maxTokens: maxTokens, stream: false,
+            policy: visionPolicy
         )
         let (data, response) = try await PrivateURLSession.shared.data(for: request)
         try Self.validate(response, data: data)
@@ -623,6 +893,17 @@ extension OpenRouterLLMProvider {
 
 @MainActor
 enum OpenRouterSelfTest {
+    /// Collects streamed visible text for the diagnostic. `performStream`'s yield seam is
+    /// `@Sendable`, so the collector is a locked box rather than a captured local.
+    private final class StreamProbe: @unchecked Sendable {
+        private let lock = NSLock()
+        private var text = ""
+
+        func note(_ chunk: String) { lock.lock(); text += chunk; lock.unlock() }
+
+        var collected: String { lock.lock(); defer { lock.unlock() }; return text }
+    }
+
     static func run() async throws -> String {
         guard let key = await OpenRouterKeyStore.keyAsync() else { throw OpenRouterError.missingKey }
         var request = URLRequest(url: URL(string: "https://openrouter.ai/api/v1/key")!)
@@ -638,16 +919,28 @@ enum OpenRouterSelfTest {
         guard let model = OpenRouterCatalog.shared.model(id: selected) else {
             throw OpenRouterError.missingModel
         }
-        let provider = OpenRouterLLMProvider(modelID: model.id,
-                                             contextTokens: model.context_length ?? 8_192)
+        let policy = OpenRouterReasoningPolicy.policy(for: model.id)
+        let provider = OpenRouterLLMProvider(
+            modelID: model.id,
+            contextTokens: model.context_length ?? 8_192,
+            reasoning: policy)
         let completion = try await provider.complete(
             system: "Reply with one word.", user: "Say OK.", maxTokens: 16
         )
         guard !completion.text.isEmpty else { throw OpenRouterError.invalidResponse }
-        let chunks = await provider.stream(system: "Reply with one word.", user: "Say OK.", maxTokens: 16)
-        var streamed = ""
-        for try await chunk in chunks { streamed += chunk }
-        guard !streamed.isEmpty else { throw OpenRouterError.invalidResponse }
+        let probe = StreamProbe()
+        let summary = try await provider.performStream(
+            messages: [.init(role: .user, content: "Say OK.")], maxTokens: 64
+        ) { probe.note($0) }
+        guard !probe.collected.isEmpty else { throw OpenRouterError.invalidResponse }
+        let policyLabel = switch policy {
+        case .off: "off"
+        case .capped(let allowance): "capped(\(allowance))"
+        }
+        let streamedReasoningTokens = summary.usage?.reasoningTokens
+        let reasoningLabel = streamedReasoningTokens.map { String($0) } ?? "none"
+        print("OPENROUTER_REASONING: policy=\(policyLabel) finish=\(summary.finishReason ?? "none") "
+            + "reasoning_tokens=\(reasoningLabel) visible=\(summary.visibleCharacters)")
         return "\(model.id) · catalog, key, completion and stream verified"
     }
 }
@@ -682,44 +975,127 @@ enum OpenRouterSpeedSelfTest {
 }
 
 enum OpenRouterContractSelfTest {
+    /// One canned pass through `drain`, filled in by its own task and read after the
+    /// bounded wait. `@unchecked Sendable`: every access goes through `lock`.
+    private final class DrainProbe: @unchecked Sendable {
+        private let lock = NSLock()
+        private var summary: OpenRouterStreamSummary?
+        private var failure: Error?
+        private var retries = 0
+        private var visible = ""
+
+        func noteRetry() { lock.lock(); retries += 1; lock.unlock() }
+        func noteYield(_ text: String) { lock.lock(); visible += text; lock.unlock() }
+        func note(summary: OpenRouterStreamSummary) { lock.lock(); self.summary = summary; lock.unlock() }
+        func note(failure: Error) { lock.lock(); self.failure = failure; lock.unlock() }
+
+        var readSummary: OpenRouterStreamSummary? {
+            lock.lock(); defer { lock.unlock() }; return summary
+        }
+        var readFailure: Error? {
+            lock.lock(); defer { lock.unlock() }; return failure
+        }
+        var retryCalls: Int {
+            lock.lock(); defer { lock.unlock() }; return retries
+        }
+        var visibleText: String {
+            lock.lock(); defer { lock.unlock() }; return visible
+        }
+    }
+
+    private static func cannedStream(_ lines: [String]) -> AsyncStream<String> {
+        AsyncStream { continuation in
+            for line in lines { continuation.yield(line) }
+            continuation.finish()
+        }
+    }
+
+    /// The flag runs before the run loop, synchronously, so the one case that needs an
+    /// async sequence is bridged on its own task with a bounded wait. `drain` is nonisolated
+    /// and touches no actor, so the wait cannot deadlock it.
+    private static func drainProbe(_ lines: [String], retry: Bool) -> DrainProbe {
+        let probe = DrainProbe()
+        let semaphore = DispatchSemaphore(value: 0)
+        let retryFactory: (@Sendable () async throws -> AsyncStream<String>)?
+        if retry {
+            retryFactory = {
+                probe.noteRetry()
+                return cannedStream(lines)
+            }
+        } else {
+            retryFactory = nil
+        }
+        Task.detached {
+            do {
+                let summary = try await OpenRouterLLMProvider.drain(
+                    lines: cannedStream(lines),
+                    retry: retryFactory,
+                    yield: { probe.noteYield($0) }
+                )
+                probe.note(summary: summary)
+            } catch {
+                probe.note(failure: error)
+            }
+            semaphore.signal()
+        }
+        _ = semaphore.wait(timeout: .now() + 10)
+        return probe
+    }
+
     static func run() -> Bool {
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+
         let fixture = """
         {"id":"example/agent:free","name":"Example Agent","context_length":32768,
          "architecture":{"input_modalities":["text"],"output_modalities":["text"]},
          "supported_parameters":["tools","reasoning"],
          "pricing":{"prompt":"0","completion":"0"}}
         """
-        guard let data = fixture.data(using: .utf8),
-              let model = try? JSONDecoder().decode(OpenRouterModel.self, from: data),
-              model.isTextModel, model.supportsTools, model.supportsReasoning, model.isFree,
-              OpenRouterModelFilter.agent.includes(model),
-              OpenRouterModelFilter.free.includes(model),
-              model.priceLabel.contains("$0.00"),
-              let endpointData = """
-                  {"data":{"endpoints":[
-                    {"provider_name":"Slow","throughput_last_30m":{"p50":34.5}},
-                    {"provider_name":"Fast","throughput_last_30m":{"p50":102.3}},
-                    {"provider_name":"Unknown","throughput_last_30m":null}
-                  ]}}
-                  """.data(using: .utf8),
-              let speed = try? OpenRouterCatalog.parseSpeed(endpointData),
-              speed.provider == "Fast", speed.tokensPerSecond == 102.3,
-              let chunk = try? OpenRouterLLMProvider.parseStreamLine(
-                  "data: {\"choices\":[{\"delta\":{\"content\":\"OK\"}}]}"
-              ), chunk == "OK",
-              (try? OpenRouterLLMProvider.parseStreamLine(": OPENROUTER PROCESSING")) == nil,
-              (try? OpenRouterLLMProvider.parseStreamLine("data: [DONE]")) == nil
-        else { return false }
+        let decoded = fixture.data(using: .utf8)
+            .flatMap { try? JSONDecoder().decode(OpenRouterModel.self, from: $0) }
+        check("the model fixture did not decode", decoded != nil)
+        if let model = decoded {
+            check("the model fixture lost text-ness", model.isTextModel)
+            check("the model fixture lost Agent tools", model.supportsTools)
+            check("the model fixture lost the Reasoning label", model.supportsReasoning)
+            check("the model fixture lost Free", model.isFree)
+            check("the Agent filter dropped the fixture", OpenRouterModelFilter.agent.includes(model))
+            check("the Free filter dropped the fixture", OpenRouterModelFilter.free.includes(model))
+            check("the model fixture lost its $0.00 price", model.priceLabel.contains("$0.00"))
+        }
+
+        let endpointData = """
+            {"data":{"endpoints":[
+              {"provider_name":"Slow","throughput_last_30m":{"p50":34.5}},
+              {"provider_name":"Fast","throughput_last_30m":{"p50":102.3}},
+              {"provider_name":"Unknown","throughput_last_30m":null}
+            ]}}
+            """.data(using: .utf8)
+        let speed = endpointData.flatMap { try? OpenRouterCatalog.parseSpeed($0) }
+        check("the endpoint fixture picked \(speed?.provider ?? "nothing"), expected Fast",
+              speed?.provider == "Fast" && speed?.tokensPerSecond == 102.3)
+
+        check("a content line did not decode",
+              (try? OpenRouterLLMProvider.parseStreamLine(
+                  "data: {\"choices\":[{\"delta\":{\"content\":\"OK\"}}]}")) == "OK")
+        check("a provider comment line decoded as content",
+              (try? OpenRouterLLMProvider.parseStreamLine(": OPENROUTER PROCESSING")) == nil)
+        check("the DONE line decoded as content",
+              (try? OpenRouterLLMProvider.parseStreamLine("data: [DONE]")) == nil)
         do {
             _ = try OpenRouterLLMProvider.parseStreamLine(
                 "data: {\"error\":{\"code\":429,\"message\":\"Rate limited\"}}"
             )
-            return false
+            failures.append("an error line did not throw")
         } catch OpenRouterError.http(let status, _) {
-            guard status == 429 else { return false }
+            check("an error line lost its 429", status == 429)
         } catch {
-            return false
+            failures.append("an error line threw a different error")
         }
+
         // P1-2: no image_url part is ever built when consent is off — the vision
         // gate, pinned without a network or a window. The contract reader is nil
         // (no TaskLocal set), so consent alone decides, exactly as in production.
@@ -727,14 +1103,104 @@ enum OpenRouterContractSelfTest {
             data: Data([0xFF, 0xD8]), mimeType: "image/jpeg",
             thumbnail: Data([0xFF, 0xD8]), pixelWidth: 2, pixelHeight: 1
         )
-        guard OpenRouterLLMProvider.imageParts([visionImage], consent: false).isEmpty else {
-            return false
-        }
+        check("vision consent off still built an image part",
+              OpenRouterLLMProvider.imageParts([visionImage], consent: false).isEmpty)
         let consented = OpenRouterLLMProvider.imageParts([visionImage], consent: true)
-        guard consented.count == 1,
-              (consented[0]["image_url"] as? [String: String])?["url"]?
-                .hasPrefix("data:image/jpeg;base64,") == true
-        else { return false }
-        return true
+        check("vision consent on did not build the data URL",
+              consented.count == 1
+                  && (consented[0]["image_url"] as? [String: String])?["url"]?
+                      .hasPrefix("data:image/jpeg;base64,") == true)
+
+        // P0-17 a. The request body pays the reasoning allowance on top of the visible
+        // budget, and only when the policy says the model reasons.
+        let userMessage = LLMChatMessage(role: .user, content: "Say OK.")
+        let cappedData = try? OpenRouterLLMProvider.requestBody(
+            model: "example/agent:free", messages: [userMessage],
+            visibleMaxTokens: 112, stream: true,
+            policy: .capped(allowance: OpenRouterReasoningPolicy.defaultAllowance)
+        )
+        if let cappedData,
+           let body = try? JSONSerialization.jsonObject(with: cappedData) as? [String: Any] {
+            let reasoning = body["reasoning"] as? [String: Any]
+            check("a capped body lost its reasoning effort", reasoning?["effort"] as? String == "low")
+            check("a capped body did not exclude the reasoning text", reasoning?["exclude"] as? Bool == true)
+            check("a capped body asked for \(body["max_tokens"] ?? "no max_tokens"), expected 1136",
+                  body["max_tokens"] as? Int == 1_136)
+        } else {
+            failures.append("a capped request body did not encode as JSON")
+        }
+        let offData = try? OpenRouterLLMProvider.requestBody(
+            model: "example/agent:free", messages: [userMessage],
+            visibleMaxTokens: 112, stream: true, policy: .off
+        )
+        if let offData,
+           let body = try? JSONSerialization.jsonObject(with: offData) as? [String: Any] {
+            check("a non-reasoning body carried a reasoning key", body["reasoning"] == nil)
+            check("a non-reasoning body asked for \(body["max_tokens"] ?? "no max_tokens"), expected 112",
+                  body["max_tokens"] as? Int == 112)
+        } else {
+            failures.append("a non-reasoning request body did not encode as JSON")
+        }
+
+        // P0-17 b. The stream decoder reads content, reasoning, finish_reason and usage.
+        let reasoningLine = "data: {\"choices\":[{\"delta\":{\"reasoning\":\"Thinking…\"}}]}"
+        check("a content line decoded to the wrong events",
+              (try? OpenRouterLLMProvider.parseStreamEvents(
+                  "data: {\"choices\":[{\"delta\":{\"content\":\"OK\"}}]}")) == [.content("OK")])
+        check("a reasoning delta was not counted exactly once",
+              (try? OpenRouterLLMProvider.parseStreamEvents(reasoningLine)) == [.reasoning(characters: 9)])
+        // The one line on disk from G turn O5: prompt 1,726 (512 cached), completion 112,
+        // reasoning 105, finish_reason "length".
+        let lengthLine = """
+        data: {"choices":[{"delta":{},"finish_reason":"length"}],"usage":{"prompt_tokens":1726,"completion_tokens":112,"prompt_tokens_details":{"cached_tokens":512},"completion_tokens_details":{"reasoning_tokens":105}}}
+        """
+        let lengthEvents = (try? OpenRouterLLMProvider.parseStreamEvents(lengthLine)) ?? []
+        let o5 = OpenRouterUsage(
+            promptTokens: 1_726, cachedTokens: 512, completionTokens: 112, reasoningTokens: 105)
+        check("the finish_reason was dropped from the stream", lengthEvents.contains(.finish("length")))
+        check("the O5 usage numbers were dropped", lengthEvents.contains(.usage(o5)))
+        check("the finish line decoded as \(lengthEvents.count) event(s), expected 2",
+              lengthEvents.count == 2)
+
+        // P0-17 c. An all-reasoning stream that ends at the limit retries once and then
+        // reports the cut-off honestly — never silently, never as an invalid response.
+        var thinkingOnly = Array(repeating: reasoningLine, count: 105)
+        thinkingOnly.append(lengthLine)
+        let thinking = drainProbe(thinkingOnly, retry: true)
+        if let summary = thinking.readSummary {
+            failures.append("an all-reasoning stream finished silently "
+                + "(visible \(summary.visibleCharacters), finish \(summary.finishReason ?? "none"))")
+        }
+        switch thinking.readFailure as? OpenRouterError {
+        case .some(.cutOff(let visibleText)):
+            check("an all-reasoning cut-off claimed visible text", visibleText == false)
+        case .some(let other):
+            failures.append("an all-reasoning stream threw \(other), expected cutOff(false)")
+        case .none:
+            failures.append("an all-reasoning stream ended without a verdict")
+        }
+        check("an all-reasoning stream retried \(thinking.retryCalls) time(s), expected exactly 1",
+              thinking.retryCalls == 1)
+
+        // P0-17 d. A cut-off that already showed text keeps it and says so.
+        let truncated = drainProbe([
+            "data: {\"choices\":[{\"delta\":{\"content\":\"I have \"}}]}",
+            lengthLine,
+        ], retry: false)
+        check("the visible text before a cut-off was not yielded",
+              truncated.visibleText == "I have ")
+        switch truncated.readFailure as? OpenRouterError {
+        case .some(.cutOff(let visibleText)):
+            check("a cut-off after visible text claimed no visible text", visibleText == true)
+        case .some(let other):
+            failures.append("a truncated answer threw \(other), expected cutOff(true)")
+        case .none:
+            failures.append("a truncated answer did not report the cut-off")
+        }
+        check("a cut-off after visible text retried \(truncated.retryCalls) time(s), expected 0",
+              truncated.retryCalls == 0)
+
+        for failure in failures { print("OPENROUTER_CONTRACT_WRONG: \(failure)") }
+        return failures.isEmpty
     }
 }

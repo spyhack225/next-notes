@@ -4,7 +4,7 @@ import FoundationModels
 /// Experimental structured contract for the local voice frontend. It classifies
 /// the user's request without owning tools; the coordinator remains the only
 /// effect owner and resolves capabilities from its authoritative registry.
-@Generable(description: "A safe decision for one voice turn in Next Notes.")
+@Generable(description: "A safe decision for one voice turn in this app.")
 struct LocalVoiceDecision {
     @Generable(description: "The kind of response the application should produce.")
     enum Intent {
@@ -34,7 +34,7 @@ enum LocalVoiceTypedResponse {
     /// Concise typed-mode instructions. The schema carries the response shape;
     /// no raw XML envelope instructions are mixed into this experiment.
     static let instructions = """
-        You are the decision layer for Next Notes, an on-device voice assistant.
+        You are the decision layer for this on-device voice assistant.
         Respond to the latest user turn through the structured response fields. Use the
         supplied application facts and conversation as evidence. An overview or
         follow-up about the application's supported capabilities or tools is
@@ -58,7 +58,7 @@ enum LocalVoiceTypedResponse {
 /// A two-stage conversation contract. Routing is deliberately a smaller
 /// structured response than the spoken answer, so the model cannot fill an
 /// answer field while it is deciding whether a turn is an effect request.
-@Generable(description: "The route for one Next Notes voice turn.")
+@Generable(description: "The route for one voice turn in this app.")
 struct LocalVoiceRoute {
     @Generable(description: "The action that the application should take for the latest turn.")
     enum Intent {
@@ -116,7 +116,7 @@ enum LocalVoiceSplitResponse {
     }
 
     static let routeRules = """
-        You are the routing layer for Next Notes, an on-device voice assistant.
+        You are the routing layer for this on-device voice assistant.
         Classify the latest user turn into exactly one route. Use the supplied
         latest work status as context for running tasks.
         Choose answerQuestion for an ordinary question or a question about one
@@ -145,11 +145,14 @@ enum LocalVoiceSplitResponse {
     static let answerRules = """
         Answer the latest user question naturally and briefly. Use your general
         knowledge for ordinary questions and advice. Use the supplied application
-        facts only when relevant to a question about Next Notes; a tool inventory
+        facts only when relevant to a question about this app; a tool inventory
         is not an answer to an unrelated question. Use supplied work status for
         progress questions. Qualify application features needing setup or permission.
-        Return plain spoken prose only: no XML, labels, markdown, tool calls,
-        routing discussion, or promises to perform work.
+        Use everyday words and never mention tools, files, settings, models or
+        anything technical; if something needs setting up, say what to do in the app
+        in one short sentence. Be warm and personal, never flattering, and offer the
+        useful next step when it helps. Return plain spoken prose only: no XML,
+        labels, markdown, tool calls, routing discussion, or promises to perform work.
         """
 
     static let routeMaximumResponseTokens = 64

@@ -749,6 +749,7 @@ extension CleanupRouter {
         failures += CleanupGuard.selfTestFailures()
         failures += salvageFailures()
         failures += traceFailures()
+        failures += await prewarmTraceFailures()
 
         // Opt-in, and off by default for a reason: this suite is the fast one every other
         // build runs, and the probe makes a dozen live model calls. `--probe-layout`
@@ -1623,9 +1624,90 @@ extension CleanupRouter {
         return failures
     }
 
+    /// D-01a: the prewarm bit has to be on the trace *before* the model answers, or a
+    /// timed-out run files `sessionPrewarmed: null` and the cold-start claim stays
+    /// unprovable per run. All three cases use the `CleanupModelCall` seam, so no model
+    /// is woken.
+    private static func prewarmTraceFailures() async -> [String] {
+        var failures: [String] = []
+        let text = "okay so this is a short test"
+
+        // a. A call that never answers: the trace still carries the prewarm, and the
+        // record says the run timed out.
+        do {
+            let trace = CleanupTrace()
+            var formatter = FoundationModelFormatter(trace: trace)
+            formatter.timeoutOverride = .milliseconds(300)
+            formatter.modelCall = CleanupModelCall(
+                takeSession: { _ in false },
+                respond: { _ in
+                    try await Task.sleep(for: .seconds(30))
+                    return ""
+                }
+            )
+            _ = await formatter.format(text)
+            let snapshot = trace.snapshot
+            if snapshot.sessionPrewarmed != false {
+                failures.append(
+                    "  prewarm: timeout recorded \(String(describing: snapshot.sessionPrewarmed))"
+                )
+            }
+            if !(snapshot.fallbackReason?.contains("timed out") ?? false) {
+                failures.append(
+                    "  prewarm: timeout fallbackReason was \(snapshot.fallbackReason ?? "nil")"
+                )
+            }
+        }
+        // b. A call that throws: the prewarm was still known before the throw.
+        do {
+            let trace = CleanupTrace()
+            var formatter = FoundationModelFormatter(trace: trace)
+            formatter.timeoutOverride = .milliseconds(300)
+            formatter.modelCall = CleanupModelCall(
+                takeSession: { _ in true },
+                respond: { _ in throw PrewarmTestError.boom }
+            )
+            _ = await formatter.format(text)
+            let snapshot = trace.snapshot
+            if snapshot.sessionPrewarmed != true {
+                failures.append(
+                    "  prewarm: throw recorded \(String(describing: snapshot.sessionPrewarmed))"
+                )
+            }
+        }
+        // c. A call that answers with the input unchanged: prewarm false, verdict accepted.
+        do {
+            let trace = CleanupTrace()
+            var formatter = FoundationModelFormatter(trace: trace)
+            formatter.timeoutOverride = .milliseconds(300)
+            formatter.modelCall = CleanupModelCall(
+                takeSession: { _ in false },
+                respond: { _ in text }
+            )
+            _ = await formatter.format(text)
+            let snapshot = trace.snapshot
+            if snapshot.sessionPrewarmed != false {
+                failures.append(
+                    "  prewarm: accepted recorded \(String(describing: snapshot.sessionPrewarmed))"
+                )
+            }
+            if snapshot.guardVerdict != "accepted" {
+                failures.append(
+                    "  prewarm: accepted verdict was \(snapshot.guardVerdict ?? "nil")"
+                )
+            }
+        }
+        return failures
+    }
+
     private static func emit(_ line: String) {
         CleanupSelfTestLog.emit(line)
     }
+}
+
+/// A model that fails on cue, for the D-01a prewarm-trace cases.
+private enum PrewarmTestError: Error {
+    case boom
 }
 
 extension CleanupRouter {

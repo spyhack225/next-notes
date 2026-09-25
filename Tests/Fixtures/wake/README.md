@@ -43,6 +43,41 @@ afconvert -f WAVE -d LEI16@16000 -c 1 /tmp/clip.aiff hits/hit-01-samantha-150.wa
 Rooms are deliberately *not* simulated (no artificial reverb): synth covers
 voices/rates, the `LiveFixtures` overlay covers rooms.
 
+## Recording real-room captures
+
+The app can record the overlay itself with `--wake-mic-record [count]` — interactive, so it
+is a modifier flag rather than a `--selftest-*` one, and it starts nothing else (no
+scheduler, no wake monitor, no agent). It prints the phrase the set grades, beeps three
+times per clip, records about two seconds, and repeats. `0` is a dry run that prints the
+output directory and touches no microphone.
+
+```bash
+# Foreground: live output, Ctrl-C stops early and reports what was saved. TCC may
+# attribute the microphone grant to the shell rather than to Next Notes.
+Scripts/run-selftest.sh --wake-mic-record 20
+
+# Through LaunchServices, so TCC credits Next Notes for the microphone prompt.
+# LaunchServices has no stdout, so mirror it to a file and read that; Ctrl-C does not
+# reach the app — quit Next Notes to stop early.
+open -n -a "Next Notes" --args --wake-mic-record 20 --selftest-out /tmp/wake-mic-record.txt
+
+# Dry run:
+Scripts/run-selftest.sh --wake-mic-record 0
+```
+
+Clips are 16 kHz mono 16-bit WAV named `mic-<timestamp>-<nn>.wav`, written only into
+`~/Library/Application Support/Next Notes/WakeWord/LiveFixtures/` — the directory this
+self-test already reads — and an existing capture is never overwritten. **They are local
+only and never committed**: they are real rooms and real voices, which is exactly what the
+committed synth set cannot cover. When the run finishes it prints the command to grade
+them:
+
+```bash
+Scripts/run-selftest.sh --selftest-wake-live
+```
+
+and the informational `WAKE_MIC m/M` line to look for.
+
 ## Verdict (evaluated at the shipped default, sensitivity 0.6)
 
 - `WAKE_HIT n/N` / `WAKE_HIT_RATE x` — fails under 0.8 (D7 needs ≥16/20).

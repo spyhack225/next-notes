@@ -19,10 +19,17 @@ Measurements, identical for both backends:
   memory    peak RSS
   accuracy  exact-tool, family, and is-request agreement with the gold labels
 
+Needle has two rows, because the app has had two architectures:
+  needle        a child process per proposal — what the app did until 2026-09-23
+  needle-serve  one resident `--serve` child, reset before every turn — what the
+                app does now, and the number the architecture target is read against
+
 Run:
-    python bench.py                       # both backends
+    python bench.py                       # every backend
     python bench.py --backends laya       # laya only
-    python bench.py --backends needle     # Needle only
+    python bench.py --backends needle,needle-serve
+    python bench.py --merge               # re-measure the named backends only,
+                                          # keeping the other rows in results.json
     python bench.py --laya-checkpoint multilingual|english|typed-decisions
 
 Writes results.json and report.md next to this file. A backend that cannot load
@@ -35,11 +42,13 @@ import argparse
 import json
 import os
 import resource
+import socket
 import statistics
 import subprocess
 import sys
 import tempfile
 import time
+import urllib.request
 from datetime import date
 from pathlib import Path
 
@@ -355,6 +364,138 @@ def run_needle(fixtures, cat):
     return res
 
 
+def free_port() -> int:
+    """A port the kernel says is free right now, reserved and released immediately."""
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+
+def run_needle_server(fixtures, cat):
+    """The app's current production path: one resident `--serve` child.
+
+    One process, started once, answers every fixture. `/reset` runs before every
+    turn exactly as `NeedleServer` does, so the row measures the same thing the
+    app measures, and the one-time startup and first-turn prefill are reported
+    separately rather than folded into the per-decision number.
+    """
+    res = {"backend": "needle-serve",
+           "detail": "Needle 3 (Cactus Compute) · 121M @ ~2bit · resident HTTP server, reset per turn",
+           "status": "ok"}
+    d = needle_dir()
+    engine = d / NEEDLE_ENGINE_NAME
+    weights = d / NEEDLE_WEIGHTS_NAME
+    if not engine.exists() or not weights.exists():
+        res.update(status="absent",
+                   reason=f"engine or weights not downloaded (looked in {d})",
+                   rows=[], metrics={})
+        return res
+    if sys.platform != "darwin" or os.uname().machine != "arm64":
+        res.update(status="absent", reason="Needle 3 ships a macos-arm64 runner only", rows=[], metrics={})
+        return res
+
+    tools = needle_tools_json(cat)
+    tmp = Path(tempfile.mkdtemp(prefix="needle-serve-bench-"))
+    tools_file = tmp / "tools.json"
+    tools_file.write_text(json.dumps(tools))
+    sys_file = tmp / "system.txt"
+    sys_file.write_text(f"Today is {date.today().isoformat()}.")
+
+    def prompt_for(f):
+        if f["window"]:
+            return f"Earlier:\n{f['window']}\n\nJust said: {f['utterance']}"
+        return f["utterance"]
+
+    def post(path, payload):
+        # Compact JSON on purpose. The engine's serve-mode parser does not accept
+        # whitespace around the colon — `{"input": "..."}` is read as an empty input
+        # and answered from the prefix alone — and json.dumps' default separators
+        # put that space in. The app's JSONEncoder never emits it, which is why this
+        # only ever bit a hand-rolled client; see NeedleServer.send.
+        body = json.dumps(payload, separators=(",", ":")).encode()
+        req = urllib.request.Request(f"http://127.0.0.1:{port}{path}", data=body,
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.loads(r.read())
+
+    port = free_port()
+    env = {"PATH": "/usr/bin:/bin", "NO_COLOR": "1", "LC_ALL": "C"}
+    proc = subprocess.Popen(
+        [str(engine), "--model", str(weights), "--tools", str(tools_file),
+         "--system", str(sys_file), "--serve", "--port", str(port)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
+    )
+
+    # Startup: from spawn to the socket answering, which is what `NeedleServer.start`
+    # waits for. Model load happens inside it.
+    t0 = time.time()
+    ready = False
+    while time.time() - t0 < 60:
+        if proc.poll() is not None:
+            break
+        try:
+            post("/reset", {})
+            ready = True
+            break
+        except Exception:
+            time.sleep(0.05)
+    startup_s = time.time() - t0
+    if not ready:
+        err = (proc.stderr.read().decode(errors="replace").strip().splitlines() or ["no answer"])[0]
+        proc.terminate(); proc.wait()
+        res.update(status="absent", reason=f"the serve child never answered: {err}",
+                   rows=[], metrics={})
+        return res
+
+    # A warm-up turn, which is what the watcher asks for at a meeting's first words:
+    # it pays the static prefix's prefill so no proposal does.
+    t0 = time.time()
+    warmed = post("/complete", {"input": "warmup"})
+    warmup_ms = (time.time() - t0) * 1000
+
+    rows = []
+    peak_child = float(warmed.get("peak_ram_mb") or 0)
+    for f in fixtures:
+        post("/reset", {})
+        t0 = time.time()
+        try:
+            obj = post("/complete", {"input": prompt_for(f)})
+        except Exception as e:
+            rows.append({"name": f["name"], "pred_tool": "none", "pred_family": "none",
+                         "pred_is_request": False, "confidence": 0.0,
+                         "latency_ms": (time.time() - t0) * 1000, "error": str(e)})
+            continue
+        dt = (time.time() - t0) * 1000
+        peak_child = max(peak_child, float(obj.get("peak_ram_mb") or 0))
+        conf = float(obj.get("confidence") or 0.0)
+        calls = obj.get("function_calls") or []
+        neg = (obj.get("validation") or {}).get("negation", False)
+        tool = "none"
+        if calls and not neg:
+            nm = calls[0].get("name", "none")
+            tool = "none" if nm == cat["abstention"]["id"] else nm
+        rows.append({
+            "name": f["name"],
+            "pred_tool": tool,
+            "pred_family": fam_of(tool, cat),
+            "pred_is_request": tool != "none",
+            "confidence": round(conf, 3),
+            "latency_ms": dt,
+        })
+    proc.terminate(); proc.wait()
+    res.update(
+        rows=rows,
+        metrics=score(rows, fixtures),
+        size={"weight_bytes": needle_size_bytes(), "params": NEEDLE_PARAMS},
+        startup_seconds=round(startup_s, 3),
+        warmup_ms=round(warmup_ms, 1),
+        peak_rss_mb=round(peak_child, 1),
+    )
+    return res
+
+
 # --------------------------------------------------------------------------- #
 # report
 # --------------------------------------------------------------------------- #
@@ -397,8 +538,9 @@ def render_report(results, fixtures, machine):
     L = []
     L.append("# Decision-gate benchmark: laya vs Needle (Cactus)\n")
     L.append(f"_Generated {date.today().isoformat()} on {machine}. "
-             f"{len(fixtures)} fixtures from `FunctionCallSelfTest`, 8-tool catalogue "
-             "from `FunctionCallCatalogue`._\n")
+             f"{len(fixtures)} fixtures -- the app's own `FunctionCallSelfTest` cases plus "
+             "the expanded families in `fixtures.json` -- against the 8-tool "
+             "`FunctionCallCatalogue`._\n")
     L.append("> **Scope.** The six \"System One\" candidates are typed-decision models, not "
              "function-calling models. None can emit `to: \"sarah@acme.com\"`. This harness "
              "scores only the gate they *can* do -- is-it-a-request and which-tool -- and keeps "
@@ -416,20 +558,26 @@ def render_report(results, fixtures, machine):
         L.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
         for r in ran:
             m = r["metrics"]; sz = r.get("size", {}); lat = m["latency_ms"]
+            start = r.get("startup_seconds", r.get("load_seconds"))
             L.append(
                 f"| {label(r)} | {sz.get('params','?')} | "
-                f"{fmt_size(sz.get('weight_bytes',0))} | {r.get('load_seconds','-')}s | "
+                f"{fmt_size(sz.get('weight_bytes',0))} | "
+                f"{'-' if start is None else f'{start}s'} | "
                 f"{lat['p50']} ms | {lat['mean']} ms | {r.get('peak_rss_mb','?')} MB | "
                 f"{m['exact_tool_acc']} | {m['family_acc']} | {m['is_request_acc']} | "
                 f"{m['silence_on_none']} | {m['fired_on_request']} |"
             )
         L.append("")
-        L.append("Needle's latency includes process launch + model load on every row, because "
-                 "that is how the app runs it (one child process per proposal); laya's excludes "
-                 "its one-time load, shown separately. The two are not the same measurement -- "
-                 "see README. laya's peak RSS is the whole Python/torch runtime; when several "
-                 "laya checkpoints run in one process it is a shared high-water mark, so read "
-                 "the laya rows as one number.\n")
+        L.append("Per-decision latency is wall clock around one decision. **`needle` is a child "
+                 "process per proposal** -- launch, model load and prefill on every row, which is "
+                 "what the app did until 2026-09-23. **`needle-serve` is one resident `--serve` "
+                 "child**, reset before every turn exactly as `NeedleServer` does; its start-up "
+                 "and first-turn prefill are one-time and shown in the start column, not folded "
+                 "into the number. laya's latency excludes its one-time load, shown separately. "
+                 "The rows are not the same measurement -- see README. laya's peak RSS is the "
+                 "whole Python/torch runtime; when several laya checkpoints run in one process it "
+                 "is a shared high-water mark, so read the laya rows as one number. "
+                 "`needle-serve`'s peak RSS comes from the engine's own turn report.\n")
 
         # per-fixture grid
         L.append("### Per-fixture decisions\n")
@@ -480,10 +628,13 @@ def machine_description():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--backends", default="laya,needle")
+    ap.add_argument("--backends", default="laya,needle,needle-serve")
     ap.add_argument("--laya-checkpoint", "--laya-checkpoints", dest="laya_checkpoints",
                     default="multilingual",
                     help="comma-separated: multilingual,english,typed-decisions")
+    ap.add_argument("--merge", action="store_true",
+                    help="keep rows for backends this run did not measure, instead of "
+                         "overwriting results.json with only what ran")
     args = ap.parse_args()
 
     cat = load_catalogue()
@@ -505,9 +656,21 @@ def main():
             print("▸ needle …", flush=True)
             results.append(run_needle(fixtures, cat))
             _print_result(results[-1])
+        elif b == "needle-serve":
+            print("▸ needle-serve …", flush=True)
+            results.append(run_needle_server(fixtures, cat))
+            _print_result(results[-1])
         else:
             results.append({"backend": b, "status": "absent", "reason": "unknown backend"})
             _print_result(results[-1])
+
+    if args.merge and (HERE / "results.json").exists():
+        try:
+            previous = json.loads((HERE / "results.json").read_text())["results"]
+        except Exception:
+            previous = []
+        measured = {r.get("backend") for r in results}
+        results = [r for r in previous if r.get("backend") not in measured] + results
 
     (HERE / "results.json").write_text(json.dumps(
         {"machine": machine_description(), "results": results}, indent=2))
@@ -519,9 +682,11 @@ def main():
 def _print_result(r):
     if r.get("status") == "ok":
         m = r["metrics"]
+        start = r.get("startup_seconds")
+        extra = f"  start {start}s  warmup {r.get('warmup_ms')} ms" if start is not None else ""
         print(f"   exact {m['exact_tool_acc']}  family {m['family_acc']}  "
               f"is-req {m['is_request_acc']}  p50 {m['latency_ms']['p50']} ms  "
-              f"size {fmt_size(r.get('size',{}).get('weight_bytes',0))}", flush=True)
+              f"size {fmt_size(r.get('size',{}).get('weight_bytes',0))}{extra}", flush=True)
     else:
         print(f"   ABSENT: {r.get('reason')}", flush=True)
 

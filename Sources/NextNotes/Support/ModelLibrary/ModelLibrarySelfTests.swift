@@ -6,11 +6,14 @@ import Foundation
 /// tier each pairing must land in. It is the only way a claim like "this will be slow" can be
 /// checked without downloading twenty gigabytes and waiting.
 ///
-/// `--selftest-hf-search` talks to huggingface.co, and says so when it cannot.
+/// `--selftest-hf-search` talks to huggingface.co, and says so when it cannot. It also reads
+/// a repository that publishes a draft head beside its weights, because a picker that can
+/// choose one installs a file llama.cpp opens and then refuses to run.
 ///
 /// `--selftest-model-library` is pure too: the "what happens after a download finishes"
-/// decision table, the built-in-removal guard, and partial-download bookkeeping — none of
-/// which need a real GGUF, a real load, or a real delete to prove correct.
+/// decision table, the built-in-removal guard, partial-download bookkeeping, and the file
+/// picker against projector/draft-head repositories — none of which need a real GGUF, a real
+/// load, or a real delete to prove correct.
 enum ModelLibrarySelfTests {
 
     // MARK: - Machines
@@ -523,6 +526,38 @@ enum ModelLibrarySelfTests {
             if details.parameterBillions == nil {
                 failures.append("\(candidate.id) reported no parameter count in its GGUF metadata")
             }
+
+            // The picker against a repo that publishes a draft head beside the weights.
+            // `ggml-org/gemma-4-E4B-it-GGUF` is the shape that shipped this bug on
+            // 2026-09-23: `mtp-…-Q4_0.gguf` ties the real Q4_0 file on quantization rank
+            // and is 77× smaller, so a size tie-break chose the head and every turn
+            // answered "Inference could not start".
+            do {
+                let auxiliary = try await HuggingFaceClient.details(repoID: "ggml-org/gemma-4-E4B-it-GGUF")
+                let pieces = auxiliary.files.filter { auxiliary.isAuxiliary($0) }
+                if pieces.isEmpty {
+                    failures.append("ggml-org/gemma-4-E4B-it-GGUF no longer publishes a "
+                                    + "projector or draft head, so the picker was not tested "
+                                    + "against one")
+                }
+                if let pick = auxiliary.recommendedFile {
+                    if auxiliary.isAuxiliary(pick) {
+                        failures.append("the picker chose \(pick.fileName) from "
+                                        + "ggml-org/gemma-4-E4B-it-GGUF, which is only one "
+                                        + "piece of a model")
+                    } else {
+                        print("HF_SEARCH: \(auxiliary.id) → \(pick.fileName) "
+                              + "(skipped \(pieces.count) files that are part of a model)")
+                    }
+                } else {
+                    failures.append("ggml-org/gemma-4-E4B-it-GGUF offered no file this app "
+                                    + "would pick")
+                }
+            } catch {
+                failures.append("could not read ggml-org/gemma-4-E4B-it-GGUF to check the "
+                                + "picker against a draft head: \(error.localizedDescription)")
+            }
+
             // No model is downloaded here on purpose — this Mac has under 10 GB free.
             print("HF_SEARCH: no model fetched (disk is nearly full by design)")
             failures.append(contentsOf: await resumeFailures())
@@ -705,6 +740,7 @@ enum ModelLibrarySelfTests {
         failures.append(contentsOf: postDownloadDecisionFailures())
         failures.append(contentsOf: builtInRemovalFailures())
         failures.append(contentsOf: partialDownloadFailures())
+        failures.append(contentsOf: auxiliaryPickFailures())
         for failure in failures { print("MODEL_LIBRARY_WRONG: \(failure)") }
         print(failures.isEmpty ? "MODEL_LIBRARY_OK" : "MODEL_LIBRARY_FAILED")
         return failures.isEmpty
@@ -764,6 +800,130 @@ enum ModelLibrarySelfTests {
             policy: .switchDeleteOld, previousActiveID: new, newModelID: new, loadSucceeded: true)
         check("re-downloading the active model proposed deleting it",
               sameModel.deleteID == nil)
+
+        return failures
+    }
+
+    /// A repo's projector and draft head are not models, and the picker must never choose
+    /// one — offline, with the real file list.
+    ///
+    /// Measured on 2026-09-23 against `ggml-org/gemma-4-E4B-it-GGUF`, whose real file is
+    /// `gemma-4-E4B-it-Q4_0.gguf` at 4.59 GB and whose multi-token-prediction head is
+    /// `mtp-gemma-4-E4B-it-Q4_0.gguf` at 59.7 MB. The head ties the weights on quantization
+    /// label and is 77× smaller, so the size tie-break picked it, the app installed it as a
+    /// brain, and every turn answered "Inference could not start". The list below is that
+    /// repository's, byte for byte.
+    private static func auxiliaryPickFailures() -> [String] {
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+        func file(_ path: String, _ bytes: Int64) -> HuggingFaceRepoFile {
+            HuggingFaceRepoFile(path: path, sizeBytes: bytes, sha256: nil)
+        }
+
+        let gemma = HuggingFaceModelDetails(
+            id: "ggml-org/gemma-4-E4B-it-GGUF",
+            isGated: false,
+            licenseID: "apache-2.0",
+            parameterCount: 7_518_069_290,
+            architecture: "gemma4",
+            trainedContextLength: 131_072,
+            files: [
+                file("gemma-4-E4B-it-BF16.gguf", 15_053_097_408),
+                file("gemma-4-E4B-it-Q4_0.gguf", 4_590_807_392),
+                file("gemma-4-E4B-it-Q8_0.gguf", 8_031_242_688),
+                file("mmproj-gemma-4-E4B-it-BF16.gguf", 991_552_256),
+                file("mmproj-gemma-4-E4B-it-Q8_0.gguf", 559_874_816),
+                file("mtp-gemma-4-E4B-it-BF16.gguf", 171_766_880),
+                file("mtp-gemma-4-E4B-it-Q4_0.gguf", 59_678_240),
+                file("mtp-gemma-4-E4B-it-Q8_0.gguf", 98_653_280),
+            ]
+        )
+        let picked = gemma.recommendedFile?.fileName
+        check("a repo with a draft head beside the weights picked \(picked ?? "nothing"); "
+              + "it must pick gemma-4-E4B-it-Q4_0.gguf",
+              picked == "gemma-4-E4B-it-Q4_0.gguf")
+        check("a projector or draft head was offered as a selectable model",
+              !gemma.selectableFiles.contains { gemma.isAuxiliary($0) })
+        check("the three real quantizations were not all offered",
+              gemma.selectableFiles.map(\.fileName)
+                == ["gemma-4-E4B-it-Q4_0.gguf", "gemma-4-E4B-it-Q8_0.gguf", "gemma-4-E4B-it-BF16.gguf"])
+
+        // A projector can also outrank the weights on quantization alone: Q8_0 beats BF16,
+        // and the projector is the only Q8_0 file in this repo.
+        let visionOnly = HuggingFaceModelDetails(
+            id: "example/vision-model-GGUF",
+            isGated: false, licenseID: nil, parameterCount: nil, architecture: "qwen3vl",
+            trainedContextLength: nil,
+            files: [
+                file("Model-BF16.gguf", 15_000_000_000),
+                file("Model-mmproj-Q8_0.gguf", 600_000_000),
+            ]
+        )
+        check("a vision projector outranked the weights it belongs to",
+              visionOnly.recommendedFile?.fileName == "Model-BF16.gguf")
+
+        // The other shape `mtp` takes on the Hub: a head named after its quant, beside the
+        // model it drafts for. `Mia-AiLab/Gemmable-4-12B-MTP-GGUF` is this, and the head
+        // ties the real file on Q4_K_M and wins the size tie-break without the rule.
+        let quantNamedHead = HuggingFaceModelDetails(
+            id: "example/Gemmable-4-12B-MTP-GGUF",
+            isGated: false, licenseID: nil, parameterCount: nil, architecture: "gemma4",
+            trainedContextLength: nil,
+            files: [
+                file("model-4-12b-Q4_K_M.gguf", 7_381_364_160),
+                file("model-4-12b-Q4_K_M-mtp.gguf", 331_546_880),
+            ]
+        )
+        check("a draft head named after its quantization was picked over the weights",
+              quantNamedHead.recommendedFile?.fileName == "model-4-12b-Q4_K_M.gguf")
+
+        // And the shape that must NOT be excluded: a full model with multi-token prediction
+        // merged into it. `cdiamond/Qwen3.8-27B-iMatrix-NVFP4-MTP-GGUF` publishes exactly
+        // this — one 17 GB `-MTP.gguf` and a projector, nothing else.
+        let merged = HuggingFaceModelDetails(
+            id: "example/Qwen3.8-27B-MTP-GGUF",
+            isGated: false, licenseID: nil, parameterCount: nil, architecture: "qwen35",
+            trainedContextLength: nil,
+            files: [
+                file("Qwen3.8-27B-iMatrix-NVFP4-MTP.gguf", 17_125_207_136),
+                file("mmproj-Qwen3.8-27B-F16.gguf", 927_607_488),
+            ]
+        )
+        let mergedPick = merged.recommendedFile?.fileName
+        check("a repo whose only real model has MTP merged into it picked "
+              + "\(mergedPick ?? "nothing") instead of the model",
+              mergedPick == "Qwen3.8-27B-iMatrix-NVFP4-MTP.gguf")
+        check("a repo with a merged-MTP model offered \(merged.selectableFiles.count) files, "
+              + "want only the model",
+              merged.selectableFiles.count == 1)
+
+        // The rule itself, including the names it must not touch. A name alone never
+        // condemns an `mtp` file; only its size does.
+        let auxiliaryNames = [
+            ("mmproj-gemma-4-E4B-it-BF16.gguf", Int64(991_552_256)),
+            ("mtp-gemma-4-E4B-it-Q4_0.gguf", Int64(59_678_240)),
+            ("Qwen2.5-VL-7B-Instruct-mmproj-F16.gguf", Int64(600_000_000)),
+            ("model-4-12b-Q4_K_M-mtp.gguf", Int64(331_546_880)),
+        ]
+        for (name, bytes) in auxiliaryNames
+        where !ModelFitEstimator.isAuxiliaryGGUF(
+            fileName: name, bytes: bytes, comparedToLargestGGUF: 15_000_000_000) {
+            failures.append("\(name) was not recognised as one piece of a model")
+        }
+        let realNames = [
+            ("gemma-4-E4B-it-Q4_0.gguf", Int64(4_590_807_392)),
+            ("Qwen3-4B-Instruct-2507-Q4_K_M.gguf", Int64(2_500_000_000)),
+            ("Mistral-Nemo-Instruct-2407-Q5_K_M.gguf", Int64(8_000_000_000)),
+            ("Qwen3.8-27B-iMatrix-NVFP4-MTP.gguf", Int64(17_125_207_136)),
+            ("Qwopus3.6-27B-Coder-MTP-Q4_K_M.gguf", Int64(17_106_773_120)),
+        ]
+        for (name, bytes) in realNames
+        where ModelFitEstimator.isAuxiliaryGGUF(
+            fileName: name, bytes: bytes, comparedToLargestGGUF: 17_125_207_136) {
+            failures.append("\(name) was mistaken for a projector or a draft head")
+        }
 
         return failures
     }

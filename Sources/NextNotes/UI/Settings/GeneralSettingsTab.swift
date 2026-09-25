@@ -70,7 +70,6 @@ struct GeneralSettingsTab: View {
                              + "first time. Nothing you have already set up is undone.")
             }
         }
-        .formStyle(.grouped)
         .animation(DS.Motion.standard, value: settings.commandModeEnabled)
     }
 

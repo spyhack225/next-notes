@@ -690,6 +690,33 @@ enum RealtimeAgentToolLoopSelfTest {
         }
         agent.answerDepthForTesting = nil
 
+        // P0-17 e. A reasoning model that spent its whole answer budget thinking and wrote
+        // nothing says exactly that — it is not an "incomplete response" and it is not
+        // prefixed as a model failure.
+        agent.toolLoopLimitForTesting = nil
+        agent.localModelProviderForTesting = CutOffTestProvider(visible: nil, cutOffVisible: false)
+        let thoughtOnly = await agent.runModelTurn("What can you do?", voice: false)
+        let thoughtOnlySentence = "The model spent its whole answer thinking and wrote nothing. "
+            + "Try again, or pick a model without the Reasoning label in Settings ▸ Agent."
+        check("a cut-off with no text answered \"\(thoughtOnly.reply)\"",
+              thoughtOnly.reply == thoughtOnlySentence)
+        check("a cut-off with no text kept the incomplete-response sentence",
+              !thoughtOnly.reply.contains("incomplete response"))
+        check("a cut-off with no text was prefixed as a model failure",
+              !thoughtOnly.reply.hasPrefix("The model could not answer:"))
+
+        // P0-17 f. A cut-off after visible text keeps the answer and ends with the cut-off
+        // note, rather than replacing both with the failure sentence.
+        agent.localModelProviderForTesting = CutOffTestProvider(
+            visible: "<answer/>Hello the", cutOffVisible: true)
+        let truncated = await agent.runModelTurn("Say hello.", voice: false)
+        check("a cut-off after visible text lost the answer: \"\(truncated.reply)\"",
+              truncated.reply.hasPrefix("Hello the"))
+        check("a cut-off after visible text did not say it was cut off: \"\(truncated.reply)\"",
+              truncated.reply.hasSuffix("(The answer was cut off.)"))
+        check("a cut-off after visible text was prefixed as a model failure",
+              !truncated.reply.hasPrefix("The model could not answer:"))
+
         for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
         return failures.isEmpty
@@ -805,6 +832,32 @@ private struct ToolLoopTestProvider: LLMProvider {
                 } catch { continuation.finish(throwing: error) }
             }
             continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
+    }
+}
+
+/// P0-17: a provider that ends a pass the way a reasoning model does when the visible
+/// budget is spent thinking — G turn O5 (105 of 112 tokens thinking, `finish_reason:
+/// "length"`). `visible` is the text (if any) written before the cut-off.
+private struct CutOffTestProvider: LLMProvider {
+    let id = LLMProviderID.openRouter
+    let visible: String?
+    let cutOffVisible: Bool
+    var contextTokens: Int { 4_096 }
+    var unavailableReason: String? { get async { nil } }
+
+    func countTokens(_ text: String) async throws -> Int { text.count / 4 + 1 }
+
+    func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+        throw OpenRouterError.cutOff(visibleText: cutOffVisible)
+    }
+
+    func streamConversation(
+        system: String, messages: [LLMChatMessage], maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            if let visible { continuation.yield(visible) }
+            continuation.finish(throwing: OpenRouterError.cutOff(visibleText: cutOffVisible))
         }
     }
 }

@@ -620,6 +620,15 @@ final class Settings {
         didSet { defaults.set(openRouterAgentContextTokens, forKey: Keys.openRouterAgentContextTokens) }
     }
 
+    /// Whether each OpenRouter model id reasons before it writes (P0-17). Written where a
+    /// model is picked and where a provider refuses the reasoning field; read so a turn
+    /// pays the bounded reasoning allowance for a model that thinks and sends an unchanged
+    /// body for one that does not. Unknown means it may reason, because OpenRouter ignores
+    /// the field for models without it.
+    var openRouterModelReasons: [String: Bool] {
+        didSet { defaults.set(openRouterModelReasons, forKey: Keys.openRouterModelReasons) }
+    }
+
     /// Let the meeting agent propose follow-up actions in Google Workspace.
     ///
     /// Off until the user has signed the Workspace CLI in, because an agent with no way to
@@ -971,6 +980,7 @@ final class Settings {
         static let openRouterAgentModelID = "openRouterAgentModelID"
         static let openRouterNotesContextTokens = "openRouterNotesContextTokens"
         static let openRouterAgentContextTokens = "openRouterAgentContextTokens"
+        static let openRouterModelReasons = "openRouterModelReasons"
         static let meetingsAutoRecord = "meetingsAutoRecord"
         static let meetingLeadMinutes = "meetingLeadMinutes"
         static let meetingAutoRecordOverrides = "meetingAutoRecordOverrides"
@@ -1088,6 +1098,8 @@ final class Settings {
         openRouterAgentModelID = defaults.string(forKey: Keys.openRouterAgentModelID) ?? ""
         openRouterNotesContextTokens = defaults.integer(forKey: Keys.openRouterNotesContextTokens)
         openRouterAgentContextTokens = defaults.integer(forKey: Keys.openRouterAgentContextTokens)
+        openRouterModelReasons = defaults.dictionary(forKey: Keys.openRouterModelReasons)
+            as? [String: Bool] ?? [:]
         meetingsAutoRecord = defaults.object(forKey: Keys.meetingsAutoRecord) as? Bool ?? true
         // Clamped on read as well as on write: a hand-edited or corrupted default of 0 or
         // 4000 would either arm at the start time or arm every meeting of the week.

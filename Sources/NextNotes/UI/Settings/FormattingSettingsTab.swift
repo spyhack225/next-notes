@@ -55,12 +55,11 @@ struct FormattingSettingsTab: View {
                 screenNames
                 file
             }
-            .formStyle(.grouped)
-            // The `Form` is now the pane's only scroll surface (see the type comment
-            // above), so a selection made by arrow key or Page Down has to ask it to
-            // scroll explicitly — `List` no longer has a scroll view of its own to do
-            // that automatically. Only fires for a single fresh selection: a shift/cmd
-            // range extension has no one row to centre on.
+            // The pane now has one scroll surface — the responsive form's — see
+            // `SettingsFormStyle`; a selection made by arrow key or Page Down still has
+            // to ask it to scroll explicitly, because `List` no longer has a scroll view
+            // of its own to do that automatically. Only fires for a single fresh
+            // selection: a shift/cmd range extension has no one row to centre on.
             .onChange(of: selection) { _, newValue in
                 guard newValue.count == 1, let id = newValue.first else { return }
                 withAnimation {
@@ -104,6 +103,10 @@ struct FormattingSettingsTab: View {
                     + "than none."
             )
         }
+        // The one table in Settings. It is rows of checkboxes, not labelled controls, and
+        // it is the content a wide window exists for — so it takes the whole pane instead
+        // of one card's column, and its `List` stretches with it.
+        .settingsSectionSpans()
     }
 
     private var file: some View {

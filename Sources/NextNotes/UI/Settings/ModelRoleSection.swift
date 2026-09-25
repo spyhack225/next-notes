@@ -177,7 +177,7 @@ struct ModelRoleSection: View {
                 isReady: roles.availability.builtInModelReady
             )
         ]
-        for model in library.models where !model.isBuiltIn {
+        for model in library.usableModels where !model.isBuiltIn {
             onThisMac.append(
                 ModelRoleOption(
                     choice: .installedModel(id: model.id),

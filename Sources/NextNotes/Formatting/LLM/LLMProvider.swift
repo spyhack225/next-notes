@@ -237,9 +237,14 @@ enum LLMProviders {
             LlamaLLMProvider(modelName: InstalledModelLibrary.shared.activeModel?.displayName)
         case .appleFoundation: FoundationModelLLMProvider()
         case .openRouter:
+            // The reasoning policy travels with the model id: the picker records whether a
+            // model reasons (`Settings.openRouterModelReasons`), and the request builder
+            // needs it wherever the provider was made from.
             OpenRouterLLMProvider(
                 modelID: modelID ?? Settings.shared.openRouterNotesModelID,
-                contextTokens: contextTokens ?? Settings.shared.openRouterNotesContextTokens
+                contextTokens: contextTokens ?? Settings.shared.openRouterNotesContextTokens,
+                reasoning: OpenRouterReasoningPolicy.policy(
+                    for: modelID ?? Settings.shared.openRouterNotesModelID)
             )
         case .localServer:
             // Which server and which of its models is a role decision, so it is read from

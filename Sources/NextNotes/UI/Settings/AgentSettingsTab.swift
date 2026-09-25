@@ -26,7 +26,6 @@ struct AgentSettingsTab: View {
             RemindersSection()
             KnowledgeSection()
         }
-        .formStyle(.grouped)
         .onAppear { models.refresh() }
         .onDisappear {
             calibrator.stop()

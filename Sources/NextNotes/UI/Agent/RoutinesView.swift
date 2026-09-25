@@ -81,7 +81,7 @@ struct RoutinesView: View {
                     HStack(spacing: DS.Space.s) {
                         Button("Set it up") {
                             review.resolveSuggestion(id: suggestion.id)
-                            NavigationState.shared.agentPane = .conversation
+                            NavigationState.shared.showConversation()
                             let request = suggestion.request
                             Task { await RealtimeAgent.shared.handleLive("Set this up: \(request)", source: .text) }
                         }
@@ -316,7 +316,7 @@ struct RoutinesView: View {
             VStack(alignment: .leading, spacing: DS.Space.s) {
                 ForEach(Self.examples, id: \.self) { example in
                     Button {
-                        NavigationState.shared.agentPane = .conversation
+                        NavigationState.shared.showConversation()
                         Task { await RealtimeAgent.shared.handleLive(example, source: .text) }
                     } label: {
                         HStack(spacing: DS.Space.s) {

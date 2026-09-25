@@ -18,7 +18,6 @@ struct WorkspaceSettingsTab: View {
             agentSection
             toolsSection
         }
-        .formStyle(.grouped)
         .task { await agent.refreshStatus() }
         // The user answers these questions in a Terminal window beside this one, so the
         // moment they come back is the moment the answer has changed.

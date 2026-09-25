@@ -20,17 +20,25 @@ struct AgentAboutView: View {
     /// back to a page you just opened is not quiet on any reading — so the clock starts at
     /// the later of the last thing the agent did and now.
     @State private var openedAt = Date()
+    /// The pane's own size, so the editor sheets can open large on a large window and
+    /// still fit a small one. A sheet is attached to the window, but the pane is what the
+    /// person was looking at — and it is always narrower than the window, so clamping to
+    /// it cannot overflow.
+    @State private var paneSize = CGSize.zero
 
     var body: some View {
         AgentPaneScroll {
             // The one deliberate centred column in the panes: the identity block reads as
-            // a hero, not as a header, so only this block is capped.
+            // a hero, not as a header, so only this block is capped — and
+            // `--selftest-agent-panes` allows `agentAboutMaxWidth` here alone. Every
+            // section below it fills the pane's width.
             identityHeader
                 .frame(maxWidth: DS.Size.agentAboutMaxWidth)
                 .frame(maxWidth: .infinity)
             accessCards
             AgentDataControlsCard()
         }
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { paneSize = $0 }
         .sheet(isPresented: $showAvatarEditor) {
             NotionAvatarEditor(config: $avatarDraft) {
                 identity.setAvatar(avatarDraft)
@@ -38,10 +46,10 @@ struct AgentAboutView: View {
             }
         }
         .sheet(isPresented: $showSoul) {
-            SoulEditorSheet()
+            SoulEditorSheet(pane: paneSize)
         }
         .sheet(isPresented: $showMemories) {
-            MemoriesEditorSheet(focus: memoryFocus)
+            MemoriesEditorSheet(focus: memoryFocus, pane: paneSize)
                 .onDisappear {
                     if memory.newCount > 0 { memory.markListViewed() }
                 }
@@ -75,6 +83,9 @@ struct AgentAboutView: View {
 
             if editingName {
                 HStack(spacing: DS.Space.s) {
+                    // A name is one value, so the field keeps the settings field width
+                    // rather than stretching: a 600pt name field reads as a text area.
+                    // The container around it is what fills the pane.
                     TextField("Agent name", text: $nameDraft)
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: DS.Size.settingsFieldWidth)
@@ -134,22 +145,43 @@ struct AgentAboutView: View {
 
     private var accessCards: some View {
         GlassGroup(spacing: DS.Space.card) {
-            AgentCardGrid(minimum: DS.Size.agentAboutCardIdeal) {
-                accessCard(
-                    title: "SOUL",
-                    subtitle: "ACCESS WITH CARE",
-                    date: personaDate,
-                    symbol: "heart.fill"
-                ) { showSoul = true }
+            // Two cards, so `AgentCardGrid`'s adaptive columns cannot fill the pane: the
+            // grid sizes columns for however many *could* fit, and the two cards then sit
+            // in the left half while the rest stays empty (see
+            // `DS.Size.agentAboutCardsMinWidth`). This pair splits the width evenly when
+            // both cards fit side by side and stacks them when they do not — the narrow
+            // direction is the same content, same order, no overflow.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: DS.Space.card) {
+                    soulCard
+                    memoryCard
+                }
+                .frame(minWidth: DS.Size.agentAboutCardsMinWidth, alignment: .leading)
 
-                accessCard(
-                    title: "MEMORY",
-                    subtitle: "ACCESS WITH CARE",
-                    date: memoryDate,
-                    symbol: "heart.fill"
-                ) { showMemories = true }
+                VStack(spacing: DS.Space.card) {
+                    soulCard
+                    memoryCard
+                }
             }
         }
+    }
+
+    private var soulCard: some View {
+        accessCard(
+            title: "SOUL",
+            subtitle: "ACCESS WITH CARE",
+            date: personaDate,
+            symbol: "heart.fill"
+        ) { showSoul = true }
+    }
+
+    private var memoryCard: some View {
+        accessCard(
+            title: "MEMORY",
+            subtitle: "ACCESS WITH CARE",
+            date: memoryDate,
+            symbol: "heart.fill"
+        ) { showMemories = true }
     }
 
     /// SOUL and MEMORY read as one monochrome family — black, white and grey, with hierarchy
@@ -226,13 +258,24 @@ struct AgentAboutView: View {
 
 // MARK: - Sheets
 
-private struct SoulEditorSheet: View {
+/// The chrome SOUL and MEMORY share: a title row with Done, and a form that fills the
+/// sheet so the editor or list inside stretches with it. Both open at
+/// `DS.Size.sheetEditorWidth × sheetEditorHeight` on a pane with room and clamp to the
+/// pane minus a page margin on one without — a sheet may not exceed the window, and the
+/// pane is always narrower than the window it is attached to. The form scrolls either
+/// way, so the sheet is usable at both ends.
+private struct AgentEditorSheet<Content: View>: View {
+    let title: String
+    /// The pane this sheet was opened from, measured by `AgentAboutView`.
+    var pane: CGSize
+    @ViewBuilder var content: () -> Content
+
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("SOUL")
+                Text(title)
                     .font(DS.Font.headline)
                     .tracking(DS.Font.eyebrowTracking)
                 Spacer()
@@ -240,35 +283,43 @@ private struct SoulEditorSheet: View {
                     .keyboardShortcut(.defaultAction)
             }
             .padding(DS.Space.card)
+
             Form {
-                SoulEditor()
+                content()
             }
             .formStyle(.grouped)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(minWidth: 520, minHeight: 480)
+        .frame(width: size.width, height: size.height)
+    }
+
+    /// The comfortable editor size, or the pane minus a page margin on each side when that
+    /// is smaller. The fallback is for the instant before the pane's first layout pass
+    /// reports a size; the pane cannot be opened from before it has drawn.
+    private var size: CGSize {
+        guard pane.width > 0, pane.height > 0 else {
+            return CGSize(width: DS.Size.sheetEditorWidth, height: DS.Size.sheetEditorHeight)
+        }
+        return CGSize(
+            width: min(DS.Size.sheetEditorWidth, max(0, pane.width - DS.Space.page * 2)),
+            height: min(DS.Size.sheetEditorHeight, max(0, pane.height - DS.Space.page * 2))
+        )
+    }
+}
+
+private struct SoulEditorSheet: View {
+    var pane: CGSize
+
+    var body: some View {
+        AgentEditorSheet(title: "SOUL", pane: pane) { SoulEditor() }
     }
 }
 
 private struct MemoriesEditorSheet: View {
-    @Environment(\.dismiss) private var dismiss
     var focus: UUID?
+    var pane: CGSize
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("MEMORY")
-                    .font(DS.Font.headline)
-                    .tracking(DS.Font.eyebrowTracking)
-                Spacer()
-                Button("Done") { dismiss() }
-                    .keyboardShortcut(.defaultAction)
-            }
-            .padding(DS.Space.card)
-            Form {
-                MemoriesEditor(focus: focus)
-            }
-            .formStyle(.grouped)
-        }
-        .frame(minWidth: 560, minHeight: 520)
+        AgentEditorSheet(title: "MEMORY", pane: pane) { MemoriesEditor(focus: focus) }
     }
 }

@@ -287,8 +287,22 @@ enum DS {
         static let agentSwitcherMinWidth: CGFloat = 160
         /// About hero avatar block. The hero stays a centred column by design; the
         /// SOUL / MEMORY / data cards below it fill the pane like every other pane's.
+        /// `--selftest-agent-panes` allows this one cap here and bans it in every pane.
         static let agentAboutMaxWidth: CGFloat = 640
+        /// The avatar editor's part-picker cap. The SOUL / MEMORY pair used to share this
+        /// as a grid minimum; it does not any more — see `agentAboutCardsMinWidth`.
         static let agentAboutCardIdeal: CGFloat = 280
+        /// At or above this width the SOUL and MEMORY cards sit side by side and split the
+        /// pane evenly; below it they stack, each full width. Two `agentCardMinWidth` cards
+        /// plus the gap between them.
+        ///
+        /// The pair deliberately does not use `AgentCardGrid`: `LazyVGrid` chooses its
+        /// column count from the minimum, not from how many cards there are, so with
+        /// exactly two cards every column past the second is left empty — and a fixed
+        /// minimum can only trade a wide pane's empty space for a narrow pane's stack,
+        /// never fill both. `AgentAboutView` uses a `ViewThatFits` pair instead: side by
+        /// side sharing the width, or stacked.
+        static let agentAboutCardsMinWidth: CGFloat = agentCardMinWidth * 2 + DS.Space.card
         /// SOUL / MEMORY access tiles.
         static let agentAccessCardMinHeight: CGFloat = 140
         /// Minimum width of one skill card in the pane grid.
@@ -313,7 +327,36 @@ enum DS {
         static let settingsSidebarWidth: CGFloat = 240
         /// The grouped form column, not the window.
         static let settingsWidth: CGFloat = 560
-        /// Sidebar plus form. Narrower than this is the cropped strip: ten names, no pane.
+        /// One section card in the responsive settings grid.
+        ///
+        /// `GroupedFormStyle` lays its rows out in a content column that stops at ~744pt
+        /// and then centres — measured on macOS 27, `--selftest-settings` pins it. A card
+        /// wider than `settingsCardMaxWidth` would run back into that cap and centre its
+        /// rows inside itself, which is the bug at a smaller scale, so the grid never
+        /// grows a native card past it. `settingsCardMinWidth` is the width the panes were
+        /// designed against — `settingsWidth` — and it decides *how many* columns fit: one
+        /// below `settingsCardMinWidth * 2`, two above. It is not a floor on the drawn
+        /// card. Measured on macOS 27: a pane narrower than the minimum renders one column
+        /// at the pane's own width, and pinning the column's minimum at this width in a
+        /// 320pt pane renders pixel-for-pixel the same view. The clipping worth fixing was
+        /// a `frame(minWidth:)` demand, never the grid.
+        static let settingsCardMinWidth: CGFloat = 560
+        static let settingsCardMaxWidth: CGFloat = 720
+        /// The narrowest pane that has to render without clipping.
+        ///
+        /// Settings is embedded in the main window as well as standing alone, and there
+        /// the detail pane's own minimum (`detailMin`) is shared with the system Settings
+        /// sidebar — so this is what is left for the form. A pane that asks for more than
+        /// its host has is not honoured by SwiftUI; it is drawn past the window's right
+        /// edge and clipped, which is the four screenshots `--selftest-settings` pins.
+        /// Every host that can show Settings provides at least this much: the standalone
+        /// window's 800pt minimum leaves the form 560, and the main window's detail leaves
+        /// it exactly this.
+        static let settingsPaneMinWidth: CGFloat = detailMin - settingsSidebarWidth
+        /// Sidebar plus form. Narrower than this is the cropped strip: ten names, no pane,
+        /// and it is the **standalone window's** minimum — `SettingsWindowFrame.pin`
+        /// raises the window to it. The embedded copy is laid out at whatever the main
+        /// window's detail column has, down to `settingsPaneMinWidth`.
         static let settingsWindowMinWidth: CGFloat = settingsSidebarWidth + settingsWidth
         /// First-open size. Same as the min so a persisted inspector frame cannot return
         /// narrower than the form.
@@ -336,6 +379,13 @@ enum DS {
         /// the tab off the window — some accounts subscribe to dozens.
         static let calendarListHeight: CGFloat = 132
         static let sheetWidth: CGFloat = 460
+        /// Agent → About's SOUL and MEMORY editor sheets. `sheetWidth` above is a
+        /// one-question sheet that sizes to its sentence; these two host a text editor and
+        /// a long list, so they open at this comfortable size where the pane has room and
+        /// clamp to the pane where it does not — the form inside scrolls either way, so
+        /// neither a large window nor a small one clips the sheet.
+        static let sheetEditorWidth: CGFloat = 720
+        static let sheetEditorHeight: CGFloat = 640
         static let onboardingWidth: CGFloat = 520
 
         /// The fixed leading column that keeps chips in a list aligned with each other.

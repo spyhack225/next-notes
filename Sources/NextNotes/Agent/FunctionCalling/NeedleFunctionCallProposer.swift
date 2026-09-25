@@ -1,6 +1,8 @@
 import Foundation
 
-/// The real backend: Needle 3, spawned once per utterance.
+/// The real backend: Needle 3, answered by one resident engine rather than a spawn per
+/// utterance (`NeedleServer`, ~56 ms warm against ~615 ms when every proposal launched its
+/// own process).
 ///
 /// Everything interesting happens in two places that are easy to miss:
 ///

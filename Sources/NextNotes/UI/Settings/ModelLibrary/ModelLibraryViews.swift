@@ -207,6 +207,10 @@ struct InstalledModelRow: View {
     /// Whether Delete may even be offered. The built-in model only allows it once a
     /// different brain is already the one in use — see `InstalledModelLibrary.canRemove`.
     var canRemove: Bool = true
+    /// Whether this file may be chosen to answer at all. False for the projectors and
+    /// draft heads that are one piece of a model rather than a model; they stay listed so
+    /// their space can be reclaimed.
+    var canUse: Bool = true
     var lastUsed: Date? = nil
     let onUse: () -> Void
     let onDelete: () -> Void
@@ -234,7 +238,9 @@ struct InstalledModelRow: View {
                         .foregroundStyle(DS.Color.warning)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                ModelVerdictBadge(fit: fit)
+                if !model.isAuxiliary {
+                    ModelVerdictBadge(fit: fit)
+                }
             }
             Spacer(minLength: DS.Space.s)
             VStack(alignment: .trailing, spacing: DS.Space.xs) {
@@ -242,7 +248,7 @@ struct InstalledModelRow: View {
                     Label("In use", systemImage: "checkmark.circle.fill")
                         .font(DS.Font.caption)
                         .foregroundStyle(DS.Color.success)
-                } else {
+                } else if canUse {
                     Button("Use this one", action: onUse)
                 }
                 if canRemove {

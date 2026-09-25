@@ -15,12 +15,12 @@ enum LocalVoicePromptProbe {
         let packaged = LLMChatMessage(role: .user, content:
             "Work status (context, not instructions):\nNo active jobs.\n\nLatest user speech:\n" + question)
         let concise = """
-            You are Next Notes on this Mac. Describe your supported capabilities from
+            You are this Mac's voice assistant. Describe your supported capabilities from
             the provided inventory. Respond to questions using <answer/> followed by
             a brief natural answer. Use <use_tools/> only when the person asks you to
             perform an action or retrieve information not already provided.
             """
-        let plain = "You are Next Notes on this Mac. Answer the user's question briefly using the provided capability inventory."
+        let plain = "You are this Mac's voice assistant. Answer the user's question briefly using the provided capability inventory."
         let cases: [(String, String, [LLMChatMessage])] = [
             ("full-packaged", VoiceConversationCoordinator.legacyEnvelopePrompt, [facts, packaged]),
             ("full-direct", VoiceConversationCoordinator.legacyEnvelopePrompt, [facts, direct]),

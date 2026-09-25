@@ -94,11 +94,24 @@ if [[ "$VIA_OPEN" == "1" ]]; then
   rm -f "$out"
   echo "run-selftest: open -n $APP --args ${ARGS[*]} --selftest-out $out" >&2
   open -n "$APP" --args "${ARGS[@]}" --selftest-out "$out"
-  # LaunchServices detaches; wait for the verdict line or timeout.
-  for _ in $(seq 1 300); do
-    if [[ -f "$out" ]] && grep -E '_OK$|_FAILED$|SELFTEST_TIMEOUT' "$out" >/dev/null 2>&1; then
+  # A verdict is a *leading* marker, not a whole line: the app writes
+  # `DICTATION_OK: every hold came back to idle` as often as a bare `…_OK`, and an
+  # end-anchored match misses every verdict with a sentence after it — which made this
+  # wait loop sit for its full timeout on runs that had already finished.
+  verdict_re='^[[:space:]]*[A-Z0-9_]+_(OK|FAILED|SILENT|MISSING)($|:)|SELFTEST_TIMEOUT'
+  failed_re='^[[:space:]]*[A-Z0-9_]+_(FAILED|SILENT|MISSING)($|:)|SELFTEST_TIMEOUT'
+  # The app's own watchdog is the authority; wait a little past the timeout it was
+  # given so its verdict is the one that is reported, rather than this loop's.
+  wait_seconds=300
+  for ((i = 0; i < ${#ARGS[@]}; i++)); do
+    if [[ "${ARGS[i]}" == "--selftest-timeout" ]] && (( i + 1 < ${#ARGS[@]} )); then
+      wait_seconds=${ARGS[i + 1]}
+    fi
+  done
+  for _ in $(seq 1 $((wait_seconds + 30))); do
+    if [[ -f "$out" ]] && grep -E "$verdict_re" "$out" >/dev/null 2>&1; then
       cat "$out"
-      if grep -E '_FAILED$|SELFTEST_TIMEOUT' "$out" >/dev/null 2>&1; then
+      if grep -E "$failed_re" "$out" >/dev/null 2>&1; then
         exit 1
       fi
       exit 0

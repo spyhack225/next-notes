@@ -434,6 +434,52 @@ enum MeetingActionReconciler {
             ).isEmpty
         )
 
+        // The other half of the transcript rule, and the one a brief could satisfy: the
+        // evidence quote is real and the recipient came from memory. The transcript says
+        // Marcus; only memory knows his address. A write's values come from the meeting,
+        // so the address is not an argument the proposal may carry.
+        let emailTool = AgentTool.workspace(WorkspaceTools.tool(named: "send_email")!)
+        let briefOnly = MeetingAgent.argumentsGroundedInTranscript(
+            [
+                "to": "marcus.chen@proton.me",
+                "subject": "Pricing",
+                "body": "Here is the pricing sheet.",
+            ],
+            tool: emailTool,
+            transcript: "Can you send Marcus the pricing sheet?"
+        )
+        check(
+            "A RECIPIENT ONLY THE BRIEF KNEW SURVIVED THE TRANSCRIPT RULE: "
+                + (briefOnly["to"] ?? "-"),
+            briefOnly["to"] == nil
+        )
+        check(
+            "the transcript's own words were thrown away with the brief's address",
+            briefOnly["body"] != nil
+        )
+        check(
+            "an address the meeting did say was refused",
+            MeetingAgent.argumentsGroundedInTranscript(
+                ["to": "sarah@acme.com"],
+                tool: emailTool,
+                transcript: "Send the pricing sheet to sarah@acme.com."
+            )["to"] == "sarah@acme.com"
+        )
+        // The same rule for the answer a read tool returns: a document id from
+        // `find_drive_files` or a knowledge passage reaches the next round's prompt, not
+        // the meeting, so it is not an argument a write may carry.
+        check(
+            "a document id only a lookup could have supplied survived",
+            MeetingAgent.argumentsGroundedInTranscript(
+                [
+                    "document_id": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+                    "text": "Here is the pricing sheet.",
+                ],
+                tool: AgentTool.workspace(WorkspaceTools.tool(named: "append_doc")!),
+                transcript: "Can you add that to the pricing sheet?"
+            )["document_id"] == nil
+        )
+
         let systemOnly = reconcile(candidates: [deck], proposals: [])
         check("a live system candidate stayed visible", systemOnly.rowCount == 1)
         check(

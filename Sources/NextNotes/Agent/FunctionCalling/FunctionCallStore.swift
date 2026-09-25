@@ -25,11 +25,12 @@ enum FunctionCallCatalogue {
     ///
     /// Two things bound this. Needle shares its 8K context between the system prompt, the
     /// tool schemas and the turn, and `needle_init` fails outright when the static prefix
-    /// does not fit. And the schemas are not free at run time either — measured on this Mac
-    /// on 2026-09-19, one proposal took 126 ms with two tools declared, 0.97 s with eight
-    /// and about four seconds with fourteen. A short list is not a compromise here; it is
-    /// the difference between a card that arrives while the sentence is still in the air and
-    /// one that arrives after the subject has changed.
+    /// does not fit. And the schemas are not free either: measured on this Mac on
+    /// 2026-09-19, a *spawned* proposal took 126 ms with two tools declared, 0.97 s with
+    /// eight and about four seconds with fourteen. That prefill is now paid once, when the
+    /// resident engine starts (`NeedleServer`), so the cap is about context and start-up
+    /// rather than per-sentence latency — but a short list is still what makes a card arrive
+    /// while the sentence is in the air rather than after the subject has changed.
     static let maxTools = 8
 
     /// What people actually say out loud, most often first, so the cap bites the long tail
@@ -173,6 +174,11 @@ final class FunctionCallStore {
         guard value != isEnabled else { return }
         isEnabled = value
         persist()
+        // The resident engine is 92 MB and exists for this feature alone; switching the
+        // feature off must not leave it running until the idle timeout notices.
+        if !value {
+            Task { await NeedleRunner.shared.stopServer() }
+        }
         Task { await refreshStatus() }
     }
 

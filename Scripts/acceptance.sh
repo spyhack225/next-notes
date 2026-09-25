@@ -142,6 +142,9 @@ INTEGRATION_ENTRIES=(
   "selftest-browser|300|via-open"
   # model roles
   "selftest-model-roles|300"
+  # store isolation (P0-11): a harness run leaves the owner's real files and
+  # modelRoles./modelLibrary./agent defaults untouched
+  "selftest-store-isolation|300"
   # model architecture guard and private networking (P0-13, P0-19)
   "selftest-model-unopenable|300"
   "selftest-private-network|300"
@@ -150,6 +153,8 @@ INTEGRATION_ENTRIES=(
   "selftest-function-calls|600"
   # meeting transcript quality probe (M-16a)
   "selftest-meeting-quality|120"
+  # map-reduce never drops facts (M-05; M-12 extends the cases)
+  "selftest-notes-longform|300"
 )
 
 EXPERIMENTAL_ENTRIES=(

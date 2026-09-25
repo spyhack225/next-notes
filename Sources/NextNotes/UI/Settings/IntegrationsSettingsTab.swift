@@ -18,7 +18,6 @@ struct IntegrationsSettingsTab: View {
             composio
             mcpServers
         }
-        .formStyle(.grouped)
     }
 
     private var workspace: some View {
