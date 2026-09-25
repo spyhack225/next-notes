@@ -400,8 +400,13 @@ extension RealtimeAgent {
             provider = selected
         } else {
             Self.lastRouteForTesting = "no-model"
+            publishAnsweringModel(nil)
             return AgentModelTurnResult(reply: Self.noModelReply, usedTools: false)
         }
+        // P0-03: the pane names the model that actually answers this turn, not the role's
+        // stored choice. Published right after the single resolution; the fallback below
+        // republishes if it switches.
+        publishAnsweringModel(provider)
         // The knowledge graph reaches a cloud planner only with its own consent.
         let result = await KnowledgeGraphScope.$reader.withValue(provider.id) {
             await runModelTurn(prompt, speech: speech, voice: voice, owner: owner, work: work, provider: provider)
@@ -542,8 +547,10 @@ extension RealtimeAgent {
                        replacement.id != provider.id {
                         fellBackOnce = true
                         provider = replacement
+                        publishAnsweringModel(replacement)
                         continue
                     }
+                    publishAnsweringModel(nil)
                     return AgentModelTurnResult(reply: Self.noModelReply, usedTools: false)
                 }
                 return AgentModelTurnResult(reply: "The model could not answer: " + reason, usedTools: false)
@@ -923,8 +930,12 @@ extension RealtimeAgent {
         } else if let resolvedProvider = await AgentModelRouting.provider(for: prompt, voice: voice) {
             chosen = resolvedProvider
         } else {
+            publishAnsweringModel(nil)
             return Self.noModelReply
         }
+        // The voice worker owns its own objective and resolves here; the pane still names
+        // whichever model actually planned the turn.
+        publishAnsweringModel(chosen)
         // The knowledge graph reaches a cloud planner only with its own consent.
         let planned: String = await KnowledgeGraphScope.$reader.withValue(chosen.id) {
             await runPlannedToolLoop(prompt, speech: speech, voice: voice, owner: owner, background: background,
@@ -1098,8 +1109,10 @@ extension RealtimeAgent {
                        replacement.id != provider.id {
                         fellBackOnce = true
                         provider = replacement
+                        publishAnsweringModel(replacement)
                         continue
                     }
+                    publishAnsweringModel(nil)
                     return confirmed(Self.noModelReply)
                 }
                 return confirmed("The tool planner failed: " + message)

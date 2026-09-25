@@ -38,6 +38,25 @@ final class RealtimeAgent {
     private(set) var isThinking = false
     private(set) var progressTitle = "Thinking…"
     private(set) var harnessLine = ""
+    /// Which model answered the most recent turn, so the pane can say it.
+    ///
+    /// Published at every resolution point — the initial resolution and the one in-turn
+    /// fallback — from the provider that actually resolved, never from the role's stored
+    /// choice, so a fallback names what answered rather than what was picked. Nil until a
+    /// turn answers, cleared when a turn finds nothing that can run.
+    struct AnsweringModel: Equatable, Sendable {
+        let id: LLMProviderID
+        let name: String
+    }
+
+    private(set) var answeringModel: AnsweringModel?
+
+    /// Records the model a turn will answer with. `nil` clears it: no model answered, so
+    /// the pane must not keep naming the previous turn's model beside this turn's reply.
+    func publishAnsweringModel(_ provider: (any LLMProvider)?) {
+        answeringModel = provider.map { AnsweringModel(id: $0.id, name: $0.displayModelName) }
+    }
+
     /// Same job as `DictationController.session`: a late tool must not write over a
     /// turn the user already stopped or barged in on.
     private var generation = 0
@@ -627,6 +646,7 @@ final class RealtimeAgent {
             return AgentTurn(reply: lastReply, delegated: false)
         }
         guard let provider else {
+            publishAnsweringModel(nil)
             endReplyTrace("local-model-unavailable")
             let reason = forceOnDevice
                 ? (await LLMProviders.make(.appLLM).unavailableReason)
@@ -642,6 +662,7 @@ final class RealtimeAgent {
                 route: "local-model-unavailable"
             )
         }
+        publishAnsweringModel(provider)
 
         let startedStreaming = currentTurnSource == .voice
             && AgentCaptureController.shared.isSessionActive

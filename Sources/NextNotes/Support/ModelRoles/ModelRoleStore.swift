@@ -289,6 +289,11 @@ final class ModelRoleStore {
     /// does not repeat the same sentence.
     private var reportedFallbacks: Set<String> = []
 
+    /// `(role, model id)` pairs whose repair the person has been told about. Persisted
+    /// under `modelRoles.repairNotices`, so "one notice per repaired pair" holds across
+    /// launches as well as within one.
+    private var shownRepairKeys: Set<String>
+
     private(set) var availability: ModelRoleAvailability
     private(set) var isCheckingAvailability = false
 
@@ -310,6 +315,7 @@ final class ModelRoleStore {
         self.failures = failures
         self.notice = notice
         self.availability = availability ?? .nothingInstalled
+        self.shownRepairKeys = Set(defaults.stringArray(forKey: Self.repairNoticesKey) ?? [])
         var stored: [ModelRole: ModelRoleChoice] = [:]
         for role in ModelRole.allCases {
             if let token = defaults.string(forKey: Self.key(for: role)),
@@ -399,6 +405,12 @@ final class ModelRoleStore {
     /// Rather than leave two switches that disagree, the role writes through to the old one
     /// — so a path that has not been touched still follows what the user picked.
     private func mirrorAgentRoleIntoSettings(_ choice: ModelRoleChoice) {
+        // P0-11: the legacy key lives in the owner's own domain, so only the owner's own
+        // store may write it. A store built on an isolated suite — a self-test's, or the
+        // harness's per-process one that `.shared` uses — must never leave the choice it
+        // just made in the owner's preferences. `--selftest-store-isolation` watches every
+        // `agent*` key for exactly this.
+        guard defaults === UserDefaults.standard else { return }
         let settings = Settings.shared
         switch choice {
         case .builtIn, .installedModel, .app:
@@ -616,7 +628,7 @@ final class ModelRoleStore {
                 return await fallback(for: role, because: nil, reason: .notRunnable)
             }
             let model = await library.refreshSupportVerdictIfNeeded(stored)
-            guard model.isRunnable, !model.isAuxiliary, !failures.hasFailed(model) else {
+            guard isAnswerable(id) else {
                 return await fallback(for: role, because: model, reason: .failedBefore)
             }
             await runtime.select(model)
@@ -775,6 +787,82 @@ final class ModelRoleStore {
         next.installedApps = Self.installedAgentApps()
         next.codexComputerUse = CodexComputerUse.probe()
         availability = next
+    }
+
+    // MARK: - Launch repair (P0-03)
+
+    /// Whether `id` names a file that can answer on this Mac right now: it is in the
+    /// library, the probe opened it, it is a model rather than a piece of one (an MTP
+    /// draft head or a vision projector), no real load of this exact file has failed here,
+    /// and a real trial did not already find it unable to answer. `provider(for:)` and the
+    /// launch repair ask this same question, so the row the person reads and the model a
+    /// turn gets cannot disagree.
+    func isAnswerable(_ id: String) -> Bool {
+        guard let model = library.model(withID: id) else { return false }
+        guard model.isRunnable, !model.isAuxiliary, !failures.hasFailed(model) else {
+            return false
+        }
+        return Self.trialAllowsAnswer(model.lastTrial)
+    }
+
+    /// What a recorded trial says about the file's ability to answer, if anything.
+    ///
+    /// `nil` means it has never been tried, which is not a failure of the file. `.busy` is
+    /// P0-02's `trial` refusing to free weights a live voice session is holding — a verdict
+    /// about this moment, not about the model — so it is treated the same as an absent
+    /// trial. Everything else is the file's own answer: it opened and could not generate,
+    /// or it would not build a context at all.
+    private nonisolated static func trialAllowsAnswer(_ trial: ModelTrialResult?) -> Bool {
+        switch trial {
+        case nil, .answered: true
+        case .opensButCannotAnswer: false
+        case .cannotOpen(let reason): reason != "busy"
+        }
+    }
+
+    /// Rewrites every role that points at a file which cannot answer, and returns the
+    /// repaired role names for the log.
+    ///
+    /// An installed-file choice can outlive the file it names: the person replaced the
+    /// library, deleted a model, or the file was a draft head all along. Rather than let
+    /// every turn fall back silently, launch rewrites the role once — to Apple's on-device
+    /// model when it is available, to the built-in one otherwise — and says so once per
+    /// `(role, file)`, ever. Only `.installedModel` choices are touched: cloud, local-server
+    /// and agent-app choices have their own availability rules, and the built-in model is
+    /// already the floor every fallback lands on.
+    func repairUnanswerableRoles() async -> [String] {
+        // P0-13's verdicts are lazy; ask for them before deciding, or a row nobody has
+        // classified yet would be repaired for being unknown rather than for being broken.
+        await library.refreshSupportVerdicts()
+        var repaired: [String] = []
+        for role in ModelRole.allCases {
+            guard case .installedModel(let id) = choice(for: role), !isAnswerable(id) else {
+                continue
+            }
+            let appleReady = await LLMProviders.make(.appleFoundation).unavailableReason == nil
+            let replacement: ModelRoleChoice = appleReady ? .appleFoundation : .builtIn
+            setChoice(replacement, for: role)
+            repaired.append(role.displayName)
+            let key = Self.repairKey(role: role, modelID: id)
+            guard shownRepairKeys.insert(key).inserted else { continue }
+            persistRepairNotices()
+            notice.report(
+                "The model chosen for \(role.displayName) can’t run on this Mac, "
+                    + "so it now uses \(displayName(for: replacement, role: role)). "
+                    + "You can pick another in Settings ▸ Agent."
+            )
+        }
+        return repaired
+    }
+
+    private static let repairNoticesKey = "modelRoles.repairNotices"
+
+    private static func repairKey(role: ModelRole, modelID: String) -> String {
+        "\(role.rawValue)|\(modelID)"
+    }
+
+    private func persistRepairNotices() {
+        defaults.set(shownRepairKeys.sorted(), forKey: Self.repairNoticesKey)
     }
 
     /// An agent app counts as installed only when the thing that would actually be launched

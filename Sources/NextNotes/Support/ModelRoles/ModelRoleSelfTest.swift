@@ -3,7 +3,7 @@ import Network
 
 /// `--selftest-model-roles`.
 ///
-/// Five things are checked, and each of them can fail:
+/// Six things are checked, and each of them can fail:
 ///
 /// 1. **Fallback lands on the built-in model.** Every kind of choice is resolved against a
 ///    Mac that has nothing installed, and every one of them must come back as `.builtIn`
@@ -21,6 +21,9 @@ import Network
 /// 5. **Discovery.** A real HTTP server is started on loopback, answers `/v1/models` and
 ///    `/api/tags` the way LM Studio and Ollama do, and must be found and parsed. Then it is
 ///    stopped and the same probe must report "not running" rather than hanging or throwing.
+/// 6. **(P0-03) A role resolves only to a model that can answer**, a stored role pointed at
+///    a draft head is repaired once at launch with one notice, and the agent publishes the
+///    model that actually answered the last turn.
 @MainActor
 enum ModelRoleSelfTest {
     static func run() async -> [String] {
@@ -33,6 +36,9 @@ enum ModelRoleSelfTest {
         failures += greenOnlyWhenItWouldWork()
         failures += whichJobARequestBelongsTo()
         failures += await callPathsFollowTheRoles()
+        failures += await answerableOnly()
+        failures += await launchRepair()
+        failures += await answeringModelIsPublished()
         failures += addressNormalisation()
         failures += toolCallBridging()
         failures += await discovery()
@@ -649,6 +655,189 @@ enum ModelRoleSelfTest {
         return failures
     }
 
+    // MARK: - 2e. A role resolves only to a model that can answer (P0-03)
+
+    /// A file that is real, on disk and probed as openable can still be unable to answer.
+    /// The measured case is the Gemma 4 E4B MTP draft head: 59.7 MB, a legal GGUF, and no
+    /// context can ever be built from it — every turn handed one answered "Inference could
+    /// not start". The fixture's verdict is pre-seeded as `.opens`, so only the auxiliary
+    /// check stands between it and a role.
+    private static func answerableOnly() async -> [String] {
+        var failures: [String] = []
+        guard let fixture = makeDraftHeadFixture() else {
+            return ["the draft-head fixture could not be created"]
+        }
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+        guard let isolated = isolatedDefaults(tag: "answerable") else {
+            return ["the isolated defaults suite could not be created"]
+        }
+        defer { isolated.defaults.removePersistentDomain(forName: isolated.domain) }
+
+        let runtime = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: 0)
+        let library = InstalledModelLibrary(
+            manifestURL: fixture.directory.appendingPathComponent("library.json"),
+            defaults: isolated.defaults)
+        library.add(fixture.model)
+        let store = ModelRoleStore(
+            defaults: isolated.defaults,
+            availability: .nothingInstalled,
+            library: library,
+            runtime: runtime,
+            failures: ModelOpenFailureStore(defaults: isolated.defaults))
+        store.setChoiceForTesting(.installedModel(id: fixture.model.id), for: .agent)
+
+        let provider = await store.provider(for: .agent)
+        if let provider, let local = provider as? LlamaLLMProvider,
+           local.displayModelName == fixture.model.displayName {
+            failures.append(
+                "the everyday assistant answered with “\(fixture.model.displayName)”, "
+                    + "which can open but cannot answer")
+        }
+        if !NotesModels.isDownloaded, provider?.id == .appLLM {
+            failures.append("the assistant resolved to the app's own runtime although no "
+                + "runnable model is on this Mac")
+        }
+        return failures
+    }
+
+    /// A stored role outlives the file it names. When that file cannot answer, launch has
+    /// to rewrite the role once — to Apple's on-device model when it is available, to the
+    /// built-in one otherwise — and say so once per (role, file), ever.
+    private static func launchRepair() async -> [String] {
+        var failures: [String] = []
+        guard let fixture = makeDraftHeadFixture() else {
+            return ["the draft-head fixture could not be created"]
+        }
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+        guard let isolated = isolatedDefaults(tag: "repair") else {
+            return ["the isolated defaults suite could not be created"]
+        }
+        defer { isolated.defaults.removePersistentDomain(forName: isolated.domain) }
+
+        isolated.defaults.set(
+            ModelRoleChoice.installedModel(id: fixture.model.id).token,
+            forKey: "modelRoles.agent")
+
+        let runtime = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: 0)
+        let library = InstalledModelLibrary(
+            manifestURL: fixture.directory.appendingPathComponent("library.json"),
+            defaults: isolated.defaults)
+        library.add(fixture.model)
+        let store = ModelRoleStore(
+            defaults: isolated.defaults,
+            availability: .nothingInstalled,
+            library: library,
+            runtime: runtime,
+            failures: ModelOpenFailureStore(defaults: isolated.defaults))
+        if store.choice(for: .agent) != .installedModel(id: fixture.model.id) {
+            return ["the stored role was not read back; the fixture is wrong, not the code"]
+        }
+
+        ModelLoadNotice.shared.clear()
+        let repaired = await store.repairUnanswerableRoles()
+        if repaired.isEmpty {
+            failures.append("the launch repair found nothing to repair for a role pointing "
+                + "at a draft head")
+        }
+        let appleReady = await LLMProviders.make(.appleFoundation).unavailableReason == nil
+        let expected: ModelRoleChoice = appleReady ? .appleFoundation : .builtIn
+        if store.choice(for: .agent) != expected {
+            failures.append("the launch repair left the assistant role on "
+                + "\(store.choice(for: .agent).token), not \(expected.token)")
+        }
+        if isolated.defaults.string(forKey: "modelRoles.agent") != expected.token {
+            failures.append("the launch repair did not persist the replacement role")
+        }
+        if ModelLoadNotice.shared.message?.contains("can’t run on this Mac") != true {
+            failures.append("the launch repair did not say the chosen model can’t run on "
+                + "this Mac (\(ModelLoadNotice.shared.message ?? "no notice"))")
+        }
+
+        // The same repair twice must not say the same thing twice.
+        ModelLoadNotice.shared.clear()
+        let second = await store.repairUnanswerableRoles()
+        if !second.isEmpty {
+            failures.append("a second launch repair reported \(second.count) repaired role(s)")
+        }
+        if let message = ModelLoadNotice.shared.message {
+            failures.append("a second launch repair repeated the notice: \(message)")
+        }
+        return failures
+    }
+
+    /// The pane must be able to name the model that answered. One typed turn on a stub
+    /// whose name is like no real model's: the published name can only have come from the
+    /// provider the turn ran on, not from the role's stored choice.
+    private static func answeringModelIsPublished() async -> [String] {
+        let agent = RealtimeAgent.shared
+        let stub = StubAnsweringProvider()
+        let previousProvider = agent.localModelProviderForTesting
+        agent.localModelProviderForTesting = stub
+        defer { agent.localModelProviderForTesting = previousProvider }
+
+        _ = await agent.runGeneralToolLoop("What can you do?")
+        guard let answering = agent.answeringModel else {
+            return ["the pane was never told which model answered the turn"]
+        }
+        var failures: [String] = []
+        if answering.name != stub.displayModelName {
+            failures.append("the pane named “\(answering.name)” as the answering model, "
+                + "not “\(stub.displayModelName)”")
+        }
+        if answering.id != stub.id {
+            failures.append("the pane recorded \(answering.id.rawValue) as the answering "
+                + "provider, not \(stub.id.rawValue)")
+        }
+        return failures
+    }
+
+    /// A sparse file with the exact name and size of the Gemma 4 E4B MTP draft head. It
+    /// takes no real disk, and its row carries an `.opens` verdict.
+    private static func makeDraftHeadFixture()
+        -> (directory: URL, model: InstalledLocalModel)? {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "NextNotesSelfTest-p0-03-\(ProcessInfo.processInfo.processIdentifier)",
+                isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let fileURL = directory.appendingPathComponent("mtp-gemma-4-E4B-it-Q4_0.gguf")
+            guard FileManager.default.createFile(atPath: fileURL.path, contents: nil) else {
+                return nil
+            }
+            let handle = try FileHandle(forWritingTo: fileURL)
+            try handle.truncate(atOffset: 59_700_000)
+            try handle.close()
+            let bytes = ModelDownloader.fileSize(at: fileURL)
+            let model = InstalledLocalModel(
+                id: "self-test/p0-03/mtp-gemma-4-E4B-it-Q4_0.gguf",
+                displayName: "Gemma 4 E4B draft head",
+                fileURL: fileURL,
+                parameterBillions: nil,
+                quantization: "Q4_0",
+                bytes: bytes,
+                isBuiltIn: false,
+                support: LlamaProbeResult(
+                    verdict: .opens,
+                    detail: nil,
+                    llamaBuildTag: LlamaArchitectures.buildTag,
+                    fileBytes: bytes))
+            return (directory, model)
+        } catch {
+            return nil
+        }
+    }
+
+    /// A per-run `UserDefaults` suite this test owns, so nothing lands in the owner's
+    /// `modelRoles.*` keys.
+    private static func isolatedDefaults(tag: String)
+        -> (defaults: UserDefaults, domain: String)? {
+        let domain = "NextNotesSelfTest-p0-03-\(tag)-\(ProcessInfo.processInfo.processIdentifier)"
+        guard let defaults = UserDefaults(suiteName: domain) else { return nil }
+        defaults.removePersistentDomain(forName: domain)
+        return (defaults, domain)
+    }
+
     // MARK: - 3a. Addresses
 
     private static func addressNormalisation() -> [String] {
@@ -906,5 +1095,19 @@ enum ModelRoleSelfTest {
             lock.unlock()
             pending?.resume(returning: value)
         }
+    }
+}
+
+/// One typed turn's model, named so no real file can share it.
+private struct StubAnsweringProvider: LLMProvider {
+    let id = LLMProviderID.appLLM
+    var displayModelName: String { "Stub" }
+    var contextTokens: Int { 4_096 }
+    var unavailableReason: String? { get async { nil } }
+
+    func countTokens(_ text: String) async throws -> Int { text.count / 4 + 1 }
+
+    func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+        LLMCompletion(text: "<answer/>Answered by the stub.", generatedTokens: 5, duration: 0)
     }
 }

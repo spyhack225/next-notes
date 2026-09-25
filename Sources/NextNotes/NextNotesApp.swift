@@ -252,6 +252,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if runRequestedSelfTest() { return }
 
+        // P0-03: a stored role can outlive the file it names. If the file the everyday
+        // assistant is pointed at cannot answer on this Mac any more, repair it once here
+        // and say so — never silently, and never more than once per (role, file).
+        Task { @MainActor in
+            _ = await ModelRoleStore.shared.repairUnanswerableRoles()
+        }
+
         // Once per install, and never under the self-test harness: earlier builds let
         // `URLSession.shared` write model replies and account details into the on-disk URL
         // cache (G N4). This removes what is already there and records that it ran.
@@ -411,6 +418,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 writeSelfTest(failures.isEmpty
                     ? "MODEL_ROLES_OK: fallback, routing, call paths, discovery and tool-call bridging verified"
                     : "MODEL_ROLES_FAILED: \(failures.count) problem(s)")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-chat-template") {
+            Task { @MainActor in
+                SelfTest.failed = !(await ChatTemplateSelfTest.runSelfTest())
                 NSApp.terminate(nil)
             }
             return true
@@ -3058,9 +3072,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             // 1. The ordinary hold. Establishes that the microphone and the state machine
             //    work at all here — without it every other check below passes vacuously.
+            //    Held 2 s, not 600 ms: the first microphone permission call of the process
+            //    costs ~1.1 s (TCC evaluation, measured 2026-09-25: key-down → capture
+            //    1.10 s on the first hold, ≤ 0.15 s on every later one), and D-02 moved
+            //    the hub subscribe ahead of the engine start, so that one-time cost now
+            //    sits inside the hold rather than behind the model load. Later holds are
+            //    unaffected — case c pins their capture latency.
             let plain = SelfTestInbox()
             let controllerA = makeController(.prompt(delay: .zero), inbox: plain)
-            let heldState = await hold(controllerA, held: .milliseconds(600), settle: 6)
+            let heldState = await hold(controllerA, held: .seconds(2), settle: 6)
             if heldState == nil {
                 failures.append("an ordinary hold never came back to idle")
             } else if heldState != .listening {
@@ -3093,17 +3113,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 failures.append("an unfinished transcript stream left the controller recording forever")
             }
 
-            // 4. Released while the engine is still starting, then held again straight
-            //    away — two start-ups in flight against one set of slots. The first hold is
-            //    lost, and must say so rather than going quiet; the second must still work.
+            // 4. Released while the engine is still starting, then held again
+            //    straight away — two start-ups in flight against one set of slots.
+            //    D-02 inverts this case on purpose (STATUS.md → Decisions and
+            //    deviations): the first hold is KEPT in the key-down pre-roll and
+            //    transcribed once the engine has started, instead of failing with
+            //    "still starting up". The second half is unchanged: the next hold
+            //    still works.
             let raced = SelfTestInbox()
             let controllerD = makeController(.prompt(delay: .seconds(2)), inbox: raced)
             controllerD.startButtonRecording()
             try? await Task.sleep(for: .milliseconds(200))
             controllerD.stopButtonRecording()
-            if case .error = controllerD.state {} else {
-                failures.append("a hold released during start-up went quiet (\(controllerD.state)) "
-                                + "instead of saying the recording was lost")
+            if case .finishing = controllerD.state {} else {
+                failures.append("a hold released during start-up went \(controllerD.state) "
+                                + "instead of .finishing for the pre-roll tail")
             }
 
             let settled = Date().addingTimeInterval(10)
@@ -3113,12 +3137,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if controllerD.state != .idle {
                 failures.append("a hold released during start-up never came back to idle")
             }
+            if raced.contents().count != 1 || raced.contents().first?.contains("transcript") != true {
+                failures.append("a hold released during start-up injected \(raced.contents()) "
+                                + "instead of its pre-roll transcript")
+            }
             // The abandoned start-up is still in flight here; the second hold has to be
             // unaffected by it.
             if await hold(controllerD, held: .seconds(3), settle: 8) == nil {
                 failures.append("the hold after an abandoned start-up never came back to idle")
             }
-            if raced.contents().count != 1 || raced.contents().first?.contains("transcript") != true {
+            if raced.contents().count != 2 || raced.contents().last?.contains("transcript") != true {
                 failures.append("the hold after an abandoned start-up injected \(raced.contents())")
             }
 
@@ -3138,6 +3166,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DictationController(
                     formatter: RuleBasedFormatter(),
                     makeEngine: { SelfTestEngine(shape: box.shape) },
+                    limits: limits,
+                    insert: { text, _ in
+                        inbox.append(text)
+                        return .inserted
+                    },
+                    // Discarded, not filed: fixtures, not the user's history.
+                    record: { _ in }
+                )
+            }
+
+            // D-02: the controller owns the engine, so a test that wants the fed
+            // frame count holds the instance through a box set inside `makeEngine`.
+            final class EngineHolder: @unchecked Sendable {
+                var engine: SelfTestEngine?
+            }
+            @MainActor
+            func makePrerollController(
+                box: MutableEngineShape,
+                holder: EngineHolder,
+                inbox: SelfTestInbox
+            ) -> DictationController {
+                DictationController(
+                    formatter: RuleBasedFormatter(),
+                    makeEngine: {
+                        let engine = SelfTestEngine(shape: box.shape)
+                        holder.engine = engine
+                        return engine
+                    },
                     limits: limits,
                     insert: { text, _ in
                         inbox.append(text)
@@ -3276,6 +3332,101 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if ParakeetInput.minimumCapturedSamples != 1_600
                 || ParakeetInput.minimumModelSamples != 4_800 {
                 failures.append("ParakeetInput thresholds moved")
+            }
+
+            // D-02a. Pre-roll kept: a slow-start engine held past its start still
+            // feeds (nearly) the whole hold, not just the audio after the start.
+            // Threshold 24,000 = 1.5 s of audio, measured, not 0.8 × the hold:
+            // the debug build takes ~0.5 s from hub subscribe to the first fed
+            // buffer (D-02-diag.txt delivery curve), so a 2.5 s hold typically
+            // feeds ~30k; the old code fed ~8k (only the ~0.5 s after its 1.5 s
+            // start). 24k is 3× the old ceiling and 0.8× the typical new count.
+            let holderA = EngineHolder()
+            let inboxA = SelfTestInbox()
+            let controllerH = makePrerollController(
+                box: MutableEngineShape(.countsFrames(startDelay: .milliseconds(1500))),
+                holder: holderA, inbox: inboxA)
+            controllerH.startButtonRecording()
+            try? await Task.sleep(for: .seconds(2.5))
+            let fedA = await holderA.engine?.framesFed() ?? -1
+            controllerH.stopButtonRecording()
+            let idleABy = Date().addingTimeInterval(8)
+            while Date() < idleABy, controllerH.state != .idle {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if fedA < 24_000 {
+                failures.append("pre-roll lost: fed \(fedA) frames of ~40000")
+            }
+            if inboxA.contents().count != 1 || inboxA.contents().first?.contains("transcript") != true {
+                failures.append("a hold past a slow start injected \(inboxA.contents())")
+            }
+            if controllerH.state != .idle {
+                failures.append("a hold past a slow start never came back to idle")
+            }
+
+            // D-02c. Capture latency: key-down → capture no longer includes the
+            // model load, so it stays ≤ 150 ms although the start took 1.5 s.
+            // (D-01b will file this as counts["keyDownToCaptureMs"]; P0-20a still
+            // todo, so the self-test reads the controller directly.)
+            if let captureSeconds = controllerH.keyDownToCaptureSeconds {
+                if captureSeconds > 0.15 {
+                    failures.append("key-down to capture took \(captureSeconds)s with a 1.5 s start")
+                }
+            } else {
+                failures.append("no key-down to capture time recorded for a 2.5 s hold")
+            }
+
+            // D-02b. Release during start-up transcribes: the state goes to
+            // `.finishing` (not `.error`) and the pre-roll comes back as text.
+            let holderB = EngineHolder()
+            let inboxB = SelfTestInbox()
+            let controllerI = makePrerollController(
+                box: MutableEngineShape(.countsFrames(startDelay: .milliseconds(1500))),
+                holder: holderB, inbox: inboxB)
+            controllerI.startButtonRecording()
+            try? await Task.sleep(for: .seconds(1))
+            controllerI.stopButtonRecording()
+            if case .finishing = controllerI.state {} else {
+                failures.append("a hold released during start-up went \(controllerI.state) "
+                                + "instead of .finishing for the pre-roll tail")
+            }
+            let idleBBy = Date().addingTimeInterval(8)
+            while Date() < idleBBy, controllerI.state != .idle {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if inboxB.contents().count != 1 || inboxB.contents().first?.contains("transcript") != true {
+                failures.append("a hold released during start-up injected \(inboxB.contents()) "
+                                + "instead of its pre-roll transcript")
+            }
+            if controllerI.state != .idle {
+                failures.append("a hold released during start-up never came back to idle")
+            }
+
+            // D-02d. Supersede safety: hold 1 cancelled mid-start must not cut
+            // hold 2's microphone when its late start-up unwinds. Hold 2 stays
+            // capturing past hold 1's 2 s start, so an `unsubscribe` there would
+            // show up as missing frames. Threshold as in D-02a (24,000): a whole
+            // hold feeds ~32k here, a mic cut at hold 1's unwind ~14k.
+            let supBox = MutableEngineShape(.countsFrames(startDelay: .seconds(2)))
+            let holderD = EngineHolder()
+            let inboxD = SelfTestInbox()
+            let controllerJ = makePrerollController(box: supBox, holder: holderD, inbox: inboxD)
+            controllerJ.startButtonRecording()
+            try? await Task.sleep(for: .milliseconds(500))
+            controllerJ.cancelDictation()
+            try? await Task.sleep(for: .milliseconds(200))
+            supBox.shape = .countsFrames(startDelay: .zero)
+            controllerJ.startButtonRecording()
+            if await hold(controllerJ, held: .milliseconds(2_500), settle: 8) == nil {
+                failures.append("the hold after a cancelled start-up never came back to idle")
+            }
+            let fedD = await holderD.engine?.framesFed() ?? -1
+            if fedD < 24_000 {
+                failures.append("a superseded start-up cut the next hold's microphone: "
+                                + "fed \(fedD) frames of ~40000")
+            }
+            if inboxD.contents().count != 1 || inboxD.contents().first?.contains("transcript") != true {
+                failures.append("the hold after a cancelled start-up injected \(inboxD.contents())")
             }
 
             for failure in failures { writeSelfTest("  DICTATION_WRONG: \(failure)") }
@@ -6615,6 +6766,10 @@ actor SelfTestEngine: TranscriptionEngine {
     enum Shape: Sendable {
         /// Starts after `delay`, then yields the fixture and closes cleanly.
         case prompt(delay: Duration)
+        /// Sleeps `startDelay` in `start()` (a slow model load), counts every fed
+        /// frame, and `finish()` yields `"self test transcript <frames>"`. (D-02:
+        /// proves the key-down pre-roll is replayed into the engine.)
+        case countsFrames(startDelay: Duration)
         /// `start()` throws — the model failed to load. (D-05.)
         case failsStart(String)
         /// `finish()` finishes the stream by throwing — a short-audio model
@@ -6629,8 +6784,15 @@ actor SelfTestEngine: TranscriptionEngine {
 
     private let shape: Shape
     private var continuation: AsyncThrowingStream<TranscriptionChunk, Error>.Continuation?
+    /// Frames received through `feed`, whatever the shape. D-02 reads it to prove
+    /// pre-roll audio reached the engine.
+    private var fedFrames = 0
 
     init(shape: Shape) { self.shape = shape }
+
+    /// Frames fed so far. The controller owns the engine, so the test holds it
+    /// through a box set inside `makeEngine`.
+    func framesFed() -> Int { fedFrames }
 
     func preferredInputFormat() async -> AVAudioFormat? {
         AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)
@@ -6647,10 +6809,15 @@ actor SelfTestEngine: TranscriptionEngine {
         if case .prompt(let delay) = shape, delay > .zero {
             try await Task.sleep(for: delay)
         }
+        if case .countsFrames(let startDelay) = shape, startDelay > .zero {
+            try await Task.sleep(for: startDelay)
+        }
         return stream
     }
 
-    func feed(_ chunk: AudioChunk) async {}
+    func feed(_ chunk: AudioChunk) async {
+        fedFrames += Int(chunk.buffer.frameLength)
+    }
 
     func finish() async {
         switch shape {
@@ -6671,6 +6838,10 @@ actor SelfTestEngine: TranscriptionEngine {
             }
         case .leavesStreamOpen:
             continuation?.yield(TranscriptionChunk(text: Self.transcript, isFinal: true))
+        case .countsFrames:
+            continuation?.yield(TranscriptionChunk(text: "\(Self.transcript) \(fedFrames)", isFinal: true))
+            continuation?.finish()
+            continuation = nil
         case .prompt:
             continuation?.yield(TranscriptionChunk(text: Self.transcript, isFinal: true))
             continuation?.finish()

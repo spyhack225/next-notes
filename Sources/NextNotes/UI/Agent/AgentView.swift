@@ -12,6 +12,8 @@ struct AgentView: View {
     @State private var acpGate = ACPConfirmationGate.shared
     @State private var identity = AgentIdentityStore.shared
     @State private var activityStore = AgentActivityStore.shared
+    @State private var roles = ModelRoleStore.shared
+    @State private var loadNotice = ModelLoadNotice.shared
     @State private var draft = ""
     @State private var showsRecentTasks = false
     /// Whether the trailing inspector is open. A layout preference, so it is persisted
@@ -253,6 +255,27 @@ struct AgentView: View {
                 // question twice, and answering one would leave the other on screen.
                 if let pending = gate.pending, !isShownInline(pending) { permissionCard(pending) }
                 if let acp = acpGate.pending { acpConfirmCard(acp) }
+                if let caption = answeringModelCaption {
+                    // P0-03: the pane says which model answered, so a turn that fell back
+                    // to another one cannot be described by Settings as something else.
+                    Text(caption)
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                if let message = loadNotice.message {
+                    // A model that failed is said here too, not only in Settings, with the
+                    // one move that changes it a click away.
+                    HStack(spacing: DS.Space.s) {
+                        Text(message)
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
+                        Button("Settings") { navigation.selectedSettingsTab = .agent }
+                            .buttonStyle(.borderless)
+                            .controlSize(.small)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                }
                 composer
                 // P2-6: persistent, fixed position, and the same sentence the working
                 // card and the island use. It sits under the composer so it is on every
@@ -486,6 +509,41 @@ struct AgentView: View {
         }
         .padding(DS.Space.s)
         .glassSurface()
+    }
+
+    /// "Answered by <name>", hidden until a turn has answered. When the answer did not
+    /// come from the model the assistant role names, the caption adds why, in the same
+    /// plain words the fallback's own sentence uses.
+    ///
+    /// The qualification is deliberately limited to local choices answered by a different
+    /// local model. A multi-step request routed online, or a cloud choice that fell back
+    /// because its key or network is missing, is not a model that "can’t run on this Mac",
+    /// and the caption must not invent that reason for it.
+    private var answeringModelCaption: String? {
+        guard let answering = agent.answeringModel else { return nil }
+        let chosen = roles.resolution(for: .agent).effective
+        let chosenIsLocal: Bool
+        switch chosen {
+        case .builtIn, .installedModel, .appleFoundation: chosenIsLocal = true
+        case .cloud, .localServer, .app: chosenIsLocal = false
+        }
+        let answeredLocally = answering.id == .appLLM || answering.id == .appleFoundation
+        guard chosenIsLocal, answeredLocally,
+              !Self.choice(chosen, namesAnswering: answering.id) else {
+            return "Answered by \(answering.name)"
+        }
+        let chosenName = roles.displayName(for: chosen, role: .agent)
+        return "Answered by \(answering.name) — \(chosenName) can’t run on this Mac."
+    }
+
+    /// Whether the model kind a choice resolves to is the one that answered.
+    private static func choice(_ choice: ModelRoleChoice, namesAnswering id: LLMProviderID) -> Bool {
+        switch choice {
+        case .builtIn, .installedModel, .app: id == .appLLM
+        case .appleFoundation: id == .appleFoundation
+        case .cloud: id == .openRouter
+        case .localServer: id == .localServer
+        }
     }
 
     private var composer: some View {
