@@ -435,13 +435,9 @@ struct IslandView: View {
         case .agentListening:
             HStack(spacing: DS.Space.s) {
                 // The one place a wake that fired on the wrong speech can be disowned.
-                // Telemetry only — the card stays up until Done.
-                Button("That wasn\u{2019}t for you") {
-                    WakeWordTelemetry.shared.recordFalseAccept(
-                        keyword: WakeWordAudioMonitor.shared.lastDetection?.keyword ?? "unknown",
-                        reason: "that-wasnt-for-you"
-                    )
-                }
+                // It records the false accept, closes the session and drops the turn;
+                // background work keeps running.
+                Button("That wasn\u{2019}t for you") { state.disownAgentListen() }
                 Button("Done") { state.endAgentListen() }
             }
             .controlSize(.small)

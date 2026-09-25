@@ -113,6 +113,7 @@ final class AgentCaptureController {
         case vad
         case goodbye
         case done
+        case disowned
         case idle
         case none
     }
@@ -371,7 +372,13 @@ final class AgentCaptureController {
         activeTurnTask?.cancel()
         activeTurnTask = nil
         _ = ACPConfirmationGate.shared.cancel()
-        if RealtimeAgent.shared.isThinking {
+        if source == .disowned {
+            // The person withdrew the words this turn was built from: drop the
+            // in-flight input and cancel any response it is generating, whether
+            // or not a reply had started. Background work keeps its owners.
+            RealtimeAgent.shared.discardVoiceInput()
+            RealtimeAgent.shared.cancel()
+        } else if RealtimeAgent.shared.isThinking {
             RealtimeAgent.shared.cancel()
         }
         lastEndpoint = source
@@ -385,7 +392,10 @@ final class AgentCaptureController {
         // A new session may have opened while the detached engine drained.
         // Its card and capture state belong to that newer session.
         guard captureSessionID == nil else { return }
-        if lastReply.isEmpty {
+        if source == .disowned {
+            IslandState.shared.showAgentReply("Okay, I'll ignore that.")
+            ActivationController.shared.finishAgent()
+        } else if lastReply.isEmpty {
             IslandState.shared.showAgentReply(source == .idle ? "Going quiet." : "Stopped.")
             ActivationController.shared.finishAgent()
         } else {
@@ -400,6 +410,18 @@ final class AgentCaptureController {
     /// Old name: callers that meant “user pressed Done” now end the session.
     func finish() async {
         await endSession(source: .done)
+    }
+
+    /// "That wasn't for you": the person disowns the speech the session heard.
+    /// Telemetry is counted once per session, then the session ends as `.disowned`
+    /// and its in-flight turn is dropped.
+    func disown() async {
+        guard isSessionActive else { return }
+        WakeWordTelemetry.shared.recordFalseAccept(
+            keyword: WakeWordAudioMonitor.shared.lastDetection?.keyword ?? "unknown",
+            reason: "that-wasnt-for-you"
+        )
+        await endSession(source: .disowned)
     }
 
     /// Self-test / wake remainder: speech then silence, no Done.
@@ -1963,6 +1985,51 @@ final class AgentCaptureController {
         if cleanedMicLevel(buffer) > Limits.silenceLevel {
             failures.append("silent PCM held the mic floor")
         }
+        return failures
+    }
+
+    @MainActor
+    static func disownSelfTestFailures() async -> [String] {
+        var failures: [String] = []
+        let capture = AgentCaptureController.shared
+        let island = IslandState.shared
+        await capture.endSession(source: .done)
+        await capture.beginSession(captureAudio: false)
+        var turns: [String] = []
+        let priorTurnHandler = capture.turnHandlerForTesting
+        capture.turnHandlerForTesting = { turns.append($0) }
+
+        let telemetryBefore = WakeWordTelemetry.shared.falseAccepts
+        capture.simulateCumulativeSpeech("DJ Burger King is on the menu tonight")
+        await capture.disown()
+        let telemetryAfterFirst = WakeWordTelemetry.shared.falseAccepts
+        if telemetryAfterFirst != telemetryBefore + 1 {
+            failures.append("disown recorded \(telemetryAfterFirst - telemetryBefore) false accepts, expected one")
+        }
+        capture.simulateCumulativeSpeech("Yeah. Yeah.")
+        capture.simulateSilence()
+        _ = await capture.considerEndpoint()
+        await capture.waitForActiveTurnForTesting()
+
+        if !turns.isEmpty {
+            failures.append("a disowned session committed another turn: \(turns)")
+        }
+        if capture.isSessionActive {
+            failures.append("a disowned session stayed active")
+        }
+        if capture.lastEndpoint != .disowned {
+            failures.append("a disowned session ended from \(capture.lastEndpoint.rawValue), not disowned")
+        }
+        if island.kind != .agentReply("Okay, I'll ignore that.") {
+            failures.append("a disowned session did not say it would ignore the speech: \(island.kind)")
+        }
+        await capture.disown()
+        if WakeWordTelemetry.shared.falseAccepts != telemetryAfterFirst {
+            failures.append("a repeat disown counted a second false accept")
+        }
+
+        capture.turnHandlerForTesting = priorTurnHandler
+        await capture.endSession(source: .done)
         return failures
     }
 

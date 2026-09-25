@@ -487,6 +487,12 @@ final class IslandState {
         Task { await AgentCaptureController.shared.endSession(source: .done) }
     }
 
+    /// "That wasn't for you": records the false accept and ends the session,
+    /// dropping the turn it was built from. Background work keeps running.
+    func disownAgentListen() {
+        Task { await AgentCaptureController.shared.disown() }
+    }
+
     func cancelAgentWork() {
         RealtimeAgent.shared.cancel()
     }
