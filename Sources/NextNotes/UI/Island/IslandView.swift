@@ -208,7 +208,7 @@ struct IslandView: View {
                 .equatable()
         } else {
             switch state.kind {
-            case .meetingArmed:
+            case .meetingArmed, .callQuestion:
                 glyph("calendar.badge.clock")
             case .notesReady:
                 glyph("doc.text")
@@ -317,7 +317,7 @@ struct IslandView: View {
                 track("Others", level: systemLevel)
             }
 
-        case .meetingArmed(let event):
+        case .meetingArmed(let event), .callQuestion(let event):
             Text(armedDetail(event))
                 .font(DS.Font.callout)
                 .foregroundStyle(secondaryInk)
@@ -419,7 +419,7 @@ struct IslandView: View {
     @ViewBuilder
     private var actions: some View {
         switch state.kind {
-        case .meetingArmed(let event):
+        case .meetingArmed(let event), .callQuestion(let event):
             HStack(spacing: DS.Space.s) {
                 Button("Skip") { state.skip(event) }
                 Button("Record now") { state.recordNow(event) }

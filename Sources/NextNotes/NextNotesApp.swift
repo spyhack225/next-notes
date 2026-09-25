@@ -4201,6 +4201,63 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         check("an empty listen still has a line", !bare.listeningDetail("").isEmpty)
 
+        // M-06: a detected call's question outlives its 8 s notice as a collapsed pill
+        // until the call ends or is answered. Title is the current `event.title` path;
+        // the M-02 owner name arrives with that task.
+        let callEvent = MeetingEvent(
+            id: "selftest-call",
+            providerID: .detectedCall,
+            title: "WhatsApp call",
+            start: Date().addingTimeInterval(-30),
+            end: Date().addingTimeInterval(-30),
+            attendees: [],
+            isOrganizerOrSelfAccepted: true,
+            conferenceURL: nil,
+            calendarName: "WhatsApp",
+            isAllDay: false
+        )
+        let callState = IslandState()
+        callState.announceArmed(callEvent)
+        check("a detected call shows its card", callState.kind == .meetingArmed(callEvent))
+        check("a detected call card opens by itself", callState.isExpanded)
+        callState.expireNotice()
+        check("kind == .callQuestion", callState.kind == .callQuestion(callEvent))
+        check("the call pill stays collapsed", !callState.isExpanded)
+        check("the call pill breathes", callState.kind.orb == .breathing)
+        check("the call pill asks nothing red", callState.cardTitle == callEvent.title)
+        check(
+            "the call pill does not demand attention",
+            !IslandState.Kind.callQuestion(callEvent).demandsAttention
+        )
+        check(
+            "the call pill identity names it",
+            callState.cardIdentity == "call-question:\(callEvent.id)"
+        )
+        callState.isHovered = true
+        check("hovering the call pill expands it", callState.isExpanded)
+        callState.isHovered = false
+
+        // b. A later notice covers the pill; when it goes away the question is back.
+        callState.announceNotesReady(meeting)
+        check(
+            "notes cover the call pill",
+            callState.kind == .notesReady(meetingID: meeting.id, title: meeting.title)
+        )
+        callState.dismissNotice()
+        check("the call pill returns after notes", callState.kind == .callQuestion(callEvent))
+
+        // c. Answering takes the pill down for good.
+        callState.clearArmed(callEvent)
+        check("answering a call takes the pill down", callState.kind == .hidden)
+        check("answering a call forgets it", callState.armedCall == nil)
+
+        // d. Calendar meetings get no pill: expiry leaves nothing behind.
+        let calendarState = IslandState()
+        calendarState.announceArmed(event)
+        calendarState.expireNotice()
+        check("a calendar card leaves no pill", calendarState.kind == .hidden)
+        check("a calendar card is forgotten", calendarState.armedCall == nil)
+
         return failures
     }
 

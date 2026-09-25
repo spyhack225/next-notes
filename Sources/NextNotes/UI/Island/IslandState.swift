@@ -75,6 +75,11 @@ final class IslandState {
         /// of. The HUD has always drawn the two apart; this is the island catching up.
         case dictating(transcript: String, level: Float, isCapturing: Bool)
         case meetingArmed(MeetingEvent)
+        /// M-06: the detected-call question after its 8 s notice expires. A collapsed
+        /// pill that lives in `armedCall` until the call ends or is answered — the
+        /// notice slot alone cannot hold it, because any later notice replaces it and
+        /// nothing would bring the question back.
+        case callQuestion(MeetingEvent)
         case meetingRecording(elapsed: TimeInterval, micLevel: Float, systemLevel: Float)
         case transcribing
         /// Identifying speakers. Not in the original list of states because diarization
@@ -135,6 +140,7 @@ final class IslandState {
             case .hidden: "hidden"
             case .dictating(_, _, let capturing): capturing ? "dictating" : "dictating.finishing"
             case .meetingArmed(let event): "armed:\(event.id)"
+            case .callQuestion(let event): "call-question:\(event.id)"
             case .meetingRecording: "recording"
             case .transcribing: "transcribing"
             case .diarizing: "diarizing"
@@ -184,7 +190,7 @@ final class IslandState {
             switch self {
             case .dictating(_, _, let capturing): capturing ? .listening : .working
             case .meetingRecording: .weaving
-            case .meetingArmed: .breathing
+            case .meetingArmed, .callQuestion: .breathing
             case .transcribing: .working
             case .diarizing: .solving
             case .summarizing: .composing
@@ -255,7 +261,7 @@ final class IslandState {
         switch kind {
         case .hidden: ""
         case .dictating(_, _, let capturing): capturing ? "Dictating" : "Transcribing"
-        case .meetingArmed(let event): event.title
+        case .meetingArmed(let event), .callQuestion(let event): event.title
         case .meetingRecording: meetings.session?.meeting.title ?? "Recording"
         case .transcribing: MeetingStatus.transcribing.displayName
         case .diarizing: MeetingStatus.diarizing.displayName
@@ -285,6 +291,12 @@ final class IslandState {
 
     private var notice: Notice?
     private var expiry: Task<Void, Never>?
+
+    /// M-06: the detected-call question that outlives its notice. Set by `announceArmed`
+    /// for `.detectedCall` events; cleared when the question is answered or the call ends
+    /// (`clearArmed`, the notification answer, Record now / Skip). Calendar meetings never
+    /// set it — their card already lives until the start time.
+    private(set) var armedCall: MeetingEvent?
 
     /// Phase 7 sets this to hear the island's Approve / Dismiss buttons.
     var onProposalDecision: ((IslandProposal, Bool) -> Void)?
@@ -327,6 +339,10 @@ final class IslandState {
 
     /// A meeting has been armed and is about to record itself.
     func announceArmed(_ event: MeetingEvent) {
+        // M-06: a detected call's start is already in the past, so the notice below
+        // lives exactly 8 s. The question itself is remembered here until answered or
+        // retired, and `liveKind()` keeps it on screen as a pill afterwards.
+        if event.providerID == .detectedCall { armedCall = event }
         // Up until the meeting starts, or for a notice's normal life — whichever is
         // longer. An event armed with a lead time of zero still deserves to be seen.
         push(.meetingArmed(event), for: max(DS.Motion.islandNotice, event.start.timeIntervalSinceNow))
@@ -334,7 +350,13 @@ final class IslandState {
 
     /// Takes the armed card down, whichever way the question was answered.
     func clearArmed(_ event: MeetingEvent) {
-        guard case .meetingArmed(let shown) = notice?.kind, shown.id == event.id else { return }
+        // M-06: the pill lives past the notice, so `retire` (call ended) must clear it
+        // even when there is no notice left to take down.
+        if let armed = armedCall, armed.id == event.id { armedCall = nil }
+        guard case .meetingArmed(let shown) = notice?.kind, shown.id == event.id else {
+            refresh()
+            return
+        }
         clearNotice()
     }
 
@@ -346,7 +368,15 @@ final class IslandState {
     /// scheduler because the card holds the calendar event and the caller holds the meeting
     /// that event produced.
     func clearArmed(meetingID: UUID) {
-        guard case .meetingArmed(let shown) = notice?.kind else { return }
+        // M-06: same as above, through the scheduler — the pill is matched by meeting.
+        if let armed = armedCall,
+           MeetingScheduler.shared.meeting(for: armed)?.id == meetingID {
+            armedCall = nil
+        }
+        guard case .meetingArmed(let shown) = notice?.kind else {
+            refresh()
+            return
+        }
         guard MeetingScheduler.shared.meeting(for: shown)?.id == meetingID else { return }
         clearNotice()
     }
@@ -529,6 +559,10 @@ final class IslandState {
                 level: dictation.level
             )
         }
+        // M-06: the unanswered detected-call question. Agent and dictation stay above
+        // it; it sits above the recording readout (there is none while armed) and idle.
+        // Calendar meetings never set `armedCall`, so their path is unchanged.
+        if let armedCall { return .callQuestion(armedCall) }
         if let session = meetings.session, session.isRecording {
             return .meetingRecording(
                 elapsed: session.elapsed,
@@ -601,6 +635,12 @@ final class IslandState {
         refresh()
     }
 
+    /// Takes an unanswered notice down. Factored out of the countdown so the self-test
+    /// can expire the notice without waiting 8 s (M-06).
+    func expireNotice() {
+        clearNotice()
+    }
+
     /// (Re)schedules the countdown that takes an unanswered notice down.
     ///
     /// Nothing counts down under the pointer, and what starts again when the pointer leaves
@@ -620,7 +660,7 @@ final class IslandState {
             try? await Task.sleep(for: .seconds(max(0, deadline.timeIntervalSinceNow)))
             guard !Task.isCancelled else { return }
             guard let self, !self.isHovered else { return }
-            self.clearNotice()
+            self.expireNotice()
         }
     }
 
@@ -631,7 +671,10 @@ final class IslandState {
             // either one answers both.
             switch action {
             case .recordNow(let id), .skip(let id), .open(let id):
-                if MeetingScheduler.shared.meeting(for: event)?.id == id { clearNotice() }
+                if MeetingScheduler.shared.meeting(for: event)?.id == id {
+                    if armedCall?.id == event.id { armedCall = nil }
+                    clearNotice()
+                }
             default:
                 break
             }
@@ -645,6 +688,19 @@ final class IslandState {
                 break
             }
         default:
+            // M-06: the question outlives its notice as the call pill, but the banner
+            // lives just as long. A banner answer while the pill shows still answers it.
+            if let armed = armedCall {
+                switch action {
+                case .recordNow(let id), .skip(let id), .open(let id):
+                    if MeetingScheduler.shared.meeting(for: armed)?.id == id {
+                        armedCall = nil
+                        refresh()
+                    }
+                default:
+                    break
+                }
+            }
             break
         }
     }
