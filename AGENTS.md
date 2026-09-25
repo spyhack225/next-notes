@@ -432,15 +432,93 @@ clicks. A reviewer read the `performComputer → runComputerLoop → ComputerLoo
 as the live one and filed it as a blocker; wiring a model into that closure would wire it
 into a path nothing takes. Grep for a producer before believing an `enum` case is reachable.
 
-**In the realtime tool loop, an alias is checked against the allowlist before the registry
-resolves it — and a miss abandons the whole turn.** `RealtimeAgent+ToolLoop.swift:796` tests
-the raw `call.name` against `RealtimeToolSelection.allowedIDs` and then `return`s, so a model
-that emits a registered alias (`files.find`, `workspace.*`) loses every remaining call in the
-plan rather than that one. Nothing advertised reaches it today — `FileToolCatalogue` derives
-its advertised ids from the canonical namespace, and `--selftest-file-index` fails if the
-sentence in the planner prompt names anything that is not both allowlisted and
-registry-resolvable. The ordering itself is still latent: resolve through the registry
-first, and skip the call rather than the turn.
+**In the realtime tool loop, an alias is resolved before the allowlist is consulted — and a
+miss still abandons the whole turn.** `RealtimeAgent+ToolLoop.swift:1250` resolves `call.name`
+through `AgentToolRegistry` first and accepts it when either the raw name or the resolved
+canonical id is in `RealtimeToolSelection.allowedIDs`, so a model that emits a registered
+alias (`files.find`, `workspace.*`) for an allowed tool runs that tool instead of losing the
+plan. A name that resolves to nothing, or to a tool outside the allowlist, still ends the
+turn with "The tool planner requested an unavailable tool; nothing else was run." rather
+than skipping that one call — that half is P1-04's to change. Nothing advertised reaches the
+refusal today: `FileToolCatalogue` derives its advertised ids from the canonical namespace,
+and `--selftest-file-index` fails if the sentence in the planner prompt names anything that
+is not both allowlisted and registry-resolvable.
+
+**A GGUF can be valid and still unopenable.** The architecture must be in
+`LlamaArchitectures.supported`, the table generated from the pinned llama.cpp tag by
+`Scripts/gen-llama-architectures.sh` and cross-checked against the linked binary. K2-Horizon
+(`k2-horizon`) was the example: a complete 3.16 GB file the owner had downloaded that
+b10621's `llama_model_load_from_file` returned nil for, which the planner reported as "The
+model could not be loaded." The guard reads the GGUF header and opens only the vocabulary —
+`--selftest-model-unopenable` case A fails if deciding support loaded any full weights — so
+an unopenable file is refused before a download, on install and before a role is assigned,
+without paying the load. `k2-horizon` is still absent from the table, and P0-16 is won't-do
+unless upstream llama.cpp adds it.
+
+**Provider resolution is read-only, and the switch is awaited.** On 2026-09-23 the typed
+turn resolved its provider twice — once for the first pass and again inside the planner —
+and a resolution wrote the library's selection while a fire-and-forget swap to that file was
+still in flight, so a plain question could be answered by a different model than the turn
+planned against. Now `ModelRoleStore` resolves read-only and deterministic, the library's
+`adoptInRuntime` is fire-and-forget only for a person's own selection change, and a turn
+calls the runtime's awaited `select(_:)` before it takes a provider.
+`--selftest-model-unopenable` case H is the guard.
+
+**`--selftest-llm-metal` used to prove nothing about the Agent.** With the built-in Gemma
+absent it loaded S1-mini, the 0.6B cleanup normaliser, and reported `LLM_METAL_OK` on a Mac
+whose Agent role pointed at a file llama.cpp could not open — a green Metal gate over an
+agent that answered nothing. It now has an agent-role leg: the role's real model must decode
+a token, printed as `LLM_METAL_AGENT_ROLE: <model> generated N token(s)`, and zero tokens
+fails the run.
+
+**The download verify decodes a token, and runs before anything is switched or deleted.**
+`NotesModelRuntime.trial(_:)` opens the exact file in the background lane, builds a context,
+decodes a fixed prompt and samples up to eight tokens; only a generated token becomes
+`.answered`, a context or decode failure is `.opensButCannotAnswer`, and a file that will not
+open is `.cannotOpen`. It never touches the library (the caller records `lastTrial` on the
+row), frees the weights before it returns, and refuses while a voice lease is held so it
+cannot race the switch. `ModelLibraryStore` runs it before `applyPostDownloadPolicy` deletes
+or switches and will not switch to a file that did not answer. Opening is not answering — an
+MTP draft head opens happily and then fails to build a context.
+
+**A reasoning model spends its answer allowance thinking.** OpenRouter's ling-3.0 used 105 of
+its 112 allowed completion tokens on reasoning and ended `finish_reason: length` without
+writing anything visible, which the old plumbing surfaced as "The model returned an
+incomplete response." (G N1). `OpenRouterReasoningPolicy` asks for cheap reasoning and pays a
+bounded allowance on top of the caller's visible budget — `visible + allowance` clamped to
+the room left in the reader's window — and a pass cut off before any visible text gets one
+retry with the allowance doubled (bounded by a quarter of the window and 4,096).
+`--selftest-openrouter-contract` replays the exact `reasoning_tokens: 105` stream event; the
+live `--selftest-openrouter` prints `OPENROUTER_REASONING`.
+
+**The llama runtime reuses the prompt prefix; anything that changes the KV contents must
+reset `kvTokens`.** `PrefixReuse.keepCount` finds the longest token prefix the new prompt
+shares with the cached one, capped one short so the final token is always decoded for
+logits, and `NotesModelRuntime` trims with `llama_memory_seq_rm` and decodes only the tail.
+A partial removal llama refuses (recurrent or hybrid memory) falls back to a full clear, and
+every error, cancellation, context rebuild, model swap and shutdown resets the ledger. Add a
+path that changes what the context holds and the reset comes with it, or the next turn
+answers from a stale prefix. `voiceRoutingSystem`'s "identical across the turns of a session
+so the llama.cpp prefix cache holds" is only worth anything because of this. Measured:
+reused 646/666 tokens, prefill 2.10 s → 0.33 s; `--selftest-llm-prefix-cache` is the guard.
+
+**Model calls use `PrivateURLSession`, not `URLSession.shared`.** `URLSession.shared` is
+backed by the process-wide `URLCache`, and it wrote a full OpenRouter SSE stream — the
+model's reasoning included — into `~/Library/Caches/ai.pivotstudio.nextnotes/fsCachedData/`,
+where it outlived the turn and could be replayed from disk (G N4). Every provider that
+carries model or account data now goes through `PrivateURLSession.shared` (ephemeral,
+`urlCache = nil`, cache-ignoring), and launch purges what the old session left behind once,
+outside the harness. Model downloads and public metadata are deliberately excluded.
+`--selftest-private-network` fails if a provider slips back to the shared session.
+
+**MiniCPM5's tool delimiters are control tokens, and `special = false` erases them.**
+`llama_token_to_piece(..., special: false)` renders `<function name=…>`, `<|tool_call>` and
+`<|im_end|>` as empty strings, so the planner's output parsed as prose and every tool request
+failed on a model that was writing correct calls (G N3). `ChatTemplate` detects the
+`minicpm5` family from `tokenizer.ggml.pre` or a `<function name=` in its template and
+renders those markers itself; `LlamaHelpers.piece` passes `renderSpecial` through on the
+planner decode path; notes generation keeps it off and strips the markers afterwards.
+`--selftest-chat-template` pins detection and rendering across the families.
 
 **A confidence score from a function-calling model is not comparable across tool sets.** The
 same sentence scored 1.00 with 2 tools, 0.93 with 14 and 0.41 with the 8 this app offers, so
@@ -1331,15 +1409,21 @@ development machine. Treat anything here as unproven, and do not describe it as 
   sample is zero, so no meeting has yet contained an "Others" track.
 - **Gemma 4 E4B.** Never downloaded (~9 GB of free disk is needed: 4.98 GB plus the
   downloader's 4 GB reserve), so `NotesModels.spec.expectedSHA256` is still `nil` — the
-  downloader logs the computed digest and the next agent to get it pins it — and every
-  notes and agent run so far has gone through Apple Foundation Models instead.
+  downloader logs the computed digest and the next agent to get it pins it. An earlier
+  version of this entry said every notes and agent run had gone through Apple Foundation
+  Models; `metrics.jsonl` shows that was false for the agent side — installed GGUFs loaded
+  for agent turns on 09-22 and 09-23 (MiniCPM5-2B, the active model until P0-01 replaced it
+  with Qwen3-4B-Instruct-2507). Meeting notes still fall back to Apple's model while the
+  built-in Gemma is absent.
 - **Both real calendars.** EventKit reports `.notDetermined` here; Google has never had an
   account connected, and needs the user's own Desktop-type OAuth client (id *and* secret —
   Google's installed-app client type requires the secret at the token endpoint even with
   PKCE).
-- **Every Workspace write.** `gws auth status` reports no credentials, so no proposal has
-  ever been approved and `WorkspaceToolRunner` has never spoken to the API. Each tool's
-  flags were checked against `gws <service> <helper> --help`, not against a live call.
+- **Every Workspace write.** `gws` is signed in on this Mac — a refresh token and 21 scopes
+  including Gmail, Calendar, Drive and Docs — so the agent's own reads reach the account. No
+  write proposal has ever been approved, so `WorkspaceToolRunner` has never performed a
+  write; each tool's flags were checked against `gws <service> <helper> --help`, not against
+  a live call.
 - **The screen-name harvest, beyond one Cursor window.** `Sources/NextNotes/Context/` reads the
   file, folder and tab names out of Cursor, Windsurf or VS Code at key-down so a spoken "the
   login handler file" resolves to the real name. **It has now run against a real Cursor window
@@ -1393,7 +1477,11 @@ not clear the coordinator's effect barrier until the latest input has been class
 Otherwise a correction can allow an old effect, or an uncleared floor can deadlock the
 response. `--selftest-concurrent-voice` and `--selftest-voice-conversation` cover both.
 On-device prefill must checkpoint between batches, and its background warmup must not acquire
-the same priority as the conversational frontend.
+the same priority as the conversational frontend. `NotesModelRuntime.prewarmWorkClass(voice:)`
+is the one place that decides the lane and both routes warm at `.background`: equal priority
+does not preempt, so the old `.realtimeAgent` warmup queued the next spoken turn behind a
+cold load's 11–25 s of weights and prefill. `--selftest-voice-scheduling` fails if the
+prewarm lane blocks a realtime acquire.
 
 **Echo suppression and EOU require the real producer.** Mixer PCM feeds SpeexDSP before
 Agent ASR/VAD. `SPEEX_PREPROCESS_SET_ECHO_STATE` takes the state pointer itself; disabling
