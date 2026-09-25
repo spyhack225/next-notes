@@ -258,6 +258,9 @@ struct CleanupRouter: TextFormatter {
                 seconds: outcome.seconds,
                 rejection: planRejection
             )
+            // D-01a: the layout session's prewarm, filed beside the plan verdict —
+            // including on timeouts, where the outcome still carries it.
+            trace?.noteStructurePlanPrewarmed(outcome.prewarmed)
             if source != "model plan", let reason = planRejection {
                 Log.speech.info("""
                     cleanup structure · layout plan not used \

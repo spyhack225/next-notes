@@ -124,7 +124,7 @@ struct FoundationModelFormatter: TextFormatter {
         let began = Date()
         do {
             let budget = timeoutOverride ?? Self.timeout(for: trimmed)
-            let (cleaned, prewarmed) = try await withThrowingTaskGroup(of: (String, Bool).self) { group in
+            let cleaned = try await withThrowingTaskGroup(of: (String, Bool).self) { group in
                 group.addTask {
                     try await Self.cleanReporting(
                         trimmed,
@@ -143,9 +143,10 @@ struct FoundationModelFormatter: TextFormatter {
                 // Whichever finishes first wins; cancel the loser.
                 guard let first = try await group.next() else { throw CleanupError.timedOut }
                 group.cancelAll()
-                return first
+                // The prewarm bit is already on the trace: `cleanReporting` files it
+                // before `respond` is awaited, so timeouts and throws carry it too. (D-01a.)
+                return first.0
             }
-            trace?.noteSessionPrewarmed(prewarmed)
 
             if let reason = CleanupGuard.rejection(
                 original: trimmed,
@@ -251,14 +252,25 @@ struct FoundationModelFormatter: TextFormatter {
             target: target,
             context: context
         )
+        let user = CleanupInstructions.user(text, fixesGrammar: fixesGrammar)
+        if let modelCall {
+            // D-01a: the seam stands in for the model. The prewarm is filed before
+            // `respond` is awaited, so timed-out, thrown and rejected runs carry it.
+            let prewarmed = await modelCall.takeSession(instructions)
+            trace?.noteSessionPrewarmed(prewarmed)
+            let answer = try await modelCall.respond(user)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return (answer, prewarmed)
+        }
         // A session staged while the key was still down, if there is one for exactly these
         // instructions. Apple's prewarm is prompt-specific, so a session staged against a
         // different prompt is worth nothing and is not offered.
         let staged = await CleanupSessionWarmer.shared.take(instructions: instructions)
+        trace?.noteSessionPrewarmed(staged != nil)          // before the call, always
         let session = staged ?? LanguageModelSession(instructions: instructions)
 
         let response = try await session.respond(
-            to: CleanupInstructions.user(text, fixesGrammar: fixesGrammar),
+            to: user,
             options: GenerationOptions(
                 // Near-deterministic: this is a formatting pass, not a creative one.
                 temperature: 0.1,

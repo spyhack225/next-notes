@@ -94,6 +94,12 @@ final class CleanupTrace: @unchecked Sendable {
         }
     }
 
+    /// Whether the layout pass ran on a session staged at key-down. Nil when no plan
+    /// was asked for, or the planner does not report it. (D-01a.)
+    func noteStructurePlanPrewarmed(_ used: Bool?) {
+        mutate { if let used { $0.structurePlanPrewarmed = used } }
+    }
+
     func noteStructureSource(_ source: String) {
         mutate { $0.structureSource = source }
     }
@@ -237,6 +243,9 @@ struct CleanupRecord: Codable, Sendable, Hashable {
     var structurePlanModel: String?
     var structurePlanSeconds: Double?
     var structurePlanRejected: String?
+    /// Whether the layout pass ran on a session staged at key-down. Nil when no plan
+    /// was asked for. Old rows decode as nil (every key here is `decodeIfPresent`).
+    var structurePlanPrewarmed: Bool?
 
     var seconds: Double?
     var modelSeconds: Double?

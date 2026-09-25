@@ -69,6 +69,19 @@ extension StructurePlanDraft.Kind {
 
 // MARK: - Apple's on-device model
 
+/// One lock-protected slot for handing a value out of a task-group child before the
+/// losing task is cancelled. (D-01a: the layout pass records whether its session was
+/// staged before `respond`, even when the deadline wins the race.)
+final class LockedBox<Value: Sendable>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: Value
+    init(_ value: Value) { stored = value }
+    var value: Value {
+        get { lock.lock(); defer { lock.unlock() }; return stored }
+        set { lock.lock(); stored = newValue; lock.unlock() }
+    }
+}
+
 /// The plan pass on Apple Intelligence, with guided generation doing the shape checking.
 ///
 /// ## The budget, and why a flat three seconds was the wrong number
@@ -123,6 +136,9 @@ struct AppleStructurePlanner: StructurePlanning {
         // Named apart from the property on purpose: `let budget = budget ?? …` reads as a
         // variable initialised from itself.
         let deadline = budget ?? Self.budget(forSentences: sentences.count)
+        // D-01a: the prewarm bit is set inside the child task before `respond`, so the
+        // `catch` path below still carries it when the deadline wins the race.
+        let prewarmedBox = LockedBox<Bool?>(nil)
         do {
             let draft = try await withThrowingTaskGroup(of: StructurePlanDraft.self) { group in
                 group.addTask {
@@ -131,8 +147,10 @@ struct AppleStructurePlanner: StructurePlanning {
                     // measurement behind it: the first call in a process pays the model
                     // waking up, and that is most of the three seconds this pass used to
                     // spend before it timed out.
-                    let session = await CleanupSessionWarmer.shared
+                    let staged = await CleanupSessionWarmer.shared
                         .take(instructions: StructurePlanPrompt.system)
+                    prewarmedBox.value = staged != nil
+                    let session = staged
                         ?? LanguageModelSession(instructions: StructurePlanPrompt.system)
                     let response = try await session.respond(
                         to: StructurePlanPrompt.user(sentences: sentences, eliding: elides),
@@ -157,13 +175,15 @@ struct AppleStructurePlanner: StructurePlanning {
             let plan = draft.plan
             let seconds = Date().timeIntervalSince(began)
             if let problem = plan.rejection(sentenceCount: sentences.count) {
-                return .failed(problem, seconds: seconds)
+                return .failed(problem, seconds: seconds, prewarmed: prewarmedBox.value)
             }
-            return StructurePlanOutcome(plan: plan, rejection: nil, seconds: seconds)
+            return StructurePlanOutcome(
+                plan: plan, rejection: nil, seconds: seconds, prewarmed: prewarmedBox.value)
         } catch {
             return .failed(
                 Self.describe(error, budget: deadline),
-                seconds: Date().timeIntervalSince(began)
+                seconds: Date().timeIntervalSince(began),
+                prewarmed: prewarmedBox.value
             )
         }
     }

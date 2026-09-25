@@ -607,8 +607,12 @@ struct StructurePlanOutcome: Sendable {
     /// Why there is no plan, in plain language. Nil when there is one.
     var rejection: String?
     var seconds: Double
+    /// Whether the layout pass ran on a session staged at key-down. Nil when the
+    /// planner does not report it. Recorded before `respond`, so a timed-out plan
+    /// still carries it. (D-01a.)
+    var prewarmed: Bool? = nil
 
-    static func failed(_ reason: String, seconds: Double) -> StructurePlanOutcome {
-        StructurePlanOutcome(plan: nil, rejection: reason, seconds: seconds)
+    static func failed(_ reason: String, seconds: Double, prewarmed: Bool? = nil) -> StructurePlanOutcome {
+        StructurePlanOutcome(plan: nil, rejection: reason, seconds: seconds, prewarmed: prewarmed)
     }
 }
