@@ -107,6 +107,15 @@ actor NotesModelRuntime {
     /// True when the template asks for BOS and the vocabulary does not add it itself
     /// (MiniCPM5). The token is prepended to the token list, never written as text.
     private var explicitBOS = false
+    /// The tokens whose KV entries currently sit at positions `0..<kvTokens.count` in the
+    /// live context (P0-18). `preparePrefix` keeps it in step with the memory: it is set to
+    /// the prompt after a successful prefill, extended token by token as generation decodes,
+    /// and emptied whenever the contents stop being known — a context rebuild, a model swap,
+    /// a shutdown, a decode error or a cancellation.
+    private var kvTokens: [llama_token] = []
+    /// What the last prefill did (P0-18): the prompt it was given, how much of it the KV
+    /// cache already held, how much it decoded, and how long that took.
+    private(set) var lastPrefillStats: PrefillStats?
 
     private var lastUse = Date()
     private var idleTask: Task<Void, Never>?
@@ -137,6 +146,26 @@ actor NotesModelRuntime {
 
     func setPrefillChunkObserverForTesting(_ observer: (@Sendable () -> Void)?) {
         prefillChunkObserverForTesting = observer
+    }
+
+    /// The statistics of the last prefill (`--selftest-llm-prefix-cache`).
+    func prefillStatsForTesting() -> PrefillStats? { lastPrefillStats }
+
+    /// Clears the live KV memory and forgets what is in it. Test-only entry point for the
+    /// equality probe; production resets happen at the same moments through `preparePrefix`
+    /// and the runtime's teardown paths.
+    func resetPrefixCacheForTesting() {
+        resetPrefixCache()
+    }
+
+    /// Forgets what the KV cache holds without discarding the context. The one producer of
+    /// state the next `preparePrefix` can act on; every path that invalidates the cache
+    /// without freeing it goes through here.
+    private func resetPrefixCache() {
+        if let context {
+            llama_memory_clear(llama_get_memory(context), true)
+        }
+        kvTokens = []
     }
 
     /// The warm-up in flight, so two signals share one and a caller can cancel it.
@@ -302,6 +331,10 @@ actor NotesModelRuntime {
         if model != nil { shutdownNow() }
         spec = pendingSpec
         self.pendingSpec = nil
+        // P0-18: a different file means a different vocabulary, so the cached token ids
+        // describe nothing. Every swap goes through here — immediately when idle, later
+        // when work held the lane (`useInstalledModel` only records it as pending).
+        resetPrefixCache()
         Log.llm.info("model library: now using \(self.spec.displayName, privacy: .public)")
     }
 
@@ -401,7 +434,7 @@ actor NotesModelRuntime {
         Log.llm.info(
             "model prewarm lane=\(workClass.rawValue, privacy: .public) route=\(route, privacy: .public)")
         do {
-            try await prepareForConversation(workClass: workClass)
+            try await prepareForConversation(workClass: workClass, voice: voice)
         } catch {
             Log.llm.info("model prewarm skipped: \(error.localizedDescription, privacy: .public)")
         }
@@ -419,18 +452,38 @@ actor NotesModelRuntime {
         scheduleIdleUnload()
     }
 
-    /// Warm the inference context and its first decode, not only the weight file.
+    /// Warm the inference context and its first prefill, not only the weight file.
     /// The first reply otherwise still pays Metal/context initialization after
-    /// `prepare()` has reported success. Discard this synthetic token entirely.
-    func prepareForConversation(workClass: WorkClass = .realtimeAgent) async throws {
+    /// `prepare()` has reported success.
+    ///
+    /// `voice` selects which system prompt the warm-up prefills (P0-18): the typed route
+    /// warms `RealtimeAgent.voiceRoutingSystem(voice: false)` and a voice session warms the
+    /// voice prompt, each rendered through the loaded family's own prefix and decoded with
+    /// no sampling. A warm-up whose prefix the live KV cache already starts with is skipped,
+    /// so typing in the Agent pane costs nothing after the first keystroke.
+    ///
+    /// The old body prefilled the **voice** prompt whatever the route and returned early
+    /// whenever a context existed, so the typed prewarm warmed the wrong tokens — the
+    /// difference between the two prompts is most of the prefix a typed turn needs.
+    func prepareForConversation(
+        workClass: WorkClass = .realtimeAgent, voice: Bool = false
+    ) async throws {
         try await withLane(workClass) { jobID in
             try await loadIfNeeded(schedulerJobID: jobID)
-            guard context == nil else { return }
-            try await streamWhileScheduled(
-                jobID: jobID,
-                system: RealtimeAgent.voiceRoutingSystem(voice: true),
-                messages: [.init(role: .user, content: "Hello.")],
-                maxTokens: 1, yield: { _ in })
+            let system = RealtimeAgent.voiceRoutingSystem(voice: voice)
+            let prefix = ChatTemplate.renderPrefix(family, system: system)
+            guard let vocabulary else { throw LlamaError.notLoaded }
+            let tokens = try tokenizePrompt(prefix, vocabulary: vocabulary)
+            guard !tokens.isEmpty else { throw LlamaError.decodeFailed }
+            guard tokens.count + 1 + Self.contextHeadroom <= contextTokens else {
+                throw LlamaError.inputTooLong
+            }
+            // The cache already holds this prefix — nothing to decode, and decoding the
+            // same text again for no reason is the work this prewarm exists to save.
+            if !kvTokens.starts(with: tokens) {
+                let context = try ensureContext(promptTokens: tokens.count, maxTokens: 1)
+                _ = try await preparePrefix(tokens, context: context, jobID: jobID)
+            }
         }
         lastUse = Date()
         scheduleIdleUnload()
@@ -547,7 +600,11 @@ actor NotesModelRuntime {
         let tokens = try tokenizePrompt(prompt, vocabulary: vocabulary)
         let context = try ensureContext(promptTokens: tokens.count, maxTokens: Self.trialMaxTokens)
         llama_memory_clear(llama_get_memory(context), true)
+        kvTokens = []
         try await decodePromptWhileScheduled(tokens, context: context, jobID: jobID)
+        // The trial never reuses a prefix, but it still has to keep the ledger honest about
+        // what is in the memory while it is held; the trial's own teardown clears both.
+        kvTokens = tokens
 
         guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: nil) else {
             throw LlamaError.samplerFailed
@@ -568,6 +625,7 @@ actor NotesModelRuntime {
             batch.n_tokens = 0
             LlamaHelpers.add(token, position: position, logits: true, to: &batch)
             guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
+            kvTokens.append(token)
             position += 1
         }
         let seconds = Date().timeIntervalSince(began)
@@ -705,11 +763,61 @@ actor NotesModelRuntime {
         }
     }
 
+    /// Decodes `prompt` into the live context, reusing the KV entries of the cached prefix
+    /// (P0-18).
+    ///
+    /// The longest common token prefix stays; the rest is removed with
+    /// `llama_memory_seq_rm(memory, 0, keep, -1)`. `llama.h` documents that call as returning
+    /// false when a partial sequence cannot be removed (hybrid, recurrent or sliding-window
+    /// memory may refuse one) — and a refused removal leaves the cache in a state this code
+    /// cannot describe, so the only safe fallback is `llama_memory_clear` and `keep = 0`.
+    /// That is also what an empty or different first token gives: reuse is exact tokens, not
+    /// similar text.
+    ///
+    /// `PrefixReuse.keepCount` never returns the whole prompt, so at least one token is
+    /// decoded here and the sampler has the logits of the last prompt position. Returns the
+    /// number of prompt tokens the context now holds.
+    private func preparePrefix(
+        _ prompt: [llama_token], context: OpaquePointer, jobID: UUID
+    ) async throws -> Int {
+        let began = ContinuousClock.now
+        let memory = llama_get_memory(context)
+        var keep = PrefixReuse.keepCount(cached: kvTokens, prompt: prompt)
+        if keep == 0 {
+            llama_memory_clear(memory, true)
+        } else if !llama_memory_seq_rm(memory, 0, llama_pos(keep), -1) {
+            llama_memory_clear(memory, true)
+            keep = 0
+        }
+        kvTokens = Array(kvTokens.prefix(keep))
+        do {
+            try await decodePromptWhileScheduled(
+                Array(prompt[keep...]), startPosition: keep, context: context, jobID: jobID)
+        } catch {
+            // The removal and the partial decode leave the cache half-shifted; nothing can
+            // reuse it until it is cleared.
+            llama_memory_clear(memory, true)
+            kvTokens = []
+            throw error
+        }
+        kvTokens = prompt
+        lastPrefillStats = PrefillStats(
+            promptTokens: prompt.count,
+            reused: keep,
+            decoded: prompt.count - keep,
+            seconds: began.duration(to: .now).inSeconds)
+        return prompt.count
+    }
+
     /// Prefill must yield too: a long tool prompt used to monopolize the GPU before
     /// the first token checkpoint. The native-context reservation remains held across
     /// these awaits, so another request cannot clear the in-flight KV cache.
+    ///
+    /// `startPosition` is where this slice begins in the context (P0-18): reuse decodes only
+    /// the suffix, and its KV positions have to land after the entries already there. Logits
+    /// are requested for the final token only — the one the sampler reads.
     private func decodePromptWhileScheduled(
-        _ tokens: [llama_token], context: OpaquePointer, jobID: UUID
+        _ tokens: [llama_token], startPosition: Int = 0, context: OpaquePointer, jobID: UUID
     ) async throws {
         guard !tokens.isEmpty else { throw LlamaError.decodeFailed }
         let chunk = min(128, Int(Self.batchTokens))
@@ -721,9 +829,9 @@ actor NotesModelRuntime {
             try Task.checkCancellation()
             let end = min(index + chunk, tokens.count)
             batch.n_tokens = 0
-            for position in index..<end {
-                LlamaHelpers.add(tokens[position], position: llama_pos(position),
-                    logits: position == tokens.count - 1, to: &batch)
+            for offset in index..<end {
+                LlamaHelpers.add(tokens[offset], position: llama_pos(startPosition + offset),
+                    logits: offset == tokens.count - 1, to: &batch)
             }
             guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
             index = end
@@ -759,14 +867,13 @@ actor NotesModelRuntime {
         }
 
         let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
-        llama_memory_clear(llama_get_memory(context), true)
         // Built before the prefill, so a grammar the native parser refuses costs nothing.
         guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: grammar) else {
             throw LlamaError.samplerFailed
         }
         defer { llama_sampler_free(sampler) }
 
-        try await decodePromptWhileScheduled(promptTokens, context: context, jobID: jobID)
+        _ = try await preparePrefix(promptTokens, context: context, jobID: jobID)
 
         let began = Date()
         var output = ""
@@ -780,27 +887,37 @@ actor NotesModelRuntime {
         var batch = llama_batch_init(1, 0, 1)
         defer { llama_batch_free(batch) }
 
-        while generated < maxTokens {
-            // Cancellation matters here in a way it doesn't for dictation cleanup: this loop
-            // can run for minutes, and a user who deleted the meeting shouldn't have to wait
-            // for the notes to finish being written for it.
-            try Task.checkCancellation()
-            // Let a queued realtimeASR job take the lane between tokens.
-            await ComputeScheduler.shared.checkpoint(jobID)
+        do {
+            while generated < maxTokens {
+                // Cancellation matters here in a way it doesn't for dictation cleanup: this loop
+                // can run for minutes, and a user who deleted the meeting shouldn't have to wait
+                // for the notes to finish being written for it.
+                try Task.checkCancellation()
+                // Let a queued realtimeASR job take the lane between tokens.
+                await ComputeScheduler.shared.checkpoint(jobID)
 
-            let token = llama_sampler_sample(sampler, context, -1)
-            if llama_vocab_is_eog(vocabulary, token) { break }
-            output += LlamaHelpers.piece(token, vocabulary: vocabulary)
-            generated += 1
-            if !turnEnd.isEmpty, output.hasSuffix(turnEnd) {
-                output.removeLast(turnEnd.count)
-                break
+                let token = llama_sampler_sample(sampler, context, -1)
+                if llama_vocab_is_eog(vocabulary, token) { break }
+                output += LlamaHelpers.piece(token, vocabulary: vocabulary)
+                generated += 1
+                if !turnEnd.isEmpty, output.hasSuffix(turnEnd) {
+                    output.removeLast(turnEnd.count)
+                    break
+                }
+
+                batch.n_tokens = 0
+                LlamaHelpers.add(token, position: position, logits: true, to: &batch)
+                guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
+                // P0-18: this token's KV entry is at `position`, so the ledger grows with it.
+                kvTokens.append(token)
+                position += 1
             }
-
-            batch.n_tokens = 0
-            LlamaHelpers.add(token, position: position, logits: true, to: &batch)
-            guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
-            position += 1
+        } catch {
+            // A failed decode or a cancellation mid-generation leaves the native context in
+            // a state this code did not build; drop both halves of the cache together.
+            llama_memory_clear(llama_get_memory(context), true)
+            kvTokens = []
+            throw error
         }
 
         // Control markers never reach the notes text: MiniCPM5's `<function …>` and every
@@ -847,9 +964,11 @@ actor NotesModelRuntime {
         let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
         contextTrace.end(note: "app_llm had_context=\(hadContext) tokens=\(contextSize)")
         let prefillTrace = LatencyTrace.start(.modelPrefill)
-        llama_memory_clear(llama_get_memory(context), true)
-        try await decodePromptWhileScheduled(promptTokens, context: context, jobID: jobID)
-        prefillTrace.end(note: "app_llm prompt_tokens=\(promptTokens.count)")
+        _ = try await preparePrefix(promptTokens, context: context, jobID: jobID)
+        let reused = lastPrefillStats?.reused ?? 0
+        prefillTrace.end(
+            note: "app_llm prompt_tokens=\(promptTokens.count) reused=\(reused) "
+                + "decoded=\(promptTokens.count - reused)")
 
         guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: nil) else {
             throw LlamaError.samplerFailed
@@ -867,53 +986,63 @@ actor NotesModelRuntime {
         // token that is not the vocabulary's EOG arrives as text and is held back here.
         let turnEnd = ChatTemplate.stopMarker(family)
 
-        while generated < maxTokens {
-            try Task.checkCancellation()
-            await ComputeScheduler.shared.checkpoint(jobID)
+        do {
+            while generated < maxTokens {
+                try Task.checkCancellation()
+                await ComputeScheduler.shared.checkpoint(jobID)
 
-            let token = llama_sampler_sample(sampler, context, -1)
-            if llama_vocab_is_eog(vocabulary, token) { break }
-            var piece = LlamaHelpers.piece(
-                token, vocabulary: vocabulary, renderSpecial: renderSpecial)
-            if renderSpecial {
-                // A plain answer must not speak a family's turn or thinking markers. The
-                // stop marker is excluded: the holdback below needs it to end the turn.
-                for marker in ChatTemplate.controlMarkers(family) where marker != turnEnd {
-                    piece = piece.replacingOccurrences(of: marker, with: "")
+                let token = llama_sampler_sample(sampler, context, -1)
+                if llama_vocab_is_eog(vocabulary, token) { break }
+                var piece = LlamaHelpers.piece(
+                    token, vocabulary: vocabulary, renderSpecial: renderSpecial)
+                if renderSpecial {
+                    // A plain answer must not speak a family's turn or thinking markers. The
+                    // stop marker is excluded: the holdback below needs it to end the turn.
+                    for marker in ChatTemplate.controlMarkers(family) where marker != turnEnd {
+                        piece = piece.replacingOccurrences(of: marker, with: "")
+                    }
                 }
-            }
-            if !reportedFirstToken {
-                reportedFirstToken = true
-                firstTokenTrace.end(note: "app_llm")
-            }
-            output += piece
-            generated += 1
-            pending += piece
-            // Hold a suffix that could still become the family's terminator. This avoids
-            // sending its fragments into the spoken-reply bridge.
-            let maxHeld = min(turnEnd.count, pending.count)
-            let held: Int
-            if maxHeld == 0 {
-                held = 0
-            } else {
-                held = (1...maxHeld).reversed().first {
-                    String(pending.suffix($0)) == String(turnEnd.prefix($0))
-                } ?? 0
-            }
-            let safeCount = pending.count - held
-            if safeCount > 0 {
-                yield(String(pending.prefix(safeCount)))
-                pending.removeFirst(safeCount)
-            }
-            if !turnEnd.isEmpty, pending == turnEnd {
-                pending = ""
-                break
-            }
+                if !reportedFirstToken {
+                    reportedFirstToken = true
+                    firstTokenTrace.end(note: "app_llm")
+                }
+                output += piece
+                generated += 1
+                pending += piece
+                // Hold a suffix that could still become the family's terminator. This avoids
+                // sending its fragments into the spoken-reply bridge.
+                let maxHeld = min(turnEnd.count, pending.count)
+                let held: Int
+                if maxHeld == 0 {
+                    held = 0
+                } else {
+                    held = (1...maxHeld).reversed().first {
+                        String(pending.suffix($0)) == String(turnEnd.prefix($0))
+                    } ?? 0
+                }
+                let safeCount = pending.count - held
+                if safeCount > 0 {
+                    yield(String(pending.prefix(safeCount)))
+                    pending.removeFirst(safeCount)
+                }
+                if !turnEnd.isEmpty, pending == turnEnd {
+                    pending = ""
+                    break
+                }
 
-            batch.n_tokens = 0
-            LlamaHelpers.add(token, position: position, logits: true, to: &batch)
-            guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
-            position += 1
+                batch.n_tokens = 0
+                LlamaHelpers.add(token, position: position, logits: true, to: &batch)
+                guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
+                // P0-18: this token's KV entry is at `position`, so the ledger grows with it.
+                kvTokens.append(token)
+                position += 1
+            }
+        } catch {
+            // A failed decode or a cancellation mid-generation leaves the native context in
+            // a state this code did not build; drop both halves of the cache together.
+            llama_memory_clear(llama_get_memory(context), true)
+            kvTokens = []
+            throw error
         }
         if !pending.isEmpty, turnEnd.isEmpty || !pending.hasPrefix(turnEnd) { yield(pending) }
     }
@@ -1321,6 +1450,8 @@ actor NotesModelRuntime {
             family = .chatmlThinking
             explicitBOS = false
         }
+        // P0-18: whatever the context held is gone; the ledger must not outlive it.
+        kvTokens = []
     }
 
     /// The Models tab can hand this runtime a different GGUF at any moment.
@@ -1668,11 +1799,16 @@ actor NotesModelRuntime {
             * Self.contextGranularity
         let size = min(max(rounded, Self.minContextTokens), contextTokens)
 
-        if let context, contextSize == size { return context }
+        // P0-18: only grow. Rebuilding an adequate context throws away every KV entry it
+        // holds, and with prefix reuse that is the whole cost this runtime exists to avoid —
+        // a smaller prompt than last time must keep the bigger context it already has.
+        if let context, contextSize >= size { return context }
         if let context {
             llama_free(context)
             self.context = nil
             contextSize = 0
+            // A freed context takes its KV entries with it; the ledger has to follow.
+            kvTokens = []
         }
 
         var parameters = llama_context_default_params()
@@ -1690,6 +1826,7 @@ actor NotesModelRuntime {
         }
         context = created
         contextSize = size
+        kvTokens = []
         return created
     }
 
@@ -1700,6 +1837,14 @@ actor NotesModelRuntime {
             guard !Task.isCancelled else { return }
             await self?.unloadIfIdle()
         }
+    }
+}
+
+private extension Duration {
+    /// The duration in seconds as a `Double`. `components.seconds` alone drops the
+    /// sub-second part, which is most of a warm prefill.
+    var inSeconds: Double {
+        Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 }
 

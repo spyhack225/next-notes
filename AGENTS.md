@@ -99,6 +99,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-model-roles --selftest-model-fit --selftest-hf-search
 --selftest-model-unopenable --selftest-private-network --selftest-store-isolation
 --selftest-chat-template
+--selftest-llm-prefix-cache
 --selftest-memory-portability
 --selftest-voice-turn-routing --selftest-wake-live
 --selftest-computer-actions  --selftest-click-coordinate --selftest-cdp

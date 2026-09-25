@@ -106,6 +106,15 @@ enum AgentAnswersSelfTest {
             SelfTest.diagnostic(
                 "AGENT_ANSWER \(index + 1): \(provider.id.rawValue) · \(provider.displayModelName)"
                     + " · \(route ?? "unknown") · \(String(reply.prefix(120)))")
+            // P0-18: when the answering model is the app's own llama runtime, one line per
+            // turn says how much of the prompt the KV cache already held. Read after the
+            // turn, so it is the last pass's prefill.
+            if provider.id == .appLLM,
+               let stats = await NotesModelRuntime.shared.prefillStatsForTesting() {
+                SelfTest.diagnostic(
+                    "AGENT_ANSWERS_PREFILL turn=\(index + 1) reused=\(stats.reused) "
+                        + "decoded=\(stats.decoded)")
+            }
 
             if reply.isEmpty {
                 return .failed(turn: prompt, reason: "the reply was empty")

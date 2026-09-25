@@ -78,14 +78,76 @@ enum ChatTemplate {
         messages: [LLMChatMessage]
     ) -> String {
         switch family {
+        case .chatmlThinking, .chatml, .minicpm5, .llama3, .gemma, .gemma4:
+            return renderHistory(family, system: system, messages: messages)
+                + generationPrompt(family)
+        case .unsupported:
+            return ""
+        }
+    }
+
+    /// The exact text `render(_:system:messages:)` starts with, whatever the messages
+    /// (P0-18): the text a warm-up can prefill with no sampling and no model interaction.
+    ///
+    /// For every family but Gemma this is the closed system turn, which the history renders
+    /// before the first message. Gemma has no system role — its system text merges into the
+    /// first user turn — so its prefix stops where a user message continues with `"\n\n"`
+    /// and an assistant message closes the turn instead.
+    static func renderPrefix(_ family: ChatTemplateFamily, system: String) -> String {
+        switch family {
         case .chatmlThinking, .chatml, .minicpm5:
-            return renderChatML(family, system: system, messages: messages)
+            return "<|im_start|>system\n\(safe(system, for: family))<|im_end|>\n"
         case .llama3:
-            return renderLlama3(system: system, messages: messages)
+            return "<|start_header_id|>system<|end_header_id|>\n\n"
+                + "\(safe(system, for: .llama3))<|eot_id|>"
         case .gemma:
-            return renderGemma(system: system, messages: messages)
+            return "<start_of_turn>user\n\(safe(system, for: .gemma))"
         case .gemma4:
-            return renderGemma4(system: system, messages: messages)
+            return "<|turn>system\n\(safe(system, for: .gemma4))<turn|>\n"
+        case .unsupported:
+            return ""
+        }
+    }
+
+    /// `render(_:system:messages:)` without its trailing generation prompt — the part a later
+    /// call in the same session can reuse (P0-18).
+    static func renderHistory(
+        _ family: ChatTemplateFamily,
+        system: String,
+        messages: [LLMChatMessage]
+    ) -> String {
+        switch family {
+        case .chatmlThinking, .chatml, .minicpm5:
+            return renderChatMLHistory(family, system: system, messages: messages)
+        case .llama3:
+            return renderLlama3History(system: system, messages: messages)
+        case .gemma:
+            return renderGemmaHistory(system: system, messages: messages)
+        case .gemma4:
+            return renderGemma4History(system: system, messages: messages)
+        case .unsupported:
+            return ""
+        }
+    }
+
+    /// The trailing text that opens the model's turn. `render` is `renderHistory` plus this.
+    private static func generationPrompt(_ family: ChatTemplateFamily) -> String {
+        switch family {
+        case .chatmlThinking, .minicpm5:
+            // Left to themselves, hybrid models open `<think>` and deliberate for hundreds of
+            // tokens. An already-closed, empty block starts the answer immediately.
+            return "<|im_start|>assistant\n<think>\n\n</think>\n\n"
+        case .chatml:
+            return "<|im_start|>assistant\n"
+        case .llama3:
+            // BOS is added by the tokenizer's own `add_special`, so `<|begin_of_text|>` is
+            // deliberately not written here as text.
+            return "<|start_header_id|>assistant<|end_header_id|>\n\n"
+        case .gemma:
+            return "<start_of_turn>model\n"
+        case .gemma4:
+            // No `<|think|>`: thinking stays off in Phase 0.
+            return "<|turn>model\n"
         case .unsupported:
             return ""
         }
@@ -122,7 +184,7 @@ enum ChatTemplate {
 
     // MARK: - Families
 
-    private static func renderChatML(
+    private static func renderChatMLHistory(
         _ family: ChatTemplateFamily,
         system: String,
         messages: [LLMChatMessage]
@@ -132,17 +194,10 @@ enum ChatTemplate {
             prompt += "<|im_start|>\(message.role.rawValue)\n"
                 + safe(message.content, for: family) + "<|im_end|>\n"
         }
-        // Left to themselves, hybrid models open `<think>` and deliberate for hundreds of
-        // tokens. An already-closed, empty block starts the answer immediately.
-        if family == .chatml {
-            prompt += "<|im_start|>assistant\n"
-        } else {
-            prompt += "<|im_start|>assistant\n<think>\n\n</think>\n\n"
-        }
         return prompt
     }
 
-    private static func renderLlama3(system: String, messages: [LLMChatMessage]) -> String {
+    private static func renderLlama3History(system: String, messages: [LLMChatMessage]) -> String {
         // BOS is added by the tokenizer's own `add_special`, so `<|begin_of_text|>` is
         // deliberately not written here as text.
         var prompt = "<|start_header_id|>system<|end_header_id|>\n\n"
@@ -151,11 +206,10 @@ enum ChatTemplate {
             prompt += "<|start_header_id|>\(message.role.rawValue)<|end_header_id|>\n\n"
                 + safe(message.content, for: .llama3) + "<|eot_id|>"
         }
-        prompt += "<|start_header_id|>assistant<|end_header_id|>\n\n"
         return prompt
     }
 
-    private static func renderGemma(system: String, messages: [LLMChatMessage]) -> String {
+    private static func renderGemmaHistory(system: String, messages: [LLMChatMessage]) -> String {
         // Gemma has no system role: the system text merges into the first user turn.
         // Assistant turns are spelled `model`.
         var prompt = ""
@@ -184,18 +238,15 @@ enum ChatTemplate {
             }
         }
         if !openedUserTurn { prompt += userTurn(pendingSystem) }
-        prompt += "<start_of_turn>model\n"
         return prompt
     }
 
-    private static func renderGemma4(system: String, messages: [LLMChatMessage]) -> String {
+    private static func renderGemma4History(system: String, messages: [LLMChatMessage]) -> String {
         var prompt = "<|turn>system\n\(safe(system, for: .gemma4))<turn|>\n"
         for message in messages {
             let role = message.role == .assistant ? "model" : message.role.rawValue
             prompt += "<|turn>\(role)\n\(safe(message.content, for: .gemma4))<turn|>\n"
         }
-        // No `<|think|>`: thinking stays off in Phase 0.
-        prompt += "<|turn>model\n"
         return prompt
     }
 

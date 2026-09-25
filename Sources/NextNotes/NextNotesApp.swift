@@ -314,9 +314,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { await SkillLibrary.shared.rescan() }
 
         // A meeting still marked as running was interrupted by a crash or a force-quit.
-        // Say so, rather than leaving a row that claims to be recording forever. Runs
-        // before the scheduler starts: it must not find a meeting that claims to be live.
-        MeetingStore.shared.repairInterruptedMeetings()
+        // Repair plans each one at its stage rather than writing it off, and the resumer
+        // below works the plan once launch settles. Runs before the scheduler starts:
+        // it must not find a meeting that claims to be live.
+        let resumePlan = MeetingStore.shared.repairInterruptedMeetings()
+        if !SelfTest.isRunning {
+            Task { @MainActor in
+                await MeetingResumer(
+                    store: .shared,
+                    finalPass: { FinalTranscriptService.shared.process($0, store: .shared) },
+                    afterTranscript: { _ = MeetingPipeline.afterFinalPass($0, store: .shared) },
+                    diarize: { DiarizationService.shared.process($0) },
+                    notes: { NotesService.shared.summarize($0, announce: true) },
+                    isBusy: {
+                        LiveKnowledgeIndexEnvironment.isForegroundBusy
+                            || LiveKnowledgeIndexEnvironment.isVoiceBusy
+                            || MeetingController.shared.isRecording
+                    }
+                ).resume(resumePlan)
+            }
+        }
 
         // Reading the calendar and acting on it are two jobs on purpose — the service only
         // ever answers "what is coming up", and the scheduler is the only thing that turns
@@ -418,6 +435,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 writeSelfTest(failures.isEmpty
                     ? "MODEL_ROLES_OK: fallback, routing, call paths, discovery and tool-call bridging verified"
                     : "MODEL_ROLES_FAILED: \(failures.count) problem(s)")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-llm-prefix-cache") {
+            Task { @MainActor in
+                SelfTest.failed = !(await PrefixCacheSelfTest.runSelfTest())
                 NSApp.terminate(nil)
             }
             return true
@@ -1155,6 +1179,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-meeting-finals") {
             runMeetingFinalsSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-meeting-resume") {
+            runMeetingResumeSelfTest()
             return true
         }
         if arguments.contains("--selftest-diarize-assign") {
@@ -2732,6 +2760,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// `--selftest-meeting-resume`: the M-08 resume planner, the isolated-store
+    /// resume run (3/3 seeded interruptions reach `.done` with notes), and the
+    /// stall watchdog. No model, no microphone, never the user's `Meetings/`.
+    private func runMeetingResumeSelfTest() {
+        Task { @MainActor in
+            SelfTest.failed = !(await MeetingResumeSelfTest.run { writeSelfTest($0) })
+            NSApp.terminate(nil)
+        }
+    }
+
     /// `--notes-context-live`: the same brief against this machine's own memory, index,
     /// graph and folders. Read-only; prints `_EMPTY` rather than failing when there is
     /// legitimately nothing to connect. Must not be renamed to a `--selftest-*` flag — the
@@ -3054,7 +3092,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             @MainActor
             func makeController(
                 _ shape: SelfTestEngine.Shape,
-                inbox: SelfTestInbox
+                inbox: SelfTestInbox,
+                speechDetector: @escaping @Sendable (AVAudioPCMBuffer) -> Int = defaultSpeechDetector
             ) -> DictationController {
                 DictationController(
                     formatter: RuleBasedFormatter(),
@@ -3066,7 +3105,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     },
                     // Discarded, not filed. These are fixtures, and the Dictation list is the
                     // user's own history — a self-test has no business appearing in it.
-                    record: { _ in }
+                    record: { _ in },
+                    speechDetector: speechDetector
                 )
             }
 
@@ -3102,6 +3142,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             if !hung.contents().isEmpty {
                 failures.append("a wedged finish() injected \(hung.contents())")
+            }
+            // D-03d. A transcribe timeout keeps the hold for retry.
+            // (No outcome row: D-01b's sink needs P0-20a's UsageLog, still
+            // todo — the kept slot is what this pins; D-01b adds the
+            // `failed:transcribeTimeout` row.)
+            if !controllerB.canRetryLastHold {
+                failures.append("a transcribe timeout kept nothing for retry")
             }
 
             // 3. A transcript stream nobody closes. This is the shape the single-slot
@@ -3161,7 +3208,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             @MainActor
             func makeRetryController(
                 box: MutableEngineShape,
-                inbox: SelfTestInbox
+                inbox: SelfTestInbox,
+                speechDetector: @escaping @Sendable (AVAudioPCMBuffer) -> Int = defaultSpeechDetector
             ) -> DictationController {
                 DictationController(
                     formatter: RuleBasedFormatter(),
@@ -3172,7 +3220,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         return .inserted
                     },
                     // Discarded, not filed: fixtures, not the user's history.
-                    record: { _ in }
+                    record: { _ in },
+                    speechDetector: speechDetector
                 )
             }
 
@@ -3453,6 +3502,93 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             if controllerK.state != .idle {
                 failures.append("a tap faster than the subscribe never came back to idle")
+            }
+
+            // D-03a. Empty transcript over speech: the hold must say so on the
+            // error card and keep its audio for retry — never go quietly idle.
+            // (No outcome row: D-01b's sink needs P0-20a's UsageLog, still todo.
+            // The card, the slot and the silence half below are the assertions
+            // that exist until then; D-01b adds `emptySpeech` / `empty` rows.)
+            let speechBox = MutableEngineShape(.emptyTranscript)
+            let speechInbox = SelfTestInbox()
+            let controllerL = makeRetryController(
+                box: speechBox, inbox: speechInbox, speechDetector: { _ in 100 })
+            controllerL.startButtonRecording()
+            try? await Task.sleep(for: .milliseconds(800))
+            controllerL.stopButtonRecording()
+            var speechMessage: String?
+            var sawSpeechIdle = false
+            let speechBy = Date().addingTimeInterval(8)
+            while Date() < speechBy {
+                if case .error(let message) = controllerL.state { speechMessage = message; break }
+                if controllerL.state == .idle { sawSpeechIdle = true; break }
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if let message = speechMessage {
+                if !message.contains("couldn't make out") {
+                    failures.append("empty transcript over speech showed the wrong card: \(message)")
+                }
+            } else if sawSpeechIdle {
+                failures.append("empty transcript over speech went quietly idle with nothing kept")
+            } else {
+                failures.append("empty transcript over speech never settled (state \(controllerL.state))")
+            }
+            if !controllerL.canRetryLastHold {
+                failures.append("empty transcript over speech kept nothing for retry")
+            }
+            if !speechInbox.contents().isEmpty {
+                failures.append("empty transcript over speech injected \(speechInbox.contents())")
+            }
+            let speechIdleBy = Date().addingTimeInterval(8)
+            while Date() < speechIdleBy, controllerL.state != .idle {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+
+            // D-03b. Empty transcript over silence stays quiet: idle, no card,
+            // nothing kept. Passes before the fix too — it pins the silence half
+            // so a later change cannot start nagging over room tone.
+            let silentInbox = SelfTestInbox()
+            let controllerM = makeController(
+                .emptyTranscript, inbox: silentInbox, speechDetector: { _ in 0 })
+            controllerM.startButtonRecording()
+            try? await Task.sleep(for: .milliseconds(800))
+            controllerM.stopButtonRecording()
+            var silentError: String?
+            let silentBy = Date().addingTimeInterval(8)
+            while Date() < silentBy {
+                if case .error(let message) = controllerM.state { silentError = message; break }
+                if controllerM.state == .idle { break }
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if let message = silentError {
+                failures.append("empty transcript over silence showed an error card: \(message)")
+            }
+            if controllerM.state != .idle {
+                failures.append("empty transcript over silence never came back to idle")
+            }
+            if controllerM.canRetryLastHold {
+                failures.append("empty transcript over silence kept audio for retry")
+            }
+            if !silentInbox.contents().isEmpty {
+                failures.append("empty transcript over silence injected \(silentInbox.contents())")
+            }
+
+            // D-03c. Retry: after a, swap the engine box and retry the kept
+            // hold — the inbox gets the transcript and the slot clears.
+            speechBox.shape = .prompt(delay: .zero)
+            controllerL.retryLastFailedHold()
+            let retryIdleBy = Date().addingTimeInterval(10)
+            while Date() < retryIdleBy, controllerL.state != .idle {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if controllerL.state != .idle {
+                failures.append("a retried hold never came back to idle")
+            } else if speechInbox.contents().count != 1
+                || speechInbox.contents().first?.contains("transcript") != true {
+                failures.append("a retried hold injected \(speechInbox.contents())")
+            }
+            if controllerL.canRetryLastHold {
+                failures.append("a retried hold left its audio kept")
             }
 
             for failure in failures { writeSelfTest("  DICTATION_WRONG: \(failure)") }
@@ -6801,6 +6937,9 @@ actor SelfTestEngine: TranscriptionEngine {
         /// `finish()` finishes the stream by throwing — a short-audio model
         /// refusal, or any engine failure on release. (D-04.)
         case throwsOnFinish(String)
+        /// `finish()` yields `""` and closes — an empty transcript over real
+        /// microphone audio. (D-01b step 8; D-03's speech/silence split.)
+        case emptyTranscript
         /// `finish()` never returns — a model load, or a queue a meeting is holding.
         case hangsOnFinish
         /// Yields the fixture but never closes the stream, so anything awaiting the
@@ -6853,6 +6992,10 @@ actor SelfTestEngine: TranscriptionEngine {
             continuation?.finish(throwing: NSError(
                 domain: "SelfTestEngine", code: 2,
                 userInfo: [NSLocalizedDescriptionKey: message]))
+            continuation = nil
+        case .emptyTranscript:
+            continuation?.yield(TranscriptionChunk(text: "", isFinal: true))
+            continuation?.finish()
             continuation = nil
         case .hangsOnFinish:
             // Deliberately unbounded. `Task.sleep` throws on cancellation, and the point is
