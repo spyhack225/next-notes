@@ -30,8 +30,8 @@ import Foundation
 /// `dictationRows` writes rows and E3 fails until the guard knows the file, so the red run
 /// is the missing dictation seam plus the missing guard entry.
 enum UsageLogSelfTest {
-    /// How many cases a green run reports: U1–U7, M1–M7, D1, R1–R3 and E1–E4.
-    private static let caseCount = 22
+    /// How many cases a green run reports: U1–U7, M1–M7, D1–D2, R1–R3 and E1–E4.
+    private static let caseCount = 23
 
     /// `run()` is async so E1 can await the real main-actor agent path: the old synchronous
     /// runner blocked the main actor on a semaphore while its cases ran, which no
@@ -79,6 +79,10 @@ enum UsageLogSelfTest {
             let d1 = checkD1()
             failures += labelled("D1", d1.problems)
             rows += d1.rows
+
+            let d2 = await checkD2(root: root)
+            failures += labelled("D2", d2.problems)
+            rows += d2.rows
 
             failures += labelled("E2", checkE2(rows: rows))
             failures += labelled("E3", checkE3(before: realBefore))
@@ -781,6 +785,120 @@ enum UsageLogSelfTest {
             }
         } else {
             problems.append("the timed-out run wrote no dictation.cleanup row")
+        }
+        return CaseOutcome(problems: problems, rows: rows)
+    }
+
+    // MARK: - D2: the controller-level case (P0-20c)
+
+    /// One real `DictationController` hold with its fake engine and its `insert:`/`record:`
+    /// seams, plus a `usage:` log of its own: exactly one `dictation.asr` row joins the
+    /// `DictationRun.id` handed to `record:`, with the tail's five stages; a cleanup pass
+    /// adds exactly one `dictation.cleanup` row on the same run id. The microphone is
+    /// injected open — the TCC grant belongs to the responsible process and this flag is an
+    /// ordinary INTEGRATION run (AGENTS.md), so the case must not depend on it.
+    @MainActor
+    private static func checkD2(root: URL) async -> CaseOutcome {
+        let log = UsageLog(directory: root.appendingPathComponent("d2", isDirectory: true))
+        let inbox = SelfTestInbox()
+        var filed: DictationRun?
+        let controller = DictationController(
+            formatter: RuleBasedFormatter(),
+            makeEngine: { SelfTestEngine(shape: .prompt(delay: .zero)) },
+            limits: DictationController.Limits(
+                startup: .seconds(3),
+                drain: .seconds(1),
+                transcribe: .seconds(2),
+                cleanup: .seconds(2),
+                command: .seconds(2)
+            ),
+            insert: { text, _ in
+                inbox.append(text)
+                return .inserted
+            },
+            record: { filed = $0 },
+            usage: log,
+            requestMicrophone: { true }
+        )
+
+        controller.startButtonRecording()
+        try? await Task.sleep(for: .milliseconds(400))
+        controller.stopButtonRecording()
+
+        let deadline = Date().addingTimeInterval(10)
+        while Date() < deadline, controller.state != .idle {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        if controller.state != .idle {
+            return CaseOutcome(problems: ["the hold never came back to idle (state \(controller.state))"])
+        }
+        guard let run = filed else {
+            return CaseOutcome(problems: ["the hold filed no DictationRun through the record: seam"])
+        }
+        if inbox.contents().count != 1 {
+            return CaseOutcome(problems: ["the hold injected \(inbox.contents().count) text(s), expected 1"])
+        }
+
+        log.flush()
+        let rows = log.load()
+        let asr = rows.filter { $0.feature == UsageFeature.dictationASR.rawValue }
+        guard asr.count == 1, let asrRow = asr.first else {
+            return CaseOutcome(problems: ["expected exactly 1 dictation.asr row, wrote \(asr.count)"], rows: rows)
+        }
+        var problems: [String] = []
+        if asrRow.dictationRunID != run.id {
+            problems.append("the asr row's dictationRunID was "
+                            + "\(asrRow.dictationRunID?.uuidString ?? "nil"), expected the DictationRun.id "
+                            + "\(run.id.uuidString)")
+        }
+        if asrRow.provider != UsageProvider.parakeet.rawValue {
+            problems.append("the asr row's provider was \(asrRow.provider), "
+                            + "expected \(UsageProvider.parakeet.rawValue)")
+        }
+        if asrRow.modelID != SpeechEngineChoice.parakeet.rawValue {
+            problems.append("the asr row's modelID was \(asrRow.modelID), "
+                            + "expected \(SpeechEngineChoice.parakeet.rawValue)")
+        }
+        let expectedStages: Set<String> = ["drain", "transcribe", "names", "cleanup", "inject"]
+        let actualStages = Set((asrRow.stages ?? [:]).keys)
+        if actualStages != expectedStages {
+            problems.append("the asr row's stages were \(actualStages.sorted()), "
+                            + "expected \(expectedStages.sorted())")
+        }
+        if asrRow.finishReason != "stop" || asrRow.truncated == true {
+            problems.append("the asr row said finishReason=\(asrRow.finishReason ?? "nil") "
+                            + "truncated=\(asrRow.truncated.map { String($0) } ?? "nil")")
+        }
+        if let held = asrRow.audioSeconds {
+            if held <= 0 {
+                problems.append("the asr row's audioSeconds was \(held), expected the held time")
+            }
+        } else {
+            problems.append("the asr row carried no audioSeconds")
+        }
+        // No `totalMs > 0` here: the fake engine transcribes in under a millisecond, so a
+        // zero is honest. D1 pins the timing fields from fixed numbers instead.
+
+        let cleanupRows = rows.filter { $0.feature == UsageFeature.dictationCleanup.rawValue }
+        if let cleanup = run.cleanup {
+            if cleanupRows.count != 1 {
+                problems.append("cleanup ran but wrote \(cleanupRows.count) dictation.cleanup row(s)")
+            } else {
+                if cleanupRows[0].dictationRunID != run.id {
+                    problems.append("the cleanup row's dictationRunID does not match the run")
+                }
+                if cleanupRows[0].finishReason != "stop" {
+                    problems.append("the cleanup row said finishReason="
+                                    + "\(cleanupRows[0].finishReason ?? "nil"), expected stop")
+                }
+                if let chunks = cleanup.chunks, cleanupRows[0].counts?["chunks"] != chunks {
+                    problems.append("the cleanup row's chunks was "
+                                    + "\(cleanupRows[0].counts?["chunks"].map { String($0) } ?? "nil"), "
+                                    + "expected \(chunks)")
+                }
+            }
+        } else if !cleanupRows.isEmpty {
+            problems.append("no cleanup pass ran but \(cleanupRows.count) dictation.cleanup row(s) were written")
         }
         return CaseOutcome(problems: problems, rows: rows)
     }

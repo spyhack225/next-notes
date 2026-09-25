@@ -304,7 +304,7 @@ final class DictationController {
     private var keyDownToCaptureTrace: LatencyTrace?
     /// Key-down → hub subscribe, in seconds, set when the pre-roll subscribe succeeds.
     /// Read by `--selftest-dictation` (D-02 case c); D-01b will file it as
-    /// `counts["keyDownToCaptureMs"]` once the usage rows land (P0-20a still todo).
+    /// `counts["keyDownToCaptureMs"]` (P0-20c's rows landed without it).
     private(set) var keyDownToCaptureSeconds: TimeInterval?
     /// True from the pre-roll hub subscribe until the microphone closes. The island
     /// and the HUD read it so a hold shows as capturing while `.starting` (D-02):
@@ -329,6 +329,10 @@ final class DictationController {
     /// that used the real log would write its fixtures into the user's own history — which
     /// it did, until this seam existed.
     private let record: @MainActor (DictationRun) -> Void
+    /// Where the dictation's usage rows go (P0-20c). Injected only by tests; production
+    /// appends to the real `usage.jsonl`, and a test injects a directory of its own so it
+    /// can read the rows back without touching the harness temp store.
+    private let usage: UsageLog
     private let commandProcessor: any TextCommandProcessor
 
     /// Chosen per-utterance so the menu toggle applies to the very next hold.
@@ -630,12 +634,19 @@ final class DictationController {
         insert: @escaping @MainActor (String, TextInjector.Origin?) async -> TextInjector.Outcome
             = { await TextInjector.insert($0, returningTo: $1) },
         record: @escaping @MainActor (DictationRun) -> Void = { RunLog.record($0) },
+        usage: UsageLog = .shared,
         // Injectable for the same reason `insert` is: reading the selection needs
         // Accessibility and a focused text field in another app, neither of which a
         // self-test has, and the branch worth checking is the one where there is no
         // selection at all.
         captureSelection: @escaping @MainActor () -> TextInjector.Selection?
             = { TextInjector.captureSelection() },
+        // Injected only by tests. Production asks macOS for the microphone; a self-test
+        // cannot, because the grant belongs to the responsible process and an ordinary
+        // `--selftest-usage-log` run is not the app (AGENTS.md). `--selftest-dictation`
+        // launches through LaunchServices instead and uses the real call.
+        requestMicrophone: @escaping @MainActor () async -> Bool
+            = { await Permissions.requestMicrophone() },
         // Speech-energy check on empty transcripts (D-03): returns the voiced
         // 20 ms frames in a buffer. Production passes the RMS default; only
         // self-tests pass anything else.
@@ -647,11 +658,14 @@ final class DictationController {
         self.limits = limits
         self.insert = insert
         self.record = record
+        self.usage = usage
         self.captureSelection = captureSelection
+        self.requestMicrophone = requestMicrophone
         self.speechDetector = speechDetector
     }
 
     private let captureSelection: @MainActor () -> TextInjector.Selection?
+    private let requestMicrophone: @MainActor () async -> Bool
     private let speechDetector: @Sendable (AVAudioPCMBuffer) -> Int
 
     /// The last hold that ended with nothing typed, with its audio (D-03).
@@ -1123,7 +1137,7 @@ final class DictationController {
 
         Task { @MainActor in
             do {
-                guard await Permissions.requestMicrophone() else {
+                guard await requestMicrophone() else {
                     guard self.session == session else { return }
                     fail("Microphone access is off. Enable it in System Settings ▸ Privacy & Security ▸ Microphone.")
                     return
@@ -1220,9 +1234,9 @@ final class DictationController {
                         onLevel: { [weak self] level in
                             Task { @MainActor in self?.updateLevel(level) }
                         },
-                        // Counted per hold for D-01b's `droppedHubBuffers` (P0-20a
-                        // still todo); the log line the default callback wrote moves
-                        // into those rows rather than firing per overflow.
+                        // Counted per hold for D-01b's `droppedHubBuffers` (P0-20c's
+                        // rows landed without it); the log line the default callback
+                        // wrote moves into those rows rather than firing per overflow.
                         onOverflow: { n in audioCounter?.addHubDrops(n) }
                     )
                 } catch {
@@ -1432,12 +1446,19 @@ final class DictationController {
         let feedTask = self.feedTask
         let engine = self.engine
         let consumeTask = self.consumeTask
+        // Which speech engine actually ran this hold, for the usage row. Read from the
+        // engine rather than from the setting: a test injects its own, and the row should
+        // name what ran rather than what the picker says today.
+        let engineChoice: SpeechEngineChoice = engine is AppleSpeechEngine ? .apple : .parakeet
         self.audioContinuation = nil
         self.feedTask = nil
         self.engine = nil
         self.consumeTask = nil
 
         let began = Date()
+        // One id for the whole run: `runs.jsonl` files it and both usage rows join on it
+        // (P0-20c). Made before the drain so it names the run from its first stage.
+        let runID = UUID()
         audioContinuation?.finish()
         _ = await withBoundedWait(limits.drain) { () -> Bool in
             await feedTask?.value
@@ -1604,7 +1625,12 @@ final class DictationController {
         // Recorded before injection, deliberately. If the text cannot be placed, the
         // Dictation list is the other way back to it, and an utterance that is hard to
         // deliver is exactly the one worth having filed.
-        recordRun(text: output, corrections: corrections, cleanup: cleanupRecord)
+        //
+        // The key-held time is read here because `recordRun` clears both dates at the end.
+        let heldSeconds = holdStarted.flatMap { started in
+            releasedAt.map { $0.timeIntervalSince(started) }
+        }
+        recordRun(text: output, corrections: corrections, cleanup: cleanupRecord, runID: runID)
 
         let injectBegan = Date()
         let outcome = await insert(output, origin)
@@ -1615,6 +1641,27 @@ final class DictationController {
                 .dictationKeyUpToInjection,
                 seconds: Date().timeIntervalSince(releasedAt)
             )
+        }
+
+        // P0-20c: the durable rows, written after injection so the asr row carries the
+        // injection stage. `usage.record` only enqueues, so nothing here waits on disk,
+        // and the numbers are the tail's own — the same ones the info line above prints.
+        if let heldSeconds {
+            for row in UsageRecord.dictationRows(
+                runID: runID,
+                engine: engineChoice,
+                audioSeconds: heldSeconds,
+                drained: drained,
+                transcribedAt: transcribedAt,
+                narrowedAt: narrowedAt,
+                cleanedAt: cleanedAt,
+                injectSeconds: injectSeconds,
+                transcribed: transcribed,
+                cleanup: cleanupRecord,
+                cleanupTimedOut: cleanupTimedOut
+            ) {
+                usage.record(row)
+            }
         }
 
         switch outcome {
@@ -1821,14 +1868,19 @@ final class DictationController {
     /// `processSeconds` is measured from key release, not from capture start — that's the
     /// wait the user actually experiences, and it's the only number on which a streaming
     /// engine and a batch engine can be compared honestly.
+    ///
+    /// `runID` is the id the tail's usage rows join on (P0-20c). Command Mode passes none:
+    /// it is not a dictation pass, so it files a run with a fresh id and no usage row.
     private func recordRun(
         text: String,
         corrections: [AppliedCorrection] = [],
-        cleanup: CleanupRecord? = nil
+        cleanup: CleanupRecord? = nil,
+        runID: UUID? = nil
     ) {
         guard let holdStarted, let releasedAt else { return }
         record(
             DictationRun(
+                id: runID ?? UUID(),
                 date: releasedAt,
                 engine: engineName,
                 audioSeconds: releasedAt.timeIntervalSince(holdStarted),
