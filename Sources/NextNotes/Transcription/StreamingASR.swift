@@ -27,6 +27,14 @@ enum StreamingASR {
     /// into diarization; short 2–5 s windows carry the latency win on their own.
     static let meetingOverlapSeconds: TimeInterval = 0
 
+    /// Meeting final-pass windows (M-01): after Stop each track is re-transcribed in
+    /// long windows cut at pauses, while the 2–5 s windows above stay the live tier.
+    /// 10 s minimum keeps every window near one native 15 s encoder pass; 14.5 s maximum
+    /// stays just under it so FluidAudio never pays a chunk merge. The pair was chosen
+    /// by measuring `--selftest-meeting-finals --finals-window` (see STATUS.md, M-01).
+    static let meetingFinalMinSeconds: TimeInterval = 10.0
+    static let meetingFinalMaxSeconds: TimeInterval = 14.5
+
     /// Asserts the streaming window API is the 2–5 s provisional path, not the
     /// old 30/60-only hard path. Does not load Parakeet. Wire later with
     /// `--selftest-stream`:
@@ -84,6 +92,29 @@ enum StreamingASR {
         }
         if !ParakeetEngine.emitsPartialsWhileHeld {
             failures.append("ParakeetEngine no longer reports partials-while-held")
+        }
+        // M-01: the final tier is long windows, strictly above the live band, with no
+        // provisionals of its own. (The exact pair is measured; these are the shape.)
+        if meetingFinalMinSeconds < 8 || meetingFinalMinSeconds > 30 {
+            failures.append(
+                "meeting final min window \(meetingFinalMinSeconds)s is not a long window"
+            )
+        }
+        if meetingFinalMaxSeconds <= meetingFinalMinSeconds || meetingFinalMaxSeconds > 32 {
+            failures.append(
+                "meeting final max window \(meetingFinalMaxSeconds)s does not bound the min"
+            )
+        }
+        let finals = ChunkedTranscriber.WindowConfig.finals
+        if finals.minWindowSeconds != meetingFinalMinSeconds
+            || finals.maxWindowSeconds != meetingFinalMaxSeconds {
+            failures.append("WindowConfig.finals does not match meetingFinalMin/MaxSeconds")
+        }
+        if finals.emitsProvisionals {
+            failures.append("WindowConfig.finals must not emit provisionals")
+        }
+        if finals.overlapSeconds != 0 {
+            failures.append("WindowConfig.finals must not overlap")
         }
 
         for failure in failures {

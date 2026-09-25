@@ -84,10 +84,22 @@ final class MeetingSession {
         meeting.status = .recording
         store.save(meeting)
 
-        // Recorded whenever *something* is going to read it back, which includes a meeting
-        // whose speakers will be identified even though the user never asked to keep a
-        // recording. `MeetingStore.releaseAudio` deletes it again at the end of the pipeline.
-        if Settings.shared.meetingsKeepAudio || Settings.shared.meetingsDiarize {
+        // Recorded whenever *something* is going to read it back: diarization reads
+        // the system channel, and the M-01 final pass re-transcribes both channels
+        // after Stop, each whether or not the user asked to keep a recording.
+        // `MeetingStore.releaseAudio` deletes a temporary file again at the end of
+        // the pipeline. A nearly-full disk skips the temporary file (M-10 owns the
+        // general guard): without audio the pass records `live-only:no-audio` and
+        // the pipeline continues on the live transcript.
+        var wantsAudio = Settings.shared.meetingsKeepAudio
+            || Settings.shared.meetingsDiarize
+            || Settings.shared.meetingsFinalPass
+        if wantsAudio, !Settings.shared.meetingsKeepAudio,
+           Self.freeBytes(at: MeetingStore.root) < 1_000_000_000 {
+            wantsAudio = false
+            Log.meeting.info("temporary meeting audio skipped: less than 1 GB free")
+        }
+        if wantsAudio {
             let url = store.directory(for: meeting.id).appendingPathComponent(MeetingStore.audioFile)
             try? FileManager.default.createDirectory(
                 at: store.directory(for: meeting.id),
@@ -305,6 +317,13 @@ final class MeetingSession {
             : .done
         store.saveTranscript(segments, for: meeting.id)
         store.save(meeting)
+    }
+
+    /// Free bytes available for important usage on the volume holding `url`.
+    /// `.max` when unknowable: a missing answer must not delete a recording path.
+    private static func freeBytes(at url: URL) -> Int64 {
+        (try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))
+            .flatMap(\.volumeAvailableCapacityForImportantUsage) ?? .max
     }
 
     // MARK: - Internals

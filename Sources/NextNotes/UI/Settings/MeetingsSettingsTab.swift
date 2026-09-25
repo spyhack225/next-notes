@@ -94,13 +94,20 @@ struct MeetingsSettingsTab: View {
                     downloadTitle: "Download",
                     action: { models.prepareParakeet() }
                 )
+
+                Toggle("Re-check the transcript after the meeting", isOn: $settings.meetingsFinalPass)
             } header: {
                 Text("Transcription")
             } footer: {
-                SettingsNote(text: "Meetings always use Parakeet, whichever engine dictation "
-                             + "is set to: it transcribes recorded windows far faster than "
-                             + "realtime, which is what keeps a live transcript close behind "
-                             + "the conversation.")
+                VStack(alignment: .leading, spacing: DS.Space.xs) {
+                    SettingsNote(text: "Meetings always use Parakeet, whichever engine dictation "
+                                 + "is set to: it transcribes recorded windows far faster than "
+                                 + "realtime, which is what keeps a live transcript close behind "
+                                 + "the conversation.")
+                    SettingsNote(text: "Listens to the recording again once the meeting ends, "
+                                 + "which fixes words the live transcript got wrong. Keeps a "
+                                 + "temporary recording until the notes are written.")
+                }
             }
 
             Section {

@@ -452,6 +452,15 @@ final class Settings {
         didSet { defaults.set(meetingsDiarize, forKey: Keys.meetingsDiarize) }
     }
 
+    /// Re-transcribe each meeting track in long windows after Stop (M-01).
+    ///
+    /// On by default: the 2–5 s live windows flip short French stretches into
+    /// English-sounding text, and the pass fixes most of it at ≤ 5 % of the meeting's
+    /// length. Records a temporary file when nothing else would, released with it.
+    var meetingsFinalPass: Bool {
+        didSet { defaults.set(meetingsFinalPass, forKey: Keys.meetingsFinalPass) }
+    }
+
     /// Throw the recording away once the notes have been written.
     ///
     /// For keeping the audio only as long as the things made from it need it — diarization
@@ -972,6 +981,7 @@ final class Settings {
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let meetingsKeepAudio = "meetingsKeepAudio"
         static let meetingsDiarize = "meetingsDiarize"
+        static let meetingsFinalPass = "meetingsFinalPass"
         static let meetingsDeleteAudioAfterNotes = "meetingsDeleteAudioAfterNotes"
         static let notesAutoGenerate = "notesAutoGenerate"
         static let notesRelatedContext = "notesRelatedContext"
@@ -1087,6 +1097,7 @@ final class Settings {
         hasCompletedOnboarding = defaults.object(forKey: Keys.hasCompletedOnboarding) as? Bool ?? false
         meetingsKeepAudio = defaults.object(forKey: Keys.meetingsKeepAudio) as? Bool ?? false
         meetingsDiarize = defaults.object(forKey: Keys.meetingsDiarize) as? Bool ?? false
+        meetingsFinalPass = defaults.object(forKey: Keys.meetingsFinalPass) as? Bool ?? true
         meetingsDeleteAudioAfterNotes = defaults.object(forKey: Keys.meetingsDeleteAudioAfterNotes)
             as? Bool ?? false
         notesAutoGenerate = defaults.object(forKey: Keys.notesAutoGenerate) as? Bool ?? true

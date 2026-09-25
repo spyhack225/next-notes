@@ -225,6 +225,13 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
     /// Optional so meetings written before this existed still decode — nil reads as "the
     /// user asked for this one", the answer that keeps a file rather than deleting one.
     var audioIsTemporary: Bool?
+    /// Which transcript `transcript.json` holds (M-01).
+    ///
+    /// `"long-window"` when the post-Stop final pass replaced the live tier (kept as
+    /// `transcript.live.json`); `"live-only:no-audio"`, `"live-only:rejected"` or
+    /// `"live-only:failed"` when it did not, for that reason. Nil for meetings written
+    /// before the pass existed — read as "unknown", never as a claim.
+    var transcriptPass: String?
     /// Which model wrote the notes, once Phase 4 writes any.
     var notesModel: String?
     /// Diarized speaker renames, keyed by the generated label ("Speaker 1").
@@ -283,6 +290,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         status: MeetingStatus = .scheduled,
         audioFileName: String? = nil,
         audioIsTemporary: Bool? = nil,
+        transcriptPass: String? = nil,
         notesModel: String? = nil,
         speakerNames: [String: String] = [:],
         agentActions: [AgentActionRecord] = []
@@ -300,6 +308,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         self.status = status
         self.audioFileName = audioFileName
         self.audioIsTemporary = audioIsTemporary
+        self.transcriptPass = transcriptPass
         self.notesModel = notesModel
         self.speakerNames = speakerNames
         self.agentActions = agentActions
@@ -328,6 +337,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         status = try container.decodeIfPresent(MeetingStatus.self, forKey: .status) ?? .scheduled
         audioFileName = try container.decodeIfPresent(String.self, forKey: .audioFileName)
         audioIsTemporary = try container.decodeIfPresent(Bool.self, forKey: .audioIsTemporary)
+        transcriptPass = try container.decodeIfPresent(String.self, forKey: .transcriptPass)
         notesModel = try container.decodeIfPresent(String.self, forKey: .notesModel)
         speakerNames = try container.decodeIfPresent([String: String].self, forKey: .speakerNames) ?? [:]
         agentActions = try container.decodeIfPresent(

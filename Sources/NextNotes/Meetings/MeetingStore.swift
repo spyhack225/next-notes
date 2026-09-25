@@ -8,10 +8,14 @@ import Observation
 /// ```
 /// meeting.json     the small record; the only file this store keeps in memory
 /// transcript.json  every segment, loaded on demand
+/// transcript.live.json  the live 2–5 s tier, kept once the M-01 final pass
+///                  replaces transcript.json with long-window finals (evidence)
 /// notes.md         markdown, written by Phase 4
 /// notes.json       decisions, actions and questions extracted from notes.md (graph on only)
 /// proposals.json   what the agent has offered to do and nobody has answered yet
-/// audio.caf        two channels — L mic, R system — only when keep-audio is on
+/// audio.caf        two channels — L mic, R system — when keep-audio is on, or when
+///                  diarization or the final pass is going to read it back (temporary
+///                  then, released at the end of the pipeline)
 /// ```
 ///
 /// Separate from `RunLog` on purpose. Dictation history is an append-only log of one-line
@@ -201,6 +205,7 @@ final class MeetingStore {
     func delete(_ meeting: Meeting) {
         NotesService.shared.cancel(meeting.id)
         DiarizationService.shared.cancel(meeting.id)
+        FinalTranscriptService.shared.cancel(meeting.id)
         AgentService.shared.cancel(meeting.id)
         try? FileManager.default.removeItem(at: directory(for: meeting.id))
         meetings.removeAll { $0.id == meeting.id }
@@ -236,6 +241,25 @@ final class MeetingStore {
         searchCache[id] = nil
         searchInvalidated.insert(id)
         KnowledgeIndexer.shared.meetingChanged(id)
+    }
+
+    /// The live 2–5 s tier, saved before the M-01 final pass overwrites
+    /// `transcript.json` with the long-window finals. Text, not audio: `releaseAudio`
+    /// never deletes it, and it is the evidence when the pass is questioned.
+    func saveLiveTranscript(_ segments: [TranscriptSegment], for id: UUID) {
+        let directory = directory(for: id)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        write(segments, to: directory.appendingPathComponent(Self.liveTranscriptFile))
+    }
+
+    /// The live tier for one meeting, or empty when the final pass never ran.
+    /// Uncached on purpose: only the quality report reads it, once per meeting.
+    func liveTranscript(for id: UUID) -> [TranscriptSegment] {
+        let url = directory(for: id).appendingPathComponent(Self.liveTranscriptFile)
+        guard let data = try? Data(contentsOf: url),
+              let segments = try? Self.decoder.decode([TranscriptSegment].self, from: data)
+        else { return [] }
+        return segments
     }
 
     func notes(for id: UUID) -> String? {
@@ -387,6 +411,7 @@ final class MeetingStore {
     /// `nonisolated` so the background search index can name the files it reads.
     nonisolated static let recordFile = "meeting.json"
     nonisolated static let transcriptFile = "transcript.json"
+    nonisolated static let liveTranscriptFile = "transcript.live.json"
     nonisolated static let notesFile = "notes.md"
     /// Decisions, action items and open questions extracted from `notes.md`, stamped with the
     /// same generation as its chunks in the knowledge index (Part 4, Phase C).

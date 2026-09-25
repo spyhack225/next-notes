@@ -24,6 +24,43 @@ enum MeetingPipeline {
         guard !store.transcript(for: meeting.id).isEmpty else {
             return finish(meeting, store: store)
         }
+        // M-01: with the final pass on and audio on disk, the meeting stays
+        // `.transcribing` while `FinalTranscriptService` re-transcribes each track
+        // in long windows; otherwise today's body runs as `afterFinalPass`.
+        switch finalPassDecision(
+            settingOn: Settings.shared.meetingsFinalPass,
+            hasAudio: store.audioURL(for: meeting) != nil
+        ) {
+        case .run:
+            FinalTranscriptService.shared.process(meeting, store: store)
+            return meeting
+        case .skip(let pass):
+            var updated = meeting
+            if let pass {
+                updated.transcriptPass = pass
+                store.save(updated)
+            }
+            return afterFinalPass(updated, store: store)
+        }
+    }
+
+    /// Whether the post-Stop final pass applies. Pure, so the resume planner (M-08)
+    /// and the self-test decide the same way production does. The skip case carries
+    /// the `Meeting.transcriptPass` value to record, or nil when the setting is off
+    /// and nothing is recorded at all.
+    static nonisolated func finalPassDecision(settingOn: Bool, hasAudio: Bool) -> FinalPassDecision {
+        guard settingOn else { return .skip(nil) }
+        return hasAudio ? .run : .skip("live-only:no-audio")
+    }
+
+    /// Called once the final transcript is on disk — or immediately, when the final
+    /// pass did not apply. This is today's `afterTranscribing` body: tell the
+    /// speakers apart, then write the notes.
+    @discardableResult
+    static func afterFinalPass(_ meeting: Meeting, store: MeetingStore = .shared) -> Meeting {
+        guard !store.transcript(for: meeting.id).isEmpty else {
+            return finish(meeting, store: store)
+        }
         guard shouldDiarize(meeting, store: store) else {
             return afterDiarizing(meeting, store: store)
         }
@@ -78,4 +115,11 @@ enum MeetingPipeline {
     private static func shouldDiarize(_ meeting: Meeting, store: MeetingStore = .shared) -> Bool {
         Settings.shared.meetingsDiarize && store.audioURL(for: meeting) != nil
     }
+}
+
+/// M-01: whether the post-Stop final pass runs, and what `Meeting.transcriptPass`
+/// records when it does not.
+enum FinalPassDecision: Sendable, Equatable {
+    case run
+    case skip(String?)
 }

@@ -74,6 +74,7 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
+export NEXTNOTES_FIXTURES="$ROOT/Tests/Fixtures"
 LAUNCHER="$ROOT/Scripts/run-selftest.sh"
 APP_SOURCE="$ROOT/Sources/NextNotes/NextNotesApp.swift"
 APP=${NEXTNOTES_APP:-"/Applications/Next Notes.app"}
@@ -157,6 +158,9 @@ INTEGRATION_ENTRIES=(
   "selftest-notes-longform|300"
   # nearest-run and neighbour fallback for far-end labels (M-04)
   "selftest-diarize-assign|120"
+  # long-window meeting finals (M-01): reads $NEXTNOTES_FIXTURES/meetings, needs
+  # Parakeet; without either it reports MEETING_FINALS_ABSENT, counted as SKIP
+  "selftest-meeting-finals|900"
 )
 
 EXPERIMENTAL_ENTRIES=(

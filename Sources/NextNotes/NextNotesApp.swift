@@ -1139,6 +1139,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runNotesLongformSelfTest()
             return true
         }
+        if arguments.contains("--selftest-meeting-finals") {
+            runMeetingFinalsSelfTest()
+            return true
+        }
         if arguments.contains("--selftest-diarize-assign") {
             let failures = DiarizeAssignSelfTest.run { writeSelfTest($0) }
             for failure in failures { writeSelfTest("DIARIZE_ASSIGN_WRONG: \(failure)") }
@@ -2702,6 +2706,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// `--selftest-meeting-finals [<fixtures-dir>]`: the M-01 long-window final tier
+    /// against the M-16a fixtures (default `$NEXTNOTES_FIXTURES/meetings`). Needs
+    /// Parakeet on disk; uses no store (segments in memory). `--finals-window
+    /// <min>:<max>` overrides the cut config for measurement (M-01 step 1).
+    private func runMeetingFinalsSelfTest() {
+        Task { @MainActor in
+            let dir = SelfTest.value(after: "--selftest-meeting-finals")
+            SelfTest.failed = !(await MeetingFinalsSelfTest.run(dir: dir) { writeSelfTest($0) })
+            NSApp.terminate(nil)
+        }
+    }
+
     /// `--notes-context-live`: the same brief against this machine's own memory, index,
     /// graph and folders. Read-only; prints `_EMPTY` rather than failing when there is
     /// legitimately nothing to connect. Must not be renamed to a `--selftest-*` flag — the
@@ -2729,10 +2745,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 .sorted { $0.start < $1.start }
             for meeting in meetings {
                 let segments = MeetingStore.shared.transcript(for: meeting.id)
-                writeSelfTest(MeetingQualityProbe.line(
+                var row = MeetingQualityProbe.line(
                     for: meeting,
                     quality: MeetingQualityProbe.measure(meeting: meeting, segments: segments)
-                ))
+                )
+                // M-01: when the final pass ran, the live tier it replaced is the
+                // before number every improvement is measured against.
+                let live = MeetingStore.shared.liveTranscript(for: meeting.id)
+                if !live.isEmpty {
+                    let liveQuality = MeetingQualityProbe.measure(meeting: meeting, segments: live)
+                    row += " live-wrong=\(Int((liveQuality.wrongLanguageShare * 100).rounded()))%"
+                }
+                writeSelfTest(row)
             }
             writeSelfTest("MEETING_QUALITY_REPORT_DONE: \(meetings.count) meeting(s)")
             NSApp.terminate(nil)

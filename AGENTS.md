@@ -64,7 +64,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-activity  --selftest-fs         --selftest-browser
 --selftest-settings  --selftest-metrics    --selftest-cleanup-router
 --selftest-meeting-live --selftest-meeting-live-tools --selftest-meeting-quality --selftest-tts
---selftest-notes-longform --selftest-diarize-assign
+--selftest-notes-longform --selftest-diarize-assign --selftest-meeting-finals [<dir>]
 --selftest-tts-stream
 --selftest-tts-pocket
 --selftest-tts-kokoro
@@ -678,23 +678,29 @@ dictation cleanup is in flight (`LlamaBackend.awaitCleanupIdle`) — both models
 fine, both loading at once is where the machine starts swapping.
 
 **A meeting records audio even when "Keep the recorded audio" is off.** Diarization reads
-the system channel of `audio.caf`, so turning "Tell the other speakers apart" on makes every
-meeting write the file whether or not the user asked to keep one — and
+the system channel of `audio.caf`, and the post-Stop final pass re-transcribes both
+channels out of it, so turning "Tell the other speakers apart" or "Re-check the
+transcript after the meeting" on makes every meeting write the file whether or not the
+user asked to keep one — and
 `MeetingStore.releaseAudio` deletes it again at the end of the pipeline. Which of the two it
 was is answered when the recording *starts* and stored on the meeting as
 `audioIsTemporary`, not read back out of the settings when it ends: switching keep-audio off
 next month must not reach back and delete a recording the user asked for. The rule lives in
-that one method, and it is: a recording made only for diarization goes; a recording the user
+that one method, and it is: a recording made only for a pipeline stage (diarization,
+the final pass) goes; a recording the user
 kept goes only when "delete after notes" is on *and* notes were actually written; and
 nothing goes while a failed diarization pass is still offering "Identify again", which has
 nothing to read without it. Nothing else deletes a recording, so if a file is being kept
 that shouldn't be, that is the method to read.
 
 **A transcript segment is a sentence, not a window, and punctuation is what makes it one.**
-`ChunkedTranscriber` cuts 30–60 second windows because that is what Parakeet is cheap to run
-on, then splits each window again before emitting it: `buildWordTimings` groups the token
+The live tier cuts 2–5 second windows for provisional text (not 30–60: that number is
+stale since the windows moved for realtime latency), and after Stop each track is
+re-transcribed in long windows cut at pauses — then each window is split again before
+emitting it: `buildWordTimings` groups the token
 times into words, and a segment ends at a pause of 600 ms **or** at a sentence-ending mark
-once the segment is at least two seconds long.
+once the segment is at least two seconds long. The segmentation rule is unchanged and
+runs in both tiers.
 
 The second half of that rule looks redundant and is not. Parakeet reports token times on an
 80 ms grid, and measured on continuous speech the largest gap between two words is about

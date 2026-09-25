@@ -4,12 +4,17 @@ import Foundation
 /// Turns one continuous audio track into transcript segments while it is still running.
 ///
 /// Parakeet is a batch engine — it transcribes a window and returns — so a meeting has to
-/// be cut into windows somewhere. Roadmap §11 moved those windows from 30–60 s down to
-/// **2–5 s** so the live UI can show provisional text quickly. Cutting on a clock alone
-/// would slice words in half, so the cut still waits for a pause: after the provisional
-/// minimum of audio the first gap of at least 600 ms ends the window, and a hard limit of
-/// five seconds keeps an uninterrupted monologue from growing without bound.
+/// be cut into windows somewhere. The live tier cuts **2–5 s** windows so the UI can show
+/// provisional text quickly (roadmap §11 moved them down from 30–60 s for exactly that).
+/// Cutting on a clock alone would slice words in half, so the cut still waits for a pause:
+/// after the provisional minimum of audio the first gap of at least 600 ms ends the window,
+/// and a hard limit of five seconds keeps an uninterrupted monologue from growing without
+/// bound.
 ///
+/// The 2–5 s windows are the live tier only. After Stop, `MeetingFinalPass` re-reads each
+/// track in long windows (`WindowConfig.finals`, same pause rule) and replaces the finals,
+/// keeping the live transcript as `transcript.live.json` — short windows flip French into
+/// English-sounding text, and only the long tier gives the decoder enough context.
 /// A window is a unit of *compute*, not of speech, so it is cut again before finals leave:
 /// Parakeet's per-token times are grouped into words and split at the pauses inside the
 /// window, and each utterance becomes its own segment. Everything downstream that feeds
@@ -47,6 +52,15 @@ actor ChunkedTranscriber {
             maxWindowSeconds: StreamingASR.meetingProvisionalMaxSeconds,
             overlapSeconds: StreamingASR.meetingOverlapSeconds,
             emitsProvisionals: true
+        )
+
+        /// M-01 final-pass sizes: long windows cut at pauses, no provisionals. The live
+        /// tier keeps `.default`; the pass after Stop cuts with this.
+        static let finals = WindowConfig(
+            minWindowSeconds: StreamingASR.meetingFinalMinSeconds,
+            maxWindowSeconds: StreamingASR.meetingFinalMaxSeconds,
+            overlapSeconds: 0,
+            emitsProvisionals: false
         )
 
         /// Pre-Wave-2 sizes — only for self-tests that assert we moved off this path.
@@ -167,7 +181,7 @@ actor ChunkedTranscriber {
     private func nextCut() -> Int? {
         while scanned + Self.frameSamples <= buffer.count {
             let frame = buffer[scanned..<(scanned + Self.frameSamples)]
-            if AudioConversion.rms(of: frame) < Self.silenceThreshold {
+            if Self.frameIsSilent(frame) {
                 silenceRun += Self.frameSamples
             } else {
                 silenceRun = 0
@@ -181,6 +195,49 @@ actor ChunkedTranscriber {
             }
         }
         return buffer.count >= config.maxWindowSamples ? config.maxWindowSamples : nil
+    }
+
+    /// Whether one 20 ms frame counts as silence. Shared by the streaming `nextCut`
+    /// and the whole-track `cutPoints`, so the live tier and the final pass cannot
+    /// drift into different definitions of a pause.
+    static func frameIsSilent(_ frame: ArraySlice<Float>) -> Bool {
+        AudioConversion.rms(of: frame) < silenceThreshold
+    }
+
+    /// Whole-track window cuts with the same silence rule `nextCut` streams with:
+    /// the first ≥ 600 ms pause after the minimum ends the window, a hard cut at the
+    /// maximum bounds a monologue, and a short tail is returned as the last window.
+    ///
+    /// - Returns: cumulative sample offsets, the last always `samples.count` (empty
+    ///   when `samples` is empty).
+    static func cutPoints(in samples: [Float], config: WindowConfig) -> [Int] {
+        var cuts: [Int] = []
+        var scanned = 0
+        var silenceRun = 0
+        var windowStart = 0
+        let minSamples = Int(config.minWindowSeconds * sampleRate)
+        let maxSamples = Int(config.maxWindowSeconds * sampleRate)
+        while scanned + frameSamples <= samples.count {
+            if frameIsSilent(samples[scanned..<(scanned + frameSamples)]) {
+                silenceRun += frameSamples
+            } else {
+                silenceRun = 0
+            }
+            scanned += frameSamples
+            if scanned - windowStart >= minSamples, silenceRun >= silenceSamples {
+                cuts.append(scanned)
+                windowStart = scanned
+                silenceRun = 0
+            } else if scanned - windowStart >= maxSamples {
+                cuts.append(scanned)
+                windowStart = scanned
+                silenceRun = 0
+            }
+        }
+        if windowStart < samples.count {
+            cuts.append(samples.count)
+        }
+        return cuts
     }
 
     private func enqueue(window: [Float]) {
@@ -245,7 +302,7 @@ actor ChunkedTranscriber {
     /// is a frame-level one, and averaging it across thirty seconds buries a two-second
     /// "yes, agreed" under the silence around it — the window is then dropped and the reply
     /// never appears in the transcript at all.
-    private static func containsSpeech(_ window: [Float]) -> Bool {
+    static func containsSpeech(_ window: [Float]) -> Bool {
         var index = 0
         while index + frameSamples <= window.count {
             if AudioConversion.rms(of: window[index..<(index + frameSamples)]) >= silenceThreshold {
@@ -325,7 +382,10 @@ actor ChunkedTranscriber {
     ///
     /// Falls back to the whole window when the model returns no timings, which is the only
     /// case where a single segment is still the honest answer.
-    private static func segments(
+    ///
+    /// `internal` rather than `private` so the M-01 final pass segments long windows
+    /// with this same rule instead of a second copy.
+    static func segments(
         from result: ASRResult,
         text: String,
         start: TimeInterval,
@@ -402,11 +462,23 @@ actor TranscriptionQueue {
         _ = try await ParakeetModels.shared.manager()
     }
 
-    func transcribe(_ samples: [Float]) async throws -> ASRResult {
+    func transcribe(_ samples: [Float], lane: WorkClass = .realtimeASR) async throws -> ASRResult {
         let previous = tail
         let work = Task { () throws -> ASRResult in
             await previous?.value
-            let jobID = await ComputeScheduler.shared.acquire(.realtimeASR)
+            // After Stop nothing may run at `.realtimeASR` (P0-06): the M-01 final pass
+            // acquires `.background` per window through `acquireCancellable`, so a live
+            // dictation or meeting window always goes first. The chain (`tail`) is
+            // shared, so final-pass windows still never run two CoreML passes at once.
+            let jobID: UUID
+            if lane == .realtimeASR {
+                jobID = await ComputeScheduler.shared.acquire(lane)
+            } else {
+                guard let acquired = await ComputeScheduler.shared.acquireCancellable(lane) else {
+                    throw CancellationError()
+                }
+                jobID = acquired
+            }
             do {
                 let manager = try await ParakeetModels.shared.manager()
                 // A fresh decoder state per window: the windows are cut at silence, so there is
