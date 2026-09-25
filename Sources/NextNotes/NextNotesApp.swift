@@ -3171,15 +3171,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             // 1. The ordinary hold. Establishes that the microphone and the state machine
             //    work at all here — without it every other check below passes vacuously.
-            //    Held 2 s, not 600 ms: the first microphone permission call of the process
-            //    costs ~1.1 s (TCC evaluation, measured 2026-09-25: key-down → capture
-            //    1.10 s on the first hold, ≤ 0.15 s on every later one), and D-02 moved
-            //    the hub subscribe ahead of the engine start, so that one-time cost now
-            //    sits inside the hold rather than behind the model load. Later holds are
-            //    unaffected — case c pins their capture latency.
+            //    Held 4 s because the FIRST hold of the process pays the microphone
+            //    permission call and the input-device open before it can listen: measured
+            //    key-down → capture 1.10 s (2026-09-25 earlier run) and 2.131 s
+            //    (2026-09-25 17:57, log: `dictation.keyDown_to_capture`), with every later
+            //    hold at ≤ 0.06 s. D-02 moved the hub subscribe ahead of the engine start,
+            //    so that one-time cost sits inside the hold rather than behind the model
+            //    load — and a 2 s hold sampled it mid-start and read `.starting`. 4 s is
+            //    ~2× the worst first hold measured; later cases hold far less and are
+            //    unaffected.
             let plain = SelfTestInbox()
             let controllerA = makeController(.prompt(delay: .zero), inbox: plain)
-            let heldState = await hold(controllerA, held: .seconds(2), settle: 6)
+            let heldState = await hold(controllerA, held: .seconds(4), settle: 6)
             if heldState == nil {
                 failures.append("an ordinary hold never came back to idle")
             } else if heldState != .listening {

@@ -473,6 +473,17 @@ struct IslandView: View {
             }
             .controlSize(.small)
 
+        case .problem:
+            // Shown only while there is something to replay (D-03). The card has the
+            // words on it and the button is the whole reason the recording was kept —
+            // a failure that says what went wrong and offers no way back is the thing
+            // this task exists to remove.
+            if state.canRetryLastHold {
+                Button("Try again") { state.retryLastHold() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+            }
+
         default:
             EmptyView()
         }

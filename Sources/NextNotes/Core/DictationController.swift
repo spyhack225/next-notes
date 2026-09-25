@@ -49,17 +49,92 @@ private actor RaceGate<T: Sendable> {
 private final class DictationAudioCounter: @unchecked Sendable {
     private let lock = NSLock()
     private var count = 0
+    /// 20 ms windows at or above the speech threshold (D-03), counted through
+    /// the injected `speechDetector` on the capture callback.
+    private var voiced = 0
     /// Frames yielded into the engine stream but not yet fed (D-02 pre-roll depth).
     private var pending = 0
     /// Hub worker overflows and pre-roll cap drops (D-01b's `droppedHubBuffers`
     /// and `droppedStreamBuffers`; filed once the usage rows land).
     private var hubDrops = 0
     private var streamDrops = 0
+    /// The hold's captured audio (D-03), kept in memory until its outcome is known
+    /// so a hold that came back with nothing can be tried again. Memory only: never
+    /// written to disk, never filed into a run or a usage row.
+    private var recording: [AudioChunk] = []
+    private var recordingFrames = 0
+    private var recordingCapped = false
+    /// The format capture opened in (D-03). A kept hold is only replayable into an
+    /// engine that wants this one — SpeechAnalyzer aborts the process on anything
+    /// but int16 — so the retry compares before it feeds.
+    private var inputFormat: AVAudioFormat?
 
     func add(_ frames: Int) {
         lock.lock()
         count += frames
         lock.unlock()
+    }
+
+    func addVoiced(_ windows: Int) {
+        lock.lock()
+        voiced += windows
+        lock.unlock()
+    }
+
+    func noteFormat(_ format: AVAudioFormat) {
+        lock.lock()
+        inputFormat = format
+        lock.unlock()
+    }
+
+    /// Keeps the chunk for "Try again" (D-03), up to `capFrames` of audio. Past the
+    /// cap the appends stop and the hold is marked truncated rather than growing
+    /// without bound; what it kept is still retryable.
+    func keep(_ chunk: AudioChunk, capFrames: Int) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !recordingCapped else { return }
+        let frames = Int(chunk.buffer.frameLength)
+        guard recordingFrames + frames <= capFrames else {
+            recordingCapped = true
+            return
+        }
+        recording.append(chunk)
+        recordingFrames += frames
+    }
+
+    /// Restores a kept failed hold into a fresh counter (D-03's retry), so the replay
+    /// is an ordinary hold whose "capture" is the audio the last one kept. `pending`
+    /// is seeded alongside the frame count so the drain's `release` stays balanced.
+    func seed(chunks: [AudioChunk], frames: Int, voicedWindows: Int, format: AVAudioFormat?) {
+        lock.lock()
+        defer { lock.unlock() }
+        recording = chunks
+        recordingFrames = frames
+        recordingCapped = false
+        count = frames
+        pending = frames
+        voiced = voicedWindows
+        inputFormat = format
+    }
+
+    /// The kept audio, and whether the 180 s cap cut it short (D-01b's `truncated`).
+    var kept: [AudioChunk] {
+        lock.lock()
+        defer { lock.unlock() }
+        return recording
+    }
+
+    var isRecordingCapped: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return recordingCapped
+    }
+
+    var captureFormat: AVAudioFormat? {
+        lock.lock()
+        defer { lock.unlock() }
+        return inputFormat
     }
 
     /// Reserve room for `frames` more under `cap`. False means the buffer is not
@@ -92,6 +167,66 @@ private final class DictationAudioCounter: @unchecked Sendable {
         defer { lock.unlock() }
         return count
     }
+
+    var voicedFrames: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return voiced
+    }
+}
+
+/// Default speech-energy detector (D-03): counts the 20 ms windows in a buffer
+/// at or above the meeting silence gate (RMS 0.01 ≈ −40 dBFS — the kept limit
+/// reused here, never changed). First channel only, float or int16, whichever
+/// the engine's input format carries. A partial trailing window is ignored.
+@Sendable func defaultSpeechDetector(_ buffer: AVAudioPCMBuffer) -> Int {
+    let count = Int(buffer.frameLength)
+    guard count > 0 else { return 0 }
+    let window = 320
+    let threshold: Float = 0.01
+    let stride = buffer.stride
+    if let samples = buffer.floatChannelData?[0] {
+        var voiced = 0
+        var start = 0
+        while start + window <= count {
+            var sum: Float = 0
+            for i in 0..<window {
+                let s = samples[(start + i) * stride]
+                sum += s * s
+            }
+            if (sum / Float(window)).squareRoot() >= threshold { voiced += 1 }
+            start += window
+        }
+        return voiced
+    } else if let samples = buffer.int16ChannelData?[0] {
+        var voiced = 0
+        var start = 0
+        while start + window <= count {
+            var sum: Float = 0
+            for i in 0..<window {
+                let s = Float(samples[(start + i) * stride]) / 32_768
+                sum += s * s
+            }
+            if (sum / Float(window)).squareRoot() >= threshold { voiced += 1 }
+            start += window
+        }
+        return voiced
+    }
+    return 0
+}
+
+/// One failed hold's audio, kept in memory so the user can say "Try again" (D-03).
+///
+/// Exactly one of these exists at a time and it is never written anywhere — not to
+/// disk, not into a run row, not into a usage row. The counts ride along because the
+/// retry is a new hold that still has to make the same empty-vs-silence decision, and
+/// `format` because a kept hold is only replayable into an engine that wants the format
+/// it was captured in.
+private struct FailedHold {
+    let chunks: [AudioChunk]
+    let capturedFrames: Int
+    let voicedFrames: Int
+    let format: AVAudioFormat?
 }
 
 /// Runs `work` with a deadline. Returns `nil` — and abandons the work — if it overruns.
@@ -329,8 +464,9 @@ final class DictationController {
 
     private var engine: (any TranscriptionEngine)?
     private var consumeTask: Task<Void, Never>?
-    /// Returns the ordered recording when compare mode is on, empty otherwise.
-    private var feedTask: Task<[AudioChunk], Never>?
+    /// Drains the captured buffers into the engine, in capture order. The recording
+    /// itself is kept on the hold's counter (D-03), not returned from here.
+    private var feedTask: Task<Void, Never>?
     private var audioContinuation: AsyncStream<AudioChunk>.Continuation?
 
     /// Controller-owned `.realtimeASR` lane for Apple (Parakeet holds its own
@@ -499,7 +635,11 @@ final class DictationController {
         // self-test has, and the branch worth checking is the one where there is no
         // selection at all.
         captureSelection: @escaping @MainActor () -> TextInjector.Selection?
-            = { TextInjector.captureSelection() }
+            = { TextInjector.captureSelection() },
+        // Speech-energy check on empty transcripts (D-03): returns the voiced
+        // 20 ms frames in a buffer. Production passes the RMS default; only
+        // self-tests pass anything else.
+        speechDetector: @escaping @Sendable (AVAudioPCMBuffer) -> Int = defaultSpeechDetector
     ) {
         self.formatter = formatter
         self.commandProcessor = commandProcessor
@@ -508,9 +648,44 @@ final class DictationController {
         self.insert = insert
         self.record = record
         self.captureSelection = captureSelection
+        self.speechDetector = speechDetector
     }
 
     private let captureSelection: @MainActor () -> TextInjector.Selection?
+    private let speechDetector: @Sendable (AVAudioPCMBuffer) -> Int
+
+    /// The last hold that ended with nothing typed, with its audio (D-03).
+    ///
+    /// One slot, memory only, replaced by whichever failed hold came later and cleared
+    /// by the next one that succeeds. Filled by `fail` *before* it disowns the slots,
+    /// which is why the audio is copied off the counter first.
+    private var lastFailedHold: FailedHold?
+
+    /// Whether "Try again" is offered: a failed hold is kept and no hold is running.
+    ///
+    /// The second half is what stops the island and the status menu from starting a
+    /// replay into a hold that is already in flight — the slot survives the whole tail,
+    /// so without it a second click would be a second engine over one set of slots.
+    var canRetryLastHold: Bool { lastFailedHold != nil && canStartHold }
+
+    /// Moves a hold's kept audio into the one retry slot (D-03), dropping it when there
+    /// is nothing worth keeping. Called from `fail` for the paths a recording can be
+    /// recovered from; a hold whose audio is already somewhere else (an injection that
+    /// fell back to the clipboard) does not call it.
+    private func keepForRetry(_ audio: DictationAudioCounter?) {
+        guard let audio, recordingIntent.kind == .dictation else { return }
+        let chunks = audio.kept
+        guard !chunks.isEmpty else { return }
+        if audio.isRecordingCapped {
+            Log.speech.info("kept failed hold hit the recording cap; the tail is missing")
+        }
+        lastFailedHold = FailedHold(
+            chunks: chunks,
+            capturedFrames: audio.frames,
+            voicedFrames: audio.voicedFrames,
+            format: audio.captureFormat
+        )
+    }
 
     // MARK: - Lifecycle
 
@@ -677,6 +852,169 @@ final class DictationController {
 
     // MARK: - Dictation
 
+    /// Re-runs the kept failed hold through a fresh engine and the normal tail (D-03).
+    ///
+    /// A new hold, not a rewind: its own session, its own `recordRun`, and the origin
+    /// captured at the moment of the click. The island and the status menu do not take
+    /// focus, so the words go wherever the user is when they press the button — never
+    /// back to whatever app had focus when they were spoken, which by now may not exist.
+    ///
+    /// The kept audio is pre-yielded into the engine's stream and the stream is finished
+    /// before anything starts, so this is D-02's released-during-start-up path with the
+    /// microphone left out of it: the tail runs as soon as the engine has started. Never
+    /// automatic — only this and the menu item call it, and both are a person's click.
+    func retryLastFailedHold() {
+        guard canRetryLastHold, let kept = lastFailedHold else { return }
+        session &+= 1
+        let session = self.session
+        recordingIntent = .dictation
+        isComparing = false
+        showCommandMode(nil)
+        origin = TextInjector.captureOrigin()
+        let target = OutputProfileStore.shared.captureTarget()
+        ScreenContextStore.shared.beginCapture(
+            for: target,
+            processID: origin?.app.processIdentifier,
+            originBundleID: origin?.app.bundleIdentifier
+        )
+        // The replay is a hold whose "capture" is the audio the last one kept, so the
+        // tail reads frames, voiced windows and chunks exactly as it would for a live one.
+        let audio = DictationAudioCounter()
+        audio.seed(
+            chunks: kept.chunks,
+            frames: kept.capturedFrames,
+            voicedWindows: kept.voicedFrames,
+            format: kept.format
+        )
+        audioCounter = audio
+        // A retry is a hold of its own for the history too, measured over the audio it
+        // is actually playing rather than over the click that started it.
+        let keptSeconds = Double(kept.capturedFrames) / (kept.format?.sampleRate ?? 16_000)
+        holdStarted = Date().addingTimeInterval(-keptSeconds)
+        releasedAt = Date()
+        engineName = Settings.shared.engine.displayName
+        transcript = ""
+        level = 0
+        isCapturingAudio = false
+        keyDownToCaptureSeconds = nil
+        releasedDuringStartup = nil
+        firstPartialTrace = nil
+        keyDownToCaptureTrace = nil
+        state = .finishing
+
+        Task { @MainActor in
+            do {
+                let engine = makeEngine()
+                self.engine = engine
+                guard let format = await engine.preferredInputFormat() else {
+                    await engine.finish()
+                    if self.session == session { self.engine = nil }
+                    throw TranscriptionError.noAudioFormat
+                }
+                // The kept audio is in the format the *old* engine captured it in, and
+                // the format is decided by the setting, which the user may have changed
+                // since. SpeechAnalyzer does not reject a wrong one — it aborts the
+                // process — so a mismatch is refused here, with the audio left kept.
+                if let keptFormat = kept.format, !Self.sameInputFormat(format, keptFormat) {
+                    if self.session == session { self.engine = nil }
+                    Task { await engine.finish() }
+                    fail("That recording doesn\u{2019}t fit the speech model you are using now. Hold the key and say it again.")
+                    return
+                }
+
+                // Unbounded and pre-filled: the kept audio is the whole point, and it is
+                // finished on entry so the drain returns as soon as it has been fed.
+                let (audioStream, audioContinuation) = AsyncStream<AudioChunk>.makeStream(
+                    bufferingPolicy: .unbounded
+                )
+                for chunk in kept.chunks { audioContinuation.yield(chunk) }
+                audioContinuation.finish()
+                self.audioContinuation = audioContinuation
+
+                let outcome = await withBoundedWait(limits.startup) { () -> StartOutcome in
+                    do { return .started(try await engine.start()) }
+                    catch { return .failed(DictationErrorText.plain(error)) }
+                }
+                guard self.session == session else {
+                    audioContinuation.finish()
+                    await engine.finish()
+                    return
+                }
+
+                let chunkStream: AsyncThrowingStream<TranscriptionChunk, Error>
+                switch outcome {
+                case .started(let stream):
+                    chunkStream = stream
+                case .failed(let reason):
+                    self.engine = nil
+                    fail(reason)
+                    return
+                case nil:
+                    self.engine = nil
+                    Task { await engine.finish() }
+                    fail("The speech model didn\u{2019}t finish loading in time. If it is still downloading, let Settings \u{25B8} Models finish first.")
+                    return
+                }
+
+                var appleLane: UUID?
+                if engine is AppleSpeechEngine {
+                    appleLane = await ComputeScheduler.shared.acquire(.realtimeASR)
+                }
+                guard self.session == session else {
+                    if let appleLane {
+                        await ComputeScheduler.shared.release(appleLane)
+                    }
+                    audioContinuation.finish()
+                    await engine.finish()
+                    return
+                }
+
+                let counter = self.audioCounter
+                let feedTask = Task.detached(priority: .userInitiated) {
+                    for await chunk in audioStream {
+                        counter?.release(Int(chunk.buffer.frameLength))
+                        await engine.feed(chunk)
+                    }
+                }
+                if let appleLane {
+                    self.asrLaneID = appleLane
+                    self.asrLaneSession = session
+                }
+                self.feedTask = feedTask
+
+                self.consumeTask = Task { @MainActor in
+                    do {
+                        for try await chunk in chunkStream {
+                            guard self.session == session else { return }
+                            if !chunk.text.isEmpty, let trace = self.firstPartialTrace {
+                                trace.end()
+                                self.firstPartialTrace = nil
+                            }
+                            self.transcript = chunk.text
+                        }
+                    } catch {
+                        guard self.session == session else { return }
+                        self.fail(DictationErrorText.plain(error))
+                    }
+                }
+
+                await runTail(session: session, audio: audio)
+            } catch {
+                guard self.session == session else { return }
+                self.fail(DictationErrorText.plain(error))
+            }
+        }
+    }
+
+    /// Whether two engine input formats are interchangeable for a replay. Compared on
+    /// the three facts that decide whether a buffer can be fed at all; `AVAudioFormat`
+    /// equality is not it, since the same format can be built with a different layout.
+    private static func sameInputFormat(_ a: AVAudioFormat, _ b: AVAudioFormat) -> Bool {
+        a.commonFormat == b.commonFormat
+            && abs(a.sampleRate - b.sampleRate) < 0.5
+            && a.channelCount == b.channelCount
+    }
+
     private func beginDictation(intent: RecordingIntent) {
         guard canStartHold else { return }
         // A Command Mode message outlives its hold by design — "Select some text first"
@@ -840,6 +1178,12 @@ final class DictationController {
                     bufferingPolicy: .unbounded
                 )
                 let preRollFrameCap = 30 * Int(format.sampleRate)
+                // The whole hold, not the pre-roll: "Try again" has to be able to replay
+                // an utterance longer than the window the engine is fed through. 180 s of
+                // Float32 at 16 kHz is ~11.5 MB, and past it the appends stop and the hold
+                // is marked truncated rather than growing without bound.
+                let recordingFrameCap = 180 * Int(format.sampleRate)
+                let detectSpeech = speechDetector
 
                 // Capture starts at key-down, into an in-memory pre-roll owned by
                 // this session, and is replayed into the engine once it has started
@@ -855,12 +1199,20 @@ final class DictationController {
                 // Hub subscribe so wake KWS can stay on the same input engine.
                 do {
                     let audioCounter = self.audioCounter
+                    audioCounter?.noteFormat(format)
                     try AudioCaptureHub.shared.subscribe(
                         .dictation,
                         outputFormat: format,
                         onBuffer: { chunk in
                             let frames = Int(chunk.buffer.frameLength)
                             audioCounter?.add(frames)
+                            // D-03: what the hold sounded like, kept for "Try again", and
+                            // how much of it was speech — the fact that decides whether an
+                            // empty transcript is worth saying anything about. Counted here
+                            // rather than at the tail so a hold whose engine never started
+                            // still knows it had speech in it.
+                            audioCounter?.addVoiced(detectSpeech(chunk.buffer))
+                            audioCounter?.keep(chunk, capFrames: recordingFrameCap)
                             if audioCounter?.reserve(frames, cap: preRollFrameCap) == true {
                                 audioContinuation.yield(chunk)
                             }
@@ -947,20 +1299,16 @@ final class DictationController {
                     return
                 }
 
-                // The recording is accumulated *inside* the ordered drain, not by spawning
-                // a task per buffer. Unstructured tasks have no ordering guarantee, so
-                // collecting them separately could assemble the replay audio out of order
-                // and silently produce word-salad from the comparison.
+                // Audio must reach the engine in capture order: one draining task, never
+                // a task per buffer. The recording itself is kept at capture time rather
+                // than in here (D-03) — a hold whose engine never started has no drain to
+                // collect from, and its pre-roll is exactly the audio "Try again" needs.
                 let audioCounter = self.audioCounter
-                let comparing = isComparing
-                let feedTask = Task.detached(priority: .userInitiated) { () -> [AudioChunk] in
-                    var recording: [AudioChunk] = []
+                let feedTask = Task.detached(priority: .userInitiated) {
                     for await chunk in audioStream {
                         audioCounter?.release(Int(chunk.buffer.frameLength))
-                        if comparing { recording.append(chunk) }
                         await engine.feed(chunk)
                     }
-                    return recording
                 }
 
                 // Commit the Apple lane to the controller slots so end/fail/cancel
@@ -992,9 +1340,7 @@ final class DictationController {
                 // sits between this check and the `.listening` assignment, so a
                 // release cannot land between them on this actor.
                 if releasedDuringStartup == session {
-                    let capturedFrames = self.audioCounter?.frames ?? 0
-                    self.audioCounter = nil
-                    await runTail(session: session, capturedFrames: capturedFrames)
+                    await runTail(session: session, audio: self.audioCounter)
                     return
                 }
 
@@ -1049,8 +1395,11 @@ final class DictationController {
         // leftover message from an earlier hold used to make this branch announce that an
         // ordinary dictation was about to replace the user's selection, which was a lie.
         if recordingIntent.kind == .command { showCommandMode(.rewriting) }
-        let capturedFrames = audioCounter?.frames ?? 0
-        audioCounter = nil
+        // Not cleared here: the tail still has to read the hold's audio to decide what an
+        // empty transcript means, and `fail` has to keep it for "Try again". `finishIdle`,
+        // `fail` and `cancelDictation` are what clear it, and each of them runs at the end
+        // of a hold rather than at the start of its tail.
+        let audio = audioCounter
         AudioCaptureHub.shared.unsubscribe(.dictation)
         isCapturingAudio = false
         level = 0
@@ -1061,7 +1410,7 @@ final class DictationController {
         let session = self.session
 
         Task { @MainActor in
-            await runTail(session: session, capturedFrames: capturedFrames)
+            await runTail(session: session, audio: audio)
         }
     }
 
@@ -1072,7 +1421,11 @@ final class DictationController {
     /// with the pre-roll it kept, while a release from `.listening` goes through the
     /// `Task` above. Either way the stream is already finished on entry, so the
     /// drain returns as soon as the kept audio is fed.
-    private func runTail(session: Int, capturedFrames: Int) async {
+    ///
+    /// `audio` is this hold's own counter, passed in rather than read back off the
+    /// controller (D-03): the tail is what decides whether an empty transcript had
+    /// speech in it, and a tail that outlived its hold must not ask a newer one.
+    private func runTail(session: Int, audio: DictationAudioCounter?) async {
         // Drain every captured buffer into the engine before asking it to finalize,
         // or the tail of the utterance gets dropped.
         let audioContinuation = self.audioContinuation
@@ -1086,9 +1439,14 @@ final class DictationController {
 
         let began = Date()
         audioContinuation?.finish()
-        recorded = await withBoundedWait(limits.drain) {
-            await feedTask?.value ?? []
-        } ?? []
+        _ = await withBoundedWait(limits.drain) { () -> Bool in
+            await feedTask?.value
+            return true
+        }
+        // The recording was kept at capture time (D-03), so the drain's answer is only
+        // needed to know the audio reached the engine — and `recorded` is read back off
+        // the hold's own counter so compare mode and "Try again" see the same buffers.
+        recorded = audio?.kept ?? []
         let drained = Date().timeIntervalSince(began)
         // Same numbers the info log already prints — record them rather than a second clock.
         LatencyTrace.record(.dictationDrain, seconds: drained)
@@ -1137,17 +1495,30 @@ final class DictationController {
             ? stabilized
             : self.transcript
         guard !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            let capturedFrames = audio?.frames ?? 0
             if capturedFrames == 0 {
                 fail("No microphone audio reached dictation. Check the selected input device, then try again.")
                 return
             }
-            // A timed-out transcription leaves nothing to inject, and silence is the
-            // one thing the user must not be told it was.
-            if transcribed {
-                finishIdle()
-            } else {
-                fail("Transcription didn't finish in time; that recording was lost.")
+            // A timed-out transcription leaves nothing to inject. The audio is kept —
+            // "that recording was lost" was the truth only while nothing kept it.
+            guard transcribed else {
+                fail("Transcription didn\u{2019}t finish in time. That recording is kept, so you can try again.")
+                return
             }
+            // Silence is the one thing the user must not be nagged about: an empty
+            // transcript over an empty hold is nothing going wrong. Speech with no
+            // words out is, and it is the case D-03 exists for — the hold used to go
+            // quietly idle here and the words were gone (I1-05).
+            //
+            // 15 voiced 20 ms windows is 0.3 s above the meeting silence gate, reused
+            // here rather than tuned: it is the number this codebase already treats as
+            // "there was someone speaking" (kept limit I2 #33, never changed).
+            if audio?.voicedFrames ?? 0 >= 15 {
+                fail("I heard you but couldn\u{2019}t make out the words. Try again, or hold a little longer.")
+                return
+            }
+            finishIdle()
             return
         }
 
@@ -1248,6 +1619,9 @@ final class DictationController {
 
         switch outcome {
         case .inserted:
+            // The words landed, so an earlier failed hold is no longer the one worth
+            // keeping (D-03).
+            lastFailedHold = nil
             if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
             finishIdle()
 
@@ -1255,6 +1629,7 @@ final class DictationController {
             // The setting asked for this, so it is a success and gets the success
             // sound. Saying "that went to your clipboard" every time would be nagging
             // someone about a choice they already made.
+            lastFailedHold = nil
             if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
             finishIdle()
 
@@ -1262,7 +1637,10 @@ final class DictationController {
             // Not silent. The old behaviour here was to paste into whatever the user
             // had switched to — or nowhere — and say nothing, which is indistinguishable
             // from the app losing the recording.
-            fail("Couldn't switch back to \(appName). That dictation is on your clipboard.")
+            //
+            // `keepsAudio: false`: the words are on the clipboard, so nothing is lost and
+            // a "Try again" here would type the same sentence in twice.
+            fail("Couldn't switch back to \(appName). That dictation is on your clipboard.", keepsAudio: false)
         }
     }
 
@@ -1474,13 +1852,20 @@ final class DictationController {
     /// Every exit from here leaves the microphone closed, the slots empty and the state
     /// machine on its way to `.idle` — a dictation that says what went wrong and stops is
     /// the whole point of bounding the waits above.
-    private func fail(_ message: String) {
+    ///
+    /// `keepsAudio` decides whether the hold's recording is moved into the one "Try
+    /// again" slot before the slots are cleared (D-03). True for every path where the
+    /// words are nowhere else; false when they have already been delivered somewhere.
+    private func fail(_ message: String, keepsAudio: Bool = true) {
         Log.app.error("\(message, privacy: .public)")
         // A Command Mode hold keeps its own card rather than handing the message to the
         // dictation error state. Gated on what this hold is rather than on whether a card is
         // up, so a leftover message from an earlier hold cannot claim an ordinary dictation's
         // failure — that one goes to `.error`, which the island now draws with its words on.
         if recordingIntent.kind == .command { showCommandMode(.problem(message)) }
+        // Before anything below disowns the slots: this is the only moment the recording
+        // is still reachable, and it is what "Try again" plays.
+        if keepsAudio { keepForRetry(audioCounter) }
         // Anything still in flight for this hold is disowned rather than awaited: `fail` is
         // reached *because* something did not come back.
         let releasing = session

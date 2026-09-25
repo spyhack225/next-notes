@@ -442,6 +442,18 @@ final class IslandState {
 
     // MARK: - Buttons
 
+    /// Whether the problem card can offer "Try again" (D-03): a failed hold's recording
+    /// is kept in memory and no hold is running. The island is not the only surface for
+    /// this — the status menu keeps the item up after the card has gone — so this is read
+    /// rather than pushed.
+    var canRetryLastHold: Bool { dictation?.canRetryLastHold ?? false }
+
+    /// Plays the kept recording back through a fresh model. The card does not take focus,
+    /// so the words land wherever the user is when they press it.
+    func retryLastHold() {
+        dictation?.retryLastFailedHold()
+    }
+
     func recordNow(_ event: MeetingEvent) {
         clearNotice()
         Task { await MeetingScheduler.shared.recordNow(event) }
