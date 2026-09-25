@@ -2,9 +2,10 @@ import Foundation
 
 /// `--selftest-usage-log`: the usage log's writer, reader, rotation, age compaction,
 /// clear, sanitiser and harness isolation (P0-20a, U1–U7), the meeting passes (P0-20b,
-/// M1–M5), the summary and report (P0-20d, R1–R3), the dictation builder (P0-20c, D1),
-/// the exit cases (P0-20e, E1–E4) and the meeting model passes M-16b wired behind
-/// P0-20b's writer (M6 collapse rows, M7 the live reconcile pass).
+/// M1–M5), the summary and report (P0-20d, R1–R3), the dictation builder (P0-20c, D1–D2),
+/// the hold outcome and refused-press rows (D-01b, D3) and the exit cases (P0-20e,
+/// E1–E4), plus the meeting model passes M-16b wired behind P0-20b's writer (M6 collapse
+/// rows, M7 the live reconcile pass).
 ///
 /// Final marker: `USAGE_LOG_OK: <n> cases` / `USAGE_LOG_FAILED: <n> problem(s)`, with one
 /// `USAGE_LOG_WRONG: <case>: <reason>` line per failure. The marker name never changes; a
@@ -30,8 +31,8 @@ import Foundation
 /// `dictationRows` writes rows and E3 fails until the guard knows the file, so the red run
 /// is the missing dictation seam plus the missing guard entry.
 enum UsageLogSelfTest {
-    /// How many cases a green run reports: U1–U7, M1–M7, D1–D2, R1–R3 and E1–E4.
-    private static let caseCount = 23
+    /// How many cases a green run reports: U1–U7, M1–M7, D1–D3, R1–R3 and E1–E4.
+    private static let caseCount = 24
 
     /// `run()` is async so E1 can await the real main-actor agent path: the old synchronous
     /// runner blocked the main actor on a semaphore while its cases ran, which no
@@ -83,6 +84,10 @@ enum UsageLogSelfTest {
             let d2 = await checkD2(root: root)
             failures += labelled("D2", d2.problems)
             rows += d2.rows
+
+            let d3 = checkD3()
+            failures += labelled("D3", d3.problems)
+            rows += d3.rows
 
             failures += labelled("E2", checkE2(rows: rows))
             failures += labelled("E3", checkE3(before: realBefore))
@@ -899,6 +904,150 @@ enum UsageLogSelfTest {
             }
         } else if !cleanupRows.isEmpty {
             problems.append("no cleanup pass ran but \(cleanupRows.count) dictation.cleanup row(s) were written")
+        }
+        return CaseOutcome(problems: problems, rows: rows)
+    }
+
+    // MARK: - D3: the hold outcome rows (D-01b)
+
+    /// The pure mapping behind D-01b: one `dictation.hold` row per hold, whatever
+    /// happened, and one `dictation.press_refused` row per refused press. Every count
+    /// the spec names round-trips, the correlation id is the hold's own (the same id
+    /// the tail's P0-20c rows carry, since the tail mints it from `holdID`), and no
+    /// string field anywhere can carry the dictated text — the outcome type has no
+    /// field for one, which is the property this case pins rather than trusts.
+    private static func checkD3() -> CaseOutcome {
+        var problems: [String] = []
+        let holdID = UUID()
+        let fixtureTranscript = "d3sentinel the words nobody may read back"
+        let counts: [String: Int] = [
+            "holdMs": 4_000,
+            "keyDownToCaptureMs": 66,
+            "words": 9,
+            "capturedFrames": 64_000,
+            "droppedHubBuffers": 1,
+            "droppedStreamBuffers": 2,
+            "cleanupTimedOut": 0,
+            "sessionPrewarmed": 1,
+        ]
+        let inserted = DictationHoldOutcome(
+            holdID: holdID,
+            result: .inserted,
+            keyUpToOutcome: .milliseconds(2_150),
+            counts: counts,
+            engine: .parakeet
+        )
+        let row = inserted.usageRecord()
+        var rows = [row]
+        if row.feature != UsageFeature.dictationHold.rawValue {
+            problems.append("feature was \(row.feature), expected \(UsageFeature.dictationHold.rawValue)")
+        }
+        if row.errorClass != nil {
+            problems.append("an inserted hold's errorClass was \(row.errorClass ?? "nil"), expected nil")
+        }
+        if row.totalMs != 2_150 {
+            problems.append("totalMs was \(row.totalMs), expected 2150 (the key-up → outcome ms)")
+        }
+        if row.dictationRunID != holdID {
+            problems.append("dictationRunID was \(row.dictationRunID?.uuidString ?? "nil"), "
+                            + "expected the hold's own id \(holdID.uuidString)")
+        }
+        if row.locality != "local" {
+            problems.append("locality was \(row.locality)")
+        }
+        for (key, expected) in counts {
+            guard let actual = row.counts?[key] else {
+                problems.append("the row dropped counts[\(key)]")
+                continue
+            }
+            if actual != expected {
+                problems.append("counts[\(key)] was \(actual), expected \(expected)")
+            }
+        }
+        if row.counts?.count != counts.count {
+            problems.append("the row carries \(row.counts?.count ?? 0) counts, expected \(counts.count)")
+        }
+
+        // The classes map to their fixed errorClass strings, and the two classes with
+        // no key-up to measure from say so through a zero totalMs.
+        for (result, expectedClass) in [
+            (DictationHoldResult.copied, nil as String?),
+            (.command, "command"),
+            (.compare, "compare"),
+            (.cancelled, "cancelled"),
+            (.empty, "empty"),
+            (.emptySpeech, "emptySpeech"),
+            (.tap, "tap"),
+            (.lostAtStartup, "lostAtStartup"),
+            (.failed(.micPermission), "failed:micPermission"),
+            (.failed(.startup), "failed:startup"),
+            (.failed(.startupTimeout), "failed:startupTimeout"),
+            (.failed(.subscribe), "failed:subscribe"),
+            (.failed(.noAudio), "failed:noAudio"),
+            (.failed(.engine), "failed:engine"),
+            (.failed(.transcribeTimeout), "failed:transcribeTimeout"),
+            (.failed(.couldNotReturn), "failed:couldNotReturn"),
+        ] {
+            let outcome = DictationHoldOutcome(
+                holdID: holdID, result: result, keyUpToOutcome: .milliseconds(10),
+                counts: [:], engine: .apple)
+            let mapped = outcome.usageRecord()
+            rows.append(mapped)
+            if mapped.errorClass != expectedClass {
+                problems.append("errorClass for \(result) was \(mapped.errorClass ?? "nil"), "
+                                + "expected \(expectedClass ?? "nil")")
+            }
+            if mapped.provider != UsageProvider.appleSpeech.rawValue {
+                problems.append("an apple hold's provider was \(mapped.provider)")
+            }
+            if mapped.modelID != SpeechEngineChoice.apple.rawValue {
+                problems.append("an apple hold's modelID was \(mapped.modelID)")
+            }
+        }
+        for holdResult in [DictationHoldResult.cancelled, .lostAtStartup] {
+            let outcome = DictationHoldOutcome(
+                holdID: holdID, result: holdResult, keyUpToOutcome: nil,
+                counts: ["holdMs": 100], engine: .parakeet)
+            let mapped = outcome.usageRecord()
+            rows.append(mapped)
+            if mapped.totalMs != 0 {
+                problems.append("\(holdResult) totalMs was \(mapped.totalMs), "
+                                + "expected 0 (no key-up to measure from)")
+            }
+        }
+
+        // The refused press.
+        let refused = DictationHoldOutcome.pressRefusedRecord(
+            state: "finishing",
+            counts: ["sinceKeyUpMs": 150],
+            engine: .parakeet,
+            holdID: holdID
+        )
+        rows.append(refused)
+        if refused.feature != UsageFeature.dictationPressRefused.rawValue {
+            problems.append("refused feature was \(refused.feature), expected "
+                            + UsageFeature.dictationPressRefused.rawValue)
+        }
+        if refused.errorClass != "finishing" {
+            problems.append("refused errorClass was \(refused.errorClass ?? "nil"), expected finishing")
+        }
+        if refused.counts?["sinceKeyUpMs"] != 150 {
+            problems.append("refused sinceKeyUpMs was "
+                            + "\(refused.counts?["sinceKeyUpMs"].map { String($0) } ?? "nil"), expected 150")
+        }
+        if refused.dictationRunID != holdID {
+            problems.append("the refused row does not join the hold it was refused against")
+        }
+
+        // No string field may carry the dictated text. The outcome type has nowhere to
+        // put one — this pins that, rather than trusting it.
+        for mapped in rows {
+            let strings = [mapped.feature, mapped.pass, mapped.provider, mapped.modelID,
+                           mapped.locality, mapped.errorClass ?? "", mapped.finishReason ?? "",
+                           mapped.errorMessage ?? ""]
+            for text in strings where text.contains(fixtureTranscript) {
+                problems.append("a row's string field carried the fixture transcript")
+            }
         }
         return CaseOutcome(problems: problems, rows: rows)
     }

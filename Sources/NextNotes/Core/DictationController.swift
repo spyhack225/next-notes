@@ -162,6 +162,20 @@ private final class DictationAudioCounter: @unchecked Sendable {
         hubDrops += n
     }
 
+    /// Read at outcome time for the hold's `droppedHubBuffers` count (D-01b).
+    var hubDropCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return hubDrops
+    }
+
+    /// Read at outcome time for the hold's `droppedStreamBuffers` count (D-01b).
+    var streamDropCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return streamDrops
+    }
+
     var frames: Int {
         lock.lock()
         defer { lock.unlock() }
@@ -303,8 +317,8 @@ final class DictationController {
     /// Open from key-down until hub subscribe succeeds — keyDown → capture started.
     private var keyDownToCaptureTrace: LatencyTrace?
     /// Key-down → hub subscribe, in seconds, set when the pre-roll subscribe succeeds.
-    /// Read by `--selftest-dictation` (D-02 case c); D-01b will file it as
-    /// `counts["keyDownToCaptureMs"]` (P0-20c's rows landed without it).
+    /// Read by `--selftest-dictation` (D-02 case c); D-01b files it as
+    /// `counts["keyDownToCaptureMs"]` on the hold row, absent when capture never started.
     private(set) var keyDownToCaptureSeconds: TimeInterval?
     /// True from the pre-roll hub subscribe until the microphone closes. The island
     /// and the HUD read it so a hold shows as capturing while `.starting` (D-02):
@@ -329,6 +343,10 @@ final class DictationController {
     /// that used the real log would write its fixtures into the user's own history — which
     /// it did, until this seam existed.
     private let record: @MainActor (DictationRun) -> Void
+    /// Where one hold's outcome row goes (D-01b). Production writes a `dictation.hold`
+    /// row through `UsageLog.shared`; a self-test passes its own sink so it can assert on
+    /// the outcomes without touching any store.
+    private let outcomeSink: @MainActor (DictationHoldOutcome) -> Void
     /// Where the dictation's usage rows go (P0-20c). Injected only by tests; production
     /// appends to the real `usage.jsonl`, and a test injects a directory of its own so it
     /// can read the rows back without touching the harness temp store.
@@ -541,6 +559,28 @@ final class DictationController {
     private var releasedAt: Date?
     private var engineName = ""
 
+    // MARK: One hold's outcome row (D-01b)
+
+    /// Minted at key-down. The tail mints its run id from this same id, so one id joins
+    /// `runs.jsonl`, the P0-20c rows and the hold row.
+    private var holdID = UUID()
+    /// `reportOutcome`'s exactly-one-row guard: true between holds, false from
+    /// `beginDictation` until the hold's outcome is filed.
+    private var outcomeReported = true
+    /// Key-up, kept for the hold row: `recordRun` clears `releasedAt` before
+    /// `finishIdle` reports, and a cancel mid-tail clears the slots under the tail.
+    private var holdKeyUpAt: Date?
+    /// Key-down → key-up in milliseconds, captured at key-up for the same reason.
+    /// A retry hold measures the kept audio it replays instead of its own click.
+    private var holdMsAtKeyUp: Int?
+    /// Words in this hold's transcript, stashed where the tail knows it. The row
+    /// carries a count, never the text.
+    private var lastHoldWords = 0
+    /// This hold's cleanup record, stashed before injection so the row can say
+    /// whether the model was prewarmed and whether its pass timed out.
+    private var lastHoldCleanupRecord: CleanupRecord?
+    private var lastHoldCleanupTimedOut = false
+
     /// What the current recording will do after transcription. Command Mode captures the
     /// selection on key-down so a later focus change can be detected instead of overwriting
     /// an unrelated field.
@@ -634,6 +674,10 @@ final class DictationController {
         insert: @escaping @MainActor (String, TextInjector.Origin?) async -> TextInjector.Outcome
             = { await TextInjector.insert($0, returningTo: $1) },
         record: @escaping @MainActor (DictationRun) -> Void = { RunLog.record($0) },
+        // D-01b: one `dictation.hold` row per hold, whatever happened.
+        outcome: @escaping @MainActor (DictationHoldOutcome) -> Void = {
+            UsageLog.shared.record($0.usageRecord())
+        },
         usage: UsageLog = .shared,
         // Injectable for the same reason `insert` is: reading the selection needs
         // Accessibility and a focused text field in another app, neither of which a
@@ -658,6 +702,7 @@ final class DictationController {
         self.limits = limits
         self.insert = insert
         self.record = record
+        self.outcomeSink = outcome
         self.usage = usage
         self.captureSelection = captureSelection
         self.requestMicrophone = requestMicrophone
@@ -771,7 +816,7 @@ final class DictationController {
     /// into another app is a comparison affordance; during ordinary dictation it would mean
     /// every recording silently shipped your audio to a third party's servers.
     func startButtonRecording() {
-        guard canStartHold else { return }
+        guard canStartHold else { reportRefusedPress(); return }
         if Settings.shared.compareMode { WisprTrigger.press() }
         beginDictation(intent: .dictation)
     }
@@ -820,7 +865,7 @@ final class DictationController {
     /// this decides happens before the microphone opens, and none of it is reachable from a
     /// terminal through the event tap.
     func beginCommandMode() {
-        guard canStartHold else { return }
+        guard canStartHold else { reportRefusedPress(); return }
         guard FoundationModelCommandProcessor.isAvailable else {
             // Not `fail`. `fail` is the dictation failure path: it sets `.error`, which the
             // island draws as a dictation card with nothing in it — the wordless animation
@@ -906,6 +951,15 @@ final class DictationController {
         let keptSeconds = Double(kept.capturedFrames) / (kept.format?.sampleRate ?? 16_000)
         holdStarted = Date().addingTimeInterval(-keptSeconds)
         releasedAt = Date()
+        // A replay is its own hold for the outcome row too (D-01b): its own id, and a
+        // held time measured over the audio it actually plays rather than the click.
+        holdID = UUID()
+        outcomeReported = false
+        holdKeyUpAt = releasedAt
+        holdMsAtKeyUp = Int((keptSeconds * 1_000).rounded())
+        lastHoldWords = 0
+        lastHoldCleanupRecord = nil
+        lastHoldCleanupTimedOut = false
         engineName = Settings.shared.engine.displayName
         transcript = ""
         level = 0
@@ -932,7 +986,8 @@ final class DictationController {
                 if let keptFormat = kept.format, !Self.sameInputFormat(format, keptFormat) {
                     if self.session == session { self.engine = nil }
                     Task { await engine.finish() }
-                    fail("That recording doesn\u{2019}t fit the speech model you are using now. Hold the key and say it again.")
+                    fail("That recording doesn\u{2019}t fit the speech model you are using now. Hold the key and say it again.",
+                         result: .failed(.startup))
                     return
                 }
 
@@ -961,12 +1016,13 @@ final class DictationController {
                     chunkStream = stream
                 case .failed(let reason):
                     self.engine = nil
-                    fail(reason)
+                    fail(reason, result: .failed(.startup))
                     return
                 case nil:
                     self.engine = nil
                     Task { await engine.finish() }
-                    fail("The speech model didn\u{2019}t finish loading in time. If it is still downloading, let Settings \u{25B8} Models finish first.")
+                    fail("The speech model didn\u{2019}t finish loading in time. If it is still downloading, let Settings \u{25B8} Models finish first.",
+                         result: .failed(.startupTimeout))
                     return
                 }
 
@@ -1008,14 +1064,14 @@ final class DictationController {
                         }
                     } catch {
                         guard self.session == session else { return }
-                        self.fail(DictationErrorText.plain(error))
+                        self.fail(DictationErrorText.plain(error), result: .failed(.engine))
                     }
                 }
 
                 await runTail(session: session, audio: audio)
             } catch {
                 guard self.session == session else { return }
-                self.fail(DictationErrorText.plain(error))
+                self.fail(DictationErrorText.plain(error), result: .failed(.engine))
             }
         }
     }
@@ -1030,7 +1086,7 @@ final class DictationController {
     }
 
     private func beginDictation(intent: RecordingIntent) {
-        guard canStartHold else { return }
+        guard canStartHold else { reportRefusedPress(); return }
         // A Command Mode message outlives its hold by design — "Select some text first"
         // stays up for four seconds so it can be read. It must not outlive it *into the
         // next recording*: left standing, an ordinary push-to-talk dictation started inside
@@ -1119,6 +1175,15 @@ final class DictationController {
         transcript = ""
         audioCounter = DictationAudioCounter()
         holdStarted = Date()
+        // One fresh hold identity for the outcome row (D-01b): minted at key-down,
+        // reported exactly once, joined to the tail's run id below.
+        holdID = UUID()
+        outcomeReported = false
+        holdKeyUpAt = nil
+        holdMsAtKeyUp = nil
+        lastHoldWords = 0
+        lastHoldCleanupRecord = nil
+        lastHoldCleanupTimedOut = false
         keyDownToCaptureSeconds = nil
         releasedDuringStartup = nil
         keyDownToCaptureTrace = LatencyTrace.start(.dictationKeyDownToCapture)
@@ -1139,7 +1204,8 @@ final class DictationController {
             do {
                 guard await requestMicrophone() else {
                     guard self.session == session else { return }
-                    fail("Microphone access is off. Enable it in System Settings ▸ Privacy & Security ▸ Microphone.")
+                    fail("Microphone access is off. Enable it in System Settings ▸ Privacy & Security ▸ Microphone.",
+                         result: .failed(.micPermission))
                     return
                 }
                 guard self.session == session else { return }
@@ -1243,7 +1309,7 @@ final class DictationController {
                     audioContinuation.finish()
                     self.engine = nil
                     await engine.finish()
-                    fail(error.localizedDescription)
+                    fail(error.localizedDescription, result: .failed(.subscribe))
                     return
                 }
 
@@ -1285,12 +1351,13 @@ final class DictationController {
                     self.engine = nil
                     // Parakeet releases inside finish on a successful start that
                     // later unwinds; a failed start never acquired.
-                    fail(reason)
+                    fail(reason, result: .failed(.startup))
                     return
                 case nil:
                     self.engine = nil
                     Task { await engine.finish() }
-                    fail("The speech model didn't finish loading in time. If it is still downloading, let Settings ▸ Models finish first.")
+                    fail("The speech model didn't finish loading in time. If it is still downloading, let Settings ▸ Models finish first.",
+                         result: .failed(.startupTimeout))
                     return
                 }
 
@@ -1345,7 +1412,7 @@ final class DictationController {
                         }
                     } catch {
                         guard self.session == session else { return }
-                        self.fail(DictationErrorText.plain(error))
+                        self.fail(DictationErrorText.plain(error), result: .failed(.engine))
                     }
                 }
 
@@ -1363,7 +1430,7 @@ final class DictationController {
                 if Settings.shared.soundEnabled { NSSound(named: "Tink")?.play() }
             } catch {
                 guard self.session == session else { return }
-                self.fail(DictationErrorText.plain(error))
+                self.fail(DictationErrorText.plain(error), result: .failed(.engine))
             }
         }
     }
@@ -1393,7 +1460,12 @@ final class DictationController {
             level = 0
             audioContinuation?.finish()
             if recordingIntent.kind == .command { showCommandMode(.rewriting) }
-            releasedAt = Date()
+            let keyUp = Date()
+            releasedAt = keyUp
+            holdKeyUpAt = keyUp
+            if let holdStarted {
+                holdMsAtKeyUp = Self.millisecondsBetween(holdStarted, keyUp)
+            }
             // Key-up before any partial: close the open speech→partial span rather than drop it.
             firstPartialTrace?.end(note: "key-up")
             firstPartialTrace = nil
@@ -1417,7 +1489,12 @@ final class DictationController {
         AudioCaptureHub.shared.unsubscribe(.dictation)
         isCapturingAudio = false
         level = 0
-        releasedAt = Date()
+        let keyUp = Date()
+        releasedAt = keyUp
+        holdKeyUpAt = keyUp
+        if let holdStarted {
+            holdMsAtKeyUp = Self.millisecondsBetween(holdStarted, keyUp)
+        }
         // Key-up before any partial: close the open speech→partial span rather than drop it.
         firstPartialTrace?.end(note: "key-up")
         firstPartialTrace = nil
@@ -1456,9 +1533,9 @@ final class DictationController {
         self.consumeTask = nil
 
         let began = Date()
-        // One id for the whole run: `runs.jsonl` files it and both usage rows join on it
-        // (P0-20c). Made before the drain so it names the run from its first stage.
-        let runID = UUID()
+        // One id for the whole run: minted at key-down (`holdID`, D-01b) so `runs.jsonl`,
+        // the P0-20c rows and the hold row share one correlation id.
+        let runID = holdID
         audioContinuation?.finish()
         _ = await withBoundedWait(limits.drain) { () -> Bool in
             await feedTask?.value
@@ -1515,16 +1592,21 @@ final class DictationController {
         let raw = self.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? stabilized
             : self.transcript
+        // The row carries a count, never the text (D-01b). Stashed before the empty
+        // guard so every exit below files it.
+        lastHoldWords = Self.wordCount(raw)
         guard !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             let capturedFrames = audio?.frames ?? 0
             if capturedFrames == 0 {
-                fail("No microphone audio reached dictation. Check the selected input device, then try again.")
+                fail("No microphone audio reached dictation. Check the selected input device, then try again.",
+                     result: .failed(.noAudio))
                 return
             }
             // A timed-out transcription leaves nothing to inject. The audio is kept —
             // "that recording was lost" was the truth only while nothing kept it.
             guard transcribed else {
-                fail("Transcription didn\u{2019}t finish in time. That recording is kept, so you can try again.")
+                fail("Transcription didn\u{2019}t finish in time. That recording is kept, so you can try again.",
+                     result: .failed(.transcribeTimeout))
                 return
             }
             // Silence is the one thing the user must not be nagged about: an empty
@@ -1536,10 +1618,17 @@ final class DictationController {
             // here rather than tuned: it is the number this codebase already treats as
             // "there was someone speaking" (kept limit I2 #33, never changed).
             if audio?.voicedFrames ?? 0 >= 15 {
-                fail("I heard you but couldn\u{2019}t make out the words. Try again, or hold a little longer.")
+                fail("I heard you but couldn\u{2019}t make out the words. Try again, or hold a little longer.",
+                     result: .emptySpeech)
                 return
             }
-            finishIdle()
+            // D-01b: a tap is a hold released almost immediately, or with too little
+            // audio to have been a real utterance — D-04 pads such audio, so a tap can
+            // reach this path transcribed-but-empty and still belongs to its own class.
+            let holdMs = holdStarted.flatMap { started in
+                releasedAt.map { $0.timeIntervalSince(started) }
+            } ?? 0
+            finishIdle(result: holdMs < 0.3 || capturedFrames < 4_800 ? .tap : .empty)
             return
         }
 
@@ -1581,6 +1670,11 @@ final class DictationController {
             }
             cleanupRecord = trace.snapshot
         }
+        // Stashed for the hold row (D-01b): whether the cleanup pass hit its deadline,
+        // and whether a staged session was there when the model was asked (D-01a's
+        // field, absent from the row when no model ran).
+        lastHoldCleanupTimedOut = cleanupTimedOut
+        lastHoldCleanupRecord = cleanupRecord
 
         // The split, every time, at info level. `runs.jsonl` records one number for the
         // whole tail, and a run that took three minutes when it should have taken two
@@ -1670,7 +1764,7 @@ final class DictationController {
             // keeping (D-03).
             lastFailedHold = nil
             if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
-            finishIdle()
+            finishIdle(result: .inserted)
 
         case .copiedByChoice:
             // The setting asked for this, so it is a success and gets the success
@@ -1678,7 +1772,7 @@ final class DictationController {
             // someone about a choice they already made.
             lastFailedHold = nil
             if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
-            finishIdle()
+            finishIdle(result: .copied)
 
         case .couldNotReturn(let appName):
             // Not silent. The old behaviour here was to paste into whatever the user
@@ -1687,12 +1781,16 @@ final class DictationController {
             //
             // `keepsAudio: false`: the words are on the clipboard, so nothing is lost and
             // a "Try again" here would type the same sentence in twice.
-            fail("Couldn't switch back to \(appName). That dictation is on your clipboard.", keepsAudio: false)
+            fail("Couldn't switch back to \(appName). That dictation is on your clipboard.",
+                 keepsAudio: false, result: .failed(.couldNotReturn))
         }
     }
 
-    /// The one way back to rest after a successful run.
-    private func finishIdle() {
+    /// The one way back to rest after a successful run. `result` files the hold's one
+    /// usage row (D-01b) first — the counter and the stashed tail numbers are read
+    /// here, before anything below clears them.
+    private func finishIdle(result: DictationHoldResult) {
+        reportOutcome(result)
         AudioCaptureHub.shared.unsubscribe(.dictation)
         isCapturingAudio = false
         releasedDuringStartup = nil
@@ -1709,10 +1807,113 @@ final class DictationController {
         ScreenContextStore.shared.clearCaptured()
     }
 
+    // MARK: - Outcome rows (D-01b)
+
+    /// Files the hold's exactly-one usage row, whatever happened.
+    ///
+    /// The counts are read here rather than carried through the hold, because the only
+    /// reliable moment to read the counter and the tail's stashes is the moment the
+    /// hold ends. `outcomeReported` makes the call idempotent: a cancel that lands
+    /// mid-tail files the row first, and the tail's own finish then finds the guard
+    /// closed — no path reports twice, and case g of `--selftest-dictation` pins that.
+    ///
+    /// Deliberately silent when no hold is in flight: a cancel or a deactivate with
+    /// nothing running finds `outcomeReported` still true from the last hold.
+    private func reportOutcome(_ result: DictationHoldResult) {
+        guard !outcomeReported else { return }
+        outcomeReported = true
+        let now = Date()
+        var counts: [String: Int] = [:]
+        if let holdMs = holdMillis(at: now) { counts["holdMs"] = holdMs }
+        if let capture = keyDownToCaptureSeconds {
+            counts["keyDownToCaptureMs"] = Int((capture * 1_000).rounded())
+        }
+        counts["words"] = lastHoldWords
+        counts["capturedFrames"] = audioCounter?.frames ?? 0
+        counts["droppedHubBuffers"] = audioCounter?.hubDropCount ?? 0
+        counts["droppedStreamBuffers"] = audioCounter?.streamDropCount ?? 0
+        counts["cleanupTimedOut"] = lastHoldCleanupTimedOut ? 1 : 0
+        if let prewarmed = lastHoldCleanupRecord?.sessionPrewarmed {
+            counts["sessionPrewarmed"] = prewarmed ? 1 : 0
+        }
+        let keyUpToOutcome: Duration?
+        switch result {
+        case .lostAtStartup, .cancelled:
+            keyUpToOutcome = nil
+        default:
+            keyUpToOutcome = (releasedAt ?? holdKeyUpAt).map {
+                .seconds(now.timeIntervalSince($0))
+            }
+        }
+        outcomeSink(DictationHoldOutcome(
+            holdID: holdID,
+            result: result,
+            keyUpToOutcome: keyUpToOutcome,
+            counts: counts,
+            engine: currentEngineChoice
+        ))
+    }
+
+    /// Key-down → hold end, in milliseconds, for the row's `holdMs`. The live pair of
+    /// dates wins while it is alive (a failure before key-up measures the hold so
+    /// far); the key-up snapshot is what survives `recordRun` clearing both dates
+    /// before `finishIdle` reports an inserted or copied hold.
+    private func holdMillis(at now: Date) -> Int? {
+        if let holdStarted, let releasedAt {
+            return Self.millisecondsBetween(holdStarted, releasedAt)
+        }
+        if let holdStarted {
+            return Self.millisecondsBetween(holdStarted, now)
+        }
+        return holdMsAtKeyUp
+    }
+
+    /// One `dictation.press_refused` row per refused press (D-01b). The state names
+    /// itself in the row's `errorClass`; `.finishing` carries how long ago the key
+    /// came up. A press in a startable state (`.idle`, and `.error` since D-05) is
+    /// never refused, so it never reaches here.
+    private func reportRefusedPress() {
+        let stateName: String
+        switch state {
+        case .starting: stateName = "starting"
+        case .listening: stateName = "listening"
+        case .finishing: stateName = "finishing"
+        case .idle, .error: return
+        }
+        var counts: [String: Int] = [:]
+        if stateName == "finishing", let releasedAt {
+            counts["sinceKeyUpMs"] = Self.millisecondsBetween(releasedAt, Date())
+        }
+        usage.record(DictationHoldOutcome.pressRefusedRecord(
+            state: stateName,
+            counts: counts,
+            engine: currentEngineChoice,
+            holdID: holdID
+        ))
+    }
+
+    /// The engine this hold ran — or was armed to run — for the usage rows. The tail
+    /// reads the engine object (P0-20c); an outcome reported before any engine existed
+    /// names the setting, which is what would have run.
+    private var currentEngineChoice: SpeechEngineChoice {
+        if engine is AppleSpeechEngine { return .apple }
+        if engine is ParakeetEngine { return .parakeet }
+        return Settings.shared.engine
+    }
+
+    private static func millisecondsBetween(_ from: Date, _ to: Date) -> Int {
+        max(0, Int((to.timeIntervalSince(from) * 1_000).rounded()))
+    }
+
+    private static func wordCount(_ text: String) -> Int {
+        text.split(whereSeparator: { $0.isWhitespace }).count
+    }
+
     private func applyCommand(_ rawCommand: String, to selection: TextInjector.Selection) async {
         // Corrections still matter in a spoken instruction (for example a product name),
         // but punctuation cleanup does not: the model needs an imperative, not prose.
         let (command, _) = DictionaryStore.shared.corrector.apply(to: rawCommand)
+        lastHoldWords = Self.wordCount(command)
         transcript = "Editing selection…"
         showCommandMode(.rewriting)
 
@@ -1731,16 +1932,18 @@ final class DictationController {
         switch outcome {
         case .replaced(let replacement)?:
             guard TextInjector.replace(selection, with: replacement) else {
-                fail("The selection changed while Command Mode was processing; nothing was replaced.")
+                fail("The selection changed while Command Mode was processing; nothing was replaced.",
+                     result: .failed(.couldNotReturn))
                 return
             }
             recordRun(text: replacement)
             if Settings.shared.soundEnabled { NSSound(named: "Pop")?.play() }
-            finishIdle()
+            finishIdle(result: .command)
         case .failed(let reason)?:
-            fail(reason)
+            fail(reason, result: .failed(.engine))
         case nil:
-            fail("Command Mode didn't finish in time; the selection was left alone.")
+            fail("Command Mode didn't finish in time; the selection was left alone.",
+                 result: .failed(.engine))
         }
     }
 
@@ -1754,6 +1957,11 @@ final class DictationController {
     /// start-up never cuts the next hold's microphone (D-02 case d). Production
     /// callers are `deactivate()` and the Command Mode cancel path below.
     func cancelDictation() {
+        // The hold's one outcome row, filed before the slots are cleared (D-01b). A
+        // cancel with no hold in flight finds `outcomeReported` still true and files
+        // nothing; a cancel mid-tail wins over the tail's own finish, whose report the
+        // same guard then refuses.
+        reportOutcome(.cancelled)
         let releasing = session
         session &+= 1
         AudioCaptureHub.shared.unsubscribe(.dictation)
@@ -1795,6 +2003,7 @@ final class DictationController {
         recorded.removeAll(keepingCapacity: false)
 
         guard !chunks.isEmpty, let holdStarted, let releasedAt else {
+            reportOutcome(.compare)
             state = .idle
             transcript = ""
             return
@@ -1854,6 +2063,7 @@ final class DictationController {
             }
         }
 
+        reportOutcome(.compare)
         self.holdStarted = nil
         self.releasedAt = nil
         isComparing = false
@@ -1908,7 +2118,16 @@ final class DictationController {
     /// `keepsAudio` decides whether the hold's recording is moved into the one "Try
     /// again" slot before the slots are cleared (D-03). True for every path where the
     /// words are nowhere else; false when they have already been delivered somewhere.
-    private func fail(_ message: String, keepsAudio: Bool = true) {
+    ///
+    /// `result` names the outcome class explicitly at every call site (D-01b) — never
+    /// parsed out of the message, which is written for the user and reworded freely.
+    /// The hold's one row is filed here, while the counter and the tail stashes are
+    /// still reachable.
+    private func fail(
+        _ message: String,
+        keepsAudio: Bool = true,
+        result: DictationHoldResult
+    ) {
         Log.app.error("\(message, privacy: .public)")
         // A Command Mode hold keeps its own card rather than handing the message to the
         // dictation error state. Gated on what this hold is rather than on whether a card is
@@ -1918,6 +2137,8 @@ final class DictationController {
         // Before anything below disowns the slots: this is the only moment the recording
         // is still reachable, and it is what "Try again" plays.
         if keepsAudio { keepForRetry(audioCounter) }
+        // The hold's one outcome row, while the counter and the stashes are alive.
+        reportOutcome(result)
         // Anything still in flight for this hold is disowned rather than awaited: `fail` is
         // reached *because* something did not come back.
         let releasing = session

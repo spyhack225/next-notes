@@ -3162,6 +3162,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func runDictationSelfTest() {
         Task { @MainActor in
             var failures: [String] = []
+            // D-01b: every hold's outcome, filed through the sink the controllers
+            // below are built with. `holdsStarted` counts every press that began a
+            // hold (never a refused one); case g pins the two numbers equal.
+            let sink = SelfTestOutcomeSink()
+            var holdsStarted = 0
             // Short enough that a deadline can be observed to fire, in the same order of
             // magnitude as the real ones.
             let limits = DictationController.Limits(
@@ -3180,7 +3185,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 held: Duration,
                 settle: TimeInterval
             ) async -> DictationController.State? {
+                let wasIdle = !controller.state.isActive
                 controller.startButtonRecording()
+                if wasIdle, controller.state.isActive { holdsStarted += 1 }
                 try? await Task.sleep(for: held)
                 let heldState = controller.state
                 controller.stopButtonRecording()
@@ -3211,6 +3218,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     // Discarded, not filed. These are fixtures, and the Dictation list is the
                     // user's own history — a self-test has no business appearing in it.
                     record: { _ in },
+                    // The hold outcomes land here, never in the user's usage.jsonl: the
+                    // harness runs against a temp store, and the assertions below read
+                    // the sink rather than any file.
+                    outcome: { sink.append($0) },
                     speechDetector: speechDetector
                 )
             }
@@ -3227,6 +3238,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             //    ~2× the worst first hold measured; later cases hold far less and are
             //    unaffected.
             let plain = SelfTestInbox()
+            let caseABefore = sink.count
             let controllerA = makeController(.prompt(delay: .zero), inbox: plain)
             let heldState = await hold(controllerA, held: .seconds(4), settle: 6)
             if heldState == nil {
@@ -3241,9 +3253,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 failures.append("an ordinary hold injected \(plain.contents()) rather than the transcript")
             }
 
+            // D-01b a. Exactly one `dictation.hold` outcome for the ordinary hold:
+            // inserted, the held time counted, key-up → outcome present.
+            let caseA = sink.outcomes(from: caseABefore)
+            if heldState != nil {
+                if caseA.count != 1 {
+                    failures.append("the ordinary hold filed \(caseA.count) outcome(s), expected 1")
+                } else {
+                    let outcome = caseA[0]
+                    if outcome.result != .inserted {
+                        failures.append("the ordinary hold's outcome was \(outcome.result), expected inserted")
+                    }
+                    if let holdMs = outcome.counts["holdMs"], holdMs < 500 {
+                        failures.append("the ordinary hold's holdMs was \(holdMs), expected ≥ 500")
+                    } else if outcome.counts["holdMs"] == nil {
+                        failures.append("the ordinary hold filed no holdMs")
+                    }
+                    if outcome.keyUpToOutcome == nil {
+                        failures.append("the ordinary hold carried no key-up → outcome time")
+                    }
+                    if outcome.counts["keyDownToCaptureMs"] == nil {
+                        failures.append("the ordinary hold carried no key-down → capture time")
+                    }
+                }
+            }
+
             // 2. `finish()` that never returns — the engine wedged on a model load, or on a
             //    queue a meeting is holding. Bounded, this must give up and say so.
             let hung = SelfTestInbox()
+            let caseBBefore = sink.count
             let controllerB = makeController(.hangsOnFinish, inbox: hung)
             if await hold(controllerB, held: .milliseconds(400), settle: 8) == nil {
                 failures.append("a wedged finish() left the controller recording forever")
@@ -3252,11 +3290,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 failures.append("a wedged finish() injected \(hung.contents())")
             }
             // D-03d. A transcribe timeout keeps the hold for retry.
-            // (No outcome row: D-01b's sink needs P0-20a's UsageLog, still
-            // todo — the kept slot is what this pins; D-01b adds the
-            // `failed:transcribeTimeout` row.)
             if !controllerB.canRetryLastHold {
                 failures.append("a transcribe timeout kept nothing for retry")
+            }
+
+            // D-01b b. Exactly one outcome for the wedged finish: failed:transcribeTimeout.
+            let caseB = sink.outcomes(from: caseBBefore)
+            if caseB.count != 1 {
+                failures.append("the wedged finish filed \(caseB.count) outcome(s), expected 1")
+            } else if caseB[0].result != .failed(.transcribeTimeout) {
+                failures.append("the wedged finish's outcome was \(caseB[0].result), "
+                                + "expected failed(transcribeTimeout)")
             }
 
             // 3. A transcript stream nobody closes. This is the shape the single-slot
@@ -3276,8 +3320,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             //    "still starting up". The second half is unchanged: the next hold
             //    still works.
             let raced = SelfTestInbox()
+            let caseCBefore = sink.count
             let controllerD = makeController(.prompt(delay: .seconds(2)), inbox: raced)
             controllerD.startButtonRecording()
+            holdsStarted += 1
             try? await Task.sleep(for: .milliseconds(200))
             controllerD.stopButtonRecording()
             if case .finishing = controllerD.state {} else {
@@ -3295,6 +3341,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if raced.contents().count != 1 || raced.contents().first?.contains("transcript") != true {
                 failures.append("a hold released during start-up injected \(raced.contents()) "
                                 + "instead of its pre-roll transcript")
+            }
+
+            // D-01b c. D-02 inverted the original lost-at-startup case on purpose: the
+            // released hold's pre-roll is transcribed, so its one outcome is inserted,
+            // not lostAtStartup. The vocabulary keeps the class; the row the stats
+            // script counts is this one.
+            let caseC = sink.outcomes(from: caseCBefore)
+            if caseC.count != 1 {
+                failures.append("the released-during-start-up hold filed \(caseC.count) outcome(s), expected 1")
+            } else if caseC[0].result != .inserted {
+                failures.append("the released-during-start-up hold's outcome was \(caseC[0].result), "
+                                + "expected inserted (D-02 transcribes the pre-roll)")
             }
             // The abandoned start-up is still in flight here; the second hold has to be
             // unaffected by it.
@@ -3329,6 +3387,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     },
                     // Discarded, not filed: fixtures, not the user's history.
                     record: { _ in },
+                    outcome: { sink.append($0) },
                     speechDetector: speechDetector
                 )
             }
@@ -3357,7 +3416,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         return .inserted
                     },
                     // Discarded, not filed: fixtures, not the user's history.
-                    record: { _ in }
+                    record: { _ in },
+                    outcome: { sink.append($0) }
                 )
             }
 
@@ -3365,8 +3425,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             //    behind it: `.listening` within 1 s, and the hold injects.
             let retryBox = MutableEngineShape(.failsStart("boom"))
             let retryInbox = SelfTestInbox()
+            let caseEBefore = sink.count
             let controllerE = makeRetryController(box: retryBox, inbox: retryInbox)
             controllerE.startButtonRecording()
+            holdsStarted += 1
             let firstErrorBy = Date().addingTimeInterval(8)
             while Date() < firstErrorBy {
                 if case .error = controllerE.state { break }
@@ -3375,7 +3437,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if case .error = controllerE.state {
                 try? await Task.sleep(for: .milliseconds(500))
                 retryBox.shape = .prompt(delay: .zero)
+
+                // D-01b e. The failing hold filed exactly one failed:startup outcome.
+                let failedOutcome = sink.outcomes(from: caseEBefore)
+                if failedOutcome.count != 1 {
+                    failures.append("the failing start filed \(failedOutcome.count) outcome(s), expected 1")
+                } else if failedOutcome[0].result != .failed(.startup) {
+                    failures.append("the failing start's outcome was \(failedOutcome[0].result), "
+                                    + "expected failed(startup)")
+                }
+
                 controllerE.startButtonRecording()
+                holdsStarted += 1
                 let listeningBy = Date().addingTimeInterval(1)
                 var heardListening = false
                 while Date() < listeningBy {
@@ -3410,6 +3483,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let tokenInbox = SelfTestInbox()
             let controllerF = makeRetryController(box: tokenBox, inbox: tokenInbox)
             controllerF.startButtonRecording()
+            holdsStarted += 1
             let tokenFirstBy = Date().addingTimeInterval(8)
             while Date() < tokenFirstBy {
                 if case .error = controllerF.state { break }
@@ -3419,6 +3493,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 try? await Task.sleep(for: .seconds(1))
                 tokenBox.shape = .failsStart("second failure")
                 controllerF.startButtonRecording()
+                holdsStarted += 1
                 try? await Task.sleep(for: .seconds(2.5))
                 if case .error(let message) = controllerF.state {
                     if message != DictationErrorText.unrecognized {
@@ -3439,6 +3514,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let rawInbox = SelfTestInbox()
             let controllerG = makeController(.throwsOnFinish(rawShortAudio), inbox: rawInbox)
             controllerG.startButtonRecording()
+            holdsStarted += 1
             try? await Task.sleep(for: .milliseconds(400))
             controllerG.stopButtonRecording()
             // The error card shows for 3 s; read it while it is up.
@@ -3503,7 +3579,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let controllerH = makePrerollController(
                 box: MutableEngineShape(.countsFrames(startDelay: .milliseconds(1500))),
                 holder: holderA, inbox: inboxA)
+            let caseHBefore = sink.count
             controllerH.startButtonRecording()
+            holdsStarted += 1
             try? await Task.sleep(for: .seconds(2.5))
             let fedA = await holderA.engine?.framesFed() ?? -1
             controllerH.stopButtonRecording()
@@ -3525,8 +3603,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             // D-02c. Capture latency: key-down → capture no longer includes the
             // model load, so it stays ≤ 150 ms although the start took 1.5 s.
-            // (D-01b will file this as counts["keyDownToCaptureMs"]; P0-20a still
-            // todo, so the self-test reads the controller directly.)
+            // (D-01b files the same number as counts["keyDownToCaptureMs"] on the
+            // hold row; the controller read here is the same measurement.)
             if let captureSeconds = controllerH.keyDownToCaptureSeconds {
                 if captureSeconds > 0.15 {
                     failures.append("key-down to capture took \(captureSeconds)s with a 1.5 s start")
@@ -3535,6 +3613,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             } else {
                 failures.append("no key-down to capture time recorded for a 2.5 s hold")
+            }
+            let caseH = sink.outcomes(from: caseHBefore)
+            if caseH.count != 1 {
+                failures.append("the pre-roll hold filed \(caseH.count) outcome(s), expected 1")
+            } else if caseH[0].counts["keyDownToCaptureMs"] == nil {
+                failures.append("the pre-roll hold's outcome carried no keyDownToCaptureMs")
             }
 
             // D-02b. Release during start-up transcribes: the state goes to
@@ -3545,6 +3629,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 box: MutableEngineShape(.countsFrames(startDelay: .milliseconds(1500))),
                 holder: holderB, inbox: inboxB)
             controllerI.startButtonRecording()
+            holdsStarted += 1
             try? await Task.sleep(for: .seconds(1))
             controllerI.stopButtonRecording()
             if case .finishing = controllerI.state {} else {
@@ -3572,12 +3657,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let holderD = EngineHolder()
             let inboxD = SelfTestInbox()
             let controllerJ = makePrerollController(box: supBox, holder: holderD, inbox: inboxD)
+            let caseJBefore = sink.count
             controllerJ.startButtonRecording()
+            holdsStarted += 1
             try? await Task.sleep(for: .milliseconds(500))
             controllerJ.cancelDictation()
             try? await Task.sleep(for: .milliseconds(200))
             supBox.shape = .countsFrames(startDelay: .zero)
             controllerJ.startButtonRecording()
+            holdsStarted += 1
             if await hold(controllerJ, held: .milliseconds(2_500), settle: 8) == nil {
                 failures.append("the hold after a cancelled start-up never came back to idle")
             }
@@ -3589,6 +3677,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if inboxD.contents().count != 1 || inboxD.contents().first?.contains("transcript") != true {
                 failures.append("the hold after a cancelled start-up injected \(inboxD.contents())")
             }
+            // D-01b: the cancelled hold filed its one row as cancelled, and the hold
+            // after it as inserted — the pair the counters read for T5.
+            let caseJ = sink.outcomes(from: caseJBefore)
+            if caseJ.count == 2 {
+                if caseJ[0].result != .cancelled {
+                    failures.append("the cancelled start-up's outcome was \(caseJ[0].result), expected cancelled")
+                }
+                if caseJ[1].result != .inserted {
+                    failures.append("the hold after a cancelled start-up filed \(caseJ[1].result), expected inserted")
+                }
+            } else {
+                failures.append("the cancelled start and its successor filed \(caseJ.count) outcome(s), expected 2")
+            }
 
             // D-02e. Tap faster than the subscribe: the release lands before the
             // microphone even opened (no await sits between the two button calls,
@@ -3597,6 +3698,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let tapInbox = SelfTestInbox()
             let controllerK = makeController(.prompt(delay: .zero), inbox: tapInbox)
             controllerK.startButtonRecording()
+            holdsStarted += 1
             controllerK.stopButtonRecording()
             if case .finishing = controllerK.state {} else {
                 failures.append("an immediate release went \(controllerK.state) instead of .finishing")
@@ -3614,14 +3716,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             // D-03a. Empty transcript over speech: the hold must say so on the
             // error card and keep its audio for retry — never go quietly idle.
-            // (No outcome row: D-01b's sink needs P0-20a's UsageLog, still todo.
-            // The card, the slot and the silence half below are the assertions
-            // that exist until then; D-01b adds `emptySpeech` / `empty` rows.)
             let speechBox = MutableEngineShape(.emptyTranscript)
             let speechInbox = SelfTestInbox()
+            let caseLSpeechBefore = sink.count
             let controllerL = makeRetryController(
                 box: speechBox, inbox: speechInbox, speechDetector: { _ in 100 })
             controllerL.startButtonRecording()
+            holdsStarted += 1
             try? await Task.sleep(for: .milliseconds(800))
             controllerL.stopButtonRecording()
             var speechMessage: String?
@@ -3649,6 +3750,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if !speechInbox.contents().isEmpty {
                 failures.append("empty transcript over speech injected \(speechInbox.contents())")
             }
+            // D-01b: speech with no words files emptySpeech — the countable half of T5.
+            let caseL = sink.outcomes(from: caseLSpeechBefore)
+            if caseL.count != 1 {
+                failures.append("the empty-over-speech hold filed \(caseL.count) outcome(s), expected 1")
+            } else if caseL[0].result != .emptySpeech {
+                failures.append("the empty-over-speech hold's outcome was \(caseL[0].result), expected emptySpeech")
+            }
             let speechIdleBy = Date().addingTimeInterval(8)
             while Date() < speechIdleBy, controllerL.state != .idle {
                 try? await Task.sleep(for: .milliseconds(50))
@@ -3658,9 +3766,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // nothing kept. Passes before the fix too — it pins the silence half
             // so a later change cannot start nagging over room tone.
             let silentInbox = SelfTestInbox()
+            let caseDBefore = sink.count
             let controllerM = makeController(
                 .emptyTranscript, inbox: silentInbox, speechDetector: { _ in 0 })
             controllerM.startButtonRecording()
+            holdsStarted += 1
             try? await Task.sleep(for: .milliseconds(800))
             controllerM.stopButtonRecording()
             var silentError: String?
@@ -3683,10 +3793,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 failures.append("empty transcript over silence injected \(silentInbox.contents())")
             }
 
+            // D-01b d. Silence over a real hold goes quietly idle and files exactly one
+            // empty row — the hold the island used to show nothing about.
+            let caseD = sink.outcomes(from: caseDBefore)
+            if caseD.count != 1 {
+                failures.append("the silent hold filed \(caseD.count) outcome(s), expected 1")
+            } else if caseD[0].result != .empty {
+                failures.append("the silent hold's outcome was \(caseD[0].result), expected empty")
+            }
+
             // D-03c. Retry: after a, swap the engine box and retry the kept
             // hold — the inbox gets the transcript and the slot clears.
             speechBox.shape = .prompt(delay: .zero)
             controllerL.retryLastFailedHold()
+            holdsStarted += 1
             let retryIdleBy = Date().addingTimeInterval(10)
             while Date() < retryIdleBy, controllerL.state != .idle {
                 try? await Task.sleep(for: .milliseconds(50))
@@ -3699,6 +3819,76 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             if controllerL.canRetryLastHold {
                 failures.append("a retried hold left its audio kept")
+            }
+
+            // D-01b f. A press while the tail is still running is refused, and the
+            // refusal is filed against the hold it arrived during — which still ends
+            // with exactly one inserted row. The slow formatter keeps the hold in
+            // `.finishing` for about a second, so the press below lands inside it.
+            let slowInbox = SelfTestInbox()
+            let caseFBefore = sink.count
+            let controllerN = DictationController(
+                formatter: SlowSelfTestFormatter(),
+                makeEngine: { SelfTestEngine(shape: .prompt(delay: .zero)) },
+                limits: limits,
+                insert: { text, _ in
+                    slowInbox.append(text)
+                    return .inserted
+                },
+                // Discarded, not filed: fixtures, not the user's history.
+                record: { _ in },
+                outcome: { sink.append($0) }
+            )
+            controllerN.startButtonRecording()
+            holdsStarted += 1
+            // Let the hold reach `.listening` before releasing, so the press below is
+            // unambiguously refused in `.finishing` and not in `.starting`.
+            let listeningNBy = Date().addingTimeInterval(4)
+            while Date() < listeningNBy, controllerN.state != .listening {
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+            controllerN.stopButtonRecording()
+            // The tail now runs the one-second formatter. A press here is refused and
+            // files a `dictation.press_refused` row against this hold; it starts nothing.
+            try? await Task.sleep(for: .milliseconds(200))
+            if controllerN.state == .finishing {
+                controllerN.startButtonRecording()
+            } else {
+                failures.append("the hold's tail was \(controllerN.state) when the refused "
+                                + "press was due, expected finishing")
+            }
+            let idleNBy = Date().addingTimeInterval(8)
+            while Date() < idleNBy, controllerN.state != .idle {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if controllerN.state != .idle {
+                failures.append("the hold whose tail refused a press never came back to idle")
+            }
+            let caseF = sink.outcomes(from: caseFBefore)
+            if caseF.count != 1 {
+                failures.append("the hold with the refused press filed \(caseF.count) outcome(s), expected 1")
+            } else if caseF[0].result != .inserted {
+                failures.append("the hold with the refused press filed \(caseF[0].result), expected inserted")
+            }
+            // The refused row itself: read back through the harness temp store, which
+            // is where the controller's usage rows go under the self-test.
+            UsageLog.shared.flush()
+            let refusedRows = UsageLog.shared.load().filter {
+                $0.feature == UsageFeature.dictationPressRefused.rawValue
+                    && $0.errorClass == "finishing"
+            }
+            if refusedRows.count != 1 {
+                failures.append("the finishing refused press filed \(refusedRows.count) row(s), expected 1")
+            } else if refusedRows[0].counts?["sinceKeyUpMs"] == nil {
+                failures.append("the finishing refused press carried no sinceKeyUpMs")
+            } else if refusedRows[0].dictationRunID == nil {
+                failures.append("the refused press row carried no correlation id for the hold it hit")
+            }
+
+            // D-01b g. Every hold started filed exactly one outcome: no path reports
+            // twice, and no path loses a hold without a row.
+            if sink.count != holdsStarted {
+                failures.append("holds started \(holdsStarted) but \(sink.count) outcome row(s) were filed")
             }
 
             for failure in failures { writeSelfTest("  DICTATION_WRONG: \(failure)") }
@@ -7064,6 +7254,30 @@ final class SelfTestInbox {
     private var texts: [String] = []
     func append(_ text: String) { texts.append(text) }
     func contents() -> [String] { texts }
+}
+
+/// Collects the hold outcomes a self-test's `DictationController` filed (D-01b).
+///
+/// Same reason as `SelfTestInbox`: the sink closure is stored on the controller and
+/// called from inside its own tasks, so the self-test needs a reference to read
+/// afterwards. Outcomes arrive in hold order, so a case reads the slice at or after
+/// the index it started at.
+@MainActor
+final class SelfTestOutcomeSink {
+    private var reported: [DictationHoldOutcome] = []
+    func append(_ outcome: DictationHoldOutcome) { reported.append(outcome) }
+    var count: Int { reported.count }
+    /// The outcomes reported at or after `index` — the slice one hold's assertions read.
+    func outcomes(from index: Int) -> [DictationHoldOutcome] { Array(reported.dropFirst(index)) }
+}
+
+/// A formatter that takes about a second, so a hold's `.finishing` tail is long enough
+/// for a press to land inside it (D-01b case f). Otherwise identical to a pass-through.
+struct SlowSelfTestFormatter: TextFormatter {
+    func format(_ raw: String) async -> String {
+        try? await Task.sleep(for: .seconds(1))
+        return raw
+    }
 }
 
 /// A transcription engine that can be asked to misbehave in each of the ways a real one

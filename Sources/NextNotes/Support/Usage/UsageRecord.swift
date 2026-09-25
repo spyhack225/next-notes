@@ -18,7 +18,8 @@ struct UsageRecord: Codable, Sendable, Equatable {
     var feature: String
     /// "answer" | "planner" | "final" | "frontend-route" | "frontend-answer" | "round" |
     /// "single" | "map" | "collapse" | "reduce" | "reconcile" | "review" | "live" |
-    /// "window-batch" | "cluster" | "engine" | "cleanup" | "handoff" | "turn".
+    /// "window-batch" | "cluster" | "engine" | "cleanup" | "handoff" | "turn" |
+    /// "hold" | "press".
     var pass: String
     var round: Int?
     /// `UsageProvider.rawValue`.
@@ -115,6 +116,10 @@ enum UsageFeature: String, Codable, Sendable, CaseIterable {
     case meetingNeedle = "meeting.needle"
     case dictationASR = "dictation.asr"
     case dictationCleanup = "dictation.cleanup"
+    /// One row per hold, whatever happened (D-01b).
+    case dictationHold = "dictation.hold"
+    /// One row per press the state machine refused (D-01b).
+    case dictationPressRefused = "dictation.press_refused"
     case memoryReview = "memory.review"
     case knowledgeAsk = "knowledge.ask"
 }
