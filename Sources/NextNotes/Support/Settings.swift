@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Observation
 
@@ -877,6 +878,37 @@ final class Settings {
         callAppsSeen = seen
     }
 
+    /// M-02: answers stored against a helper id belong to the owning app.
+    ///
+    /// One-shot, guarded by `callAnswersOwnerMigrationV1`: moves `*.helper` rows in
+    /// `callAppAnswers` / `callAppsSeen` to the installed owner, keeping the more
+    /// cautious answer on a collision and dropping denied ids. Never runs under the
+    /// self-test harness — the harness must not touch the user's defaults; the
+    /// self-test calls the pure `AudioProcessOwner.migrate` directly.
+    private func migrateCallAnswersToOwnersIfNeeded() {
+        guard !SelfTest.isRunning else { return }
+        guard !defaults.bool(forKey: Keys.callAnswersOwnerMigrationV1) else { return }
+        let migrated = AudioProcessOwner.migrate(
+            answers: callAppAnswers,
+            seen: callAppsSeen,
+            installedApp: {
+                NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil
+            }
+        )
+        let moved = (Set(callAppAnswers.keys).subtracting(migrated.answers.keys).sorted()
+            + Set(callAppsSeen.keys).subtracting(migrated.seen.keys).sorted()
+            .map { "seen:\($0)" })
+            .joined(separator: ", ")
+        callAppAnswers = migrated.answers
+        callAppsSeen = migrated.seen
+        // `didSet` does not fire during `init`, so write through by hand.
+        defaults.set(migrated.answers, forKey: Keys.callAppAnswers)
+        defaults.set(migrated.seen, forKey: Keys.callAppsSeen)
+        defaults.set(true, forKey: Keys.callAnswersOwnerMigrationV1)
+        // Bundle ids are not personal data.
+        Log.calls.info("migrated call answers to owning apps: \(moved, privacy: .public)")
+    }
+
     /// Whether Return should follow a successful insert into this app.
     ///
     /// `bundleID` is the app the text actually landed in — the origin captured at
@@ -946,6 +978,7 @@ final class Settings {
         static let callDetectionAutoRecord = "callDetectionAutoRecord"
         static let callAppAnswers = "callAppAnswers"
         static let callAppsSeen = "callAppsSeen"
+        static let callAnswersOwnerMigrationV1 = "callAnswersOwnerMigrationV1"
         static let calendarEventKitEnabled = "calendarEventKitEnabled"
         static let calendarGoogleEnabled = "calendarGoogleEnabled"
         static let googleClientID = "googleClientID"
@@ -1120,6 +1153,7 @@ final class Settings {
         if commandModeEnabled, commandModeKey == pushToTalkKey {
             commandModeEnabled = false
         }
+        migrateCallAnswersToOwnersIfNeeded()
     }
 
     /// What the lead-time stepper offers, and what a stored value is clamped to.

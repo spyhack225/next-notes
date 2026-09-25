@@ -13,7 +13,13 @@ enum CallPolicy {
     struct AudioProcess: Sendable, Hashable {
         var pid: pid_t
         /// Absent for processes that are not in a bundle. `afplay` reports none.
+        ///
+        /// The **owning app's** id: `CallDetector.audioProcesses()` resolves the helper
+        /// Core Audio reports to its outermost `.app` before anything reads this.
         var bundleID: String?
+        /// The id Core Audio reported, when it differs from the owning app. Nil when the
+        /// two agree (or the process has no bundle id at all) — the common case.
+        var reportedBundleID: String?
         var name: String
         var isRunningInput: Bool
         var isRunningOutput: Bool
@@ -52,6 +58,8 @@ enum CallPolicy {
         "com.apple.assistantd",
         "com.apple.Siri",
         "com.apple.accessibility.AXVisualSupportAgent",
+        // measured 2026-09-23: screen recording armed a call question.
+        "com.apple.replayd",
         // Our own bundle, as well as our own pid. A helper or a second copy of Next Notes
         // shares the identifier but not the process id, and the app triggering on its own
         // dictation is the failure this whole filter exists to prevent.
@@ -327,6 +335,12 @@ extension CallPolicy {
         "org.mozilla.firefox",
         "com.microsoft.edgemac",
         "company.thebrowser.Browser",
+        // A WebKit engine process could be Safari or any app embedding a web view — the
+        // same ambiguity as a browser tab. Not measured on this Mac; the path rule
+        // cannot map these, because WebKit's XPC services live in
+        // `/System/Library/Frameworks/WebKit.framework`, outside any `.app`.
+        "com.apple.WebKit.GPU",
+        "com.apple.WebKit.WebContent",
     ]
 
     /// The answers this app's calls may be given.

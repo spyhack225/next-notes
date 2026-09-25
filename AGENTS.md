@@ -829,7 +829,8 @@ meeting for a call that is not happening — the second one every time the user 
 app. Hence the three filters in front of the both-flags rule: our own pid, our own bundle
 identifier (a helper or a second copy shares the id but not the pid), and
 `CallPolicy.deniedBundleIDs` for the speech and accessibility daemons that hold the
-microphone on somebody else's behalf. It is a **denylist, not an allowlist**, on purpose: a
+microphone on somebody else's behalf, plus `com.apple.replayd`, which armed a call
+question during screen recording (measured 2026-09-23). It is a **denylist, not an allowlist**, on purpose: a
 conferencing app nobody here has heard of has to work on the day it is installed. Fathom is
 deliberately *not* denied even though it records meetings — it only holds the microphone
 during a call, so denying it would suppress a real detection, and the per-app answer in
@@ -845,7 +846,13 @@ refuses to record a browser without asking, `availableAnswers(forApp:)` does not
 displaying a promise the policy will not keep. Google Meet installed as a Chrome web app
 carries its **own** bundle id
 (`com.google.Chrome.app.kjgfgldnnfoeklkmfkjfagphfepbbdan`), is not in that set, and keeps all
-three answers — the precise case stays precise. Related: the app list in Meetings settings is
+three answers — the precise case stays precise. Core Audio names the helper rather than
+the browser (`com.google.Chrome.helper`), so every audio process is resolved to its
+outermost `.app` before any rule runs — a Chrome tab call arrives as "Google Chrome",
+offered only Ask/Never and never recorded unasked. Helper-keyed answers stored before
+that fix were migrated to their owners once (`callAnswersOwnerMigrationV1`), keeping the
+more cautious answer on a collision and clamping a browser owner's `always` to `ask`.
+Related: the app list in Meetings settings is
 **empty until an app has actually held the microphone**, because it is a record of what
 happened on this Mac rather than a table of bundle identifiers somebody typed. Empty is what
 a fresh machine correctly looks like.

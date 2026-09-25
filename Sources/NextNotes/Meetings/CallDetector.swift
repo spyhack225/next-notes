@@ -118,20 +118,27 @@ final class CallDetector {
     /// Also the self-test's table, which is why it is not private and returns everything
     /// rather than only what passes `CallPolicy`.
     static func audioProcesses() -> [CallPolicy.AudioProcess] {
-        processObjects().compactMap { object in
+        let list: [CallPolicy.AudioProcess] = processObjects().compactMap { object in
             let input = flag(kAudioProcessPropertyIsRunningInput, on: object)
             let output = flag(kAudioProcessPropertyIsRunningOutput, on: object)
             guard input || output else { return nil }
             guard let pid = processPID(of: object) else { return nil }
-            let bundleID = processBundleID(of: object)
+            let reported = processBundleID(of: object)
+            // M-02: the policy, the stored answers, the app list and the title all run
+            // on the owning app, never on the helper Core Audio names.
+            let resolved = AudioProcessOwner.resolve(pid: pid, reportedBundleID: reported)
+            let owner = resolved.bundleID
             return CallPolicy.AudioProcess(
                 pid: pid,
-                bundleID: bundleID,
-                name: displayName(pid: pid, bundleID: bundleID),
+                bundleID: owner,
+                reportedBundleID: owner == reported ? nil : reported,
+                name: displayName(pid: pid, bundleID: owner, appPath: resolved.appPath),
                 isRunningInput: input,
                 isRunningOutput: output
             )
         }
+        AudioProcessOwner.pruneCache(livePIDs: Set(list.map(\.pid)))
+        return list
     }
 
     /// One evaluation pass. Not private so a self-test — and, in Phase 2, the scheduler —
@@ -369,6 +376,18 @@ final class CallDetector {
 
     // MARK: - Standing in for a calendar entry
 
+    /// Trimmed, because some bundles prefix their name with a bidirectional control
+    /// character. WhatsApp ships a left-to-right mark, which is invisible in the app
+    /// list and turned the first real detected call into a meeting titled
+    /// "\u{200E}WhatsApp call".
+    private static func trimmedDisplayName(_ name: String) -> String {
+        name.trimmingCharacters(
+            in: .whitespacesAndNewlines
+                .union(.controlCharacters)
+                .union(CharacterSet(charactersIn: "\u{200E}\u{200F}"))
+        )
+    }
+
     /// The `MeetingEvent` a detected call is armed as.
     ///
     /// Synthesised rather than given a parallel path of its own, which is what the plan
@@ -410,20 +429,20 @@ final class CallDetector {
         return "\(app)@\(Int(call.since.timeIntervalSince1970))"
     }
 
-    /// A name a person would recognise. `NSRunningApplication` first, because it gives the
-    /// localised name the user sees in the Dock; the probe proved the fallbacks are needed —
-    /// `afplay` is neither a running application nor a bundle.
-    static func displayName(pid: pid_t, bundleID: String?) -> String {
+    /// A name a person would recognise. The owning app's display name first, when
+    /// `audioProcesses()` resolved one — Core Audio names the helper ("Google Chrome
+    /// Helper") and the title should read "Google Chrome". Then `NSRunningApplication`,
+    /// because it gives the localised name the user sees in the Dock; the probe proved
+    /// the fallbacks are needed — `afplay` is neither a running application nor a bundle.
+    static func displayName(pid: pid_t, bundleID: String?, appPath: String? = nil) -> String {
+        if let appPath {
+            let base = FileManager.default.displayName(atPath: appPath)
+            let stripped = base.hasSuffix(".app") ? String(base.dropLast(4)) : base
+            let clean = trimmedDisplayName(stripped)
+            if !clean.isEmpty { return clean }
+        }
         if let app = NSRunningApplication(processIdentifier: pid), let name = app.localizedName {
-            // Trimmed, because some bundles prefix their name with a bidirectional control
-            // character. WhatsApp ships a left-to-right mark, which is invisible in the app
-            // list and turned the first real detected call into a meeting titled
-            // "\u{200E}WhatsApp call".
-            let clean = name.trimmingCharacters(
-                in: .whitespacesAndNewlines
-                    .union(.controlCharacters)
-                    .union(CharacterSet(charactersIn: "\u{200E}\u{200F}"))
-            )
+            let clean = trimmedDisplayName(name)
             if !clean.isEmpty { return clean }
         }
         var buffer = [UInt8](repeating: 0, count: Int(MAXPATHLEN))
