@@ -32,6 +32,12 @@ actor MeetingDiarizer {
     /// segmentation model has nothing to cluster from them.
     private static let minimumAudioSeconds: Double = 2
 
+    /// How far past a run's edge a system segment may lie and still take that run's
+    /// speaker. The embedding needs a full second of audio, so runs miss exactly the
+    /// fast edges the transcript keeps; beyond this the speaker could have changed,
+    /// and the segment stays unlabelled rather than guessed at.
+    static let nearestRunTolerance: TimeInterval = 1.0
+
     /// Where FluidAudio caches the offline diarization models.
     ///
     /// `OfflineDiarizerModels.load` is handed `Application Support/FluidAudio/Models`, and
@@ -172,12 +178,25 @@ actor MeetingDiarizer {
     /// opened the call. The cluster ids the model produces are stable within one run but say
     /// nothing about order, and a transcript that starts at Speaker 4 reads like a bug.
     ///
-    /// The resolution ceiling is the transcript's, not the model's: `ChunkedTranscriber` cuts
-    /// windows of thirty to sixty seconds and gives a segment no timing inside them, so a
-    /// window in which three people spoke can only be attributed to the one who held most of
-    /// it. The clustering underneath is far finer — it routinely returns a dozen runs for one
-    /// transcript segment — and none of that detail survives here. Fixing it means word-level
-    /// timings out of Parakeet, not a better rule in this function.
+    /// The resolution ceiling is the transcript's, not the model's: a segment carries no
+    /// timing inside itself, so a window in which three people spoke can only be attributed
+    /// to the one who held most of it. The clustering underneath is far finer — it routinely
+    /// returns a dozen runs for one transcript segment — and none of that detail survives
+    /// here. Fixing it means word-level timings out of Parakeet, not a better rule in this
+    /// function.
+    ///
+    /// Short finals routinely land between runs: the embedding needs a full second of audio,
+    /// so the runs miss exactly the fast edges the transcript keeps. Three rules, in order,
+    /// for a system segment:
+    /// 1. the run with the largest overlap wins;
+    /// 2. with no overlap, the nearest run within `nearestRunTolerance` wins
+    ///    (ties go to the earlier run);
+    /// 3. still unlabelled, the nearest labelled system neighbours on both sides win,
+    ///    but only when they agree — and one pass only, so a line labelled here never
+    ///    labels another.
+    /// Otherwise the segment stays unlabelled and falls back to "Others": a run of
+    /// unlabelled lines between two different speakers stays unlabelled, honest over tidy.
+    /// Mic segments are never touched.
     ///
     /// Pure and static so the mapping can be exercised without a model, a file, or a meeting.
     static func assign(_ segments: [TranscriptSegment], to runs: [SpeakerRun]) -> [TranscriptSegment] {
@@ -185,7 +204,8 @@ actor MeetingDiarizer {
 
         let labels = labelsByCluster(runs)
 
-        return segments.map { segment in
+        // Pass 1: overlap wins; otherwise the nearest run within tolerance.
+        var assigned = segments.map { segment -> TranscriptSegment in
             guard segment.source == .system else { return segment }
 
             var best: (id: String, overlap: TimeInterval)?
@@ -194,14 +214,56 @@ actor MeetingDiarizer {
                 guard overlap > 0 else { continue }
                 if overlap > (best?.overlap ?? 0) { best = (run.speakerID, overlap) }
             }
+            if let best, let label = labels[best.id] {
+                var labelled = segment
+                labelled.speaker = label
+                return labelled
+            }
 
-            // No overlap at all — a window the segmentation model heard as silence. Left
-            // unlabelled rather than guessed at, so it falls back to "Others".
-            guard let best, let label = labels[best.id] else { return segment }
+            // No overlap at all — a window the segmentation model heard as silence,
+            // or a short final that fell between runs. The nearest run still owns it
+            // when it is close enough to be the same turn.
+            var nearest: (id: String, gap: TimeInterval)?
+            for run in runs.sorted(by: { $0.start < $1.start }) {
+                let gap = max(0, max(run.start, segment.start) - min(run.end, segment.end))
+                if gap < (nearest?.gap ?? .infinity) {
+                    nearest = (run.speakerID, gap)
+                }
+            }
+            guard let nearest, nearest.gap <= Self.nearestRunTolerance,
+                  let label = labels[nearest.id] else { return segment }
             var labelled = segment
             labelled.speaker = label
             return labelled
         }
+
+        // Pass 2: agreeing neighbours. Read from the pass-1 snapshot so a line
+        // labelled here never labels another (no propagation chains).
+        let before = assigned.map(\.speaker)
+        let order = assigned.indices.sorted { assigned[$0].start < assigned[$1].start }
+        for (position, index) in order.enumerated() {
+            guard assigned[index].source == .system, before[index] == nil else { continue }
+            var previous: String?
+            for earlier in order[..<position].reversed() {
+                if assigned[earlier].source == .system, let speaker = before[earlier] {
+                    previous = speaker
+                    break
+                }
+            }
+            var next: String?
+            if position + 1 < order.count {
+                for later in order[(position + 1)...] {
+                    if assigned[later].source == .system, let speaker = before[later] {
+                        next = speaker
+                        break
+                    }
+                }
+            }
+            if let previous, previous == next {
+                assigned[index].speaker = previous
+            }
+        }
+        return assigned
     }
 
     /// Cluster id → "Speaker N", numbered by when each speaker is first heard.

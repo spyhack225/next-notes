@@ -1139,6 +1139,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runNotesLongformSelfTest()
             return true
         }
+        if arguments.contains("--selftest-diarize-assign") {
+            let failures = DiarizeAssignSelfTest.run { writeSelfTest($0) }
+            for failure in failures { writeSelfTest("DIARIZE_ASSIGN_WRONG: \(failure)") }
+            writeSelfTest(failures.isEmpty
+                ? "DIARIZE_ASSIGN_OK"
+                : "DIARIZE_ASSIGN_FAILED: \(failures.count) check(s) wrong")
+            NSApp.terminate(nil)
+            return true
+        }
         if arguments.contains("--selftest-cleanup-router") {
             Task { @MainActor in
                 SelfTest.failed = !(await CleanupRouter.runSelfTest())

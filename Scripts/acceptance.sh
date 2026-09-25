@@ -155,6 +155,8 @@ INTEGRATION_ENTRIES=(
   "selftest-meeting-quality|120"
   # map-reduce never drops facts (M-05; M-12 extends the cases)
   "selftest-notes-longform|300"
+  # nearest-run and neighbour fallback for far-end labels (M-04)
+  "selftest-diarize-assign|120"
 )
 
 EXPERIMENTAL_ENTRIES=(

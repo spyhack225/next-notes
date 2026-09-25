@@ -64,7 +64,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-activity  --selftest-fs         --selftest-browser
 --selftest-settings  --selftest-metrics    --selftest-cleanup-router
 --selftest-meeting-live --selftest-meeting-live-tools --selftest-meeting-quality --selftest-tts
---selftest-notes-longform
+--selftest-notes-longform --selftest-diarize-assign
 --selftest-tts-stream
 --selftest-tts-pocket
 --selftest-tts-kokoro
