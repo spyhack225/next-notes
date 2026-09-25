@@ -222,6 +222,17 @@ enum ACPHandleWait {
     case finished(AgentTurn)
 }
 
+/// Where a "Run locally once" turn goes. P0-08: no route may submit a task
+/// with no tool — the answer-only cases either run the tool loop or answer
+/// through the on-device model.
+enum LocalOnceRoute: Equatable {
+    case perform(AgentTurnIntent)
+    case answerLocally(String)
+    /// The defect the fix removes. Nothing returns this case, and the
+    /// red-first self-test keeps naming it: every intent must route away.
+    case submitWithoutTool
+}
+
 /// Live tool path for `RealtimeAgent`. `handle` already calls `perform`;
 /// `finish` / `interrupt` stay in the main file.
 ///
@@ -258,6 +269,20 @@ extension RealtimeAgent {
         }
     }
 
+    /// P0-08: "Run locally once" runs the tool loop for a tool request,
+    /// answers through the on-device model for an explicit on-device question,
+    /// and hands nothing to the local backend without a tool.
+    static func localOnceRoute(for intent: AgentTurnIntent, text: String) -> LocalOnceRoute {
+        switch intent {
+        case .calendar, .mail, .files, .drive, .computer, .toolLoop:
+            return .perform(intent)
+        case .localModel(let prompt):
+            return .answerLocally(prompt)
+        case .capabilities, .reply, .delegate, .unknown:
+            return .perform(.toolLoop(prompt: text))
+        }
+    }
+
     func runWithLocalToolsOnce(_ text: String, source: AgentUtteranceSource) async -> AgentTurn {
         let local = AgentHarnessChoice(
             id: .local,
@@ -268,26 +293,23 @@ extension RealtimeAgent {
         )
         let intent = AgentTurnIntent.resolve(text, choice: local)
         AgentSession.shared.recordUser(text, source: source)
-        switch intent {
-        case .calendar, .mail, .files, .drive, .computer, .toolLoop:
-            let reply = await perform(intent)
-            AgentSession.shared.recordAssistant(reply, contextKind: intent.contextKind)
+        switch Self.localOnceRoute(for: intent, text: text) {
+        case .perform(let routed):
+            let reply = await perform(routed)
+            AgentSession.shared.recordAssistant(reply, contextKind: routed.contextKind)
             IslandState.shared.showAgentReply(reply)
             return AgentTurn(reply: reply, delegated: false)
-        case .capabilities, .reply, .localModel, .delegate, .unknown:
-            if !SelfTest.isRunning {
-                AgentTaskManager.shared.submit(
-                    objective: text,
-                    contextReferences: AgentContext.current.references,
-                    meetingID: MeetingContextStore.shared.current?.meetingID,
-                    backend: .local,
-                    source: source.rawValue
-                )
-            }
-            let reply = "I’ll work on that locally, once."
-            AgentSession.shared.recordAssistant(reply)
-            IslandState.shared.showAgentReply(reply)
-            return AgentTurn(reply: reply, delegated: true)
+        case .answerLocally(let prompt):
+            // The on-device answer path records the session row and shows the
+            // island reply itself, exactly as `handle`'s `.localModel` does.
+            let turn = await answerLocallyOnce(prompt, source: source)
+            return AgentTurn(reply: turn.reply, delegated: false)
+        case .submitWithoutTool:
+            // P0-08: no path produces this route — "Run locally once" must never
+            // submit a task with no tool. If it ever were produced, answer on-device
+            // rather than hand an empty objective to the task manager.
+            let turn = await answerLocallyOnce(text, source: source)
+            return AgentTurn(reply: turn.reply, delegated: false)
         }
     }
 

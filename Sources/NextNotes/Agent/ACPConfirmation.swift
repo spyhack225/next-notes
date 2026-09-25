@@ -273,6 +273,68 @@ extension ACPConfirmation {
             ACPCompatibilityCLIBackend.runSelfTest()
         )
 
+        // P0-08: "Run locally once" never submits a task with no tool.
+        let localOnceChoice = AgentHarnessChoice(
+            id: .local,
+            source: .explicit,
+            available: true,
+            fallbackToLocal: false,
+            note: ""
+        )
+        check(
+            "an on-device request was not routed to the on-device answer path",
+            RealtimeAgent.localOnceRoute(for: .localModel(prompt: "hi"), text: "ask the agent hi")
+                == .answerLocally("hi")
+        )
+        for intent in [AgentTurnIntent.unknown, .capabilities, .reply("hello"), .delegate] {
+            check(
+                "\(intent) was not routed to the tool loop",
+                RealtimeAgent.localOnceRoute(for: intent, text: "hello")
+                    == .perform(.toolLoop(prompt: "hello"))
+            )
+        }
+        for intent in [
+            AgentTurnIntent.calendar(date: "2026-09-25"),
+            .mail(query: "the invoice"),
+            .files(query: "the login handler"),
+            .drive(query: "the deck"),
+            .computer(.inspect),
+            .toolLoop(prompt: "do the thing"),
+        ] {
+            check(
+                "\(intent) was not passed through to perform",
+                RealtimeAgent.localOnceRoute(for: intent, text: "do the thing")
+                    == .perform(intent)
+            )
+        }
+        let everyIntent: [AgentTurnIntent] = [
+            .capabilities, .reply("hello"), .localModel(prompt: "hi"),
+            .toolLoop(prompt: "hello"), .calendar(date: "2026-09-25"),
+            .mail(query: "hello"), .files(query: "hello"), .drive(query: "hello"),
+            .computer(.inspect), .delegate, .unknown,
+        ]
+        for intent in everyIntent {
+            check(
+                "run locally once still has a tool-less route for \(intent)",
+                RealtimeAgent.localOnceRoute(for: intent, text: "hello") != .submitWithoutTool
+            )
+        }
+        for text in [
+            "what's on my calendar",
+            "search my email for the invoice",
+            "find the login handler file",
+            "ask the agent what a haiku is",
+            "ask the app what a haiku is",
+            "use claude code to investigate this repo",
+            "hello there",
+        ] {
+            let intent = AgentTurnIntent.resolve(text, choice: localOnceChoice)
+            check(
+                "run locally once still submits a task with no tool for \(text)",
+                RealtimeAgent.localOnceRoute(for: intent, text: text) != .submitWithoutTool
+            )
+        }
+
         AgentHarnessRouter.shared.restorePersistence()
         ACPConfirmationGate.shared.resetForTesting()
 

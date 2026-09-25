@@ -610,6 +610,20 @@ final class RealtimeAgent {
         say that plainly. Keep the answer to a few short sentences suitable for speech.
         """
 
+    /// P0-08: [Run once] on the missing-CLI card answers through the same
+    /// on-device path `handle` uses for `.localModel`. `answerLocally` records
+    /// the session row and shows the island reply itself, so the caller must
+    /// not write either a second time.
+    func answerLocallyOnce(_ prompt: String, source: AgentUtteranceSource) async -> AgentTurn {
+        currentTurnSource = source
+        return await answerLocally(
+            prompt,
+            forceOnDevice: true,
+            generation: currentGeneration,
+            replyTrace: LatencyTrace.start(.agentTranscriptToFirstToken)
+        )
+    }
+
     private func answerLocally(
         _ prompt: String,
         forceOnDevice: Bool,
