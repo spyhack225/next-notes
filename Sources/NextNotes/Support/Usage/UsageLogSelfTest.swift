@@ -1,12 +1,13 @@
 import Foundation
 
 /// `--selftest-usage-log`: the usage log's writer, reader, rotation, age compaction,
-/// clear, sanitiser and harness isolation (P0-20a, U1–U7), plus the meeting passes
-/// (P0-20b, M1–M5).
+/// clear, sanitiser and harness isolation (P0-20a, U1–U7), the meeting passes (P0-20b,
+/// M1–M5), the summary and report (P0-20d, R1–R3), the dictation builder (P0-20c, D1) and
+/// the exit cases (P0-20e, E1–E4).
 ///
 /// Final marker: `USAGE_LOG_OK: <n> cases` / `USAGE_LOG_FAILED: <n> problem(s)`, with one
-/// `USAGE_LOG_WRONG: <case>: <reason>` line per failure. P0-20e extends this file; the
-/// marker name never changes.
+/// `USAGE_LOG_WRONG: <case>: <reason>` line per failure. The marker name never changes; a
+/// later task adds cases and moves the count.
 ///
 /// **Red-first.** Against the P0-20a seams (a `UsageLog` that records nothing and a
 /// `ModelPassRecorder` that writes nothing) U1–U6 fail and U7 passes, because
@@ -18,12 +19,29 @@ import Foundation
 /// (a `MeetingTranscribeTally` that returns nil, `NotesGenerator` and `MeetingAgent`
 /// writing no rows); each case reports "0 usage rows" until the wrappers land, and M5
 /// fails because it has nothing to scan.
+///
+/// **P0-20e red-first.** E1 drives one run of every feature — a scripted typed turn with
+/// one tool through the real `RealtimeAgent.handle`, a scripted notes pass through the real
+/// `NotesGenerator`, and `UsageRecord.dictationRows` — into one isolated store; E2 scans
+/// every row those legs and M1–M5 and D1 wrote for twelve sentinel strings; E3 proves the
+/// owner's real `usage.jsonl` (and the guard's registration of it) is untouched; E4 locks
+/// the `UsageRecord` coding keys to the documented schema. E1 fails until P0-20c's
+/// `dictationRows` writes rows and E3 fails until the guard knows the file, so the red run
+/// is the missing dictation seam plus the missing guard entry.
 enum UsageLogSelfTest {
-    /// How many cases a green run reports: U1–U7 and M1–M5.
-    private static let caseCount = 12
+    /// How many cases a green run reports: U1–U7, M1–M5, D1, R1–R3 and E1–E4.
+    private static let caseCount = 20
 
-    static func run() -> Bool {
+    /// `run()` is async so E1 can await the real main-actor agent path: the old synchronous
+    /// runner blocked the main actor on a semaphore while its cases ran, which no
+    /// `@MainActor` production path can survive.
+    static func run() async -> Bool {
         var failures: [String] = []
+        var rows: [UsageRecord] = []
+        // E3's before-picture, taken before any case can write anything. `usage.jsonl` is
+        // in the guard's list, so the snapshot is the same one `--selftest-store-isolation`
+        // reads.
+        let realBefore = SelfTestStoreGuard.take()
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("nextnotes-usage-selftest-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -48,7 +66,22 @@ enum UsageLogSelfTest {
             failures += labelled("U5", checkU5(root: root))
             failures += labelled("U6", checkU6())
             failures += labelled("U7", checkU7())
-            failures += checkMeetings()
+
+            let e1 = await checkE1()
+            failures += labelled("E1", e1.problems)
+            rows += e1.rows
+
+            let meetings = await checkMeetings()
+            failures += meetings.problems
+            rows += meetings.rows
+
+            let d1 = checkD1()
+            failures += labelled("D1", d1.problems)
+            rows += d1.rows
+
+            failures += labelled("E2", checkE2(rows: rows))
+            failures += labelled("E3", checkE3(before: realBefore))
+            failures += labelled("E4", checkE4())
         }
 
         for failure in failures { print("USAGE_LOG_WRONG: \(failure)") }
@@ -65,47 +98,7 @@ enum UsageLogSelfTest {
     /// A row with every field filled writes and loads back field for field.
     private static func checkU1(root: URL) -> [String] {
         let log = UsageLog(directory: root.appendingPathComponent("u1", isDirectory: true))
-        let row = UsageRecord(
-            v: 1,
-            id: UUID(),
-            ts: Date(timeIntervalSince1970: 1_700_000_123),
-            feature: UsageFeature.agentTyped.rawValue,
-            pass: "answer",
-            round: 2,
-            provider: UsageProvider.llama.rawValue,
-            modelID: "Scripted Test Model",
-            locality: "local",
-            requestedRole: ModelRole.agent.rawValue,
-            requestedModel: "Installed CPM",
-            fallbackReason: UsageFallback.loadFailed.rawValue,
-            warm: false,
-            loadMs: 1_234,
-            promptTokens: 100,
-            cachedTokens: 40,
-            completionTokens: 55,
-            reasoningTokens: 7,
-            countsEstimated: false,
-            ttftMs: 120,
-            totalMs: 2_400,
-            tokensPerSec: 22.5,
-            finishReason: "stop",
-            truncated: false,
-            toolsProposed: ["calendar.list"],
-            toolsExecuted: [UsageToolRun(id: "calendar.list", ok: true, ms: 12, errorClass: nil)],
-            errorClass: UsageErrorClass.other.rawValue,
-            errorMessage: "Could not load the model",
-            audioSeconds: 3.5,
-            realtimeFactor: 0.25,
-            stages: ["drain": 0.5, "transcribe": 1.25],
-            counts: ["proposals": 2, "speakers": 2],
-            turnID: UUID(),
-            conversationID: UUID(),
-            workID: UUID(),
-            revision: 3,
-            meetingID: UUID(),
-            dictationRunID: UUID(),
-            scheduleID: UUID()
-        )
+        let row = fullyPopulatedRow()
         log.record(row)
         log.flush()
         let loaded = log.load()
@@ -304,39 +297,26 @@ enum UsageLogSelfTest {
     /// Runs the meeting cases. They write through `UsageLog.shared`, which the harness
     /// points at a per-process temp directory, so nothing here can reach the owner's file;
     /// the clear makes the run independent of anything this process logged earlier.
-    private static func checkMeetings() -> [String] {
+    private static func checkMeetings() async -> CaseOutcome {
         UsageLog.shared.clear()
         UsageLog.shared.flush()
 
-        var failures: [String] = []
-        var rows: [UsageRecord] = []
+        var outcome = CaseOutcome()
 
-        if let outcome = awaitCase({ await checkM1() }) {
-            failures += labelled("M1", outcome.problems)
-            rows += outcome.rows
-        } else {
-            failures.append("M1: the case did not finish within 30 s")
-        }
-        if let outcome = awaitCase({ await checkM2() }) {
-            failures += labelled("M2", outcome.problems)
-            rows += outcome.rows
-        } else {
-            failures.append("M2: the case did not finish within 30 s")
-        }
-        if let outcome = awaitCase({ await checkM3() }) {
-            failures += labelled("M3", outcome.problems)
-            rows += outcome.rows
-        } else {
-            failures.append("M3: the case did not finish within 30 s")
-        }
-        if let outcome = awaitCase({ await checkM4() }) {
-            failures += labelled("M4", outcome.problems)
-            rows += outcome.rows
-        } else {
-            failures.append("M4: the case did not finish within 30 s")
-        }
-        failures += labelled("M5", checkM5(rows: rows))
-        return failures
+        let m1 = await checkM1()
+        outcome.problems += labelled("M1", m1.problems)
+        outcome.rows += m1.rows
+        let m2 = await checkM2()
+        outcome.problems += labelled("M2", m2.problems)
+        outcome.rows += m2.rows
+        let m3 = await checkM3()
+        outcome.problems += labelled("M3", m3.problems)
+        outcome.rows += m3.rows
+        let m4 = await checkM4()
+        outcome.problems += labelled("M4", m4.problems)
+        outcome.rows += m4.rows
+        outcome.problems += labelled("M5", checkM5(rows: outcome.rows))
+        return outcome
     }
 
     /// M1: a 3-segment transcript through the real single-pass path writes exactly one
@@ -558,34 +538,469 @@ enum UsageLogSelfTest {
         var rows: [UsageRecord] = []
     }
 
-    /// Bridges one async case onto a detached task. `run()` is called synchronously
-    /// (`SelfTest.failed = !UsageLogSelfTest.run()` carries no `await`), so this is the
-    /// only way an async production path can be exercised from it. The cases must not need
-    /// the main actor — the runner's own thread is blocked here for the case's duration —
-    /// and `MeetingAgent` is handed its tool list precisely so it never reaches the
-    /// main-actor tool gate.
-    private static func awaitCase(
-        _ work: @escaping @Sendable () async -> CaseOutcome
-    ) -> CaseOutcome? {
-        let box = AsyncCaseBox()
-        Task.detached(priority: .userInitiated) {
-            box.store(await work())
+    // MARK: - D1: the dictation rows (P0-20c)
+
+    /// The pure builder behind one dictation: two rows sharing a `dictationRunID`, stages
+    /// equal to the tail's own numbers, and the timeout finish reason when either leg hit
+    /// its deadline. Called twice so the timeout path is pinned as well.
+    private static func checkD1() -> CaseOutcome {
+        var problems: [String] = []
+        var rows: [UsageRecord] = []
+        let runID = UUID()
+
+        var cleanup = CleanupRecord()
+        cleanup.engine = "s1Mini"
+        cleanup.modelRan = true
+        cleanup.sessionPrewarmed = false
+        cleanup.fallbackReason = "the cleanup model is not downloaded yet sentinel-echo at /Users/fixture/cleanup.txt"
+        cleanup.chunks = 3
+        let cleanupRecord = cleanup
+        let normal = UsageRecord.dictationRows(
+            runID: runID,
+            engine: .parakeet,
+            audioSeconds: 4.5,
+            drained: 0.2,
+            transcribedAt: 1.4,
+            narrowedAt: 1.5,
+            cleanedAt: 2.0,
+            injectSeconds: 0.12,
+            transcribed: true,
+            cleanup: cleanupRecord,
+            cleanupTimedOut: false
+        )
+        rows += normal
+        guard normal.count == 2 else {
+            problems.append("expected 2 rows (asr and cleanup), wrote \(normal.count)")
+            return CaseOutcome(problems: problems, rows: rows)
         }
-        guard box.gate.wait(timeout: .now() + .seconds(30)) == .success else { return nil }
-        return box.value
+        guard let asr = normal.first(where: { $0.feature == UsageFeature.dictationASR.rawValue }),
+              let cleanupRow = normal.first(where: { $0.feature == UsageFeature.dictationCleanup.rawValue })
+        else {
+            problems.append("the pair was not one dictation.asr and one dictation.cleanup row")
+            return CaseOutcome(problems: problems, rows: rows)
+        }
+        if asr.dictationRunID != runID || cleanupRow.dictationRunID != runID {
+            problems.append("the rows do not share the run's dictationRunID")
+        }
+        if asr.provider != UsageProvider.parakeet.rawValue {
+            problems.append("asr provider was \(asr.provider), expected \(UsageProvider.parakeet.rawValue)")
+        }
+        if asr.modelID != SpeechEngineChoice.parakeet.rawValue {
+            problems.append("asr modelID was \(asr.modelID), expected \(SpeechEngineChoice.parakeet.rawValue)")
+        }
+        if asr.audioSeconds != 4.5 {
+            problems.append("asr audioSeconds was \(asr.audioSeconds.map { String($0) } ?? "nil"), expected 4.5")
+        }
+        if asr.finishReason != "stop" || asr.truncated == true {
+            problems.append("a transcribed row said finishReason=\(asr.finishReason ?? "nil") "
+                            + "truncated=\(asr.truncated.map { String($0) } ?? "nil")")
+        }
+        let expectedStages: [String: Double] = [
+            "drain": 0.2,
+            "transcribe": 1.2,
+            "names": 0.1,
+            "cleanup": 0.5,
+            "inject": 0.12,
+        ]
+        for (key, expected) in expectedStages {
+            guard let actual = asr.stages?[key] else {
+                problems.append("the asr row has no stages[\(key)]")
+                continue
+            }
+            if abs(actual - expected) > 0.001 {
+                problems.append("stages[\(key)] was \(actual), expected \(expected)")
+            }
+        }
+        if asr.stages?.count != expectedStages.count {
+            problems.append("the asr row has \(asr.stages?.count ?? 0) stage(s), expected \(expectedStages.count)")
+        }
+        if cleanupRow.provider != UsageProvider.s1mini.rawValue {
+            problems.append("cleanup provider was \(cleanupRow.provider), expected \(UsageProvider.s1mini.rawValue)")
+        }
+        if cleanupRow.modelID != "s1Mini" {
+            problems.append("cleanup modelID was \(cleanupRow.modelID), expected s1Mini")
+        }
+        if cleanupRow.warm != false {
+            problems.append("cleanup warm was \(cleanupRow.warm.map { String($0) } ?? "nil"), expected false")
+        }
+        if cleanupRow.counts?["chunks"] != 3 {
+            problems.append("cleanup chunks was \(cleanupRow.counts?["chunks"].map { String($0) } ?? "nil"), expected 3")
+        }
+        if cleanupRow.fallbackReason != UsageFallback.modelUnavailable.rawValue {
+            problems.append("cleanup fallbackReason was \(cleanupRow.fallbackReason ?? "nil"), "
+                            + "expected \(UsageFallback.modelUnavailable.rawValue)")
+        }
+        if let reason = cleanupRow.fallbackReason, reason.contains("sentinel") {
+            problems.append("the cleanup row kept the free-text fallback reason")
+        }
+
+        let timedOut = UsageRecord.dictationRows(
+            runID: runID,
+            engine: .apple,
+            audioSeconds: 2.0,
+            drained: 0.1,
+            transcribedAt: 0.9,
+            narrowedAt: 0.9,
+            cleanedAt: 1.4,
+            injectSeconds: 0.05,
+            transcribed: false,
+            cleanup: cleanupRecord,
+            cleanupTimedOut: true
+        )
+        rows += timedOut
+        if let timedASR = timedOut.first(where: { $0.feature == UsageFeature.dictationASR.rawValue }) {
+            if timedASR.finishReason != "timeout" || timedASR.truncated != true {
+                problems.append("a deadline ASR row said finishReason=\(timedASR.finishReason ?? "nil") "
+                                + "truncated=\(timedASR.truncated.map { String($0) } ?? "nil")")
+            }
+        } else {
+            problems.append("the deadline run wrote no dictation.asr row")
+        }
+        if let timedCleanup = timedOut.first(where: { $0.feature == UsageFeature.dictationCleanup.rawValue }) {
+            if timedCleanup.finishReason != "timeout" {
+                problems.append("a timed-out cleanup row said finishReason="
+                                + "\(timedCleanup.finishReason ?? "nil"), expected timeout")
+            }
+        } else {
+            problems.append("the timed-out run wrote no dictation.cleanup row")
+        }
+        return CaseOutcome(problems: problems, rows: rows)
     }
 
-    private final class AsyncCaseBox: @unchecked Sendable {
-        private let lock = NSLock()
-        private var stored: CaseOutcome?
-        let gate = DispatchSemaphore(value: 0)
+    // MARK: - E1–E4: the exit cases (P0-20e)
 
-        func store(_ value: CaseOutcome) {
-            lock.withLock { stored = value }
-            gate.signal()
+    /// One run of all three features into the harness's isolated store: a scripted typed
+    /// turn with one tool through the real agent path, a scripted notes single pass, and
+    /// the dictation builder. Each row must carry its own correlation id, and the summary
+    /// must see exactly one row per feature.
+    @MainActor
+    private static func checkE1() async -> CaseOutcome {
+        UsageLog.shared.clear()
+        UsageLog.shared.flush()
+
+        var problems: [String] = []
+
+        // The typed leg is the real `handle` path. It needs the owner's Agent backend to
+        // be the local model; with an external harness chosen, no local rows are written
+        // and the honest answer is that the leg did not run.
+        if Settings.shared.agentBackend != .local {
+            problems.append("the Agent backend is set to an external harness, "
+                            + "so the typed local path did not run")
+        }
+        let agent = RealtimeAgent.shared
+        let provider = TypedTurnUsageProvider()
+        let previousProvider = agent.localModelProviderForTesting
+        agent.localModelProviderForTesting = provider
+        defer { agent.localModelProviderForTesting = previousProvider }
+        let request = "tell me which app is frontmost " + e1AgentSentinels
+        let turn = await withBoundedWait(.seconds(30)) {
+            await agent.handle(request, source: .text)
+        }
+        if turn == nil {
+            problems.append("the typed turn did not finish within 30 s")
+        }
+        let turnID = agent.currentTurnID
+
+        // The meeting leg is the real single-pass notes path.
+        let meeting = fixtureMeeting("E1 sentinel briefing")
+        do {
+            _ = try await NotesGenerator(provider: ScriptedUsageProvider(contextTokens: 32_768)).notes(
+                for: meeting,
+                segments: e1Segments()
+            )
+        } catch {
+            problems.append("the notes pass threw: \(error)")
         }
 
-        var value: CaseOutcome? { lock.withLock { stored } }
+        // The dictation leg is P0-20c's pure builder.
+        let runID = UUID()
+        for row in UsageRecord.dictationRows(
+            runID: runID,
+            engine: .parakeet,
+            audioSeconds: 4.5,
+            drained: 0.2,
+            transcribedAt: 1.4,
+            narrowedAt: 1.5,
+            cleanedAt: 1.5,
+            injectSeconds: 0.12,
+            transcribed: true,
+            cleanup: nil,
+            cleanupTimedOut: false
+        ) {
+            UsageLog.shared.record(row)
+        }
+
+        UsageLog.shared.flush()
+        let all = UsageLog.shared.load()
+        let agentRows = all.filter {
+            $0.turnID == turnID && $0.feature == UsageFeature.agentTyped.rawValue
+        }
+        let meetingRows = all.filter {
+            $0.meetingID == meeting.id && $0.feature == UsageFeature.meetingNotesSingle.rawValue
+        }
+        let dictationRows = all.filter {
+            $0.dictationRunID == runID && $0.feature == UsageFeature.dictationASR.rawValue
+        }
+
+        if !agentRows.contains(where: { $0.pass == "answer" }) {
+            problems.append("the typed turn wrote no answer row for its turnID")
+        }
+        let plannerRows = agentRows.filter { $0.pass == "planner" }
+        if let toolRow = plannerRows.first(where: { ($0.toolsProposed ?? []).contains("computer.active_app") }) {
+            if toolRow.provider != UsageProvider.llama.rawValue {
+                problems.append("the planner row's provider was \(toolRow.provider), "
+                                + "expected \(UsageProvider.llama.rawValue)")
+            }
+            if toolRow.modelID != provider.displayModelName {
+                problems.append("the planner row's modelID was \(toolRow.modelID), "
+                                + "expected \(provider.displayModelName)")
+            }
+            if toolRow.requestedRole != ModelRole.agent.rawValue {
+                problems.append("the planner row's requestedRole was \(toolRow.requestedRole ?? "nil")")
+            }
+            if toolRow.toolsExecuted?.count != 1 || toolRow.toolsExecuted?.first?.ok != true {
+                problems.append("the planner row did not carry one successful tool run")
+            }
+            if toolRow.totalMs <= 0 {
+                problems.append("the planner row's totalMs was \(toolRow.totalMs), expected > 0")
+            }
+            if let ttft = toolRow.ttftMs, ttft > toolRow.totalMs {
+                problems.append("the planner row's ttftMs \(ttft) is past its totalMs \(toolRow.totalMs)")
+            }
+        } else {
+            problems.append("no planner row proposed computer.active_app")
+        }
+        if agentRows.contains(where: { $0.conversationID == nil }) {
+            problems.append("a typed row carried no conversationID")
+        }
+
+        if meetingRows.count != 1 {
+            problems.append("expected 1 meeting.notes.single row, wrote \(meetingRows.count)")
+        }
+        if dictationRows.count != 1 {
+            problems.append("expected 1 dictation.asr row, wrote \(dictationRows.count)")
+        }
+
+        let e1Rows = agentRows + meetingRows + dictationRows
+        let summary = UsageSummary.compute(rows: e1Rows, since: .distantPast)
+        let features = summary.map(\.feature)
+        for feature in [UsageFeature.agentTyped, .meetingNotesSingle, .dictationASR] {
+            if features.filter({ $0 == feature.rawValue }).count != 1 {
+                problems.append("the summary saw \(features.filter { $0 == feature.rawValue }.count) "
+                                + "\(feature.rawValue) row(s), expected 1")
+            }
+        }
+        if summary.count != 3 {
+            problems.append("the summary produced \(summary.count) row(s), expected 3")
+        }
+        return CaseOutcome(problems: problems, rows: e1Rows)
+    }
+
+    /// E2: every row the feature legs wrote is scanned for the twelve sentinel strings
+    /// planted in their prompts, transcripts and free-text reasons. An empty scan proves
+    /// nothing, so no rows is a failure too.
+    private static func checkE2(rows: [UsageRecord]) -> [String] {
+        guard !rows.isEmpty else {
+            return ["no rows to scan, so the privacy check proves nothing"]
+        }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        var problems: [String] = []
+        for row in rows {
+            guard let data = try? encoder.encode(row),
+                  let json = String(data: data, encoding: .utf8)?.lowercased() else {
+                problems.append("a \(row.feature) row could not be encoded for the scan")
+                continue
+            }
+            for sentinel in e2Sentinels where json.contains(sentinel) {
+                problems.append("the \(row.feature) row leaked the sentinel \"\(sentinel)\"")
+            }
+        }
+        return problems
+    }
+
+    /// E3: the owner's real `usage.jsonl` is byte-for-byte the same after the whole flag,
+    /// and the store guard is registered to watch it. The harness writes its rows to a temp
+    /// directory, so the real file must not even appear.
+    private static func checkE3(before: SelfTestStoreGuard.StoreSnapshot) -> [String] {
+        var problems: [String] = []
+        let after = SelfTestStoreGuard.take()
+        let beforeState = before.files["usage.jsonl"] ?? "absent"
+        let afterState = after.files["usage.jsonl"] ?? "absent"
+        if beforeState != afterState {
+            problems.append("the real usage.jsonl changed during the run: \(beforeState) -> \(afterState)")
+        }
+        if !SelfTestStoreGuard.fileNames.contains(UsageLog.fileName) {
+            problems.append("SelfTestStoreGuard.fileNames does not watch \(UsageLog.fileName)")
+        }
+        if UsageLog.shared.directory == AppIdentity.applicationSupportDirectory {
+            problems.append("UsageLog.shared points at the owner's support directory under the harness")
+        }
+        return problems
+    }
+
+    /// E4: the `UsageRecord` coding keys are exactly the documented schema. A new field
+    /// without a roadmap and AGENTS.md update fails here rather than shipping silently.
+    private static func checkE4() -> [String] {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(fullyPopulatedRow()),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return ["the fully populated row could not be encoded"]
+        }
+        var problems: [String] = []
+        let actual = Set(object.keys)
+        let documented = documentedUsageCodingKeys
+        let missing = documented.subtracting(actual).sorted()
+        let extra = actual.subtracting(documented).sorted()
+        if !missing.isEmpty {
+            problems.append("documented key(s) missing from UsageRecord: \(missing.joined(separator: ", "))")
+        }
+        if !extra.isEmpty {
+            problems.append("UsageRecord has undocumented key(s): \(extra.joined(separator: ", "))")
+        }
+        if let runs = object["toolsExecuted"] as? [[String: Any]], let run = runs.first {
+            let runKeys = Set(run.keys)
+            let runMissing = documentedToolCodingKeys.subtracting(runKeys).sorted()
+            let runExtra = runKeys.subtracting(documentedToolCodingKeys).sorted()
+            if !runMissing.isEmpty {
+                problems.append("UsageToolRun is missing key(s): \(runMissing.joined(separator: ", "))")
+            }
+            if !runExtra.isEmpty {
+                problems.append("UsageToolRun has undocumented key(s): \(runExtra.joined(separator: ", "))")
+            }
+        } else {
+            problems.append("the encoded row carried no toolsExecuted object to check")
+        }
+        return problems
+    }
+
+    // MARK: - E and D case helpers
+
+    /// The twelve sentinels E2 plants: prompt words, a tool-argument-shaped value, e-mail
+    /// addresses, URLs, file paths and a digit run in the typed request; transcript words
+    /// and contact-shaped text in the meeting fixture; and a free-text cleanup fallback
+    /// reason. None may appear in any encoded row.
+    private static let e2Sentinels: [String] = [
+        "sentinelalpha",
+        "sentinelbravo",
+        "sentinel-delta",
+        "qzx@fixture.invalid",
+        "https://fixture.invalid/private",
+        "/users/fixture/secret-plan.txt",
+        "12345678",
+        "sentinelcharlie",
+        "sentinel-foxtrot",
+        "marc@acme.com",
+        "/users/fixture/transcript.txt",
+        "sentinel-echo",
+    ]
+
+    /// The sentinel tail of E1's typed request. It keeps the request on the tool route
+    /// (`AgentTurnIntent.resolve` routes anything that is not an explicit on-device ask)
+    /// and is what E2 scans the agent rows for.
+    private static let e1AgentSentinels = "sentinelalpha sentinelbravo sentinel-delta "
+        + "qzx@fixture.invalid https://fixture.invalid/private /Users/fixture/secret-plan.txt 12345678"
+
+    /// The meeting fixture's sentinel segment.
+    private static let e1TranscriptSentinels = "sentinelcharlie sentinel-foxtrot "
+        + "marc@acme.com https://fixture.invalid/private /Users/fixture/transcript.txt"
+
+    private static func e1Segments() -> [TranscriptSegment] {
+        [
+            TranscriptSegment(start: 0, end: 3, text: "Zarquon baffled the marmoset with a kazoo today.", source: .mic),
+            TranscriptSegment(start: 4, end: 7, text: "Pernicious badgers excavated the turnip patch.", source: .system),
+            TranscriptSegment(start: 8, end: 12, text: e1TranscriptSentinels, source: .mic),
+        ]
+    }
+
+    /// The documented schema, in the order the P0-20 task lists it. The comparison is a set
+    /// so a reordering is not a failure — the JSON key order is not a contract — but an
+    /// added or removed field is.
+    private static let documentedUsageCodingKeys: Set<String> = [
+        "v", "id", "ts", "feature", "pass", "round", "provider", "modelID", "locality",
+        "requestedRole", "requestedModel", "fallbackReason", "warm", "loadMs",
+        "promptTokens", "cachedTokens", "completionTokens", "reasoningTokens",
+        "countsEstimated", "ttftMs", "totalMs", "tokensPerSec", "finishReason",
+        "truncated", "toolsProposed", "toolsExecuted", "errorClass", "errorMessage",
+        "audioSeconds", "realtimeFactor", "stages", "counts",
+        "turnID", "conversationID", "workID", "revision", "meetingID",
+        "dictationRunID", "scheduleID",
+    ]
+
+    private static let documentedToolCodingKeys: Set<String> = ["id", "ok", "ms", "errorClass"]
+
+    /// One row with every field non-nil, so the synthesized encoder writes every coding
+    /// key. U1 round-trips it; E4 reads its keys.
+    private static func fullyPopulatedRow() -> UsageRecord {
+        UsageRecord(
+            v: 1,
+            id: UUID(),
+            ts: Date(timeIntervalSince1970: 1_700_000_123),
+            feature: UsageFeature.agentTyped.rawValue,
+            pass: "answer",
+            round: 2,
+            provider: UsageProvider.llama.rawValue,
+            modelID: "Scripted Test Model",
+            locality: "local",
+            requestedRole: ModelRole.agent.rawValue,
+            requestedModel: "Installed CPM",
+            fallbackReason: UsageFallback.loadFailed.rawValue,
+            warm: false,
+            loadMs: 1_234,
+            promptTokens: 100,
+            cachedTokens: 40,
+            completionTokens: 55,
+            reasoningTokens: 7,
+            countsEstimated: false,
+            ttftMs: 120,
+            totalMs: 2_400,
+            tokensPerSec: 22.5,
+            finishReason: "stop",
+            truncated: false,
+            toolsProposed: ["calendar.list"],
+            toolsExecuted: [UsageToolRun(id: "calendar.list", ok: true, ms: 12,
+                                         errorClass: UsageErrorClass.other.rawValue)],
+            errorClass: UsageErrorClass.other.rawValue,
+            errorMessage: "Could not load the model",
+            audioSeconds: 3.5,
+            realtimeFactor: 0.25,
+            stages: ["drain": 0.5, "transcribe": 1.25],
+            counts: ["proposals": 2, "speakers": 2],
+            turnID: UUID(),
+            conversationID: UUID(),
+            workID: UUID(),
+            revision: 3,
+            meetingID: UUID(),
+            dictationRunID: UUID(),
+            scheduleID: UUID()
+        )
+    }
+
+    /// The scripted model behind E1's typed turn: the same three-step script
+    /// `--selftest-toolloop-production` uses — opt into tools, propose one read, answer
+    /// from its result — with a distinctive display name so the row proves which model ran.
+    private struct TypedTurnUsageProvider: LLMProvider {
+        let id = LLMProviderID.appLLM
+        let displayModelName = "Scripted Typed Model"
+        var contextTokens: Int { 4_096 }
+        var unavailableReason: String? { get async { nil } }
+
+        func countTokens(_ text: String) async throws -> Int { text.count / 4 + 1 }
+
+        func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+            let choosing = system.contains("<use_tools/>")
+            let afterTool = user.contains("computer.active_app returned")
+            let text: String
+            if choosing {
+                text = "<use_tools/>"
+            } else if !afterTool {
+                text = #"<tool_call>{"name":"computer.active_app","arguments":{},"rationale":"e1"}</tool_call>"#
+            } else {
+                text = "The frontmost application is the one the system reported."
+            }
+            return LLMCompletion(text: text, generatedTokens: text.count, duration: 0)
+        }
     }
 
     private static func fixtureMeeting(_ title: String) -> Meeting {

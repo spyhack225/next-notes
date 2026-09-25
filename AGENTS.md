@@ -113,6 +113,20 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-assemble           --selftest-portrait
 ```
 
+`usage.jsonl` is the one local record of which model or engine ran each pass — Agent,
+Meetings and Dictation — with its provider, model, locality, timing, counts, tools and
+outcome (P0-20a–e). It never leaves this Mac: nothing uploads it, no network call touches
+it, and no row holds a prompt, reply, reasoning, transcript, dictated text, tool argument,
+file name, address, subject or URL (`UsageLog.sanitise` strips quoted content, addresses,
+URLs, paths and long digit runs from an error message before it is written). Read it with
+`--usage-report [--usage-days N] [--usage-feature <prefix>]`, a read-only diagnostic rather
+than a `--selftest-*` flag because the harness swaps in an empty temp store — the same trap
+`--notes-context-live` documents. `--selftest-usage-log` pins the isolation: under the
+harness `UsageLog.shared` writes to `NextNotesSelfTest-<pid>` in the temporary directory,
+so no run can append to the owner's history, and `--selftest-store-isolation` watches the
+real `usage.jsonl` beside the other stores. It rotates at 8 MB to `usage.1.jsonl` (about
+two files, ~16 MB) and drops rows older than 90 days from the rotated file at launch.
+
 One flag in that list's shape but not its kind: `--wake-mic-record [count]` is interactive,
 so it is a modifier rather than a `--selftest-*` test — it records real-room "Hey Will"
 captures into the `WakeWord/LiveFixtures` overlay that `--selftest-wake-live` grades

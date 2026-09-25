@@ -18,7 +18,9 @@ enum SelfTestStoreGuard {
     }
 
     /// Every file a self-test must leave alone. `Models/library.json` is the one under
-    /// a subdirectory; the rest live at the root of the support directory.
+    /// a subdirectory; the rest live at the root of the support directory. `usage.jsonl`
+    /// joined the list with P0-20e: the harness's `UsageLog.shared` writes to a temp
+    /// directory, so a run that ever reached the owner's history would fail here.
     static let fileNames: [String] = [
         "runs.jsonl",
         "agent-tasks.json",
@@ -27,6 +29,7 @@ enum SelfTestStoreGuard {
         "next-memory.json",
         "agent-memory-review.json",
         "metrics.jsonl",
+        "usage.jsonl",
         "action-receipts.json",
         "permission-grants.json",
         "persona.md",

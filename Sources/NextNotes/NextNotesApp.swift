@@ -454,7 +454,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // `USAGE_LOG_OK` / `USAGE_LOG_FAILED` is the verdict, the summary cases
                 // print as `USAGE_LOG_WRONG` lines, and a combined verdict is written
                 // last when they fail.
-                let coreOK = UsageLogSelfTest.run()
+                let coreOK = await UsageLogSelfTest.run()
                 let summaryProblems = UsageSummarySelfTest.problems()
                 for problem in summaryProblems { writeSelfTest("USAGE_LOG_WRONG: \(problem)") }
                 if !summaryProblems.isEmpty {
