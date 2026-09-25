@@ -3137,8 +3137,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             // 6. Two failures 1 s apart: the first 3 s timer must clear neither a
-            //    new hold nor the newer error, so the second message is still
-            //    shown 2.5 s after it was raised.
+            //    new hold nor the newer error, so the second plain message is still
+            //    shown 2.5 s after it was raised (D-04 maps both raw errors to the
+            //    same plain sentence; the token timing is what this pins).
             let tokenBox = MutableEngineShape(.failsStart("first failure"))
             let tokenInbox = SelfTestInbox()
             let controllerF = makeRetryController(box: tokenBox, inbox: tokenInbox)
@@ -3154,8 +3155,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 controllerF.startButtonRecording()
                 try? await Task.sleep(for: .seconds(2.5))
                 if case .error(let message) = controllerF.state {
-                    if !message.contains("second") {
-                        failures.append("the second error message was replaced by \(message)")
+                    if message != DictationErrorText.unrecognized {
+                        failures.append("the second error was not the plain sentence: \(message)")
                     }
                 } else {
                     failures.append("the second error was cleared early "
