@@ -76,6 +76,21 @@ struct MeetingLiveView: View {
                         .buttonStyle(.link)
                 }
             }
+
+            // The recording's own file, not the tap: skipped for disk space at start,
+            // or stopped by the writer's first write error (M-10). Same shape as the
+            // row above, without the settings button — there is no single pane to open.
+            if let problem = session.audioProblem {
+                HStack(spacing: DS.Space.s) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundStyle(DS.Color.warning)
+                    Text(problem)
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                }
+            }
         }
         .padding(DS.Space.l)
         .frame(maxWidth: .infinity, alignment: .leading)

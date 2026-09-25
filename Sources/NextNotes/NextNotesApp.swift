@@ -1244,6 +1244,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runMeetingBacklogSelfTest()
             return true
         }
+        if arguments.contains("--selftest-audio-retention") {
+            runAudioRetentionSelfTest()
+            return true
+        }
         if arguments.contains("--selftest-diarize-assign") {
             let failures = DiarizeAssignSelfTest.run { writeSelfTest($0) }
             for failure in failures { writeSelfTest("DIARIZE_ASSIGN_WRONG: \(failure)") }
@@ -2836,6 +2840,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func runMeetingBacklogSelfTest() {
         Task { @MainActor in
             SelfTest.failed = !(await MeetingBacklogSelfTest.run { writeSelfTest($0) })
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// `--selftest-audio-retention`: M-10 — temporary audio kept 72 hours past the
+    /// pipeline end or until the speakers are confirmed, the 5 GB retention and
+    /// 1 GB start disk guards, the sweeper's exclusions, and the writer's
+    /// stop-on-error. Everything is seeded in `MeetingStore.isolated()`; the clock
+    /// and free space are injected, so it never reads this Mac's disk or touches
+    /// the user's `Meetings/`.
+    private func runAudioRetentionSelfTest() {
+        Task { @MainActor in
+            SelfTest.failed = !(await AudioRetentionSelfTest.run { writeSelfTest($0) })
             NSApp.terminate(nil)
         }
     }

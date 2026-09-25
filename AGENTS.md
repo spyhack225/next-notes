@@ -65,7 +65,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-settings  --selftest-metrics    --selftest-cleanup-router
 --selftest-meeting-live --selftest-meeting-live-tools --selftest-meeting-quality --selftest-tts
 --selftest-notes-longform --selftest-diarize-assign --selftest-meeting-finals [<dir>]
---selftest-meeting-resume --selftest-meeting-backlog
+--selftest-meeting-resume --selftest-meeting-backlog --selftest-audio-retention
 --selftest-tts-stream
 --selftest-tts-pocket
 --selftest-tts-kokoro
@@ -787,8 +787,10 @@ no seeded meeting ever touches the user's `Meetings/`.
 | `.summarizing` | — | — | notes |
 | `.extracting` | — | — | `.done`, re-extraction queued |
 
-Nothing releases audio during repair: the stage that finishes reaches `releaseAudio`, whose
-three-line rule is unchanged. `MeetingSession.endAbruptly()` leaves a meeting `.transcribing`
+Nothing releases audio during repair: the stage that finishes reaches
+`releaseAudioWhenDue`, which for a temporary recording schedules the release 72 hours
+out (M-10) and for a kept one calls `releaseAudio` with the rule unchanged.
+`MeetingSession.endAbruptly()` leaves a meeting `.transcribing`
 rather than `.done` for the same reason, and a normal Quit is caught before that —
 `applicationShouldTerminate` offers "Stop and Quit" (a ten-second bounded stop) or
 "Keep Recording", and SIGTERM gets no alert because it cannot be caught. Both model stages
@@ -811,8 +813,8 @@ the system channel of `audio.caf`, and the post-Stop final pass re-transcribes b
 channels out of it, so turning "Tell the other speakers apart" or "Re-check the
 transcript after the meeting" on makes every meeting write the file whether or not the
 user asked to keep one — and
-`MeetingStore.releaseAudio` deletes it again at the end of the pipeline. Which of the two it
-was is answered when the recording *starts* and stored on the meeting as
+`MeetingStore.releaseAudio` deletes it again once the pipeline is done with it. Which of
+the two it was is answered when the recording *starts* and stored on the meeting as
 `audioIsTemporary`, not read back out of the settings when it ends: switching keep-audio off
 next month must not reach back and delete a recording the user asked for. The rule lives in
 that one method, and it is: a recording made only for a pipeline stage (diarization,
@@ -822,6 +824,25 @@ nothing goes while a failed diarization pass is still offering "Identify again",
 nothing to read without it — or while the stall watchdog has stopped a notes pass, whose
 "Try again" is in the same position. Nothing else deletes a recording, so if a file is being
 kept that shouldn't be, that is the method to read.
+
+M-10 changed only *when* that rule runs, never its shape. The pipeline end no longer
+deletes a temporary recording at once: `MeetingStore.releaseAudioWhenDue` stamps
+`Meeting.audioReleaseAfter` 72 hours ahead, and `MeetingScheduler`'s tick sweeps
+recordings past their window every 30 minutes (and once at launch) through the same
+`releaseAudio` — so a meeting the diarizer over-split (3 of the 6 on this Mac, M-03) can
+still be re-identified the next morning, which deleting at notes-time made impossible.
+Three things end the window early, and all of them still go through `releaseAudio`: the
+speakers are confirmed (the speaker sheet's Save), a diarization problem is dismissed, or
+free disk is under 5 GB — under the guard "as today" wins, and the sweep releases the
+oldest temporary recordings first until the space is back. Under 1 GB free at start
+nothing is written at all (`MeetingSession.shouldWriteAudio`), the live pane shows
+"Not enough disk space to keep a recording; the transcript is still being written.", and
+the final pass records `live-only:no-audio`; the writer stops at its first write error
+and reports it once rather than logging a failed chunk per frame. The sweep never touches
+a kept recording, a meeting that is still active, or one whose diarization problem is
+still offering "Identify again". `--selftest-audio-retention` is the gate (INTEGRATION);
+it seeds its meetings through `MeetingStore.isolated()` and injects the clock and the
+free space, so it never depends on this Mac's disk.
 
 **A transcript segment is a sentence, not a window, and punctuation is what makes it one.**
 The live tier cuts 2–5 second windows for provisional text (not 30–60: that number is

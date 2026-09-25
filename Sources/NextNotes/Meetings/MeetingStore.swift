@@ -163,7 +163,8 @@ final class MeetingStore {
                 // Not in repair: this is the stage that finishes. The notes were already
                 // written when the meeting was interrupted, so the recording goes the way
                 // it would have once notes were done — whether or not the extraction ran.
-                self.releaseAudio(for: id, notesWritten: true)
+                // M-10: a temporary recording gets its 72-hour window from here too.
+                self.releaseAudioWhenDue(for: id, notesWritten: true)
             }
         }
         return plan
@@ -406,6 +407,11 @@ final class MeetingStore {
     /// - Nothing goes while a failed diarization pass is still offering "Identify again",
     ///   because that retry has nothing to read without it.
     ///
+    /// M-10: the pipeline end no longer calls this directly — `releaseAudioWhenDue`
+    /// schedules a temporary recording's release 72 hours out first, and the sweep
+    /// and the speaker-confirm action reach here at their own moments. This method
+    /// stays the only thing in the app that deletes a recording.
+    ///
     /// - Parameter notesWritten: whether the pass that is finishing rewrote `notes.md`.
     func releaseAudio(for id: UUID, notesWritten: Bool = false) {
         guard var meeting = meeting(id: id), let name = meeting.audioFileName else { return }
@@ -418,6 +424,121 @@ final class MeetingStore {
         meeting.audioFileName = nil
         save(meeting)
         Log.meeting.info("released audio for \"\(meeting.title, privacy: .public)\"")
+    }
+
+    // MARK: - Audio retention (M-10)
+
+    /// How long a finished temporary recording keeps its file past the pipeline
+    /// end before the sweep takes it (M-10).
+    nonisolated static let temporaryAudioRetention: TimeInterval = 72 * 60 * 60
+    /// The retention disk guard: with less free space than this, "as today" wins
+    /// and temporary audio is released at once instead of kept for the window.
+    nonisolated static let minimumFreeBytesForRetention: Int64 = 5_000_000_000
+
+    /// Free bytes available for important usage on the volume holding `url`.
+    /// `.max` when unknowable: a missing answer must never delete a recording.
+    nonisolated static func freeBytes(at url: URL) -> Int64 {
+        (try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))
+            .flatMap(\.volumeAvailableCapacityForImportantUsage) ?? .max
+    }
+
+    /// Ends the pipeline's use of a recording the way M-10 says: a temporary file is
+    /// scheduled for release instead of deleted at once, a kept one follows the
+    /// unchanged `releaseAudio` rule immediately.
+    ///
+    /// M-10 changes when `releaseAudio` runs, never its rule. A temporary
+    /// recording (`audioIsTemporary == true`, the answer written when the recording
+    /// started) keeps its file for `temporaryAudioRetention` — 72 hours past the
+    /// pipeline end, which is what makes a later "Identify again" possible (M-03) —
+    /// unless the disk is under `minimumFreeBytesForRetention`, where "as today"
+    /// wins and it goes now. The window is stamped once: a second pipeline end
+    /// (Regenerate re-announcing, extraction finishing late) neither shortens nor
+    /// extends it, and a window that has already passed releases now. Every delete
+    /// still goes through `releaseAudio`; this method and the sweep only decide when.
+    ///
+    /// - Parameters:
+    ///   - notesWritten: whether the pass that is finishing rewrote `notes.md`
+    ///     (read only by the kept-recording rule).
+    ///   - now: injected so the self-test decides the same way production does.
+    ///   - freeBytes: injected free space; measured at this store's root when nil.
+    func releaseAudioWhenDue(
+        for id: UUID,
+        notesWritten: Bool,
+        now: Date = Date(),
+        freeBytes injectedFree: Int64? = nil
+    ) {
+        guard var meeting = meeting(id: id), meeting.audioFileName != nil else { return }
+        // A recording the user asked to keep: the unchanged rule, now.
+        if meeting.audioIsTemporary != true {
+            releaseAudio(for: id, notesWritten: notesWritten)
+            return
+        }
+        let free = injectedFree ?? Self.freeBytes(at: root)
+        guard free >= Self.minimumFreeBytesForRetention else {
+            // Under the guard there is nothing to be patient about.
+            releaseAudio(for: id, notesWritten: notesWritten)
+            return
+        }
+        if let due = meeting.audioReleaseAfter {
+            // A window that has already passed releases now; a live one is left
+            // exactly as it was first written.
+            if due <= now { releaseAudio(for: id, notesWritten: notesWritten) }
+            return
+        }
+        meeting.audioReleaseAfter = now.addingTimeInterval(Self.temporaryAudioRetention)
+        save(meeting)
+        Log.meeting.info("""
+            temporary audio kept for "\(meeting.title, privacy: .public)" — \
+            release in \(Int(Self.temporaryAudioRetention / 3600), privacy: .public) h
+            """)
+    }
+
+    /// Releases temporary recordings that are past their window, and — while the
+    /// disk is under `minimumFreeBytesForRetention` — the oldest temporary
+    /// recordings first, whatever their window says.
+    ///
+    /// Never a meeting that is still active (a resume is running through exactly
+    /// those statuses, so a sweep during repair cannot touch one), never a meeting
+    /// whose diarization problem is still offering "Identify again", and never a
+    /// kept recording. Every delete still goes through `releaseAudio`, whose own
+    /// problem guard answers the same question a second time.
+    ///
+    /// - Parameters:
+    ///   - now: injected so the self-test decides the same way production does.
+    ///   - freeBytes: injected free space; measured at this store's root when nil.
+    ///   - hasDiarizationProblem: production passes nil, which reads
+    ///     `DiarizationService.shared`; the self-test injects its own answer
+    ///     because the shared service reads the production store.
+    /// - Returns: how many recordings were released.
+    @discardableResult
+    func sweepExpiredAudio(
+        now: Date = Date(),
+        freeBytes injectedFree: Int64? = nil,
+        hasDiarizationProblem: ((UUID) -> Bool)? = nil
+    ) -> Int {
+        let problem = hasDiarizationProblem ?? { DiarizationService.shared.problem(for: $0) != nil }
+        let candidates = meetings
+            .filter { $0.audioIsTemporary == true && $0.audioFileName != nil }
+            .filter { !$0.status.isActive }
+            .filter { !problem($0.id) }
+            .sorted { $0.start < $1.start }
+
+        var released = 0
+        var free = injectedFree ?? Self.freeBytes(at: root)
+        for meeting in candidates {
+            let expired = meeting.audioReleaseAfter.map { now >= $0 } ?? false
+            let diskTight = free < Self.minimumFreeBytesForRetention
+            guard expired || diskTight else { continue }
+            releaseAudio(for: meeting.id)
+            released += 1
+            // Re-measure between releases: the point of the disk guard is to
+            // reclaim only what the space needs, oldest first.
+            free = injectedFree ?? Self.freeBytes(at: root)
+        }
+        if released > 0 {
+            Log.meeting.info("retention sweep released \(released, privacy: .public) recording(s)")
+        }
+        return released
     }
 
     // MARK: - Search

@@ -300,9 +300,9 @@ final class NotesService {
             // copy of the meeting that a retry of diarization can still read. Regenerate
             // replays work that has already been done, and a button offering to write the
             // notes again is not a button that may delete the recording they were written
-            // from.
+            // from. M-10: a temporary recording is scheduled 72 hours out, not deleted here.
             if announce, !stoppedByWatchdog.contains(id) {
-                store.releaseAudio(for: id, notesWritten: model != nil)
+                store.releaseAudioWhenDue(for: id, notesWritten: model != nil)
             }
             // The agent reads the notes, so it is asked once they exist rather than when
             // the transcript did. Only on the automatic pass: Regenerate rewrites notes the

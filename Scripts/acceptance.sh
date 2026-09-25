@@ -170,6 +170,9 @@ INTEGRATION_ENTRIES=(
   # live transcription backlog bounded by audio seconds, windows merged (M-07):
   # a fake transcriber behind the queue, no model and no fixtures
   "selftest-meeting-backlog|300"
+  # temporary audio kept 72 h with the disk guards (M-10): isolated store,
+  # injected clock and free space, no model and no fixtures
+  "selftest-audio-retention|120"
 )
 
 EXPERIMENTAL_ENTRIES=(

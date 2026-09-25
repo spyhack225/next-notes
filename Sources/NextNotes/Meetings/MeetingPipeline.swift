@@ -102,7 +102,9 @@ enum MeetingPipeline {
         // pipeline is not the same as having worked.
         if !done.status.isFailure { done.status = .done }
         store.save(done)
-        store.releaseAudio(for: done.id)
+        // M-10: a temporary recording is scheduled for release 72 hours out rather
+        // than deleted here; a kept one follows the unchanged rule.
+        store.releaseAudioWhenDue(for: done.id, notesWritten: false)
         let finished = store.meeting(id: done.id) ?? done
         AgentService.shared.review(finished)
         return finished

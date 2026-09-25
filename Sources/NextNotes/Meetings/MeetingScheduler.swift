@@ -29,6 +29,12 @@ final class MeetingScheduler {
     static let silenceTimeout: TimeInterval = 10 * 60
     /// How long an armed meeting may wait for a busy session before it is written off.
     static let armedGrace: TimeInterval = 10 * 60
+    /// How often the audio-retention sweep runs (M-10). The tick already runs every
+    /// thirty seconds, but the sweep reads the volume's free space and passes over
+    /// every meeting, so it keeps its own cadence — and its first run, within a tick
+    /// of launch, is the at-launch sweep. A meeting being resumed is active until its
+    /// stage finishes, which is exactly what the sweep refuses to touch.
+    static let retentionSweepInterval: TimeInterval = 30 * 60
 
     /// Events the user said no to, in memory, so a veto applies without a round trip to
     /// `Settings`.
@@ -44,6 +50,9 @@ final class MeetingScheduler {
     private let calls: CallDetector
 
     private var tick: Task<Void, Never>?
+    /// When the retention sweep last ran; nil until the first tick after start,
+    /// which is the launch sweep.
+    private var lastRetentionSweep: Date?
 
     /// Detected-call notifications, in the order they arrived, one at a time.
     ///
@@ -122,6 +131,7 @@ final class MeetingScheduler {
         // and runs on OpenRouter rather than the on-device model.
         AgentTriggerEvents.shared.meetingsUpcoming(calendar.upcoming, now: now)
         await stopFinishedMeeting(now: now)
+        sweepAudioRetention(now: now)
     }
 
     // MARK: - Queries the UI asks
@@ -261,6 +271,19 @@ final class MeetingScheduler {
                     """)
             }
         }
+    }
+
+    /// Releases temporary recordings past their 72-hour window (M-10), and — while
+    /// the disk is nearly full — the oldest ones first. The first tick after start
+    /// is the launch sweep; after that the sweep keeps to its own thirty-minute
+    /// cadence inside the tick that is already running.
+    private func sweepAudioRetention(now: Date) {
+        if let last = lastRetentionSweep,
+           now.timeIntervalSince(last) < Self.retentionSweepInterval {
+            return
+        }
+        lastRetentionSweep = now
+        store.sweepExpiredAudio(now: now)
     }
 
     /// Stops a scheduled recording that has outlived its meeting.

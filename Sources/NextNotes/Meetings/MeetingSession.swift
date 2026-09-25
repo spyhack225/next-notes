@@ -32,6 +32,10 @@ final class MeetingSession {
     /// Set when the process tap couldn't start. The meeting continues on the mic alone —
     /// a recording of half the conversation beats no recording at all.
     private(set) var systemAudioProblem: String?
+    /// Set when the recording's own file could not be had (M-10): under 1 GB free
+    /// at start, or the writer's first write error. The meeting continues — the
+    /// transcript is still written — but this says what the user is not getting.
+    private(set) var audioProblem: String?
 
     private let store: MeetingStore
     private let systemCapture = SystemAudioCapture()
@@ -55,6 +59,25 @@ final class MeetingSession {
     }
 
     var isRecording: Bool { meeting.status == .recording }
+
+    /// Whether this recording writes `audio.caf` at all (M-10 Target 4). Pure, so
+    /// the self-test and `start()` decide the same way: something has to want the
+    /// file — keep-audio, diarization, the final pass — and under
+    /// `minimumFreeBytesForAudio` nothing is written, whatever wanted it.
+    nonisolated static func shouldWriteAudio(
+        keep: Bool,
+        diarize: Bool,
+        finalPass: Bool,
+        freeBytes: Int64
+    ) -> Bool {
+        guard keep || diarize || finalPass else { return false }
+        return freeBytes >= minimumFreeBytesForAudio
+    }
+
+    /// The start disk guard (M-10 Target 4): under this little free space the
+    /// recording writes no audio file at all, and the pass records
+    /// `live-only:no-audio` rather than filling the last gigabyte.
+    nonisolated static let minimumFreeBytesForAudio: Int64 = 1_000_000_000
 
     /// In-memory only. `MeetingStore.rename` writes the file and then calls this so the
     /// live pane and the island do not keep showing the old name until the session ends.
@@ -88,16 +111,22 @@ final class MeetingSession {
         // the system channel, and the M-01 final pass re-transcribes both channels
         // after Stop, each whether or not the user asked to keep a recording.
         // `MeetingStore.releaseAudio` deletes a temporary file again at the end of
-        // the pipeline. A nearly-full disk skips the temporary file (M-10 owns the
-        // general guard): without audio the pass records `live-only:no-audio` and
-        // the pipeline continues on the live transcript.
-        var wantsAudio = Settings.shared.meetingsKeepAudio
-            || Settings.shared.meetingsDiarize
-            || Settings.shared.meetingsFinalPass
-        if wantsAudio, !Settings.shared.meetingsKeepAudio,
-           Self.freeBytes(at: MeetingStore.root) < 1_000_000_000 {
-            wantsAudio = false
-            Log.meeting.info("temporary meeting audio skipped: less than 1 GB free")
+        // the pipeline — M-10 gives that release a 72-hour window. Under 1 GB free
+        // nothing is written at all: without audio the final pass records
+        // `live-only:no-audio` and the pipeline continues on the live transcript,
+        // and the problem below says so while it is still true.
+        let keep = Settings.shared.meetingsKeepAudio
+        let freeBytes = MeetingStore.freeBytes(at: MeetingStore.root)
+        let wantsAudio = Self.shouldWriteAudio(
+            keep: keep,
+            diarize: Settings.shared.meetingsDiarize,
+            finalPass: Settings.shared.meetingsFinalPass,
+            freeBytes: freeBytes
+        )
+        if !wantsAudio,
+           keep || Settings.shared.meetingsDiarize || Settings.shared.meetingsFinalPass {
+            audioProblem = "Not enough disk space to keep a recording; the transcript is still being written."
+            Log.meeting.info("meeting audio skipped: less than 1 GB free")
         }
         if wantsAudio {
             let url = store.directory(for: meeting.id).appendingPathComponent(MeetingStore.audioFile)
@@ -106,9 +135,16 @@ final class MeetingSession {
                 withIntermediateDirectories: true
             )
             do {
-                writer = try MeetingAudioWriter(url: url)
+                // The writer is the only part that can fail *while* the meeting runs
+                // (a disk filling up mid-recording). It stops at its first error and
+                // reports once through the callback below; the meeting keeps going on
+                // the transcript alone.
+                let audioWriter = try MeetingAudioWriter(url: url, onWriteError: { [weak self] message in
+                    Task { @MainActor in self?.audioProblem = message }
+                })
+                writer = audioWriter
                 meeting.audioFileName = MeetingStore.audioFile
-                meeting.audioIsTemporary = !Settings.shared.meetingsKeepAudio
+                meeting.audioIsTemporary = !keep
             } catch {
                 Log.meeting.error("keep-audio disabled for this meeting: \(error.localizedDescription, privacy: .public)")
             }
@@ -361,13 +397,6 @@ final class MeetingSession {
         let path = store.directory(for: meeting.id).appendingPathComponent(name).path
         let size = (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? NSNumber
         return (size?.int64Value ?? 0) > 0
-    }
-
-    /// Free bytes available for important usage on the volume holding `url`.
-    /// `.max` when unknowable: a missing answer must not delete a recording path.
-    private static func freeBytes(at url: URL) -> Int64 {
-        (try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))
-            .flatMap(\.volumeAvailableCapacityForImportantUsage) ?? .max
     }
 
     // MARK: - Internals

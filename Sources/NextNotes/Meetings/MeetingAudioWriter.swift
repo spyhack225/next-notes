@@ -36,9 +36,24 @@ actor MeetingAudioWriter {
     private var micQueue: [Float] = []
     private var systemQueue: [Float] = []
 
+    /// Called once, on the first write failure (M-10). The session surfaces the
+    /// message; the writer stops trying after it.
+    private let onWriteError: (@Sendable (String) -> Void)?
+    /// The first write error's message, or nil while every chunk has landed.
+    /// Once set, incoming samples are dropped rather than queued — a two-hour
+    /// meeting must not grow memory behind a file that can no longer take bytes.
+    private var writeError: String?
+
     /// 16-bit on disk, float in memory: `AVAudioFile` converts on write, and int16 halves
     /// what an hour of meeting costs on a machine with ten gigabytes free.
-    init(url: URL) throws {
+    ///
+    /// - Parameters:
+    ///   - onWriteError: the one-shot callback for the first write failure. Set at
+    ///     creation because the writer is an actor: its state cannot be mutated
+    ///     from outside after construction.
+    ///   - url: where the stereo file is written.
+    init(url: URL, onWriteError: (@Sendable (String) -> Void)? = nil) throws {
+        self.onWriteError = onWriteError
         guard let format = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
             sampleRate: ChunkedTranscriber.sampleRate,
@@ -66,6 +81,9 @@ actor MeetingAudioWriter {
     }
 
     func append(_ samples: [Float], from source: AudioSource) {
+        // The file failed once; nothing after that lands anywhere, and saying so
+        // again would be noise. The transcript keeps running without the file.
+        guard writeError == nil else { return }
         switch source {
         case .mic: micQueue.append(contentsOf: samples)
         case .system: systemQueue.append(contentsOf: samples)
@@ -75,6 +93,7 @@ actor MeetingAudioWriter {
 
     /// Flushes the side that ran on longest, padding the other with silence.
     func finish() {
+        guard writeError == nil else { return }
         let remaining = max(micQueue.count, systemQueue.count)
         guard remaining > 0 else { return }
         padQueues(to: remaining)
@@ -111,8 +130,9 @@ actor MeetingAudioWriter {
         }
     }
 
-    /// - Returns: `false` when the buffer couldn't be allocated, which stops the caller
-    ///   rather than letting it spin on a chunk that will never be consumed.
+    /// - Returns: `false` when the buffer couldn't be allocated or the file refused
+    ///   the write (M-10: the first refusal stops the caller), rather than letting
+    ///   it spin on a chunk that will never be consumed.
     private func writeChunk(frames: Int) -> Bool {
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frames)),
               let channels = buffer.floatChannelData
@@ -134,7 +154,16 @@ actor MeetingAudioWriter {
         do {
             try file.write(from: buffer)
         } catch {
-            Log.meeting.error("audio write failed: \(error.localizedDescription, privacy: .public)")
+            // M-10: the first write error stops the writer — a full disk turns
+            // every later chunk into the same error, and per-chunk logging of it
+            // is noise. The samples were already consumed from the queues above,
+            // so nothing grows behind the failure.
+            if writeError == nil {
+                writeError = error.localizedDescription
+                Log.meeting.error("audio write failed; stopping the recording file: \(error.localizedDescription, privacy: .public)")
+                onWriteError?(writeError ?? "The recording file could not be written.")
+            }
+            return false
         }
         return true
     }

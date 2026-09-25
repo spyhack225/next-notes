@@ -133,6 +133,12 @@ struct MeetingDetailView: View {
                 var renamed = meeting
                 renamed.speakerNames = names
                 store.save(renamed)
+                // Speakers confirmed (M-10): naming the clusters is the person saying the
+                // pass was right, which was the last thing the temporary recording was
+                // for. `releaseAudio` holds the three-line rule — a recording the user
+                // asked to keep stays kept — and refuses while a diarization problem is
+                // still offering another try.
+                store.releaseAudio(for: renamed.id)
             }
         }
         .sheet(isPresented: $isRenamingMeeting) {
