@@ -162,6 +162,11 @@ struct AppleStructurePlanner: StructurePlanning {
                             maximumResponseTokens: 500
                         )
                     )
+                    // D-06: a completed layout answer is Apple-model activity, whether the
+                    // plan it carried is later used or turned down — the model ran either
+                    // way, and the warmth window reads that. Never
+                    // `MainActor.assumeIsolated` from a child task.
+                    await MainActor.run { AppleModelWarmth.noteActivity() }
                     return response.content
                 }
                 group.addTask {

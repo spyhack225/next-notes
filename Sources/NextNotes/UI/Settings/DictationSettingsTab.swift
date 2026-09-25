@@ -121,6 +121,15 @@ struct DictationSettingsTab: View {
                         set: { choice in
                             settings.cleanupEngine = choice
                             if choice == .s1Mini { models.prepareS1Mini() }
+                            // D-06: a switch to a combination whose plan warms Apple's
+                            // model does it here, once, the way launch would have.
+                            Task { @MainActor in
+                                await AppleModelWarmth.warmForSettings(
+                                    cleanupEnabled: settings.cleanupEnabled,
+                                    choice: settings.cleanupEngine,
+                                    fixesGrammar: settings.cleanupFixesGrammar
+                                )
+                            }
                         }
                     )) {
                         ForEach(CleanupEngineChoice.allCases, id: \.self) { choice in
@@ -197,6 +206,17 @@ struct DictationSettingsTab: View {
         }
         .animation(DS.Motion.standard, value: settings.cleanupEnabled)
         .animation(DS.Motion.standard, value: settings.autoSendEnabled)
+        // D-06: grammar off→on can move the cleanup engine to Apple without the picker
+        // changing at all, so the toggle is observed beside it.
+        .onChange(of: settings.cleanupFixesGrammar) { _, _ in
+            Task { @MainActor in
+                await AppleModelWarmth.warmForSettings(
+                    cleanupEnabled: settings.cleanupEnabled,
+                    choice: settings.cleanupEngine,
+                    fixesGrammar: settings.cleanupFixesGrammar
+                )
+            }
+        }
         .sheet(isPresented: $isPickingAutoSendApp) {
             InstalledAppPickerSheet(alreadyListed: Set(settings.autoSendApps.keys)) { app in
                 settings.addAutoSendApp(bundleID: app.bundleID, name: app.displayName)

@@ -753,12 +753,19 @@ extension CleanupRouter {
         failures += salvageFailures()
         failures += traceFailures()
         failures += await prewarmTraceFailures()
+        failures += await launchWarmupFailures()
 
         // Opt-in, and off by default for a reason: this suite is the fast one every other
         // build runs, and the probe makes a dozen live model calls. `--probe-layout`
         // alongside the flag turns it on.
         if StructurePlanProbe.isRequested {
             await StructurePlanProbe.run()
+        }
+
+        // D-06, same shape: `--probe-cleanup-warmth <none|prewarm|respond>` beside the
+        // flag times one real cleanup after that warm-up mode and asserts nothing.
+        if CleanupWarmthProbe.isRequested {
+            await CleanupWarmthProbe.run()
         }
 
         if failures.isEmpty {
@@ -1699,6 +1706,86 @@ extension CleanupRouter {
                     "  prewarm: accepted verdict was \(snapshot.guardVerdict ?? "nil")"
                 )
             }
+        }
+        return failures
+    }
+
+    /// D-06: the launch warm-up decision is one table, and the warmth window flips with
+    /// the clock. Pure policy on injected values, so no model, no Settings, no permission.
+    @MainActor private static func launchWarmupFailures() -> [String] {
+        var failures: [String] = []
+        struct Row {
+            let id: String
+            let cleanupEnabled: Bool
+            let choice: CleanupEngineChoice
+            let fixesGrammar: Bool
+            let s1Downloaded: Bool
+            let appleAvailable: Bool
+            let expected: Set<LaunchWarmup.Action>
+        }
+        let rows: [Row] = [
+            // The decision table: what `applicationDidFinishLaunching` must do exactly.
+            Row(id: "cleanup off", cleanupEnabled: false, choice: .s1Mini, fixesGrammar: true,
+                s1Downloaded: true, appleAvailable: true, expected: []),
+            Row(id: "s1, grammar off", cleanupEnabled: true, choice: .s1Mini, fixesGrammar: false,
+                s1Downloaded: true, appleAvailable: true, expected: [.loadS1Mini]),
+            Row(id: "s1, grammar on", cleanupEnabled: true, choice: .s1Mini, fixesGrammar: true,
+                s1Downloaded: true, appleAvailable: true, expected: [.warmApple]),
+            Row(id: "apple choice", cleanupEnabled: true, choice: .apple, fixesGrammar: true,
+                s1Downloaded: true, appleAvailable: true, expected: [.warmApple]),
+            // The two absence variants.
+            Row(id: "s1 not downloaded", cleanupEnabled: true, choice: .s1Mini, fixesGrammar: false,
+                s1Downloaded: false, appleAvailable: true, expected: []),
+            Row(id: "apple unavailable", cleanupEnabled: true, choice: .apple, fixesGrammar: true,
+                s1Downloaded: true, appleAvailable: false, expected: []),
+        ]
+        func describe(_ set: Set<LaunchWarmup.Action>) -> String {
+            guard !set.isEmpty else { return "[]" }
+            return "[" + set.map { "\($0)" }.sorted().joined(separator: ", ") + "]"
+        }
+        for row in rows {
+            let gave = LaunchWarmup.plan(
+                cleanupEnabled: row.cleanupEnabled,
+                choice: row.choice,
+                fixesGrammar: row.fixesGrammar,
+                s1Downloaded: row.s1Downloaded,
+                appleAvailable: row.appleAvailable
+            )
+            if gave != row.expected {
+                failures.append(
+                    "launch warm-up: \(row.id) gave \(describe(gave)), expected \(describe(row.expected))"
+                )
+            }
+        }
+
+        // The warmth window flips on injected dates: an activity inside `warmWindow`
+        // reads .warmProcess, the same moment past it reads .cold.
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        AppleModelWarmth.noteActivity(now)
+        let window = Double(AppleModelWarmth.warmWindow.components.seconds)
+            + Double(AppleModelWarmth.warmWindow.components.attoseconds) / 1e18
+        if AppleModelWarmth.current(now: now) != .warmProcess {
+            failures.append(
+                "launch warm-up: an activity at now read \(AppleModelWarmth.current(now: now).rawValue), expected warmProcess"
+            )
+        }
+        if AppleModelWarmth.current(now: now.addingTimeInterval(window - 1)) != .warmProcess {
+            failures.append(
+                "launch warm-up: \(Int(window - 1))s after the last activity read "
+                    + "\(AppleModelWarmth.current(now: now.addingTimeInterval(window - 1)).rawValue), expected warmProcess"
+            )
+        }
+        if AppleModelWarmth.current(now: now.addingTimeInterval(window + 1)) != .cold {
+            failures.append(
+                "launch warm-up: \(Int(window + 1))s after the last activity read "
+                    + "\(AppleModelWarmth.current(now: now.addingTimeInterval(window + 1)).rawValue), expected cold"
+            )
+        }
+        // Leave the suite with a stale, cold warmth, so nothing later in this process is
+        // told the model is warm when nothing warmed it.
+        AppleModelWarmth.noteActivity(now.addingTimeInterval(-3_600))
+        if AppleModelWarmth.current() != .cold {
+            failures.append("launch warm-up: a stale activity still read warmProcess")
         }
         return failures
     }

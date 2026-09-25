@@ -260,6 +260,10 @@ struct FoundationModelFormatter: TextFormatter {
             trace?.noteSessionPrewarmed(prewarmed)
             let answer = try await modelCall.respond(user)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
+            // D-06: an answer that came back is Apple-model activity, however the guard
+            // later judges it — the warmth window records that the model ran, never
+            // `MainActor.assumeIsolated`.
+            await MainActor.run { AppleModelWarmth.noteActivity() }
             return (answer, prewarmed)
         }
         // A session staged while the key was still down, if there is one for exactly these
@@ -278,6 +282,9 @@ struct FoundationModelFormatter: TextFormatter {
                 maximumResponseTokens: 1_200
             )
         )
+        // D-06: a completed answer is Apple-model activity (accepted, salvaged and
+        // guard-rejected alike — the model ran either way).
+        await MainActor.run { AppleModelWarmth.noteActivity() }
 
         return (
             response.content.trimmingCharacters(in: .whitespacesAndNewlines),

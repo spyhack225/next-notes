@@ -199,6 +199,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Menu-bar icon. Held strongly: AppKit will not keep it alive for us, and SwiftUI's
     /// `MenuBarExtra` is unsafe on macOS 26 when MenuBarAgent hosts no server elements.
     private var statusItem: NSStatusItem?
+    /// D-06: the wake observer that re-warms Apple's cleanup model after sleep. Held so
+    /// the token stays addressable, the way `CalendarService` holds its observers.
+    private var warmObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.current = self
@@ -307,10 +310,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if willUseParakeet, ParakeetModels.isDownloaded {
             LocalModelStore.shared.prepareParakeet()
         }
-        if Settings.shared.cleanupEnabled,
-           Settings.shared.cleanupEngine == .s1Mini,
-           S1MiniModels.isDownloaded {
+        // D-06: one launch decision, one place. S1-mini loads only when it is the engine
+        // a real hold would reach (grammar off — with it on, `CleanupRouter` routes every
+        // cleanup to Apple, and 484 MB of residency behind that routing bought nothing);
+        // Apple's model warms a few seconds after launch and again after every wake, at
+        // `.utility`, never while a hold or a voice turn is running.
+        AppleModelWarmth.dictation = controller
+        let warmup = LaunchWarmup.plan(
+            cleanupEnabled: Settings.shared.cleanupEnabled,
+            choice: Settings.shared.cleanupEngine,
+            fixesGrammar: Settings.shared.cleanupFixesGrammar,
+            s1Downloaded: S1MiniModels.isDownloaded,
+            appleAvailable: FoundationModelFormatter.isAvailable
+        )
+        if warmup.contains(.loadS1Mini) {
             LocalModelStore.shared.prepareS1Mini()
+        }
+        if warmup.contains(.warmApple) {
+            warmObserver = NSWorkspace.shared.notificationCenter.addObserver(
+                forName: NSWorkspace.didWakeNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                Task { @MainActor in await AppleModelWarmth.warmProcess() }
+            }
+            // After the Parakeet prepare above, and at `.utility`: the warm-up must not
+            // race the first hold, so it also skips itself from inside `warmProcess`.
+            Task(priority: .utility) {
+                try? await Task.sleep(for: .seconds(5))
+                await AppleModelWarmth.warmProcess()
+            }
         }
 
         // Setup tells the user their assistant is being fetched and that an unfinished
