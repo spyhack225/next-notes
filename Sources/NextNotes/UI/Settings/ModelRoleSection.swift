@@ -21,6 +21,9 @@ struct ModelRoleSection: View {
             ForEach(ModelRole.allCases) { role in
                 ModelRoleRow(role: role, roles: roles, options: options(for: role))
             }
+            if roles.availability.codexComputerUse == .outOfQuota {
+                codexAllowanceRow
+            }
             HStack(spacing: DS.Space.s) {
                 Button(runtimes.isChecking ? "Checking…" : "Check again") {
                     Task { await roles.refreshAvailability() }
@@ -245,6 +248,33 @@ struct ModelRoleSection: View {
             )
         )
         return groups
+    }
+
+    /// P1-12: when Codex's own allowance is the reason nothing is being handed over, the
+    /// row above says so — and this says *when it is back* and offers the one press that
+    /// makes the person unnecessary. Without the button a misread reset time would keep
+    /// Codex out of a job they pointed it at, and they would have no way to put it back.
+    @ViewBuilder
+    private var codexAllowanceRow: some View {
+        let until = CodexQuotaStore.shared.exhaustedUntil
+        VStack(alignment: .leading, spacing: DS.Space.xs) {
+            Text(CodexQuotaStore.settingsSentence(until: until))
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: DS.Space.s) {
+                Button("Try Codex again") {
+                    Task {
+                        CodexQuotaStore.shared.clear()
+                        await roles.refreshAvailability()
+                    }
+                }
+                Text("Next Notes will check the moment you ask.")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+            }
+        }
+        .padding(.vertical, DS.Space.xxs)
     }
 
     private var builtInDetail: String {

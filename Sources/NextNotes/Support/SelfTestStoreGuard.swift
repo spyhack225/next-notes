@@ -37,6 +37,20 @@ enum SelfTestStoreGuard {
         "portrait-insights.json",
     ]
 
+    /// The preference namespaces a self-test must leave alone.
+    ///
+    /// One list rather than the condition inline, because P1-12 added a fourth store family:
+    /// `CodexQuotaStore` remembers when Codex's allowance runs out under `codex.`, and it is
+    /// read by `CodexComputerUse.probe` — so a harness run that reached the owner's own
+    /// window would both fail the isolation check and change the answer the model-role test
+    /// gets. A prefix that is not on this list is a store nothing is watching.
+    static let watchedDefaultPrefixes: [String] = [
+        "modelRoles.",
+        "modelLibrary.",
+        "agent",
+        "codex.",
+    ]
+
     /// The owner's real stores, right now.
     static func take() -> StoreSnapshot {
         var snapshot = StoreSnapshot()
@@ -47,9 +61,7 @@ enum SelfTestStoreGuard {
         snapshot.files["Models/library.json"] =
             describe(ModelSpec.directory.appendingPathComponent("library.json"))
         for (key, value) in UserDefaults.standard.dictionaryRepresentation()
-        where key.hasPrefix("modelRoles.")
-            || key.hasPrefix("modelLibrary.")
-            || key.hasPrefix("agent") {
+        where Self.watchedDefaultPrefixes.contains(where: { key.hasPrefix($0) }) {
             snapshot.defaults[key] = canonical(value)
         }
         return snapshot
@@ -147,16 +159,33 @@ enum SelfTestHarnessDefaults {
         return defaults
     }()
 
+    /// The same suite, reachable without the main actor.
+    ///
+    /// `CodexQuotaStore` has to answer a question from `CodexComputerUse.probe`, which runs
+    /// off the main actor, and it must answer it about *the same store the turn reads* — a
+    /// second suite or a different answer would be a dot that disagrees with the hand-off,
+    /// which is the one thing these two are not allowed to do. `UserDefaults` is documented
+    /// thread-safe and is not `Sendable`, hence `nonisolated(unsafe)` on the single global
+    /// that names it: it is built once, and every write to it happens on the main actor.
+    nonisolated(unsafe) static let suite: UserDefaults = {
+        guard let defaults = UserDefaults(suiteName: suiteName) else { return .standard }
+        if SelfTest.allowsSavedModelSelection {
+            copyOwnerSelection(into: defaults)
+        }
+        _ = atexit(removeHarnessDefaultsOnExit)
+        return defaults
+    }()
+
     /// The keys the two `.shared` stores read. `modelLibrary.openFailures` is deliberately
     /// absent: that table belongs to `ModelOpenFailureStore`, which gets a fresh picture
     /// every run, and inheriting the owner's failures could hide the very model the
     /// read-only flags were launched to exercise.
-    private static let copiedLibraryKeys: Set<String> = [
+    private nonisolated static let copiedLibraryKeys: Set<String> = [
         "modelLibrary.activeAgentModelID",
         "modelLibrary.lastUsedAt",
     ]
 
-    private static func copyOwnerSelection(into defaults: UserDefaults) {
+    nonisolated private static func copyOwnerSelection(into defaults: UserDefaults) {
         for (key, value) in UserDefaults.standard.dictionaryRepresentation()
         where key.hasPrefix("modelRoles.") || copiedLibraryKeys.contains(key) {
             defaults.set(value, forKey: key)

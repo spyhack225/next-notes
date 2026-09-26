@@ -4,7 +4,8 @@ import Foundation
 ///
 /// Proves a harness run leaves the owner's real stores untouched: the files in
 /// `SelfTestStoreGuard.fileNames` plus `Models/library.json`, and every `UserDefaults`
-/// key under `modelRoles.`, `modelLibrary.` and `agent`. Two legs:
+/// key under `modelRoles.`, `modelLibrary.`, `agent` and `codex.` (P1-12's
+/// `CodexQuotaStore`). Two legs:
 ///
 /// 1. **The seeded write.** A real `ModelRoleStore.shared.setChoice` call must not
 ///    reach the owner's domain. It is red until `.shared` reads and writes a

@@ -71,6 +71,14 @@ enum CodexComputerUse {
     /// Every answer but `.ready` carries one sentence naming what is missing and what to do,
     /// because a grey dot with no sentence is the thing this screen exists to prevent.
     static func probe() -> CodexComputerUseReadiness {
+        // P1-12: an allowance that runs out is not something a person broke and not
+        // something a launch can fix, so it is asked about before the disk is — a Mac with
+        // everything installed still answers "not now" while the window is open. Read
+        // through the same suite the turn reads, so the dot and the hand-off cannot
+        // disagree about it.
+        guard CodexQuotaStore.exhaustedUntil(
+            defaults: CodexQuotaStore.sharedSuite, now: Date()) == nil
+        else { return .outOfQuota }
         guard resolvedCLI() != nil else { return .codexMissing }
         guard FileManager.default.isExecutableFile(atPath: helperPath) else {
             return .helperMissing
@@ -152,6 +160,10 @@ enum CodexComputerUse {
     /// - Parameter taskID: ties progress to the same activity row the ACP route uses, so
     ///   work done by Codex looks like every other piece of background work.
     /// - Returns: what Codex said it did.
+    ///
+    /// Not main-actor, and deliberately so: `probe()` reads the CLI's files, and the
+    /// process below runs off the main actor. The test seam is one level up, in `route`,
+    /// which is where the decision to hand anything over is actually made.
     static func run(objective: String, taskID: String) async throws -> String {
         let readiness = probe()
         guard readiness.isReady, let cli = resolvedCLI() else {
@@ -166,12 +178,23 @@ enum CodexComputerUse {
         return output
     }
 
+    /// What a hand-off returns instead of running Codex. Nil in production, and read only
+    /// under `SelfTest.isRunning`, so a stray assignment cannot change a real turn.
+    @MainActor
+    static var runOverrideForTesting: ((String) async throws -> String)?
+
+    /// How many hand-offs a turn actually started this process. Zero in production except
+    /// under the harness, where it is the proof that a remembered quota ran no Codex at all.
+    @MainActor
+    static var handOffsForTesting = 0
+
     /// What a turn should do with this request.
     enum Outcome: Sendable, Equatable {
         /// Codex handled it. This is the answer.
         case done(String)
-        /// Codex could not, for the reason in this one sentence. The turn carries on with
-        /// the built-in model and says the sentence first.
+        /// Codex could not, for the reason in this one sentence. The turn carries on here —
+        /// with the model the person chose for the Agent, not with whichever file the
+        /// library points at — and says the sentence first.
         case fellBack(String)
     }
 
@@ -182,14 +205,39 @@ enum CodexComputerUse {
     /// resolution the Settings dot draws, so a green dot and a hand-off cannot disagree.
     @MainActor
     static func route(_ prompt: String) async -> Outcome? {
-        guard ModelRoleStore.role(forUtterance: prompt) == .computerUse,
-              ModelRoleStore.shared.computerUseHarness == .codex else { return nil }
+        guard ModelRoleStore.role(forUtterance: prompt) == .computerUse else { return nil }
+        // P1-12: is this job pointed at Codex? The **stored** answer, and deliberately not
+        // `computerUseHarness`, which answers the different question of whether a hand-off
+        // would run. A remembered quota turns that one red on its own — the Settings dot
+        // goes grey at the next refresh — and asking it first is what hid the explanation:
+        // from then on this guard returned nil, the turn answered here as if nothing had
+        // ever been wrong, and a person who had pointed a job at Codex was told nothing.
+        // What they chose cannot be changed by what Codex did last time.
+        guard ModelRoleStore.shared.computerUseChosenHarness == .codex else { return nil }
+        // Codex runs out of allowance on OpenAI's schedule, and the sentence that says so is
+        // the only warning anyone gets. While the window it named is open there is no
+        // hand-off, no approval card and no process — and the person is told once, because
+        // they picked Codex and deserve to know why this one was done here.
+        if CodexQuotaStore.shared.exhaustedUntil != nil {
+            return CodexQuotaStore.shared.announcementIfNew().map { .fellBack($0) }
+        }
+        guard ModelRoleStore.shared.computerUseHarness == .codex else { return nil }
         let taskID = "codex-computer-" + UUID().uuidString.prefix(8)
         let began = ContinuousClock.now
         let outcome: Outcome
         var errorClass: UsageErrorClass?
         do {
-            outcome = .done(try await run(objective: prompt, taskID: String(taskID)))
+            // P1-12's seam, at the decision rather than inside `run`: the count answers "did
+            // this turn reach a hand-off at all", which is answerable on a Mac with no Codex
+            // installed, and the override stands in for the launch so a test neither needs
+            // nor runs the real CLI. Zero and nil in production.
+            if SelfTest.isRunning { handOffsForTesting += 1 }
+            let standIn = SelfTest.isRunning ? runOverrideForTesting : nil
+            if let standIn {
+                outcome = .done(try await standIn(prompt))
+            } else {
+                outcome = .done(try await run(objective: prompt, taskID: String(taskID)))
+            }
         } catch HandoffError.declined {
             // A no is an answer, not a reason to do it a different way.
             outcome = .done("I didn’t hand that to Codex.")
@@ -198,16 +246,38 @@ enum CodexComputerUse {
             outcome = .done("Stopped.")
             errorClass = .cancelled
         } catch let error as HandoffError {
-            outcome = .fellBack(
-                (error.errorDescription ?? "Codex couldn’t do that.") + " I’ll do it myself."
-            )
             errorClass = UsageErrorClass.classify(error)
+            outcome = failureOutcome(error)
         } catch {
-            outcome = .fellBack("Codex couldn’t do that, so I’ll do it myself.")
+            outcome = .fellBack(CodexQuotaStore.otherFailureSentence)
             errorClass = UsageErrorClass.classify(error)
         }
         recordHandoff(began: began, errorClass: errorClass)
         return outcome
+    }
+
+    /// What a turn says when the hand-off failed.
+    ///
+    /// Three answers, and the difference between them is the whole task. A quota failure
+    /// remembers its window and is explained in the plain sentence; a failure that is not a
+    /// quota gets the same plain sentence every time, because a timeout or a crash says
+    /// nothing about the next attempt. Neither ever repeats Codex's own output: it is
+    /// Codex talking to its operator, and it goes to the audit log instead, where a person
+    /// can find it if they want it and is never shown it by accident.
+    @MainActor
+    private static func failureOutcome(_ error: HandoffError) -> Outcome {
+        guard case .failed(_, let output) = error else {
+            return .fellBack(CodexQuotaStore.otherFailureSentence)
+        }
+        CodexQuotaStore.auditHandOffFailure(output: output)
+        guard CodexQuotaStore.shared.recordFailure(output: output) else {
+            return .fellBack(CodexQuotaStore.otherFailureSentence)
+        }
+        // A failure that just opened a window has not been announced, so this is the one
+        // sentence the person hears about it.
+        return .fellBack(
+            CodexQuotaStore.shared.announcementIfNew()
+                ?? CodexQuotaStore.otherFailureSentence)
     }
 
     /// One `agent.handoff` usage row per hand-off (P0-20a): provider `codex`, a wall clock
@@ -493,11 +563,19 @@ enum CodexComputerUseReadiness: String, Sendable, Equatable, CaseIterable, Codab
     case helperMissing
     case notSignedIn
     case switchedOff
+    /// P1-12: everything is installed and signed in, and Codex has used up its allowance.
+    /// Nothing is missing and nothing is wrong, so the note explains rather than warns —
+    /// and the window it names is the one `CodexQuotaStore` is holding.
+    case outOfQuota
 
     var isReady: Bool { self == .ready }
 
     /// One sentence: what is missing, and the smallest thing that fixes it. Nil when ready,
     /// because a row that works has nothing to explain.
+    ///
+    /// The date is not in here: this is a value read by the resolution itself, which is
+    /// pure over one role, and a `Date` would put a clock in it. The row that can afford
+    /// to name the moment reads it from `CodexQuotaStore` and shows it underneath.
     var note: String? {
         switch self {
         case .ready:
@@ -512,6 +590,8 @@ enum CodexComputerUseReadiness: String, Sendable, Equatable, CaseIterable, Codab
             return "Codex is installed but not signed in — open Codex once."
         case .switchedOff:
             return "Controlling your Mac is switched off inside Codex — turn it back on there."
+        case .outOfQuota:
+            return "Codex has used up its allowance. Next Notes does these itself until it resets."
         }
     }
 
@@ -523,6 +603,7 @@ enum CodexComputerUseReadiness: String, Sendable, Equatable, CaseIterable, Codab
         case .helperMissing: "Not set up yet"
         case .notSignedIn: "Not signed in"
         case .switchedOff: "Switched off in Codex"
+        case .outOfQuota: "Out of allowance"
         }
     }
 }

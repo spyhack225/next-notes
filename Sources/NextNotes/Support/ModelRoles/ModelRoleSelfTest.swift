@@ -3,7 +3,7 @@ import Network
 
 /// `--selftest-model-roles`.
 ///
-/// Six things are checked, and each of them can fail:
+/// Seven things are checked, and each of them can fail:
 ///
 /// 1. **Fallback lands on the built-in model.** Every kind of choice is resolved against a
 ///    Mac that has nothing installed, and every one of them must come back as `.builtIn`
@@ -24,6 +24,11 @@ import Network
 /// 6. **(P0-03) A role resolves only to a model that can answer**, a stored role pointed at
 ///    a draft head is repaired once at launch with one notice, and the agent publishes the
 ///    model that actually answered the last turn.
+/// 7. **(P1-12) Codex's allowance is remembered, and the fallback follows the Agent.** The
+///    date is parsed out of the sentence Codex actually wrote, the window expires on its own
+///    and is announced once with no link and no error code, a turn that stays here answers
+///    with the model the person chose for the Agent, and a remembered window starts no
+///    hand-off at all — in both states the readiness snapshot can be in.
 @MainActor
 enum ModelRoleSelfTest {
     static func run() async -> [String] {
@@ -44,6 +49,7 @@ enum ModelRoleSelfTest {
         failures += await discovery()
         failures += multiStepRoutesToCloud()
         failures += slowWarningPresent()
+        failures += await codexQuotaWindow()
         return failures
     }
 
@@ -211,6 +217,380 @@ enum ModelRoleSelfTest {
             failures.append("the online notice promises “\(banned)”: \(notice)")
         }
         return failures
+    }
+
+    // MARK: - P1-12 Codex's allowance, and the fallback that follows the Agent
+
+    /// The exact sentence Codex wrote on 2026-09-23 at 22:06, read out of this Mac's own
+    /// `agent-audit.jsonl`. Copied whole — apostrophe, link, ordinal and all — because a
+    /// parser written against a paraphrase proves nothing about the parser.
+    private static let capturedQuotaOutput =
+        "ERROR: You\u{2019}ve hit your usage limit. "
+        + "Visit https://chatgpt.com/codex/settings/usage to purchase more credits "
+        + "or try again at Sep 26th, 2026 3:43 PM."
+
+    /// The same failure with a window that cannot pass during a test run, for the cases that
+    /// need the shared store rather than an isolated one with an injected clock.
+    private static let farFutureQuotaOutput =
+        "ERROR: You\u{2019}ve hit your usage limit. "
+        + "Visit https://chatgpt.com/codex/settings/usage to purchase more credits "
+        + "or try again at Dec 31st, 2099 11:59 PM."
+
+    /// Four things, each of which was wrong on 2026-09-23:
+    ///
+    /// **a.** the date is read out of the sentence Codex actually wrote, a usage-limit
+    /// sentence with no date in it is still a quota failure, and an ordinary failure is not;
+    /// **b.** the window is remembered, expires on its own, and is announced once — with a
+    /// sentence carrying no link and no error code;
+    /// **c.** a turn that stays here answers with the model the person chose for the Agent
+    /// rather than with whichever file the library points at;
+    /// **d.** a remembered quota runs no hand-off at all, says so once, and is silent for
+    /// the rest of the window.
+    ///
+    /// Four functions rather than one, and none of them can return early past another: the
+    /// first version had (a) bail out into a helper that ran only (c) and (d), so a run
+    /// where the parser was broken never reached (b) and could not show it was red either.
+    private static func codexQuotaWindow() async -> [String] {
+        var failures: [String] = []
+        failures += quotaParseTable()
+        failures += quotaStoreWindow()
+        failures += await codexFallbackFollowsTheAgent()
+        failures += await rememberedQuotaRunsNoHandOff()
+        return failures
+    }
+
+    /// The two fixed moments every case shares: 3:00 on the morning Codex's sentence was
+    /// captured, and the 3:43 PM it named. Read once so (a) and (b) cannot disagree about
+    /// them, and so a failure names a real moment rather than "nil".
+    private static func quotaFixtureClock() -> (morning: Date, reset: Date)? {
+        let calendar = Calendar.current
+        guard let morning = calendar.date(
+            from: DateComponents(year: 2026, month: 9, day: 26, hour: 3)),
+            let reset = calendar.date(
+                from: DateComponents(year: 2026, month: 9, day: 26, hour: 15, minute: 43))
+        else { return nil }
+        return (morning, reset)
+    }
+
+    /// **(a)** The parse table, against the captured text and the shapes around it. Pure, so
+    /// it needs nothing installed and nothing running.
+    private static func quotaParseTable() -> [String] {
+        var failures: [String] = []
+        let calendar = Calendar.current
+        guard let clock = quotaFixtureClock() else {
+            return [wrong("a", "the fixed clock for the quota fixture could not be built")]
+        }
+        let (morning, reset) = clock
+
+        let captured = CodexQuotaStore.parseUsageLimit(
+            capturedQuotaOutput, now: morning, calendar: calendar)
+        if let capturedDate = captured ?? nil, capturedDate != reset {
+            failures.append(wrong(
+                "a", "the reset time was read as \(describe(capturedDate)) rather than "
+                    + "\(describe(reset))"))
+        } else if captured == nil {
+            failures.append(wrong(
+                "a", "the sentence Codex actually wrote was not read as a usage limit"))
+        }
+        switch CodexQuotaStore.parseUsageLimit(
+            "You\u{2019}ve hit your usage limit.", now: morning, calendar: calendar)
+        {
+        case .some(.some(let date)):
+            failures.append(wrong("a", "a usage limit with no date in it invented one: \(date)"))
+        case .some(nil):
+            break
+        case nil:
+            failures.append(wrong("a", "a usage limit with no date in it was not recognised"))
+        }
+        if CodexQuotaStore.parseUsageLimit(
+            "Codex couldn\u{2019}t find Safari", now: morning, calendar: calendar) != nil {
+            failures.append(wrong("a", "an ordinary failure was read as a usage limit"))
+        }
+        // A different way of saying it, because the CLI's wording is not a contract.
+        if CodexQuotaStore.parseUsageLimit(
+            "You have hit your limit and resets at Sep 26th, 2026 3:43 PM.",
+            now: morning, calendar: calendar
+        ) ?? nil != reset {
+            failures.append(wrong("a", "“hit your limit … resets at” was not read as a quota window"))
+        }
+        return failures
+    }
+
+    /// **(b)** The store itself, on an isolated suite and a clock the test moves. Three
+    /// things in one place: the window is remembered as the moment Codex named, it closes
+    /// by itself, and the sentence is said once per window with no link and no error code in
+    /// it. A failure that is not a quota must leave nothing behind.
+    private static func quotaStoreWindow() -> [String] {
+        var failures: [String] = []
+        guard let clock = quotaFixtureClock() else {
+            return [wrong("b", "the fixed clock for the quota fixture could not be built")]
+        }
+        let (morning, reset) = clock
+        guard let isolated = isolatedDefaults(tag: "codex-quota") else {
+            return [wrong("b", "the isolated defaults suite could not be created")]
+        }
+        defer { isolated.defaults.removePersistentDomain(forName: isolated.domain) }
+        let now = MovableClock(morning)
+        let store = CodexQuotaStore(defaults: isolated.defaults, now: { now.now })
+
+        if !store.recordFailure(output: capturedQuotaOutput) {
+            failures.append(wrong("b", "the captured quota sentence was not recognised"))
+        }
+        if let remembered = store.exhaustedUntil {
+            if remembered != reset {
+                failures.append(wrong(
+                    "b", "the window was remembered as \(describe(remembered)) rather than "
+                        + "\(describe(reset))"))
+            }
+        } else {
+            failures.append(wrong("b", "a quota failure left no remembered window"))
+        }
+        now.now = reset.addingTimeInterval(1)
+        if store.exhaustedUntil != nil {
+            failures.append(wrong("b", "the window was still open after the moment it named"))
+        }
+        if store.announcementIfNew() != nil {
+            failures.append(wrong("b", "an expired window still announced itself"))
+        }
+
+        now.now = morning
+        guard let first = store.announcementIfNew() else {
+            return failures + [wrong("b", "the first request in a window said nothing")]
+        }
+        if store.announcementIfNew() != nil {
+            failures.append(wrong("b", "the same window announced itself twice"))
+        }
+        if first.contains("http") || first.contains("ERROR") {
+            failures.append(wrong("b", "the sentence carries Codex's own output: \(first)"))
+        }
+        if !first.contains(CodexQuotaStore.resetPhrase(reset)) {
+            failures.append(wrong("b", "the sentence does not say when Codex is back: \(first)"))
+        }
+        // A second, later window is a new fact and gets its own sentence.
+        now.now = reset
+        if !store.recordFailure(output: farFutureQuotaOutput) {
+            failures.append(wrong("b", "a second quota failure was not recognised"))
+        }
+        guard let second = store.announcementIfNew() else {
+            return failures + [wrong("b", "a new window did not announce itself")]
+        }
+        if second == first {
+            failures.append(wrong("b", "a new window repeated the previous window's sentence"))
+        }
+        // Only "Try Codex again" and a pass window clear the memory.
+        store.clear()
+        if store.exhaustedUntil != nil {
+            failures.append(wrong("b", "clearing the store left the window open"))
+        }
+        let quiet = CodexQuotaStore(defaults: isolated.defaults, now: { now.now })
+        if quiet.recordFailure(output: "ERROR: the model could not be loaded.") {
+            failures.append(wrong("b", "a failure that was not a quota was remembered as one"))
+        }
+        if quiet.exhaustedUntil != nil {
+            failures.append(wrong("b", "a non-quota failure left a window behind"))
+        }
+        return failures
+    }
+
+    /// **(c)** A role pointed at an agent app is not a model, so a turn that stays here
+    /// answers with the one the person chose for the Agent.
+    ///
+    /// The Agent role is pointed at a **loopback server this test starts**, and that is the
+    /// whole point of the fixture. The obvious fixture — Apple's model against the built-in
+    /// file — cannot tell the two apart on this Mac: under the harness the built-in model is
+    /// not runnable, `LLMProviders.resolve(preferring: .appLLM)` walks on to Apple's, and both
+    /// branches answer with the same provider. A test that passes for that reason is a green
+    /// answer to a question nobody asked. A local server is a third thing the walk cannot
+    /// reach, so the assertion is about the branch rather than about this machine's models.
+    private static func codexFallbackFollowsTheAgent() async -> [String] {
+        var failures: [String] = []
+        guard let isolated = isolatedDefaults(tag: "codex-fallback") else {
+            return [wrong("c", "the isolated defaults suite could not be created")]
+        }
+        defer { isolated.defaults.removePersistentDomain(forName: isolated.domain) }
+        guard let server = FixtureServer(), let port = await server.start(),
+              let base = URL(string: "http://127.0.0.1:\(port)/v1")
+        else {
+            return [wrong("c", "the fixture server for the Agent role could not be started")]
+        }
+        defer { Task { await server.stop() } }
+
+        var availability = ModelRoleAvailability()
+        availability.builtInModelReady = true
+        availability.appleFoundationReady = true
+        availability.installedApps = [.claude, .codex]
+        // Codex is installed and signed in but cannot drive the screen, so the row falls
+        // back — which is the state a person meets every time the allowance runs out.
+        availability.codexComputerUse = .helperMissing
+        let address = base.absoluteString
+        let store = ModelRoleStore(
+            defaults: isolated.defaults,
+            catalog: LocalRuntimeCatalog(customAddresses: [address]),
+            availability: availability,
+            failures: ModelOpenFailureStore(defaults: isolated.defaults))
+        store.setChoiceForTesting(.app(.codex), for: .computerUse)
+        store.setChoiceForTesting(
+            .localServer(endpointID: address, modelID: "qwen2.5-7b-instruct"), for: .agent)
+
+        let computerUse = await store.provider(for: .computerUse)
+        let agent = await store.provider(for: .agent)
+        // Always printed, so a run says which two models it actually compared — a green run
+        // on a Mac where the two coincide must not read as a leg that was checked.
+        SelfTest.diagnostic(
+            "MODEL_ROLES_CODEX_FALLBACK: agent=\(agent?.id.rawValue ?? "none") "
+                + "computerUse=\(computerUse?.id.rawValue ?? "none")")
+        if agent?.id != .localServer {
+            failures.append(wrong(
+                "c", "the Agent role answered the fixture with \(describe(agent?.id)), so this "
+                    + "case cannot tell the two branches apart"))
+        }
+        if computerUse?.id != agent?.id {
+            failures.append(wrong(
+                "c", "a turn that stayed here answered with \(describe(computerUse?.id)) "
+                    + "while the Agent role answers with \(describe(agent?.id))"))
+        }
+        // The point of the change, stated so a Mac where the two happen to agree still
+        // fails a resolver that went back to the built-in model: if the Agent role does not
+        // answer with the app's own file, neither may the fallback.
+        if let agentID = agent?.id, agentID != .appLLM, computerUse?.id == .appLLM {
+            failures.append(wrong(
+                "c", "the fallback used the app's own model while the Agent role is on "
+                    + "\(agentID.rawValue)"))
+        }
+        // The Assistant's own choice is untouched by any of this.
+        if await store.provider(for: .agent)?.id != agent?.id {
+            failures.append(wrong("c", "resolving the computer-use role changed the Agent role"))
+        }
+        return failures
+    }
+
+    /// **(d)** A remembered quota starts no hand-off, asks nobody, and says so once. The
+    /// counter is what makes "no hand-off" a measurement rather than an inference: it sits
+    /// above `CodexComputerUse.probe`, so it counts a decision on a Mac with no Codex at
+    /// all. `runOverrideForTesting` stands in for the launch, so the test neither needs nor
+    /// runs the real CLI.
+    ///
+    /// Twice, once for each state the store's readiness snapshot can be in, because the two
+    /// are different turns of a real session. The turn right after the failure still sees
+    /// the old `.ready`; the next launch, or opening Settings, refreshes the probe and sees
+    /// `.outOfQuota`. Both must announce the window and start nothing — a guard that asked
+    /// the live question first answered the first turn and went silent on every one after
+    /// it, which is the way this was shipped for one revision of this file.
+    private static func rememberedQuotaRunsNoHandOff() async -> [String] {
+        let roles = ModelRoleStore.shared
+        let storedChoices = roles.snapshotChoicesForTesting()
+        let storedAvailability = roles.availability
+        let previousOverride = CodexComputerUse.runOverrideForTesting
+        let previousCount = CodexComputerUse.handOffsForTesting
+        let store = CodexQuotaStore.shared
+        roles.setChoiceForTesting(.app(.codex), for: .computerUse)
+        CodexComputerUse.runOverrideForTesting = { objective in
+            throw CodexComputerUse.HandoffError.couldNotStart(objective)
+        }
+        defer {
+            roles.restoreChoicesForTesting(storedChoices)
+            roles.overrideAvailabilityForTesting(storedAvailability)
+            CodexComputerUse.runOverrideForTesting = previousOverride
+            CodexComputerUse.handOffsForTesting = previousCount
+            store.clear()
+        }
+        if roles.computerUseChosenHarness != .codex {
+            return [wrong("d", "the fixture did not point the computer-use role at Codex")]
+        }
+        var failures: [String] = []
+        for snapshot in [CodexComputerUseReadiness.ready, .outOfQuota] {
+            failures += await oneQuotaWindow(snapshot: snapshot)
+        }
+        // And the dot the Settings row draws has to agree with the turn: a window that is
+        // open makes the row grey rather than promising a hand-off that will not happen.
+        _ = store.recordFailure(output: farFutureQuotaOutput)
+        if CodexComputerUse.probe().isReady {
+            failures.append(wrong(
+                "d", "the probe still reported ready with Codex's allowance used up"))
+        }
+        store.clear()
+        if CodexComputerUse.probe() == .outOfQuota {
+            failures.append(wrong("d", "the probe still reported out of allowance after a reset"))
+        }
+        return failures
+    }
+
+    /// One window, one pair of turns, against one state of the readiness snapshot.
+    private static func oneQuotaWindow(
+        snapshot: CodexComputerUseReadiness
+    ) async -> [String] {
+        var failures: [String] = []
+        let roles = ModelRoleStore.shared
+        var availability = roles.availability
+        availability.codexComputerUse = snapshot
+        roles.overrideAvailabilityForTesting(availability)
+        let store = CodexQuotaStore.shared
+        store.clear()
+        CodexComputerUse.handOffsForTesting = 0
+
+        if !store.recordFailure(output: farFutureQuotaOutput) {
+            failures.append(wrong("d", "the shared store did not recognise a quota failure"))
+        }
+        guard let until = store.exhaustedUntil else {
+            return failures + [wrong("d", "the shared store kept no window to fall back from")]
+        }
+        let expected = CodexQuotaStore.turnSentence(until: until)
+        let where_ = "with the readiness snapshot at \(snapshot.rawValue)"
+
+        let first = await CodexComputerUse.route("open chrome")
+        if CodexComputerUse.handOffsForTesting != 0 {
+            failures.append(wrong(
+                "d", "a remembered quota still started \(CodexComputerUse.handOffsForTesting) "
+                    + "hand-off(s) \(where_)"))
+        }
+        if first != .fellBack(expected) {
+            failures.append(wrong("d", "the first turn said \(describe(first)) \(where_)"))
+        }
+        if let first, case .fellBack(let note) = first,
+           note.contains("http") || note.contains("ERROR") {
+            failures.append(wrong("d", "the turn carried Codex's own output \(where_): \(note)"))
+        }
+        // The rest of the window is silent, which is the other half of "once per window".
+        let second = await CodexComputerUse.route("open chrome")
+        if second != nil {
+            failures.append(wrong(
+                "d", "a later turn in the same window said \(describe(second)) \(where_)"))
+        }
+        if CodexComputerUse.handOffsForTesting != 0 {
+            failures.append(wrong(
+                "d", "a remembered quota still started \(CodexComputerUse.handOffsForTesting) "
+                    + "hand-off(s) across two turns \(where_)"))
+        }
+        store.clear()
+        return failures
+    }
+
+    /// The one marker a P1-12 case prints, so a failing run names which of the four it was.
+    private static func wrong(_ letter: String, _ reason: String) -> String {
+        let line = "MODEL_ROLES_WRONG: \(letter) — \(reason)"
+        SelfTest.diagnostic(line)
+        return "P1-12 case \(letter): \(reason)"
+    }
+
+    private static func describe(_ date: Date?) -> String {
+        guard let date else { return "nothing" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+
+    private static func describe(_ outcome: CodexComputerUse.Outcome?) -> String {
+        switch outcome {
+        case .none: "nothing at all"
+        case .some(.done(let reply)): "Codex’s own answer (“\(reply)”)"
+        case .some(.fellBack(let note)): "“\(note)”"
+        }
+    }
+
+    private static func describe(_ id: LLMProviderID?) -> String {
+        guard let id else { return "nothing" }
+        return id.rawValue
     }
 
     // MARK: - 0. The stored form survives a round trip
@@ -1195,4 +1575,12 @@ private struct StubAnsweringProvider: LLMProvider {
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         LLMCompletion(text: "<answer/>Answered by the stub.", generatedTokens: 5, duration: 0)
     }
+}
+
+/// A clock a test can move, so "until that moment" and "after it" are both reachable
+/// without a sleep. `@unchecked Sendable` because `CodexQuotaStore` takes its clock as a
+/// `@Sendable` closure; every access is on the test's own task.
+private final class MovableClock: @unchecked Sendable {
+    var now: Date
+    init(_ start: Date) { now = start }
 }

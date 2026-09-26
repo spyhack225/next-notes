@@ -577,8 +577,8 @@ final class ModelRoleStore {
     /// what it last knew, the call path proves it.
     ///
     /// An agent app never becomes an LLM provider — it is a separate process reached
-    /// through `AgentHarnessRouter` — so a role pointed at one answers with the built-in
-    /// model, and the harness route takes the app.
+    /// through `AgentHarnessRouter` — so a role pointed at one answers with the model the
+    /// person chose for the Agent, and the harness route takes the app.
     func provider(for role: ModelRole) async -> (any LLMProvider)? {
         let selected = choice(for: role)
         // The same rule the screen states. Without this line a job pointed at a model file
@@ -636,8 +636,16 @@ final class ModelRoleStore {
             if await provider.unavailableReason == nil { return provider }
             return await fallback(for: role, because: model, reason: .missing)
 
-        case .builtIn, .app:
+        case .builtIn:
             return await builtInProvider(for: role)
+        case .app:
+            // An agent app is not a model. When the turn stays here, it answers with the
+            // model the person chose for the Agent, not with whichever file the library
+            // happens to point at — and the Agent role's own resolution is read once, so
+            // there is still exactly one provider for this turn. Before this, a
+            // "Controlling your Mac" turn that stayed here answered with the app's GGUF
+            // while the person had their everyday assistant on Apple's model.
+            return role == .agent ? await builtInProvider(for: role) : await provider(for: .agent)
         }
     }
 
@@ -715,6 +723,17 @@ final class ModelRoleStore {
     /// this returns Codex, and if the row is grey this returns nil. One answer, so the screen
     /// and the turn cannot disagree.
     var computerUseHarness: AgentHarnessID? { resolution(for: .computerUse).effective.harness }
+
+    /// The app the person pointed "Controlling your Mac" at, whether or not it can run right
+    /// now.
+    ///
+    /// The stored answer rather than the resolved one, and the difference is P1-12's. A state
+    /// that has just changed — Codex used up its allowance — must not also erase the fact
+    /// that this job was theirs to give, or the job silently stops going where they pointed
+    /// it and nobody is told. `computerUseHarness` answers "would a hand-off happen"; this
+    /// answers "is this pointed at Codex at all", and only the second question is the right
+    /// one to decide whether an explanation is owed.
+    var computerUseChosenHarness: AgentHarnessID? { choice(for: .computerUse).harness }
 
     /// Whether the person actually chose something for this job, as opposed to never having
     /// opened the screen. The coding route needs the difference: "keep code on this Mac" is
