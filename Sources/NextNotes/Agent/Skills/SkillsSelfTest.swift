@@ -299,7 +299,8 @@ enum SkillsSelfTest {
         let registry = AgentToolRegistry.shared
         for id in SkillToolCatalogue.ids {
             check("\(id) is not registered", registry.tool(named: id) != nil)
-            check("\(id) is not in the realtime allowlist", RealtimeToolSelection.allowedIDs.contains(id))
+            check("\(id) is not in the planner roster",
+                  AgentCapabilityManifest.current().allowedIDs.contains(id))
         }
         check("skills.install is not a write the user has to approve",
               registry.tool(named: SkillToolCatalogue.installID)?.risk == .write)
@@ -414,7 +415,10 @@ enum SkillsSelfTest {
         // really carries the index and the tools, rather than only the assembler being able to.
         await SkillLibrary.shared.rescan()
         let planner = RealtimeAgent.plannerSystem(
-            tools: RealtimeAgent.plannableTools(), voice: false, request: "fill in a pdf form for me")
+            manifest: AgentCapabilityManifestBuilder.build(
+                AgentCapabilityInputs.live(reader: .voiceFrontend),
+                request: "fill in a pdf form for me"),
+            voice: false, request: "fill in a pdf form for me")
         if SkillLibrary.shared.active.isEmpty {
             print("SKILLS_PLANNER no skills on this Mac, so the planner carries no index")
         } else {

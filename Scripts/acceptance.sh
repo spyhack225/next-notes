@@ -159,6 +159,8 @@ INTEGRATION_ENTRIES=(
   # is the full 30-case run; `--quick` is the per-task gate and is run by hand.
   "selftest-toolloop-live|9300"
   "selftest-toolloop-live-grader|300"
+  # one per-turn source of truth for the tools a turn may use (P1-03)
+  "selftest-capability-manifest|300"
   # model architecture guard and private networking (P0-13, P0-19)
   "selftest-model-unopenable|300"
   "selftest-private-network|300"

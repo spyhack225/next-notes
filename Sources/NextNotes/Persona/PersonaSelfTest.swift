@@ -114,6 +114,10 @@ enum PersonaSelfTest {
         let sharedCard = shared.shortCard()
         check("shared store did not pick up the edit", sharedFull.contains("Juniper"))
 
+        // The planner prompt is fitted to a request now, so the fixture has a request: one
+        // that names several classes, which is the shape that carries the most sections.
+        let plannerManifest = AgentCapabilityManifestBuilder.build(
+            .live(reader: .agentRole), request: "what's on my calendar and any new email")
         let tools = RealtimeAgent.plannableTools()
         let productionPaths: [(name: String, path: AgentPromptPath, system: String)] = [
             ("voice answer (Apple)", .voiceAnswer, LocalVoiceSplitResponse.answerInstructions),
@@ -122,8 +126,8 @@ enum PersonaSelfTest {
             ("tool loop first pass, voice", .toolLoop, RealtimeAgent.voiceRoutingSystem(voice: true)),
             ("tool loop first pass, typed", .toolLoop, RealtimeAgent.voiceRoutingSystem(voice: false)),
             ("model turn, voice", .toolLoop, RealtimeAgent.modelTurnSystem(voice: true)),
-            ("tool planner, voice", .toolLoop, RealtimeAgent.plannerSystem(tools: tools, voice: true)),
-            ("tool planner, typed", .toolLoop, RealtimeAgent.plannerSystem(tools: tools, voice: false)),
+            ("tool planner, voice", .toolLoop, RealtimeAgent.plannerSystem(manifest: plannerManifest, voice: true)),
+            ("tool planner, typed", .toolLoop, RealtimeAgent.plannerSystem(manifest: plannerManifest, voice: false)),
             ("ask the local model", .localModel, RealtimeAgent.localModelSystem),
             ("meeting assistant", .meetingAssistant, AgentPrompts.system),
             ("knowledge ask", .knowledgeAsk, KnowledgeAsker.systemPrompt),
@@ -167,7 +171,7 @@ enum PersonaSelfTest {
             check("\(entry.name) hardcodes the Agent's name", !entry.system.contains("Next Notes"))
         }
         check("the planner's tool inventory is not after the rules",
-              isAfterOverride(RealtimeAgent.plannerSystem(tools: tools, voice: false), "Available tools:"))
+              isAfterOverride(RealtimeAgent.plannerSystem(manifest: plannerManifest, voice: false), "Available tools:"))
 
         // The trap: the coordinator's instructions must be what the split answer stage hears.
         check("VoiceConversationCoordinator.systemPrompt is not the production answer prompt",

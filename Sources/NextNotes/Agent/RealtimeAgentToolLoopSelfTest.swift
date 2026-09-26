@@ -5,6 +5,15 @@ import FoundationModels
 /// provider only controls planning; `computer.active_app` still goes through the real
 /// registry, permission policy, and executor.
 enum RealtimeAgentToolLoopSelfTest {
+    /// Every switch on, every grant present, a signed-in account. The grounding checks are
+    /// about the core set and the prompt's size, and neither should change because this Mac
+    /// has no folder added or no Accessibility grant — those halves are asserted separately,
+    /// against the live roster, with the sentence the person would be shown.
+    @MainActor
+    static func allEnabledFixture() -> AgentCapabilityInputs {
+        .allEnabled(tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
+    }
+
     /// What every prompt path must carry, and what must never be said while it carries it.
     ///
     /// No model runs here. These are the checks that would have caught the 2026-09-20
@@ -19,12 +28,17 @@ enum RealtimeAgentToolLoopSelfTest {
             if !condition { failures.append(name) }
         }
 
-        // A fixture rather than the live index: the assertion is about what the assembler
-        // does with the facts, not about what happens to be on this Mac today.
+        // A fixture rather than the live index and the live roster: the assertions are about
+        // what the assembler does with the facts, not about what happens to be on this Mac
+        // today. The surfaces are a manifest's, because the manifest is where the abilities
+        // are written in prose.
+        let fixtureManifest = AgentCapabilityManifestBuilder.build(
+            .allEnabled(tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend),
+            request: "what's on my calendar")
         let fixture = AgentGrounding(
             assistantName: "Will", userFullName: "Serge Kadjo",
             folders: ["Desktop", "Documents", "Downloads"], indexedItems: 8_796,
-            surfaces: AgentGrounding.surfaces(for: RealtimeToolSelection.allowedIDs)
+            surfaces: fixtureManifest.groundingSurfaces
         )
 
         for path in AgentPromptPath.userFacingPaths {
@@ -63,7 +77,7 @@ enum RealtimeAgentToolLoopSelfTest {
         // name the allow-list rejects does not lose one call, it abandons the whole plan.
         let advertised = FileIndexer.advertisedToolNames(in: fixture.text(compact: false))
         let unallowed = advertised.filter { name in
-            !RealtimeToolSelection.allowedIDs.contains(name) && !name.hasSuffix(".")
+            !fixtureManifest.allowedIDs.contains(name) && !name.hasSuffix(".")
         }
         check("the reach sentence advertises tools the planner cannot call: \(unallowed.joined(separator: ", "))",
               unallowed.isEmpty)
@@ -85,10 +99,14 @@ enum RealtimeAgentToolLoopSelfTest {
         // What each prompt costs before it has decided anything. Prefill is the whole
         // latency bill on this machine — 3,634 prompt tokens took 44.78 s on
         // 2026-09-20T20:45 — and prompt size is the only part of it this code controls.
-        let roster = RealtimeToolSelection.allowedIDs
+        let liveManifest = AgentCapabilityManifest.current(reader: .voiceFrontend)
+        let roster = liveManifest.allowedIDs
         let liveTools = RealtimeAgent.plannableTools()
         let planner = RealtimeAgent.plannerSystem(
-            tools: liveTools, voice: true, request: "open my next notes folder")
+            manifest: AgentCapabilityManifestBuilder.build(
+                AgentCapabilityInputs.live(reader: .voiceFrontend),
+                request: "open my next notes folder"),
+            voice: true, request: "open my next notes folder")
         let firstPass = RealtimeAgent.voiceRoutingSystem(voice: true)
         let spoken = LocalVoiceSplitResponse.answerInstructions
         print("PROMPT_SIZE: planner=\(planner.count) chars over \(liveTools.count) tools, "
@@ -106,9 +124,29 @@ enum RealtimeAgentToolLoopSelfTest {
             check("the voice capability inventory dropped \(category)",
                   inventory.promptText.contains(category))
         }
-        for id in [FileToolCatalogue.findID, FileToolCatalogue.treeID, "filesystem.reveal",
-                   "computer.open_app", "browser.navigate"] {
-            check("\(id) is not in the realtime allow-list", roster.contains(id))
+        // The two indexed-folder tools are the only ids whose *allowance* depends on live
+        // state: with no folder added they are enabled and unavailable, and the manifest says
+        // so. Both halves are checked, because the pair is the contract — a person who has
+        // added a folder must get them, and a person who has not must be told what to do.
+        let indexFixtures: [(String, Bool)] = [("with folders", true), ("without folders", false)]
+        for (label, available) in indexFixtures {
+            var inputs = AgentCapabilityInputs.live(reader: .voiceFrontend)
+            inputs.fileIndexAvailable = available
+            let ids = AgentCapabilityManifestBuilder.build(
+                inputs, request: "find the pricing doc")
+            for id in [FileToolCatalogue.findID, FileToolCatalogue.treeID] {
+                check("\(id) is not allowed \(label)",
+                      ids.allowedIDs.contains(id) == available)
+                check("\(id) is not named as needing setup \(label)",
+                      ids.unavailableIDs.contains(id) == !available)
+            }
+            if !available {
+                check("the missing index has no setup sentence",
+                      ids.setupNotes.contains { $0.contains("Settings \u{25b8} Files") })
+            }
+        }
+        for id in ["filesystem.reveal", "computer.open_app", "browser.navigate"] {
+            check("\(id) is not in the planner roster", roster.contains(id))
             check("\(id) is not in the live planner roster", liveTools.contains { $0.id == id })
         }
 
@@ -189,42 +227,75 @@ enum RealtimeAgentToolLoopSelfTest {
               AgentEntityResolver.askedForAName(
                 "Please tell me the exact name of the project or file you want to open."))
 
-        // P0-2: the relevance filter is add-only over the core set, capped, and keeps
-        // the browser tool for the 20:45 utterance. The core survives every gate combo;
-        // otherwise the planner falls back to core-only rather than to a list without it.
-        let allTools = RealtimeAgent.plannableTools()
-        let allOff = RealtimeAgent.plannableTools(knowledgeTools: false)
-        for (label, roster) in [("on", allTools), ("off", allOff)] {
-            let ids = Set(roster.map(\.id))
-            let missing = RealtimeAgent.coreToolIDs.subtracting(ids)
+        // P1-03: the core set survives every gate combo, and a turn's schema is whole intent
+        // classes over that core — never a ranked tail. The core floor is what stops a
+        // missing switch from dropping the tool a person actually needs.
+        // A fixture with every gate open, so the floor is about the core set and not about
+        // which folder this Mac happens to have added. What is left out of `allowed` on a
+        // real machine is asserted above, with its setup sentence.
+        var allTools = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
+        allTools.switches.knowledgeTools = false
+        for (label, inputs) in [("on", allEnabledFixture()), ("off", allTools)] {
+            let ids = AgentCapabilityManifestBuilder.build(inputs, request: "open a page").allowedIDs
+            let missing = AgentCapabilityManifestBuilder.coreIDs.subtracting(ids)
             check("core tools missing with knowledge tools \(label): \(missing.sorted().joined(separator: ", "))",
                   missing.isEmpty)
         }
         let youtubeRequest = "open Chrome and go to youtube.com"
-        let filtered = RealtimeAgent.relevantTools(for: youtubeRequest, all: allTools)
-        let filteredIDs = Set(filtered.map(\.id))
-        check("core tools dropped by the relevance filter",
-              RealtimeAgent.coreToolIDs.isSubset(of: filteredIDs))
-        check("relevance filter grew past its cap (\(filtered.count))",
-              filtered.count <= RealtimeAgent.relevantToolCap)
-        check("browser.navigate lost with the filter on", filteredIDs.contains("browser.navigate"))
-        if let nav = filtered.firstIndex(where: { $0.id == "browser.navigate" }),
-           let doc = filtered.firstIndex(where: { $0.id == "append_doc" }) {
-            check("append_doc outranked browser.navigate for a navigation request", nav < doc)
+        // Two readers, because the fit is a function of the reader. 4,096 is Apple's floor
+        // and the tightest budget the manifest ever fits for; 8,192 is what the same model
+        // reports on this hardware and is the reader a voice turn is really planned against.
+        var floorInputs = allEnabledFixture()
+        floorInputs.reader = .init(provider: .appleFoundation, displayName: "Apple", contextTokens: 4_096)
+        let worst = AgentCapabilityManifestBuilder.build(floorInputs, request: youtubeRequest)
+        let youtube = AgentCapabilityManifestBuilder.build(
+            allEnabledFixture(), request: youtubeRequest)
+        for (label, manifest) in [("4,096", worst), ("8,192", youtube)] {
+            check("core tools dropped by the class selection (\(label) reader)",
+                  AgentCapabilityManifestBuilder.coreIDs.isSubset(of: manifest.selectedIDs))
+            check("browser.navigate lost with the class selection (\(label) reader)",
+                  manifest.selectedIDs.contains("browser.navigate"))
+            // Whole classes: every allowed entry of a selected intent is in the schema.
+            let partial = manifest.allowed.filter {
+                manifest.selectedIntents.contains($0.intent) && !manifest.selectedIDs.contains($0.id)
+            }
+            check("a selected class was truncated for a \(label)-token reader "
+                + "(\(partial.map(\.id).sorted().prefix(4).joined(separator: ", ")))",
+                  partial.isEmpty)
         }
-        // Token budget for a 12-tool roster. Prefill is the whole latency bill, so the
-        // planner prompt is counted with the provider's own tokenizer.
-        let twelve = Array(filtered.prefix(12))
-        let twelveSystem = RealtimeAgent.plannerSystem(
-            tools: twelve, voice: true, request: youtubeRequest)
-        do {
-            let counter = ToolLoopTestProvider(state: ToolLoopTestState())
-            let tokens = try await counter.countTokens(twelveSystem)
-            print("PROMPT_TOKENS: \(tokens) for \(twelve.count) tools")
-            check("planner prompt too large: \(tokens) tokens for 12 tools (budget 900)",
-                  tokens < 900)
-        } catch {
-            failures.append("countTokens threw for a 12-tool roster: \(error.localizedDescription)")
+        // The manifest's own promise, checked in its own terms: the catalogue it fitted is
+        // inside the budget it declared for this reader, and the compact rendering the
+        // 4,096-token floor forces is the branch that has to work.
+        for (label, manifest) in [("4,096", worst), ("8,192", youtube)] {
+            let budget = AgentCapabilityManifestBuilder.catalogueBudget(for: manifest.reader)
+            check("the catalogue is \(manifest.catalogueTokens) tokens over a \(label)-token "
+                + "reader's \(budget)-token budget",
+                  manifest.catalogueTokens <= budget)
+        }
+        check("a 4,096-token reader did not get the compact catalogue", worst.compactCatalogue)
+        // Token budget for the prompt a navigation turn sends. Prefill is the whole latency
+        // bill, so the planner prompt is counted with the provider's own tokenizer.
+        //
+        // The ceiling is a total, and the total has a floor that no catalogue choice moves:
+        // the persona is ~250 tokens, the planner rules ~670 and the grounding ~115. A
+        // whole-class screen-and-browser roster adds ~690 on top. (The P0-2 line this
+        // replaces read "under 900 for 12 tools", which no prompt carrying the persona and
+        // these rules could reach — measured 1,038 with an empty catalogue.)
+        for (label, manifest) in [("4,096", worst), ("8,192", youtube)] {
+            let youtubeSystem = RealtimeAgent.plannerSystem(
+                manifest: manifest, voice: true, request: youtubeRequest)
+            do {
+                let counter = ToolLoopTestProvider(state: ToolLoopTestState())
+                let tokens = try await counter.countTokens(youtubeSystem)
+                print("PROMPT_TOKENS: \(tokens) for \(manifest.selected.count) tools "
+                    + "on a \(label)-token reader")
+                check("planner prompt too large: \(tokens) tokens for a whole-class roster "
+                    + "on a \(label)-token reader (ceiling 2,000)", tokens < 2_000)
+            } catch {
+                failures.append("countTokens threw for a whole-class roster: "
+                    + error.localizedDescription)
+            }
         }
 
         for failure in failures { print("GROUNDING_WRONG: \(failure)") }
@@ -567,22 +638,21 @@ enum RealtimeAgentToolLoopSelfTest {
               fallback.reply.range(of: #"step \d+/\d+"#,
                                    options: .regularExpression) != nil)
 
-        // P0-2 token budget, on the live loop too: a 12-tool planner prompt stays
-        // under 900 tokens by the provider's own count.
+        // The same budget on the live loop, measured on the prompt a real navigation turn
+        // sends. P1-03 replaced the hand-picked twelve-tool roster with the whole classes the
+        // request matched, and this is the number that says what the planner now pays.
         do {
-            let liveAll = RealtimeAgent.plannableTools()
-            let liveFiltered = RealtimeAgent.relevantTools(
-                for: "open Chrome and go to youtube.com", all: liveAll)
-            check("browser.navigate lost with the filter on (live loop)",
-                  liveFiltered.contains { $0.id == "browser.navigate" })
-            let liveTwelve = Array(liveFiltered.prefix(12))
+            let liveManifest = AgentCapabilityManifestBuilder.build(
+                allEnabledFixture(), request: "open Chrome and go to youtube.com")
+            check("browser.navigate lost with the class selection on (live loop)",
+                  liveManifest.selectedIDs.contains("browser.navigate"))
             let liveSystem = RealtimeAgent.plannerSystem(
-                tools: liveTwelve, voice: true, request: "open Chrome and go to youtube.com")
+                manifest: liveManifest, voice: true, request: "open Chrome and go to youtube.com")
             let counter = ToolLoopTestProvider(state: ToolLoopTestState())
             let tokens = try await counter.countTokens(liveSystem)
-            print("PROMPT_TOKENS: \(tokens) for \(liveTwelve.count) tools (live loop)")
-            check("planner prompt too large in the live loop: \(tokens) tokens for 12 tools",
-                  tokens < 900)
+            print("PROMPT_TOKENS: \(tokens) for \(liveManifest.selected.count) tools (live loop)")
+            check("planner prompt too large in the live loop: \(tokens) tokens for a "
+                + "whole-class roster", tokens < 2_000)
         } catch {
             failures.append("countTokens threw in the live loop: \(error.localizedDescription)")
         }

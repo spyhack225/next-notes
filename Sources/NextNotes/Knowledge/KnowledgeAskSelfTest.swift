@@ -234,10 +234,18 @@ enum KnowledgeAskSelfTest {
         check("a knowledge tool is not read-class",
               tools.allSatisfy { $0.risk == .read && $0.namespace == .knowledge && $0.executionMode == .immediate })
         check("knowledge.search_knowledge does not resolve", registry.tool(named: "knowledge.search_knowledge")?.id == "search_knowledge")
+        // The manifest is the planner's roster now, so the gate is asked of the builder
+        // rather than of a filtered list: the two switches that decide it are named here,
+        // and what the planner is given is the builder's own answer.
+        func roster(toolsAllowed: Bool) -> Set<String> {
+            var inputs = AgentCapabilityInputs.live(reader: .voiceFrontend)
+            inputs.switches.knowledgeTools = toolsAllowed
+            return AgentCapabilityManifestBuilder.build(inputs, request: "").allowedIDs
+        }
         check("the tool loop does not allow the knowledge tools",
-              KnowledgeToolCatalogue.ids.isSubset(of: RealtimeToolSelection.allowedIDs))
-        let on = Set(RealtimeAgent.plannableTools(knowledgeTools: true).map(\.id))
-        let off = Set(RealtimeAgent.plannableTools(knowledgeTools: false).map(\.id))
+              KnowledgeToolCatalogue.ids.isSubset(of: AgentCapabilityManifest.current().allowedIDs))
+        let on = roster(toolsAllowed: true)
+        let off = roster(toolsAllowed: false)
         check("the planner does not see the knowledge tools when allowed", KnowledgeToolCatalogue.ids.isSubset(of: on))
         check("the planner sees the knowledge tools when not allowed", off.isDisjoint(with: KnowledgeToolCatalogue.ids))
         for index in 0..<8 {

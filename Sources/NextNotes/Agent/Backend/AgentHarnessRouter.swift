@@ -37,7 +37,11 @@ enum AgentHarnessID: String, Codable, Sendable, CaseIterable {
     }
 }
 
-enum AgentIntentClass: String, Codable, Sendable {
+/// Which external app, if any, an utterance belongs to. Distinct from the manifest's
+/// `AgentIntentClass`, which is what a request is *about* — P1-03 needed that name, and two
+/// types in one module may not share it. The raw values are unchanged, so a stored decision
+/// from a build before the rename still decodes.
+enum AgentHarnessClass: String, Codable, Sendable {
     case stayLocal
     case coding
     case general
@@ -104,7 +108,7 @@ final class AgentHarnessRouter {
 
     private init() {
         entries = Self.load()
-        if let last = entries.last(where: { $0.intentClass == AgentIntentClass.coding.rawValue }),
+        if let last = entries.last(where: { $0.intentClass == AgentHarnessClass.coding.rawValue }),
            let id = AgentHarnessID(rawValue: last.harnessID), id != .local {
             lastCodingID = id
         }
@@ -138,7 +142,7 @@ final class AgentHarnessRouter {
         return choice
     }
 
-    func record(_ choice: AgentHarnessChoice, snippet: String, intent: AgentIntentClass) {
+    func record(_ choice: AgentHarnessChoice, snippet: String, intent: AgentHarnessClass) {
         lastChoice = choice
         guard choice.id != .local else { return }
         lastCodingID = choice.id
@@ -208,7 +212,7 @@ final class AgentHarnessRouter {
         }
     }
 
-    static func intent(for text: String) -> AgentIntentClass {
+    static func intent(for text: String) -> AgentHarnessClass {
         let lowered = text.lowercased()
         if stayLocalMarks.contains(where: { lowered.contains($0) }) {
             return .stayLocal

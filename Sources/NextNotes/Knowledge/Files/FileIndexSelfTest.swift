@@ -222,20 +222,29 @@ enum FileIndexSelfTest {
                   !FileToolExecutor.label.contains("\n"))
 
             // Every tool name the prompt sentence tells the model to call must be a name the
-            // planner will actually accept. The realtime loop checks the emitted name against
-            // `RealtimeToolSelection.allowedIDs` *before* the registry resolves an alias, and a
-            // miss does not skip that one call — it abandons the whole tool plan. The sentence
-            // named `files.find` once, which is an alias, so obeying the prompt killed the turn.
-            // Any id-shaped token in the sentence is checked, so rewording it cannot reopen this.
+            // planner will actually accept. The manifest checks the emitted name against its
+            // own `allowed` set, and a miss does not skip that one call — it abandons the
+            // whole tool plan. The sentence named `files.find` once, which is an alias, so
+            // obeying the prompt killed the turn. Any id-shaped token in the sentence is
+            // checked, so rewording it cannot reopen this.
+            //
+            // A fixture manifest, with the index available: the sentence only ever appears in
+            // a prompt that also has the folders, so the roster it must match is the one a
+            // person with a folder added would get.
+            let indexRoster = AgentCapabilityManifestBuilder.build(
+                .allEnabled(tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend),
+                request: "find the pricing doc")
             let summary = FileIndexer.summarySentence(folders: ["Alpha"], files: 12)
             check("the prompt sentence is not one line", !summary.contains("\n"))
             let advertised = FileIndexer.advertisedToolNames(in: summary)
             check("the prompt sentence advertises no tool at all, got \(advertised)",
                   advertised.count == 2)
             for name in advertised {
-                check("the prompt tells the model to call \(name), which the planner's allow-list "
+                check("the prompt tells the model to call \(name), which the planner's roster "
                       + "rejects — that abandons the whole tool plan",
-                      RealtimeToolSelection.allowedIDs.contains(name))
+                      indexRoster.allowedIDs.contains(name))
+                check("\(name) is in the schema only for a request that names files",
+                      indexRoster.selectedIDs.contains(name))
                 check("the prompt tells the model to call \(name), which the registry cannot resolve",
                       AgentToolRegistry.shared.tool(named: name) != nil)
             }

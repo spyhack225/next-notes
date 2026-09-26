@@ -24,7 +24,7 @@ struct WorkspaceTool: Sendable, Identifiable {
     func preview(for arguments: [String: String]) -> String? { previewBuilder?(arguments) }
 
     /// A named argument, in the shape both the JSON schema and the editor need.
-    struct Parameter: Sendable, Identifiable {
+    struct Parameter: Sendable, Identifiable, Equatable {
         let name: String
         let description: String
         var isRequired = true
@@ -34,7 +34,7 @@ struct WorkspaceTool: Sendable, Identifiable {
 
         /// What the editor should show, and how the runner reads the value back. Everything
         /// crosses the boundary as a string — these say what kind of string.
-        enum Kind: Sendable {
+        enum Kind: Sendable, Equatable {
             /// One line.
             case text
             /// Several lines: an email body, a document.

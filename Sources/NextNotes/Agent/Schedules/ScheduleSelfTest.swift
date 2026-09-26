@@ -595,8 +595,8 @@ enum ScheduleSelfTest {
         }
 
         check("catalogue ids drifted", Set(ScheduleToolCatalogue.all.map(\.id)) == ScheduleToolCatalogue.ids)
-        check("schedule tools missing from the realtime allowlist",
-              ScheduleToolCatalogue.ids.isSubset(of: RealtimeToolSelection.allowedIDs))
+        check("schedule tools missing from the planner roster",
+              ScheduleToolCatalogue.ids.isSubset(of: AgentCapabilityManifest.current().allowedIDs))
         check("schedule tools not registered", ScheduleToolCatalogue.ids.allSatisfy { AgentToolRegistry.shared.tool(named: $0) != nil })
         check("create description lost list-first / confirm guidance",
               tool("create").description.contains("schedule.list") && tool("create").description.contains("said yes"))

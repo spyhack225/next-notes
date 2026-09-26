@@ -264,8 +264,14 @@ enum ToolLoopLiveEval {
         agent.toolLoopLimitForTesting = nil
         agent.fileRetrievalForTesting = fixtures.files
         agent.denyUnattendedApprovalsForTesting = true
-        RealtimeAgent.toolGatesForTesting = PlannerToolGates(
-            memory: true, schedules: true, knowledge: true, skills: false)
+        // P1-03 replaced `toolGatesForTesting` with a whole `AgentCapabilityInputs`, so the
+        // run pins the roster the way a person would configure it — every switch on except
+        // skills, which the eval does not grade — instead of four booleans that could not say
+        // anything about consent or readiness.
+        var evalInputs = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
+        evalInputs.switches.skills = false
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = evalInputs
         AgentToolExecutor.fakeForTesting = fixtures.run
         defer {
             agent.localModelProviderForTesting = nil
@@ -273,7 +279,7 @@ enum ToolLoopLiveEval {
             agent.fileRetrievalForTesting = nil
             agent.plannerTraceForTesting = nil
             agent.denyUnattendedApprovalsForTesting = false
-            RealtimeAgent.toolGatesForTesting = nil
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = nil
             AgentToolExecutor.fakeForTesting = nil
         }
 

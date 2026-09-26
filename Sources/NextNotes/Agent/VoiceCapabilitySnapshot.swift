@@ -2,10 +2,10 @@ import Foundation
 
 /// A short, truthful capability description for the on-device voice frontend.
 ///
-/// The tool names come from `RealtimeAgent.plannableTools()`, which is the same
-/// registry/allowlist used by the general tool loop. Building this is synchronous: it
-/// reads cached app state and one synchronous Accessibility status query. It does not launch
-/// a process, await an account probe, or prompt for a permission.
+/// The tool names come from `AgentCapabilityManifest`, which is the same value the general
+/// tool loop is fitted to. Building this is synchronous: it reads cached app state and one
+/// synchronous Accessibility status query. It does not launch a process, await an account
+/// probe, or prompt for a permission.
 struct VoiceCapabilitySnapshot: Sendable, Equatable {
     enum WorkspaceStatus: Sendable, Equatable {
         case unknown
@@ -55,16 +55,16 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
         }
     }
 
-    struct SelfTestResult: Sendable, Equatable {
-        let passed: Bool
-        let detail: String
-    }
-
     /// Text intended to be inserted into the frontend's model context.
     let promptText: String
     /// The exact planner-visible ids represented by this snapshot.
     let toolIDs: [String]
     let availability: Availability
+    /// The manifest's own spoken answer: what this turn can do, in a person's words. Set by
+    /// `make(manifest:)` — the only production path. Empty means the caller supplied a tool
+    /// list rather than a turn, which only the self-test fixtures do, and the id-derived
+    /// fallback below answers for them.
+    var capabilities: String = ""
 
     /// Alias for callers that want the snapshot as a prompt section.
     var text: String { promptText }
@@ -77,6 +77,7 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
         if availability.modelResident == false {
             return "My voice model isn't ready yet. Open Settings ▸ Models to get it."
         }
+        if !capabilities.isEmpty { return qualified(capabilities) }
         let ids = Set(toolIDs)
         var features: [String] = []
         if ids.contains("meeting.transcript") { features.append("read meeting transcripts and notes") }
@@ -103,7 +104,20 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
         if ids.contains("create_doc") { changes.append("documents") }
         if ids.contains("send_email") { changes.append("emails") }
         if !changes.isEmpty { reply += " I can prepare " + changes.joined(separator: ", ") + " for approval." }
-        if ids.contains("get_agenda") || ids.contains("search_email") || ids.contains("find_drive_files") {
+        return qualified(reply)
+    }
+
+    /// The qualifiers that belong to every answer: the account state the words above cannot
+    /// claim for themselves, the helper, the grant, and the approval boundary. The manifest
+    /// already names its own missing connections; this adds the two things only this struct
+    /// knows — whether the helper is on PATH and whether Accessibility is granted — plus the
+    /// sentence about approval, which is the app's promise rather than a capability.
+    private func qualified(_ answer: String) -> String {
+        let ids = Set(toolIDs)
+        var reply = answer
+        let workspaceTools = ids.contains("get_agenda") || ids.contains("search_email")
+            || ids.contains("find_drive_files")
+        if workspaceTools {
             switch availability.workspace {
             case .signedIn: break
             case .unknown, .checking, .failed:
@@ -132,35 +146,54 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
         // this is the last main-actor step before it. Publish the folder list, the row count
         // and the live roster so `AgentGrounding` has them.
         RealtimeAgent.publishGrounding()
-        let service = AgentService.shared
-        let workspace: WorkspaceStatus
-        if service.isProbing {
-            workspace = .checking
-        } else if !service.hasCachedAuthStatus {
-            workspace = .unknown
-        } else {
-            workspace = WorkspaceStatus.cached(service.authState, isProbing: false)
-        }
+        let manifest = AgentCapabilityManifest.current(reader: .voiceFrontend)
         let availability = Availability(
             accessibilityGranted: Permissions.hasAccessibility,
-            workspace: workspace,
+            workspace: workspaceStatus(),
             automaticMeetingFollowUpsEnabled: Settings.shared.agentEnabled,
             modelResident: VoiceCapabilityProbeCache.cached().modelResident,
             cliOnPATH: VoiceCapabilityProbeCache.cached().cliOnPATH
         )
         return make(
-            tools: RealtimeAgent.plannableTools(),
+            manifest: manifest,
             availability: availability,
             maxCharacters: maxCharacters
         )
     }
 
+    /// The cached account answer, and nothing more. `AgentCapabilityInputs.live` reads the
+    /// same three fields, which is why the manifest and this snapshot cannot disagree about
+    /// whether Google is connected.
+    @MainActor
+    static func workspaceStatus() -> WorkspaceStatus {
+        let service = AgentService.shared
+        if service.isProbing { return .checking }
+        if !service.hasCachedAuthStatus { return .unknown }
+        return WorkspaceStatus.cached(service.authState, isProbing: false)
+    }
+
+    /// The manifest's own entries, in the order this prompt lists them. A self-test that has
+    /// a manifest builds from it; a caller with only a tool list goes through `make(tools:)`.
+    @MainActor
+    static func make(
+        manifest: AgentCapabilityManifest,
+        availability: Availability = Availability(),
+        maxCharacters: Int = 1_650
+    ) -> Self {
+        var snapshot = make(
+            tools: manifest.allowed.compactMap { AgentToolRegistry.shared.tool(named: $0.id) },
+            availability: availability, maxCharacters: maxCharacters)
+        snapshot.capabilities = manifest.capabilitiesAnswer(voice: true)
+        return snapshot
+    }
+
     /// Pure builder used by `current` and by self-tests with known registry/availability
-    /// seams. The supplied tools should already be the planner's filtered roster.
+    /// seams. The supplied tools should already be the manifest's allowed set.
     nonisolated static func make(
         tools: [AgentTool],
         availability: Availability = Availability(),
-        maxCharacters: Int = 1_650
+        maxCharacters: Int = 1_650,
+        manifest: AgentCapabilityManifest? = nil
     ) -> Self {
         let orderedTools = tools.sorted { $0.id < $1.id }
         let toolIDs = orderedTools.map(\.id)
@@ -202,57 +235,6 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
             toolIDs: toolIDs,
             availability: availability
         )
-    }
-
-    /// Checks a supplied registry set without touching user history or external services.
-    /// This catches drift between the realtime allowlist and the catalogue, and verifies
-    /// that unavailable cached states do not render as connected/granted.
-    nonisolated static func selfTest(
-        tools: [AgentTool],
-        availability: Availability = Availability()
-    ) -> SelfTestResult {
-        let ids = tools.map(\.id)
-        let uniqueIDs = Set(ids)
-        guard uniqueIDs.count == ids.count else {
-            return SelfTestResult(passed: false, detail: "duplicate tool id")
-        }
-
-        // With memory turned off in Settings the planner roster leaves the memory tools out.
-        var allowed = MemorySnapshotCache.shared.isEnabled
-            ? RealtimeToolSelection.allowedIDs
-            : RealtimeToolSelection.allowedIDs.subtracting(MemoryToolCatalogue.ids)
-        // Likewise the reminder tools when reminders are switched off.
-        if !ScheduleSettingsSnapshot.defaultsEnabled {
-            allowed.subtract(ScheduleToolCatalogue.ids)
-        }
-        let missing = allowed.subtracting(uniqueIDs).sorted()
-        guard missing.isEmpty else {
-            return SelfTestResult(passed: false, detail: "missing allowed tools: \(missing.joined(separator: ", "))")
-        }
-        let outsideAllowlist = uniqueIDs.subtracting(allowed)
-        guard outsideAllowlist.isEmpty else {
-            return SelfTestResult(passed: false, detail: "roster contains unallowed tools: \(outsideAllowlist.sorted().joined(separator: ", "))")
-        }
-
-        let snapshot = make(tools: tools, availability: availability)
-        if availability.accessibilityGranted == false,
-           snapshot.promptText.contains("Accessibility: granted") {
-            return SelfTestResult(passed: false, detail: "reported an ungranted Accessibility permission")
-        }
-        if case .signedIn = availability.workspace {
-            // A signed-in status is the only state allowed to say connected.
-        } else if snapshot.promptText.contains("Google Workspace: connected") {
-            return SelfTestResult(passed: false, detail: "reported Workspace as connected without signed-in evidence")
-        }
-        if availability.modelResident == false,
-           snapshot.promptText.contains("Voice model: ready") {
-            return SelfTestResult(passed: false, detail: "reported the voice model ready without resident weights")
-        }
-        if availability.cliOnPATH == false,
-           snapshot.promptText.contains("Helper CLI: on PATH") {
-            return SelfTestResult(passed: false, detail: "reported the helper CLI on PATH without finding it")
-        }
-        return SelfTestResult(passed: true, detail: "\(ids.count) planner tools grounded")
     }
 
     private nonisolated static func accessibilityLine(_ granted: Bool?) -> String {

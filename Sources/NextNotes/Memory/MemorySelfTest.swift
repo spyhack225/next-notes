@@ -398,7 +398,8 @@ enum MemorySelfTest {
         let registry = AgentToolRegistry.shared
         for id in MemoryToolCatalogue.ids {
             check("\(id) is not registered", registry.tool(named: id) != nil)
-            check("\(id) is not in the realtime allowlist", RealtimeToolSelection.allowedIDs.contains(id))
+            check("\(id) is not in the planner roster",
+                  AgentCapabilityManifest.current().allowedIDs.contains(id))
         }
         check("memory writes are not modify-risk",
               registry.tool(named: "memory.remember")?.risk == .modify
@@ -407,8 +408,11 @@ enum MemorySelfTest {
         check("the voice capability snapshot lacks memory",
               capability.promptText.contains("memory.remember") && capability.spokenSummary.contains("remember"))
         check("planner rules lack memory guidance",
-              RealtimeAgent.plannerSystem(tools: RealtimeAgent.plannableTools(), voice: false)
-                .contains("never grants permission"))
+              RealtimeAgent.plannerSystem(
+                  manifest: AgentCapabilityManifestBuilder.build(
+                      AgentCapabilityInputs.live(reader: .voiceFrontend),
+                      request: "remember my brother is Cyril"),
+                  voice: false).contains("never grants permission"))
 
         // MARK: Sessions, compaction and the snapshot at each boundary
         failures += AgentSessionSelfTest.failures(root: directory("sessions"))

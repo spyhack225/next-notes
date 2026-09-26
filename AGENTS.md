@@ -120,6 +120,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-assemble           --selftest-portrait
 --selftest-toolloop-live [--model apple|<id>] [--only C01,M05] [--quick] [--report <path>]
 --selftest-toolloop-live-grader
+--selftest-capability-manifest
 ```
 
 `usage.jsonl` is the one local record of which model or engine ran each pass — Agent,
@@ -364,7 +365,7 @@ fails silently rather than loudly. The single ledger is `TaskBridge` (`Agent/`, 
 is being deleted and must not come back. The only thing that starts audio is `OutputScheduler`,
 enforced by an `OutputToken` whose initializer is `fileprivate` to that file — so "no backend
 independently decides to speak" is a compile error, not a convention. The per-turn tool authority
-is `AgentCapabilityManifest` (planned in `02-PHASE-1-TOOLS.md`). The usage log is `usage.jsonl`
+is `AgentCapabilityManifest` (`Agent/AgentCapabilityManifest.swift`). The usage log is `usage.jsonl`
 (`Support/Usage/`), which already has 8 MB rotation, 90-day compaction, `UsageLog.sanitise` and
 harness-temp isolation — **a job's token count is a sum over `UsageRecord`s carrying a task id,
 never a second ledger.** Durable background work (`agent-jobs.sqlite`, a `TaskEvent` journal,
@@ -522,17 +523,42 @@ clicks. A reviewer read the `performComputer → runComputerLoop → ComputerLoo
 as the live one and filed it as a blocker; wiring a model into that closure would wire it
 into a path nothing takes. Grep for a producer before believing an `enum` case is reachable.
 
-**In the realtime tool loop, an alias is resolved before the allowlist is consulted — and a
-miss still abandons the whole turn.** `RealtimeAgent+ToolLoop.swift:1250` resolves `call.name`
-through `AgentToolRegistry` first and accepts it when either the raw name or the resolved
-canonical id is in `RealtimeToolSelection.allowedIDs`, so a model that emits a registered
-alias (`files.find`, `workspace.*`) for an allowed tool runs that tool instead of losing the
-plan. A name that resolves to nothing, or to a tool outside the allowlist, still ends the
-turn with "The tool planner requested an unavailable tool; nothing else was run." rather
-than skipping that one call — that half is P1-04's to change. Nothing advertised reaches the
-refusal today: `FileToolCatalogue` derives its advertised ids from the canonical namespace,
-and `--selftest-file-index` fails if the sentence in the planner prompt names anything that
-is not both allowlisted and registry-resolvable.
+**There is one source of truth for what a turn may do, and it is `AgentCapabilityManifest`.**
+Built once per planner turn from the registry (native, MCP and Composio), the four switches,
+consent, the reader and live readiness, it answers for all of them at once: the planner's
+schema (`selected`), the rule lines (`ruleLines()`), the grounding sentence
+(`groundingSurfaces`), the execution check (`entry(named:)`), "what can you do"
+(`capabilitiesAnswer(voice:)`) and the voice gates (`allowedIDs`). Four of those used to be
+separate answers that disagreed — the planner saw nine core tools plus fifteen picked by
+four-letter substring overlap while the prose listed the whole allowlist and the rules named
+tools that had been dropped. `RealtimeAgent.plannableTools()` survives as a wrapper over
+`AgentCapabilityManifest.current()` so its other call sites keep compiling; it is a spelling
+of the manifest, not a second opinion, and the only literal id lists left in the tree are
+`AgentCapabilityManifestBuilder.coreIDs` and `.nativePlannerExclusions`.
+
+**Tools are chosen by intent class, never by keyword top-k, and a class is never half
+present.** A request is reduced to a set of `AgentIntentClass` by a word-bounded lexicon, and
+if any tool of a class is selected every allowed tool of that class is. That is what fixes
+"what's on my to-do list", "what did we decide" and "Sarah said the budget…", which reached
+nothing under overlap scoring because no tool's name or description contains those words. The
+catalogue is then fitted to the reader — compact rendering, and unmatched core entries dropped
+before any matched class is touched. A model that calls an allowed tool outside the schema gets
+it, and the next round's catalogue widens to the class it reached for. MCP and Composio tools
+join by risk class at or below `.send`, and never shadow a native implementation of the same
+capability. `--selftest-capability-manifest` pins the parity set, scans every assembled
+planner prompt for an id its own schema lacks, and checks every switch, consent and readiness
+case. A name that resolves to nothing, or to a tool outside the manifest, still ends the turn
+with "The tool planner requested an unavailable tool; nothing else was run." — P1-04 owns the
+tolerant half.
+
+**A refusal is judged per clause, and an offer is a refusal.** `AgentRefusalGuard` splits the
+reply at sentence ends and at "but"/"however", and a clause counts only when it both names a
+capability and denies it. "I don't have enough information to set that reminder" is an honest
+limit and must survive — the old substring match read it as a denial and re-planned a truthful
+answer — so there is an explicit list of honest limits, and "would you like me to check your
+email?" counts as a denial in its own right. A denial of something that is switched on but not
+connected is *honest*: the manifest puts those entries in `unavailable`, the guard returns nil,
+and the setup sentence says where to go.
 
 **A GGUF can be valid and still unopenable.** The architecture must be in
 `LlamaArchitectures.supported`, the table generated from the pinned llama.cpp tag by

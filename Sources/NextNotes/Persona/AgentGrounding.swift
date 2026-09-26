@@ -31,6 +31,9 @@ struct AgentGrounding: Sendable, Equatable {
     var indexedItems: Int
     /// Reachable surfaces in plain words, already filtered to what is registered and allowed.
     var surfaces: [String]
+    /// One sentence per thing that is switched on but not usable yet, in a person's words.
+    /// Published beside the surfaces so a prompt can name the gap without naming an id.
+    var setupNotes: [String] = []
 
     /// The header every rendering starts with. Self-tests look for this exact line.
     static let header = "About this Mac and the person using it (device facts, not guesses):"
@@ -72,6 +75,7 @@ struct AgentGrounding: Sendable, Equatable {
         }
         if !identity.isEmpty { lines.append(identity.joined(separator: " ")) }
         if let reach = reachLine(compact: compact) { lines.append(reach) }
+        if !setupNotes.isEmpty { lines.append(setupNotes.joined(separator: " ")) }
         guard !lines.isEmpty else { return "" }
         return ([Self.header] + lines + [Self.denialRule(hasFolders: !folders.isEmpty)])
             .joined(separator: "\n")
@@ -129,30 +133,11 @@ struct AgentGrounding: Sendable, Equatable {
             userFullName: AgentGroundingFacts.userFullName(),
             folders: folders,
             indexedItems: folders.isEmpty ? 0 : published.indexedItems,
-            surfaces: surfaces(for: published.toolIDs)
+            surfaces: published.surfaces,
+            setupNotes: published.setupNotes
         )
     }
 
-    /// Plain words for the tool ids, in the order a person would say them. Nothing is named
-    /// that the planner is not allowed to call, so the sentence can never promise a tool the
-    /// next pass would refuse.
-    static func surfaces(for ids: Set<String>) -> [String] {
-        var names: [String] = []
-        if ids.contains("get_agenda") || ids.contains("create_event") { names.append("their calendar") }
-        if ids.contains("search_email") { names.append("their email") }
-        if ids.contains("find_drive_files") || ids.contains("read_doc") { names.append("their Drive and Docs") }
-        if ids.contains("computer.open_app") || ids.contains("computer.click") {
-            names.append("Mac apps and the screen")
-        }
-        if ids.contains("browser.navigate") { names.append("browser pages") }
-        if ids.contains("meeting.transcript") || ids.contains("search_knowledge") {
-            names.append("past meetings and notes")
-        }
-        if ids.contains("schedule.create") { names.append("reminders and routines") }
-        if ids.contains("memory.remember") { names.append("what they tell you to remember") }
-        if ids.contains("skills.search") { names.append("installable skills") }
-        return names
-    }
 }
 
 /// Facts that can be read without the main actor: the assistant's own name and the account
@@ -219,10 +204,15 @@ final class AgentGroundingCache: @unchecked Sendable {
     struct Snapshot: Sendable, Equatable {
         var folders: [String] = []
         var indexedItems: Int = 0
-        /// The live planner roster. Defaults to the allow-list minus the namespaces whose
-        /// switch is off, so a prompt assembled before anything published still says only
-        /// what the planner would in fact be given.
-        var toolIDs: Set<String> = AgentGroundingCache.defaultToolIDs()
+        /// The manifest's own plain words for what is reachable. Published as prose, not as
+        /// ids, because the reader is a `nonisolated` prompt builder: resolving an id needs the
+        /// registry, which belongs to the main actor, and a second id-to-prose table beside
+        /// `AgentCapabilityManifest.phrases(for:)` is the drift this task exists to remove.
+        /// Empty until a manifest has been built, and an empty reach sentence is the honest
+        /// reading of "nothing has confirmed what is reachable yet".
+        var surfaces: [String] = AgentCapabilityMirror.shared.current?.groundingSurfaces ?? []
+        /// The same manifest's setup notes. One sentence per missing connection or grant.
+        var setupNotes: [String] = AgentCapabilityMirror.shared.current?.setupNotes ?? []
     }
 
     static let shared = AgentGroundingCache()
@@ -236,10 +226,11 @@ final class AgentGroundingCache: @unchecked Sendable {
         return value
     }
 
-    func publish(folders: [String], indexedItems: Int, toolIDs: Set<String>) {
+    func publish(folders: [String], indexedItems: Int, manifest: AgentCapabilityManifest) {
         lock.lock()
         defer { lock.unlock() }
-        value = Snapshot(folders: folders, indexedItems: indexedItems, toolIDs: toolIDs)
+        value = Snapshot(folders: folders, indexedItems: indexedItems,
+                         surfaces: manifest.groundingSurfaces, setupNotes: manifest.setupNotes)
     }
 
     func resetForTesting() {
@@ -248,11 +239,4 @@ final class AgentGroundingCache: @unchecked Sendable {
         value = Snapshot()
     }
 
-    /// What the planner would be allowed to call, judged from the switches alone.
-    static func defaultToolIDs() -> Set<String> {
-        var ids = RealtimeToolSelection.allowedIDs
-        if !MemorySnapshotCache.defaultsEnabled { ids.subtract(MemoryToolCatalogue.ids) }
-        if !ScheduleSettingsSnapshot.defaultsEnabled { ids.subtract(ScheduleToolCatalogue.ids) }
-        return ids
-    }
 }

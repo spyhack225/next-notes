@@ -1757,6 +1757,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-capability-manifest") {
+            Task { @MainActor in
+                SelfTest.failed = !(await AgentCapabilityManifestSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-voice-grounding") {
             Task { @MainActor in
                 SelfTest.failed = !(await RealtimeAgentToolLoopSelfTest.runVoiceGrounding())

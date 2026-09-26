@@ -122,13 +122,14 @@ enum FileToolCatalogue {
     /// What the model is told to call them, and what `AgentTool.native` actually builds:
     /// `namespace.name`, with the filesystem namespace, because that is where they execute.
     ///
-    /// These must stay the *canonical* ids and nothing else. The realtime planner checks the
-    /// name the model emitted against `RealtimeToolSelection.allowedIDs` before the registry
-    /// gets a chance to resolve an alias, and a name that misses is not skipped — the whole
-    /// tool plan is abandoned with "the tool planner requested an unavailable tool". So the
-    /// sentence in `FileIndexer.promptSummary`, the tool catalogue the same prompt prints, and
-    /// the allow-list all have to say the same two words. `files.find` / `files.tree` stay
-    /// registered as aliases for the non-realtime paths, but are never advertised.
+    /// These must stay the *canonical* ids and nothing else. The planner checks the name the
+    /// model emitted against `AgentCapabilityManifest.allowed` — by canonical id *or* alias,
+    /// since P1-03 moved the check onto the manifest — but the **schema** it was given can
+    /// only carry the canonical spelling, so a model that copies an alias out of a sentence
+    /// somewhere else still loses the whole plan to "the tool planner requested an unavailable
+    /// tool". So the sentence in `FileIndexer.promptSummary`, the tool catalogue the same
+    /// prompt prints, and the manifest all have to say the same two words. `files.find` /
+    /// `files.tree` stay registered as aliases, but are never advertised.
     static let findID = "\(AgentToolNamespace.filesystem.rawValue).\(findName)"
     static let treeID = "\(AgentToolNamespace.filesystem.rawValue).\(treeName)"
 

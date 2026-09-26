@@ -366,7 +366,10 @@ final class RealtimeAgent {
         switch intent {
         case .capabilities:
             replyTrace.end(note: "capabilities")
-            return conclude(mine, Self.capabilitiesReply(for: text) ?? Self.unknownReply, route: "capabilities")
+            // P1-03: the answer is the manifest's, so "what can you do" and the tools the
+            // planner is given can never disagree. No hard-coded feature list survives here.
+            return conclude(mine, AgentCapabilityManifest.current().capabilitiesAnswer(voice: false),
+                            route: "capabilities")
         case .reply(let answer):
             replyTrace.end(note: "context")
             return conclude(mine, answer, route: "context")
@@ -439,7 +442,7 @@ final class RealtimeAgent {
             if source == .text {
                 typedPending = PendingAction.detect(
                     reply: result.reply, request: pendingOriginal,
-                    allowedIDs: Set(Self.plannableTools().map(\.id)),
+                    allowedIDs: AgentCapabilityManifest.current().allowedIDs,
                     origin: result.usedTools ? .typedQuestion : .typedOffer,
                     sessionID: AgentSession.shared.sessionID)
             }
@@ -546,31 +549,6 @@ final class RealtimeAgent {
         IslandState.shared.showAgentListening(
             transcript: AgentCaptureController.shared.transcript, level: AgentCaptureController.shared.level
         )
-    }
-
-    /// Capability / help questions must not wait on a 7 GB download.
-    static func capabilitiesReply(for text: String) -> String? {
-        let lowered = text.lowercased()
-        let marks = [
-            "what can you do", "what do you do", "what can you help",
-            "what are you", "who are you", "capabilities",
-            "what can i ask", "how do you work", "how does it work",
-        ]
-        let isHelp = lowered == "help" || lowered == "help me" || lowered.hasPrefix("help ")
-        guard isHelp || marks.contains(where: { lowered.contains($0) }) else { return nil }
-        return """
-            I can:
-            • Answer from this meeting — action items, decisions, who is on the call
-            • Check your calendar
-            • Inspect, click and type in the frontmost window
-            • Search files and run a shell command, after you approve
-            • Wake from sleep when you say “Hey Next”
-            • Draft Gmail, Calendar, Drive and Docs actions if Workspace is connected
-            • Answer a question with your chosen model when you say “ask the model …”
-            • Plan several read-only checks when you say “use tools to …”
-
-            Ask something specific — mail, calendar, this window, or a file.
-            """
     }
 
     static func clarificationReply(for text: String) -> String {

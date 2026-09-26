@@ -418,7 +418,7 @@ final class VoiceConversationCoordinator {
         // P0-6 tool-shape gate BEFORE the frontend model: a request naming a registry
         // capability routes straight to submit. Same rule as P0-2's core tool set — it
         // may only ever add newWork routes, never subtract answers.
-        let allowedIDs = Set(RealtimeAgent.plannableTools().map(\.id))
+        let allowedIDs = AgentCapabilityManifest.current(reader: .voiceFrontend).allowedIDs
         if let route = toolShapeRoute(text, allowedIDs: allowedIDs) {
             AgentAuditLog.shared.record(kind: .request, title: text,
                 detail: "tool_shape_route(\(route.route)) → newWork; planner keeps the decision")
@@ -711,7 +711,7 @@ final class VoiceConversationCoordinator {
     /// mentions a domain (mail, calendar, docs, memory) still names it, so a denial
     /// of it can be kept and a later "use them" still resolves.
     private func namesCapability(_ text: String) -> String? {
-        let allowedIDs = Set(RealtimeAgent.plannableTools().map(\.id))
+        let allowedIDs = AgentCapabilityManifest.current(reader: .voiceFrontend).allowedIDs
         if let direct = AgentDirectIntent.parse(text) {
             let id: String
             switch direct {
