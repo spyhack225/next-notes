@@ -111,6 +111,56 @@ enum MessagesDecoderSelfTest {
     /// not hex is a **failure**, not a block — a case that was asked for and did not happen.
     static let realBodyEnvironmentKey = "IMESSAGE_DECODE_REAL_BLOB"
 
+    /// Where IM-01's **real effect rows** live, when they have been captured: the `cases.sh`
+    /// block `--imessage-self-flow` writes, which is a *paste-ready fixture generator case*
+    /// rather than a keyed text file.
+    ///
+    /// ## Why a second key and not `IMESSAGE_DECODE_REAL_BLOB`
+    ///
+    /// Two measured reasons, both of which would have made the one-key answer worse:
+    ///
+    /// 1. **The real-body format requires a `text=` line**, because it is IM-01 §3.1's *expected
+    ///    output* — the sentence the sender typed, which only a person knows and which therefore
+    ///    cannot be derived from the bytes. **An effect has no sentence.** Writing `text=` for
+    ///    these rows would mean writing a claim about bytes that carry none, which is the exact
+    ///    error `effect_bubble_classification` exists to catch, and dropping the requirement
+    ///    would weaken the six real-body cases that depend on it.
+    /// 2. **The capture is four rows, not one body.** `blob=` is a single hex body, and the
+    ///    measurement is four *rows* — four row ids, four dates, four transfer ids — which is
+    ///    what makes "an effect is not a message with words" a claim about a shape rather than
+    ///    about one lucky blob.
+    ///
+    /// ## Why a generated `.sqlite` is not used either, and this was measured
+    ///
+    /// `make-chatdb-fixture.sh`'s sanitisation guard scans the SQL it is about to write and
+    /// refuses *"a bare 11-digit number"* — and a 314-byte body of hex is full of 11-digit runs.
+    /// Asked to emit these four rows it dies on the first of them:
+    ///
+    /// ```text
+    /// CHATDB_FIXTURE_FAILED: refusing to emit a fixture containing a bare 11-digit number:
+    /// 53537472696 67008484084 73747265616 86928496961
+    /// ```
+    ///
+    /// **That is the guard working**, and it is the reason these bytes stay a local artefact
+    /// rather than becoming a committed fifteenth case.
+    ///
+    /// ## So the rows are read from the block, and the `msg` writer is the row
+    ///
+    /// A `msg` line writes `attributedBody` and **never writes `text`** — `text` is in
+    /// `MSG_DEFAULTS` as `sql:NULL` — so every row the block declares is implicitly
+    /// `text = NULL`, exactly as the four measured rows were. That is why reading the block and
+    /// building the rows in process is the same row shape a generated database would have given,
+    /// and why no SQL step is needed to reproduce it: `MessageRow` is the projection, and the
+    /// only three fields these rows set are the ones the block writes.
+    ///
+    /// ## The comment above each row is an input, not a comment
+    ///
+    /// Each `msg` block is preceded by IM-01's own measurement — `# row 55198 · NULL · 314
+    /// bytes` — and the case asserts the body it decoded is that many bytes. A capture and its
+    /// own annotation that disagree is a **failure**, not a block: somebody pointed this case at
+    /// data and the data said something else.
+    static let effectCasesEnvironmentKey = "IMESSAGE_DECODE_EFFECT_CASES"
+
     static func run() async -> String {
         var failures: [String] = []
         var blocked: [String] = []
@@ -285,8 +335,15 @@ enum MessagesDecoderSelfTest {
                 }
                 let envelope = MessagesDecoder.envelope(for: tapback)
                 guard envelope.text == nil else { return "a tapback came back as \"\(envelope.text!)\"" }
-                guard case .notText(let reported) = envelope.body, reported == bundleID else {
+                guard case .notText(let reported, let discarded) = envelope.body,
+                      reported == bundleID else {
                     return "body is \(envelope.body), not .notText(\(bundleID))"
+                }
+                // The tapback is the *other* route to the same state, and it is the only one that
+                // arrives with an id. Its discarded count is 0 because no walk ran at all: the
+                // body is in `payload_data` and there is no stream to stop short of.
+                guard discarded == 0, envelope.discardedBytes == 0 else {
+                    return "a tapback with no stream reported \(discarded) bytes passed over"
                 }
                 guard envelope.decodeState == .notText(bundleID: bundleID) else {
                     return "decodeState is \(envelope.decodeState)"
@@ -620,6 +677,157 @@ enum MessagesDecoderSelfTest {
                   + "one Apple attribute — and the bodies that carry a detected-entity list, a "
                   + "link preview and a third party's payload were not committed, so the count has "
                   + "never been read against one that has all three. \(pointer)")
+        }
+
+        // MARK: A body with no words in it — the effect rows, 2026-09-26
+        //
+        // **The roadmap's rule for this row was wrong, and the measurement is the reason.**
+        // `02-PHASE-1-P0-SLICE.md` §2 classified a non-text balloon by `payload_data` present
+        // **and** `balloon_bundle_id` set. All four measured effect rows have `text` NULL, a
+        // 314-byte `attributedBody`, and **both** of those columns absent — so the rule fires on
+        // nothing, and the assertion that was blocked for want of a capture turns out to have
+        // been blocked for want of a capture that disproves the rule it was going to assert.
+        //
+        // What the bytes are, measured: an ordinary **text balloon** — `NSAttributedString` →
+        // `NSObject`, the identical chain a sentence carries — whose one string field is **three
+        // bytes of `U+FFFC` and nothing else**, followed by 237 unread bytes of attribute graph
+        // that names no app. The chain is not the signal; the three bytes the walk read are.
+        // `MessagesDecoder.swift`'s "An effect is not an unreadable message" is the long form.
+        let effectCapture = Self.loadEffectCapture()
+        if case .unreadable(let reason) = effectCapture {
+            // Pointed at something and it was not usable: a **failure**, for the same reason
+            // `real_body_artefact` is one. This run was asked for four real rows and did not get
+            // them, and a green line saying it was waiting is the failure this design prevents.
+            failures.append("effect_capture_artefact: \(reason)")
+        }
+        if case .loaded(let rows) = effectCapture {
+            // **A block whose own annotation names no `text = NULL` row is a failure, not a
+            // block.** A file that is there and is not the capture this case is about is the
+            // "present-but-unusable" case, and the count must not move on it.
+            if rows.isEmpty {
+                failures.append("effect_capture_artefact: the block was read and none of its rows "
+                                + "is annotated text=NULL, so it is not an effect capture — the "
+                                + "capture and the case have to be about the same thing")
+            }
+            for row in rows {
+                let name = "effect_row_\(row.rowID)"
+
+                // The row shape, before the decoder is asked anything. **This is the
+                // measurement the roadmap's rule needed and did not have**, so it is asserted
+                // rather than assumed: if a future capture puts a bundle id on these rows, the
+                // case below must say so and the `nil` assertion has to be revisited on purpose.
+                await check("\(name)_has_the_measured_columns") {
+                    guard row.textWasNull else {
+                        return "the capture's own annotation for row \(row.rowID) does not say NULL"
+                    }
+                    guard row.blob.count == row.measuredBytes else {
+                        return "the capture annotates \(row.measuredBytes) bytes and the body is "
+                            + "\(row.blob.count)"
+                    }
+                    var message = MessageRow()
+                    message.rowID = Int64(row.rowID)
+                    message.guid = "FIXTURE-EFFECT-\(row.rowID)"
+                    message.text = nil            // what a `msg` line writes: never `text`
+                    message.attributedBody = row.blob
+                    message.payloadData = nil      // measured absent
+                    message.balloonBundleID = nil  // measured NULL
+                    guard message.payloadData == nil, message.balloonBundleID == nil else {
+                        return "the row shape is not the one the measurement described"
+                    }
+                    return nil
+                }
+
+                // **The assertion the roadmap was blocked on.** Not text, and not a refusal:
+                // an effect is a balloon that carries no sentence, which is a third thing and is
+                // the state the enum already had.
+                //
+                // `.unreadable` is ruled out on the facts, not on taste: the header was in the
+                // supported set, the chain parsed and the one string was read by its declared
+                // length, so nothing failed. Calling that a refusal is crying wolf on ordinary
+                // use, and the roadmap's own IM-05 spec says so.
+                await check("\(name)_is_not_text_and_not_unreadable") {
+                    guard let body = Self.effectEnvelope(row) else { return "the row did not open" }
+                    if let text = body.text {
+                        // Naming the length rather than the value: the marker is one code point
+                        // and printing it would put a character the sender never typed into a log.
+                        return "an effect came back as text — \(text.utf8.count) bytes, "
+                            + "\(text.count) characters"
+                    }
+                    guard case .notText(let bundleID, _) = body.body else {
+                        return "an effect came back as \(body.decodeState), which is not .notText"
+                    }
+                    guard let named = bundleID else {
+                        guard body.source == .attributedBody else {
+                            return "the classification came from \(body.source), not .attributedBody"
+                        }
+                        // The marker is the whole of what was read, and it is a *fact about the
+                        // bytes* rather than a rule applied to them: three bytes, one code point.
+                        guard MessagesDecoder.isAttachmentOnly(MessagesDecoder.attachmentMarker) else {
+                            return "the attachment marker is not the object-replacement character"
+                        }
+                        return nil
+                    }
+                    // Naming a length rather than the value: a bundle id is a schema key a person
+                    // should never be shown, and this line can land in a log file.
+                    return "an effect named an app, and the capture measured no app — "
+                        + "\(named.utf8.count) bytes of an identity nothing supplied"
+                }
+
+                // **The count, and it is the half that was impossible to assert before.**
+                //
+                // An earlier version of this file answered `0` discarded bytes for every body
+                // that was not `.text`, on the reasoning that a body with no words has nothing
+                // to have passed over. **The effect rows are the disproof: 314 bytes, 77 read,
+                // 237 unread** — a body with nothing to *read* and 237 bytes to pass over. A
+                // small count here would mean the walk stopped early, and stopping early on a
+                // body that has no words means it stopped *inside somebody else's payload*.
+                await check("\(name)_passes_over_its_whole_attribute_graph") {
+                    guard let body = Self.effectEnvelope(row) else { return "the row did not open" }
+                    let discarded = body.discardedBytes
+                    guard discarded > 0 else {
+                        return "a 314-byte effect reported 0 bytes passed over, so the count "
+                            + "cannot see the graph at all"
+                    }
+                    guard discarded > row.blob.count / 2 else {
+                        return "\(discarded) of \(row.blob.count) bytes reported as passed over — "
+                            + "less than half, so the walk claims to have read most of a body "
+                            + "whose only content is that there is nothing to read"
+                    }
+                    guard discarded < row.blob.count else {
+                        return "\(discarded) of \(row.blob.count) bytes reported as passed over, "
+                            + "so the walk claims to have read none of it"
+                    }
+                    guard envelopeCarriesNoMarker(body) else {
+                        return "the attachment marker reached a caller on a body that is not a "
+                            + "message with words"
+                    }
+                    measured.append("effect row \(row.rowID) — \(discarded) of \(row.blob.count) "
+                                    + "bytes passed over unread, the whole of them unreadable, "
+                                    + "and no app named anywhere in them")
+                    // The negative, over the whole rendered envelope rather than one field, so
+                    // a field added later that carried a third party's value is caught without
+                    // anyone editing this. Prints counts and lengths only — see the helper.
+                    return Self.nothingPassedOverReaches(
+                        String(describing: body), from: row.blob, discardedBytes: discarded,
+                        caseName: "effect row \(row.rowID)")
+                }
+            }
+            measured.append("\(rows.count) real effect rows, every one of them a text balloon "
+                            + "whose whole string is U+FFFC")
+        } else if case .absent = effectCapture {
+            // Named, uncounted, and saying where the bytes are. Same discipline as the real-body
+            // block above, and the same insistence: **not** counted, so the number stays a claim
+            // this run can stand behind.
+            block("effect-bubble-classification",
+                  "needs IM-01's real effect rows, which now exist: on 2026-09-26 the owner sent "
+                  + "an effect to their own conversation and it landed as four rows of 314 bytes "
+                  + "with `text` NULL, `payload_data` absent and `balloon_bundle_id` NULL — so the "
+                  + "roadmap's `payload_data` + `balloon_bundle_id` rule fires on none of them, and "
+                  + "the body is a text balloon whose one string is three bytes of U+FFFC. To run "
+                  + "the assertion: set \(effectCasesEnvironmentKey) to IM-01's `cases.sh` block, "
+                  + "`~/Library/Caches/NextNotesBuild/imessage/self-flow-case.sh`. It is not "
+                  + "committed and cannot be: `make-chatdb-fixture.sh`'s sanitisation guard refuses "
+                  + "the hex of a 314-byte body as a bare 11-digit number")
         }
 
         // MARK: The oracle
@@ -975,11 +1183,6 @@ enum MessagesDecoderSelfTest {
         // Each of these is an assertion the roadmap names that nothing available can support.
         // They are named, not skipped, and none of them is counted.
 
-        block("effect-bubble-classification",
-              "needs IM-01 experiment 11, a real effect bubble. The corpus's `reaction` row is a "
-              + "tapback and stands in for the `payload_data` + `balloon_bundle_id` pair, which is "
-              + "the half that is assertable offline")
-
         // One string, marker last. `writeSelfTest` writes it in a single call while `print` goes
         // through a buffered stream, so printing the diagnostics separately and returning the
         // marker puts the verdict *before* them on stdout — and a reader, or
@@ -1016,6 +1219,36 @@ enum MessagesDecoderSelfTest {
 
     // MARK: - The negative: nothing the walk passed over may reach a caller
 
+    /// The envelope a captured effect row produces, built exactly as the measurement described
+    /// the row: `text` NULL, the 314-byte body in `attributedBody`, and both of the columns the
+    /// roadmap's rule keyed on absent.
+    ///
+    /// `nil` rather than a message is not possible here — the row is three assignments — so the
+    /// optional is only so a caller can fail a case rather than trap. It never returns `nil`.
+    private static func effectEnvelope(_ row: EffectRow) -> IMessageEnvelope? {
+        var message = MessageRow()
+        message.rowID = Int64(row.rowID)
+        message.guid = "FIXTURE-EFFECT-\(row.rowID)"
+        message.text = nil
+        message.attributedBody = row.blob
+        message.payloadData = nil
+        message.balloonBundleID = nil
+        return MessagesDecoder.envelope(for: message)
+    }
+
+    /// Whether the object-replacement character reached a caller at all — over the **whole
+    /// rendered envelope**, so a field added later that carried it is caught without anyone
+    /// editing the case.
+    ///
+    /// This is the marker's own leak check, and it is separate from
+    /// `nothingPassedOverReaches` on purpose: that one compares printable-ASCII runs of six
+    /// bytes or more, and `U+FFFC` is none of those, so a decoder that answered
+    /// `.text("\u{FFFC}")` would sail past it. `envelope.text == nil` catches that spelling and
+    /// this catches the other one — a new field carrying the marker beside a correct state.
+    private static func envelopeCarriesNoMarker(_ envelope: IMessageEnvelope) -> Bool {
+        !String(describing: envelope).contains(MessagesDecoder.attachmentMarker)
+    }
+
     /// Assert that **no run of printable text from the bytes the walk did not read appears in
     /// what a caller can see** — over the whole rendered value, not over one field, so a new
     /// field carrying a third party's payload is caught without anyone editing the case.
@@ -1024,9 +1257,50 @@ enum MessagesDecoderSelfTest {
     ///
     /// Naming the attributes would be the denylist the design refuses: a bet on this macOS's
     /// attribute names, and a test that only knows the ones somebody remembered. Instead every
-    /// maximal printable-ASCII run of six bytes or more in the discarded region is a candidate,
+    /// printable-ASCII run of six bytes or more in the discarded region is a candidate,
     /// which is why `__kIMMessagePartAttributeName`, a link URL and a prose offer are all caught
     /// by the same three lines and a future tenth attribute is caught by them too.
+    ///
+    /// ## Sub-runs, and why comparing whole runs was a hole (IM-05c)
+    ///
+    /// **The first version compared *maximal* runs, and a mutation got past it.** The tempting
+    /// way to fill `.notText`'s id on a real effect row is to carry on past the sender's string
+    /// and take the next length-prefixed value that looks like an id — which is a search, the
+    /// thing this whole design forbids. On the 314-byte effect bodies that search finds the
+    /// 36-character file-transfer GUID in the attribute graph, and the leak assertion **stayed
+    /// green**: in the stream the value's maximal printable run is 37 bytes long because it
+    /// begins with the `+` that introduces it, and what reached the caller was the 36 bytes
+    /// *without* that one type tag. A whole-run comparison cannot see a value that arrived with
+    /// its framing stripped, which is exactly what a decoder does to it.
+    ///
+    /// **So every contiguous sub-run of six bytes or more is a candidate, not only the maximal
+    /// one.** The cost is a few thousand `contains` calls over runs of a few dozen bytes, which
+    /// is nothing.
+    ///
+    /// ## And a candidate only counts when it is *delimited* in the value, which is the second
+    /// half and is not optional
+    ///
+    /// Sub-runs alone produced nine false positives on the first try, and every one of them was
+    /// this app's own vocabulary: `__kIMMessagePartAttributeName` contains **`Message`**, which
+    /// is in `IMessageEnvelope`, and `__kIM…AttributeName` contains **`ttribute`**, which is in
+    /// `attributedBody`. The rendered value is a reflection of a Swift struct, so it contains
+    /// this decoder's type name and field names, and Apple's attribute names are built from the
+    /// same ordinary English words. That collision is a property of the *naming*, not a leak,
+    /// and no floor removes it — the two longest were eight bytes.
+    ///
+    /// **A value that reaches a caller is a value, and a value is delimited.** So a candidate
+    /// counts only when the rendered value contains it with a non-alphanumeric character (or an
+    /// edge) on both sides. The GUID the mutation leaks is rendered inside a quoted associated
+    /// value, so it is delimited and is caught; `Message` inside `IMessageEnvelope` and `ttribute`
+    /// inside `attributedBody` are interior to a longer identifier, and are not.
+    ///
+    /// **What this costs, stated rather than hidden:** a payload that reached a caller *spliced
+    /// onto the end of another value* would not be delimited and this case would miss it. That
+    /// is the one shape the check does not cover, and the honest reason it is not covered is
+    /// that covering it means denylisting this decoder's own identifiers, which is the bet the
+    /// design refuses everywhere else. The exact-character check `envelopeCarriesNoMarker` and the
+    /// `.notText` assertions do not have the blind spot, because they compare against a known
+    /// value rather than a rendering.
     ///
     /// Six bytes is the floor because the format's own bytes are dense: `streamtyped`, a class
     /// name, a `+` and a length all sit within a few bytes of each other, and a shorter floor
@@ -1034,8 +1308,8 @@ enum MessagesDecoderSelfTest {
     /// to look because the sender's own sentence is *not* in it — it is what the walk read — so
     /// nothing here can be a false positive on the message.
     ///
-    /// **A failure names how many runs and how long, never what they were.** A log line that
-    /// printed the offending run would be the leak.
+    /// **A failure names how many candidates and how long, never what they were.** A log line
+    /// that printed the offending run would be the leak.
     private static func nothingPassedOverReaches(
         _ rendered: String, from blob: Data, discardedBytes: Int, caseName: String
     ) -> String? {
@@ -1048,22 +1322,69 @@ enum MessagesDecoderSelfTest {
             if byte >= 0x20, byte < 0x7F {
                 current.append(Character(UnicodeScalar(byte)))
             } else {
-                if current.count >= 6 { runs.append(current) }
+                if current.count >= Self.leakFloor { runs.append(current) }
                 current = ""
             }
         }
-        if current.count >= 6 { runs.append(current) }
+        if current.count >= Self.leakFloor { runs.append(current) }
         guard !runs.isEmpty else {
-            return "\(caseName): the discarded region holds no printable run of six bytes or more, "
-                + "so the case cannot see a leak"
+            return "\(caseName): the discarded region holds no printable run of "
+                + "\(Self.leakFloor) bytes or more, so the case cannot see a leak"
         }
-        let leaked = runs.filter { rendered.contains($0) }
+        // Every contiguous sub-run, deduplicated, longest first — so a failure names the
+        // *longest* thing that got through rather than whichever run happened to be scanned
+        // first. This is the fix for a maximal-run comparison missing a value that reached a
+        // caller without its type tag; see this function's comment.
+        var candidates: [String] = []
+        var seen: Set<String> = []
+        for run in runs {
+            let characters = Array(run)
+            for start in 0..<characters.count {
+                for length in stride(from: characters.count - start, through: Self.leakFloor, by: -1) {
+                    let candidate = String(characters[start..<(start + length)])
+                    if seen.insert(candidate).inserted { candidates.append(candidate) }
+                }
+            }
+        }
+        let characters = Array(rendered)
+        let leaked = candidates.filter { Self.containsDelimited($0, in: characters) }
         guard leaked.isEmpty else {
-            return "\(caseName): \(leaked.count) of \(runs.count) runs from the "
-                + "\(passedOver.count) bytes the walk did not read appear in the value a caller "
-                + "can see, the longest \(leaked.map(\.count).max() ?? 0) bytes"
+            return "\(caseName): \(leaked.count) of \(candidates.count) printable sub-runs of "
+                + "\(Self.leakFloor)+ bytes from the \(passedOver.count) bytes the walk did not "
+                + "read appear in the value a caller can see as a whole delimited value, the "
+                + "longest \(leaked.map(\.count).max() ?? 0) bytes"
         }
         return nil
+    }
+
+    /// The shortest printable run that counts as somebody else's bytes rather than the format's.
+    ///
+    /// Six, and the reasoning is this file's: a class name, a tag and a length byte sit within a
+    /// few bytes of each other in a typedstream, so a shorter floor reports the encoding instead
+    /// of the payload.
+    private static let leakFloor = 6
+
+    /// Whether `candidate` appears in `haystack` as a **whole delimited value** — a
+    /// non-alphanumeric character, or the edge of the string, on both sides.
+    ///
+    /// This is the second half of the fix for the maximal-run hole, and it is what stops Apple's
+    /// attribute vocabulary from being mistaken for a leak: `Message` inside `IMessageEnvelope`
+    /// and `ttribute` inside `attributedBody` are interior to a longer identifier, while a value
+    /// that reached a caller sits inside a quoted associated value or between two separators.
+    private static func containsDelimited(_ candidate: String, in haystack: [Character]) -> Bool {
+        let needle = Array(candidate)
+        guard !needle.isEmpty, haystack.count >= needle.count else { return false }
+        func isWord(_ character: Character) -> Bool {
+            character.isLetter || character.isNumber || character == "_"
+        }
+        for start in 0...(haystack.count - needle.count)
+        where Array(haystack[start..<(start + needle.count)]) == needle {
+            let beforeOK = start == 0 || !isWord(haystack[start - 1])
+            let afterIndex = start + needle.count
+            let afterOK = afterIndex == haystack.count || !isWord(haystack[afterIndex])
+            if beforeOK, afterOK { return true }
+        }
+        return false
     }
 
     // MARK: - The local real body
@@ -1123,6 +1444,122 @@ enum MessagesDecoderSelfTest {
             return .unreadable("\(path)'s blob is \(blob.count) bytes — too short to be a typedstream")
         }
         return .loaded(RealBodyFixture(expected: text, blob: blob))
+    }
+}
+
+// MARK: - The local effect capture
+
+extension MessagesDecoderSelfTest {
+    /// One `text = NULL` row of an `EffectCapture`, with the annotation IM-01 wrote above it.
+    ///
+    /// The three annotation fields are **inputs to the assertions**, not provenance: `textWasNull`
+    /// is what selects the row out of the block (a body with a `text` column is not this case),
+    /// and `measuredBytes` is the length the capture itself claims, which the case checks the
+    /// decoded body against. A capture that annotates 314 bytes and carries 312 is a failure.
+    struct EffectRow: Sendable {
+        /// `message.ROWID` on the machine the capture came from. Opaque; used only for naming.
+        var rowID: Int
+        /// The capture said `text` was NULL on this row.
+        var textWasNull: Bool
+        /// The body length the capture annotated, in bytes.
+        var measuredBytes: Int
+        var blob: Data
+    }
+
+    /// What the effect block holds, as a value rather than a flag — so the run can tell *nobody
+    /// pointed at a file* (a block, and the cases stay uncounted) from *somebody pointed at a
+    /// file that is not usable* (a failure). The same three-way answer `RealBody` gives, for
+    /// the same reason.
+    enum EffectCapture {
+        case absent
+        case loaded([EffectRow])
+        case unreadable(String)
+    }
+
+    /// Read the `cases.sh` block, taking the rows whose own annotation says `text = NULL`.
+    ///
+    /// **What it reads and what it refuses to read.** Each `msg` block in the file is preceded by
+    /// IM-01's measurement — `# row 55198 · NULL · 314 bytes, first 16: …` — and the body is on
+    /// the `attributedBody=blob:` line inside the block. The first `msg` of the file references
+    /// a shell variable instead of inlining the hex, and it is skipped for that reason: a body
+    /// this file cannot see is a block, not a failure, and one it can see is the measurement.
+    ///
+    /// **The separator is the middot `·` IM-01's generator writes, and it is parsed rather than
+    /// pattern-matched loosely**: a file whose annotations do not have this shape is `unreadable`,
+    /// which is a failure — somebody pointed this at data and the data is not what it claims.
+    /// Nothing here is repaired.
+    static func loadEffectCapture() -> EffectCapture {
+        guard let path = ProcessInfo.processInfo.environment[effectCasesEnvironmentKey],
+              !path.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return .absent
+        }
+        guard let contents = try? String(contentsOfFile: path, encoding: .utf8) else {
+            return .unreadable("\(effectCasesEnvironmentKey) is set to \(path), which could not be read")
+        }
+        var pending: (rowID: Int, textWasNull: Bool, bytes: Int)?
+        var rows: [EffectRow] = []
+        for line in contents.split(separator: "\n", omittingEmptySubsequences: true) {
+            if let annotation = effectAnnotation(line) {
+                pending = annotation
+                continue
+            }
+            guard let hex = effectBlobHex(line) else { continue }
+            guard let annotation = pending else {
+                return .unreadable("\(path) has an attributedBody with no measurement above it — "
+                                   + "every body in this block is annotated by the capture that "
+                                   + "wrote it, and this one is not")
+            }
+            guard let blob = RealBodyFixture.bytes(fromHex: hex) else {
+                return .unreadable("\(path)'s body above row \(annotation.rowID) is "
+                                   + "\(hex.count) characters, which is not a whole number of hex bytes")
+            }
+            // **The predicate the case is about, taken from the capture and not from us**: only
+            // the rows whose own annotation says `text = NULL`. Everything else in the block is
+            // an ordinary sentence and is none of this case's business.
+            if annotation.textWasNull {
+                rows.append(EffectRow(rowID: annotation.rowID,
+                                      textWasNull: true,
+                                      measuredBytes: annotation.bytes,
+                                      blob: blob))
+            }
+            pending = nil
+        }
+        return .loaded(rows)
+    }
+
+    /// `# row 55198 · NULL · 314 bytes, first 16: 04 0B …` → `(55198, true, 314)`.
+    ///
+    /// The middle field is the `text` column as the capture measured it: `NULL`, or a character
+    /// count like `12 characters`. **The number beside `row` is never interpreted** — it is the
+    /// real `ROWID` on the owner's machine and is opaque here, exactly as
+    /// `IMessageEnvelope.rowID`'s own comment says it is.
+    private static func effectAnnotation(_ line: Substring) -> (rowID: Int, textWasNull: Bool, bytes: Int)? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasPrefix("#") else { return nil }
+        let parts = trimmed.dropFirst().split(separator: "·", omittingEmptySubsequences: true)
+        guard parts.count >= 3 else { return nil }
+        let head = parts[0].trimmingCharacters(in: .whitespaces)
+        let rowToken = head.split(separator: " ").last.map(String.init) ?? ""
+        guard let rowID = Int(rowToken) else { return nil }
+        // `12 characters` and `NULL` are the only two shapes the generator writes, and the
+        // second is the one this case is about. Anything else is a shape we do not know how to
+        // read, so it is not treated as a NULL.
+        let textField = parts[1].trimmingCharacters(in: .whitespaces)
+        let textWasNull = textField == "NULL"
+        let bytesToken = parts[2].trimmingCharacters(in: .whitespaces)
+            .split(separator: " ").first.map(String.init) ?? ""
+        guard let bytes = Int(bytesToken) else { return nil }
+        return (rowID, textWasNull, bytes)
+    }
+
+    /// The hex of one `attributedBody=blob:…` line, or `nil` for any other line.
+    ///
+    /// The first `msg` in the block writes `attributedBody="$BLOBBODY_REAL"` — a shell variable
+    /// this process cannot resolve — and it carries a `12 characters` annotation, so it is
+    /// skipped by the `text = NULL` filter rather than by a special case here.
+    private static func effectBlobHex(_ line: Substring) -> String? {
+        guard let range = line.range(of: "attributedBody=blob:") else { return nil }
+        return String(line[range.upperBound...]).trimmingCharacters(in: .whitespaces)
     }
 }
 

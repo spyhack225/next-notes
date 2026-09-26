@@ -58,8 +58,12 @@ import Foundation
 /// 3. `MessageBodySource` has four cases rather than two. A source of `.textColumn` attached
 ///    to a body that came from `payload_data` would be a lie the enum could not express.
 ///
-/// **`U+FFFC` is left in the text.** It is how a photo is marked; stripping it makes a photo
-/// message look empty, which is the exact failure this task exists to prevent.
+/// **`U+FFFC` is left in the text — unless it is the whole of it.** It is how a photo is marked,
+/// and stripping it out of `U+FFFC a caption` makes a photo message look empty, which is the
+/// exact failure this task exists to prevent. But when the marker's string field is **nothing
+/// but the marker**, there is no caption to keep and no sentence to read: the balloon is an
+/// attachment, and one object-replacement character is not the sender's words. That case is
+/// `.notText`, and §"An effect is not an unreadable message" below is the measurement behind it.
 ///
 /// ## Only the sender's own words leave this file (IM-17c, 2026-09-26)
 ///
@@ -183,13 +187,22 @@ struct IMessageEnvelope: Equatable, Sendable {
     /// How much of the body the walk did not read — a volume about the *format*, never about
     /// the message. See `MessageBody.text`'s comment and the file header's IM-17c section.
     ///
-    /// **Zero for a body that is not `.text`**, and that is not a measurement: a refusal is not
-    /// a partial read, and a body with no sender's words has nothing to have passed anything
-    /// over. The number that matters is on a body that decoded.
+    /// **Not zero for every non-`.text` body, and the reason is a measurement rather than a
+    /// preference.** A refusal is a whole body the walk did not enter, so it carries no partial
+    /// read; an *absent* row has no body at all. A **`.notText` body is the third thing**, and it
+    /// is the largest of the three: the effect rows measured on 2026-09-26 are 314 bytes of which
+    /// the walk read 77, so **237 bytes** of a third party's attribute graph were passed over
+    /// unread — and on a body whose whole content is "there is nothing here to read", that is the
+    /// number that says the walk stopped rather than wandered. An earlier version answered `0` for
+    /// every non-`.text` body on the reasoning that "a body with no sender's words has nothing to
+    /// have passed anything over"; the 314-byte effect disproves the reasoning — it has nothing to
+    /// *read* and 237 bytes to pass over — and a `0` there would have been the one value that says
+    /// the walk had read the whole body.
     var discardedBytes: Int {
         switch body {
         case .text(_, let discarded): discarded
-        case .unreadable, .notText, .absent: 0
+        case .notText(_, let discarded): discarded
+        case .unreadable, .absent: 0
         }
     }
 
@@ -201,7 +214,7 @@ struct IMessageEnvelope: Equatable, Sendable {
         switch body {
         case .text: .decoded
         case .unreadable(let reason): .unreadable(reason: reason)
-        case .notText(let bundleID): .notText(bundleID: bundleID)
+        case .notText(let bundleID, _): .notText(bundleID: bundleID)
         case .absent: .absent
         }
     }
@@ -219,9 +232,12 @@ extension MessagesDecoder {
     ///    check is *third* and not first. A photo message carries `payload_data` too, so
     ///    checking `payload_data` before the blob would turn every photo into a refusal and
     ///    throw away the caption.
-    /// 3. **`payload_data` + `balloon_bundle_id` last.** That pair is a non-text balloon: a
-    ///    tapback, an effect, an app extension's message. The bundle id survives into the
-    ///    value, so the agent layer can say what arrived.
+    /// 3. **`payload_data` + `balloon_bundle_id` next.** That pair is a non-text balloon: a
+    ///    tapback, an app extension's message. The bundle id survives into the value, so the
+    ///    agent layer can say what arrived. **This is one of two routes to `.notText`, not the
+    ///    only one** — the roadmap's table used to say it was the only one, and 2026-09-26's
+    ///    measurement is four effect rows with *both* columns NULL. An effect is classified by
+    ///    the walk instead; see `body(fromAttributedBody:)` and the section below.
     /// 4. **Neither body column** is `.absent`, which is an ordinary row — an SMS whose
     ///    `attributedBody` is genuinely NULL — and not an error.
     ///
@@ -239,10 +255,10 @@ extension MessagesDecoder {
             body = .text(text, discardedBytes: 0)
             source = .textColumn
         } else if let blob = row.attributedBody {
-            body = MessagesDecoder.body(fromAttributedBody: blob)
+            body = MessagesDecoder.body(fromAttributedBody: blob, balloonBundleID: row.balloonBundleID)
             source = .attributedBody
         } else if row.payloadData != nil, let bundleID = row.balloonBundleID, !bundleID.isEmpty {
-            body = .notText(bundleID: bundleID)
+            body = .notText(bundleID: bundleID, discardedBytes: 0)
             source = .payloadData
         } else {
             body = .absent
@@ -257,13 +273,19 @@ extension MessagesDecoder {
                         source: source)
     }
 
-    /// One `attributedBody` blob → `.text` or `.unreadable(reason:)`.
+    /// One `attributedBody` blob → `.text`, `.notText` or `.unreadable(reason:)`.
     ///
     /// Never `""` and never a throw, on purpose. The failure is a value so the caller can say
     /// something about it, and the reason carries a version byte and an offset — never a byte
     /// of the body — so it can go to the log and to the canary metric without carrying anybody's
     /// message with it.
-    static func body(fromAttributedBody blob: Data) -> MessageBody {
+    ///
+    /// `balloonBundleID` is the row's `message.balloon_bundle_id`, passed in rather than read
+    /// from the stream. It is `nil` on the measured effect rows and it is the only honest source
+    /// for the id: the walk stops at the sender's words by design, so it has not read the
+    /// attribute graph, and an id read out of the discarded region is a third party's value
+    /// promoted into a state a caller can say out loud.
+    static func body(fromAttributedBody blob: Data, balloonBundleID: String? = nil) -> MessageBody {
         guard blob.count <= maxBodyBytes else {
             return .unreadable(reason: .tooLarge(bytes: blob.count))
         }
@@ -278,11 +300,20 @@ extension MessagesDecoder {
             // nothing else. See the file header's IM-17c section for why it is here and not in
             // a scrubber three layers up.
             let decoded = try reader.senderText(of: blob)
+            let discarded = decoded.discardedBytes
+            let bundleID = (balloonBundleID?.isEmpty == false) ? balloonBundleID : nil
+            // **The attachment marker, when it is the whole of the body.** A balloon whose one
+            // string is a single object-replacement character is an attachment: there is no
+            // sentence in it to read, so it is `.notText` rather than a sentence. Measured on
+            // the 314-byte effect rows — see "An effect is not an unreadable message" below.
+            guard !decoded.isAttachmentOnly else {
+                return .notText(bundleID: bundleID, discardedBytes: discarded)
+            }
             // A stream that parses and holds a zero-length string is a body with no text in it,
             // not a body we could not read. Answering `.text("")` would put the one value this
             // whole task exists to keep out of the pipeline into it, so the invariant below
             // holds instead: **`text` is nil or non-empty, whichever column answered.**
-            return decoded.text.isEmpty ? .absent : .text(decoded.text, discardedBytes: decoded.discardedBytes)
+            return decoded.text.isEmpty ? .absent : .text(decoded.text, discardedBytes: discarded)
         } catch let failure as MessageDecodeFailure {
             return .unreadable(reason: failure)
         } catch {
@@ -290,6 +321,72 @@ extension MessagesDecoder {
         }
     }
 }
+
+// MARK: - An effect is not an unreadable message
+
+// Measured on this Mac, 2026-09-26, on four rows the owner captured by sending an effect to
+// their own conversation from their phone. **These four rows disprove the roadmap's rule for
+// `effect-bubble-classification`, and the answer is written here rather than left to the next
+// reader.**
+//
+// ## What the 314 bytes are
+//
+//     04 0b "streamtyped" 1000            header, streamer 4 / system 1000
+//     @  NSAttributedString(0)            the root, and it is an ordinary text balloon
+//          NSObject(0)                    — the identical chain a 189-byte sentence carries
+//     @  NSString(1) → NSObject(ref)      the balloon's first field
+//     +  03  ef bf bc                    **U+FFFC, and it is the entire string**
+//     86                                 end of object — the walk stops *before* this byte, at 77
+//     …  237 bytes unread                 the attribute graph, from that same byte 77 to 313
+//
+// So: **the chain does not name the effect.** `NSAttributedString` → `NSObject` is the same two
+// classes, in the same order, with the same versions, as the row on the same Mac that carries
+// `Loved an image`. Matching the chain, which is the thing `TYPEDSTREAM-NOTES.md` says survives a
+// format change, therefore tells you *nothing* about this row. **The only thing that says what
+// this body is, is the three bytes the walk read.**
+//
+// ## Is there a bundle or balloon id in the stream? No.
+//
+// The 237 unread bytes hold a class name (`NSDictionary`), three attribute names, an
+// `NSNumber`/`NSValue` pair and one id-shaped value: a 36-character UUID under
+// `__kIMFileTransferGUIDAttributeName`, and **a different one in each of the four rows**. That is
+// a per-message file-transfer id, not an app identity — the same message in the same thread four
+// times produces four different ones, which is the opposite of a bundle id. There is no `com.`
+// substring and no occurrence of "bundle" anywhere in the 314 bytes, and `balloon_bundle_id` is
+// NULL on all four rows.
+//
+// **So the classifier takes the id from the column, and only from the column.** `.notText`'s
+// bundle id is optional for the first time because a real row has none, and the alternative —
+// inventing one, or reading the transfer GUID out of the discarded region — would put a claim in
+// front of a person that the database does not support.
+//
+// ## Which state, and why not the other two
+//
+// - **Not text.** The one object-replacement character is Apple's marker for "there is an
+//   attachment here", not the sender's sentence. Answering `.text("\u{FFFC}")` hands a model a
+//   character the user never typed and calls it the user's words.
+// - **Not `.unreadable`.** Nothing failed. The header was in the supported set, the chain parsed,
+//   the first field's string was read by its declared length. `.unreadable(reason:)` means *this
+//   Mac could not read a body that has words in it*, and using it for an ordinary effect is
+//   crying wolf: the roadmap's own IM-05 spec says *"a decoder that reports it as unreadable
+//   would be crying wolf on half the messages"*, and a person told "I couldn't read that" every
+//   time they send a reaction stops trusting the feature and can no longer see the real
+//   breakage — a macOS update changing the format.
+// - **`.notText`, whose id is `nil`.** "Not a text balloon: a tapback, an effect, an app
+//   extension's message." An effect *is* that, and it is the case the enum has always named.
+//   The spelling was wrong, not the state: it required an id this row cannot supply.
+//
+// ## The rule, and what it deliberately does not do
+//
+// The first string field is compared for **equality** with the marker, not for containment.
+// `U+FFFC a caption` is a photo with a caption, the caption is the sender's, and it stays text
+// (`archiver_oracle_attachment_marker_survives` pins that half). Only a string that is *nothing
+// but* the marker is an attachment, because only then is there no sentence behind it.
+//
+// **A fifth case was considered and is not wanted.** `.notText` already means this; what the
+// measurement corrected is its payload — an id that may be absent — and its count. A new case
+// would be a second spelling of a state the enum already has, and the type-level enforcement
+// that matters here (`Text` has no `""`, `.text` cannot carry a second string) is untouched by it.
 
 // MARK: - The version gate
 
@@ -343,6 +440,15 @@ struct MessagesSchemaVersion: Equatable, Hashable, Sendable {
 /// with a second string in it is a compile error at every `case .text` in the tree, which is
 /// the enforcement; `archiver_a_foreign_payload_is_never_the_message` and
 /// `archiver_a_link_preview_does_not_change_the_message` are the assertions.
+///
+/// **The one string a non-text balloon may carry is an id, and it is optional (IM-05c).** It is
+/// optional because a measured effect row has none: `balloon_bundle_id` is NULL on all four of
+/// the 2026-09-26 rows and the stream holds no bundle id either (see "An effect is not an
+/// unreadable message" above). The invariant that buys is the one the measurement forced: **a
+/// non-text balloon can no longer be required to name an app**, so the classifier cannot invent
+/// an id to satisfy the type, and a caller cannot be written to print an identity the database
+/// does not have. Before this, the only two ways to construct the case on such a row were to
+/// fabricate a bundle id or to pass `""`, and both are lies a person would be shown.
 enum MessageBody: Equatable, Sendable {
     /// A body somebody can read. From `text`, or from a decoded stream.
     ///
@@ -356,9 +462,20 @@ enum MessageBody: Equatable, Sendable {
     /// A body this Mac could not read. **Never the empty string** — there is no way to spell
     /// that here, which is the point.
     case unreadable(reason: MessageDecodeFailure)
-    /// Not a text balloon: a tapback, an effect, an app extension's message. The bundle id is
-    /// kept so the agent layer can say what arrived.
-    case notText(bundleID: String)
+    /// Not a text balloon: a tapback, an effect, an app extension's message — a balloon that
+    /// carries no sentence, as against one this Mac could not read.
+    ///
+    /// `bundleID` is what the row names, and `nil` means **nothing named it**: the column was
+    /// NULL and the stream carries no id, which is the measured state of a real effect. It is
+    /// `nil`, never `""`, for the same reason `text` has no empty case — an absent name and an
+    /// empty one are different facts and only the first is true here.
+    ///
+    /// `discardedBytes` means exactly what it does on `.text`: bytes of this body the walk did
+    /// not read. It is **not** zero for this case and that is the point — a balloon with no
+    /// words in it is where the unread payload is largest (237 of 314 bytes on the measured
+    /// effect), so the number is what says the walk stopped instead of reading a third party's
+    /// attribute graph looking for a sentence.
+    case notText(bundleID: String?, discardedBytes: Int)
     /// No body column on this row at all — an SMS, or a row older than iMessage. An ordinary
     /// answer, distinct from a refusal.
     case absent
@@ -412,22 +529,35 @@ enum MessageDecodeFailure: Error, Equatable, Sendable {
 }
 
 /// What a caller can say about a body, without being handed the reason's innards.
+///
+/// **The name and nothing else, deliberately.** `.notText` carries the id — because naming what
+/// arrived is what the state is *for* — and not the count, because the count has its own accessor
+/// (`IMessageEnvelope.discardedBytes`) and one number with one meaning is worth more than a second
+/// copy of it that could disagree.
 enum MessageDecodeState: Equatable, Sendable {
     case decoded
     case unreadable(reason: MessageDecodeFailure)
-    case notText(bundleID: String)
+    /// A balloon that carries no sentence. The id is `nil` when nothing named what arrived, which
+    /// is the measured state of a real effect — see "An effect is not an unreadable message".
+    case notText(bundleID: String?)
     /// No body on this row. Not an error, and not an empty message.
     case absent
 }
 
 /// Which column produced the body. `.noColumn` is the honest answer for a row that had
 /// nothing to read; a source that lied would be worse than no source at all.
+///
+/// **A `.notText` body can come from either of two columns**, and this is what says which:
+/// `.payloadData` is the tapback route (`payload_data` + `balloon_bundle_id`, no stream to
+/// read) and `.attributedBody` is the effect route (a stream the walk read, which declared
+/// itself to hold no words). One state, two columns, and the accessor that tells them apart is
+/// data rather than a second case.
 enum MessageBodySource: Equatable, Sendable {
     /// `message.text`.
     case textColumn
-    /// `message.attributedBody`, decoded.
+    /// `message.attributedBody`, decoded — or read far enough to say it holds no words.
     case attributedBody
-    /// `message.payload_data` + `balloon_bundle_id` — a non-text balloon.
+    /// `message.payload_data` + `balloon_bundle_id` — a non-text balloon named by its column.
     case payloadData
     /// Nothing answered.
     case noColumn
@@ -649,6 +779,12 @@ private struct TypedStreamReader {
     /// looking. That is the whole difference from the search this replaced: the old walk
     /// descended into nested objects until it found a string it could justify, and a graph
     /// carrying a third party's payload can be searched *onto* that payload.
+    ///
+    /// **What the walk reads is the whole of the question, and the marker is part of what it
+    /// reads.** An attachment balloon's one string is `U+FFFC` — three bytes and no sentence — and
+    /// this method returns it as the string it is, with `isAttachmentOnly` answering the one
+    /// question the classifier then has to ask. It is *not* filtered out here, because a body
+    /// whose string is `U+FFFC a caption` is a photo with a caption and the caption is text.
     mutating func senderText(of blob: Data) throws -> DecodedText {
         // The root of a body is one type-prefixed object value, and its tag is `@`.
         guard let rootTag = try readSharedString(),
@@ -796,6 +932,27 @@ extension MessagesDecoder {
     static func tagName(_ tag: [UInt8]) -> String {
         String(decoding: tag, as: UTF8.self)
     }
+
+    /// **`U+FFFC OBJECT REPLACEMENT CHARACTER`**, which is what iMessage writes in a body's one
+    /// string when the balloon is an attachment rather than a sentence.
+    ///
+    /// **The exact scalar, compared for equality, and that is the whole rule.** Contained-in is
+    /// the obvious wrong comparison and the roadmap's own `U+FFFC` handling is what it would
+    /// break: a caption arrives in the same string, `U+FFFC a caption`, and the caption *is* the
+    /// sender's words. So the marker is text whenever it has company and is an attachment when it
+    /// is alone. Measured on this Mac, 2026-09-26, on the 314-byte effect rows: the field was
+    /// three bytes and nothing else.
+    static let attachmentMarker = "\u{FFFC}"
+
+    /// Whether a decoded body is the attachment marker and **nothing else** — the one question
+    /// `MessagesDecoder.body(fromAttributedBody:balloonBundleID:)` asks of a string it just read.
+    ///
+    /// Written as a `String` comparison rather than a scalar loop so that "the whole string" is
+    /// checked by the equality itself, and so the question cannot become "starts with the
+    /// marker" by an edit to the operator.
+    static func isAttachmentOnly(_ text: String) -> Bool {
+        text == attachmentMarker
+    }
 }
 
 /// The decoder's answer: the string the body is, and the volume of the body it passed over.
@@ -810,4 +967,8 @@ struct DecodedText: Equatable, Sendable {
     /// Bytes of the body the walk stopped short of. Zero only for a body that is nothing but
     /// the sentence.
     var discardedBytes: Int
+    /// **That the body is the attachment marker and no sentence at all** — a fact about what was
+    /// read, answered by the same equality every time, and a computed property so the question
+    /// cannot be asked two ways and answered two ways.
+    var isAttachmentOnly: Bool { MessagesDecoder.isAttachmentOnly(text) }
 }

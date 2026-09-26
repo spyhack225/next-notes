@@ -511,7 +511,10 @@ Messages claim stays blocked, and the blocked ones are named in
   a watchdog, and the self-test should assert the property by running every
   prefix case.
 - **`.notText(bundleID:)` for a `payload_data` + `balloon_bundle_id` row**, and
-  the bundle id survives to the value.
+  the bundle id survives to the value. ✅ **Widened on 2026-09-26** (IM-05c): that
+  pair is **one** route and was never the only one, and a real effect row has both
+  columns NULL and is classified from the walk instead. The id is `String?` now,
+  because nothing named what arrived. See *IM-05c*, at the end of this file.
 - **`.absent` when both body columns are NULL**, distinct from `.unreadable`.
 - **`text` takes precedence** when a row has both columns. ✅ **Asserted since
   2026-09-26**, and the roadmap was wrong that no case has one: on the Mac IM-01
@@ -563,11 +566,15 @@ enum, derive both, so they cannot disagree.
 ```swift
 /// Written against macOS 27.0 / typedstream header 04 00 00 00 · see TYPEDSTREAM-NOTES.md
 /// The supported-header set is DATA, not a branch: §4.1 is the test.
+///
+/// The `discardedBytes` on the two cases that own a string is IM-17c; the `String?`
+/// on `.notText` is IM-05c, and a real effect row is why — it is classified with
+/// no id at all. See *IM-05c*, at the end of this file.
 enum MessageBody: Equatable {
-    case text(String)                                   // from `text` or from a decoded stream
-    case unreadable(reason: MessageDecodeFailure)       // never ""
-    case notText(bundleID: String)                      // an effect, a tapback, a retracted body
-    case absent                                         // no body column at all
+    case text(String, discardedBytes: Int)                   // from `text` or from a decoded stream
+    case unreadable(reason: MessageDecodeFailure)            // never ""
+    case notText(bundleID: String?, discardedBytes: Int)     // an effect, a tapback, a captionless photo
+    case absent                                              // no body column at all
 }
 
 enum MessageDecodeFailure: Equatable {
@@ -987,3 +994,129 @@ everything else"*, and the shipped walk was a search rather than a walk-to. Ever
 design asked for is as written — one `Int`, no bag, no dictionary, no array of names, and the
 count on the value rather than beside it. The field's *name* is the one thing not as written, for
 the reason above.
+
+---
+
+## 2026-09-26 — IM-05c: a body with no words in it, and the rule that was wrong about it
+
+**The trigger.** The owner sent an **effect** to their own conversation from their phone. It landed
+as four rows, and it is the **first measured row shape on this machine with `text = NULL` and
+`payload_data` absent and `balloon_bundle_id` NULL** — every other row IM-01 captured had `text`.
+
+**So the roadmap's rule for this row fires on nothing.** `02-PHASE-1-P0-SLICE.md` §2 said:
+
+> `payload_data` present, `balloon_bundle_id` set → `.notText(bundleID:)` — a state the agent layer
+> can say out loud
+
+Both columns are NULL. The assertion `effect-bubble-classification` had been blocked for want of a
+capture, and the capture turns out to **disprove the rule it was going to assert**.
+
+### What the 314 bytes are, [measured]
+
+```text
+04 0b "streamtyped" 1000           header: streamer 4, system 1000
+@ NSAttributedString(0)             the root — an ordinary text balloon
+    NSObject(0)
+@ NSString(1) → NSObject(ref)       the balloon's first field
++ 03 ef bf bc                       **U+FFFC, and it is the whole string: 3 bytes, 1 code point**
+86                                  end of object — the walk stops *before* this byte, at offset 77
+… 237 bytes unread                  the attribute graph, from that same byte 77 to 313
+```
+
+**The chain does not name the effect, and that is the finding.** `NSAttributedString` → `NSObject`,
+in that order, with those versions, is **the identical chain** the 189-byte `Loved an image` row on
+the same Mac carries. §1's "match the chain rather than the leaf name" is the right rule and it is
+the rule that survives a format change — and on this row it has nothing to say. **The only thing
+that says what this body is, is the three bytes the walk read.**
+
+**One measurement worth its own line, because it is the difference between the two candidate
+states.** The stream parsed. The header pair is in `MessagesSchemaVersion.supported`, the class
+chain read, the first field's string read by its declared length. **Nothing failed.** So this is
+not `.unreadable(reason:)` — that state means *this Mac could not read a body that has words in it*,
+and using it for an ordinary effect is crying wolf on half the messages, which is the roadmap's own
+objection. And it is not text, because one object-replacement character is Apple's marker for
+"there is an attachment here" and is not the sender's sentence.
+
+### Is there a balloon or bundle id in the stream? [measured] No
+
+The 237 unread bytes hold a class name (`NSDictionary`), **three** `__kIM*` attribute names —
+
+| offset | what | kind |
+|---|---|---|
+| 89 | `NSDictionary` | class name, in the attribute graph |
+| 111 | `__kIMFileTransferGUIDAttributeName` | attribute key, 35 bytes |
+| 151 | 36-character value, `s`-prefixed UUID | **a per-message transfer id** |
+| 193 | `__kIMBaseWritingDirectionAttributeName` | attribute key, 39 bytes |
+| 238 / 250 | `NSNumber` / `NSValue` | the value of the writing direction, 5 non-text bytes |
+| 274 | `__kIMMessagePartAttributeName` | attribute key, 29 bytes |
+
+**The one id-shaped value is not an app identity, and the four rows prove it: each carries a
+*different* one.** The same message sent four times produces four transfer ids, which is the
+opposite of a bundle id. There is no `com.` substring anywhere in the 314 bytes and no occurrence
+of `bundle` at all; `balloon_bundle_id` is NULL on all four rows.
+
+**So the classifier takes the id from the column, and only from the column.** `.notText`'s bundle id
+became `String?` for this: the type could not express "arrived, and nothing named it", and the only
+two ways to force it to were to invent an id or to pass `""`. Both are lies a person would be shown.
+
+### The rule, stated once
+
+> A text balloon whose one string field is **equal to** `U+FFFC` — and to nothing else — is a
+> balloon with no sentence in it. It is `.notText`. A marker with a caption beside it is text,
+> because the caption is the sender's.
+
+`archiver_oracle_attachment_marker_survives` already pins the caption half, and it is why the
+comparison is equality and not containment: **on this row, containment and equality give the same
+answer**, so the effect case cannot tell them apart and the caption case is what does.
+
+### What changed in the count, and why 0 was wrong
+
+`IMessageEnvelope.discardedBytes` used to answer `0` for every body that was not `.text`, on the
+reasoning that *"a body with no sender's words has nothing to have passed anything over."* The
+effect rows are the disproof: **314 bytes, 77 read, 237 unread.** There is nothing to *read* and
+237 bytes to pass over. A `0` on this row is the one value that says the walk read the whole body,
+which is the single thing the IM-17c guarantee says it never does. `.notText` carries the count for
+exactly that reason, and the effect case asserts `discarded > blob.count / 2` — under half would
+mean the walk stopped early, and stopping early on a body that has no words means it stopped inside
+somebody else's payload.
+
+### The self-test, and the mutations that redden it
+
+`MessagesDecoderSelfTest` reads IM-01's `cases.sh` block through a second environment key
+(`IMESSAGE_DECODE_EFFECT_CASES`), not `IMESSAGE_DECODE_REAL_BLOB`, for two measured reasons: the
+real-body format **requires a `text=` line** because that is IM-01 §3.1's expected output and only
+a person knows it — **an effect has no sentence** — and the capture is **four rows**, not one body.
+A generated `.sqlite` is not possible either, and that was measured rather than assumed: asked to
+emit these four rows, `make-chatdb-fixture.sh` dies on its own sanitisation guard with
+
+```text
+CHATDB_FIXTURE_FAILED: refusing to emit a fixture containing a bare 11-digit number:
+53537472696 67008484084 73747265616 86928496961
+```
+
+**That is the guard working**, and it is the reason these bytes stay a local artefact. The block is
+read directly instead, which is the same row shape a generated database would have given: a `msg`
+line writes `attributedBody` and **never writes `text`**, so every row it declares is implicitly
+`text = NULL`.
+
+Three mutations, each reverted, in `~/Library/Caches/NextNotesBuild/imessage/IM-05c-red.txt`:
+
+1. **Delete the marker rule** → every effect comes back as text: *"an effect came back as text — 3
+   bytes, 1 characters"*. The message names lengths, never the character.
+2. **Invert the count on the marker path** (report the bytes read as the bytes passed over) →
+   *"77 of 314 bytes reported as passed over — less than half."*
+3. **Search the discarded region for the id** — the tempting wrong implementation, and it finds the
+   36-character transfer GUID → *"an effect named an app … 36 bytes of an identity nothing
+   supplied"*, **and** the no-leak assertion, which is the one that is supposed to catch this.
+
+**Mutation 3 found a real hole in IM-17c's leak check, and that is the more useful result.** The
+check compared *maximal* printable runs; in the stream the leaked value's run is 37 bytes because it
+begins with the `+` that introduces it, and what reached the caller was the 36 bytes **without**
+that one type tag — so a whole-run comparison cannot see a value that arrives with its framing
+stripped, which is precisely what a decoder does to it. Sub-runs alone then produced nine *false*
+positives, and every one was this app's own vocabulary: `__kIMMessagePartAttributeName` contains
+**`Message`**, which is in `IMessageEnvelope`, and `__kIM…AttributeName` contains **`ttribute`**,
+which is in `attributedBody`. No floor removes that collision. So a candidate now counts only when
+it is **delimited** on both sides in the rendered value: a value that reaches a caller is a value
+and a value is delimited. What that does not cover — a payload spliced onto the end of another
+value — is stated in the code rather than left to be discovered.
