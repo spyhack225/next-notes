@@ -3080,8 +3080,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// `--selftest-meeting-resume`: the M-08 resume planner, the isolated-store
-    /// resume run (3/3 seeded interruptions reach `.done` with notes), and the
-    /// stall watchdog. No model, no microphone, never the user's `Meetings/`.
+    /// resume run (3/3 seeded interruptions reach `.done` with notes), the
+    /// stall watchdog, and the M-16c debounced `transcript.json` write. No model,
+    /// no microphone, never the user's `Meetings/`.
     private func runMeetingResumeSelfTest() {
         Task { @MainActor in
             SelfTest.failed = !(await MeetingResumeSelfTest.run { writeSelfTest($0) })

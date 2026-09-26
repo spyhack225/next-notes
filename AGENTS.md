@@ -826,8 +826,8 @@ the intended order.
 **An interrupted meeting is resumed, not written off.** `make install` stops a running app
 with `pkill -x NextNotes`, a SIGTERM that skips `applicationWillTerminate`, and it is run many
 times a day on a development Mac. A meeting recording at that moment used to come back
-`.failed` at the next launch although `transcript.json` is written after every segment and is
-intact; one interrupted while diarizing or summarising came back `.done` without speakers or
+`.failed` at the next launch although `transcript.json` was on disk and intact; one
+interrupted while diarizing or summarising came back `.done` without speakers or
 notes, with its temporary audio already deleted — so it could never be re-diarized. Launch
 repair is now "plan, then resume": `MeetingStore.resumeAction` is the pure table,
 `MeetingStore.repairInterruptedMeetings()` repairs the statuses and returns the plan, and
@@ -858,6 +858,22 @@ the machine. A stalled pass is cancelled into the plain problem "This took much 
 should, so it was stopped. Try again." and **keeps its recording**, so the retry the problem
 offers has something to read. `--selftest-meeting-resume` is the gate (CORE); it seeds its
 meetings through `MeetingStore.isolated()` and injects its stage runners.
+
+**`transcript.json` is written on a 5 s throttle and flushed on every way out (M-16c).** The
+old comment's crash-safety argument — write it as it grows, because a two-hour meeting that
+loses everything at minute 118 is the failure this feature can least afford — was right and
+was also 2,700 whole-file rewrites, ≈1 GB, for a file that ends at half a megabyte.
+`TranscriptSaveThrottle` is the rule, pure so the session and its self-test decide the same
+way: the first segment writes at once, then at most one write per `interval`, and a trailing
+write puts the newest segment on disk inside the interval even when the meeting goes quiet.
+`stop()`, `endAbruptly()` and `abort` all flush unconditionally, and each write cancels the
+trailing one — a trailing write that outlived the meeting would put the live tier back over
+the long-window finals the M-01 final pass has already written. What protects the transcript
+is the *interval*, not the write count: a crash costs at most five seconds of speech, which
+is all the old comment ever needed. `--selftest-meeting-resume` (CORE) pins both halves — 100
+segments over 20 s of meeting clock make 4 writes and all 100 are on disk after
+`endAbruptly()` — and every write records a `meeting.transcript_write` row, so a real
+meeting's write count is a number rather than an estimate.
 
 **The notes model unloads itself.** `NotesModelRuntime` frees its weights ten minutes after
 the last generation, so the first meeting summarised after a quiet afternoon pays a cold

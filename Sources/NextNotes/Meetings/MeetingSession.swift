@@ -62,6 +62,29 @@ final class MeetingSession {
     /// so the tap-retry self-test runs without Parakeet. Set by the test, cleared after.
     nonisolated(unsafe) static var transcribeOverrideForTesting: ChunkedTranscriber.Transcribe?
 
+    /// Test-only (`--selftest-meeting-resume`, M-16c): the clock the transcript throttle
+    /// reads, so a self-test can put twenty seconds of segments through it in a
+    /// millisecond. Production leaves it nil and reads `Date()`.
+    private var transcriptClock: (() -> Date)?
+
+    /// Test-only setter for the throttle's clock (see `transcriptClock`).
+    func setTranscriptClockForTesting(_ clock: @escaping () -> Date) {
+        transcriptClock = clock
+    }
+
+    /// What the throttle calls "now". Everything that times the transcript file goes
+    /// through this one line, so a test's clock governs the write decision, the trailing
+    /// write's delay and the flush alike.
+    private var transcriptNow: Date { transcriptClock?() ?? Date() }
+
+    /// M-16c: the throttle's own state — when the file was last written, and whether a
+    /// segment is waiting to be in it. Nothing is written before the first segment.
+    private var transcriptThrottle = TranscriptSaveThrottle()
+
+    /// M-16c: the one trailing write a throttled segment arms, so a meeting that goes
+    /// quiet still puts its newest segment on disk within the interval.
+    private var transcriptTrailingWrite: Task<Void, Never>?
+
     /// Test-only: the cadence the M-09 tap retry waits between attempts. Production
     /// keeps `Self.tapRetryInterval`; the self-test shortens it to fit in seconds.
     private var tapRetryIntervalForTesting: Duration?
@@ -307,7 +330,8 @@ final class MeetingSession {
         await writer?.finish()
         writer = nil
 
-        store.saveTranscript(segments, for: meeting.id)
+        // M-16c: an exit path always writes the file, whatever the throttle had pending.
+        flushTranscript()
         // M-16a: the drain after Stop is a stage span, not a log line. Counts
         // only — no transcript text ever rides in a span note.
         LatencyTrace.record(
@@ -365,7 +389,9 @@ final class MeetingSession {
         case .finalPass, .pipelineAfterTranscript, .diarize, .notes, .extractAgain, .none:
             meeting.status = .transcribing
         }
-        store.saveTranscript(segments, for: meeting.id)
+        // M-16c: a throttle must never cost a crash-recoverable transcript, and this is
+        // the path a SIGTERM takes. Whatever the last write had pending is flushed here.
+        flushTranscript()
         store.save(meeting)
     }
 
@@ -576,8 +602,10 @@ final class MeetingSession {
     private func add(_ segment: TranscriptSegment) {
         lastSpeechAt = Date()
         let incoming = ActivationController.shared.handleWake(in: segment)
-        let index = segments.firstIndex { $0.start > incoming.start } ?? segments.endIndex
-        segments.insert(incoming, at: index)
+        // M-16c: the ordered insert and the file write travel together, so the write
+        // throttle cannot be exercised apart from the write it governs. `add` and
+        // `--selftest-meeting-resume` come through this one method.
+        insertSegment(incoming, now: transcriptNow)
         provisionalText[incoming.source] = nil
         let provisionalID = openProvisionalIDs.removeValue(forKey: incoming.source)
 
@@ -604,10 +632,6 @@ final class MeetingSession {
             )
         }
 
-        // Written on every segment rather than once at the end: a two-hour meeting that
-        // loses everything because the app was force-quit at minute 118 is the failure
-        // this feature can least afford, and the file is a few kilobytes.
-        store.saveTranscript(segments, for: meeting.id)
         Task {
             await TranscriptBus.shared.publish(
                 TranscriptEvent(
@@ -621,6 +645,71 @@ final class MeetingSession {
                 )
             )
         }
+    }
+
+    /// M-16c: one segment into the ordered transcript, and the decision about the file.
+    ///
+    /// The transcript is a crash record, so it is written on a throttle rather than on
+    /// every segment — `TranscriptSaveThrottle` — and every exit path flushes it. The
+    /// insert and the write are one call because a segment that is not in the file yet
+    /// is exactly what the throttle is counting.
+    private func insertSegment(_ segment: TranscriptSegment, now: Date) {
+        let index = segments.firstIndex { $0.start > segment.start } ?? segments.endIndex
+        segments.insert(segment, at: index)
+        let clock = now.timeIntervalSince1970
+        transcriptThrottle.markPending()
+        guard transcriptThrottle.shouldWrite(at: clock) else {
+            armTrailingTranscriptWrite()
+            return
+        }
+        writeTranscript(at: clock)
+    }
+
+    /// M-16c: the newest segment is on disk within one interval, even when nothing else
+    /// is said. Without it a meeting that went quiet after a throttled segment would keep
+    /// that segment in memory only, and a crash an hour later would lose it.
+    private func armTrailingTranscriptWrite() {
+        guard transcriptTrailingWrite == nil else { return }
+        let wait = TranscriptSaveThrottle.secondsUntilDue(
+            now: transcriptNow.timeIntervalSince1970,
+            lastWrite: transcriptThrottle.lastWrite
+        )
+        transcriptTrailingWrite = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(wait))
+            guard let self, !Task.isCancelled else { return }
+            self.transcriptTrailingWrite = nil
+            guard self.transcriptThrottle.pending else { return }
+            self.writeTranscript(at: self.transcriptNow.timeIntervalSince1970)
+        }
+    }
+
+    /// M-16c: the only place a live meeting writes `transcript.json`.
+    ///
+    /// A trailing write armed for an earlier segment must not outlive this one: the M-01
+    /// final pass overwrites `transcript.json` with long-window finals, and a late write
+    /// of the live tier would put the shorter one back.
+    private func writeTranscript(at clock: TimeInterval) {
+        transcriptTrailingWrite?.cancel()
+        transcriptTrailingWrite = nil
+        let trace = LatencyTrace.start(.meetingTranscriptWrite)
+        store.saveTranscript(segments, for: meeting.id)
+        trace.end(note: "segments=\(segments.count)")
+        transcriptThrottle.recordWrite(at: clock)
+    }
+
+    /// M-16c: every exit path — `stop`, `endAbruptly` and `abort` — writes the file
+    /// whatever the throttle thought. A meeting that is over must be on disk: the
+    /// pipeline reads it next, and the next launch resumes from it.
+    private func flushTranscript() {
+        transcriptThrottle.markPending()
+        writeTranscript(at: transcriptNow.timeIntervalSince1970)
+    }
+
+    /// Test-only (`--selftest-meeting-resume`, M-16c): one segment through the ordered
+    /// insert and the throttled write, with no capture, no bus, no context store and no
+    /// model — the two things M-16c governs, driven directly. `add` calls the same pair.
+    func insertSegmentForTesting(_ segment: TranscriptSegment) {
+        insertSegment(segment, now: transcriptNow)
     }
 
     private func abort(reason: String) async {
@@ -641,7 +730,63 @@ final class MeetingSession {
         writer = nil
         meeting.status = .failed(reason)
         meeting.end = Date()
+        // M-16c: the third exit path. A start that failed still has a folder, and a
+        // segment that reached `add` before the failure is still a crash record.
+        flushTranscript()
         store.save(meeting)
+    }
+}
+
+/// M-16c: when `transcript.json` is written while a meeting records.
+///
+/// The file is the meeting's crash record — `MeetingStore.resumeAction` decides from it
+/// whether there is anything to resume — so it cannot be written rarely. But rewriting
+/// the whole thing on every 2–5 s segment is the wrong kind of careful: a two-hour
+/// meeting is ≈2,700 writes of a file that ends at half a megabyte, so the disk absorbs
+/// roughly a gigabyte of rewriting to protect a record nobody reads until something went
+/// wrong. The compromise is one write per interval, a trailing write so the newest
+/// segment is never more than one interval from disk, and an unconditional flush on
+/// every exit path — so a crash costs at most `interval` seconds of speech.
+///
+/// Pure, so `MeetingSession` and `--selftest-meeting-resume` decide by the same rule
+/// and the case that pins the count also pins the interval.
+struct TranscriptSaveThrottle {
+    /// The task's number, and a limit: a crash may cost at most this much unwritten
+    /// speech, and the old comment's argument ("a two-hour meeting that loses
+    /// everything at minute 118") holds at a 5 s interval.
+    static let interval: TimeInterval = 5
+
+    /// When the file was last written, on the same clock as `now`. Nil before the first.
+    private(set) var lastWrite: TimeInterval?
+    /// Segments have arrived that the file does not have yet.
+    private(set) var pending = false
+
+    /// A segment is waiting to be in the file.
+    mutating func markPending() { pending = true }
+
+    /// The file holds everything again.
+    mutating func recordWrite(at now: TimeInterval) {
+        lastWrite = now
+        pending = false
+    }
+
+    /// The rule on its own, so the table in the self-test reads as the specification:
+    /// never write an unchanged file, write the first segment at once, and after that
+    /// only once the interval has passed.
+    func shouldWrite(at now: TimeInterval) -> Bool {
+        Self.shouldWrite(now: now, lastWrite: lastWrite, pending: pending)
+    }
+
+    static func shouldWrite(now: TimeInterval, lastWrite: TimeInterval?, pending: Bool) -> Bool {
+        guard pending else { return false }
+        guard let lastWrite else { return true }
+        return now - lastWrite >= interval
+    }
+
+    /// How long a trailing write should wait, so it lands when the next segment would.
+    static func secondsUntilDue(now: TimeInterval, lastWrite: TimeInterval?) -> TimeInterval {
+        guard let lastWrite else { return 0 }
+        return max(0, interval - (now - lastWrite))
     }
 }
 

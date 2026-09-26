@@ -38,6 +38,11 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
     case meetingDiarize = "meeting.diarize"
     case meetingNotes = "meeting.notes"
     case meetingWindowsDropped = "meeting.windows_dropped"
+    // M-16c: one `transcript.json` write while a meeting records. The live tier is
+    // written on a throttle rather than per segment, so this row is also the count
+    // of how many writes a meeting really made — the note carries the segment count
+    // each one put on disk. Counters, like the rows above: no text, no title.
+    case meetingTranscriptWrite = "meeting.transcript_write"
 
     // Agent — §35
     case agentWakeToListeningUI = "agent.wake_to_listening_ui"
@@ -80,7 +85,7 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
         case .meetingSpeechToPartial, .meetingSpeechToFinal, .meetingTranscriptToContext,
              .meetingActionPhraseToCandidate, .meetingCandidateToCard,
              .meetingDrain, .meetingFinalPass, .meetingDiarize,
-             .meetingNotes, .meetingWindowsDropped:
+             .meetingNotes, .meetingWindowsDropped, .meetingTranscriptWrite:
             return .meeting
         case .agentWakeToListeningUI, .agentSpeechEndToTranscript,
              .agentTranscriptToFirstToken, .agentFirstTokenToFirstTTS,
@@ -442,10 +447,12 @@ struct LatencyTrace: Sendable {
 
         // M-16a: every new stage span round-trips through the isolated store
         // with the meeting pipeline. A span filed under the wrong pipeline is
-        // a row the meeting report can never find.
+        // a row the meeting report can never find. M-16c added the sixth
+        // (`meeting.transcript_write`) for the same reason: the debounced
+        // transcript write is the number that says how much a meeting wrote.
         for id in [
             LatencySpanID.meetingDrain, .meetingFinalPass, .meetingDiarize,
-            .meetingNotes, .meetingWindowsDropped,
+            .meetingNotes, .meetingWindowsDropped, .meetingTranscriptWrite,
         ] as [LatencySpanID] {
             let staged = LatencyTrace.record(id, seconds: 0.01, note: "m16a", store: store)
             if staged.pipeline != .meeting {

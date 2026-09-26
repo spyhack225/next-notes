@@ -2,7 +2,9 @@ import Foundation
 
 /// `--selftest-meeting-resume` (M-08): interrupted meetings resume at their stage,
 /// temporary audio survives repair, the stall watchdog fires, and a resume either
-/// finishes a meeting or parks it — never re-resumes it next launch.
+/// finishes a meeting or parks it — never re-resumes it next launch. M-16c added the
+/// debounced `transcript.json` write to the same flag, because a throttle that can lose
+/// a crash-recoverable transcript is a resume that cannot be trusted.
 ///
 /// No model, no microphone. Every seeded meeting lives in `MeetingStore.isolated()`,
 /// never the user's `Meetings/`; every stage runner is a fake.
@@ -237,10 +239,137 @@ enum MeetingResumeSelfTest {
             check("stalled notes kept its audio", fm.fileExists(atPath: audioURL.path))
         }
 
+        // MARK: - e. Debounced `transcript.json` writes (M-16c).
+
+        var throttleReport = "not run"
+        // The rule itself, as a table. The interval is the number the task fixes and
+        // caps: a crash may not cost more than one interval of unwritten speech.
+        check("the transcript throttle interval is 5s, not \(TranscriptSaveThrottle.interval)s",
+              TranscriptSaveThrottle.interval == 5)
+        let t0 = 1_000.0
+        let ruleCases: [(String, TimeInterval, TimeInterval?, Bool, Bool)] = [
+            ("nothing pending never writes", t0 + 100, t0, false, false),
+            ("the first segment writes at once", t0, nil, true, true),
+            ("a second segment inside the interval waits", t0 + 4.99, t0, true, false),
+            ("a segment at the interval is due", t0 + 5, t0, true, true),
+            ("a segment after the interval is due", t0 + 900, t0, true, true),
+        ]
+        for (name, now, lastWrite, pending, expected) in ruleCases {
+            let got = TranscriptSaveThrottle.shouldWrite(
+                now: now, lastWrite: lastWrite, pending: pending)
+            check("rule: \(name) got \(got)", got == expected)
+        }
+        check("a trailing write waits out the rest of the interval "
+              + "(\(TranscriptSaveThrottle.secondsUntilDue(now: t0 + 2, lastWrite: t0)))",
+              TranscriptSaveThrottle.secondsUntilDue(now: t0 + 2, lastWrite: t0) == 3)
+        check("a trailing write past its due time waits 0s",
+              TranscriptSaveThrottle.secondsUntilDue(now: t0 + 9, lastWrite: t0) == 0)
+
+        do {
+            let store = MeetingStore.isolated()
+            // The file is the crash record, so the assertions read it from disk rather
+            // than through `store.transcript(for:)`, which answers from the cache the
+            // write just filled.
+            func onDisk(_ id: UUID) -> [TranscriptSegment] {
+                let url = store.directory(for: id)
+                    .appendingPathComponent(MeetingStore.transcriptFile)
+                guard let data = try? Data(contentsOf: url) else { return [] }
+                return (try? JSONDecoder().decode([TranscriptSegment].self, from: data)) ?? []
+            }
+            // One row per write is what production records, so the rows are the count.
+            func writes() -> Int {
+                MetricsStore.shared.spans(named: .meetingTranscriptWrite).count
+            }
+
+            // 100 segments over 20 s of meeting clock: five 5-second writes at most,
+            // then the flush every exit path owes. A crash may cost one interval of
+            // speech, so the file has to be whole by the time the meeting is over.
+            let meeting = Meeting(title: "Throttle seed", start: Date(), status: .recording)
+            store.save(meeting)
+            let session = MeetingSession(meeting: meeting, store: store)
+            let clock = SimulatedClock(Date())
+            session.setTranscriptClockForTesting { clock.now }
+            let before = writes()
+            for index in 0 ..< 100 {
+                clock.now = clock.now.addingTimeInterval(0.2)
+                session.insertSegmentForTesting(
+                    TranscriptSegment(
+                        start: Double(index) * 0.2,
+                        end: Double(index) * 0.2 + 0.2,
+                        text: "throttled line \(index)",
+                        source: index.isMultiple(of: 2) ? .mic : .system
+                    )
+                )
+            }
+            let throttled = writes() - before
+            check("100 segments over 20s made \(throttled) write(s), expected at most 5",
+                  throttled >= 1 && throttled <= 5)
+            check("the throttle wrote nothing at all", throttled >= 1)
+            // A throttle must never cost a crash-recoverable transcript: `endAbruptly` is
+            // what a SIGTERM (`make install` sends one many times a day) reaches.
+            session.endAbruptly()
+            let flushed = onDisk(meeting.id)
+            check("endAbruptly left \(flushed.count)/100 segment(s) on disk", flushed.count == 100)
+            check("the flushed transcript is ordered",
+                  flushed == flushed.sorted { $0.start < $1.start })
+            check("endAbruptly left the meeting resumable",
+                  store.meeting(id: meeting.id)?.status == .transcribing)
+            throttleReport = "\(throttled) write(s) for 100 segments, flushed to \(flushed.count)"
+
+            // The trailing write, then the exit path that cancels it. One session, the
+            // real clock, the real interval — nothing here is shortened.
+            let quiet = Meeting(title: "Trailing write", start: Date(), status: .recording)
+            store.save(quiet)
+            let quietSession = MeetingSession(meeting: quiet, store: store)
+            let quietBefore = writes()
+            quietSession.insertSegmentForTesting(
+                TranscriptSegment(start: 0, end: 2, text: "first", source: .mic))
+            let afterFirst = writes() - quietBefore
+            quietSession.insertSegmentForTesting(
+                TranscriptSegment(start: 2, end: 4, text: "second", source: .mic))
+            let whileThrottled = writes() - quietBefore
+            check("a segment inside the interval wrote anyway (\(afterFirst) → \(whileThrottled))",
+                  afterFirst == 1 && whileThrottled == 1)
+            // A meeting that goes quiet must still reach disk inside the interval: that
+            // is the trailing write, and it is the only thing standing between a
+            // throttled segment and an hour-long crash.
+            try? await Task.sleep(for: .milliseconds(5_600))
+            let afterTrailing = writes() - quietBefore
+            check("no trailing write after 5.6s (\(afterTrailing) write(s), expected 2)",
+                  afterTrailing == 2)
+            check("the trailing write did not reach the file", onDisk(quiet.id).count == 2)
+            quietSession.insertSegmentForTesting(
+                TranscriptSegment(start: 4, end: 6, text: "third", source: .mic))
+            let beforeExit = writes() - quietBefore
+            check("a segment inside the interval wrote anyway (\(afterTrailing) → \(beforeExit))",
+                  beforeExit == 2)
+            quietSession.endAbruptly()
+            let afterExit = writes() - quietBefore
+            check("endAbruptly wrote the pending segment (\(afterExit) write(s), expected 3)",
+                  afterExit == 3)
+            check("endAbruptly put every segment on disk", onDisk(quiet.id).count == 3)
+            // The final pass overwrites this file with long-window finals, so a trailing
+            // write that outlived the exit would put the shorter live tier back.
+            try? await Task.sleep(for: .milliseconds(5_600))
+            check("the file was written again after the meeting was over "
+                  + "(\(writes() - quietBefore) write(s), expected 3)",
+                  writes() - quietBefore == 3)
+            check("the file was rewritten after the meeting was over", onDisk(quiet.id).count == 3)
+            throttleReport += "; a trailing write inside the interval, cancelled by the exit"
+        }
+        log("MEETING_RESUME_THROTTLE: \(throttleReport)")
+
         for failure in failures { log("MEETING_RESUME_WRONG: \(failure)") }
         log(failures.isEmpty
-            ? "MEETING_RESUME_OK: 3/3 resumable meetings reached .done with notes; no temp audio released early"
+            ? "MEETING_RESUME_OK: 3/3 resumable meetings reached .done with notes; no temp audio released early; \(throttleReport)"
             : "MEETING_RESUME_FAILED: \(failures.count) check(s) wrong")
         return failures.isEmpty
     }
+}
+
+/// A clock the throttle reads, so twenty seconds of segments cost a millisecond.
+/// Production reads `Date()`; only the self-test installs one of these.
+private final class SimulatedClock {
+    var now: Date
+    init(_ now: Date) { self.now = now }
 }
