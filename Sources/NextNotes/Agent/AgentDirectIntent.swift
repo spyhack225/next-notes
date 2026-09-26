@@ -56,6 +56,31 @@ enum AgentDirectIntent: Equatable, Sendable {
         "want", "need", "like", "to", "me", "my", "nothing", "next", "will's", "let's",
     ]
 
+    /// Site phrases a person says out loud, checked **before** `knownSites` and matched as
+    /// contiguous word runs. G N7 (turn A6, 22:07:03): "Open google calendar on google
+    /// chrome" said "Opening https://www.google.com…" and opened Chrome on google.com,
+    /// because a single-word table has nowhere to put "calendar" and the bare word "google"
+    /// won the sentence before the second word was read.
+    ///
+    /// Every host was checked on 2026-09-26: each either serves its own product or
+    /// redirects to its own entry point (sheets → docs.google.com/spreadsheets, slides →
+    /// docs.google.com/presentation, mail → mail.google.com/mail, maps →
+    /// maps.google.com/maps). Longest first, so a longer phrase added later wins.
+    ///
+    /// A phrase's words are *consumed*: `siteMatch` hands the indices back, so the strict
+    /// remainder does not read them as instructions and `namedApp` does not read the second
+    /// word as a separate app.
+    private static let knownSitePhrases: [(words: [String], url: String)] = [
+        (["google", "calendar"], "https://calendar.google.com"),
+        (["google", "docs"], "https://docs.google.com"),
+        (["google", "drive"], "https://drive.google.com"),
+        (["google", "mail"], "https://mail.google.com"),
+        (["google", "maps"], "https://maps.google.com"),
+        (["google", "meet"], "https://meet.google.com"),
+        (["google", "sheets"], "https://sheets.google.com"),
+        (["google", "slides"], "https://slides.google.com"),
+    ].sorted { $0.words.count > $1.words.count }
+
     /// Site words a person says without a domain. Each maps to the page they mean.
     private static let knownSites: [String: String] = [
         "youtube": "https://www.youtube.com", "gmail": "https://mail.google.com",
@@ -137,9 +162,11 @@ enum AgentDirectIntent: Equatable, Sendable {
         "and", "then", "page", "website", "site", "tab", "new", "go", "to",
     ]
 
-    /// Everything `openRemainder(_:)` treats as consumed: the words above, the filler a
-    /// dictated request carries at the front, the verb in any of its spoken spellings, and
-    /// the two-word site words ("google drive" names a page, not two extra words).
+    /// Everything `openRemainder(_:consumed:)` treats as consumed: the words above, the
+    /// filler a dictated request carries at the front, the verb in any of its spoken
+    /// spellings, and every word of every app and site name ("google drive" names a page,
+    /// not two extra words). A multi-word site phrase is handled by index instead, through
+    /// `siteMatch`, so a word only it uses — "docs", "sheets" — is still consumed.
     private static let openConsumed: Set<String> = {
         var words = structural
         words.formUnion(leadingFiller)
@@ -157,12 +184,14 @@ enum AgentDirectIntent: Equatable, Sendable {
     private static func parseOpen(
         _ text: String, wholeSentence: Bool = true
     ) -> AgentDirectIntent? {
-        let app = namedApp(in: text)
-        let url = namedURL(in: text)
+        let words = text.split(whereSeparator: \.isWhitespace).map(String.init)
+        let site = siteMatch(in: words)
+        let consumed = site?.consumed ?? []
+        let app = namedApp(in: text, excluding: consumed)
         // "open chrome" with nothing else in the sentence beyond filler. Anything left over
         // is a second instruction, so the shortcut stands down and the planner reads it.
-        if wholeSentence, !openRemainder(text).isEmpty { return nil }
-        if let url { return .openURL(url: url, app: app) }
+        if wholeSentence, !openRemainder(words, consumed: consumed).isEmpty { return nil }
+        if let site { return .openURL(url: site.url, app: app) }
         guard let app else { return nil }
         return .openApp(app)
     }
@@ -175,40 +204,71 @@ enum AgentDirectIntent: Equatable, Sendable {
     /// answered "Opened youtube.com." in 0.3 s — the page opened, the request was dropped,
     /// and nothing said so. A non-empty answer here is a second instruction this parser
     /// cannot read, so the planner reads it instead.
-    private static func openRemainder(_ text: String) -> [String] {
-        text.split(whereSeparator: \.isWhitespace).map(String.init).filter { word in
-            if openConsumed.contains(word) { return false }
+    ///
+    /// `consumed` is the phrase words a multi-word site match already took. Without it
+    /// "open google docs" would be rejected for the one word that named the page.
+    private static func openRemainder(_ words: [String], consumed: Set<Int>) -> [String] {
+        words.enumerated().compactMap { index, word in
+            if consumed.contains(index) { return nil }
+            if openConsumed.contains(word) { return nil }
             // A spelled domain, scheme or path is the page, not an instruction.
-            return !word.contains(".") && !word.contains("/") && !word.contains(":")
+            return word.contains(".") || word.contains("/") || word.contains(":") ? nil : word
         }
     }
 
-    /// A spelled domain, or a site word the user said on its own.
-    static func namedURL(in text: String) -> String? {
-        let words = text.split(whereSeparator: \.isWhitespace).map(String.init)
-        for word in words {
+    /// A page, spelled out, and the words that named it.
+    ///
+    /// Three passes, in the order the evidence deserves them. A multi-word phrase first, so
+    /// "google calendar" is one page rather than the first single word in it. Then a spelled
+    /// domain, which is the strongest thing a person can say — that order is unchanged from
+    /// before the phrases existed, and reversing it would let a bare "google" beat a
+    /// typed "youtube.com". Then a bare site word, with its app exception.
+    private static func siteMatch(in words: [String]) -> (url: String, consumed: Set<Int>)? {
+        for phrase in knownSitePhrases {
+            let count = phrase.words.count
+            for start in words.indices where words.count >= start + count
+                && Array(words[start..<(start + count)]) == phrase.words {
+                return (phrase.url, Set(start..<(start + count)))
+            }
+        }
+        for (index, word) in words.enumerated() {
             let cleaned = word.trimmingCharacters(in: CharacterSet(charactersIn: ".,"))
-            if cleaned.hasPrefix("http://") || cleaned.hasPrefix("https://") { return cleaned }
+            if cleaned.hasPrefix("http://") || cleaned.hasPrefix("https://") {
+                return (cleaned, [index])
+            }
             guard cleaned.contains("."), !cleaned.hasPrefix("."), !cleaned.hasSuffix(".") else { continue }
             let host = cleaned.split(separator: "/").first.map(String.init) ?? cleaned
             guard let suffix = host.split(separator: ".").last, suffix.count >= 2,
                   suffix.allSatisfy(\.isLetter) else { continue }
-            return "https://" + cleaned
+            return ("https://" + cleaned, [index])
         }
         // A bare site word only counts when it is not also the app the user named.
-        for word in words {
-            if let site = knownSites[word], knownApps[word] == nil || words.count > 2 { return site }
+        for (index, word) in words.enumerated() {
+            if let site = knownSites[word], knownApps[word] == nil || words.count > 2 {
+                return (site, [index])
+            }
         }
         return nil
     }
 
+    /// The page the user named, and nothing else about the sentence. A spelled domain, a
+    /// two-word site phrase, or a site word said on its own.
+    static func namedURL(in text: String) -> String? {
+        siteMatch(in: text.split(whereSeparator: \.isWhitespace).map(String.init))?.url
+    }
+
     /// The app the user named, canonicalised to the name `computer.open_app` expects.
-    static func namedApp(in text: String) -> String? {
+    ///
+    /// `excluding` is the words a site phrase already claimed, so "calendar" inside "google
+    /// calendar" is the page and not Apple's Calendar app — the sentence named one thing to
+    /// open, and opening two is not what anybody asked for.
+    static func namedApp(in text: String, excluding consumed: Set<Int> = []) -> String? {
         // Two-word names first, so "google chrome" is not read as "google".
         for (spoken, app) in knownApps where spoken.contains(" ") {
             if text.contains(spoken) { return app }
         }
-        let words = Set(text.split(whereSeparator: \.isWhitespace).map(String.init))
+        let words = Set(text.split(whereSeparator: \.isWhitespace).enumerated()
+            .filter { !consumed.contains($0.offset) }.map { String($0.element) })
         for (spoken, app) in knownApps where !spoken.contains(" ") {
             // "open google chrome" already matched above; a lone "google" is the site.
             if words.contains(spoken), !(spoken == "google" || spoken == "mail" || spoken == "notes") {

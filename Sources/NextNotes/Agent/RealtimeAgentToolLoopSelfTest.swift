@@ -1022,6 +1022,36 @@ enum RealtimeAgentToolLoopSelfTest {
             ("find the pricing document and email it to marcus", nil,
              .locate(query: "pricing document email marcus", wantsFolder: false)),
             ("open safari", .openApp("Safari"), .openApp("Safari")),
+
+            // P1-13. G N7, A6 22:07:03: "Open google calendar on google chrome" said
+            // "Opening https://www.google.com…" and opened Chrome on google.com — the
+            // calendar never opened, the planner then refused, and it fabricated a
+            // get_agenda run. `knownSites` held single words only, so the bare word
+            // "google" won the sentence before "calendar" was ever read.
+            //
+            // Red on the unmodified parser: rows 1, 2, 4 and 7 (loose). Rows 3, 5 and 6
+            // are the regressions that must not move — row 3 is Apple's Calendar app,
+            // row 5 is the one-word site the phrases share a word with, and row 6 is
+            // P1-08's "the planner decides the rest" rule.
+            ("open google calendar on google chrome",
+             .openURL(url: "https://calendar.google.com", app: "Google Chrome"),
+             .openURL(url: "https://calendar.google.com", app: "Google Chrome")),
+            // A lone "calendar" is Apple's Calendar app; inside "google calendar" it is
+            // the page, and the app must not be opened as well.
+            ("open google calendar", .openURL(url: "https://calendar.google.com", app: nil),
+             .openURL(url: "https://calendar.google.com", app: nil)),
+            ("open calendar", .openApp("Calendar"), .openApp("Calendar")),
+            // "docs" is not a word the strict remainder knows, so this row also pins that
+            // a matched phrase is *consumed* rather than read as a leftover instruction.
+            ("open google docs", .openURL(url: "https://docs.google.com", app: nil),
+             .openURL(url: "https://docs.google.com", app: nil)),
+            ("open google", .openURL(url: "https://www.google.com", app: nil),
+             .openURL(url: "https://www.google.com", app: nil)),
+            ("open google and search flights", nil, .openURL(url: "https://www.google.com", app: nil)),
+            // Leftovers: "add lunch with Ana" is a second thing to do, so the shortcut
+            // stands down and the planner reads the whole sentence.
+            ("open google calendar and add lunch with ana", nil,
+             .openURL(url: "https://calendar.google.com", app: nil)),
         ]
         for row in table {
             let strict = AgentDirectIntent.parse(row.input)
@@ -1031,6 +1061,19 @@ enum RealtimeAgentToolLoopSelfTest {
             case1("the loose parse changed for \"\(row.input)\": \(String(describing: loose))",
                   loose == row.loose)
         }
+
+        // The named risk of a phrase list: a site phrase shadowing an app. "google chrome"
+        // is two words of "google", and it must stay the browser — the search is over
+        // apps, and the only reason a phrase could take it is a phrase naming "chrome".
+        case1("a site phrase shadowed the browser named in the same sentence: "
+            + "\(String(describing: AgentDirectIntent.parse("open google chrome")))",
+              AgentDirectIntent.parse("open google chrome")
+                  == .openURL(url: "https://www.google.com", app: "Google Chrome"))
+        // A one-word site and its own phrase must name the same page, or "open drive" and
+        // "open google drive" would answer differently about the same thing.
+        case1("\"drive\" and \"google drive\" name different pages",
+              AgentDirectIntent.namedURL(in: "open drive")
+                  == AgentDirectIntent.namedURL(in: "open google drive"))
 
         // A gate may only add routes, so the loose parse is what the voice coordinator
         // keeps: "open youtube and play the latest cortech video" must still reach work
