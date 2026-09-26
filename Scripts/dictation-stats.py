@@ -17,7 +17,7 @@ is `errorClass`, its duration `totalMs`, and its counters live in `counts`. The 
 lines marked `# usage` are the only places to change if that schema moves.
 """
 import argparse, collections, json, os, statistics, sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 HOME = os.path.expanduser("~/Library/Application Support/Next Notes")
 
@@ -71,12 +71,30 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--since", help="ISO date or datetime, UTC (e.g. 2026-09-20)")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--gates", action="store_true",
+                        help="print only the D-13 / D-14 evidence verdicts, one line per task")
     args = parser.parse_args()
     since = parse_date(args.since) if args.since else None
 
     def keep(stamp):
         when = parse_date(stamp)
         return when is not None and (since is None or when >= since)
+
+    if args.gates:
+        holds = [u for u in rows("usage.jsonl")
+                 if u.get("feature") == "dictation.hold" and keep(stamp(u))]  # usage
+        gates = gate_verdicts(holds, since)
+        if args.json:
+            json.dump({"gates": gates}, sys.stdout, indent=1, default=str)
+            print()
+            return
+        for task, body in gates.items():
+            print(f"GATE {task}: {body.get('verdict')}")
+            for key, value in body.items():
+                if key == "verdict":
+                    continue
+                print(f"  {key}: {value}")
+        return
 
     out = collections.OrderedDict()
 
@@ -200,6 +218,14 @@ def main():
             "duplicated": [f"{h} -> {w} x{n}" for (h, w), n in seen.items() if n > 1],
         }
 
+    # 5. D-13 / D-14 evidence gates.
+    #
+    # Both tasks in roadmap/done/DICTATION-MEETINGS-LIMITS say "check before writing any
+    # code", and both are blocked on the owner's own dictations rather than on anything the
+    # app has to be taught to record first. This is that check: one command, a verdict per
+    # task, and a statement of what is still missing when the data is too thin to decide.
+    out["gates"] = gate_verdicts(holds, since)
+
     if args.json:
         json.dump(out, sys.stdout, indent=1, default=str)
         print()
@@ -211,6 +237,133 @@ def main():
                 print(f"  {key}: {value}")
         else:
             print(f"  {body}")
+
+
+MEETINGS = os.path.join(HOME, "Meetings")
+
+# D-13's threshold, verbatim from the task: refuse-to-proceed below it, build at or above it.
+D13_MIN_PER_100 = 3.0
+# The task's own sample requirements. 100 owner holds is the number it names; the window is
+# its "at least 7 days". Both are checked, not assumed, and a shortfall says which.
+D13_MIN_HOLDS = 100
+D13_MIN_DAYS = 7
+# D-14: a hold overlapping a recorded meeting whose window wait is this long, or a dictation
+# start waiting this long on the lane, at least this many times.
+D14_MEETING_WAIT_S = 5.0
+D14_DICTATION_WAIT_S = 1.0
+D14_MIN_OCCURRENCES = 3
+
+
+def _meeting_spans():
+    """`(id, start, end)` per meeting on disk. Read-only; `end` may be missing for one still
+    recording, in which case the caller falls back to the usage row's own timestamp."""
+    spans = []
+    if not os.path.isdir(MEETINGS):
+        return spans
+    for name in os.listdir(MEETINGS):
+        path = os.path.join(MEETINGS, name, "meeting.json")
+        if not os.path.exists(path):
+            continue
+        try:
+            with open(path, encoding="utf-8") as handle:
+                meeting = json.load(handle)
+        except (OSError, json.JSONDecodeError):
+            continue
+        start = parse_date(meeting.get("start"))
+        end = parse_date(meeting.get("end"))
+        if start is None:
+            continue
+        spans.append((meeting.get("id") or name, start, end))
+    return spans
+
+
+def gate_verdicts(holds, since):
+    """One verdict per evidence-gated task: `proceed`, `won't do (evidence)`, or
+    `not enough data` with the shortfall named. Never guesses in either direction."""
+    gates = {}
+    now = datetime.now(timezone.utc)
+
+    # D-13 — refused presses in `finishing`, per 100 holds.
+    holds = holds or []
+    refused = [u for u in rows("usage.jsonl")
+               if u.get("feature") == "dictation.press_refused" and (since is None or (parse_date(u.get("ts")) or now) >= since)]
+    states = collections.Counter(u.get("errorClass") for u in refused)  # usage
+    finishing = states.get("finishing", 0)
+    per_100 = round(100 * finishing / len(holds), 2) if holds else None
+    window_days = (now - since).days if since else None
+    shortfalls = []
+    if len(holds) < D13_MIN_HOLDS:
+        shortfalls.append(f"{D13_MIN_HOLDS - len(holds)} more owner hold(s) (have {len(holds)})")
+    if window_days is not None and window_days < D13_MIN_DAYS:
+        shortfalls.append(f"{D13_MIN_DAYS - window_days} more day(s) of use")
+    d13 = {
+        "holds": len(holds),
+        "press_refused_by_state": dict(states),
+        "refused_finishing": finishing,
+        "refused_finishing_per_100_holds": per_100,
+        "threshold_per_100": D13_MIN_PER_100,
+    }
+    if shortfalls:
+        d13["verdict"] = "not enough data"
+        d13["shortfall"] = "; ".join(shortfalls)
+    else:
+        d13["verdict"] = "proceed" if (per_100 or 0) >= D13_MIN_PER_100 else "won't do (evidence)"
+    gates["D-13 pipelined holds"] = d13
+
+    # D-14 — a dictation hold overlapping a meeting whose transcription waited on the
+    # speech lane. The meeting side is recorded (P0-20b's `stages["laneWait"]` per track);
+    # the dictation side's own lane wait is not, so that half of the gate reports itself
+    # as unrecorded rather than passing silently.
+    spans = _meeting_spans()
+    transcribes = [u for u in rows("usage.jsonl")
+                   if u.get("feature") == "meeting.transcribe" and (since is None or (parse_date(u.get("ts")) or now) >= since)]
+    wait_by_meeting = {}
+    for row in transcribes:
+        wait = ((row.get("stages") or {}).get("laneWait") or 0.0)
+        mid = row.get("meetingID")
+        if mid:
+            wait_by_meeting[mid] = max(wait_by_meeting.get(mid, 0.0), wait)
+
+    overlaps = []
+    for hold in holds:
+        began = parse_date(hold.get("ts"))
+        if began is None or not hold.get("totalMs"):
+            continue
+        end = began + timedelta(milliseconds=hold["totalMs"])
+        for mid, start, meet_end in spans:
+            finish = meet_end or parse_date(next(
+                (r.get("ts") for r in transcribes if r.get("meetingID") == mid), None))
+            if finish is None or finish < start:
+                continue
+            if began < finish and end > start:
+                overlaps.append((mid, wait_by_meeting.get(mid, 0.0)))
+    qualifying = [(mid, wait) for mid, wait in overlaps if wait >= D14_MEETING_WAIT_S]
+    dictation_lane_recorded = any(
+        "laneWait" in (u.get("stages") or {}) for u in rows("usage.jsonl")
+        if u.get("feature", "").startswith("dictation."))  # usage
+    d14 = {
+        "holds_examined": len(holds),
+        "meetings_with_transcribe_rows": len(wait_by_meeting),
+        "holds_overlapping_a_meeting": len(overlaps),
+        "overlaps_with_window_wait_ge_5s": len(qualifying),
+        "worst_window_wait_in_an_overlap_s": round(max((w for _, w in overlaps), default=0.0), 3),
+        "meeting_wait_threshold_s": D14_MEETING_WAIT_S,
+        "dictation_side_lane_wait_recorded": dictation_lane_recorded,
+    }
+    if not holds or not transcribes:
+        d14["verdict"] = "not enough data"
+        d14["shortfall"] = ("no dictation.hold rows yet" if not holds
+                            else "no meeting.transcribe rows yet — record a meeting and dictate during it")
+    elif not dictation_lane_recorded and len(qualifying) < D14_MIN_OCCURRENCES:
+        d14["verdict"] = "not enough data"
+        d14["shortfall"] = (
+            f"{D14_MIN_OCCURRENCES - len(qualifying)} more qualifying overlap(s) (have {len(qualifying)}); "
+            "and the dictation side records no stages[laneWait], so the gate's second condition "
+            "(a dictation start waiting >= 1s on the lane) cannot be read at all")
+    else:
+        d14["verdict"] = "proceed" if len(qualifying) >= D14_MIN_OCCURRENCES else "won't do (evidence)"
+    gates["D-14 per-pass ASR lane"] = d14
+    return gates
 
 
 if __name__ == "__main__":

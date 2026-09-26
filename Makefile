@@ -188,6 +188,19 @@ app: build
 		$(TIMESTAMP) \
 		"$(BUNDLE)"
 	@echo "built $(BUNDLE)  [signed: $(SIGN_ID)]"
+	@# Refresh the D-13 / D-14 evidence-gate report in the background. Detached, read-only,
+	@# and unable to fail this build: it reads usage.jsonl and writes three files into
+	@# ~/Library/Caches/NextNotesBuild/dictation-meetings/. The next agent reads
+	@# gates-latest.txt instead of re-deriving the gate by hand.
+	@if [ -x Scripts/dictation-gates.sh ]; then \
+		nohup Scripts/dictation-gates.sh >/dev/null 2>&1 & \
+	fi
+
+## The D-13 / D-14 evidence-gate report, in the foreground, for when you want to read it now.
+## `make app` already refreshes it in the background; this is the same script, attached.
+gates:
+	@NEXTNOTES_GATES_VERBOSE=1 Scripts/dictation-gates.sh
+	@cat "$${NEXTNOTES_GATES_DIR:-$$HOME/Library/Caches/NextNotesBuild/dictation-meetings}/gates-latest.txt"
 
 ## Run the canonical installed copy, so LaunchServices never selects a stale
 ## cache bundle with the same identifier.
