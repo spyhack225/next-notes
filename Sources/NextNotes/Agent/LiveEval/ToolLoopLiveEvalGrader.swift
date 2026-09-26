@@ -370,8 +370,8 @@ enum LiveEvalGrader {
 
     // MARK: - The grader self-test
 
-    /// No model, no network: canned replies and calls, one per verdict class. Fails if any
-    /// single branch stops matching.
+    /// No model, no network: canned replies and calls, one per verdict class, plus the
+    /// mailbox the mail cases are answered from. Fails if any single branch stops matching.
     static func runSelfTest() -> Bool {
         let previousModelName = modelName
         defer { modelName = previousModelName }
@@ -380,6 +380,7 @@ enum LiveEvalGrader {
         let today = dayString(offset: 0)
         let tomorrow = dayString(offset: 1)
         var misclassified = 0
+        var mailboxProblems = 0
 
         func expect(
             _ expected: LiveEvalVerdict, _ id: String,
@@ -521,7 +522,104 @@ enum LiveEvalGrader {
         // PASS — the reply names it.
         expect(.pass, "N02", replies: ["I'm running on Qwen3-4B-Instruct-2507 here."])
 
-        return misclassified == 0
+        // MARK: The mailbox the mail cases are answered from
+        //
+        // The eval's other pure half, and the third Phase-1 blocker. `LiveEvalFixtures` is a
+        // stand-in for `gws gmail search`, and it answered by scanning six pre-rendered lines
+        // for the query as a substring. It could therefore answer **none** of the four forms
+        // the tool's own parameter description advertises — `from:`, `subject:`,
+        // `newer_than:`, `is:unread` — nor `in:inbox`, which is what an empty query means and
+        // what this file's own M05 fixture sends. A query that matched nothing came back as
+        // an empty string where the real tool says "No message matches <query>.", so a model
+        // could not tell "no mail" from "no answer" and C04 concluded "no new email
+        // summaries were found" about a mailbox holding six messages.
+        //
+        // These are the three queries three cases actually sent on 2026-09-26, kept as
+        // fixtures with the counts they returned. They are recorded, not fitted: a run's
+        // query is the model's, and the same case sent a different one in each of the three
+        // runs, so no corpus change could have made them answerable. What made them
+        // unwinnable was the matcher, and the mailbox below is the same six messages.
+        let mailbox = LiveEvalFixtures(now: Date(timeIntervalSince1970: 1_780_000_000))
+        func rows(_ query: String) -> [String] {
+            let answer = mailbox.mailSearch(query)
+            return answer.split(separator: "\n").map(String.init)
+        }
+        for query in ["recent", "from:productflo.com", "subject:'ProductFlo'"] {
+            SelfTest.diagnostic(
+                "TOOLLOOP_LIVE_MAIL_QUERY: \"\(query)\" -> \(rows(query).count) row(s)")
+        }
+        // Every form the tool's own description advertises, the two that mean "the latest
+        // mail", and one free-text term. `contains` is what the answer must carry; `omits` is
+        // what it must not, because a matcher that ignores an operator is as wrong as one
+        // that cannot read it.
+        let forms: [(query: String, contains: String, omits: String)] = [
+            ("from:marcus", "Pricing sheet v3", "Dinner tomorrow?"),
+            ("from:ana@example.com", "Deck for Friday", "Pricing sheet v3"),
+            ("subject:pricing", "Pricing sheet v3", "Dinner tomorrow?"),
+            ("newer_than:2d", "Pricing sheet v3", "Re: contract renewal"),
+            ("newer_than:2d", "Deck for Friday", "Your invoice for September"),
+            ("older_than:7d", "Re: contract renewal", "Pricing sheet v3"),
+            ("is:unread", "Deck for Friday", "Pricing sheet v3"),
+            ("is:read", "Pricing sheet v3", "Deck for Friday"),
+            ("-from:marcus", "Dinner tomorrow?", "Pricing sheet v3"),
+            ("in:inbox", "Pricing sheet v3", ""),
+            ("", "Pricing sheet v3", ""),
+            ("pricing", "Pricing sheet v3", "Dinner tomorrow?"),
+            ("marcus", "Re: contract renewal", "Deck for Friday"),
+            ("\"pricing sheet\"", "Pricing sheet v3", "Deck for Friday"),
+        ]
+        for form in forms {
+            let answer = rows(form.query).joined(separator: "\n")
+            if answer.contains(form.contains) == false {
+                SelfTest.diagnostic("TOOLLOOP_LIVE_MAIL_WRONG: \"\(form.query)\" did not answer "
+                    + "with \"\(form.contains)\" — got \(rows(form.query).count) row(s)")
+                mailboxProblems += 1
+            }
+            if form.omits.isEmpty == false, answer.contains(form.omits) {
+                SelfTest.diagnostic("TOOLLOOP_LIVE_MAIL_WRONG: \"\(form.query)\" answered with "
+                    + "\"\(form.omits)\", which it should have excluded")
+                mailboxProblems += 1
+            }
+        }
+        // A miss is a sentence, exactly as `WorkspaceToolRunner.searchEmail` answers one. An
+        // empty result is the one thing a model cannot act on: it cannot tell a query that
+        // matched nothing from a tool that returned nothing, and it answers from that.
+        for query in ["recent", "from:productflo.com", "subject:'ProductFlo'"] {
+            let answer = mailbox.mailSearch(query)
+            if answer != "No message matches \(query)." {
+                SelfTest.diagnostic("TOOLLOOP_LIVE_MAIL_WRONG: a miss answered \"\(answer)\" "
+                    + "rather than the sentence the real tool answers")
+                mailboxProblems += 1
+            }
+        }
+        // A query the real tool refuses is refused the same way here, from the same function
+        // — `GmailQuery.normalize` is one implementation of these rules, not two. A refusal
+        // is a sentence naming the operators that work, and never a result list.
+        for query in ["from:", "nonsense:value"] {
+            let answer = mailbox.mailSearch(query)
+            if answer.isEmpty || answer.hasPrefix("1) ") || answer.contains("No message matches") {
+                SelfTest.diagnostic("TOOLLOOP_LIVE_MAIL_WRONG: \"\(query)\" answered \"\(answer)\" "
+                    + "rather than being refused with its reason")
+                mailboxProblems += 1
+            }
+        }
+        // The numbering a real answer carries: the model is told to read one in full by its
+        // number, so a row without one is a row it cannot follow up on.
+        let numbered = rows("in:inbox")
+        if numbered.count != 6 {
+            SelfTest.diagnostic("TOOLLOOP_LIVE_MAIL_WRONG: in:inbox answered "
+                + "\(numbered.count) rows rather than the whole mailbox")
+            mailboxProblems += 1
+        }
+        for (index, line) in numbered.enumerated() where line.hasPrefix("\(index + 1)) ") == false {
+            SelfTest.diagnostic("TOOLLOOP_LIVE_MAIL_WRONG: row \(index + 1) is not numbered: "
+                + "\"\(line)\"")
+            mailboxProblems += 1
+        }
+        SelfTest.diagnostic("TOOLLOOP_LIVE_MAIL: \(rows("in:inbox").count) rows, "
+            + "\(mailboxProblems) problem(s)")
+
+        return misclassified == 0 && mailboxProblems == 0
     }
 
     private static func call(

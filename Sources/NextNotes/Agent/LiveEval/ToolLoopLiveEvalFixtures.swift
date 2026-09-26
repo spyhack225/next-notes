@@ -85,18 +85,222 @@ final class LiveEvalFileRetrieval: FileRetrieving, @unchecked Sendable {
     }
 }
 
+/// One message in the eval's mailbox, in the fields the real tool answers from.
+///
+/// P1-09 measured the shapes: `gmail users messages get --format metadata` puts the sender,
+/// the subject and the date in `payload.headers[]` with `internalDate` as a string of epoch
+/// milliseconds, and `WorkspaceToolRunner` reads them into a `WorkspaceMailSummary`. A query
+/// can only be answered against the field it names, so the row carries the fields rather
+/// than a printed line for a matcher to scan.
+struct LiveEvalMessage: Sendable, Equatable {
+    let stamp: Date
+    let fromName: String
+    let fromAddress: String
+    let to: String
+    let subject: String
+    let snippet: String
+    let unread: Bool
+
+    /// What the real tool prints for a sender, and what `from:` is matched against.
+    var from: String { "\(fromName) <\(fromAddress)>" }
+    /// Everything a free-text term is matched against. Gmail searches the whole message.
+    var text: String { "\(from) \(to) \(subject) \(snippet)" }
+}
+
+/// The eval's mailbox, and Gmail's query language over it.
+///
+/// This exists because the eval's mail answer used to be a substring scan over six
+/// pre-rendered lines, which could answer **none** of the four forms `search_email`'s own
+/// parameter description advertises — `from:`, `subject:`, `newer_than:`, `is:unread` — nor
+/// `in:inbox`, which is what an empty query means and what the eval's own grader fixtures
+/// send. Three cases were unwinnable for that reason alone (C04, M03, M05: their `mustMention`
+/// asks for a subject word no answer could carry), and a query that matched nothing came
+/// back as an empty string, which is indistinguishable from a tool that returned nothing —
+/// C04 answered "no new email summaries were found" about a mailbox holding six messages.
+///
+/// Two rules, both of them about answering like the tool rather than like a lookup table:
+///
+/// 1. **The query is ours, the corpus is not.** `GmailQuery.normalize` and `GmailQuery.tokens`
+///    are the one implementation of the grammar; a miss is `WorkspaceToolRunner`'s own
+///    sentence. Nothing here re-decides what a query means.
+/// 2. **A miss says so.** `No message matches <query>.` is what the tool answers, and it is
+///    the difference between a model that knows its filter was wrong and one that concludes
+///    the mailbox is empty.
+///
+/// An operator this corpus has no column for — `has:attachment`, `larger:1M` — matches
+/// **nothing** rather than being ignored. Ignoring it would answer with messages that do not
+/// have the attachment, which is a lie in the direction that matters.
+struct LiveEvalMailbox: Sendable {
+    let messages: [LiveEvalMessage]
+    let now: Date
+
+    /// The answer a model reads, or the reason it was refused.
+    func search(_ rawQuery: String, maxResults: Int? = nil) -> String {
+        let written = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        let query: String
+        let hits: [LiveEvalMessage]
+        do {
+            query = try WorkspaceToolRunner.GmailQuery.normalize(
+                written.isEmpty ? WorkspaceToolRunner.GmailQuery.inbox : written)
+            hits = matching(query)
+        } catch {
+            // The sentence the real tool refuses with, from the function that writes it: an
+            // executor surfaces `localizedDescription`, so this is what a model reads.
+            return error.localizedDescription
+        }
+        guard hits.isEmpty == false else { return "No message matches \(query)." }
+        // Newest first, one numbered line per message. The number is load-bearing — the model
+        // is told to read one in full by its number — so it is rendered here, not invented by
+        // the reader.
+        let ordered = hits.sorted { $0.stamp > $1.stamp }
+        let shown = maxResults.map { min(max($0, 1), 25) } ?? ordered.count
+        var lines: [String] = []
+        for (index, mail) in ordered.prefix(shown).enumerated() {
+            lines.append("\(index + 1)) \(label(for: mail.stamp)) · \(mail.from) · "
+                + "\(mail.subject) — \(mail.snippet)")
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    // MARK: - Matching
+
+    private func matching(_ query: String) -> [LiveEvalMessage] {
+        var required: [String: [String]] = [:]
+        var excluded: [String: [String]] = [:]
+        var terms: [String] = []
+        var unsupported = false
+        for token in WorkspaceToolRunner.GmailQuery.tokens(of: query) {
+            guard let colon = token.firstIndex(of: ":"), token.hasPrefix("\"") == false else {
+                terms.append(unquoted(token).lowercased())
+                continue
+            }
+            let negated = token.hasPrefix("-")
+            let name = String(token[(negated ? token.index(after: token.startIndex)
+                                            : token.startIndex)..<colon]).lowercased()
+            let value = unquoted(String(token[token.index(after: colon)...])).lowercased()
+            guard value.isEmpty == false else { continue }
+            if negated {
+                excluded[name, default: []].append(value)
+            } else {
+                required[name, default: []].append(value)
+            }
+            if supported(name) == false { unsupported = true }
+        }
+        guard unsupported == false else { return [] }
+        return messages.filter { mail in
+            for (name, values) in required {
+                for value in values where matches(mail, name: name, value: value) == false {
+                    return false
+                }
+            }
+            for (name, values) in excluded {
+                for value in values where matches(mail, name: name, value: value) {
+                    return false
+                }
+            }
+            return terms.allSatisfy { term in
+                mail.text.range(of: term, options: .caseInsensitive) != nil
+            }
+        }
+    }
+
+    /// The operators this corpus can answer. Everything else is refused rather than ignored.
+    private func supported(_ name: String) -> Bool {
+        [
+            "from", "to", "cc", "bcc", "subject", "in", "label", "is",
+            "newer_than", "older_than", "after", "before",
+        ].contains(name)
+    }
+
+    private func matches(_ mail: LiveEvalMessage, name: String, value: String) -> Bool {
+        switch name {
+        case "from":
+            return contains(mail.from, value) || contains(mail.fromName, value)
+        case "to", "cc", "bcc":
+            return contains(mail.to, value)
+        case "subject":
+            return contains(mail.subject, value)
+        // Every message in here is in the inbox and in no other folder, so `in:` and
+        // `label:` answer that question and nothing more.
+        case "in", "label":
+            return value == "inbox"
+        case "is":
+            switch value {
+            case "unread": return mail.unread
+            case "read": return mail.unread == false
+            default: return false
+            }
+        case "newer_than": return days(value).map { mail.stamp > now.addingTimeInterval(-$0) } ?? false
+        case "older_than": return days(value).map { mail.stamp < now.addingTimeInterval(-$0) } ?? false
+        case "after": return day(value).map { mail.stamp > $0 } ?? false
+        case "before": return day(value).map { mail.stamp < $0 } ?? false
+        default: return false
+        }
+    }
+
+    private func contains(_ haystack: String, _ needle: String) -> Bool {
+        haystack.range(of: needle, options: .caseInsensitive) != nil
+    }
+
+    /// `2d`, `1m`, `6y` — Gmail's own units for the relative operators.
+    private func days(_ value: String) -> TimeInterval? {
+        guard value.count >= 2 else { return nil }
+        let count = Double(value.dropLast()) ?? 0
+        guard count > 0 else { return nil }
+        switch value.last! {
+        case "d": return count * 86_400
+        case "w": return count * 7 * 86_400
+        case "m": return count * 30 * 86_400
+        case "y": return count * 365 * 86_400
+        default: return nil
+        }
+    }
+
+    /// `YYYY/MM/DD` at the start of that day, which is what `GmailQuery.normalize` rewrites a
+    /// written `YYYY-MM-DD` into.
+    private func day(_ value: String) -> Date? {
+        let parts = value.split(separator: "/")
+        guard parts.count == 3, parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy(\.isNumber) }),
+              let year = Int(parts[0]), let month = Int(parts[1]), let day = Int(parts[2])
+        else { return nil }
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = day
+        return Calendar.current.date(from: components)
+    }
+
+    private func unquoted(_ value: String) -> String {
+        value.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+    }
+
+    /// The same label the real tool prints, from the same formatter settings: the date in
+    /// this machine's zone, so "today" in a case means what it means in the fixture's own
+    /// calendar answers.
+    private func label(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "EEE d MMM HH:mm"
+        return formatter.string(from: date)
+    }
+}
+
 /// Every tool answer the live eval sees. One fixture per tool id; content is invented and
 /// never contains the user's real mail, calendar or file names. Dates are computed from
 /// `Date()` in the local time zone so "today" and "tomorrow" mean what the case says.
 final class LiveEvalFixtures: @unchecked Sendable {
     let log = LiveEvalCallLog()
     let files: LiveEvalFileRetrieval
+    let mailbox: LiveEvalMailbox
 
     private let today: String
     private let tomorrow: String
 
     init(now: Date = Date()) {
         files = LiveEvalFileRetrieval(log: log)
+        mailbox = LiveEvalMailbox(messages: Self.mail(now: now), now: now)
         let formatter = DateFormatter()
         formatter.calendar = Calendar.current
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -105,6 +309,52 @@ final class LiveEvalFixtures: @unchecked Sendable {
         today = formatter.string(from: now)
         tomorrow = formatter.string(from: Calendar.current.date(
             byAdding: .day, value: 1, to: now) ?? now)
+    }
+
+    /// The six messages this eval has always answered with, as fields rather than as printed
+    /// lines. **No message was added, removed or renamed**: the fix is that a query is read
+    /// against the field it names, and that a miss says so. Ages are relative to `now`, which
+    /// is what makes `newer_than:2d` mean something on any day the eval is run.
+    private static func mail(now: Date) -> [LiveEvalMessage] {
+        func stamp(daysAgo: Int, hour: Int, minute: Int) -> Date {
+            let day = Calendar.current.date(
+                byAdding: .day, value: -daysAgo, to: now) ?? now
+            return Calendar.current.date(
+                bySettingHour: hour, minute: minute, second: 0, of: day) ?? day
+        }
+        let to = "sam@productflo.example"
+        return [
+            LiveEvalMessage(
+                stamp: stamp(daysAgo: 0, hour: 8, minute: 12),
+                fromName: "Marcus Lee", fromAddress: "marcus@productflo.example", to: to,
+                subject: "Pricing sheet v3", snippet: "Here is the updated pricing sheet…",
+                unread: false),
+            LiveEvalMessage(
+                stamp: stamp(daysAgo: 0, hour: 9, minute: 40),
+                fromName: "Ana Ruiz", fromAddress: "ana@example.com", to: to,
+                subject: "Deck for Friday", snippet: "Can you send the deck by Friday?",
+                unread: true),
+            LiveEvalMessage(
+                stamp: stamp(daysAgo: 0, hour: 7, minute: 5),
+                fromName: "GitHub", fromAddress: "no-reply@github.example", to: to,
+                subject: "[next-notes] CI passed on main", snippet: "All 214 checks passed.",
+                unread: false),
+            LiveEvalMessage(
+                stamp: stamp(daysAgo: 0, hour: 18, minute: 20),
+                fromName: "Cyril", fromAddress: "cyril@example.com", to: to,
+                subject: "Dinner tomorrow?", snippet: "Are you free tomorrow evening?",
+                unread: true),
+            LiveEvalMessage(
+                stamp: stamp(daysAgo: 3, hour: 11, minute: 15),
+                fromName: "Stripe", fromAddress: "noreply@stripe.example", to: to,
+                subject: "Your invoice for September",
+                snippet: "Your September invoice is ready.", unread: false),
+            LiveEvalMessage(
+                stamp: stamp(daysAgo: 9, hour: 16, minute: 5),
+                fromName: "Marcus Lee", fromAddress: "marcus@productflo.example", to: to,
+                subject: "Re: contract renewal", snippet: "The renewal terms are attached.",
+                unread: true),
+        ]
     }
 
     func beginCase() { log.clear() }
@@ -145,7 +395,8 @@ final class LiveEvalFixtures: @unchecked Sendable {
             return "Nothing is booked on \(date)."
 
         case "search_email":
-            return searchEmail(arguments)
+            return mailSearch(value(arguments, "query"),
+                              maxResults: Int(value(arguments, "maxResults")))
 
         case "read_email", "read_doc", "filesystem.read":
             return "Here is the message (fixture): the pricing sheet is attached; the deck is ready for Friday."
@@ -220,22 +471,11 @@ final class LiveEvalFixtures: @unchecked Sendable {
         }
     }
 
-    private func searchEmail(_ arguments: [String: String]) -> String {
-        let messages = [
-            "1) \(today) 08:12 · Marcus Lee <marcus@productflo.example> · Pricing sheet v3 — Here is the updated pricing sheet…",
-            "2) Ana Ruiz <ana@example.com> · Deck for Friday — Can you send the deck by Friday?",
-            "3) GitHub · [next-notes] CI passed on main",
-            "4) Cyril · Dinner tomorrow?",
-            "5) Stripe · Your invoice for September",
-            "6) Marcus Lee · Re: contract renewal",
-        ]
-        let query = value(arguments, "query").lowercased()
-        let filtered = query.isEmpty ? messages : messages.filter { message in
-            message.lowercased().contains(query)
-                || query.split(separator: " ").contains { message.lowercased().contains($0) }
-        }
-        let maxResults = Int(value(arguments, "maxResults")) ?? filtered.count
-        return filtered.prefix(max(0, maxResults)).joined(separator: "\n")
+    /// The mailbox the `search_email` answer comes from, and the seam
+    /// `--selftest-toolloop-live-grader` reads to pin it. One path: the case log and the
+    /// self-test are the same query matcher.
+    func mailSearch(_ query: String, maxResults: Int? = nil) -> String {
+        mailbox.search(query, maxResults: maxResults)
     }
 
     private var meetingFixture: String {

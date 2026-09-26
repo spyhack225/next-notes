@@ -103,6 +103,9 @@ enum AgentCapabilityManifestSelfTest {
             "remember my brother is Cyril",
             "find the pricing doc",
             "open youtube",
+            // A02's sentence, which is the one that over-selected: the bare verb introduced
+            // both a site and an app, so a browser turn was handed the whole screen class.
+            "open youtube and play the latest Cortech video",
             "hi",
             "search linear issues",
             "install a skill for PDFs",
@@ -357,6 +360,73 @@ enum AgentCapabilityManifestSelfTest {
                 if gated {
                     wrong("\(label) is off but \(entry.id) is in the planner's schema")
                 }
+            }
+        }
+
+        // MARK: 11 — An ambiguous word is not a class, and the core set is a floor
+        //
+        // Two measured defects, both about what a turn is *offered* rather than what it may
+        // run. "open" introduces a site, an app and a file equally, so on its own it selected
+        // the whole screen class for a YouTube request — and `computer.open_url` then won the
+        // turn from `browser.navigate` (A02, WRONG_TOOL, 2026-09-26). And `search_email` sat
+        // in the core set, so every turn's schema carried a mail search whatever it was
+        // about: the same YouTube request called `search_email(query: "Cortech latest video")`,
+        // and "what did Sarah say about the budget" called
+        // `search_email(query: "from:sarah subject:budget")` and leaked the call as its answer.
+        let site = "open youtube and play the latest Cortech video"
+        let siteTurn = AgentCapabilityManifestBuilder.build(
+            .allEnabled(tools: allTools, reader: local), request: site)
+        check("a bare \"open\" still selects the whole screen class",
+              siteTurn.selectedIntents.contains(.screen) == false)
+        check("a site request is still handed the URL hand-off",
+              siteTurn.selectedIDs.contains("computer.open_url") == false)
+        check("a site request is still offered a mail search",
+              siteTurn.selectedIDs.contains("search_email") == false)
+        check("a site request lost the browser class",
+              siteTurn.selectedIntents.contains(.browser))
+        check("a site request lost browser.navigate",
+              siteTurn.selectedIDs.contains("browser.navigate"))
+        // The execution allowlist is the other half, and it is what must not shrink: a tool
+        // the model was not shown is still runnable if something asks for it, and the
+        // refusal guard, "what can you do" and the direct-intent shortcut all read `allowed`.
+        check("a site request can no longer run a mail search at all",
+              siteTurn.allowedIDs.contains("search_email"))
+        check("a site request can no longer hand a URL over at all",
+              siteTurn.allowedIDs.contains("computer.open_url"))
+        // The app half of the same word. A sentence that names an app still reaches it, which
+        // is the whole claim: the *name* is the signal, not the verb.
+        for (request, toolID) in [
+            ("open Safari", "computer.open_app"),
+            ("launch Slack", "computer.open_app"),
+            ("open the Mail app", "computer.open_app"),
+            ("click the send button", "computer.click"),
+            ("press enter in the active window", "computer.press_key"),
+            ("which app is frontmost?", "computer.active_app"),
+            ("take a screenshot of the window", "computer.screenshot"),
+        ] {
+            let manifest = AgentCapabilityManifestBuilder.build(
+                .allEnabled(tools: allTools, reader: local), request: request)
+            if manifest.selectedIntents.contains(.screen) == false {
+                wrong("\"\(request)\" no longer selects the screen class "
+                    + "(\(manifest.selectedIntents.map(\.rawValue).sorted().joined(separator: ", ")))")
+            }
+            if manifest.selectedIDs.contains(toolID) == false {
+                wrong("\"\(request)\" lost \(toolID)")
+            }
+        }
+        // And the mail half of the core set: a request that is about mail still selects the
+        // mail class whole, every allowed member of it, `search_email` among them.
+        for request in ["summarize my last emails", "any new mail from Marcus?",
+                        "what's in my inbox", "draft an email to Ana", "did I get a reply from Sarah"] {
+            let manifest = AgentCapabilityManifestBuilder.build(
+                .allEnabled(tools: allTools, reader: local), request: request)
+            if manifest.selectedIntents.contains(.mail) == false {
+                wrong("\"\(request)\" no longer selects the mail class "
+                    + "(\(manifest.selectedIntents.map(\.rawValue).sorted().joined(separator: ", ")))")
+            }
+            for entry in manifest.allowed
+            where entry.intent == .mail && manifest.selectedIDs.contains(entry.id) == false {
+                wrong("\"\(request)\" selected a truncated mail class: \(entry.id)")
             }
         }
 

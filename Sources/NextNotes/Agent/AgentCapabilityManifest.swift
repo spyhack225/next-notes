@@ -462,8 +462,21 @@ enum AgentCapabilityManifestBuilder {
     ]
 
     /// Always selected (today's `coreToolIDs`), when allowed.
+    ///
+    /// The floor for a turn that named no class at all, so it is deliberately narrow: a core
+    /// id is in **every** turn's schema whatever the turn is about, so an id here is a tool
+    /// offered to a question it has nothing to do with. `search_email` was one until
+    /// 2026-09-26, and the live eval measured what that costs — a YouTube request called
+    /// `search_email(query: "Cortech latest video")` beside `browser.navigate`, and "what did
+    /// Sarah say about the budget" called `search_email(query: "from:sarah subject:budget")`
+    /// and leaked the call as its answer. Mail is a whole class the lexicon selects, from
+    /// "email", "mail", "inbox", "gmail", "unread", "sender", "reply", "draft" or a newsletter,
+    /// and a class that is selected is selected whole — so nothing about mail is lost by
+    /// taking the id out of the floor. Nothing is lost from `allowed` either: `coreIDs` decides
+    /// what the model is *shown*, and the execution allowlist, the refusal guard, "what can
+    /// you do" and the direct-intent shortcut all read `allowed`, which is the parity set.
     static let coreIDs: Set<String> = [
-        "get_agenda", "search_email", "filesystem.search", "filesystem.find", "filesystem.tree",
+        "get_agenda", "filesystem.search", "filesystem.find", "filesystem.tree",
         "filesystem.reveal", "computer.active_app", "computer.open_app", "browser.navigate",
     ]
 
@@ -523,13 +536,20 @@ enum AgentCapabilityManifestBuilder {
         }
     }
 
-    /// A deterministic lexicon. Extend the table, never shrink it; every row added needs a
-    /// fixture in `--selftest-capability-manifest`.
+    /// A deterministic lexicon. Extend the table; remove a row only when a word has been
+    /// measured selecting a class it does not mean. Every row added needs a fixture in
+    /// `--selftest-capability-manifest`, because a lexicon that is never tested is a lexicon
+    /// that silently stops selecting — and every row removed needs one too, since a word that
+    /// stops selecting is as silent as one that never did.
     ///
     /// Word-bounded alternatives, applied to the lowercased request after "to-do"/"e-mail" are
     /// normalised. A miss is not fatal — the allowlist still executes any allowed tool and a
     /// wrong-class call widens the next round — but a miss costs a narrower schema, so the
-    /// table is where the eval's `MISSED_TOOL` rows get answered.
+    /// table is where the eval's `MISSED_TOOL` rows get answered. A *hit* that means nothing
+    /// is worse than a miss: it widens the schema for a turn the word never described, which
+    /// is how a browser request was handed `computer.open_url`. So a word that two classes
+    /// both use does not go in the table; `namesKnownApp` is how the screen class is reached
+    /// by a name rather than by a verb.
     static let lexicon: [AgentIntentClass: [String]] = [
         .calendar: [
             "calendar", "calendars", "agenda", "event", "events", "booked", "busy",
@@ -568,7 +588,14 @@ enum AgentCapabilityManifestBuilder {
             "my (name|brother|sister|wife|husband|partner|job|email address)",
         ],
         .screen: [
-            "open", "opens", "launch", "click", "type", "press", "app", "apps",
+            // No bare "open". It introduces a site ("open youtube"), an app ("open Slack")
+            // and a file ("open the pricing document") equally, so on its own it selected
+            // the whole screen class for almost every request — and `computer.open_url` then
+            // won a YouTube request from `browser.navigate` (A02, WRONG_TOOL, 2026-09-26).
+            // P1-13's own lesson applies to a table: a word that means two capabilities is
+            // not evidence of either. An app named by name is the evidence, and that is
+            // `namesKnownApp` below rather than a second list of app names here.
+            "launch", "click", "type", "press", "app", "apps",
             "application", "applications", "window", "windows", "frontmost", "screen",
             "screens", "quit", "menus?", "buttons?",
         ],
@@ -589,9 +616,31 @@ enum AgentCapabilityManifestBuilder {
         for (intent, alternatives) in lexicon {
             if alternatives.contains(where: { matches(text, $0) }) { matched.insert(intent) }
         }
+        if namesKnownApp(text) { matched.insert(.screen) }
         if looksLikeURL(text) { matched.insert(.browser) }
         if mentionsConnectedApp(text, toolNames: toolNames) { matched.insert(.integrations) }
         return matched
+    }
+
+    /// Whether the sentence asks to open a named application — the signal the bare verb
+    /// "open" used to be.
+    ///
+    /// `AgentDirectIntent` holds the only list of app names in the tree and already decides
+    /// "this sentence opens an app rather than a page", so this asks it rather than keeping a
+    /// second copy of the names that could disagree. A page beside the app still counts
+    /// ("open Chrome and go to youtube.com" is a screen request as well as a browser one); a
+    /// page on its own does not ("open youtube and play the latest Cortech video"), which is
+    /// the half that was wrong.
+    ///
+    /// Asked with the shortcut's looser sentence rule, because this is a narrower question:
+    /// not "is this whole sentence one open action" but "does it name an app to open", so a
+    /// second step in the sentence does not hide the app behind it.
+    private static func namesKnownApp(_ text: String) -> Bool {
+        switch AgentDirectIntent.parse(text, wholeSentence: false) {
+        case .openApp: return true
+        case .openURL(_, let app): return app != nil
+        case .locate, .none: return false
+        }
     }
 
     /// The two spellings that would otherwise be missed, applied before the table runs.

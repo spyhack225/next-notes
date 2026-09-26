@@ -413,7 +413,11 @@ enum WorkspaceToolRunner {
         /// a phrase inside a value (`subject:"quarterly report"`) survives on its own,
         /// because the tokens are rejoined with the same single space and the colon belongs
         /// to the operator in front of it.
-        private static func tokens(of text: String) -> [String] {
+        ///
+        /// Internal rather than private because the live eval's mailbox is a second reader of
+        /// Gmail's grammar: it has to take a query apart to answer it, and one tokenizer is
+        /// the whole point of this type.
+        static func tokens(of text: String) -> [String] {
             var out: [String] = []
             var pending: [String] = []
             for word in text.split(separator: " ", omittingEmptySubsequences: true) {
