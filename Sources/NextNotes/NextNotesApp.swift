@@ -3485,6 +3485,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     // Discarded, not filed. These are fixtures, and the Dictation list is the
                     // user's own history — a self-test has no business appearing in it.
                     record: { _ in },
+                    // D-15c: this run injects the deadlines on purpose, so its failures are
+                    // written at info in a `selftest` category rather than into the error log.
+                    log: .selfTest,
                     // The hold outcomes land here, never in the user's usage.jsonl: the
                     // harness runs against a temp store, and the assertions below read
                     // the sink rather than any file.
@@ -3654,6 +3657,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     },
                     // Discarded, not filed: fixtures, not the user's history.
                     record: { _ in },
+                    // D-15c: this run injects the deadlines on purpose, so its failures are
+                    // written at info in a `selftest` category rather than into the error log.
+                    log: .selfTest,
                     outcome: { sink.append($0) },
                     speechDetector: speechDetector
                 )
@@ -3684,6 +3690,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     },
                     // Discarded, not filed: fixtures, not the user's history.
                     record: { _ in },
+                    // D-15c: this run injects the deadlines on purpose, so its failures are
+                    // written at info in a `selftest` category rather than into the error log.
+                    log: .selfTest,
                     outcome: { sink.append($0) }
                 )
             }
@@ -4104,6 +4113,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 },
                 // Discarded, not filed: fixtures, not the user's history.
                 record: { _ in },
+                // D-15c: this run injects the deadlines on purpose, so its failures are
+                // written at info in a `selftest` category rather than into the error log.
+                log: .selfTest,
                 outcome: { sink.append($0) }
             )
             controllerN.startButtonRecording()
