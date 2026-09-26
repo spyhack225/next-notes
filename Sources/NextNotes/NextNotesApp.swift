@@ -1938,6 +1938,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
 
+        // NextNotes-iMessage IM-06: the WAL watcher. Every case runs against a fixture copy
+        // of chat.db, so no live database and no grant — it is CORE because it is the one
+        // flag that proves the watcher is event-driven rather than a poll.
+        if arguments.contains("--selftest-imessage-watch") {
+            Task { @MainActor in
+                writeSelfTest(await MessagesWatcherSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+
         // Reached only when a `--selftest-…` flag was given that no branch above claimed —
         // in practice one whose required argument was left off, since `value(after:)`
         // returns nil for a trailing flag. Falling through to `return false` would launch

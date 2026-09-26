@@ -115,6 +115,9 @@ CORE_ENTRIES=(
   # computer use — inspect/click/type on an owned window. Needs Accessibility, so
   # from an agent shell it reports COMPUTER_FAILED rather than a green lie.
   "selftest-computer|300"
+  # the WAL watcher (IM-06): the one flag that proves the watcher is event-driven
+  # and not a poll. Fixture copies only — no live database and no Messages grant
+  "selftest-imessage-watch|300"
   # ACP and MCP fixtures
   "selftest-acp|300"
   "selftest-mcp|300"

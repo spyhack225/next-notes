@@ -98,6 +98,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-duplex    --selftest-contention
 --selftest-imessage-db
 --selftest-imessage-decode
+--selftest-imessage-watch
 --selftest-residency
 --selftest-cleanup-structure               --selftest-commandkey
 --selftest-tool-review                     --selftest-function-calls [engine-dir]
