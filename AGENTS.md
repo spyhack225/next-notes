@@ -96,6 +96,8 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-meeting-reconcile-llm
 --selftest-stream    --selftest-transcript-bus
 --selftest-duplex    --selftest-contention
+--selftest-imessage-db
+--selftest-imessage-decode
 --selftest-residency
 --selftest-cleanup-structure               --selftest-commandkey
 --selftest-tool-review                     --selftest-function-calls [engine-dir]
@@ -232,6 +234,35 @@ drafts, nothing saves unreviewed, keep/discard/cross-out work per insight, and a
 graph answers honestly. The first-ingestion consent gate has no card-bearing self-test yet
 (the gate deliberately skips under the harness); its honest failure mode — no consent path,
 no ingestion — is enforced in `AgentToolExecutor`'s workspace read case.
+
+`--selftest-imessage-db` is the one self-test in the tree that reads a database format it does not
+own, and it is the shape to copy for the rest of the iMessage work. It answers against
+`Tests/Fixtures/chatdb/`, which is **generated at run time** by `make-chatdb-fixture.sh` — no
+`.sqlite` is committed, every case is sanitised placeholder text, and the whole thing needs no
+Messages grant, no real database and no model, which is why it is not a `via-open` entry. Its
+load-bearing assertion is the one that is easiest to get wrong: `PRAGMA query_only` is **set** by
+the code and **read back by a second connection**, so a reader that quietly forgot it fails. When
+it was first written that assertion was checked by mutation — the pragma was deliberately broken and
+the run reported `IMESSAGE_DB_WRONG: a second connection read 0, not 1` — which is the only way to
+know a self-test can fail at all. Every case carries the same rule for the same reason: the
+`--degraded` variants genuinely **remove** `attributedBody` and `payload_data` from the schema, so
+the capability probe is exercised against a database that really lacks the column rather than
+against one with a null value in it.
+
+**An undecodable message must never be able to read as a blank one**, and that is a type-level
+promise rather than a convention. `IMessageEnvelope.text` is a computed `String?` over a `MessageBody`
+that has **no empty-string case**, so there is no expression in the type that spells `""`, and a
+decoded zero-length stream is mapped to `.absent`. `--selftest-imessage-decode` prints
+`IMESSAGE_DECODE_BLOCKED:` lines for assertions that cannot run yet, and **deliberately does not
+count them** in its `IMESSAGE_DECODE_OK: <n> cases` marker — so the number is a claim the run can
+stand behind rather than a denominator that quietly absorbed five skips. The parser is hand-written
+for a reason worth keeping: `NSUnarchiver` is the only system API that can read a typedstream, and it
+has no throwing entry point, so an unfamiliar format version would raise an exception Swift cannot
+catch and **exit the process inside the message read path**. A parser that returns plausible garbage is
+strictly better, because degrading and saying so is the designed response to a format change.
+`Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md` separates what was **measured** (Apple's
+encoder, on this machine) from what is still **open** (what Messages writes), and writing the decoder
+found seven errors in it — which is the argument for measuring rather than describing.
 
 A self-test must **fail** when the thing it names did not happen. `--selftest-systemaudio`
 reporting `SYSTEM_AUDIO_SILENT` on a zero peak, and the Metal probe failing on zero
