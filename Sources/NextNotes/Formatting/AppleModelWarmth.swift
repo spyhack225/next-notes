@@ -21,21 +21,65 @@ enum AppleModelWarmth {
     /// How long a completed Apple model answer is trusted to have left the process warm.
     /// An estimate; D-07 tunes it from D-01a rows (cleanup seconds against the minutes
     /// since the last Apple call).
-    static var warmWindow: Duration = .seconds(600)
+    static var warmWindow: Duration {
+        get {
+            warmthLock.lock()
+            defer { warmthLock.unlock() }
+            return warmWindowStorage
+        }
+        set {
+            warmthLock.lock()
+            warmWindowStorage = newValue
+            warmthLock.unlock()
+        }
+    }
+
+    /// The warm-up state lives behind one lock so it can be read from a `@Sendable`
+    /// timeout closure without hopping to the main actor (D-07): the per-call ceiling
+    /// is computed per chunked call, on whatever task asked for it.
+    private nonisolated(unsafe) static let warmthLock = NSLock()
+    private nonisolated(unsafe) static var warmWindowStorage: Duration = .seconds(600)
+    private nonisolated(unsafe) static var lastActivityStorage: Date?
 
     /// The last completed Apple model activity: a cleanup answer, a layout plan, or a
     /// warm-up. Every successful `respond` on this model notes itself here.
-    static private(set) var lastActivity: Date?
+    static private(set) var lastActivity: Date? {
+        get {
+            warmthLock.lock()
+            defer { warmthLock.unlock() }
+            return lastActivityStorage
+        }
+        set {
+            warmthLock.lock()
+            lastActivityStorage = newValue
+            warmthLock.unlock()
+        }
+    }
 
     static func noteActivity(_ date: Date = Date()) { lastActivity = date }
 
     /// `.warmProcess` within `warmWindow` of the last activity, `.cold` outside it and
     /// before any activity. `.staged` is reported by nothing yet; D-07 reads this.
     static func current(now: Date = Date()) -> Warmth {
-        guard let last = lastActivity else { return .cold }
+        warmthUnderLock(now: now)
+    }
+
+    /// `current(now:)` for callers off the main actor. `CleanupRouter.perCallTimeout`'s
+    /// `@Sendable` closure reads it once per chunked call and must not hop actors to do
+    /// it — same locked state, same rule as `current(now:)`. (D-07.)
+    nonisolated static func currentNonisolated(now: Date = Date()) -> Warmth {
+        warmthUnderLock(now: now)
+    }
+
+    /// The one warmth rule; both readers hold the lock, so `warmWindow` and the last
+    /// activity are read together.
+    private nonisolated static func warmthUnderLock(now: Date) -> Warmth {
+        warmthLock.lock()
+        defer { warmthLock.unlock() }
+        guard let last = lastActivityStorage else { return .cold }
         let elapsed = now.timeIntervalSince(last)
-        let window = Double(warmWindow.components.seconds)
-            + Double(warmWindow.components.attoseconds) / 1e18
+        let window = Double(warmWindowStorage.components.seconds)
+            + Double(warmWindowStorage.components.attoseconds) / 1e18
         return elapsed >= 0 && elapsed <= window ? .warmProcess : .cold
     }
 

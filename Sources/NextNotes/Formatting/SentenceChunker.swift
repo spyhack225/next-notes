@@ -135,6 +135,13 @@ struct ChunkedFormatter: TextFormatter {
     /// overshooting.
     var perCallTimeout: @Sendable (String) -> Duration = { S1MiniFormatter.timeout(for: $0) }
 
+    /// The ceiling for calls from the second wave on. From wave 2 the first wave's calls
+    /// have already run on the model, so the process is warm however it started — Apple's
+    /// warm budget is the honest one there, and a cold first wave no longer starves every
+    /// later wave of the 26 s whole-pass budget. Nil — the default — times every wave the
+    /// same. (D-07.)
+    var perCallTimeoutAfterFirstWave: (@Sendable (String) -> Duration)? = nil
+
     /// How many groups may be in the model at once.
     ///
     /// Two, and the number is a measurement rather than a preference. A forty-one second
@@ -168,9 +175,15 @@ struct ChunkedFormatter: TextFormatter {
         while next < groups.count {
             let wave = Array(next..<min(next + max(1, width), groups.count))
             // Room for this wave to finish inside the budget, not merely room to start it.
-            // The ceiling is the longest call in the wave, because they run together.
+            // The ceiling is the longest call in the wave, because they run together. From
+            // the second wave on the answer is `perCallTimeoutAfterFirstWave`: the first
+            // wave has already run on the model, so charging every later wave the cold
+            // ceiling would spend the pass's budget on a wake-up that has happened. (D-07.)
             let remaining = budget - (ContinuousClock.now - began)
-            let ceiling = wave.map { perCallTimeout(groups[$0]) }.max() ?? .zero
+            let ceiling = wave.map { index -> Duration in
+                if next == 0 { return perCallTimeout(groups[index]) }
+                return perCallTimeoutAfterFirstWave?(groups[index]) ?? perCallTimeout(groups[index])
+            }.max() ?? .zero
             if ranOut || remaining <= .zero || remaining < ceiling {
                 if !ranOut {
                     ranOut = true

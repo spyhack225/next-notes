@@ -64,9 +64,9 @@ struct FoundationModelFormatter: TextFormatter {
     /// Stands in for `CleanupSessionWarmer.take` + `session.respond` (and for the
     /// `isAvailable` gate). Nil in production; only self-tests set it. (D-01a.)
     var modelCall: CleanupModelCall? = nil
-    /// Pins the per-call budget. Nil in production; tests set it so a timeout case runs
-    /// in milliseconds. D-07 replaces this with `timeScale` and updates the case. (D-01a.)
-    var timeoutOverride: Duration? = nil
+    /// Multiplies the computed timeout. Production leaves it at 1; self-tests scale the
+    /// budget down so a timeout case runs in milliseconds. (D-07, §0.7.)
+    var timeScale: Double = 1
 
     init(
         preferences: CleanupPreferences = CleanupPreferences(
@@ -123,29 +123,60 @@ struct FoundationModelFormatter: TextFormatter {
 
         let began = Date()
         do {
-            let budget = timeoutOverride ?? Self.timeout(for: trimmed)
-            let cleaned = try await withThrowingTaskGroup(of: (String, Bool).self) { group in
+            // D-07: the budget is warmth-aware, and the warmth is only known once the
+            // session has been taken. `LanguageModelSession` is not `Sendable`, so the
+            // session cannot leave the task that took it: that task takes it, files the
+            // prewarm bit, computes the budget and hands that one `Duration` to the task
+            // that waits it out. `sessionPrewarmed` is still filed before the answer is
+            // awaited (D-01a) — earlier now, before the race starts.
+            let instructions = CleanupInstructions.system(
+                for: preferences,
+                fixesGrammar: fixesGrammar,
+                target: target,
+                context: context
+            )
+            let user = CleanupInstructions.user(trimmed, fixesGrammar: fixesGrammar)
+            let scale = timeScale
+            let seal = CleanupBudgetSeal()
+            let trace = trace
+            let modelCall = modelCall
+
+            let cleaned = try await withThrowingTaskGroup(of: String.self) { group in
                 group.addTask {
-                    try await Self.cleanReporting(
-                        trimmed,
-                        preferences: preferences,
-                        fixesGrammar: fixesGrammar,
-                        target: target,
-                        context: context,
-                        trace: trace,
+                    let stagedSession: LanguageModelSession?
+                    let staged: Bool
+                    if let modelCall {
+                        staged = await modelCall.takeSession(instructions)
+                        stagedSession = nil
+                    } else {
+                        stagedSession = await CleanupSessionWarmer.shared.take(instructions: instructions)
+                        staged = stagedSession != nil
+                    }
+                    trace?.noteSessionPrewarmed(staged)
+                    // A staged session was staged at key-down and is warm by construction;
+                    // otherwise the process is as warm as its last completed Apple-model call.
+                    let warmth: Warmth = staged
+                        ? .staged
+                        : await MainActor.run { AppleModelWarmth.current() }
+                    trace?.noteAssumedWarmth(warmth)
+                    // Nothing between here and `respond` throws, so the seal is always
+                    // published and the waiting task can never wait forever.
+                    seal.publish(Self.timeout(for: trimmed, warmth: warmth) * scale)
+                    return try await Self.respond(
+                        user: user,
+                        instructions: instructions,
+                        stagedSession: stagedSession,
                         modelCall: modelCall
                     )
                 }
                 group.addTask {
-                    try await Task.sleep(for: budget)
+                    try await Task.sleep(for: await seal.budget())
                     throw CleanupError.timedOut
                 }
                 // Whichever finishes first wins; cancel the loser.
                 guard let first = try await group.next() else { throw CleanupError.timedOut }
                 group.cancelAll()
-                // The prewarm bit is already on the trace: `cleanReporting` files it
-                // before `respond` is awaited, so timeouts and throws carry it too. (D-01a.)
-                return first.0
+                return first
             }
 
             if let reason = CleanupGuard.rejection(
@@ -237,6 +268,11 @@ struct FoundationModelFormatter: TextFormatter {
     /// Same as `clean`, plus whether the call ran on a session staged at key-down.
     /// The caller files that bit in the per-run record: the 0.6s-vs-4s spread on
     /// short dictations is a prewarm hit versus a miss until proven otherwise.
+    ///
+    /// `format` no longer comes through here (D-07): the budget has to be computed
+    /// against the warmth the session take reveals, so `format` takes the session itself
+    /// and races `respond` directly. This remains the unguarded, untimed call for
+    /// `--selftest-cleanup` and the warmth probe.
     static func cleanReporting(
         _ text: String,
         preferences: CleanupPreferences,
@@ -258,12 +294,12 @@ struct FoundationModelFormatter: TextFormatter {
             // `respond` is awaited, so timed-out, thrown and rejected runs carry it.
             let prewarmed = await modelCall.takeSession(instructions)
             trace?.noteSessionPrewarmed(prewarmed)
-            let answer = try await modelCall.respond(user)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            // D-06: an answer that came back is Apple-model activity, however the guard
-            // later judges it — the warmth window records that the model ran, never
-            // `MainActor.assumeIsolated`.
-            await MainActor.run { AppleModelWarmth.noteActivity() }
+            let answer = try await Self.respond(
+                user: user,
+                instructions: instructions,
+                stagedSession: nil,
+                modelCall: modelCall
+            )
             return (answer, prewarmed)
         }
         // A session staged while the key was still down, if there is one for exactly these
@@ -271,8 +307,31 @@ struct FoundationModelFormatter: TextFormatter {
         // different prompt is worth nothing and is not offered.
         let staged = await CleanupSessionWarmer.shared.take(instructions: instructions)
         trace?.noteSessionPrewarmed(staged != nil)          // before the call, always
-        let session = staged ?? LanguageModelSession(instructions: instructions)
+        let answer = try await Self.respond(
+            user: user,
+            instructions: instructions,
+            stagedSession: staged,
+            modelCall: nil
+        )
+        return (answer, staged != nil)
+    }
 
+    /// One model answer, on a session the caller has already taken. Records the
+    /// completed answer as Apple-model activity (D-06) — accepted, salvaged and
+    /// guard-rejected alike, since the model ran either way.
+    private static func respond(
+        user: String,
+        instructions: String,
+        stagedSession: LanguageModelSession?,
+        modelCall: CleanupModelCall?
+    ) async throws -> String {
+        if let modelCall {
+            let answer = try await modelCall.respond(user)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            await MainActor.run { AppleModelWarmth.noteActivity() }
+            return answer
+        }
+        let session = stagedSession ?? LanguageModelSession(instructions: instructions)
         let response = try await session.respond(
             to: user,
             options: GenerationOptions(
@@ -282,14 +341,8 @@ struct FoundationModelFormatter: TextFormatter {
                 maximumResponseTokens: 1_200
             )
         )
-        // D-06: a completed answer is Apple-model activity (accepted, salvaged and
-        // guard-rejected alike — the model ran either way).
         await MainActor.run { AppleModelWarmth.noteActivity() }
-
-        return (
-            response.content.trimmingCharacters(in: .whitespacesAndNewlines),
-            staged != nil
-        )
+        return response.content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// How long this transcript is allowed to spend in the model.
@@ -301,15 +354,81 @@ struct FoundationModelFormatter: TextFormatter {
     /// was typed with "the the the the" in it. Seven hundredths of a second a word, capped
     /// at 14s: `ChunkedFormatter` keeps a call near 120 words, so the cap is rarely met, and
     /// a stalled model still cannot sit on the tail.
-    static func timeout(for text: String) -> Duration {
+    ///
+    /// The budget is also warmth-aware (D-07). The warm formulas above assume the process
+    /// has already answered on this model; measured on this Mac, the first call in a fresh
+    /// process takes **4.69 s** before it writes anything, so the 4.0 s warm floor sat
+    /// under the wake-up itself and any dictation of ≤ 10 words landing on a cold model
+    /// was guaranteed to time out (I1-01: 6 of 9 timeouts in `runs.jsonl` were exactly
+    /// this). A cold call gets a 8.5 s floor — the wake-up's measured cost on top of the
+    /// warm floor — capped at 16 s, still bounded well under the 30 s outer limit, so a
+    /// genuinely stalled call still ends. A staged session is warm by construction and
+    /// keeps the tight budget.
+    static func timeout(for text: String, warmth: Warmth) -> Duration {
         let words = text.split { $0.isWhitespace || $0.isNewline }.count
-        let seconds = min(14.0, 4.0 + Double(words) * 0.07)
+        // A staged session is warm by construction; a process that has answered here within
+        // the warm window is warm as measured. Both keep the budget above. A cold call pays
+        // the 4.69 s wake-up first, so its floor is the warm floor plus that measured cost
+        // and its cap is two seconds higher — still bounded well under the 30 s outer limit,
+        // so a genuinely stalled call still ends.
+        let floor: Double
+        let cap: Double
+        switch warmth {
+        case .staged, .warmProcess:
+            floor = 4.0
+            cap = 14.0
+        case .cold:
+            floor = 8.5
+            cap = 16.0
+        }
+        let seconds = min(cap, floor + Double(words) * 0.07)
         return .seconds(seconds)
+    }
+
+    /// Kept for callers that cannot know the warmth; they get the warm budget, which is
+    /// the tight one. Callers that can know pass it.
+    static func timeout(for text: String) -> Duration {
+        timeout(for: text, warmth: .warmProcess)
     }
 
     private enum CleanupError: LocalizedError {
         case timedOut
         var errorDescription: String? { "on-device cleanup timed out" }
+    }
+}
+
+/// Hands the warmth-aware per-call budget from the task that took the session to the task
+/// that waits it out.
+///
+/// The two tasks share nothing else: `LanguageModelSession` is not `Sendable`, so the
+/// session is taken and used inside one task, and only the computed `Duration` crosses.
+/// Published exactly once, before the answer is awaited (D-07).
+private final class CleanupBudgetSeal: @unchecked Sendable {
+    private let lock = NSLock()
+    private var published: Duration?
+    private var waiter: CheckedContinuation<Duration, Never>?
+
+    /// The budget, waiting for the publishing task if it has not got there yet.
+    func budget() async -> Duration {
+        await withCheckedContinuation { continuation in
+            lock.lock()
+            if let published {
+                lock.unlock()
+                continuation.resume(returning: published)
+                return
+            }
+            waiter = continuation
+            lock.unlock()
+        }
+    }
+
+    func publish(_ budget: Duration) {
+        lock.lock()
+        published = budget
+        let waiter = waiter
+        self.waiter = nil
+        lock.unlock()
+        waiter?.resume(returning: budget)
     }
 }
 

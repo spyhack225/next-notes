@@ -348,11 +348,36 @@ struct CleanupRouter: TextFormatter {
     ) -> @Sendable (String) -> Duration {
         switch engine {
         case .apple:
-            return { FoundationModelFormatter.timeout(for: $0) }
+            // Warmth read per call and off-actor: a chunked pass's first wave may be the
+            // process's first Apple call, and its ceiling must not pretend otherwise. The
+            // locked read is the same rule `AppleModelWarmth.current()` applies on the main
+            // actor, so a `@Sendable` closure needs no hop to ask. (D-07.)
+            return {
+                FoundationModelFormatter.timeout(
+                    for: $0,
+                    warmth: AppleModelWarmth.currentNonisolated()
+                )
+            }
         case .s1Mini, .appLLM:
             // The on-device engine has no separate ceiling; S1-mini's is the larger of the
             // two that do, which is the safe way to be wrong about it.
             return { S1MiniFormatter.timeout(for: $0) }
+        }
+    }
+
+    /// The ceiling for a chunked pass's second wave on. From wave 2 the process has already
+    /// answered on this engine whatever the first wave started as, so Apple's warm budget
+    /// is the honest one and a cold first wave no longer charges every later group for the
+    /// same wake-up. Nil for the engines whose ceiling does not move, which times every
+    /// wave the same. (D-07.)
+    static func perCallTimeoutAfterFirstWave(
+        for engine: CleanupSemanticEngine
+    ) -> (@Sendable (String) -> Duration)? {
+        switch engine {
+        case .apple:
+            return { FoundationModelFormatter.timeout(for: $0, warmth: .warmProcess) }
+        case .s1Mini, .appLLM:
+            return nil
         }
     }
 
@@ -422,7 +447,8 @@ struct CleanupRouter: TextFormatter {
                 trace: trace
             ),
             trace: trace,
-            perCallTimeout: Self.perCallTimeout(for: engine)
+            perCallTimeout: Self.perCallTimeout(for: engine),
+            perCallTimeoutAfterFirstWave: Self.perCallTimeoutAfterFirstWave(for: engine)
         )
         let targetRendersLists = target.capabilities.contains(.bullets)
             || target.capabilities.contains(.numbered)
@@ -753,6 +779,7 @@ extension CleanupRouter {
         failures += salvageFailures()
         failures += traceFailures()
         failures += await prewarmTraceFailures()
+        failures += await warmthTimeoutFailures()
         failures += await launchWarmupFailures()
 
         // Opt-in, and off by default for a reason: this suite is the fast one every other
@@ -1647,7 +1674,9 @@ extension CleanupRouter {
         do {
             let trace = CleanupTrace()
             var formatter = FoundationModelFormatter(trace: trace)
-            formatter.timeoutOverride = .milliseconds(300)
+            // The 6-word input's warm budget is ~4.4 s; scaled to ~310 ms. (D-07 replaced
+            // D-01a's fixed override with this multiplier.)
+            formatter.timeScale = 0.07
             formatter.modelCall = CleanupModelCall(
                 takeSession: { _ in false },
                 respond: { _ in
@@ -1672,7 +1701,7 @@ extension CleanupRouter {
         do {
             let trace = CleanupTrace()
             var formatter = FoundationModelFormatter(trace: trace)
-            formatter.timeoutOverride = .milliseconds(300)
+            formatter.timeScale = 0.07
             formatter.modelCall = CleanupModelCall(
                 takeSession: { _ in true },
                 respond: { _ in throw PrewarmTestError.boom }
@@ -1689,7 +1718,7 @@ extension CleanupRouter {
         do {
             let trace = CleanupTrace()
             var formatter = FoundationModelFormatter(trace: trace)
-            formatter.timeoutOverride = .milliseconds(300)
+            formatter.timeScale = 0.07
             formatter.modelCall = CleanupModelCall(
                 takeSession: { _ in false },
                 respond: { _ in text }
@@ -1707,6 +1736,150 @@ extension CleanupRouter {
                 )
             }
         }
+        return failures
+    }
+
+    /// Stands in for the inner formatter of a chunked pass: sleeps long enough that the
+    /// wave loop's budget check is what decides whether the next wave starts. (D-07.)
+    private struct SlowTestFormatter: TextFormatter {
+        func format(_ raw: String) async -> String {
+            try? await Task.sleep(for: .milliseconds(100))
+            return raw
+        }
+    }
+
+    /// Seconds in a `Duration`, for comparisons with a tolerance.
+    private static func seconds(_ duration: Duration) -> Double {
+        Double(duration.components.seconds) + Double(duration.components.attoseconds) / 1e18
+    }
+
+    /// D-07: the per-call budget answers to warmth — a cold first call gets the wake-up's
+    /// measured cost on top of the warm floor, a staged session keeps the tight budget,
+    /// and a chunked pass spends the warm ceiling from its second wave on. Pure cases pin
+    /// the formula; the integration cases run the real `format` and the real wave loop on
+    /// the model seam with the clock scaled down (`timeScale`), so no model is woken and
+    /// no case waits seconds.
+    private static func warmthTimeoutFailures() async -> [String] {
+        var failures: [String] = []
+        let tenWords = String(repeating: "word ", count: 9) + "word"
+
+        // Pure: the formula.
+        do {
+            let cold = FoundationModelFormatter.timeout(for: tenWords, warmth: .cold)
+            if seconds(cold) + 0.01 < 9.2 {
+                failures.append("  warmth: cold 10-word budget was \(seconds(cold)) s, expected ≥ 9.2 s")
+            }
+            let staged = FoundationModelFormatter.timeout(for: tenWords, warmth: .staged)
+            if abs(seconds(staged) - 4.7) > 0.01 {
+                failures.append("  warmth: staged 10-word budget was \(seconds(staged)) s, expected 4.7 s")
+            }
+            let coldLong = FoundationModelFormatter.timeout(
+                for: String(repeating: "word ", count: 200), warmth: .cold)
+            if abs(seconds(coldLong) - 16.0) > 0.01 {
+                failures.append("  warmth: cold 200-word budget was \(seconds(coldLong)) s, expected the 16 s cap")
+            }
+            let warm = FoundationModelFormatter.timeout(for: tenWords, warmth: .warmProcess)
+            if warm != staged {
+                failures.append("  warmth: warmProcess \(seconds(warm)) s differed from staged \(seconds(staged)) s")
+            }
+        }
+
+        // Integration: a cold call that answers inside its longer budget is accepted, and
+        // the trace says which warmth the budget assumed. `warmWindow = -1 s` makes every
+        // elapsed reading fall outside it, which is the injection point for "cold".
+        let savedWindow = await MainActor.run { AppleModelWarmth.warmWindow }
+        await MainActor.run { AppleModelWarmth.warmWindow = .seconds(-1) }
+        do {
+            let trace = CleanupTrace()
+            var formatter = FoundationModelFormatter(trace: trace)
+            formatter.timeScale = 0.05
+            formatter.modelCall = CleanupModelCall(
+                takeSession: { _ in false },
+                respond: { _ in
+                    try await Task.sleep(for: .milliseconds(240))
+                    // The answer comes back unchanged, so the guard accepts it and the case
+                    // measures the budget alone rather than the guard as well.
+                    return tenWords
+                }
+            )
+            _ = await formatter.format(tenWords)
+            let snapshot = trace.snapshot
+            if snapshot.guardVerdict != "accepted" {
+                failures.append(
+                    "  warmth: cold 240 ms answer was \(snapshot.guardVerdict ?? "nil") (fallbackReason \(snapshot.fallbackReason ?? "nil")), expected accepted inside the 460 ms cold budget"
+                )
+            }
+            if snapshot.assumedWarmth != Warmth.cold.rawValue {
+                failures.append("  warmth: cold run recorded assumedWarmth \(snapshot.assumedWarmth ?? "nil")")
+            }
+        }
+        // A cold call that stalls past even the cold budget still ends.
+        do {
+            let trace = CleanupTrace()
+            var formatter = FoundationModelFormatter(trace: trace)
+            formatter.timeScale = 0.05
+            formatter.modelCall = CleanupModelCall(
+                takeSession: { _ in false },
+                respond: { _ in
+                    try await Task.sleep(for: .seconds(1))
+                    return tenWords
+                }
+            )
+            _ = await formatter.format(tenWords)
+            if !(trace.snapshot.fallbackReason?.contains("timed out") ?? false) {
+                failures.append(
+                    "  warmth: 1 s cold answer was not timed out (fallbackReason \(trace.snapshot.fallbackReason ?? "nil"))"
+                )
+            }
+        }
+        // A staged session keeps the tight budget: the same 300 ms answer misses it.
+        do {
+            let trace = CleanupTrace()
+            var formatter = FoundationModelFormatter(trace: trace)
+            formatter.timeScale = 0.05
+            formatter.modelCall = CleanupModelCall(
+                takeSession: { _ in true },
+                respond: { _ in
+                    try await Task.sleep(for: .milliseconds(300))
+                    return tenWords
+                }
+            )
+            _ = await formatter.format(tenWords)
+            if !(trace.snapshot.fallbackReason?.contains("timed out") ?? false) {
+                failures.append(
+                    "  warmth: 300 ms answer on a staged session was not timed out at the 221 ms staged budget"
+                )
+            }
+        }
+        // Chunk budget: a cold first wave does not starve the later waves — from wave 2 on
+        // the warm ceiling is the honest one, so every group still starts inside the pass
+        // budget. Three sentence groups, width 2, scaled budget 1.25 s, cold ceiling 1.2 s,
+        // warm ceiling 0.1 s, 100 ms per call.
+        do {
+            let text = [
+                "alpha one two three four five six seven eight nine.",
+                "bravo one two three four five six seven eight nine.",
+                "charlie one two three four five six seven eight nine.",
+            ].joined(separator: " ")
+            let trace = CleanupTrace()
+            let chunked = ChunkedFormatter(
+                inner: SlowTestFormatter(),
+                maxWords: 10,
+                trace: trace,
+                budget: .seconds(1.25),
+                perCallTimeout: { _ in .seconds(1.2) },
+                perCallTimeoutAfterFirstWave: { _ in .seconds(0.1) }
+            )
+            _ = await chunked.format(text)
+            let snapshot = trace.snapshot
+            if let reason = snapshot.fallbackReason {
+                failures.append("  warmth: chunked pass truncated after a cold first wave: \(reason)")
+            }
+            if (snapshot.chunks ?? 0) < 3 {
+                failures.append("  warmth: chunk budget case produced \(snapshot.chunks ?? 0) group(s), expected 3")
+            }
+        }
+        await MainActor.run { AppleModelWarmth.warmWindow = savedWindow }
         return failures
     }
 

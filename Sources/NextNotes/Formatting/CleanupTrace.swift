@@ -173,6 +173,14 @@ final class CleanupTrace: @unchecked Sendable {
         mutate { $0.sessionPrewarmed = ($0.sessionPrewarmed ?? false) || used }
     }
 
+    /// The warmth the per-call budget was computed for — `.staged` when a key-down
+    /// session served the call, otherwise the process's warmth at that moment. Last
+    /// writer wins across chunked runs, like `sessionPrewarmed`'s per-call values.
+    /// (D-07.)
+    func noteAssumedWarmth(_ warmth: Warmth) {
+        mutate { $0.assumedWarmth = warmth.rawValue }
+    }
+
     /// The model did not answer at all — unavailable, timed out, refused, not downloaded.
     func noteModelFailed(reason: String, seconds: Double) {
         mutate {
@@ -218,6 +226,10 @@ struct CleanupRecord: Codable, Sendable, Hashable {
     /// True when a key-down-staged session served at least one model call in this
     /// run. Nil when no model ran.
     var sessionPrewarmed: Bool?
+    /// The warmth the timeout was budgeted against: `staged`, `warmProcess`, or `cold`.
+    /// Nil on a run where no model call reached the budget. Old rows decode as nil.
+    /// (D-07.)
+    var assumedWarmth: String?
     /// `accepted`, `rejected`, or `not reached`.
     var guardVerdict: String?
     /// Plain reason the model's answer was not used: a guard rejection, a timeout, an
