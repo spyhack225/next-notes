@@ -75,6 +75,13 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
         max(1, text.utf8.count / 3)
     }
 
+    /// Whether a server's `finish_reason` means the allowance ran out (M-13). Every
+    /// OpenAI-compatible server spells the cap the same way; a server that sends nothing
+    /// leaves the flag false, which is the honest answer for an unknown ending.
+    static func finishedByLimit(finishReason: String?) -> Bool {
+        finishReason == "length"
+    }
+
     // MARK: - Completion
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
@@ -86,9 +93,10 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
         )
         let (data, response) = try await session.data(for: request)
         try Self.validate(response, data: data, serverName: serverName)
+        let decoded = try? JSONDecoder().decode(CompletionResponse.self, from: data)
         let text = try Self.text(fromCompletion: data)
         guard !text.isEmpty else { throw LocalServerError.emptyAnswer(serverName) }
-        let usage = try? JSONDecoder().decode(CompletionResponse.self, from: data).usage
+        let usage = decoded?.usage
         // P0-20a: the server's own usage object when it sends one, estimates otherwise.
         ModelPassRecorder.current?.report(
             promptTokens: usage?.prompt_tokens,
@@ -100,7 +108,11 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
         return LLMCompletion(
             text: text,
             generatedTokens: usage?.completion_tokens ?? max(1, text.utf8.count / 3),
-            duration: Date().timeIntervalSince(began)
+            duration: Date().timeIntervalSince(began),
+            // M-13: the server said why it stopped; say so here rather than leaving the
+            // caller to guess from a token count.
+            finishedByLimit: Self.finishedByLimit(
+                finishReason: decoded?.choices.first?.finish_reason)
         )
     }
 
@@ -333,6 +345,7 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
                 let tool_calls: [ToolCall]?
             }
             let message: Message
+            let finish_reason: String?
         }
         struct Usage: Decodable { let prompt_tokens: Int?; let completion_tokens: Int? }
         let choices: [Choice]

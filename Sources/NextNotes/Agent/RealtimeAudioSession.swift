@@ -99,6 +99,13 @@ final class RealtimeAudioSession {
     }
     private var recentOutputs: [OutputReference] = []
     private static let echoWindow: TimeInterval = 15
+    /// How long a finished clause can still be heard in the room: the AEC
+    /// tail plus Apple's ~1.1 s first-result lag. Only the acoustic rules (the
+    /// 2-word short edge and the single-word residual) are scoped to it. The
+    /// ≥ 3-word span rule and the inherited mask follow a cumulative
+    /// recognizer revision of the reply itself, so they keep the whole
+    /// `echoWindow`.
+    private static let echoTailSeconds: TimeInterval = 1.5
     private static let maxEchoReferences = 6
     private static let wordPattern = try! NSRegularExpression(pattern: #"[\p{L}\p{N}]+"#)
 
@@ -198,6 +205,16 @@ final class RealtimeAudioSession {
     /// leading token positions were already identified as playback. The
     /// caller owns one state per recognizer and resets it at turn/session or
     /// decoder-discontinuity boundaries.
+    ///
+    /// Two families of rule run here. **Acoustic** rules — the 2-word short
+    /// edge and the single-word residual — only fire against a clause that is
+    /// still rendering or ended within `echoTailSeconds`, because outside that
+    /// window the microphone has nothing of it to hear. **Span** rules — the
+    /// ≥ 3-word match and the inherited mask — run against the whole
+    /// `echoWindow`, because a cumulative revision of the agent's own reply can
+    /// land seconds later. A fresh utterance answering a question that has
+    /// finished gets no rule at all: repeating the agent's words is how an
+    /// answer is given.
     @discardableResult
     func userSpeechExcludingPlayback(
         _ text: String,
@@ -235,6 +252,22 @@ final class RealtimeAudioSession {
         var mask = inherited ?? [Bool](repeating: false, count: heard.count)
         let references = recentOutputs.filter { $0.active
             || now.timeIntervalSince($0.at) < Self.echoWindow }
+        // A question solicits its own words: "Calendar." after "…calendar or
+        // email?" is the answer, not an echo. Once the agent's last clause has
+        // finished asking something, a fresh utterance gets no lexical rule at
+        // all. Inside the tail the normal rules still run, because that is
+        // where a delayed recognition of the question itself lands. A revision
+        // that inherited echo labels is not fresh, so the span rules keep
+        // following it.
+        let lastEnded = recentOutputs.filter { !$0.active }.max(by: { $0.at < $1.at })
+        let questionExempt = !(inherited ?? []).contains(true)
+            && !recentOutputs.contains(where: \.active)
+            && (lastEnded.map {
+                $0.text.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("?")
+                    && now.timeIntervalSince($0.at) > Self.echoTailSeconds
+            } ?? false)
+        if questionExempt { return mask }
+        let tail = references.filter { isInEchoTail($0, now: now) }
         for reference in references {
             let spoken = Self.words(in: reference.text)
             guard !spoken.isEmpty else { continue }
@@ -245,7 +278,7 @@ final class RealtimeAudioSession {
                           heard[i + count].value == spoken[j + count].value {
                         count += 1
                     }
-                    let shortEdge = count == 2
+                    let shortEdge = count == 2 && isInEchoTail(reference, now: now)
                         && (heard.count == 2 || i == 0 || i + count == heard.count)
                     if count >= 3 || shortEdge {
                         for index in i..<(i + count) { mask[index] = true }
@@ -267,11 +300,10 @@ final class RealtimeAudioSession {
         // can be matched against an earlier, still-fresh clause.
         let residualIndices = heard.indices.filter { !mask[$0] }
         if residualIndices.count == 1, let index = residualIndices.first {
-            for reference in references {
-                let age = now.timeIntervalSince(reference.at)
+            for reference in tail {
                 if Self.words(in: reference.text).contains(where: { spoken in
                     spoken.value == heard[index].value
-                        || (heard[index].value.count >= 4 && (reference.active || age < 3)
+                        || (heard[index].value.count >= 4
                             && Self.oneEditApart(heard[index].value, spoken.value))
                 }) {
                     mask[index] = true
@@ -280,6 +312,14 @@ final class RealtimeAudioSession {
             }
         }
         return mask
+    }
+
+    /// A clause the microphone can still be hearing: rendering now, or its
+    /// audio tail still in the room. The single-word and short-edge rules are
+    /// acoustic evidence and are scoped to this; a span of three or more words
+    /// is not, and keeps the whole `echoWindow`.
+    private func isInEchoTail(_ reference: OutputReference, now: Date) -> Bool {
+        reference.active || now.timeIntervalSince(reference.at) <= Self.echoTailSeconds
     }
 
     private static func removingEchoWords(
@@ -762,11 +802,6 @@ extension RealtimeAudioSession {
             failures.append("unrelated user request was removed as playback")
         }
         session.noteUserSpeech()
-        if session.userSpeechExcludingPlayback(
-            "calendar.", now: Date().addingTimeInterval(10)
-        ) != "" {
-            failures.append("late one-word reply revision became a user turn")
-        }
         if session.userSpeechExcludingPlayback("Yes, I can hear you clearly") != "" {
             failures.append("late playback tail survived after output stopped")
         }
@@ -776,13 +811,101 @@ extension RealtimeAudioSession {
         ) != "Yes, I can hear you clearly" {
             failures.append("expired playback reference suppressed a new turn")
         }
+
+        // A spoken answer repeats the agent's own words by definition. Inside
+        // the echo tail it is still the agent's; once the tail has passed, the
+        // words belong to the person, and a question invites exactly them.
+        session.begin()
+        session.speak("Would you like the calendar or email?")
+        let questionToken = synth.currentPlaybackToken
+        synth.notifyTestingFirstAudio(token: questionToken)
+        synth.notifyTestingAudioFinished(token: questionToken)
+        if session.userSpeechExcludingPlayback(
+            "calendar.", now: Date().addingTimeInterval(0.5)
+        ) != "" {
+            failures.append("one-word answer inside the echo tail was not removed")
+        }
+        if session.userSpeechExcludingPlayback(
+            "Calendar.", now: Date().addingTimeInterval(3)
+        ) != "Calendar." {
+            failures.append("one-word answer to a question was removed as playback")
+        }
+        if session.userSpeechExcludingPlayback(
+            "the calendar", now: Date().addingTimeInterval(3)
+        ) != "the calendar" {
+            failures.append("two-word answer to a question was removed as playback")
+        }
+
+        session.begin()
+        session.speak("Yes, I can set that up for you.")
+        let offerToken = synth.currentPlaybackToken
+        synth.notifyTestingFirstAudio(token: offerToken)
+        synth.notifyTestingAudioFinished(token: offerToken)
+        if session.userSpeechExcludingPlayback(
+            "Yes.", now: Date().addingTimeInterval(3)
+        ) != "Yes." {
+            failures.append("one-word answer to a finished clause was removed as playback")
+        }
+
+        session.begin()
+        session.speak("Shall I set a reminder for nine?")
+        let restateToken = synth.currentPlaybackToken
+        synth.notifyTestingFirstAudio(token: restateToken)
+        synth.notifyTestingAudioFinished(token: restateToken)
+        if session.userSpeechExcludingPlayback(
+            "Set a reminder for nine", now: Date().addingTimeInterval(1)
+        ) != "" {
+            failures.append("restatement inside the echo tail was not removed")
+        }
+        if session.userSpeechExcludingPlayback(
+            "Set a reminder for nine", now: Date().addingTimeInterval(3)
+        ) != "Set a reminder for nine" {
+            failures.append("restatement answering a question was removed as playback")
+        }
+
+        // A clause that is still rendering keeps the original intent: its own
+        // words can land at any point while the audio is playing.
+        session.begin()
+        session.speak("Would you like the calendar or email?")
+        let liveToken = synth.currentPlaybackToken
+        synth.notifyTestingFirstAudio(token: liveToken)
+        if session.userSpeechExcludingPlayback(
+            "calendar.", now: Date().addingTimeInterval(10)
+        ) != "" {
+            failures.append("answer during a live clause was not removed")
+        }
+
+        // A cumulative revision inherits its echo labels, so the question
+        // exemption must not open a hole in the middle of one.
+        session.begin()
+        session.speak("Shall I set a reminder for nine?")
+        let inheritedToken = synth.currentPlaybackToken
+        synth.notifyTestingFirstAudio(token: inheritedToken)
+        synth.notifyTestingAudioFinished(token: inheritedToken)
+        var questionRevision = EchoRecognitionState()
+        _ = session.userSpeechExcludingPlayback("Shall I set a", recognition: &questionRevision,
+            now: Date().addingTimeInterval(0.8))
+        if session.userSpeechExcludingPlayback("Shall I set a reminder for nine yes",
+            recognition: &questionRevision,
+            now: Date().addingTimeInterval(3)).text != "yes" {
+            failures.append("cumulative revision lost its inherited echo labels")
+        }
         session.speak("I stopped the tool plan because it took too long.")
-        synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
+        let revisedTailToken = synth.currentPlaybackToken
+        synth.notifyTestingFirstAudio(token: revisedTailToken)
         session.noteUserSpeech()
+        // One word out of a cut-off clause is the same class as "Yes." after
+        // "Yes, I can set that up." — a restatement, and the person's turn once
+        // the echo tail has passed. Inside the tail it is still the agent's.
+        if session.userSpeechExcludingPlayback(
+            "long.", now: Date().addingTimeInterval(0.5)
+        ) != "" {
+            failures.append("09:07 reply tail inside the echo tail was not removed")
+        }
         if session.userSpeechExcludingPlayback(
             "long.", now: Date().addingTimeInterval(10)
-        ) != "" {
-            failures.append("09:07 revised reply tail became a user turn")
+        ) != "long." {
+            failures.append("09:07 one-word restatement was removed as playback")
         }
         session.speak("I don't have ears to hear audio.")
         let activeLongToken = synth.currentPlaybackToken

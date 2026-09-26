@@ -56,8 +56,30 @@ struct NotesGenerator: Sendable {
     /// Matches the runtime's own headroom, so a prompt this generator accepts is never one
     /// the runtime then refuses.
     private static let runtimeHeadroomTokens = 256
-    /// Notes longer than this are a transcript with bullet points in front of it.
-    private static let maxNotesTokens = 1_500
+    /// The notes cap, scaled with the meeting's length (M-13).
+    ///
+    /// One flat number is wrong in both directions: 1,500 tokens is a lot of notes for a
+    /// ten-minute call and too few for an hour, and the meetings that run out of room are
+    /// exactly the long ones. Ten minutes keeps 1,000, an hour gets 2,000, and 3,000 is the
+    /// ceiling — past that a longer answer is a transcript with bullet points in front of
+    /// it. `outputBudget` still clamps by what the window has left.
+    static func maxNotesTokens(minutes: Int) -> Int {
+        min(notesTokenCeiling, notesTokenBase + notesTokenPerMinute * max(0, minutes))
+    }
+
+    private static let notesTokenBase = 800
+    private static let notesTokenPerMinute = 20
+    private static let notesTokenCeiling = 3_000
+
+    /// How long the meeting was, for the cap that scales with it (M-13): the recording's
+    /// own length when it stopped, else the transcript's span. An interrupted meeting has
+    /// no `end`, and its notes still deserve a cap that matches how much was said.
+    static func notesMinutes(meeting: Meeting, segments: [TranscriptSegment]) -> Int {
+        let recorded = meeting.duration ?? 0
+        let spoken = segments.last.map { $0.end - (segments.first?.start ?? 0) } ?? 0
+        return max(1, Int((max(recorded, spoken) / 60).rounded()))
+    }
+
     /// A map chunk never exceeds this, however large the window (M-12): the map step
     /// reads slices so the reduce has facts, not a second transcript.
     private static let maxChunkTokens = 6_000
@@ -112,16 +134,18 @@ struct NotesGenerator: Sendable {
 
         if transcriptTokens + briefTokens + overhead <= budget {
             progress(Step(message: "Writing notes\u{2026}", fraction: nil))
-            let completion: LLMCompletion
+            let answer: Answer
             do {
-                completion = try await recordedComplete(
+                answer = try await answerWithRetry(
                     feature: .meetingNotesSingle,
                     pass: "single",
                     meetingID: meeting.id,
                     system: NotesPrompts.notesSystem,
                     user: NotesPrompts.notesUser(meeting: meeting, transcript: transcript, brief: brief),
-                    maxTokens: outputBudget(
-                        promptTokens: transcriptTokens + briefTokens, overhead: overhead)
+                    promptTokens: transcriptTokens + briefTokens,
+                    overhead: overhead,
+                    cap: Self.maxNotesTokens(
+                        minutes: Self.notesMinutes(meeting: meeting, segments: segments))
                 )
             } catch let overflow where Self.isContextOverflow(overflow) {
                 // The estimate said one pass and the model refused the prompt (M-12):
@@ -145,10 +169,14 @@ struct NotesGenerator: Sendable {
                     allowRetry: false
                 )
             }
-            var markdown = NotesFormatter.tidy(completion.text)
+            // M-13: a cut-off answer says so on the page. `tidy` wrote `_None._` under
+            // every section the model never reached, which reads as "nothing was decided"
+            // — the one claim a cut-off document cannot support.
+            var markdown = NotesFormatter.tidy(answer.completion.text, cutShort: answer.cutShort)
             // No Known context block means there is nothing true to connect, and a model
             // asked for the section writes one anyway. The prompt says the empty marker;
-            // this is what makes that true.
+            // this is what makes that true. It runs after `tidy` on purpose: with no brief
+            // there is nothing to connect, truncation or not.
             if brief.isEmpty {
                 markdown = NotesFormatter.emptySection(NotesPrompts.relatedHeading, in: markdown)
             }
@@ -156,7 +184,7 @@ struct NotesGenerator: Sendable {
             return Result(
                 markdown: markdown,
                 providerID: provider.id,
-                generatedTokens: completion.generatedTokens,
+                generatedTokens: answer.tokens,
                 duration: Date().timeIntervalSince(began),
                 usedMapReduce: false,
                 chunks: 1,
@@ -373,19 +401,23 @@ struct NotesGenerator: Sendable {
         }
 
         let factTokens = try await provider.countTokens(joined)
-        let completion = try await recordedComplete(
+        // M-13: the reduce is the answer, so it gets the same single retry and the same
+        // "cut short" filler as the single pass.
+        let answer = try await answerWithRetry(
             feature: .meetingNotesReduce,
             pass: "reduce",
             meetingID: meeting.id,
             system: NotesPrompts.reduceSystem,
             user: NotesPrompts.reduceUser(meeting: meeting, facts: joined, brief: brief),
-            maxTokens: outputBudget(
-                promptTokens: factTokens + briefTokens, overhead: overheadTokens),
+            promptTokens: factTokens + briefTokens,
+            overhead: overheadTokens,
+            cap: Self.maxNotesTokens(
+                minutes: Self.notesMinutes(meeting: meeting, segments: segments)),
             counts: ["chunks": chunks.count, "facts": facts.count]
         )
-        generated += completion.generatedTokens
+        generated += answer.tokens
 
-        let markdown = NotesFormatter.tidy(completion.text)
+        let markdown = NotesFormatter.tidy(answer.completion.text, cutShort: answer.cutShort)
         guard !NotesFormatter.isBlank(markdown) else { throw NotesError.emptyNotes }
         let body = brief.isEmpty
             ? NotesFormatter.emptySection(NotesPrompts.relatedHeading, in: markdown)
@@ -402,6 +434,73 @@ struct NotesGenerator: Sendable {
             collapsedGroups: collapsedGroups,
             droppedFacts: dropped
         )
+    }
+
+    /// One notes answer, retried once at double the allowance when the model ran out of
+    /// room (M-13).
+    ///
+    /// `finishedByLimit` is the only signal there is: a document that stopped mid-section
+    /// is indistinguishable from a finished one without it, and `tidy` then pads the rest
+    /// with `_None._` — "no decisions", "no open questions" — which is the one claim a
+    /// cut-off answer cannot support. One retry, and only when the window has room for
+    /// it: a second refusal is minutes nobody asked to spend.
+    private struct Answer {
+        let completion: LLMCompletion
+        /// Both calls' tokens when the retry ran — the reported figure is a sum over the
+        /// usage rows, never the last row alone.
+        let tokens: Int
+        /// What the retry could not fix: the page says the notes were cut short.
+        let cutShort: Bool
+    }
+
+    private func answerWithRetry(
+        feature: UsageFeature,
+        pass: String,
+        meetingID: UUID,
+        system: String,
+        user: String,
+        promptTokens: Int,
+        overhead: Int,
+        cap: Int,
+        counts: [String: Int] = [:]
+    ) async throws -> Answer {
+        let first = outputBudget(promptTokens: promptTokens, overhead: overhead, cap: cap)
+        var completion = try await recordedComplete(
+            feature: feature, pass: pass, meetingID: meetingID,
+            system: system, user: user, maxTokens: first, counts: counts)
+        var tokens = completion.generatedTokens
+        guard completion.finishedByLimit else {
+            return Answer(completion: completion, tokens: tokens, cutShort: false)
+        }
+        // Twice the allowance, or as much of it as the window has left — whichever is
+        // smaller, and no retry at all when the window is already spent.
+        let retry = outputBudget(promptTokens: promptTokens, overhead: overhead, cap: cap * 2)
+        guard retry > first else {
+            logCutShort(pass: pass, budget: first, retried: false)
+            return Answer(completion: completion, tokens: tokens, cutShort: true)
+        }
+        completion = try await recordedComplete(
+            feature: feature, pass: pass, meetingID: meetingID,
+            system: system, user: user, maxTokens: retry, counts: counts)
+        tokens += completion.generatedTokens
+        if completion.finishedByLimit {
+            logCutShort(pass: pass, budget: retry, retried: true)
+        }
+        return Answer(
+            completion: completion,
+            tokens: tokens,
+            cutShort: completion.finishedByLimit
+        )
+    }
+
+    /// The line that says a meeting's notes were not written whole (M-13). The page says
+    /// it as well; this is the one a log read answers without opening the meeting.
+    private func logCutShort(pass: String, budget: Int, retried: Bool) {
+        Log.llm.info("""
+            notes cut short · \(provider.displayModelName, privacy: .public) · \
+            \(pass, privacy: .public) · budget \(budget, privacy: .public) \
+            · retried \(retried, privacy: .public)
+            """)
     }
 
     /// One model call, wrapped in the usage recorder that writes its row (P0-20b).
@@ -438,7 +537,10 @@ struct NotesGenerator: Sendable {
                 cachedTokens: nil,
                 completionTokens: completion.generatedTokens,
                 reasoningTokens: nil,
-                finishReason: nil,
+                // M-13: a pass that ran out of allowance is not a pass that stopped. The
+                // row says which, so `--usage-report` can answer "was this meeting's notes
+                // model cut off?" without the notes being open.
+                finishReason: completion.finishedByLimit ? "length" : nil,
                 estimated: provider.id == .appleFoundation
             )
             recorder.finish(reason: "stop")
@@ -482,18 +584,19 @@ struct NotesGenerator: Sendable {
         return false
     }
 
-    /// How many tokens the answer may use, given what the prompt already spent.
+    /// How many tokens the answer may use, given what the prompt already spent and how
+    /// long the meeting was (M-13).
     ///
     /// Every provider shares one window between prompt and response, so a transcript that
     /// fills the whole transcript budget has to leave the notes somewhere to go. Without
     /// this, the longest meetings — the ones that most need summarising — are exactly the
     /// ones the runtime rejects. The overhead is counted, not assumed (M-12).
-    private func outputBudget(promptTokens: Int, overhead: Int) -> Int {
+    private func outputBudget(promptTokens: Int, overhead: Int, cap: Int) -> Int {
         let remaining = provider.contextTokens
             - promptTokens
             - overhead
             - Self.runtimeHeadroomTokens
-        return max(Self.minNotesTokens, min(Self.maxNotesTokens, remaining))
+        return max(Self.minNotesTokens, min(cap, remaining))
     }
 
     /// Below this there is no room to write anything worth keeping, and the caller is
@@ -601,7 +704,12 @@ enum NotesFormatter {
     }
 
     /// The six sections, in order, each present exactly once.
-    static func tidy(_ text: String) -> String {
+    ///
+    /// `cutShort` switches the filler for the sections the model never reached (M-13).
+    /// Without it a truncated answer is dressed up as a complete one: `_None._` under
+    /// ## Decisions reads as "nothing was decided", and the reader has no way to tell it
+    /// from a meeting where that is true.
+    static func tidy(_ text: String, cutShort: Bool = false) -> String {
         let cleaned = stripCodeFence(stripThinking(text))
         var sections: [String: [String]] = [:]
         var preamble: [String] = []
@@ -633,7 +741,8 @@ enum NotesFormatter {
             let body = (sections[heading] ?? [])
                 .joined(separator: "\n")
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            return "## \(heading)\n\(body.isEmpty ? NotesPrompts.emptyMarker : body)"
+            let filler = cutShort ? NotesPrompts.cutShortMarker : NotesPrompts.emptyMarker
+            return "## \(heading)\n\(body.isEmpty ? filler : body)"
         }
         .joined(separator: "\n\n") + "\n"
     }

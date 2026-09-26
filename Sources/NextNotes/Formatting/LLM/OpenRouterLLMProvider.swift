@@ -451,7 +451,11 @@ struct OpenRouterLLMProvider: LLMProvider {
                 try Self.validate(response, data: data)
                 let decoded = try JSONDecoder().decode(CompletionResponse.self, from: data)
                 let text = decoded.choices.first?.message.content ?? ""
-                if decoded.choices.first?.finish_reason == "length" {
+                // P0-17 owns the decoding and the two one-shot recoveries below; M-13 only
+                // hands its result on, so a caller that reads `finishedByLimit` and a caller
+                // that catches `cutOff` are answering from the same field.
+                let cutOff = decoded.choices.first?.finish_reason == "length"
+                if cutOff {
                     if text.isEmpty, attempt == 1, case .capped = policy {
                         policy = policy.doubled(contextTokens: contextTokens)
                         continue
@@ -471,7 +475,8 @@ struct OpenRouterLLMProvider: LLMProvider {
                     estimated: decoded.usage == nil)
                 return LLMCompletion(text: text,
                                      generatedTokens: decoded.usage?.completion_tokens ?? max(1, text.utf8.count / 3),
-                                     duration: Date().timeIntervalSince(began))
+                                     duration: Date().timeIntervalSince(began),
+                                     finishedByLimit: cutOff)
             } catch let error as OpenRouterError {
                 guard attempt == 1, policy != .off, Self.rejectsReasoning(error) else { throw error }
                 await Self.rememberNoReasoning(modelID: modelID)

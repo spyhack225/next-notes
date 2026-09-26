@@ -1246,6 +1246,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runNotesLongformSelfTest()
             return true
         }
+        if arguments.contains("--selftest-notes-truncation") {
+            runNotesTruncationSelfTest()
+            return true
+        }
         if arguments.contains("--selftest-meeting-finals") {
             runMeetingFinalsSelfTest()
             return true
@@ -3012,6 +3016,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func runNotesLongformSelfTest() {
         Task { @MainActor in
             SelfTest.failed = !(await NotesLongformSelfTest.run { writeSelfTest($0) })
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// `--selftest-notes-truncation`: a cut-off answer says so on the page instead of
+    /// claiming there was nothing to say (M-13). No model, no store.
+    private func runNotesTruncationSelfTest() {
+        Task { @MainActor in
+            SelfTest.failed = !(await NotesTruncationSelfTest.run { writeSelfTest($0) })
             NSApp.terminate(nil)
         }
     }

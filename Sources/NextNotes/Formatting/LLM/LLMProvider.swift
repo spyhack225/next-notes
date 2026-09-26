@@ -207,6 +207,10 @@ struct LLMCompletion: Sendable {
     let text: String
     let generatedTokens: Int
     let duration: TimeInterval
+    /// M-13: the model stopped because its allowance ran out, not because it finished.
+    /// A default so every existing memberwise call still compiles; a provider that cannot
+    /// tell leaves it false.
+    var finishedByLimit: Bool = false
 
     var tokensPerSecond: Double {
         duration > 0 ? Double(generatedTokens) / duration : 0

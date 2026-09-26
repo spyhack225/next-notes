@@ -166,6 +166,8 @@ INTEGRATION_ENTRIES=(
   "selftest-meeting-quality|120"
   # map-reduce never drops facts (M-05; M-12 extends the cases)
   "selftest-notes-longform|300"
+  # a cut-off notes answer says so instead of claiming nothing was decided (M-13)
+  "selftest-notes-truncation|120"
   # nearest-run and neighbour fallback for far-end labels (M-04)
   "selftest-diarize-assign|120"
   # speaker-count hints, voice-print cluster merge and the measured threshold (M-03):

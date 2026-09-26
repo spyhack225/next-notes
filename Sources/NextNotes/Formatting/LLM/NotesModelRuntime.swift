@@ -941,7 +941,12 @@ actor NotesModelRuntime {
         return LLMCompletion(
             text: text,
             generatedTokens: generated,
-            duration: Date().timeIntervalSince(began)
+            duration: Date().timeIntervalSince(began),
+            // M-13: the loop above only leaves for three reasons — an end-of-generation
+            // token, the family's turn marker, or the allowance running out — and the
+            // third is the one a caller cannot see in the text. A model that happened to
+            // stop at exactly maxTokens is counted as cut, which costs one retry.
+            finishedByLimit: generated >= maxTokens
         )
     }
 

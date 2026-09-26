@@ -31,6 +31,11 @@ enum NotesPrompts {
     /// an empty one reads as an answer.
     static let emptyMarker = "_None._"
 
+    /// What a section the model never reached says (M-13). The same italics the empty
+    /// marker uses, and deliberately not the empty marker: "no decisions" is a claim, and
+    /// a cut-off answer has not made one.
+    static let cutShortMarker = "_The notes were cut short before this section._"
+
     // MARK: - Single pass
 
     static let notesSystem = """

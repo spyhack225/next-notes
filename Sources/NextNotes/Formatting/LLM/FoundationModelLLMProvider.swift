@@ -39,6 +39,16 @@ struct FoundationModelLLMProvider: LLMProvider {
     /// The fallback's characters-per-token, labelled an estimate: see `countTokens`.
     private let charactersPerToken = 3
 
+    /// Whether a reply used its whole allowance (M-13).
+    ///
+    /// The framework reports no stop reason, so this is an estimate: a reply within two
+    /// tokens of the cap is one the cap cut off. A false positive costs the caller one
+    /// retry it did not need; a false negative is a truncated answer that looks finished,
+    /// which is the failure this exists to prevent.
+    static func finishedByLimit(generatedTokens: Int, maxTokens: Int) -> Bool {
+        generatedTokens >= maxTokens - 2
+    }
+
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         let began = Date()
         let session = LanguageModelSession(instructions: system)
@@ -54,6 +64,9 @@ struct FoundationModelLLMProvider: LLMProvider {
         // characters / 4 otherwise — and `estimated` says which.
         let prompt = await Self.measuredTokenCount(system + user)
         let completion = await Self.measuredTokenCount(text)
+        // M-13: the same count the completion reports, so the flag and the row cannot
+        // disagree about how much room the answer took.
+        let generated = (try? await countTokens(text)) ?? 0
         ModelPassRecorder.current?.report(
             promptTokens: prompt.count,
             cachedTokens: nil,
@@ -66,8 +79,10 @@ struct FoundationModelLLMProvider: LLMProvider {
             // The response carries no token count either, so tokens/second reported for this
             // provider is the same estimate as `countTokens`, and is labelled as such where
             // it is printed.
-            generatedTokens: (try? await countTokens(text)) ?? 0,
-            duration: Date().timeIntervalSince(began)
+            generatedTokens: generated,
+            duration: Date().timeIntervalSince(began),
+            finishedByLimit: Self.finishedByLimit(
+                generatedTokens: generated, maxTokens: maxTokens)
         )
     }
 
