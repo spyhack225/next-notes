@@ -16,6 +16,10 @@ import os
 ///   and has no query API. macOS decides on first use of a tap, so it cannot be read, only
 ///   provoked and then measured.
 /// - **Calendar** — EventKit, for meeting detection. Google Calendar is OAuth, not TCC.
+/// - **Full Disk Access** — reading the Messages database for remote access. Apple ships no
+///   API that reads received messages, and `chat.db` is world-readable yet still returns
+///   `authorization denied` without this, so the only proof available is a row actually
+///   being read. No request API, like Accessibility: the row opens the pane.
 ///
 /// TCC keys every grant on the code signature, so re-signing the app resets them.
 @MainActor

@@ -241,6 +241,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // NextNotes-iMessage IM-04a: the same shape, for the same reason. It needs a real
+        // grant and a real Messages database, so it can never be a `--selftest-*` flag, and
+        // it reads the owner's own history rather than a temp store, so it must run before
+        // `runRequestedSelfTest` with `SelfTest.isRunning` still false.
+        if CommandLine.arguments.contains(MessagesSelfFlowReport.flag) {
+            runIMessageSelfFlow()
+            return
+        }
+
         // M-16a: the same shape, for the same reason. The quality report reads
         // the real `MeetingStore.shared`, which the harness must not touch and
         // should not be replaced under `SelfTest.isRunning` either — it exists
@@ -3164,6 +3173,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// `--imessage-self-flow`: IM-01's three questions, answered off this Mac's own
+    /// Messages database.
+    ///
+    /// A diagnostic, not a `--selftest-*` flag, for the two reasons its own file gives: it
+    /// needs a grant and a real `chat.db`, and the harness would swap both away.
+    /// `writeSelfTest` honours `--selftest-out`, so a LaunchServices launch with no stdout
+    /// still leaves its rows in a file.
+    private func runIMessageSelfFlow() {
+        Task { @MainActor in
+            for line in await MessagesSelfFlowReport.run() { writeSelfTest(line) }
+            NSApp.terminate(nil)
+        }
+    }
+
     /// `--usage-report [--usage-days N] [--usage-feature <prefix>]`: one line per model
     /// or engine that ran, read from this machine's own `usage.jsonl`.
     ///
@@ -5528,13 +5551,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Finds the Workspace CLI and says where its own setup has got to.
+    /// The Workspace tool layer, checked in two halves.
     ///
-    /// Reads and never writes: `--version` and `auth status` are the two commands `gws` will
-    /// answer without touching Google, which is the whole point — this has to be runnable on
-    /// a machine that has never signed in without doing anything to an account.
+    /// The fixture half first, and it needs nothing: the rules worth pinning about the runner
+    /// — what it asks Gmail for, what it reads back, which invented operator it refuses — are
+    /// about arguments and JSON, and a fake CLI answers both without a binary, a keyring, an
+    /// account or a model. It prints `GWS_FIXTURES_OK` before anything is launched, so a build
+    /// whose mailbox contract is wrong is caught on a machine that has never signed in, and a
+    /// run whose fixtures failed says so even when the binary half would have passed.
+    ///
+    /// The binary half then answers what only this Mac can: is `gws` installed, and how far
+    /// along is its own setup. It reads and never writes — `--version` and `auth status` are
+    /// the two commands `gws` answers without touching Google, so the second half is still
+    /// runnable on a machine that has never signed in.
     private func runWorkspaceCLISelfTest() {
         Task { @MainActor in
+            // Printed through `writeSelfTest` and not `print`, so the `_WRONG` lines and the
+            // marker keep their order: the two write to different buffers, and a mixed run
+            // puts the marker before the reasons it is reporting.
+            let fixtureFailures = await WorkspaceToolRunner.selfTestFailures()
+            for failure in fixtureFailures { writeSelfTest("GWS_FIXTURES_WRONG: \(failure)") }
+            if fixtureFailures.isEmpty {
+                writeSelfTest("GWS_FIXTURES_OK: 9 cases")
+            } else {
+                writeSelfTest("GWS_FIXTURES_FAILED: \(fixtureFailures.count) problem(s) in 9 cases")
+            }
+
             let cli = GoogleWorkspaceCLI.shared
             guard let binary = await cli.binaryURL() else {
                 writeSelfTest("""
@@ -5553,10 +5595,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             if case .failed(let reason) = state {
                 writeSelfTest("GWS_FAILED: \(reason)")
+            } else if !fixtureFailures.isEmpty {
+                // The fixtures are the part this run can be held to, so a failed one is the
+                // run's verdict even when the binary answered.
+                writeSelfTest("GWS_FAILED: \(fixtureFailures.count) fixture case(s) failed")
             } else {
                 writeSelfTest("GWS_OK: \(version) at \(binary.path), \(state.displayName.lowercased())")
             }
+            // A read against the real account, for the one number the fixtures cannot give:
+            // how long ten messages actually take. Counts and a duration only — a subject, a
+            // sender or a snippet on this line would put the owner's mail in a log file.
+            if CommandLine.arguments.contains("--live-mail") {
+                await writeLiveMailReading()
+            }
             NSApp.terminate(nil)
+        }
+    }
+
+    /// `GWS_LIVE_MAIL: <n> messages, <n> senders parsed, <s>s` — and nothing else.
+    ///
+    /// The runner's own summary is never printed. A count of lines that contain a sender and
+    /// a subject is the whole claim: it says the shape was understood without saying what
+    /// was in the mailbox. A failure prints the error class, not the error text, because a
+    /// `gws` refusal can quote the query back.
+    private func writeLiveMailReading() async {
+        let started = Date()
+        do {
+            let result = try await WorkspaceToolRunner.run(AgentProposal(
+                meetingID: UUID(), tool: "search_email",
+                arguments: ["maxResults": "3"], rationale: ""),
+                cli: GoogleWorkspaceCLI.shared)
+            let lines = result.summary.split(separator: "\n").filter { $0.contains(") ") }
+            let withSender = lines.filter { !$0.contains("unknown sender") }.count
+            let withSubject = lines.filter { $0.contains(" · ") }.count
+            let seconds = Date().timeIntervalSince(started)
+            writeSelfTest("GWS_LIVE_MAIL: \(lines.count) messages, "
+                + "\(withSender) senders parsed, \(withSubject) subjects parsed, "
+                + String(format: "%.2fs", seconds))
+        } catch {
+            writeSelfTest("GWS_LIVE_MAIL_FAILED: "
+                + String(describing: type(of: error)))
         }
     }
 
