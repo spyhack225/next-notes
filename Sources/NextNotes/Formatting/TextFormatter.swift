@@ -25,6 +25,15 @@ struct RuleBasedFormatter: TextFormatter {
     ]
 
     func format(_ raw: String) async -> String {
+        apply(raw)
+    }
+
+    /// The same pass, without the hop. The protocol has no reason to be async and the work
+    /// never suspends, so the incremental-cleanup session — which runs this on every partial
+    /// while the key is still down and needs the answer inside an actor — calls it directly.
+    /// One implementation, so the text a pre-cleaned group is matched against is written by
+    /// the same code as the text the key-up pass matches it against. (D-12.)
+    func apply(_ raw: String) -> String {
         var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return text }
 

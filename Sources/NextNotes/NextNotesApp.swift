@@ -4186,6 +4186,112 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 failures.append("the refused press row carried no correlation id for the hold it hit")
             }
 
+            // D-12. A hold whose transcript grows while the key is down: the sentences that
+            // stopped changing are tidied *during* the hold, and the pass at key-up tidies
+            // only what came after them. One fake for both halves of the cleanup, so which
+            // of the two ran, and on what, is a fact about the calls rather than an
+            // inference from the text.
+            //
+            // The two sentences are 15 and 12 words because `minClose` is 15 in production
+            // and this case deliberately uses the shipping number: the first group has to
+            // close on its own, with nothing else making it close.
+            let growingInbox = SelfTestInbox()
+            let recorder = SelfTestCleanupRecorder()
+            let fake = SelfTestTidyFormatter(recorder: recorder)
+            let firstSentence = "We are shipping the installer on Friday and the release note "
+                + "the day after that."
+            let secondSentence = "Support will keep watching the forum for the first week "
+                + "of the rollout."
+            let growingFinal = firstSentence + " " + secondSentence
+            let growing = DictationController(
+                makeEngine: {
+                    SelfTestEngine(shape: .partials(
+                        [firstSentence, growingFinal],
+                        every: .milliseconds(300)
+                    ))
+                },
+                limits: limits,
+                insert: { text, _ in
+                    growingInbox.append(text)
+                    return .inserted
+                },
+                // Discarded, not filed: fixtures, not the user's history.
+                record: { _ in },
+                // D-15c: this run injects the deadlines on purpose, so its failures are
+                // written at info in a `selftest` category rather than into the error log.
+                log: .selfTest,
+                outcome: { sink.append($0) },
+                cleanupPieces: {
+                    CleanupPieces(
+                        preclean: fake,
+                        // The real router, so the head is matched, joined and recorded the
+                        // way production does it rather than by a stand-in for it.
+                        pass: { head in
+                            CleanupRouter(semantic: fake, engine: .apple, head: head)
+                        }
+                    )
+                }
+            )
+            growing.startButtonRecording()
+            holdsStarted += 1
+            // Wait for the last partial to be the live transcript: a hold released before
+            // the transcript has grown would test nothing, and a case that passed on it
+            // would be a lie.
+            let growingBy = Date().addingTimeInterval(10)
+            while Date() < growingBy, growing.transcript != growingFinal {
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+            if growing.transcript != growingFinal {
+                failures.append("the growing-transcript hold never reached its last partial")
+            }
+            // ...and for the pre-clean to land, so the call count below is about the key-up
+            // pass rather than about how fast the fake is.
+            let tidiedBy = Date().addingTimeInterval(4)
+            while Date() < tidiedBy, await recorder.calls().count == 0 {
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+            let beforeRelease = await recorder.calls()
+            if beforeRelease != [firstSentence] {
+                failures.append(
+                    "while the key was still down the finished sentence was tidied "
+                        + "\(beforeRelease.count) time(s) (\(beforeRelease.count == 0 ? "none" : "the wrong text")), "
+                        + "expected the one finished sentence"
+                )
+            }
+
+            growing.stopButtonRecording()
+            let growingIdleBy = Date().addingTimeInterval(10)
+            while Date() < growingIdleBy, growing.state != .idle {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if growing.state != .idle {
+                failures.append("the growing-transcript hold never came back to idle")
+            }
+            let atKeyUp = await recorder.calls()
+            if atKeyUp.count != beforeRelease.count + 1 {
+                failures.append(
+                    "the key-up pass made \(atKeyUp.count - beforeRelease.count) tidying call(s), "
+                        + "expected 1 — only the tail should reach the model"
+                )
+            }
+            if atKeyUp.last != secondSentence {
+                failures.append(
+                    "the key-up pass tidied \(atKeyUp.last.map { "\"\($0)\"" } ?? "nothing"), "
+                        + "expected only the unfinished tail"
+                )
+            }
+            // And the text is byte-for-byte what one pass over the whole transcript gives.
+            let onePass = await CleanupRouter(semantic: fake, engine: .apple)
+                .format(growingFinal)
+            if growingInbox.contents().count != 1 {
+                failures.append("the growing-transcript hold injected \(growingInbox.contents())")
+            } else if growingInbox.contents().first != onePass {
+                failures.append(
+                    "the growing-transcript hold typed \(growingInbox.contents().first ?? "nothing"), "
+                        + "not what one pass produces (\"\(onePass)\")"
+                )
+            }
+
             // D-01b g. Every hold started filed exactly one outcome: no path reports
             // twice, and no path loses a hold without a row.
             if sink.count != holdsStarted {
@@ -7581,6 +7687,32 @@ struct SlowSelfTestFormatter: TextFormatter {
     }
 }
 
+/// The model both halves of a hold's cleanup are given, and a record of every call it was
+/// asked for (D-12).
+///
+/// Two jobs, and both are needed. Upper-casing is a pure function of the input, so the text
+/// a partly-pre-cleaned dictation produces can be compared byte for byte with the text one
+/// pass over the same transcript produces — which is the claim the feature makes. And the
+/// log is what turns "only the tail was tidied at key-up" into something a case can assert,
+/// since a call that tidied the whole transcript would still produce plausible text.
+struct SelfTestTidyFormatter: TextFormatter {
+    let recorder: SelfTestCleanupRecorder
+
+    func format(_ raw: String) async -> String {
+        await recorder.record(raw)
+        return raw.uppercased()
+    }
+}
+
+/// The calls a `SelfTestTidyFormatter` made, in order. An actor because the cleanup runs off
+/// the main actor and the assertions read it from the self-test's own task.
+actor SelfTestCleanupRecorder {
+    private(set) var texts: [String] = []
+
+    func record(_ text: String) { texts.append(text) }
+    func calls() -> [String] { texts }
+}
+
 /// A transcription engine that can be asked to misbehave in each of the ways a real one
 /// has been observed to.
 ///
@@ -7610,6 +7742,11 @@ actor SelfTestEngine: TranscriptionEngine {
         /// Yields the fixture but never closes the stream, so anything awaiting the
         /// consuming task waits forever.
         case leavesStreamOpen
+        /// Yields each of `partials` `every` apart, the way a streaming recogniser revises
+        /// its transcript while the key is still held, then yields the last of them as the
+        /// final chunk on `finish()`. (D-12: a transcript that grows *during* the hold is
+        /// what the incremental cleanup exists for, and nothing else in this file grows one.)
+        case partials([String], every: Duration)
     }
 
     private let shape: Shape
@@ -7617,6 +7754,11 @@ actor SelfTestEngine: TranscriptionEngine {
     /// Frames received through `feed`, whatever the shape. D-02 reads it to prove
     /// pre-roll audio reached the engine.
     private var fedFrames = 0
+    /// The scheduled partials, for `.partials` only. Canceled by `finish()`, so a closed
+    /// stream is not still being written to.
+    private var partialTask: Task<Void, Never>?
+    /// The last partial handed over, which is what `finish()` sends as the final chunk.
+    private var latest: String?
 
     init(shape: Shape) { self.shape = shape }
 
@@ -7642,7 +7784,27 @@ actor SelfTestEngine: TranscriptionEngine {
         if case .countsFrames(let startDelay) = shape, startDelay > .zero {
             try await Task.sleep(for: startDelay)
         }
+        if case .partials(let texts, let every) = shape {
+            // Detached, because the stream has to keep filling while the *caller* is doing
+            // something else with the partials — which is the whole point of the shape. The
+            // cadence is the recogniser's, not the controller's.
+            partialTask = Task.detached(priority: .utility) { [weak self] in
+                for text in texts {
+                    try? await Task.sleep(for: every)
+                    guard !Task.isCancelled else { return }
+                    await self?.yield(text)
+                }
+            }
+        }
         return stream
+    }
+
+    /// One partial transcript, non-final — so the controller treats it the way it treats a
+    /// real one, and the incremental cleanup's stability rule has two of them to compare.
+    private func yield(_ text: String) {
+        guard let continuation else { return }
+        latest = text
+        continuation.yield(TranscriptionChunk(text: text, isFinal: false))
     }
 
     func feed(_ chunk: AudioChunk) async {
@@ -7650,6 +7812,8 @@ actor SelfTestEngine: TranscriptionEngine {
     }
 
     func finish() async {
+        partialTask?.cancel()
+        partialTask = nil
         switch shape {
         case .failsStart:
             break
@@ -7678,6 +7842,13 @@ actor SelfTestEngine: TranscriptionEngine {
             continuation = nil
         case .prompt:
             continuation?.yield(TranscriptionChunk(text: Self.transcript, isFinal: true))
+            continuation?.finish()
+            continuation = nil
+        case .partials:
+            // Whatever the recogniser last said is the final transcript, which is what a
+            // real streaming engine does: `finish()` closes the session, it does not retype
+            // the dictation from somewhere else.
+            continuation?.yield(TranscriptionChunk(text: latest ?? Self.transcript, isFinal: true))
             continuation?.finish()
             continuation = nil
         }

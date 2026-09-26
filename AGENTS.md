@@ -830,7 +830,7 @@ again, and two start-up tasks are in flight against one set of slots. Unguarded,
 one writes its engine over the live one's, and `endDictation` then finishes engine B while
 awaiting engine A's stream — a stream nobody will ever close. Every continuation that writes
 back into those slots re-checks `session` first, and a superseded start-up finishes its own
-engine and touches nothing else. Capture starts at key-down, into an in-memory pre-roll owned by that session, and is replayed into the engine once it has started; a superseded start-up never touches the hub — only the session that owns the slots unsubscribes. Measured reason: on 2026-09-23 a cold start after a 52 s model load put 4.40 s between key-down and capture, and the hold was lost.
+engine and touches nothing else. Capture starts at key-down, into an in-memory pre-roll owned by that session, and is replayed into the engine once it has started; a superseded start-up never touches the hub — only the session that owns the slots unsubscribes. Measured reason: on 2026-09-23 a cold start after a 52 s model load put 4.40 s between key-down and capture, and the hold was lost. A fifth slot followed the same rule on 2026-09-26 (`incrementalCleanup`, the sentences tidied while the key is still down): created at `.listening`, fed by the `consumeTask` under the existing `session` guard, taken by the tail only *after* that guard, and dropped by every exit that ends a hold. Nothing injects before key-up, so a pre-clean can only ever be wasted work, never wrong text.
 
 **The dictation tail logs its own split.** `runs.jsonl` records one `processSeconds` for
 everything between key-up and injected text, and one number cannot say which of draining,

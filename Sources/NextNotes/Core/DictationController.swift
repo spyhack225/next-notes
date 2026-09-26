@@ -358,7 +358,11 @@ final class DictationController {
     /// A function rather than a computed property because of `context`: the names visible on
     /// screen are harvested on a detached task and have to be awaited, and a property has
     /// nowhere to put the await. It stays private, so nothing outside this file is affected.
-    private func activeFormatter(context: ScreenContext, trace: CleanupTrace?) -> any TextFormatter {
+    private func activeFormatter(
+        context: ScreenContext,
+        trace: CleanupTrace?,
+        head: CleanupHead? = nil
+    ) -> any TextFormatter {
         if let formatter { return formatter }
         let settings = Settings.shared
         // What the app about to receive this text can actually render, captured at
@@ -380,8 +384,64 @@ final class DictationController {
             // Filed on the run afterwards. Without it, "the model does no grammar" and "the
             // model's answer was rejected" and "the model timed out" all look identical in
             // `runs.jsonl`, which stores only the finished string.
-            trace: trace
+            trace: trace,
+            // What the hold tidied while the key was down (D-12). Nil on a hold that closed
+            // no group, and on every hold that is not a plain dictation.
+            head: head
         )
+    }
+
+    /// The hold's pre-clean session, or nil when this hold cannot use one. (D-12.)
+    ///
+    /// Ordinary dictation, cleanup switched on, and the engine the router would use anyway
+    /// being Apple's — the only engine with the budget to be worth running beside a live
+    /// recogniser, and the only one whose answer the guard can check. Command Mode and
+    /// compare mode get nothing: the first never reaches this formatter, and the second runs
+    /// every engine over the same recording and must not be handed a head.
+    ///
+    /// `context: .empty` on purpose. The screen-name harvest is started at key-down and is
+    /// still walking when `.listening` is reached, so a pre-cleaned group is tidied without
+    /// the names on screen. A spoken file name in a *finished* sentence is still written by
+    /// `FileReferences` after the dictionary, in code, which is the pass that has always
+    /// resolved them.
+    private func makeIncrementalCleanup() -> IncrementalCleanupSession? {
+        guard recordingIntent.kind == .dictation, !isComparing else { return nil }
+        let settings = Settings.shared
+        guard settings.cleanupEnabled,
+              CleanupRouter.preferredEngine(
+                  choice: settings.cleanupEngine,
+                  fixesGrammar: settings.cleanupFixesGrammar
+              ) == .apple else { return nil }
+        let rules: @Sendable (String) -> String = { RuleBasedFormatter().apply($0) }
+        if let cleanupPieces {
+            return IncrementalCleanupSession(semantic: cleanupPieces().preclean, rules: rules)
+        }
+        // The bare-formatter seam replaces the whole chain, so there is no Stage B here to
+        // pre-clean with and no way to hand it a head.
+        guard formatter == nil else { return nil }
+        return IncrementalCleanupSession(
+            // The same Stage B the router builds: the guard and D-11's clause salvage
+            // included, and no trace — a pre-clean runs before this hold's record exists.
+            semantic: CleanupRouter.makeSemantic(
+                .apple,
+                preferences: settings.cleanupPreferences,
+                fixesGrammar: settings.cleanupFixesGrammar,
+                target: OutputProfileStore.shared.capturedProfile,
+                context: .empty
+            ),
+            rules: rules
+        )
+    }
+
+    /// Give up this hold's pre-cleans. (D-12.)
+    ///
+    /// A hold that is over — an error card, a cancel, a new press — must not leave model
+    /// work running behind it, and must not let a superseded hold's groups be handed to
+    /// this one's tail. Idempotent, so every exit can call it without asking first.
+    private func dropIncrementalCleanup() {
+        guard let session = incrementalCleanup else { return }
+        incrementalCleanup = nil
+        Task { await session.cancel() }
     }
 
     /// Whether the formatter this hold is about to build can be told anything at all about
@@ -497,6 +557,12 @@ final class DictationController {
     /// without clearing a later hold's.
     private var asrLaneID: UUID?
     private var asrLaneSession = 0
+
+    /// The sentences tidied while the key was still down (D-12). One slot, like the three
+    /// above it: created at `.listening`, fed by the `consumeTask`, taken by the tail, and
+    /// dropped by every exit that ends a hold. A hold with none is the old behaviour in
+    /// full, which is why nothing here is required for the pass at key-up to work.
+    private var incrementalCleanup: IncrementalCleanupSession?
 
     /// Which hold the slots above belong to.
     ///
@@ -694,7 +760,12 @@ final class DictationController {
         // Speech-energy check on empty transcripts (D-03): returns the voiced
         // 20 ms frames in a buffer. Production passes the RMS default; only
         // self-tests pass anything else.
-        speechDetector: @escaping @Sendable (AVAudioPCMBuffer) -> Int = defaultSpeechDetector
+        speechDetector: @escaping @Sendable (AVAudioPCMBuffer) -> Int = defaultSpeechDetector,
+        // D-12: the two halves of a hold's cleanup, for a self-test that needs to watch both
+        // with one fake. Nil in production, which builds them from `Settings` — the
+        // pre-clean's Stage B in `makeIncrementalCleanup()`, the key-up pass in
+        // `activeFormatter(context:trace:head:)`.
+        cleanupPieces: (@MainActor @Sendable () -> CleanupPieces)? = nil
     ) {
         self.formatter = formatter
         self.commandProcessor = commandProcessor
@@ -707,11 +778,13 @@ final class DictationController {
         self.captureSelection = captureSelection
         self.requestMicrophone = requestMicrophone
         self.speechDetector = speechDetector
+        self.cleanupPieces = cleanupPieces
     }
 
     private let captureSelection: @MainActor () -> TextInjector.Selection?
     private let requestMicrophone: @MainActor () async -> Bool
     private let speechDetector: @Sendable (AVAudioPCMBuffer) -> Int
+    private let cleanupPieces: (@MainActor @Sendable () -> CleanupPieces)?
 
     /// The last hold that ended with nothing typed, with its audio (D-03).
     ///
@@ -966,6 +1039,7 @@ final class DictationController {
         isCapturingAudio = false
         keyDownToCaptureSeconds = nil
         releasedDuringStartup = nil
+        dropIncrementalCleanup()
         firstPartialTrace = nil
         keyDownToCaptureTrace = nil
         state = .finishing
@@ -1186,6 +1260,7 @@ final class DictationController {
         lastHoldCleanupTimedOut = false
         keyDownToCaptureSeconds = nil
         releasedDuringStartup = nil
+        dropIncrementalCleanup()
         keyDownToCaptureTrace = LatencyTrace.start(.dictationKeyDownToCapture)
         if case .dictation = intent {
             isComparing = Settings.shared.compareMode
@@ -1409,6 +1484,13 @@ final class DictationController {
                                 self.firstPartialTrace = nil
                             }
                             self.transcript = chunk.text
+                            // D-12: the final chunk is not a partial — the tail is what
+                            // reads it, and the tail is what matches the pre-cleans against
+                            // it. One hop to the session's own actor, where the rules pass
+                            // and the grouping run; nothing here waits on the model.
+                            if !chunk.isFinal, let session = self.incrementalCleanup {
+                                await session.notePartial(chunk.text)
+                            }
                         }
                     } catch {
                         guard self.session == session else { return }
@@ -1425,6 +1507,11 @@ final class DictationController {
                     return
                 }
 
+                // D-12: the hold now has a transcript that grows, so the sentences that
+                // stop changing can be tidied while the key is down. Assigned immediately
+                // before `.listening` and with no await in between, so a release cannot land
+                // in the gap — the same rule the line below states.
+                self.incrementalCleanup = makeIncrementalCleanup()
                 self.state = .listening
                 self.firstPartialTrace = LatencyTrace.start(.dictationSpeechToFirstPartial)
                 if Settings.shared.soundEnabled { NSSound(named: "Tink")?.play() }
@@ -1656,7 +1743,18 @@ final class DictationController {
             narrowedAt = Date().timeIntervalSince(began)
             guard self.session == session else { return }
             let trace = CleanupTrace()
-            let formatter = activeFormatter(context: screen, trace: trace)
+            // D-12: what this hold tidied while the key was down. Taken here, after the
+            // session guard above, so a superseded hold's work can never reach a tail that
+            // is typing somebody else's words — the same rule the four slots above follow.
+            var head: CleanupHead?
+            if let session = self.incrementalCleanup { head = await session.head() }
+            self.incrementalCleanup = nil
+            let formatter: any TextFormatter
+            if let cleanupPieces {
+                formatter = cleanupPieces().pass(head)
+            } else {
+                formatter = activeFormatter(context: screen, trace: trace, head: head)
+            }
             if let formatted = await withBoundedWait(limits.cleanup, { await formatter.format(raw) }) {
                 cleaned = formatted
             } else {
@@ -1974,6 +2072,8 @@ final class DictationController {
         feedTask = nil
         consumeTask?.cancel()
         consumeTask = nil
+        // D-12: nothing this hold was tidying behind the key is wanted any more.
+        dropIncrementalCleanup()
 
         let engine = self.engine
         self.engine = nil
@@ -2151,6 +2251,9 @@ final class DictationController {
         audioContinuation = nil
         feedTask?.cancel()
         feedTask = nil
+        // D-12: a hold whose transcript will never be typed must not leave the model
+        // working on its sentences behind the error card.
+        dropIncrementalCleanup()
         let engine = self.engine
         self.engine = nil
         if let engine {

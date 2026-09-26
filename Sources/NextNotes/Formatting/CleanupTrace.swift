@@ -106,6 +106,20 @@ final class CleanupTrace: @unchecked Sendable {
         mutate { $0.chunks = count }
     }
 
+    /// How many sentence groups the key-up pass took from the work done while the key was
+    /// still down, and why it took none of them. (D-12.)
+    ///
+    /// Both nil on every run whose hold closed no group, which is most short dictations and
+    /// every pass outside a live hold. A zero with no reason is a hold whose sentences were
+    /// tidied during the hold and then not needed at all.
+    func notePrecleanedGroups(_ count: Int) {
+        mutate { $0.precleanedGroups = count }
+    }
+
+    func notePrecleanFallback(_ reason: String) {
+        mutate { $0.precleanFallback = $0.precleanFallback ?? reason }
+    }
+
     func noteStructure(markersSeen: Bool, applied: [SpokenStructure.Kind]) {
         mutate {
             $0.structureMarkersSeen = markersSeen
@@ -319,6 +333,17 @@ struct CleanupRecord: Codable, Sendable, Hashable {
 
     /// How many sentence groups a long transcript was split into. 1 for everything normal.
     var chunks: Int?
+
+    /// Sentence groups tidied while the key was still held and joined into the text that
+    /// was typed (D-12). Nil when the hold closed none, and 0 with no
+    /// `precleanFallback` when it did and the rules were enough on their own. Old rows
+    /// decode as nil.
+    var precleanedGroups: Int?
+    /// Why a hold's pre-cleaned groups could not be used: a sentence one of them was built
+    /// from was revised by the speech model before the key came up. The whole dictation is
+    /// then cleaned in one pass, as it always was. Nil on a run that never had a group to
+    /// use, and on every row written before D-12.
+    var precleanFallback: String?
 
     /// One entry per sentence group of a chunked pass, in transcript order: what happened
     /// to it, how long it took, and whether it ran on a session staged for it. Nil on a run

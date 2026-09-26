@@ -273,18 +273,9 @@ struct ChunkedFormatter: TextFormatter {
         // much of the dictation that was. (D-08.)
         trace?.noteGroupsFinished(total: groups.count, truncated: ranOut)
 
-        var cleaned = ""
-        for (index, piece) in pieces.enumerated() {
-            let piece = piece ?? groups[index]
-            if cleaned.isEmpty {
-                cleaned = piece
-            } else if cleaned.hasSuffix("\n") {
-                // A paragraph break the speaker asked for survives the seam.
-                cleaned += piece
-            } else {
-                cleaned += " " + piece
-            }
-        }
-        return cleaned
+        // The same joining the key-up pass uses on a partly-pre-cleaned transcript, so a
+        // dictation that went through a pre-clean comes out as one pass would have written
+        // it. (D-12.)
+        return CleanedText.joined(pieces.indices.map { pieces[$0] ?? groups[$0] })
     }
 }

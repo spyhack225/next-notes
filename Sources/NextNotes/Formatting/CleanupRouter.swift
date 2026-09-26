@@ -66,6 +66,23 @@ struct CleanupRouter: TextFormatter {
     /// and a CoreML decode runs to completion regardless.
     private let layoutCeiling: Duration
 
+    /// What a hold tidied while the key was still down (D-12). Nil for every pass that did
+    /// not come from a live hold, which is every pass today.
+    private let head: CleanupHead?
+
+    /// How long the key-up pass waits for a pre-clean that has not landed yet.
+    ///
+    /// A group closes only once it holds fifteen words of *finished* speech, so a pre-clean
+    /// has had seconds of hold to answer — a warm Apple call is 0.9–1.5 s — and the common
+    /// case costs nothing at all. The grace is for the group that closed a moment before
+    /// key-up, and it is deliberately short: the tail's own budget is the one the user is
+    /// waiting on, and a group that misses it is typed as the rules left it, which is what
+    /// the same call returns when it runs out of time.
+    private let precleanGrace: Duration
+
+    /// The grace above, named so the router's other ceilings can be quoted next to it.
+    static let precleanGraceDefault: Duration = .milliseconds(2_000)
+
     /// The layout pass's hard ceiling on the model route. Twelve seconds is an estimate
     /// rather than a measurement, and it is deliberately not the number the user waits:
     /// inside the 26 s whole-pass budget and the 30 s outer bound, and past the point where
@@ -103,6 +120,8 @@ struct CleanupRouter: TextFormatter {
         },
         layoutGrace: Duration = CleanupRouter.layoutPassGrace,
         layoutCeiling: Duration = CleanupRouter.layoutPassCeiling,
+        precleanGrace: Duration = CleanupRouter.precleanGraceDefault,
+        head: CleanupHead? = nil,
         pressureSample: @escaping @Sendable () async -> CleanupComputePressure = {
             await CleanupPressureProbe.sample()
         }
@@ -120,10 +139,26 @@ struct CleanupRouter: TextFormatter {
         self.layoutWait = layoutWait
         self.layoutGrace = layoutGrace
         self.layoutCeiling = layoutCeiling
+        self.precleanGrace = precleanGrace
+        self.head = head
         self.pressureSample = pressureSample
     }
 
+    /// The pass a hold runs, using whatever head it collected while the key was down.
     func format(_ raw: String) async -> String {
+        await format(raw, head: head)
+    }
+
+    /// What a dictation pass does, and how much of it this hold had already done. (D-12.)
+    ///
+    /// `head` is the work `IncrementalCleanupSession` got through while the key was still
+    /// held: the finished sentences, tidied, and the Stage-A text they were tidied from.
+    /// When the final transcript's own Stage-A output still begins with that text, Stage B
+    /// runs on the remainder only and the two halves are joined; when it does not — a later
+    /// partial revised a sentence that had been tidied already — the whole transcript is
+    /// cleaned the way it always was and the record says so. The parameter wins over the
+    /// head the router was built with, which is how a hold passes its own.
+    func format(_ raw: String, head carried: CleanupHead? = nil) async -> String {
         let began = Date()
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return trimmed }
@@ -215,8 +250,18 @@ struct CleanupRouter: TextFormatter {
         }
 
         var text: String
+        // D-12: what this hold had already tidied while the key was down, and the reason a
+        // head was not used when it had one. Both filed into the run's record below, and
+        // neither is read again here.
+        var precleanedGroups: Int?
+        var precleanFallback: String?
         switch decision.stage {
         case .rules:
+            // The pre-cleans are not waited for and not used: this dictation did not need
+            // tidying, so the whole pass is the rules pass and nothing else. Recorded as
+            // zero groups used rather than left silent, because the work was done and then
+            // thrown away and the record should say which.
+            if let carried, !carried.stageA.isEmpty { precleanedGroups = 0 }
             text = beforeModel.text
         case .semantic:
             if beforeModel.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -225,7 +270,22 @@ struct CleanupRouter: TextFormatter {
                 // Stage B sees the rules output, not the raw ASR: the model is repairing
                 // what is left, and a timeout must keep that work (`KeepAsIsFormatter`
                 // on Apple / on-device) rather than fall back through rules a second time.
-                let answered = await semantic.format(beforeModel.text)
+                let answered: String
+                switch await resolvePreclean(carried, of: beforeModel.text) {
+                case .usable(let groups, let remainder):
+                    // Only the tail reaches the model here. The groups were sent while the
+                    // key was down, and they are joined in transcript order — so the text
+                    // that comes out is what one pass over the whole dictation would have
+                    // written, with the same joining `ChunkedFormatter` uses.
+                    precleanedGroups = groups.count
+                    let tail = remainder.isEmpty ? "" : await semantic.format(remainder)
+                    answered = CleanedText.joined(groups + (tail.isEmpty ? [] : [tail]))
+                case .unusable(let reason):
+                    precleanFallback = reason
+                    answered = await semantic.format(beforeModel.text)
+                case .none:
+                    answered = await semantic.format(beforeModel.text)
+                }
                 // ...and if the model flattened the structure back into prose, the version
                 // that had it wins. What the speaker asked for out loud is not the model's
                 // to remove, and a pass that lets it go is the bug this stage exists for.
@@ -246,6 +306,8 @@ struct CleanupRouter: TextFormatter {
                 }
             }
         }
+        if let precleanedGroups { trace?.notePrecleanedGroups(precleanedGroups) }
+        if let precleanFallback { trace?.notePrecleanFallback(precleanFallback) }
 
         // Stage C. Deterministic, and therefore the one stage every route reaches: the rules
         // route, the model route, and the fallback a rejected or timed-out model lands on.
@@ -364,6 +426,97 @@ struct CleanupRouter: TextFormatter {
         laidOut = SpokenStructure.collapsingDoubledMarkers(laidOut)
         trace?.noteOutput(laidOut, seconds: Date().timeIntervalSince(began))
         return laidOut
+    }
+
+    /// What a head is worth for this pass. (D-12.)
+    private enum PrecleanOutcome {
+        /// Nothing was pre-cleaned: the hold closed no group, so there is nothing to match
+        /// and nothing to wait for.
+        case none
+        /// A head was offered and the final transcript no longer begins with it, so all of
+        /// it is cleaned as one pass. The reason is in plain words because the record shows
+        /// it to a person.
+        case unusable(String)
+        /// The groups, tidied (or as the rules left them, for one that ran out of grace),
+        /// and the text that is left over.
+        case usable(groups: [String], remainder: String)
+    }
+
+    private func resolvePreclean(
+        _ head: CleanupHead?,
+        of text: String
+    ) async -> PrecleanOutcome {
+        guard let head, !head.stageA.isEmpty else { return .none }
+        guard let remainder = Self.remainder(of: text, afterPrefix: head.rawPrefix) else {
+            return .unusable(
+                "a sentence finished earlier was changed by the speech model while you were "
+                    + "still speaking, so all of it was tidied at the end"
+            )
+        }
+        let deadline = ContinuousClock.now.advanced(by: precleanGrace)
+        var pieces: [String] = []
+        for (spoken, task) in zip(head.stageA, head.cleaned) {
+            let left = deadline - ContinuousClock.now
+            if left > .zero, let landed = await withBoundedWait(left, { await task.value }),
+               !landed.isEmpty {
+                pieces.append(landed)
+            } else {
+                // Not yet, or cancelled with the hold: the rules' own text, which is what
+                // the same call returns when it runs out of time. Never a cancellation —
+                // a landed answer is never thrown away to save a moment.
+                pieces.append(spoken)
+            }
+        }
+        return .usable(groups: pieces, remainder: remainder)
+    }
+
+    /// The text after `prefix`, or nil when `text` does not begin with it.
+    ///
+    /// Compared with whitespace squeezed to single spaces, because a group's text and the
+    /// slice of the final transcript it came from were each written by the rules pass and
+    /// can differ in spacing; everything else has to match character for character, or one
+    /// of the sentences was revised and the group is stale. The remainder is cut out of the
+    /// *original* text rather than the squeezed one, so the tail keeps its own spacing and
+    /// its own paragraph breaks.
+    static func remainder(of text: String, afterPrefix prefix: String) -> String? {
+        let target = Array(squeeze(prefix))
+        if target.isEmpty { return text.trimmingCharacters(in: .whitespacesAndNewlines) }
+        var matched = 0
+        var cut = text.startIndex
+        var index = text.startIndex
+        while index < text.endIndex, matched < target.count {
+            let character = text[index]
+            let next = text.index(after: index)
+            if character.isWhitespace || character.isNewline {
+                // A run of whitespace stands for one space, or for nothing at the ends.
+                let squeezed: Character? = (matched > 0 && target[matched] == " ") ? " " : nil
+                guard squeezed != nil else { break }
+                matched += 1
+                index = next
+                cut = next
+                continue
+            }
+            guard character == target[matched] else { break }
+            matched += 1
+            index = next
+            cut = next
+        }
+        guard matched == target.count else { return nil }
+        return String(text[cut...]).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// One space per run of whitespace, and no leading or trailing space.
+    private static func squeeze(_ text: String) -> String {
+        var out = ""
+        for character in text {
+            if character.isWhitespace || character.isNewline {
+                if !out.isEmpty, !out.hasSuffix(" ") { out.append(" ") }
+            } else {
+                out.append(character)
+            }
+        }
+        while out.hasSuffix(" ") { out.removeLast() }
+        return out
     }
 
     /// How long to wait for the layout pass once the cleanup has finished, and what to do
@@ -576,7 +729,8 @@ struct CleanupRouter: TextFormatter {
         context: ScreenContext,
         skipsModelWhenBusy: Bool,
         trace: CleanupTrace? = nil,
-        layoutPass: LayoutPass = .automatic
+        layoutPass: LayoutPass = .automatic,
+        head: CleanupHead? = nil
     ) -> CleanupRouter {
         let engine = preferredEngine(choice: choice, fixesGrammar: fixesGrammar)
         // Long utterances go to the model in sentence groups rather than in one call that
@@ -647,7 +801,8 @@ struct CleanupRouter: TextFormatter {
             skipsModelWhenBusy: skipsModelWhenBusy,
             target: target,
             trace: trace,
-            structurePlanner: planner
+            structurePlanner: planner,
+            head: head
         )
     }
 
@@ -1155,6 +1310,7 @@ extension CleanupRouter {
         }
 
         failures += await chunkedWaveFailures()
+        failures += await incrementalFailures()
 
         return failures
     }
@@ -1372,6 +1528,290 @@ extension CleanupRouter {
         }
 
         await MainActor.run { AppleModelWarmth.warmWindow = savedWindow }
+        return failures
+    }
+
+    /// D-12: the sentences tidied while the key was still down.
+    ///
+    /// The shape of the whole feature in one assertion: feed a hold's worth of partials to
+    /// a session, then run the key-up pass with the head it produced. The model fake counts
+    /// its calls, so "the key-up pass cleaned only the tail" is a fact about the *calls* and
+    /// not about the text, and "the text is what one pass would have produced" is a
+    /// byte-for-byte comparison against the same fake on the same transcript with no head.
+    private static func incrementalFailures() async -> [String] {
+        var failures: [String] = []
+        let rules: @Sendable (String) -> String = { RuleBasedFormatter().apply($0) }
+        // A pre-clean is a task the hold hands over rather than a value it already has, so
+        // a case that asserts *which* calls were made has to let them land first. The
+        // key-up pass does exactly this, under its own grace; the cases are doing the same
+        // thing deliberately, so that "the hold tidied this and nothing else" is a fact
+        // about the calls rather than about how fast a fake is.
+        let settle: (CleanupHead) async -> Void = { head in
+            for task in head.cleaned { _ = await task.value }
+        }
+
+        let alpha = "A one."
+        let bravo = "B two."
+        let charlie = "C three."
+        let delta = "D four"
+
+        // a. Four partials, one group closed during the hold, and a key-up pass that
+        //    reaches the model for the tail alone. `minClose: 3` on two-word sentences is
+        //    the same shape as production's fifteen on a thirty-seven word dictation.
+        do {
+            let log = CallLogBox()
+            let fake = UppercasingFormatter(log: log)
+            let session = IncrementalCleanupSession(
+                semantic: fake, rules: rules, maxWords: 120, minClose: 3
+            )
+            let final = "\(alpha) \(bravo) \(charlie) \(delta)"
+            for partial in [alpha, "\(alpha) \(bravo)", "\(alpha) \(bravo) \(charlie)", final] {
+                await session.notePartial(partial)
+            }
+            let head = await session.head()
+            await settle(head)
+            if head.stageA != ["\(alpha) \(bravo)"] {
+                failures.append(
+                    "  incremental: the closed group was \(quoted(head.stageA)), expected "
+                        + "[\"\(alpha) \(bravo)\"]"
+                )
+            }
+            if head.rawPrefix != "\(alpha) \(bravo)" {
+                failures.append(
+                    "  incremental: the head's prefix was \(quoted(head.rawPrefix)), expected "
+                        + "\"\(alpha) \(bravo)\""
+                )
+            }
+            let duringHold = await log.calls
+            if duringHold != ["\(alpha) \(bravo)"] {
+                failures.append(
+                    "  incremental: the hold tidied \(quoted(duringHold)), expected the closed "
+                        + "group and nothing else"
+                )
+            }
+
+            let trace = CleanupTrace()
+            let output = await CleanupRouter(semantic: fake, engine: .apple, trace: trace)
+                .format(final, head: head)
+            let atKeyUp = await log.calls
+            if atKeyUp.count != duringHold.count + 1 {
+                failures.append(
+                    "  incremental: the key-up pass made \(atKeyUp.count - duringHold.count) "
+                        + "model call(s), expected 1"
+                )
+            }
+            if atKeyUp.last != "\(charlie) \(delta)." {
+                failures.append(
+                    "  incremental: the key-up pass tidied \(quoted(atKeyUp.last)), expected "
+                        + "the tail only"
+                )
+            }
+            let control = await CleanupRouter(semantic: fake, engine: .apple).format(final)
+            if output != control {
+                failures.append(
+                    "  incremental: the tidied text was \(quoted(output)), not what one pass "
+                        + "produced (\(quoted(control))"
+                )
+            }
+            if trace.snapshot.precleanedGroups != 1 {
+                failures.append(
+                    "  incremental: the record says \(String(describing: trace.snapshot.precleanedGroups)) "
+                        + "group(s) were pre-cleaned, expected 1"
+                )
+            }
+            if trace.snapshot.precleanFallback != nil {
+                failures.append(
+                    "  incremental: a hold whose prefix matched recorded a fallback "
+                        + "(\(trace.snapshot.precleanFallback ?? "nil"))"
+                )
+            }
+        }
+
+        // b. A later partial revised a sentence that had been tidied already. The group is
+        //    stale, so the whole transcript is cleaned as one pass and the record says why.
+        do {
+            let log = CallLogBox()
+            let fake = UppercasingFormatter(log: log)
+            let session = IncrementalCleanupSession(
+                semantic: fake, rules: rules, maxWords: 120, minClose: 3
+            )
+            for partial in [alpha, "\(alpha) \(bravo)", "\(alpha) \(bravo) \(charlie)"] {
+                await session.notePartial(partial)
+            }
+            let head = await session.head()
+            await settle(head)
+            let revised = "\(alpha) B too. \(charlie)"
+            let trace = CleanupTrace()
+            let output = await CleanupRouter(semantic: fake, engine: .apple, trace: trace)
+                .format(revised, head: head)
+            let control = await CleanupRouter(semantic: fake, engine: .apple).format(revised)
+            if output != control {
+                failures.append(
+                    "  incremental: a revised sentence changed the tidied text — \(quoted(output)) "
+                        + "against the one-pass \(quoted(control))"
+                )
+            }
+            if trace.snapshot.precleanFallback == nil {
+                failures.append("  incremental: a revised sentence recorded no precleanFallback")
+            }
+            if trace.snapshot.precleanedGroups != nil {
+                failures.append(
+                    "  incremental: a revised sentence still reported "
+                        + "\(String(describing: trace.snapshot.precleanedGroups)) pre-cleaned group(s)"
+                )
+            }
+        }
+
+        // c. The grouping, including the rule the chunker's does not have: a group also
+        //    closes when the next stable sentence would overflow it, *below* the minimum.
+        //    `minClose: 8` with two-word sentences and `maxWords: 5` is the only way to tell
+        //    the two apart, and the first group closes at four words because of it.
+        do {
+            let log = CallLogBox()
+            let fake = UppercasingFormatter(log: log)
+            let session = IncrementalCleanupSession(
+                semantic: fake, rules: rules, maxWords: 5, minClose: 8
+            )
+            let one = "A one."
+            let two = "B two."
+            let three = "C three."
+            let four = "D four."
+            let five = "E five."
+            let partials = [
+                "\(one) \(two)",
+                "\(one) \(two) \(three) \(four)",
+                "\(one) \(two) \(three) \(four) \(five)",
+                "\(one) \(two) \(three) \(four) \(five) F six."
+            ]
+            for partial in partials { await session.notePartial(partial) }
+            let head = await session.head()
+            await settle(head)
+            if head.stageA != ["\(one) \(two)", "\(three) \(four)"] {
+                failures.append(
+                    "  incremental: the greedy groups were \(quoted(head.stageA)), expected "
+                        + "[\"\(one) \(two)\", \"\(three) \(four)\"]"
+                )
+            }
+            let final = partials[2]
+            let trace = CleanupTrace()
+            _ = await CleanupRouter(semantic: fake, engine: .apple, trace: trace)
+                .format(final, head: head)
+            let calls = await log.calls
+            if calls.last != five {
+                failures.append(
+                    "  incremental: the key-up pass tidied \(quoted(calls.last)), expected "
+                        + "\"\(five)\" after the two pre-cleaned groups"
+                )
+            }
+            if trace.snapshot.precleanedGroups != 2 {
+                failures.append(
+                    "  incremental: the record says \(String(describing: trace.snapshot.precleanedGroups)) "
+                        + "group(s) were pre-cleaned, expected 2"
+                )
+            }
+        }
+
+        // d. A hold whose every finished sentence was already tidied: the remainder is
+        //    empty, the key-up pass never reaches the model, and the text is unchanged.
+        do {
+            let log = CallLogBox()
+            let fake = UppercasingFormatter(log: log)
+            let session = IncrementalCleanupSession(
+                semantic: fake, rules: rules, maxWords: 120, minClose: 3
+            )
+            let first = "Alpha beta gamma."
+            let second = "Delta epsilon zeta."
+            for partial in [first, "\(first) \(second)"] {
+                await session.notePartial(partial)
+            }
+            let head = await session.head()
+            await settle(head)
+            let beforeKeyUp = await log.calls.count
+            let trace = CleanupTrace()
+            let output = await CleanupRouter(semantic: fake, engine: .apple, trace: trace)
+                .format(first, head: head)
+            if await log.calls.count != beforeKeyUp {
+                failures.append(
+                    "  incremental: the key-up pass reached the model with nothing left to tidy"
+                )
+            }
+            if output != first.uppercased() {
+                failures.append(
+                    "  incremental: a fully pre-cleaned hold produced \(quoted(output)), "
+                        + "expected \(quoted(first.uppercased()))"
+                )
+            }
+        }
+
+        // e. A hold that closed no group is not eligible and records nothing, rather than a
+        //    zero that would read as "the sentences were tidied and thrown away".
+        do {
+            let log = CallLogBox()
+            let fake = UppercasingFormatter(log: log)
+            let session = IncrementalCleanupSession(
+                semantic: fake, rules: rules, maxWords: 120, minClose: 3
+            )
+            await session.notePartial(alpha)
+            let head = await session.head()
+            let trace = CleanupTrace()
+            let output = await CleanupRouter(semantic: fake, engine: .apple, trace: trace)
+                .format("\(alpha) \(bravo)", head: head)
+            if !head.stageA.isEmpty {
+                failures.append("  incremental: one partial closed a group")
+            }
+            if trace.snapshot.precleanedGroups != nil || trace.snapshot.precleanFallback != nil {
+                failures.append("  incremental: a hold with no closed group wrote a record")
+            }
+            let control = await CleanupRouter(semantic: fake, engine: .apple)
+                .format("\(alpha) \(bravo)")
+            if output != control {
+                failures.append("  incremental: a hold with no closed group tidied differently")
+            }
+        }
+
+        // f. A pre-clean that has not landed when the key comes up. The wait is bounded, a
+        //    group that misses it is typed as the rules left it — which is what the same
+        //    call returns on its own timeout — and the tail is still tidied.
+        do {
+            let log = CallLogBox()
+            let fake = UppercasingFormatter(
+                log: log, delay: .seconds(5), slowFirstCallOnly: true
+            )
+            let session = IncrementalCleanupSession(
+                semantic: fake, rules: rules, maxWords: 120, minClose: 3
+            )
+            let first = "Alpha beta gamma."
+            let second = "Delta epsilon zeta."
+            for partial in [first, "\(first) \(second)"] {
+                await session.notePartial(partial)
+            }
+            let head = await session.head()
+            let trace = CleanupTrace()
+            let began = ContinuousClock.now
+            let output = await CleanupRouter(
+                semantic: fake, engine: .apple, trace: trace, precleanGrace: .milliseconds(100)
+            ).format("\(first) \(second)", head: head)
+            let elapsed = ContinuousClock.now - began
+            if output != "\(first) \(second.uppercased())" {
+                failures.append(
+                    "  incremental: a pre-clean that missed its grace produced \(quoted(output)), "
+                        + "expected the group as spoken and the tail tidied"
+                )
+            }
+            if elapsed > .seconds(1) {
+                failures.append(
+                    "  incremental: the key-up pass waited \(elapsed) for a pre-clean with a "
+                        + "100 ms grace"
+                )
+            }
+            if trace.snapshot.precleanedGroups != 1 {
+                failures.append(
+                    "  incremental: a pre-clean used as spoken recorded "
+                        + "\(String(describing: trace.snapshot.precleanedGroups)) group(s), expected 1"
+                )
+            }
+        }
+
         return failures
     }
 
@@ -2161,6 +2601,13 @@ extension CleanupRouter {
         String(prompt.split(separator: "\n\n", maxSplits: 1).last ?? "")
     }
 
+    /// One value, for a failure line that has to name it. `nil` and empty both read "none",
+    /// the same as the list form, so the two can be used in the same sentence.
+    private static func quoted(_ value: String?) -> String {
+        guard let value, !value.isEmpty else { return "none" }
+        return "\"\(value)\""
+    }
+
     /// A list of values, for a failure line that has to name them.
     private static func quoted(_ values: [String]?) -> String {
         guard let values, !values.isEmpty else { return "none" }
@@ -2753,6 +3200,37 @@ private struct CountingFormatter: TextFormatter {
 private actor CounterBox {
     private(set) var count = 0
     func increment() { count += 1 }
+}
+
+/// A model that upper-cases what it was given and remembers every call.
+///
+/// Both halves matter for D-12: upper-casing is a pure function of the input, so the text a
+/// partly-pre-cleaned pass produces can be compared byte for byte with the text one pass
+/// over the whole transcript produces; and the log is what turns "the key-up pass cleaned
+/// only the tail" into something a case can assert rather than infer.
+private struct UppercasingFormatter: TextFormatter {
+    let log: CallLogBox
+    /// A model that takes its time, for the case that has to prove the wait is bounded.
+    var delay: Duration = .zero
+    /// ...and only for the first call, which is the pre-clean: a slow model is the thing
+    /// under test, so the tail that follows it must not be slow too or the case would be
+    /// measuring the wrong wait.
+    var slowFirstCallOnly = false
+
+    func format(_ raw: String) async -> String {
+        let first = await log.isEmpty()
+        await log.record(raw)
+        if delay > .zero, !slowFirstCallOnly || first {
+            try? await Task.sleep(for: delay)
+        }
+        return raw.uppercased()
+    }
+}
+
+private actor CallLogBox {
+    private(set) var calls: [String] = []
+    func record(_ text: String) { calls.append(text) }
+    func isEmpty() -> Bool { calls.isEmpty }
 }
 
 /// A model that always spends its whole ceiling, the way a stalled one does. Stands in for
