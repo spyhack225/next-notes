@@ -663,3 +663,95 @@ it; the value is the same and the spelling is the one that shipped.
   some consumer have a `default:` that drops it?
 - Does the file header name the macOS version and the header pair it was written
   against?
+
+---
+
+## 2026-09-26 — MEASURED ON MESSAGES' OWN OUTPUT
+
+The header above was measured twice on 2026-09-25 with `NSArchiver`, which proves what Apple's
+*encoder* writes. On 2026-09-26 IM-01 read a real `chat.db` on this Mac (Full Disk Access granted to
+Next Notes, so the app itself read it read-only) and the first 16 bytes of a real
+`message.attributedBody` are:
+
+```
+04 0B 73 74 72 65 61 6D 74 79 70 65 64 81 E8 03
+```
+
+| offset | bytes | meaning |
+|---|---|---|
+| 0 | `04` | `streamerVersion` = 4 |
+| 1 | `0B` | length of the name that follows = 11 |
+| 2–12 | `streamtyped` | the name |
+| 13 | `81` | an integer follows, **read from** offset 13 |
+| 14–15 | `E8 03` | **little-endian** = **1000** = `systemVersion` |
+
+So `MessagesSchemaVersion.supported = [.init(streamerVersion: 0x04, systemVersion: 1000)]` — the gate
+the shipped `MessagesDecoder` already carries — is **correct on real Messages data**, not merely
+consistent with what `NSArchiver` produces. Note the integer is little-endian: read big-endian,
+`E8 03` is 59395 and the gate silently rejects every message.
+
+### What this changed, and what it did not
+
+**Changed:** the header question is closed for macOS 27.0 (26A428). §0's provenance table moves this
+row from `[measured — Apple's encoder]` to `[measured — Messages, this machine]`.
+
+**Still open, and this is the important part:**
+
+1. **`message.text` was NOT null on any of the ten newest rows.** Every one had `text` set *and* an
+   `attributedBody` — 14 to 213 characters of text beside a 184 to 3254-byte stream. This roadmap's
+   central premise was that "`text` is usually NULL for iMessage", and on this machine it is the
+   opposite: the stream is *always* there and `text` is usually there too. So `text` **taking
+   precedence** is the rule that decides almost every real message, and the fallback path is the rare
+   one. IM-05's blocked "text takes precedence" assertion is therefore the *most* valuable of the six,
+   not a footnote — and the 14th fixture case the roadmap said did not exist is not exotic at all.
+2. **This is ten rows from one machine at one moment.** It says the NULL-`text` case is rarer than
+   believed, not that it does not happen: a message that arrived as an MMS or was carried over from
+   an older install will still have `text` NULL, and that is the case the decoder exists for. Do not
+   delete the fallback on the strength of one sample.
+3. **No self-conversation exists on this Mac.** 50 chats, every one with someone else in it, so
+   IM-01's Q1 — is a self-message `is_from_me = 1` or `0`? — is still unanswered, and the pairing
+   filter IM-07 is built on is still unmeasured. This is the one experiment left.
+
+### A self-message is TWO rows, and that is the whole of IM-01's Q1
+
+A message sent from the phone to the phone's own conversation landed as **two** rows:
+
+```
+row 55189  fromMe=true   text=25 characters  attributedBody=202 bytes
+row 55190  fromMe=false  text=25 characters  attributedBody=202 bytes
+```
+
+Same sentence, same 202-byte body, **opposite `is_from_me`**. So:
+
+- **`is_from_me` cannot identify a self-message.** A filter written on it finds one copy and misses
+  the other, and which copy it gets is not something the row decides. IM-07's pairing filter must be
+  the **chat** whose only participant is you — never a row-level test. This is the answer the roadmap
+  said was worth a human spike, and guessing `is_from_me = 1` would have shipped a watcher that
+  answered half of every command.
+- **Both copies carry the same body**, so the decoder sees the sentence twice. The GUID cache is
+  what stops that becoming two replies, and its necessity is now measured rather than argued.
+
+### The stream is an attribute graph, not a string
+
+The real 202-byte and 1140-byte bodies are not text with a header. Inside one: `NSMutableString`,
+`__kIMMessagePartAttributeName`, `__kIMDataDetectedResult`, `__kIMLinkAttributeName`,
+`__kIMLinkPreviewAttributeName`, a `__kIMDataDetectedLinkAttributeName` URL, a
+`com.apple.*` bundle id, and a **third-party promotional payload** carried as its own nested
+object with a nested string and a date range.
+
+Two consequences, both load-bearing:
+
+1. **The "do not string-search for the first printable run" rule is not a style preference.** The
+   first printable run in that blob is `streamtyped` at offset 2. A scan does not return a
+   plausible-looking sentence — it returns the format's own name, and it would do so on every
+   message forever.
+2. **The length field is per-object, and the object holding the message is not the whole file.**
+   So "bytes or characters" cannot be answered by comparing the file size to the sentence; it has
+   to be answered by reading the string object the decoder actually uses, against a known text.
+   The text here is 25 characters with three multi-byte characters in it, so the case is already
+   in hand — and the decode has to run before the question can be closed.
+
+**Not committed, deliberately:** the real body carries a live promo URL and a third party's offer,
+so the blob stays a local artefact at
+`~/Library/Caches/NextNotesBuild/imessage/self-flow-case.sh` and the *answer* goes in these notes.
+The corpus keeps its synthetic placeholders.

@@ -17,6 +17,10 @@ import SwiftUI
 struct MessagesAccessSection: View {
     @State private var verdict = MessagesAccessVerdict.notGranted
     @State private var isProbing = false
+    /// Whether the pane has been opened from here. Nothing is detectable — the app cannot tell
+    /// "not added" from "added an older copy" — so the advice line is chosen by what the person
+    /// has done, not by what the machine knows.
+    @State private var hasOpenedPane = false
 
     var body: some View {
         Section {
@@ -41,6 +45,18 @@ struct MessagesAccessSection: View {
                         .font(DS.Font.caption)
                         .foregroundStyle(DS.Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    // Shown only while it is still off, because the one thing a person needs
+                    // here is the step the pane does not tell them: this list has no Next Notes
+                    // in it yet, and a switch that is not there cannot be flipped. After the
+                    // pane has been opened once the line becomes the repair advice, which is
+                    // the remaining explanation. Same strings as the Permissions checklist —
+                    // one sentence, two places, no drift.
+                    if !verdict.isGranted {
+                        Text(MessagesAccessVerdict.advice(hasPressed: hasOpenedPane))
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
 
@@ -56,6 +72,7 @@ struct MessagesAccessSection: View {
                 Button("Check again") { probe(force: true) }
                     .disabled(isProbing)
                 Button("Open Full Disk Access settings…") {
+                    hasOpenedPane = true
                     Permissions.openFullDiskAccessSettings()
                 }
                 .buttonStyle(.link)
@@ -113,23 +130,39 @@ enum MessagesAccessVerdict: Equatable, Sendable {
         "Next Notes needs Full Disk Access to read the iMessage conversation you choose for "
         + "remote access. Messages are processed on this Mac."
 
-    /// The glyph the row draws. "✓" for `.granted` and nothing else, ever.
-    var mark: String {
-        switch self {
-        case .granted: "✓"
-        case .notGranted: "○"
-        }
-    }
+      /// The glyph the row draws. "✓" for `.granted` and nothing else, ever.
+      var mark: String {
+          switch self {
+          case .granted: "✓"
+          case .notGranted: "○"
+          }
+      }
 
-    /// What the glyph is claiming, in words somebody would say out loud.
-    var text: String {
-        switch self {
-        case .granted: "On"
-        case .notGranted: "Not on yet"
-        }
-    }
+      /// What the glyph is claiming, in words somebody would say out loud.
+      var text: String {
+          switch self {
+          case .granted: "On"
+          case .notGranted: "Not on yet"
+          }
+      }
 
-    var isGranted: Bool { self == .granted }
+      var isGranted: Bool { self == .granted }
+
+      /// The line under the row, and the one that has to change.
+      ///
+      /// Full Disk Access is the only pane in this list where the app is not already in it, so
+      /// the first press needs the instruction everybody misses — that the `+` button is the
+      /// whole task. After a press, the two remaining explanations are "you never added it" and
+      /// "you added an older copy", and they are indistinguishable from inside the app, so the
+      /// line moves to the repair advice that fixes both: remove it, add it again.
+      ///
+      /// It is here, on the pure type, rather than in either view, because the Settings section
+      /// and the Permissions checklist both say it and `AGENTS.md`'s rule is that a sentence a
+      /// person reads in two places must be one string, not two spellings.
+      static func advice(hasPressed: Bool) -> String {
+          hasPressed ? Permissions.fdaRepairAdvice : Permissions.fdaAddAdvice
+      }
+
 
     /// The one mapping, from a probe state to what is on screen.
     static func verdict(for state: MessagesDatabaseHealth.State) -> MessagesAccessVerdict {

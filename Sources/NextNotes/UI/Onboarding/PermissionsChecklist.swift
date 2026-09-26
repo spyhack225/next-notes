@@ -13,6 +13,10 @@ struct PermissionsChecklist: View {
     @State private var hasCalendar = false
     @State private var hasHeardSystemAudio = false
     @State private var hasMessagesAccess: Bool?
+    /// Whether the row's button has been pressed. It is the only thing that changes the
+    /// advice line, and it is also why the button re-labels itself: after a press the next
+    /// click is a re-check, not a first request.
+    @State private var askedForMessages = false
     @State private var isProbingMessagesAccess = false
     @State private var hasNotifications = false
     @State private var isGrantingAll = false
@@ -89,7 +93,10 @@ struct PermissionsChecklist: View {
 
             PermissionRow(
                 title: "Messages",
-                detail: MessagesAccessVerdict.purpose,
+                // Purpose first, then the one action this pane needs. Concatenated rather than
+                // swapped so the sentence about *why* never disappears once the user knows how.
+                detail: MessagesAccessVerdict.purpose
+                    + " " + MessagesAccessVerdict.advice(hasPressed: askedForMessages),
                 systemImage: "message.fill",
                 // A real answer, unlike the row above: the probe opens the database and
                 // reads a row, so `true` is evidence rather than a bit somebody guessed.
@@ -98,7 +105,10 @@ struct PermissionsChecklist: View {
                 // not earned. The button opens the pane because, like Accessibility,
                 // `canRequest` is false and there is nothing else a button could do.
                 isGranted: hasMessagesAccess,
-                actionTitle: "Grant…",
+                // The grant cannot be requested, so there is no prompt to walk someone
+                // through; the second press is a re-check, and saying so is the difference
+                // between a button that looks broken and one that is doing its job.
+                actionTitle: askedForMessages ? "Check again\u{2026}" : "Grant\u{2026}",
                 // `searching`: the press causes a read of something Next Notes did not
                 // write, to find out whether it can. The Workspace row below may show its
                 // own orb at the same moment; both are a few milliseconds long and both
@@ -106,7 +116,11 @@ struct PermissionsChecklist: View {
                 // for.
                 busy: isProbingMessagesAccess ? .searching : nil
             ) {
-                Permissions.openFullDiskAccessSettings()
+                // Only open the pane on the first press. Afterwards the row is a check, and
+                // throwing someone back into System Settings on every re-check is how a row
+                // teaches people to stop pressing it.
+                if !askedForMessages { Permissions.openFullDiskAccessSettings() }
+                askedForMessages = true
                 probeMessagesAccess()
             }
 

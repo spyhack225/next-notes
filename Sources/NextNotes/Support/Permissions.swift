@@ -216,6 +216,29 @@ enum Permissions {
         + "copy of it. Select Next Notes in that list, press the minus button to remove it, "
         + "then press plus and add Next Notes again."
 
+    /// Full Disk Access is the one pane where the app is **not already listed**, so the button
+    /// opens a list with no Next Notes in it and no switch to flip. Every other row's advice
+    /// would be wrong here: the instruction people need is the one everybody misses, which is
+    /// that the `+` button is the whole task.
+    ///
+    /// `nonisolated` for the same reason as the accessibility string above — a constant
+    /// sentence needs no actor, and the Messages row, the Settings section and any first-run
+    /// screen all have to say the same words rather than three versions of them.
+    nonisolated static let fdaAddAdvice =
+        "Next Notes isn't in that list yet. Press the + button below the list, choose "
+        + "Applications, then click Next Notes."
+
+    /// The same stale-entry failure the accessibility row has, reached a different way: a
+    /// Full Disk Access entry is a *path*, so an entry made against an earlier build keeps its
+    /// switch on while the database stays unreadable. From inside the app the two cases are
+    /// indistinguishable — the probe reads a row or it does not — so this is offered after a
+    /// press rather than detected, which is the honest shape and the one the accessibility row
+    /// already established.
+    nonisolated static let fdaRepairAdvice =
+        "If Next Notes is already in that list with its switch on and this still says it is "
+        + "not, macOS is holding on to an older copy of it. Select Next Notes, press the minus "
+        + "button to remove it, then press plus and add it again."
+
     /// Notifications are not a privacy pane: they live in their own Settings extension, so
     /// the security URL every other row uses opens the wrong page.
     static func openNotificationSettings() {

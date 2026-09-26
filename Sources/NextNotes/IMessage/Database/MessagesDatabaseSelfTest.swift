@@ -380,6 +380,52 @@ enum MessagesDatabaseSelfTest {
                     ? nil
                     : "the copy reads \"\(MessagesAccessVerdict.purpose)\""
             }
+
+            // 25. The advice line has to change. Full Disk Access is the only pane in the
+            // checklist where the app is not already listed, so the first press needs the
+            // instruction everybody misses — that the `+` button is the whole task — and after
+            // a press the remaining explanation is a stale entry, which has a different fix.
+            // One string for both would leave somebody stuck with no idea which they have.
+            await check("messages_advice_changes_after_a_press") {
+                let first = MessagesAccessVerdict.advice(hasPressed: false)
+                let later = MessagesAccessVerdict.advice(hasPressed: true)
+                if first == later { return "both states say \"\(first)\"" }
+                if first != Permissions.fdaAddAdvice { return "before a press it is not the add advice" }
+                if later != Permissions.fdaRepairAdvice { return "after a press it is not the repair advice" }
+                return nil
+            }
+
+            // 26. The add advice must actually name the action. This is the case the whole
+            // row exists for: a button that opens a list with no Next Notes in it and no
+            // switch to flip, described in words that do not mention adding anything, is the
+            // same as no advice at all. Asserted on the words, not on the punctuation.
+            await check("messages_add_advice_names_the_button_to_press") {
+                let advice = Permissions.fdaAddAdvice
+                let lowered = advice.lowercased()
+                guard lowered.contains("+") || lowered.contains("plus") else {
+                    return "the add advice never says which control to press: \"\(advice)\""
+                }
+                guard lowered.contains("next notes") else {
+                    return "the add advice never says what to add: \"\(advice)\""
+                }
+                return nil
+            }
+
+            // 27. Neither sentence may be the kind of thing that makes somebody hand the app
+            // to somebody else. `fdaRepairAdvice` is the one a person reads *after* the grant
+            // looks correct and still does not work, so it is the one most likely to drift
+            // into "TCC", "signature" or "requirement".
+            await check("messages_advice_is_plain_words") {
+                let jargon = ["tcc", "signature", "requirement", "cdhash", "csreq", "entitlement",
+                              "sqlite", "database", "posix", "sandbox"]
+                for advice in [Permissions.fdaAddAdvice, Permissions.fdaRepairAdvice] {
+                    let lowered = advice.lowercased()
+                    for word in jargon where lowered.contains(word) {
+                        return "\"\(advice)\" says \"\(word)\""
+                    }
+                }
+                return nil
+            }
         } catch {
             failures.append("fixtures: \(error)")
         }
