@@ -24,7 +24,18 @@ LLAMA_FRAMEWORK = $(SCRATCH)/$(CONFIG)/llama.framework
 ## — the provider re-stamps in between. Staging in ~/Library/Caches sidesteps it entirely.
 STAGE    := $(HOME)/Library/Caches/NextNotesBuild
 APPNAME  := Next Notes.app
-BUNDLE   := $(STAGE)/$(APPNAME)
+## The staging bundle is **per make invocation**, not a fixed path.
+##
+## `app:` assembles it with `rm -rf` + a dozen `cp`s, and `install` (under
+## `$(STAGE)/install.lock`) swaps it into /Applications and then deletes it. When both used
+## one shared path, two concurrent `make install` runs interleaved their writes into the
+## same directory *and* the winner's `rm -rf` deleted the loser's half-assembled bundle
+## mid-`cp` — measured during the 2026-09-25 roadmap as three install failures in an hour,
+## each of which can also install a plausible-but-wrong bundle (one run's binary, another's
+## frameworks). A directory nobody else can name cannot be written by two processes.
+## `$$` is this make's pid, constant across the recipe lines of one run.
+STAGE_RUN := $(STAGE)/install-$$
+BUNDLE   := $(STAGE_RUN)/$(APPNAME)
 CONTENTS := $(BUNDLE)/Contents
 WEBRTC_LIB_DIR := $(STAGE)/webrtc/current
 
@@ -122,6 +133,7 @@ icon:
 ## Assemble a real .app bundle. TCC (microphone + Accessibility) keys on bundle identity
 ## and code signature, so the raw SwiftPM binary can't be used directly.
 app: build
+	@mkdir -p "$(STAGE_RUN)"
 	@rm -rf "$(BUNDLE)"
 	@mkdir -p "$(CONTENTS)/MacOS" "$(CONTENTS)/Resources" "$(CONTENTS)/Frameworks"
 	@cp $(BUILD) "$(CONTENTS)/MacOS/$(EXEC)"
@@ -179,10 +191,14 @@ run: install
 ## A mid-`rm`/`cp` window used to leave `/Applications/Next Notes.app` without its
 ## executable: `open` then fails with kLSNoExecutableErr, and a concurrent direct
 ## binary launch under Cursor has aborted inside HIServices `_RegisterApplication`
-## before any app code runs. Swap via a sibling `.new` bundle so LaunchServices
-## never sees a half-deleted app. The swap also takes `$(STAGE)/install.lock`,
-## which `Scripts/run-selftest.sh` waits on — concurrent install+self-test is how
-## the 2026-09-17 Cursor SIGABRT reports kept recurring after the atomic swap.
+## before any app code runs. The swap goes via a sibling `.new` bundle so
+## LaunchServices never sees a half-deleted app.
+##
+## `install` publishes the staged bundle into /Applications under the same
+## `$(STAGE)/install.lock` that `Scripts/run-selftest.sh` waits on, so a self-test never
+## runs against a bundle that is mid-swap. The *staging* half needs no lock since
+## `$(BUNDLE)` is per make invocation (see `STAGE_RUN`); the swap half does, because it
+## touches the one path every self-test and every launch resolves.
 OPEN ?= 1
 INSTALL_LOCK := $(STAGE)/install.lock
 
@@ -190,7 +206,7 @@ INSTALL_LOCK := $(STAGE)/install.lock
 ## Installing to /Applications keeps the path stable and makes re-granting a one-click fix.
 install: app
 	@mkdir -p "$(STAGE)"
-	@APPNAME="$(APPNAME)" EXEC="$(EXEC)" BUNDLE="$(BUNDLE)" OPEN="$(OPEN)" \
+	@APPNAME="$(APPNAME)" EXEC="$(EXEC)" BUNDLE="$(BUNDLE)" STAGE="$(STAGE)" OPEN="$(OPEN)" \
 		Scripts/with-install-lock.sh "$(INSTALL_LOCK)" \
 		bash Scripts/install-bundle.sh
 
