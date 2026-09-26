@@ -4,30 +4,40 @@ import FoundationModels
 /// Apple's on-device model as a notes provider.
 ///
 /// The secondary provider, and the only one that needs no download. Its cost is context:
-/// 4096 tokens covers roughly fifteen minutes of speech, so anything longer goes through
-/// the generator's map-reduce path rather than being read in one piece.
+/// the window the framework reports — 8,192 tokens on the current hardware generation,
+/// 4,096 on the first — covers roughly half an hour of speech, so anything longer goes
+/// through the generator's map-reduce path rather than being read in one piece.
 struct FoundationModelLLMProvider: LLMProvider {
     let id = LLMProviderID.appleFoundation
 
-    /// The documented window for `LanguageModelSession`, shared between prompt and response.
-    let contextTokens = 4_096
+    /// The window the framework itself reports, shared between prompt and response
+    /// (P1-10a step 0, landed in M-12). `contextSize` answers 4,096 on macOS 26.x and
+    /// the real window on 27+, and may answer nothing useful while the model is
+    /// unavailable — the 4,096 floor keeps the budget arithmetic sane either way.
+    var contextTokens: Int {
+        let reported = SystemLanguageModel.default.contextSize
+        return reported > 0 ? reported : 4_096
+    }
 
     var unavailableReason: String? {
         get async { FoundationModelFormatter.unavailableReason }
     }
 
-    /// Estimated, not measured: Foundation Models exposes no tokenizer, and the generator
-    /// only needs this to decide how much transcript fits in one prompt.
-    ///
-    /// Four characters per token is the usual English rule of thumb; a transcript is plain
-    /// prose with no code or markup, which is exactly the case that rule was measured on.
-    /// The generator leaves a wide margin below `contextTokens`, so the estimate being a
-    /// few percent low costs nothing.
+    /// The budget counter (M-12): the system model's own tokenizer on macOS 26.4+,
+    /// characters / 3 otherwise. Three rather than the old four is an estimate, and
+    /// deliberately lower: French tokenises denser than the English rule of thumb, and
+    /// an estimate that over-counts costs a slice of window, not a rejected prompt.
     func countTokens(_ text: String) async throws -> Int {
-        max(1, (text.count + charactersPerToken - 1) / charactersPerToken)
+        if #available(macOS 26.4, *) {
+            if let count = try? await SystemLanguageModel.default.tokenCount(for: text) {
+                return max(1, count)
+            }
+        }
+        return max(1, (text.count + charactersPerToken - 1) / charactersPerToken)
     }
 
-    private let charactersPerToken = 4
+    /// The fallback's characters-per-token, labelled an estimate: see `countTokens`.
+    private let charactersPerToken = 3
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         let began = Date()

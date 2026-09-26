@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModels
 
 /// Turns a meeting transcript into the markdown that lands in `notes.md`.
 ///
@@ -45,22 +46,27 @@ struct NotesGenerator: Sendable {
     /// Why the pass ran on a model other than the role's, when it did.
     let fallbackReason: UsageFallback?
 
-    /// Held back from the prompt for the system message and the notes themselves.
+    /// Held back from the prompt for the notes themselves, on top of the counted
+    /// prompt overhead (M-12): the single-pass decision's reserve, and the floor the
+    /// answer keeps.
     private static let reservedTokens = 1_536
-    /// The system prompt, the chat template and the meeting header, which the transcript's
-    /// own token count doesn't include. Subtracted again when the output is budgeted, so a
-    /// transcript that exactly fills the reserve still leaves room for an answer.
-    private static let promptOverheadTokens = 512
+    /// Slack over the counted system prompt and header (M-12): the chat template and
+    /// the scaffolding between the counted strings. An estimate.
+    private static let templateSlackTokens = 64
     /// Matches the runtime's own headroom, so a prompt this generator accepts is never one
     /// the runtime then refuses.
     private static let runtimeHeadroomTokens = 256
     /// Notes longer than this are a transcript with bullet points in front of it.
     private static let maxNotesTokens = 1_500
-    /// One chunk's worth of transcript in the map step.
-    private static let localModelChunkTokens = 3_000
-    private static let appleChunkTokens = 2_000
+    /// A map chunk never exceeds this, however large the window (M-12): the map step
+    /// reads slices so the reduce has facts, not a second transcript.
+    private static let maxChunkTokens = 6_000
+    /// The floor under the derived chunk size, so a small window still reads.
+    private static let minChunkTokens = 1_000
     /// A chunk's facts are far shorter than the chunk.
     private static let maxFactTokens = 600
+    /// The retry's chunks (M-12): 70 % of the derived size.
+    static let retryChunkFactor = 0.7
     /// How many times the collapse pass may re-condense the facts before the last
     /// resort: a visible line saying what was left out. A model that ignores the
     /// collapse instruction hits this cap and the line, which is honest.
@@ -95,19 +101,50 @@ struct NotesGenerator: Sendable {
         // runtime rejects on exactly the meetings that have the most context to add.
         let block = brief.promptBlock
         let briefTokens = block.isEmpty ? 0 : try await provider.countTokens(block)
+        // The window cost counted, not assumed (M-12): the system prompt, the meeting
+        // header and the scaffolding of an empty message, with slack. Used by the
+        // single-pass decision and by `outputBudget`, once per call.
+        let overhead = try await countedOverhead(
+            system: NotesPrompts.notesSystem,
+            user: NotesPrompts.notesUser(meeting: meeting, transcript: ""))
         let budget = provider.contextTokens - Self.reservedTokens
         guard budget > 0 else { throw NotesError.contextTooSmall }
 
-        if transcriptTokens + briefTokens <= budget {
+        if transcriptTokens + briefTokens + overhead <= budget {
             progress(Step(message: "Writing notes\u{2026}", fraction: nil))
-            let completion = try await recordedComplete(
-                feature: .meetingNotesSingle,
-                pass: "single",
-                meetingID: meeting.id,
-                system: NotesPrompts.notesSystem,
-                user: NotesPrompts.notesUser(meeting: meeting, transcript: transcript, brief: brief),
-                maxTokens: outputBudget(promptTokens: transcriptTokens + briefTokens)
-            )
+            let completion: LLMCompletion
+            do {
+                completion = try await recordedComplete(
+                    feature: .meetingNotesSingle,
+                    pass: "single",
+                    meetingID: meeting.id,
+                    system: NotesPrompts.notesSystem,
+                    user: NotesPrompts.notesUser(meeting: meeting, transcript: transcript, brief: brief),
+                    maxTokens: outputBudget(
+                        promptTokens: transcriptTokens + briefTokens, overhead: overhead)
+                )
+            } catch let overflow where Self.isContextOverflow(overflow) {
+                // The estimate said one pass and the model refused the prompt (M-12):
+                // one retry through map-reduce, with the chunks shrunk to 70 %. A second
+                // refusal there ends as a plain sentence, not a raw error.
+                progress(Step(
+                    message: "The transcript is longer than it looked; reading it in parts\u{2026}",
+                    fraction: nil))
+                return try await mapReduce(
+                    meeting: meeting,
+                    segments: segments,
+                    transcript: transcript,
+                    transcriptTokens: transcriptTokens,
+                    brief: brief,
+                    briefTokens: briefTokens,
+                    budget: budget,
+                    overheadTokens: overhead,
+                    began: began,
+                    progress: progress,
+                    chunkFactor: Self.retryChunkFactor,
+                    allowRetry: false
+                )
+            }
             var markdown = NotesFormatter.tidy(completion.text)
             // No Known context block means there is nothing true to connect, and a model
             // asked for the section writes one anyway. The prompt says the empty marker;
@@ -136,13 +173,22 @@ struct NotesGenerator: Sendable {
             brief: brief,
             briefTokens: briefTokens,
             budget: budget,
+            overheadTokens: overhead,
             began: began,
-            progress: progress
+            progress: progress,
+            chunkFactor: 1.0,
+            allowRetry: true
         )
     }
 
     // MARK: - Map / reduce
 
+    /// One map-reduce run, with the M-12 overflow retry wrapped around it.
+    ///
+    /// A context-size refusal anywhere inside — a chunk the map step refuses, a fact
+    /// list the collapse could not shrink enough, a reduce prompt over the line —
+    /// retries the whole run once with chunks at 70 %. A refusal on that retry, or a
+    /// second one when the caller has already retried, is the plain sentence.
     private func mapReduce(
         meeting: Meeting,
         segments: [TranscriptSegment],
@@ -151,13 +197,75 @@ struct NotesGenerator: Sendable {
         brief: MeetingNotesBrief,
         briefTokens: Int,
         budget: Int,
+        overheadTokens: Int,
         began: Date,
-        progress: @escaping ProgressHandler
+        progress: @escaping ProgressHandler,
+        chunkFactor: Double,
+        allowRetry: Bool
     ) async throws -> Result {
+        do {
+            return try await mapReduceCore(
+                meeting: meeting,
+                segments: segments,
+                transcript: transcript,
+                transcriptTokens: transcriptTokens,
+                brief: brief,
+                briefTokens: briefTokens,
+                budget: budget,
+                overheadTokens: overheadTokens,
+                began: began,
+                progress: progress,
+                chunkFactor: chunkFactor
+            )
+        } catch let overflow where allowRetry && Self.isContextOverflow(overflow) {
+            do {
+                return try await mapReduceCore(
+                    meeting: meeting,
+                    segments: segments,
+                    transcript: transcript,
+                    transcriptTokens: transcriptTokens,
+                    brief: brief,
+                    briefTokens: briefTokens,
+                    budget: budget,
+                    overheadTokens: overheadTokens,
+                    began: began,
+                    progress: progress,
+                    chunkFactor: Self.retryChunkFactor
+                )
+            } catch let second where Self.isContextOverflow(second) {
+                throw NotesError.contextTooSmall
+            }
+        } catch let overflow where Self.isContextOverflow(overflow) {
+            throw NotesError.contextTooSmall
+        }
+    }
+
+    private func mapReduceCore(
+        meeting: Meeting,
+        segments: [TranscriptSegment],
+        transcript: String,
+        transcriptTokens: Int,
+        brief: MeetingNotesBrief,
+        briefTokens: Int,
+        budget: Int,
+        overheadTokens: Int,
+        began: Date,
+        progress: @escaping ProgressHandler,
+        chunkFactor: Double
+    ) async throws -> Result {
+        // The chunk size derived from the reader's window (M-12), scaled by the
+        // caller's factor on a retry.
+        let chunkSize = Self.chunkSize(
+            contextTokens: provider.contextTokens,
+            mapOverheadTokens: try await countedOverhead(
+                system: NotesPrompts.mapSystem,
+                user: NotesPrompts.mapUser(meeting: meeting, part: 1, of: 1, transcript: "")))
+        let mapTarget = max(1, min(
+            Int((Double(chunkSize) * chunkFactor).rounded(.down)), budget))
         let chunks = Self.chunk(
             segments,
             speakerNames: meeting.speakerNames,
-            targetTokens: min(chunkTokens, budget),
+            targetTokens: mapTarget,
             transcriptCharacters: transcript.count,
             transcriptTokens: transcriptTokens
         )
@@ -221,7 +329,7 @@ struct NotesGenerator: Sendable {
             // at most half the budget, at most one chunk.
             let groups = try await Self.group(
                 facts,
-                targetTokens: min(chunkTokens, budget / 2)
+                targetTokens: min(mapTarget, budget / 2)
             ) { try await provider.countTokens($0) }
             var next: [String] = []
             for (index, group) in groups.enumerated() {
@@ -271,7 +379,8 @@ struct NotesGenerator: Sendable {
             meetingID: meeting.id,
             system: NotesPrompts.reduceSystem,
             user: NotesPrompts.reduceUser(meeting: meeting, facts: joined, brief: brief),
-            maxTokens: outputBudget(promptTokens: factTokens + briefTokens),
+            maxTokens: outputBudget(
+                promptTokens: factTokens + briefTokens, overhead: overheadTokens),
             counts: ["chunks": chunks.count, "facts": facts.count]
         )
         generated += completion.generatedTokens
@@ -341,14 +450,36 @@ struct NotesGenerator: Sendable {
         }
     }
 
-    private var chunkTokens: Int {
-        switch provider.id {
-        case .appLLM: Self.localModelChunkTokens
-        case .appleFoundation: Self.appleChunkTokens
-        // A model served over HTTP, here or in the cloud, has a window we cannot read
-        // exactly, so both use the conservative local chunk size.
-        case .openRouter, .localServer: Self.localModelChunkTokens
-        }
+    /// The counted prompt overhead (M-12): the system prompt, the meeting header and
+    /// the scaffolding of an empty message, plus slack for what the counted strings
+    /// approximate. One count per decision, not per segment.
+    private func countedOverhead(system: String, user: String) async throws -> Int {
+        try await provider.countTokens(system)
+            + provider.countTokens(user)
+            + Self.templateSlackTokens
+    }
+
+    /// One chunk's slice of the transcript (M-12), derived from the reader's window
+    /// rather than a per-provider switch: the map prompt's counted overhead, the
+    /// facts' budget (M-05) and the runtime's headroom come off the top, and the rest
+    /// is transcript. Capped so a huge window still reads slices, floored so a small
+    /// one still reads something.
+    static func chunkSize(contextTokens: Int, mapOverheadTokens: Int) -> Int {
+        let derived = contextTokens - mapOverheadTokens - maxFactTokens - runtimeHeadroomTokens
+        return min(maxChunkTokens, max(minChunkTokens, derived))
+    }
+
+    /// True when a provider refused the prompt for its size (M-12): llama's own guard,
+    /// and Apple's two spellings of the same refusal — the session-level error from
+    /// macOS 26 and the model-error one from macOS 27.
+    static func isContextOverflow(_ error: Error) -> Bool {
+        if let llama = error as? LlamaError, case .inputTooLong = llama { return true }
+        if let generation = error as? LanguageModelSession.GenerationError,
+           case .exceededContextWindowSize = generation { return true }
+        if #available(macOS 27.0, *),
+           let language = error as? LanguageModelError,
+           case .contextSizeExceeded = language { return true }
+        return false
     }
 
     /// How many tokens the answer may use, given what the prompt already spent.
@@ -356,11 +487,11 @@ struct NotesGenerator: Sendable {
     /// Every provider shares one window between prompt and response, so a transcript that
     /// fills the whole transcript budget has to leave the notes somewhere to go. Without
     /// this, the longest meetings — the ones that most need summarising — are exactly the
-    /// ones the runtime rejects.
-    private func outputBudget(promptTokens: Int) -> Int {
+    /// ones the runtime rejects. The overhead is counted, not assumed (M-12).
+    private func outputBudget(promptTokens: Int, overhead: Int) -> Int {
         let remaining = provider.contextTokens
             - promptTokens
-            - Self.promptOverheadTokens
+            - overhead
             - Self.runtimeHeadroomTokens
         return max(Self.minNotesTokens, min(Self.maxNotesTokens, remaining))
     }
@@ -576,7 +707,7 @@ enum NotesError: LocalizedError {
         case .emptyNotes:
             "The model found nothing to write about in this transcript."
         case .contextTooSmall:
-            "The notes model has no room for a transcript."
+            "This meeting is too long for the selected model to summarise in one go."
         case .noProvider:
             "Your assistant\u{2019}s brain isn\u{2019}t downloaded yet \u{2014} get it in "
                 + "Settings \u{25b8} Models, or turn on Apple Intelligence."

@@ -213,10 +213,13 @@ enum MeetingNotesContextSelfTest {
         var big = MeetingNotesBrief()
         big.memory = "related: " + String(repeating: "x", count: 1_000)
 
+        // M-12 counts the prompt overhead in the single-pass decision, so the
+        // transcript is sized against the new boundary: alone it fits
+        // (1,704 tokens + the counted ~715 overhead ≤ 2,464), the brief pushes it over.
         let long = TranscriptSegment(
             start: 0,
             end: 600,
-            text: String(repeating: "a", count: 9_120),
+            text: String(repeating: "a", count: 6_800),
             source: .mic
         )
         let budgetProvider = RecordingNotesProvider(contextTokens: 4_000)

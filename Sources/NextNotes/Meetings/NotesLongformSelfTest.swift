@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModels
 
 /// `--selftest-notes-longform`: the map-reduce path never drops facts silently.
 ///
@@ -103,9 +104,120 @@ enum NotesLongformSelfTest {
             }
         }
 
+        // e. The model refused a prompt the estimate said would fit (M-12): one
+        // context-size refusal on the single pass retries once through map-reduce,
+        // and notes are written.
+        do {
+            let provider = LongformNotesProvider(
+                contextTokens: 4_096, overflowOnFirstCall: true)
+            do {
+                let result = try await NotesGenerator(provider: provider)
+                    .notes(for: meeting, segments: shortSegments(), brief: .empty)
+                check("the context-size refusal did not take map-reduce", result.usedMapReduce)
+                check("the context-size retry wrote no notes",
+                      !NotesFormatter.isBlank(result.markdown))
+            } catch {
+                failures.append("the overflow retry surfaced the raw error: \(error)")
+            }
+        }
+
+        // e2. A second refusal, after the shrunk-chunk retry: a plain sentence, not a
+        // raw error and not silence.
+        do {
+            let provider = LongformNotesProvider(contextTokens: 4_096, alwaysOverflow: true)
+            do {
+                _ = try await NotesGenerator(provider: provider)
+                    .notes(for: meeting, segments: shortSegments(), brief: .empty)
+                failures.append("the second context-size refusal was swallowed")
+            } catch let error as NotesError {
+                check("the second refusal did not say so plainly: \(error.localizedDescription)",
+                      error.localizedDescription
+                          .contains("too long for the selected model to summarise in one go"))
+            } catch {
+                failures.append("the second overflow surfaced raw: \(error)")
+            }
+        }
+
+        // f. The real window read, not the old constant: a 12-minute meeting takes the
+        // single pass on 8,192 tokens (it does not at 4,096), and the chunk size
+        // derived for 8,192 clears the old 2,000-token Apple value.
+        do {
+            let provider = LongformNotesProvider(contextTokens: 8_192)
+            if let result = try? await NotesGenerator(provider: provider)
+                .notes(for: meeting, segments: twelveMinuteSegments(), brief: .empty) {
+                check("a 12-min meeting took map-reduce on the 8K window",
+                      result.usedMapReduce == false)
+                check("a 12-min meeting on 8K was split into parts", result.chunks == 1)
+            } else {
+                failures.append("the 12-min run on 8K threw")
+            }
+            let mapSystemTokens = (try? await provider.countTokens(NotesPrompts.mapSystem)) ?? 0
+            let mapUserTokens = (try? await provider.countTokens(
+                NotesPrompts.mapUser(meeting: meeting, part: 1, of: 1, transcript: ""))) ?? 0
+            let mapOverhead = mapSystemTokens + mapUserTokens + 64
+            let chunkSize = NotesGenerator.chunkSize(
+                contextTokens: 8_192, mapOverheadTokens: mapOverhead)
+            write("NOTES_LONGFORM chunks8k=\(chunkSize) mapOverhead=\(mapOverhead)")
+            check("chunkTokens for the 8K window is still the old 2,000 constant",
+                  chunkSize > 3_000)
+        }
+
+        // g. The real Apple tokenizer, Apple FM only (ABSENT elsewhere): the budget
+        // counter is the system model's own token count, not the character rule.
+        // M-12 red: the estimate is characters / 4, so both paragraphs land exactly
+        // on that quotient.
+        do {
+            if #available(macOS 26.4, *) {
+                if let unavailable = FoundationModelFormatter.unavailableReason {
+                    write("  NOTES_LONGFORM_APPLE_FM_ABSENT: \(unavailable)")
+                } else {
+                    let provider = FoundationModelLLMProvider()
+                    let english = Self.fourAligned(
+                        "The team agreed to ship the pricing page on Friday, review the "
+                            + "churn dashboard after launch, and tell the channel what changed.")
+                    let french = Self.fourAligned(
+                        "L'équipe a convenu de publier la page tarifaire vendredi, d'examiner "
+                            + "le tableau de bord après le lancement et d'annoncer le changement "
+                            + "à tout le monde.")
+                    do {
+                        let englishTokens = try await provider.countTokens(english)
+                        let frenchTokens = try await provider.countTokens(french)
+                        write("APPLE_FM_TOKENS text=\(english.count) tokens=\(englishTokens)")
+                        write("APPLE_FM_TOKENS text=\(french.count) tokens=\(frenchTokens)")
+                        check("countTokens answered characters / 4 for both paragraphs — "
+                            + "the real counter was not used",
+                              !(englishTokens == english.count / 4
+                                  && frenchTokens == french.count / 4))
+                    } catch {
+                        failures.append("the Apple tokenizer probe threw: \(error)")
+                    }
+                }
+            } else {
+                write("  NOTES_LONGFORM_APPLE_FM_ABSENT: needs macOS 26.4 for the real tokenizer")
+            }
+        }
+
+        // The three refusals the retry matches, directly.
+        check("the llama input-too-long refusal did not match",
+              NotesGenerator.isContextOverflow(LlamaError.inputTooLong))
+        check("the session context-window refusal did not match",
+              NotesGenerator.isContextOverflow(
+                  LanguageModelSession.GenerationError.exceededContextWindowSize(
+                      .init(debugDescription: "fixture"))))
+        if #available(macOS 27.0, *) {
+            check("the macOS 27 context-size refusal did not match",
+                  NotesGenerator.isContextOverflow(
+                      LanguageModelError.contextSizeExceeded(.init(
+                          contextSize: 4_096, tokenCount: 5_000,
+                          debugDescription: "fixture"))))
+        }
+        check("an unrelated error matched the context-refusal matcher",
+              !NotesGenerator.isContextOverflow(NotesError.emptyNotes))
+
         for failure in failures { write("  NOTES_LONGFORM_WRONG: \(failure)") }
         write(failures.isEmpty
-            ? "NOTES_LONGFORM_OK: 90-min facts kept on 4K and 8K, stubborn collapse visible, single pass intact"
+            ? "NOTES_LONGFORM_OK: 90-min facts kept on 4K and 8K, stubborn collapse visible, "
+                + "single pass intact, overflow retried, window-derived chunks"
             : "NOTES_LONGFORM_FAILED: \(failures.count) check(s) wrong")
         return failures.isEmpty
     }
@@ -146,6 +258,26 @@ enum NotesLongformSelfTest {
         }
     }
 
+    /// 240 segments of 3 s: 12 minutes. Above the 4K single-pass budget, below the
+    /// 8K one (M-12 case f).
+    static func twelveMinuteSegments() -> [TranscriptSegment] {
+        (0..<240).map { i in
+            TranscriptSegment(
+                start: Double(i) * 3,
+                end: Double(i + 1) * 3,
+                text: fit45("meeting point \(i) on the agenda today"),
+                source: .system,
+                speaker: "Speaker 1"
+            )
+        }
+    }
+
+    /// Chops to a length divisible by four, so the old characters/4 estimate equals
+    /// the count exactly and the check can tell it from the real tokenizer (M-12 g).
+    static func fourAligned(_ text: String) -> String {
+        String(text.prefix(text.count - text.count % 4))
+    }
+
     nonisolated static func fit45(_ s: String) -> String {
         if s.count >= 45 { return String(s.prefix(45)) }
         return s + String(repeating: ".", count: 45 - s.count)
@@ -165,6 +297,10 @@ enum NotesLongformSelfTest {
 /// `FACT-P<n>` token and the agenda marker and halves the filler — unless
 /// `stubbornCollapse` is set, in which case it returns its input unchanged.
 ///
+/// `overflowOnFirstCall` throws the Apple context-size refusal once, on the first call
+/// (the single pass, when the transcript fits) — M-12 case e. `alwaysOverflow` throws
+/// the llama one on every call, so even the shrunk-chunk retry refuses — case e2.
+///
 /// Internal so the usage-log self-test (M6, M-16b) can drive the same 90-minute case
 /// and count the rows each pass writes, rather than rebuild the worst case beside it.
 final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
@@ -173,14 +309,24 @@ final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
     let id = LLMProviderID.appleFoundation
     let contextTokens: Int
     let stubbornCollapse: Bool
+    let overflowOnFirstCall: Bool
+    let alwaysOverflow: Bool
 
     private let lock = NSLock()
     private var recorded: [(system: String, user: String)] = []
     private var reducePromptValue = ""
+    private var sawOverflowCall = false
 
-    init(contextTokens: Int, stubbornCollapse: Bool = false) {
+    init(
+        contextTokens: Int,
+        stubbornCollapse: Bool = false,
+        overflowOnFirstCall: Bool = false,
+        alwaysOverflow: Bool = false
+    ) {
         self.contextTokens = contextTokens
         self.stubbornCollapse = stubbornCollapse
+        self.overflowOnFirstCall = overflowOnFirstCall
+        self.alwaysOverflow = alwaysOverflow
     }
 
     var calls: [(system: String, user: String)] {
@@ -197,6 +343,13 @@ final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         lock.withLock { recorded.append((system, user)) }
+        let firstCall = lock.withLock { () -> Bool in
+            defer { sawOverflowCall = true }
+            return !sawOverflowCall
+        }
+        if alwaysOverflow || (overflowOnFirstCall && firstCall) {
+            throw overflowError()
+        }
         if system == NotesPrompts.mapSystem {
             let part = Self.partNumber(in: user) ?? (lock.withLock { recorded.count })
             let head = "- Speaker 1: FACT-P\(part) "
@@ -230,6 +383,19 @@ final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
             return "## \(heading)\n\(NotesPrompts.emptyMarker)"
         }.joined(separator: "\n\n")
         return LLMCompletion(text: markdown, generatedTokens: 40, duration: 0)
+    }
+
+    /// The context-size refusal the fixture raises (M-12): Apple's macOS 27 spelling
+    /// where the OS has it, the session-level one before that.
+    private func overflowError() -> Error {
+        if #available(macOS 27.0, *) {
+            return LanguageModelError.contextSizeExceeded(.init(
+                contextSize: contextTokens,
+                tokenCount: contextTokens + 1,
+                debugDescription: "fixture: the prompt exceeds the context window"))
+        }
+        return LanguageModelSession.GenerationError.exceededContextWindowSize(
+            .init(debugDescription: "fixture: the prompt exceeds the context window"))
     }
 
     /// The "Part X of Y" line of the map prompt. Falls back to the call count, since map

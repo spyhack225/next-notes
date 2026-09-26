@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModels
 
 /// Exercises the normal `RealtimeAgent.handle` route used by voice input. The fake
 /// provider only controls planning; `computer.active_app` still goes through the real
@@ -716,6 +717,17 @@ enum RealtimeAgentToolLoopSelfTest {
               truncated.reply.hasSuffix("(The answer was cut off.)"))
         check("a cut-off after visible text was prefixed as a model failure",
               !truncated.reply.hasPrefix("The model could not answer:"))
+
+        // P1-10a step 0 (landed in M-12): the Apple provider reads the framework's own
+        // window, not the old 4,096 constant. Apple FM only; ABSENT elsewhere.
+        if FoundationModelFormatter.unavailableReason == nil {
+            let appleContext = SystemLanguageModel.default.contextSize
+            let apple = FoundationModelLLMProvider()
+            print("APPLE_FM_CONTEXT=\(apple.contextTokens)")
+            check("FoundationModelLLMProvider.contextTokens answered \(apple.contextTokens), "
+                + "not SystemLanguageModel.default.contextSize (\(appleContext))",
+                  apple.contextTokens == appleContext)
+        }
 
         for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
