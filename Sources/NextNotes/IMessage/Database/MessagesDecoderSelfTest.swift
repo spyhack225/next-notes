@@ -7,11 +7,14 @@ import Foundation
 /// sanitised corpus in `Tests/Fixtures/chatdb/` and against streams this process asks Apple's
 /// own encoder to write.
 ///
-/// **The corpus holds no real typedstream, and this test does not pretend otherwise.** Five of
-/// the roadmap's six assertions cannot be built from placeholders, and each one is reported as
-/// a named `IMESSAGE_DECODE_BLOCKED:` line and **is not counted** in the `IMESSAGE_DECODE_OK`
-/// case total. That is the difference between an honest count and a flattering one: a number
-/// that includes a case nobody ran is a claim about this test rather than about the decoder.
+/// **The corpus holds no real typedstream, and this test does not pretend otherwise.** Of the
+/// roadmap's blocked assertions, one kind cannot be built from placeholders at all and is
+/// reported as a named `IMESSAGE_DECODE_BLOCKED:` line **uncounted** in the
+/// `IMESSAGE_DECODE_OK` total; the other kind is answered by IM-01's real bytes, which are
+/// **read from a local artefact and never committed** (see `IMESSAGE_DECODE_REAL_BLOB` below).
+/// Either way a case that did not run is named and not counted, which is the difference between
+/// an honest count and a flattering one: a number that includes a case nobody ran is a claim
+/// about this test rather than about the decoder.
 ///
 /// ## What the oracle can and cannot prove
 ///
@@ -56,6 +59,38 @@ enum MessagesDecoderSelfTest {
     /// question: the payload is 14 UTF-8 bytes and 10 characters, so a reader that counted
     /// characters returns a mangled prefix.
     static let oracleNonASCII = "héllo 🌍 café — naïve"
+
+    /// Where IM-01's **real** `attributedBody` lives, when it has been captured.
+    ///
+    /// ## Why the bytes are not in this repository, in three steps
+    ///
+    /// 1. **They must not be.** The 2026-09-26 spike's bodies carry a live promotional URL
+    ///    and a third party's offer. `Tests/Fixtures/chatdb/` is a tracked directory.
+    /// 2. **The corpus generator refuses them anyway**, and not because one of them names
+    ///    somebody: `make-chatdb-fixture.sh`'s sanitisation guard scans the SQL it is about to
+    ///    write, and a multi-kilobyte hex string is full of 11-digit runs, so it dies with
+    ///    *"refusing to emit a fixture containing a bare 11-digit number"*. That is the guard
+    ///    working. It also means **a sanitised stand-in cannot be generated from these bytes**,
+    ///    which is why the answer below is a local artefact rather than a fourteenth case.
+    /// 3. **So the real-body cases read the bytes from a path outside the repository**, named by
+    ///    this variable, as a keyed text file:
+    ///
+    ///    ```text
+    ///    text=<the sentence the sender typed>
+    ///    blob=040B73747265616D747970656481E803…
+    ///    ```
+    ///
+    ///    `text` is IM-01 §3.1's *expected output* — the sentence the sender typed, which only
+    ///    a person knows and which is therefore never derived from the bytes.
+    ///
+    /// ## What that means for the count, which is the whole point
+    ///
+    /// With the variable unset the four real-body cases print `IMESSAGE_DECODE_BLOCKED:` and
+    /// **do not move the number**: 22 cases, and the run says so. With it set they run and the
+    /// count is 26. A blocked line that silently became green would be the one failure this
+    /// design exists to prevent, and pointing the variable at a file that is missing, empty or
+    /// not hex is a **failure**, not a block — a case that was asked for and did not happen.
+    static let realBodyEnvironmentKey = "IMESSAGE_DECODE_REAL_BLOB"
 
     static func run() async -> String {
         var failures: [String] = []
@@ -308,15 +343,210 @@ enum MessagesDecoderSelfTest {
                   "the corpus README's `.notText` for `voice-note` needs a signal this row does not "
                   + "carry: IM-04's `MessageRow` does not project `is_audio_message`, and its "
                   + "`attributedBody` is the `X'0001'` sentinel. Needs a projected column in "
-                  + "`MessagesQueries` (a file this task may not edit) — the row is classified as a "
-                  + "refusal today, which is honest and not what the README says")
+                  + "`MessagesQueries` — a projection IM-05 does not own — so the row is "
+                  + "classified as a refusal today, which is honest and not what the README says")
         } catch {
             failures.append("fixtures: \(error)")
         }
 
+        // MARK: A body Messages actually wrote
+        //
+        // IM-01's 2026-09-26 spike produced nine real `attributedBody` blobs and this is where
+        // the shipped decoder is run over one of them. Three of the roadmap's five blocked
+        // assertions are about a real body, and all three are here; a fourth — the property
+        // TYPEDSTREAM-NOTES.md §4.1 reaches for, on real bytes for the first time — comes with
+        // them. The bytes arrive through `realBodyEnvironmentKey` and are never committed; see
+        // that constant's comment for why a sanitised stand-in is not an option.
+
+        let realBody = Self.loadRealBody()
+        if case .unreadable(let reason) = realBody {
+            // Pointed at something and it was not usable. That is a **failure**, not a block: a
+            // run that was asked for the real bytes and did not get them must not come back green
+            // with a line saying it was waiting. The count does not move — the marker is
+            // `_FAILED` either way, and a case count that moves on a plumbing failure is a number
+            // about plumbing.
+            failures.append("real_body_artefact: \(reason)")
+        }
+        if case .loaded(let fixture) = realBody {
+            // 11. The round trip, and with it the bytes-versus-characters question.
+            //
+            // **The guard against a vacuous pass is the first thing this case checks**, and it
+            // is not decoration: an ASCII sentence is as many bytes as characters, so a capture
+            // without an accented character or an emoji in it would pass whether the length is
+            // counted in bytes or in characters, and would look like an answer.
+            try await check("real_body_decodes_to_the_sentence") {
+                let characters = fixture.expected.count
+                let payloadBytes = fixture.expected.utf8.count
+                guard characters > 0 else { return "the artefact's text= line is empty" }
+                guard payloadBytes != characters else {
+                    return "the artefact's sentence is \(payloadBytes) bytes and \(characters) "
+                        + "characters, so it cannot tell bytes from characters — capture a body "
+                        + "with a non-ASCII character in it"
+                }
+                // The header, measured here rather than implied, because a case that only
+                // asserts "it decoded" is asserting the gate's own opinion back at itself. The
+                // streamer version is byte 0; the system version is the typedstream integer
+                // **read from** offset 13, whose own width the head byte there chooses — and
+                // this is the measurement that says the head byte is `0x81` and the pair is
+                // little-endian, because read big-endian `E8 03` is 59395 and the gate would
+                // refuse every message on this Mac.
+                let header = [UInt8](fixture.blob)
+                guard header[0] == 0x04 else {
+                    return "the real body's streamer version is 0x\(String(header[0], radix: 16))"
+                }
+                guard header[13] == 0x81 else {
+                    return "the real body's system version is introduced by 0x"
+                        + "\(String(header[13], radix: 16)), not the 0x81 two-byte marker the gate reads"
+                }
+                let system = UInt16(header[14]) | UInt16(header[15]) << 8
+                guard MessagesSchemaVersion.supported
+                    .contains(MessagesSchemaVersion(streamerVersion: header[0], systemVersion: system)) else {
+                    let gate = MessagesSchemaVersion.supported
+                        .map { "0x\(String($0.streamerVersion, radix: 16))/\($0.systemVersion)" }
+                        .joined(separator: ", ")
+                    return "the real body's header pair is 0x04 / \(system), which is not in the "
+                        + "supported set [\(gate)]"
+                }
+                var row = MessageRow()
+                row.attributedBody = fixture.blob
+                let envelope = MessagesDecoder.envelope(for: row)
+                guard envelope.source == .attributedBody else {
+                    return "the body came from \(envelope.source), not .attributedBody"
+                }
+                if let text = envelope.text, text.isEmpty {
+                    return "a real body decoded to the empty string"
+                }
+                guard envelope.text == fixture.expected else {
+                    let got = envelope.text.map { "\"\($0)\"" } ?? "nil"
+                    return "the real body decoded to \(got) — \(payloadBytes) bytes, "
+                        + "\(characters) characters"
+                }
+                return nil
+            }
+
+            // 12. `both-paths`, the positive half: one sentence out of `text` and the same
+            // sentence out of the stream. This is the assertion that makes the typedstream path
+            // *right* rather than merely non-crashing, and it needs the very bytes case 11
+            // decoded — the two are the same measurement read twice.
+            try await check("real_body_and_the_text_column_agree") {
+                var viaStream = MessageRow()
+                viaStream.attributedBody = fixture.blob
+                var viaTextColumn = viaStream
+                viaTextColumn.text = fixture.expected
+                let streamed = MessagesDecoder.envelope(for: viaStream)
+                let columned = MessagesDecoder.envelope(for: viaTextColumn)
+                guard streamed.source == .attributedBody, columned.source == .textColumn else {
+                    return "sources are \(streamed.source) and \(columned.source)"
+                }
+                guard streamed.text == columned.text else {
+                    return "the stream says \(streamed.text ?? "nil") and the column says "
+                        + "\(columned.text ?? "nil")"
+                }
+                guard streamed.text == fixture.expected else {
+                    return "both paths agree on \(streamed.text.map { "\"\($0)\"" } ?? "nil"), "
+                        + "which is not the sentence"
+                }
+                return nil
+            }
+
+            // 13. `text` takes precedence when a row carries both columns. The roadmap called
+            // this case exotic and said no fixture had it; on the Mac IM-01 read, **every one
+            // of the ten newest rows had `text` *and* a stream**, so this is the common shape
+            // and the rule is worth more than a footnote.
+            //
+            // The sentinel text is a fixture string on purpose: it has to be *different* from
+            // what the stream decodes to, or the case cannot tell precedence from agreement.
+            try await check("text_takes_precedence_over_a_real_decoded_stream") {
+                guard case .text = MessagesDecoder.body(fromAttributedBody: fixture.blob) else {
+                    return "the artefact's stream did not decode, so precedence is not being tested"
+                }
+                let columnText = "FIXTURE-TEXT-COLUMN-WINS"
+                guard columnText != fixture.expected else {
+                    return "the sentinel text is the same string the stream decodes to, so the "
+                        + "case cannot tell precedence from agreement"
+                }
+                var row = MessageRow()
+                row.text = columnText
+                row.attributedBody = fixture.blob
+                let envelope = MessagesDecoder.envelope(for: row)
+                guard envelope.source == .textColumn else {
+                    return "source is \(envelope.source), so the stream was read instead of the column"
+                }
+                guard envelope.text == columnText else {
+                    return "text is \(envelope.text.map { "\"\($0)\"" } ?? "nil")"
+                }
+                guard envelope.decodeState == .decoded else { return "state is \(envelope.decodeState)" }
+                return nil
+            }
+
+            // 14. The property, on real bytes. `TYPEDSTREAM-NOTES.md` §4.1 is explicit that
+            // "every proper prefix is refused" is **false** of a real blob and must not be
+            // restored — the text sits early, so a prefix holding the whole sentence holds a
+            // body this Mac can read. What has to hold is that no prefix ever decodes to a
+            // *different* string: a truncated stream must not yield a shortened message with no
+            // error, which is the failure the whole task exists to prevent. 202 prefixes, and
+            // both outcomes have to occur or the sweep is not testing anything.
+            try await check("no_prefix_of_a_real_body_decodes_to_a_different_string") {
+                guard case .text(let whole) = MessagesDecoder.body(fromAttributedBody: fixture.blob) else {
+                    return "the real body did not decode, so there is no whole string to compare against"
+                }
+                var read = 0
+                var refused = 0
+                var decoded = 0
+                for count in 0..<fixture.blob.count {
+                    read += 1
+                    let prefix = Data(fixture.blob.prefix(count))
+                    switch MessagesDecoder.body(fromAttributedBody: prefix) {
+                    case .text(let value):
+                        decoded += 1
+                        if value.isEmpty {
+                            return "the first \(count) of \(fixture.blob.count) bytes decoded to \"\""
+                        }
+                        guard value == whole else {
+                            return "the first \(count) of \(fixture.blob.count) bytes decoded to "
+                                + "\"\(value)\" — a prefix of the sentence with no error"
+                        }
+                    case .unreadable:
+                        refused += 1
+                    case .notText, .absent:
+                        return "the first \(count) of \(fixture.blob.count) bytes came back as a "
+                            + "non-body (\(MessagesDecoder.body(fromAttributedBody: prefix)))"
+                    }
+                }
+                guard read > 0, refused > 0, decoded > 0 else {
+                    return "of \(read) prefixes, \(refused) were refused and \(decoded) decoded — "
+                        + "both have to happen or the sweep proves nothing"
+                }
+                return nil
+            }
+        } else if case .absent = realBody {
+            // Named, uncounted, and saying where the bytes are — so the next agent inherits a
+            // pointer rather than rediscovering that the artefact exists.
+            let pointer = "set \(realBodyEnvironmentKey) to a keyed text file — `text=` the "
+                + "sentence the sender typed, `blob=` the hex of one real `attributedBody`. IM-01's "
+                + "`--imessage-self-flow` writes the capture to "
+                + "~/Library/Caches/NextNotesBuild/imessage/self-flow-case.sh, and it is not "
+                + "committed: the blob carries a live promotional URL and a third party's offer"
+            block("attributed-body-from-a-real-message",
+                  "the bytes exist and were decoded on 2026-09-26 — 9 of 9 real bodies read "
+                  + "through the shipped decoder, and the 202-byte self-message round-tripped "
+                  + "its 25-character sentence from a 27-byte length, so the length is **bytes**. "
+                  + "To run the assertion rather than read about it: \(pointer)")
+            block("both-paths-decodes-identically",
+                  "the positive half, which needs the same real stream; its structure, its "
+                  + "column-level equality and row B's refusal are green above. \(pointer)")
+            block("text-takes-precedence-over-a-decoded-stream",
+                  "no 14th fixture case is needed and none can be generated: every one of the "
+                  + "ten newest real rows carries `text` *and* a stream, and "
+                  + "`make-chatdb-fixture.sh`'s sanitisation guard refuses the real hex outright. "
+                  + "\(pointer)")
+            block("no-prefix-of-a-real-body-decodes-to-a-different-string",
+                  "the property TYPEDSTREAM-NOTES.md §4.1 names, on real bytes. \(pointer)")
+        }
+
         // MARK: The oracle
 
-        // 11. The header, measured rather than assumed. This is the case that goes red the day
+        // 15. The header, measured rather than assumed. This is the case that goes red the day
         // a macOS changes what the encoder writes, which is the day the canary metric is for.
         await check("archiver_oracle_measured_header") {
             guard let blob = DecoderArchiverOracle.archive(oracleSentence as NSString) else {
@@ -335,7 +565,7 @@ enum MessagesDecoderSelfTest {
             return nil
         }
 
-        // 12/13. The shape a message body has, as far as it can be checked without a real blob:
+        // 16/17. The shape a message body has, as far as it can be checked without a real blob:
         // an `NSAttributedString` whose first field is a nested `NSMutableString`.
         await check("archiver_oracle_attributed_string_decodes") {
             let expected = oracleSentence
@@ -353,7 +583,7 @@ enum MessagesDecoderSelfTest {
             return Self.expect(blob, toDecodeTo: oracleSentence, caseName: "an NSString")
         }
 
-        // 14. Bytes, not characters. The sentence is 10 characters and 14 UTF-8 bytes, so a
+        // 18. Bytes, not characters. The sentence is 10 characters and 14 UTF-8 bytes, so a
         // reader that counted characters returns 10 bytes of it and no error.
         await check("archiver_oracle_length_counts_bytes") {
             let expected = oracleNonASCII
@@ -368,7 +598,7 @@ enum MessagesDecoderSelfTest {
             return Self.expect(blob, toDecodeTo: expected, caseName: "a non-ASCII NSString")
         }
 
-        // 15. The two-byte length escape. `oracleLongSentence` is 540 bytes, well past the
+        // 19. The two-byte length escape. `oracleLongSentence` is 540 bytes, well past the
         // 127 a single byte can hold, so its length is written `0x81` + `u16`.
         await check("archiver_oracle_long_string_is_not_truncated") {
             let expected = oracleLongSentence
@@ -381,7 +611,7 @@ enum MessagesDecoderSelfTest {
             return Self.expect(blob, toDecodeTo: expected, caseName: "a 540-byte NSString")
         }
 
-        // 16. The attachment marker stays in. Stripping `U+FFFC` is how a photo message is made
+        // 20. The attachment marker stays in. Stripping `U+FFFC` is how a photo message is made
         // to look empty, which is the failure this whole task exists to prevent.
         await check("archiver_oracle_attachment_marker_survives") {
             let expected = "\u{FFFC} a caption"
@@ -392,7 +622,7 @@ enum MessagesDecoderSelfTest {
             return Self.expect(blob, toDecodeTo: expected, caseName: "a body with U+FFFC in it")
         }
 
-        // 17. A character pointer is not a body. `NSNumber`'s first field is its `objCType`,
+        // 21. A character pointer is not a body. `NSNumber`'s first field is its `objCType`,
         // a `char *`, and a reader that took the first C string it saw would answer `q`.
         await check("archiver_oracle_character_pointer_is_refused") {
             guard let blob = DecoderArchiverOracle.archive(NSNumber(value: 42)) else {
@@ -405,7 +635,7 @@ enum MessagesDecoderSelfTest {
             return nil
         }
 
-        // 18. Truncation coverage with no fuzzer. **Not** the assertion
+        // 22. Truncation coverage with no fuzzer. **Not** the assertion
         // `TYPEDSTREAM-NOTES.md` §4.1 states — that every proper prefix must be refused, which
         // is not true of a real blob and would be a test that has to be weakened: the message
         // text sits early in the stream, so a prefix that still contains the whole sentence
@@ -441,7 +671,7 @@ enum MessagesDecoderSelfTest {
             return nil
         }
 
-        // 19. A declared length that runs past the end. The classic out-of-bounds and the most
+        // 23. A declared length that runs past the end. The classic out-of-bounds and the most
         // likely defect in a hand-written parser.
         await check("a_declared_length_past_the_end_is_refused") {
             let expected = "FIXTURE-SENTENCE one two three"
@@ -456,7 +686,7 @@ enum MessagesDecoderSelfTest {
             return nil
         }
 
-        // 20. The version gate, both halves. A good streamer version with the wrong system
+        // 24. The version gate, both halves. A good streamer version with the wrong system
         // version is refused, which is what makes the gate a *pair* rather than a byte.
         await check("unsupported_header_pair_is_refused") {
             guard let blob = DecoderArchiverOracle.archive(oracleSentence as NSString) else {
@@ -482,7 +712,7 @@ enum MessagesDecoderSelfTest {
             return nil
         }
 
-        // 21. Bytes that are not a typedstream at all. A refusal that names *which* fact was
+        // 25. Bytes that are not a typedstream at all. A refusal that names *which* fact was
         // wrong is worth having in a bug report; "it did not work" is not.
         await check("not_a_typedstream_is_refused") {
             guard let blob = DecoderArchiverOracle.archive(oracleSentence as NSString) else {
@@ -500,7 +730,7 @@ enum MessagesDecoderSelfTest {
             return nil
         }
 
-        // 22. The cap is a refusal, not a truncation and not a stall.
+        // 26. The cap is a refusal, not a truncation and not a stall.
         await check("oversize_is_refused") {
             let body = MessagesDecoder.body(
                 fromAttributedBody: Data(count: MessagesDecoder.maxBodyBytes + 1))
@@ -511,25 +741,11 @@ enum MessagesDecoderSelfTest {
             return nil
         }
 
-        // MARK: What the corpus cannot answer yet
+        // MARK: What no corpus and no artefact can answer
         //
-        // Each of these is an assertion the roadmap names and this corpus cannot support. They
-        // are named, not skipped, and none of them is counted.
+        // Each of these is an assertion the roadmap names that nothing available can support.
+        // They are named, not skipped, and none of them is counted.
 
-        block("attributed-body-from-a-real-message",
-              "needs one real `attributedBody` from IM-01 (Tests/Reports/imessage-self-flow.md, "
-              + "question Q2, experiment 1) with its 16-byte header, its `sw_vers` line and the "
-              + "sentence the sender typed. Every `attributedBody` in Tests/Fixtures/chatdb/ is "
-              + "the `X'0001'` sentinel, so the decoder has never read a body Messages wrote")
-        block("both-paths-decodes-identically",
-              "needs the `both-paths` fixture's `attributedBody` replaced with a real stream. Its "
-              + "structure, its column-level equality and row B's refusal are green above; the "
-              + "positive half — that one sentence decodes the same out of `text` and out of the "
-              + "stream — has no real byte to run against")
-        block("text-takes-precedence-over-a-decoded-stream",
-              "needs a 14th fixture case with `text` AND `attributedBody` both populated on one "
-              + "row. The corpus has no such case and TYPEDSTREAM-NOTES.md §3.2 says not to go "
-              + "looking for one, so the rule is unpinned rather than assumed")
         block("effect-bubble-classification",
               "needs IM-01 experiment 11, a real effect bubble. The corpus's `reaction` row is a "
               + "tapback and stands in for the `payload_data` + `balloon_bundle_id` pair, which is "
@@ -564,6 +780,85 @@ enum MessagesDecoderSelfTest {
         case .notText, .absent:
             return "\(caseName) came back as \(MessagesDecoder.body(fromAttributedBody: blob))"
         }
+    }
+
+    // MARK: - The local real body
+
+    /// IM-01's real `attributedBody` and the sentence it holds.
+    ///
+    /// **Not in this repository, and not in the corpus either** — see `realBodyEnvironmentKey`
+    /// for the three reasons. It is a value rather than a flag so the run can tell *nobody
+    /// pointed at a file* (a block, and the cases stay uncounted) from *somebody pointed at a
+    /// file that is not usable* (a failure, because a case that was asked for did not happen).
+    enum RealBody {
+        case absent
+        case loaded(RealBodyFixture)
+        case unreadable(String)
+    }
+
+    /// One keyed text file's worth of capture: `text=` the sentence the sender typed and
+    /// `blob=` the hex of one real `attributedBody`.
+    ///
+    /// `expected` is a person's own sentence and is **never reconstructed from the bytes** —
+    /// IM-01 §3.1's whole point is that the expected output is the one thing the data cannot
+    /// supply. Keeping it in the artefact rather than in this file is the same reason: it is
+    /// content, and content does not belong in a tracked file.
+    struct RealBodyFixture: Sendable {
+        var expected: String
+        var blob: Data
+    }
+
+    static func loadRealBody() -> RealBody {
+        guard let path = ProcessInfo.processInfo.environment[realBodyEnvironmentKey],
+              !path.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return .absent
+        }
+        guard let contents = try? String(contentsOfFile: path, encoding: .utf8) else {
+            return .unreadable("\(realBodyEnvironmentKey) is set to \(path), which could not be read")
+        }
+        var values: [String: String] = [:]
+        for line in contents.split(separator: "\n", omittingEmptySubsequences: false) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
+            guard let split = trimmed.firstIndex(of: "=") else {
+                return .unreadable("\(path) has a line that is not key=value: \(trimmed.prefix(24))")
+            }
+            values[String(trimmed[..<split])] = String(trimmed[trimmed.index(after: split)...])
+        }
+        guard let text = values["text"], !text.isEmpty else {
+            return .unreadable("\(path) has no non-empty text= line — the sentence the sender typed")
+        }
+        guard let hex = values["blob"], !hex.isEmpty else {
+            return .unreadable("\(path) has no blob= line — the hex of one real attributedBody")
+        }
+        guard let blob = RealBodyFixture.bytes(fromHex: hex) else {
+            return .unreadable("\(path)'s blob= line is \(hex.count) characters, which is not a whole "
+                               + "number of hex bytes")
+        }
+        guard blob.count > MessagesSchemaVersion.signatureOffset + 3 else {
+            return .unreadable("\(path)'s blob is \(blob.count) bytes — too short to be a typedstream")
+        }
+        return .loaded(RealBodyFixture(expected: text, blob: blob))
+    }
+}
+
+extension MessagesDecoderSelfTest.RealBodyFixture {
+    /// Hex in, bytes out, and `nil` for anything that is not hex — a file pointed at by mistake
+    /// has to be a failure rather than a decode of whatever survived. Whitespace is ignored so a
+    /// hex dump can be pasted in as it stands.
+    fileprivate static func bytes(fromHex hex: String) -> Data? {
+        let digits = hex.filter { !$0.isWhitespace }
+        guard digits.count.isMultiple(of: 2) else { return nil }
+        var bytes: [UInt8] = []
+        bytes.reserveCapacity(digits.count / 2)
+        var index = digits.startIndex
+        while index < digits.endIndex {
+            let next = digits.index(index, offsetBy: 2)
+            guard let byte = UInt8(digits[index..<next], radix: 16) else { return nil }
+            bytes.append(byte)
+            index = next
+        }
+        return Data(bytes)
     }
 }
 

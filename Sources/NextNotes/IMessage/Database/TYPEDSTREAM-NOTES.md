@@ -199,16 +199,25 @@ right for a stronger reason than tidiness.** A scan produces a *prefix* of the
 text, silently, with no error — and a truncated sentence is a sentence a person
 will act on. A length-driven parse either produces the whole string or refuses.
 
-[measured — Apple's encoder, 2026-09-25] **That length is a UTF-8 *byte* count,
-not a character count.** A payload of `héllo 🌍 ok` — 10 characters, 14 bytes —
-is prefixed `0x0e`. Every published sample is ASCII, where the two are the same,
-so the published work could not have told; the case that tells them apart is
-exactly the one a person most wants read, and a decoder that guessed wrong
-truncates every message with an emoji or a CJK character in it. **The same
-attribution as §1.2: this is Apple's encoder on this Mac, not a blob Messages
-wrote.** IM-01 still captures a real non-ASCII body, and the capture is still
-worth doing — it is what turns this from a measurement of the encoder into a
-measurement of what Messages writes.
+[measured — Apple's encoder, 2026-09-25 · **confirmed against Messages' own bytes
+2026-09-26**] **That length is a UTF-8 *byte* count, not a character count.** A
+payload of `héllo 🌍 ok` — 10 characters, 14 bytes — is prefixed `0x0e`. Every
+published sample is ASCII, where the two are the same, so the published work
+could not have told; the case that tells them apart is exactly the one a person
+most wants read, and a decoder that guessed wrong truncates every message with
+an emoji or a CJK character in it.
+
+**The Messages half of that is now measured too**, and it is the last open
+question IM-01 had for this file. A real 202-byte self-message body — a sentence
+of **25 characters** and **27 UTF-8 bytes**, two of them accented — declares
+`0x1b` = **27**, and the shipped decoder returns all 25 characters with both
+accents intact. The writer is counting bytes; the reader agrees. The
+counterfactual was run rather than argued: rewriting that one length byte to the
+*character* count makes the same decoder return 25 bytes of the sentence, its
+last character gone, **with no error at all** — which is the truncation this rule
+exists to prevent, and which §7 records. (The sentence itself is a person's own
+message and is deliberately not quoted here; the transcript outside the
+repository has it.)
 
 [published] Three further things about the text that a decoder must know:
 
@@ -227,30 +236,41 @@ measurement of what Messages writes.
 
 ### 1.5 What could not be determined offline, in one list
 
-**Settled since this file was written, for Apple's encoder on this Mac** (both
-attributed as in §1.2, and both still not measurements of Messages' own bytes):
+**Settled for Apple's encoder on this Mac** (attributed as in §1.2):
 
 - whether `04` / system `1000` still holds on macOS 27.0 — it does, per the
   twelve root shapes tried
 - bytes vs characters for the string length — **bytes**
 
-**Still open, and still every one of them needs a real blob:**
+**Settled against Messages' own output on 2026-09-26** (§7): the header pair is
+`04` / `1000` and the string length is a **byte** count.
 
-- whether **Messages** writes that same header pair, or the same byte-counted
-  length (IM-01 §3.1 — **the** blocking one)
-- the class-version bytes Messages actually writes today (`NSString` v1, etc.)
-- `U+FFFC` behaviour on this OS
+**Still open, and this is the honest remainder.** Each of these needs a capture
+that has not been made:
+
+- the class-version bytes Messages writes for a *concrete* class —
+  `NSAttributedString` v0 / `NSObject` v0 and `NSString` v1 on the 2026-09-26
+  bodies, while `NSArchiver` wrote `NSMutableString` v1 / `NSString` v1 for the
+  same shape. The decoder matches the **chain** rather than the leaf precisely
+  because the two writers disagree, and the real bodies did not break that; but
+  a third writer could.
+- `U+FFFC` behaviour on this OS. The 2026-09-26 capture has no photo in it, and
+  §1.3's claim that the first printable run in a real body is `streamtyped` was
+  confirmed — a scan would have returned the format's own name on all nine.
 - the `payload_data` + `balloon_bundle_id` shape for an effect bubble
-  (IM-01 experiment 11) — nothing in this note claims to know it
+  (IM-01 experiment 11) — nothing in this note claims to know it, and the
+  2026-09-26 rows all had `payload_data=absent`
 - whether an edited message's body is the edited text or both texts
 - `message_summary_info`'s container, beyond the fact that its version differs
 
-**None of the second list is answerable without a real blob**, and the first list
-is the reason that is not fatal: the parser's *mechanics* can be pinned against
-Apple's own encoder without one. A parser written from this file alone is still
-written from [published] inference about Messages' bytes, and must therefore be
-built to refuse rather than to succeed. That is not a caveat on the design; it
-*is* the design.
+**None of the second list is answerable without a real blob**, and the first two
+lists are why that is not fatal: the parser's *mechanics* were pinned against
+Apple's own encoder before a Messages byte existed, and the layout Messages
+actually writes is now measured for a text balloon. A parser written from this
+file alone is still written from [published] inference about Messages' bytes, and
+must therefore be built to refuse rather than to succeed. That is not a caveat on
+the design; it *is* the design — and §7 is what a refusal on an unfamiliar macOS
+will look like when it happens.
 
 ---
 
@@ -493,11 +513,16 @@ Messages claim stays blocked, and the blocked ones are named in
 - **`.notText(bundleID:)` for a `payload_data` + `balloon_bundle_id` row**, and
   the bundle id survives to the value.
 - **`.absent` when both body columns are NULL**, distinct from `.unreadable`.
-- **`text` takes precedence** when a row has both columns. ⚠️ **No fixture case
-  currently has a row with both columns set** — `both-paths` deliberately has one
-  column each, because that is the one-variable design. This precedence is
-  therefore **unpinned** and wants a 14th case. Flagged, not fixed here: it is
-  outside what this task was asked to add.
+- **`text` takes precedence** when a row has both columns. ✅ **Asserted since
+  2026-09-26**, and the roadmap was wrong that no case has one: on the Mac IM-01
+  read, **every one of the ten newest rows carried `text` *and* an
+  `attributedBody`**, so this is the common shape rather than an exotic one. The
+  assertion is
+  `text_takes_precedence_over_a_real_decoded_stream` in
+  `--selftest-imessage-decode`, and it runs against a real stream with a
+  deliberately *different* sentinel in the `text` column so it cannot pass by
+  agreeing with itself. It reads the bytes from the local artefact (§7), not from
+  a fourteenth corpus case — see §7 for why no such case can be generated.
 - **The two `both-paths` rows differ in exactly the two body columns** (and the
   three that identify the row) and are in the same chat. This one is assertable
   **today**, against the shipped corpus, with no real bytes — see
@@ -505,19 +530,25 @@ Messages claim stays blocked, and the blocked ones are named in
 
 ### 4.2 Not assertable offline, at all
 
-- that the gate's default version is right for **Messages** on this macOS
-  (Apple's encoder is measured — §1.2 — and Messages is not)
-- that the layout on this macOS is the layout §1 describes
-- that a real decode produces the *whole* sentence (only IM-01's known-text row
-  can assert this)
+- that the gate's default version is right for **Messages** on this macOS —
+  ⚠️ **this one is answered** as of 2026-09-26 for macOS 27.0 (§7): Messages
+  writes `04` / `1000`, the same pair `NSArchiver` does. What is *not* answered
+  is a future macOS, which is the canary's job.
+- that the layout on this macOS is the layout §1 describes — ✅ **answered for a
+  text balloon** (§7: nine of nine real bodies decoded whole, and every one of
+  them at the offset §1.4 names for the string), and still open for a photo, a
+  voice note, an effect bubble and an edit
+- that a real decode produces the *whole* sentence — ✅ **answered** (§7: the
+  known-text self-message round-tripped, and the byte counterfactual was run)
 - anything about `message_summary_info`, effect bubbles, or the WAL
 - that a *future* macOS still decodes — which is why the canary metric in
   `03-PHASE-2-P1-SLICE.md` exists, and why the failure is a capability
 
-Bytes-vs-characters for non-ASCII used to be on this list. It is measured now,
-for Apple's encoder (§1.4), and `--selftest-imessage-decode`'s
-`archiver_oracle_length_counts_bytes` pins it; what stays here is the Messages
-half of the same question.
+Bytes-vs-characters for non-ASCII used to be on this list twice: once for
+Apple's encoder, which `archiver_oracle_length_counts_bytes` pins, and once for
+Messages, which is now measured (§7) and pinned by
+`real_body_decodes_to_the_sentence`. Neither is here any more, and the second one
+is the last item on this list that a capture could have closed.
 
 ---
 
@@ -755,3 +786,108 @@ Two consequences, both load-bearing:
 so the blob stays a local artefact at
 `~/Library/Caches/NextNotesBuild/imessage/self-flow-case.sh` and the *answer* goes in these notes.
 The corpus keeps its synthetic placeholders.
+
+---
+
+## 2026-09-26 — THE DECODER HAS NOW READ A REAL BODY
+
+The section above measured the **header**. This one records the **decode**: the shipped
+`MessagesDecoder` was run over all nine real bodies, with `text` NULL so the answer could only come
+out of the stream. **Nine of nine decoded, whole, with no refusal and no truncation.** There was no
+parser bug, which is the outcome the notes above were written to make possible rather than to
+avoid hoping for.
+
+| body | bytes | declared length | characters the decoder returned | matches the diagnostic's count |
+|---|---|---|---|---|
+| self-message (the non-ASCII one) | 202 | `0x1b` = 27 | 25 chars / 27 UTF-8 bytes | ✅ 25 |
+| 184 | 184 | 11 | 9 | ✅ 9 |
+| 298 | 298 | `0x4b` = 75 | 75 | ✅ 75 |
+| 1107 | 1107 | `0x81 84 00` = 132 | 132 | ✅ 132 |
+| 1182 | 1182 | `0x81 be 00` = 190 | 190 | ✅ 190 |
+| 1796 | 1796 | `0x81 8b 00` = 120 | 120 | ✅ 120 |
+| 1950 | 1950 | `0x81 a1 00` = 161 | 158 chars (**one 4-byte emoji**) | ✅ 158 |
+| 3254 | 3254 | `0x81 d6 00` = 214 | 213 chars | ✅ 213 |
+
+The right-hand column is the important one, and it is an **independent** check rather than a
+restatement: the diagnostic counted characters through SQLite's own `length(text)` and never printed
+a body, so it could not have been derived from the decode. Nine for nine.
+
+### The bytes-versus-characters question, answered both ways
+
+**Forward:** the 202-byte self-message declares **27** for a sentence that is **25 characters** and
+**27 UTF-8 bytes**. `NSArchiver`'s own encoder and **Messages** agree, and the length is a **byte**
+count. A character count would be 25 and the writer did not write 25.
+
+**Backward, as a real run rather than an argument:** rewriting that one length byte from `0x1b` to
+`0x19` — the character count — makes the same decoder return **25 bytes** of the 27-byte sentence:
+every character up to and including the first `c` of `café`, the accented `é` at the end gone, and
+**no error of any kind**. That is precisely the failure §1.3 and §4.1 exist to rule out, produced on
+demand by the shortest possible edit, and `real_body_decodes_to_the_sentence` catches it — it is
+the one-character mutation in `~/Library/Caches/NextNotesBuild/imessage/IM-05b-mutation.txt`, which
+also carries the literal string for anyone who needs to see it.
+
+### Two structural claims, confirmed on real bytes
+
+- **§1.3's "a scan would return `streamtyped`" is not a style preference.** The first printable run
+  of the 202-byte body is the format's own name at offset 2, and of the 1140-byte one it is
+  `streamtyped` too. A scan would have answered identically for all nine, forever.
+- **§1.3's two tables are two tables, and Messages uses them.** Every real body opens
+  `84 01 40` — `@`, registered as shared string 0 — and then reaches the *string* through a
+  **reference** (`0x92`) to that same entry, inside a class chain whose leaf is `NSString` v1. A
+  reader that numbered only one table, or that expected the object tag again instead of a
+  reference, desynchronises here and nowhere earlier.
+- **`NSAttributedString` v0 / `NSObject` v0 / `NSString` v1 is not what `NSArchiver` wrote for the
+  same shape** (`NSMutableString` v1 / `NSString` v1). The decoder matched the **class chain**
+  rather than the leaf, and the real bodies did not break that. That is the argument for matching
+  the chain, and it is now an argument from measurement rather than from caution.
+
+### The prefix property, on real bytes, for the first time
+
+§4.1 warns that "every proper prefix of the real blob is refused" is **false and must not be
+restored**. Confirmed, quantitatively: across all nine bodies — **10,175** prefixes, every one of
+them — **no prefix decoded to a different string, none decoded to `""`, and none came back as a
+non-body.** Prefixes split into two populations (refused, or the whole sentence) and the split is
+structural: the text sits early enough that 101 of the 202 prefixes of the self-message already hold
+all of it. The `0x1b` mutation above is the counterexample that matters: a prefix *can* hold a
+different string, and the only thing standing between that and a person acting on a truncated
+sentence is refusing what the length does not cover.
+
+### Why there is still no permanent fixture case, and what replaced it
+
+`make-chatdb-fixture.sh` **cannot** emit these bodies, and the reason is worth recording because it
+is the guard working rather than the guard failing:
+
+```
+CHATDB_FIXTURE_FAILED: refusing to emit a fixture containing a bare 11-digit number: 00868699020 …
+```
+
+Its sanitisation guard scans the SQL it is about to write, and a multi-kilobyte hex string is full
+of 11-digit runs. So the "add a sanitised stand-in with the same structure" option is not
+available: any faithful stand-in **is** the real hex, and no edit that preserves the structure
+avoids the guard. (A hand-synthesised body would avoid it, and the roadmap forbids synthesising a
+typedstream in the first place — §2.3's oracle already exists for the mechanics.)
+
+So the real-body assertions read the bytes from **outside the repository**, named by
+`IMESSAGE_DECODE_REAL_BLOB` in `MessagesDecoderSelfTest`, and the honesty rule is the one that
+matters:
+
+| run | `IMESSAGE_DECODE_OK` | blocked |
+|---|---|---|
+| no artefact (CI, any other machine) | **22 cases** | 6 named lines |
+| with IM-01's artefact | **26 cases** | 2 named lines |
+
+A blocked line that silently became green would be the one failure this design exists to prevent,
+so the mechanism is two-sided: **absent** → blocked and uncounted; **present but unusable** (a
+missing file, an odd number of hex characters, an empty `text=`) → a **failed** case, not a block.
+Both were run; the transcripts are `IM-05b-no-artefact.txt`, `IM-05b-green.txt` and
+`IM-05b-mutation.txt` beside this file.
+
+**The four cases** are `real_body_decodes_to_the_sentence` (which refuses to pass on an ASCII
+sentence, because an ASCII sentence cannot tell bytes from characters and would look like an
+answer), `real_body_and_the_text_column_agree` (`both-paths`, positive half),
+`text_takes_precedence_over_a_real_decoded_stream` (with a deliberately different sentinel in the
+`text` column), and `no_prefix_of_a_real_body_decodes_to_a_different_string`.
+
+**Still blocked, and honestly so:** `effect-bubble-classification` (no effect bubble was captured
+— all ten rows had `payload_data` absent) and `voice-note-as-not-text` (still needs a projected
+`is_audio_message` column, which is IM-04's shape rather than this task's).

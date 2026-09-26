@@ -1,11 +1,18 @@
 # chatdb — synthetic Apple Messages `chat.db` fixtures
 
-> **Every `attributedBody` in this directory is synthetic and awaits IM-01.** Not one of
-> them — in `both-paths` or in any other case — is a real typedstream, and none is meant to
-> be decoded. They stand in until `Tests/Reports/imessage-self-flow.md` supplies real bytes
-> from a real Mac, and they are replaced the day it does. See
+> **Every `attributedBody` in this directory is synthetic, and that is now a decision
+> rather than a wait.** IM-01's spike produced real bodies on 2026-09-26 and the shipped
+> decoder reads all nine of them, but they cannot go here: the biggest carries a live
+> promotional URL and a third party's offer, and `make-chatdb-fixture.sh` refuses them
+> anyway — its sanitisation guard scans the SQL it is about to write, and a
+> multi-kilobyte hex string is full of 11-digit runs, so it dies with *"refusing to emit a
+> fixture containing a bare 11-digit number"*. **A sanitised stand-in is not available
+> either**, because any body with the same structure *is* this hex. So
+> `--selftest-imessage-decode` reads the real bytes from outside the repository, named by
+> `IMESSAGE_DECODE_REAL_BLOB`, and prints its real-body cases as
+> `IMESSAGE_DECODE_BLOCKED:` — uncounted — when that variable is not set. See
 > [`Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md`](../../../Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md)
-> for what is known about the format and what is still unknown.
+> §7 for the measurement and for the transcripts.
 
 Schema-complete, sanitised, deterministic `chat.db` files for **IM-04** (read-only
 access and capability probes), **IM-05** (the `attributedBody` decoder) and
@@ -50,17 +57,21 @@ What the case *does* prove today, without a real byte anywhere: the two rows
 exist, they are joined to the same `chat`, and **every column except `guid`,
 `ROWID`, `date`, `text` and `attributedBody` is equal** — the same handle, the
 same direction, the same service. One variable, two rows, so a test comparing
-them is comparing the two decode paths. IM-01 replaces the placeholder; nothing
-else about the case changes, and the assertion does not need weakening.
+them is comparing the two decode paths. The positive half ran against a real
+stream on 2026-09-26 (`real_body_and_the_text_column_agree`) and agreed; it runs
+from the local artefact rather than from here, and this row's placeholder stays
+because swapping it in would be a sanitisation incident rather than a fixture.
 
-The real bytes arrive with **IM-01** — `Tests/Reports/imessage-self-flow.md`,
-question Q2, experiments 1, 4, 5 and 11 — and they **replace** these placeholders.
-The roadmap calls the fixtures provisional for exactly that reason
+The real bytes arrived with **IM-01** — `Tests/Reports/imessage-self-flow.md`,
+question Q2, experiments 1, 4, 5 and 11 — and they **replace** these placeholders
+in every case except the two that would carry a third party's words. The
+roadmap calls the fixtures provisional for exactly that reason
 (`00-README.md` §8.1: *"IM-05 built now is a decoder written against synthetic
 typedstream, because IM-01's real bytes do not exist yet. The first thing IM-01
-does with them is replace the synthetic fixtures."*). Until then the decoder can
-be written, its refusal path pinned, and its degradation pinned — which is most
-of the task — and only the success path waits.
+does with them is replace the synthetic fixtures."*). So the decoder could be
+written, its refusal path pinned, and its degradation pinned, and only the
+success path waited — and on 2026-09-26 the success path was measured against
+real bytes from outside this directory rather than inside it.
 
 ## Regenerating
 
