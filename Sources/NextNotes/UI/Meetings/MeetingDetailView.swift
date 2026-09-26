@@ -15,6 +15,7 @@ struct MeetingDetailView: View {
     @State private var diarization = DiarizationService.shared
     @State private var agent = AgentService.shared
     @State private var settings = Settings.shared
+    @State private var models = LocalModelStore.shared
     @State private var navigation = NavigationState.shared
     @State private var tab = Tab.notes
     @State private var isConfirmingDelete = false
@@ -99,6 +100,9 @@ struct MeetingDetailView: View {
             }
             if diarization.isRunning(meeting.id) {
                 identifyingSpeakers
+            }
+            if let offer = diarizeOffer {
+                diarizeOfferCard(offer)
             }
             content
         }
@@ -407,6 +411,52 @@ struct MeetingDetailView: View {
     }
 
     private var isWritingNotes: Bool { notesService.isRunning(meeting.id) }
+
+    /// The one-time offer (M-15), or nil when this meeting does not earn it.
+    ///
+    /// Asked here rather than shown over the list because this is the one screen where
+    /// the transcript that proves there was somebody else is already on the words. The
+    /// decision itself is `DiarizationOffer`'s, which is pure and therefore testable
+    /// without a window.
+    private var diarizeOffer: DiarizationOffer.Offer? {
+        guard DiarizationOffer.shouldOffer(
+            segments: segments,
+            isFinished: meeting.status == .done,
+            diarizationEnabled: settings.meetingsDiarize,
+            dismissed: settings.meetingsDiarizeOfferDismissed
+        ) else { return nil }
+        return DiarizationOffer.offer
+    }
+
+    /// What turning it on costs, in the words it costs, with the two answers.
+    ///
+    /// "Turn On" records an explicit answer before it fetches anything, so the offer
+    /// cannot come back on the next meeting and the switch cannot fall back to the
+    /// default underneath the download. Nothing is fetched without this press — a
+    /// feature that is on by default must still be *offered*, and offered once.
+    private func diarizeOfferCard(_ offer: DiarizationOffer.Offer) -> some View {
+        VStack(alignment: .leading, spacing: DS.Space.xs) {
+            Text(offer.title)
+                .font(DS.Font.body)
+            Text(offer.message)
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: DS.Space.s) {
+                Spacer()
+                Button(offer.notNowTitle) { settings.meetingsDiarizeOfferDismissed = true }
+                Button(offer.turnOnTitle) {
+                    settings.chooseDiarization(true)
+                    models.prepareDiarizer()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(.horizontal, DS.Space.l)
+        .padding(.vertical, DS.Space.m)
+        .background(DS.Color.groupedFill)
+        .overlay(alignment: .bottom) { Divider() }
+    }
 
     /// Not while extracting either: that pass still owns the meeting, and Regenerate would do
     /// nothing until it finished.

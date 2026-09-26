@@ -508,11 +508,66 @@ final class Settings {
 
     /// Tell the other participants apart on the system track once a meeting has finished.
     ///
-    /// Off by default: it is a second model to download, it adds minutes to the end of a
-    /// long meeting, and a two-person call is already attributed correctly by the two
-    /// tracks alone. It earns its keep on a call with a room full of people.
-    var meetingsDiarize: Bool {
-        didSet { defaults.set(meetingsDiarize, forKey: Keys.meetingsDiarize) }
+    /// On by default once the models are on disk (M-15). It used to be off because it
+    /// needs a second model and a temporary recording, and a fresh install therefore
+    /// labelled every remote voice "Others" with the notes' action items Unassigned until
+    /// the owner found this switch. The cost only exists on a Mac that has not paid it
+    /// yet, so the effective answer with nothing stored follows the models, and a
+    /// meeting that actually needs it offers it (`DiarizationOffer`) rather than turning
+    /// it on behind somebody's back. An explicit answer, in either direction, always
+    /// wins — `chooseDiarization(_:)` is the only writer a person's tap goes through.
+    private(set) var meetingsDiarize: Bool
+
+    /// The person's own answer, or nil when they have never touched the switch.
+    ///
+    /// What separates "off because they said no" from "off because the models are not here
+    /// yet" — the one distinction this setting cannot get wrong, because getting it wrong
+    /// re-asks a person who already answered.
+    private(set) var meetingsDiarizeChoice: Bool?
+
+    /// Records an explicit answer, in either direction.
+    ///
+    /// Also the only writer of the stored key, which keeps that key meaning exactly one
+    /// thing: that somebody said so. A default applied because models arrived must not
+    /// leave a stored answer behind, or the next launch would read it as a decision.
+    func chooseDiarization(_ on: Bool) {
+        meetingsDiarizeChoice = on
+        meetingsDiarize = on
+        defaults.set(on, forKey: Keys.meetingsDiarize)
+    }
+
+    /// Re-applies the default when the models arrive mid-session.
+    ///
+    /// The Models tab and the one-time offer both fetch the speaker models without
+    /// touching the switch, and a Mac that downloaded them an hour ago should not have to
+    /// be relaunched to be believed. Refuses while a stored answer exists, in either
+    /// direction.
+    func applyDiarizationDefaultIfUnchosen() {
+        guard meetingsDiarizeChoice == nil else { return }
+        let resolved = Self.diarizationDefault(stored: nil, modelsPresent: MeetingDiarizer.isDownloaded)
+        if meetingsDiarize != resolved { meetingsDiarize = resolved }
+    }
+
+    /// Whether the one-time offer has already been answered (M-15).
+    var meetingsDiarizeOfferDismissed: Bool {
+        didSet { defaults.set(meetingsDiarizeOfferDismissed, forKey: Keys.meetingsDiarizeOfferDismissed) }
+    }
+
+    /// The answer with no stored choice: the models' presence, and nothing else.
+    ///
+    /// Pure, nonisolated, and taking the models as an argument so a self-test can ask it
+    /// about a throwaway defaults suite and a hypothetical machine rather than about this
+    /// Mac's disk — the same shape as `initialKnowledgeIndexEnabled(from:)` below.
+    nonisolated static func diarizationDefault(stored: Bool?, modelsPresent: Bool) -> Bool {
+        stored ?? modelsPresent
+    }
+
+    /// The same answer, read from a defaults suite. What `--selftest-onboarding` drives.
+    nonisolated static func initialDiarize(from defaults: UserDefaults, modelsPresent: Bool) -> Bool {
+        diarizationDefault(
+            stored: defaults.object(forKey: Keys.meetingsDiarize) as? Bool,
+            modelsPresent: modelsPresent
+        )
     }
 
     /// Re-transcribe each meeting track in long windows after Stop (M-01).
@@ -1045,6 +1100,7 @@ final class Settings {
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let meetingsKeepAudio = "meetingsKeepAudio"
         static let meetingsDiarize = "meetingsDiarize"
+        static let meetingsDiarizeOfferDismissed = "meetingsDiarizeOfferDismissed"
         static let meetingsFinalPass = "meetingsFinalPass"
         static let meetingsDeleteAudioAfterNotes = "meetingsDeleteAudioAfterNotes"
         static let notesAutoGenerate = "notesAutoGenerate"
@@ -1177,7 +1233,17 @@ final class Settings {
         autoSendApps = defaults.dictionary(forKey: Keys.autoSendApps) as? [String: String] ?? [:]
         hasCompletedOnboarding = defaults.object(forKey: Keys.hasCompletedOnboarding) as? Bool ?? false
         meetingsKeepAudio = defaults.object(forKey: Keys.meetingsKeepAudio) as? Bool ?? false
-        meetingsDiarize = defaults.object(forKey: Keys.meetingsDiarize) as? Bool ?? false
+        // Nothing stored means nobody has been asked, so the models decide — and nothing
+        // is written here: `didSet` does not fire from `init`, and the stored key is
+        // reserved for a person's own answer.
+        let diarizeChoice = defaults.object(forKey: Keys.meetingsDiarize) as? Bool
+        meetingsDiarizeChoice = diarizeChoice
+        meetingsDiarize = Self.diarizationDefault(
+            stored: diarizeChoice,
+            modelsPresent: MeetingDiarizer.isDownloaded
+        )
+        meetingsDiarizeOfferDismissed = defaults.object(forKey: Keys.meetingsDiarizeOfferDismissed)
+            as? Bool ?? false
         meetingsFinalPass = defaults.object(forKey: Keys.meetingsFinalPass) as? Bool ?? true
         meetingsDeleteAudioAfterNotes = defaults.object(forKey: Keys.meetingsDeleteAudioAfterNotes)
             as? Bool ?? false

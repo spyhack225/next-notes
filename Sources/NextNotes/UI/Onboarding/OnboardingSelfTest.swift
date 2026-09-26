@@ -281,6 +281,85 @@ enum OnboardingSelfTest {
         expect(resumes(since: OnboardingModelResume.retryInterval + 1),
                "…but the next one comes after the interval")
 
+        // MARK: Telling the other speakers apart (M-15)
+        //
+        // The default follows the models, and a person who has answered either way is
+        // never asked twice. Both are pure, so neither needs a download, a disk or a
+        // window: the settings suite below is the flag's own scratch domain.
+
+        func diarizes(stored: Bool?, modelsPresent: Bool) -> Bool {
+            Settings.diarizationDefault(stored: stored, modelsPresent: modelsPresent)
+        }
+        expect(diarizes(stored: nil, modelsPresent: true),
+               "with no answer of their own, a Mac that has the models identifies speakers")
+        expect(!diarizes(stored: nil, modelsPresent: false),
+               "…and one that has not downloaded them yet does not")
+        expect(!diarizes(stored: false, modelsPresent: true),
+               "a Mac that turned it off stays off once the models are here")
+        expect(diarizes(stored: true, modelsPresent: false),
+               "a Mac that turned it on keeps it on without the models")
+
+        // …and read from a suite, so the key is the one production writes rather than a
+        // value passed in beside it.
+        expect(Settings.initialDiarize(from: scratch, modelsPresent: true),
+               "nothing stored in the suite is the same as nothing stored on a Mac")
+        scratch.set(false, forKey: "meetingsDiarize")
+        expect(!Settings.initialDiarize(from: scratch, modelsPresent: true),
+               "a stored no in the suite is a no on a Mac with the models")
+        scratch.set(true, forKey: "meetingsDiarize")
+        expect(Settings.initialDiarize(from: scratch, modelsPresent: false),
+               "a stored yes in the suite is a yes without the models")
+        scratch.removeObject(forKey: "meetingsDiarize")
+
+        // The offer. A finished meeting where somebody other than the person holding the
+        // Mac spoke, on a machine that is not already identifying speakers.
+        let remote = TranscriptSegment(
+            start: 12, end: 14, text: "We should ship on Friday.", source: .system
+        )
+        let room = TranscriptSegment(start: 0, end: 2, text: "Right.", source: .mic)
+
+        func offers(
+            segments: [TranscriptSegment] = [room, remote],
+            isFinished: Bool = true,
+            enabled: Bool = false,
+            dismissed: Bool = false
+        ) -> Bool {
+            DiarizationOffer.shouldOffer(
+                segments: segments,
+                isFinished: isFinished,
+                diarizationEnabled: enabled,
+                dismissed: dismissed
+            )
+        }
+        expect(offers(), "a finished meeting with another voice in it earns the offer")
+        expect(!offers(segments: [room]),
+               "a meeting that only heard the Mac's own microphone does not")
+        expect(!offers(segments: [room, TranscriptSegment(
+            start: 20, end: 21, text: "Email it to the team.", source: .system,
+            kind: .agentCommand
+        )]), "…nor does an agent command, which is the user's own voice")
+        expect(!offers(segments: [room, TranscriptSegment(
+            start: 20, end: 21, text: "   ", source: .system
+        )]), "…nor an empty system line")
+        expect(!offers(isFinished: false), "a meeting still running is not offered anything")
+        expect(!offers(enabled: true), "a Mac already identifying speakers has nothing to offer")
+        expect(!offers(dismissed: true), "…and an answer of Not Now is an answer")
+
+        // The words, because the offer is the whole of what a person reads here. No
+        // developer nouns, and it says what turning it on actually costs.
+        let copy = DiarizationOffer.offer
+        let spoken = [copy.title, copy.message, copy.turnOnTitle, copy.notNowTitle]
+        let jargon = ["diariz", "model id", "cluster", "embed", "segmentation", "FluidAudio",
+                      "download the speaker models"]
+        for word in jargon {
+            expect(!spoken.contains { $0.lowercased().contains(word.lowercased()) },
+                   "the offer never says \u{201C}\(word)\u{201D}")
+        }
+        expect(spoken.allSatisfy { !$0.isEmpty }, "the offer has no empty string in it")
+        expect(copy.message.contains("temporary recording"),
+               "…and says the recording is temporary, which is the cost being asked about")
+        expect(copy.turnOnTitle != copy.notNowTitle, "the two buttons are not the same words")
+
         if failures.isEmpty {
             SelfTest.diagnostic("ONBOARDING_OK")
             return true

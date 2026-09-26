@@ -949,6 +949,30 @@ still offering "Identify again". `--selftest-audio-retention` is the gate (INTEG
 it seeds its meetings through `MeetingStore.isolated()` and injects the clock and the
 free space, so it never depends on this Mac's disk.
 
+**Speaker identification is on by default once its models are on disk, and a stored answer
+beats the default in either direction.** `Settings.meetingsDiarize` was off for years,
+which meant a fresh install labelled every remote voice "Others" and the notes' action
+items came out Unassigned until the owner found the switch by hand — and the reason it was
+off (a second model, and a temporary recording) is a cost that only exists on a Mac that
+has not paid it yet. So `meetingsDiarize` is a derived effective value, not a stored
+preference: `Settings.diarizationDefault(stored:modelsPresent:)` is `stored ?? modelsPresent`,
+`MeetingDiarizer.isDownloaded` is "models exist", and `meetingsDiarizeChoice` is the
+person's own answer. Two rules make that safe and neither is optional. **A person's tap
+goes through `chooseDiarization(_:)`, which is the only writer of the stored key** — so
+"off because they said no" and "off because the models are not here yet" can never be the
+same value, and the Meetings toggle binds to it rather than to `$settings.meetingsDiarize`
+(which is `private(set)` for the same reason). And **nothing is downloaded without a
+press**: the default only turns on what is already on disk, and the first finished meeting
+where somebody else spoke is *offered* it once — `DiarizationOffer.shouldOffer` is the pure
+rule (finished, not already on, not answered, another voice on the system track) and
+`MeetingDetailView` renders it, with "Turn On" recording the answer before it starts the
+fetch. `LocalModelStore` calls `applyDiarizationDefaultIfUnchosen()` when the models land
+and on `refresh()`, so a Mac that downloaded them from the Models tab is believed without
+a relaunch. The cost that default implies is the paragraph above: every such meeting
+records a temporary `audio.caf`, bounded by M-10's 72 h and the disk guard.
+`--selftest-onboarding` is the gate (its marker is unchanged), and it pins both halves
+plus the copy — no developer nouns in a string a person reads.
+
 **A transcript segment is a sentence, not a window, and punctuation is what makes it one.**
 The live tier cuts 2–5 second windows for provisional text (not 30–60: that number is
 stale since the windows moved for realtime latency), and after Stop each track is

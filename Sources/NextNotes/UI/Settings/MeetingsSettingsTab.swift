@@ -65,7 +65,19 @@ struct MeetingsSettingsTab: View {
             }
 
             Section {
-                Toggle("Tell the other speakers apart", isOn: $settings.meetingsDiarize)
+                // Through `chooseDiarization` rather than `$settings.meetingsDiarize`:
+                // a tap here is an answer, and the answer has to be recorded as one —
+                // otherwise "off because they said so" and "off because the models are
+                // not here yet" are the same stored value, and the first meeting after a
+                // download would quietly turn it back on.
+                Toggle(
+                    "Tell the other speakers apart",
+                    isOn: Binding(
+                        get: { settings.meetingsDiarize },
+                        set: { settings.chooseDiarization($0) }
+                    )
+                )
+
 
                 if settings.meetingsDiarize {
                     ModelStatusRow(

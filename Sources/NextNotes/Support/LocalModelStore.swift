@@ -154,6 +154,10 @@ final class LocalModelStore {
             do {
                 try await MeetingDiarizer.shared.prepare()
                 diarizerState = .ready
+                // M-15: the download is also the answer to "are the models here", so the
+                // default follows it without waiting for a relaunch. Refused while
+                // somebody has answered the switch either way.
+                Settings.shared.applyDiarizationDefaultIfUnchosen()
             } catch {
                 diarizerState = .failed(error.localizedDescription)
                 Log.meeting.error("diarizer preparation failed: \(error.localizedDescription, privacy: .public)")
@@ -285,6 +289,10 @@ final class LocalModelStore {
         }
         if !diarizerState.isBusy {
             diarizerState = MeetingDiarizer.isDownloaded ? .ready : .notDownloaded
+            // M-15: `refresh()` is how a Mac that fetched the speaker models from this
+            // tab — or from the offer on a finished meeting — is believed without a
+            // relaunch.
+            Settings.shared.applyDiarizationDefaultIfUnchosen()
         }
         if !wakeWordState.isBusy {
             wakeWordState = WakeWordModelManager.isReadyToLoad ? .ready : .notDownloaded
