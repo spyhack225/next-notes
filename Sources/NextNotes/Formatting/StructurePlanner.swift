@@ -92,12 +92,15 @@ final class LockedBox<Value: Sendable>: @unchecked Sendable {
 /// the pass is ever asked to do, because generation time grows with the number of sentences
 /// — there is one block boundary to consider per sentence — while the deadline did not.
 ///
-/// So the budget scales with what is being asked, and the cap is a property of the user's
-/// patience rather than of the model: six seconds on a passage long enough to need them,
-/// which is a wait that only ever happens on a dictation that has already been talking for
-/// most of a minute.
+/// So the budget scales with what is being asked, and it is the **nominal**, not the user's
+/// wait. It is counted from the plan's own start, which is *before* the cleanup pass, so
+/// what the user actually pays for a layout is whatever the cleanup did not already cover,
+/// and usually nothing at all. (D-09: the number used to be both the model's deadline and
+/// the user's deadline, which meant a plan needing 3.4 s more was thrown away while the
+/// user went on waiting 3.4–8 s for the cleanup. It was asked six times on this Mac and
+/// one answer was used.)
 ///
-/// Three things pay for that budget rather than merely spending it:
+/// Three things pay for the gap between the two deadlines rather than merely spending it:
 /// - the session is staged at key-down beside the cleanup session (`CleanupSessionWarmer`),
 ///   so the pass does not open with the model waking up;
 /// - `CleanupRouter` starts it *beside* the grammar chunks rather than after them, so its
@@ -106,7 +109,9 @@ final class LockedBox<Value: Sendable>: @unchecked Sendable {
 ///   because a boundary is never in the middle of a sentence.
 struct AppleStructurePlanner: StructurePlanning {
     var planName: String { "apple" }
-    /// Overridden by `budget(forSentences:)` unless a caller pins it.
+    /// The caller's deadline wins over this (D-09); this is then the fallback for a caller
+    /// that pinned one, which today means the probe, which is measuring rather than
+    /// shipping.
     var budget: Duration?
     /// False shows the model every sentence whole. The probe uses it to check that the
     /// elision costs no accuracy; production never turns it off.
@@ -114,17 +119,19 @@ struct AppleStructurePlanner: StructurePlanning {
 
     /// Three tenths of a second per sentence, floored at three and a half and capped at six.
     ///
-    /// The floor is calibrated on the failure rather than on a round number: the twelve
+    /// The nominal wait, not the deadline: see the type comment. The scale still has to
+    /// grow with the work, because a flat ceiling is a ceiling on the shortest passage. The
+    /// floor is calibrated on the failure rather than on a round number: the twelve
     /// sentences of 2026-09-20T20:47:25Z spent 3.01 s and had not finished, so any floor at
-    /// or under three seconds is the same bug with a different constant. The cap is a
-    /// property of the user's patience and not of the model, and it is affordable only
-    /// because this pass now runs *beside* the cleanup pass — six seconds of layout inside
-    /// seven seconds of grammar costs nothing.
+    /// or under three seconds is the same bug with a different constant. The cap is not a
+    /// property of the user's patience any more — it is the most the router will add to a
+    /// wait the user was already having, and on a model route that is the whole of it
+    /// whenever the plan is ready first, which is the case the pass is started early for.
     static func budget(forSentences count: Int) -> Duration {
         .seconds(min(6.0, max(3.5, 0.3 * Double(count))))
     }
 
-    func plan(for sentences: [String]) async -> StructurePlanOutcome {
+    func plan(for sentences: [String], deadline requested: Duration?) async -> StructurePlanOutcome {
         let began = Date()
         guard FoundationModelFormatter.isAvailable else {
             return .failed(
@@ -133,9 +140,12 @@ struct AppleStructurePlanner: StructurePlanning {
                 seconds: 0
             )
         }
-        // Named apart from the property on purpose: `let budget = budget ?? …` reads as a
-        // variable initialised from itself.
-        let deadline = budget ?? Self.budget(forSentences: sentences.count)
+        // Named apart from the properties on purpose: `let budget = budget ?? …` reads as a
+        // variable initialised from itself. Three ceilings, in order of who asked last: the
+        // caller's (D-09 — the router knows what it is willing to wait), the pinned one
+        // (the probe, which is measuring rather than shipping), and the passage-scaled
+        // default.
+        let deadline = requested ?? budget ?? Self.budget(forSentences: sentences.count)
         // D-01a: the prewarm bit is set inside the child task before `respond`, so the
         // `catch` path below still carries it when the deadline wins the race.
         let prewarmedBox = LockedBox<Bool?>(nil)
@@ -240,11 +250,14 @@ struct LLMStructurePlanner: StructurePlanning {
 
     var planName: String { provider.id.rawValue }
 
-    func plan(for sentences: [String]) async -> StructurePlanOutcome {
+    func plan(for sentences: [String], deadline requested: Duration?) async -> StructurePlanOutcome {
         let began = Date()
         if let reason = await provider.unavailableReason {
             return .failed(reason, seconds: Date().timeIntervalSince(began))
         }
+        // The caller's ceiling wins over the pinned one, for the same reason Apple's does:
+        // whoever is holding the wait is the one who knows what it is worth. (D-09.)
+        let budget = requested ?? budget
         do {
             let text = try await withThrowingTaskGroup(of: String.self) { group in
                 group.addTask {
@@ -318,6 +331,9 @@ struct ScriptedStructurePlanner: StructurePlanning {
     /// test of the overlap between this pass and the cleanup pass needs. A synchronous
     /// closure still satisfies it.
     let answer: @Sendable ([String]) async -> StructurePlanOutcome
+    /// The deadline the router handed this pass, for the tests to read. A reference, so a
+    /// planner copied into a router still reports the one the router actually used. (D-09.)
+    let lastDeadline = LockedBox<Duration?>(nil)
 
     init(
         planName: String = "scripted",
@@ -333,7 +349,8 @@ struct ScriptedStructurePlanner: StructurePlanning {
         }
     }
 
-    func plan(for sentences: [String]) async -> StructurePlanOutcome {
-        await answer(sentences)
+    func plan(for sentences: [String], deadline: Duration?) async -> StructurePlanOutcome {
+        lastDeadline.value = deadline
+        return await answer(sentences)
     }
 }

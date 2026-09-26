@@ -33,6 +33,109 @@ enum StructurePlanProbe {
         await measureEndToEnd()
         await measurePlanLatency()
         await measurePromptSize()
+        await measureOverlapCost()
+    }
+
+    // MARK: - What the layout pass costs the cleanup it runs beside
+
+    /// The cleanup alone, then the same cleanup with the layout pass running beside it.
+    ///
+    /// I1-03's risk, stated as a number: two requests on one on-device model slow each
+    /// other, and if the plan costs the cleanup more than the plan saves then starting it
+    /// early is a loss dressed as a win. The rule from the task is that if the difference
+    /// is against the pass, the plan moves to after Stage B — and moving it is a design
+    /// change, so the decision needs a measurement behind it rather than an intuition.
+    ///
+    /// Both legs are the real router over the same dictation, and the order is alone-then-
+    /// beside so the model is already resident in both. The second leg is deliberately not
+    /// re-run: a third call would measure a warmer model than the first two and quietly
+    /// flatter the pass.
+    /// Twelve sentences of ordinary prose: no ordinal, no "first thing", nothing Stage C's
+    /// rules can lay out.
+    ///
+    /// It has to be like that, and it is worth saying why rather than reaching for a real
+    /// dictation. A dictation the rules *can* handle never reaches the layout pass at all —
+    /// `measureEndToEnd` above runs the 2026-09-20 dictation and records `structure: rules`,
+    /// `layout 0.00s`, because Stage C found both of its items without a model. Measuring
+    /// the overlap on that passage measures the overlap on nothing, which is exactly what
+    /// the first run of this probe did before the fixture was fixed.
+    private static let proseFixture = """
+        We finished the review this morning and everyone signed off on the plan. \
+        The release is scheduled for Friday afternoon as discussed. \
+        I will send the notes round once the build is green. \
+        Separately, the onboarding copy still reads as though we charge for the trial. \
+        Marketing have a rewrite in hand and it should land this week. \
+        The installer is signed and packaged, and it copies the models across on the first run. \
+        Support will keep an eye on the forum through the weekend. \
+        The dashboard shows how many holds reached a finished sentence without an error. \
+        Nobody has looked at the failure list since the thirtieth. \
+        The search page is slow on a cold cache, which is most first runs. \
+        We can ship with that and fix it after the launch, or hold the release for a week. \
+        There is nothing else outstanding on my side at the moment.
+        """
+
+    private static func measureOverlapCost() async {
+        emit("")
+        emit("  -- overlap cost --")
+        let target = OutputProfile(
+            bundleID: "com.anthropic.claudefordesktop",
+            displayName: "Claude",
+            capabilities: [.markdown, .bullets, .numbered, .tables, .code]
+        )
+        let preferences = CleanupPreferences(tone: .balanced, formatsLists: true, context: .general)
+        let sentences = SpokenStructure.sentenceSplit(proseFixture)
+        emit("  fixture: \(sentences.count) sentences, \(SentenceChunker.wordCount(proseFixture)) words")
+        emit("  order: cleanup alone, then the same cleanup with the layout pass beside it")
+
+        // Warm first, or the first leg pays the wake-up and the difference *is* the wake-up.
+        _ = try? await FoundationModelFormatter.clean(
+            "okay so um I think we should ship it on friday",
+            preferences: AppleModelWarmth.warmPreferences,
+            fixesGrammar: AppleModelWarmth.warmFixesGrammar
+        )
+
+        func leg(_ layoutPass: CleanupRouter.LayoutPass) async -> (cleanup: Double, plan: Double?, record: CleanupRecord) {
+            let trace = CleanupTrace()
+            let router = CleanupRouter.production(
+                choice: .apple,
+                preferences: preferences,
+                fixesGrammar: true,
+                target: target,
+                context: .empty,
+                skipsModelWhenBusy: false,
+                trace: trace,
+                layoutPass: layoutPass
+            )
+            let began = Date()
+            _ = await router.format(proseFixture)
+            let record = trace.snapshot
+            return (Date().timeIntervalSince(began), record.structurePlanSeconds, record)
+        }
+
+        let alone = await leg(.omitted)
+        let beside = await leg(.automatic)
+        // A plan of 0.00 s with nothing asked of it is not a fast layout, it is no layout:
+        // say which, rather than report a number that reads like a good result.
+        let asked = beside.record.structurePlanModel != nil
+        let planText = beside.plan.map { String(format: "%.2f", $0) } ?? "unavailable"
+        emit(String(
+            format: "LAYOUT_OVERLAP cleanup_alone=%.2f cleanup_beside_plan=%.2f plan=%@",
+            alone.cleanup, beside.cleanup, planText
+        ))
+        guard asked, let plan = beside.plan else {
+            emit("LAYOUT_OVERLAP_RULE: the layout pass was not asked on this fixture, "
+                + "so the overlap is unmeasured — the two numbers above are the same pass twice")
+            return
+        }
+        emit("  beside: layout by \(beside.record.structurePlanModel ?? "?") in "
+            + String(format: "%.2f", plan) + "s · structure: "
+            + (beside.record.structureSource ?? "none"))
+        let cost = beside.cleanup - alone.cleanup
+        emit(String(
+            format: "LAYOUT_OVERLAP_RULE: the pass costs the cleanup %.2fs and saves up to %.2fs"
+                + " of layout, so running it beside is %@",
+            cost, plan, cost <= plan ? "the cheaper trade" : "NOT the cheaper trade"
+        ))
     }
 
     // MARK: - How long a plan takes

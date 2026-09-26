@@ -54,6 +54,38 @@ struct CleanupRouter: TextFormatter {
     /// on a Mac with no instruction-following model, which is exactly the case Stage C's
     /// rules exist to cover.
     private let structurePlanner: (any StructurePlanning)?
+    /// How long the router is willing to keep waiting for a layout plan once the cleanup
+    /// pass has finished, as a function of the passage's sentence count. The default is the
+    /// planner's own scaled budget, because that is the wait the plan was started on. (D-09.)
+    private let layoutWait: @Sendable (Int) -> Duration
+    /// ...and the floor on that wait, so a plan that is nearly there when the cleanup
+    /// returns is not thrown away over a rounding error.
+    private let layoutGrace: Duration
+    /// The hard ceiling the layout pass itself runs under on the model route. A model call
+    /// has to end even when nobody is waiting for it any more — cancellation is a request,
+    /// and a CoreML decode runs to completion regardless.
+    private let layoutCeiling: Duration
+
+    /// The layout pass's hard ceiling on the model route. Twelve seconds is an estimate
+    /// rather than a measurement, and it is deliberately not the number the user waits:
+    /// inside the 26 s whole-pass budget and the 30 s outer bound, and past the point where
+    /// the router has already given up and cancelled. (D-09.)
+    static let layoutPassCeiling: Duration = .seconds(12)
+
+    /// The floor on the wait after the cleanup, when a plan is already over its nominal
+    /// budget: half a second of a dictation nobody notices, against four answers thrown
+    /// away for nothing.
+    static let layoutPassGrace: Duration = .milliseconds(500)
+
+    /// The layout pass: what Stage D is given. Two cases, because the only question anyone
+    /// has ever asked about it is whether it is worth running beside the cleanup — and that
+    /// is a question about a *difference*. (D-09.)
+    enum LayoutPass: Sendable {
+        /// Apple's planner, where the switch and the model both allow it.
+        case automatic
+        /// No layout pass. The control leg of `--probe-layout`.
+        case omitted
+    }
 
     init(
         semantic: any TextFormatter,
@@ -66,6 +98,11 @@ struct CleanupRouter: TextFormatter {
         target: OutputProfile = .plain(bundleID: "", displayName: "the focused app"),
         trace: CleanupTrace? = nil,
         structurePlanner: (any StructurePlanning)? = nil,
+        layoutWait: @escaping @Sendable (Int) -> Duration = {
+            AppleStructurePlanner.budget(forSentences: $0)
+        },
+        layoutGrace: Duration = CleanupRouter.layoutPassGrace,
+        layoutCeiling: Duration = CleanupRouter.layoutPassCeiling,
         pressureSample: @escaping @Sendable () async -> CleanupComputePressure = {
             await CleanupPressureProbe.sample()
         }
@@ -80,6 +117,9 @@ struct CleanupRouter: TextFormatter {
         self.target = target
         self.trace = trace
         self.structurePlanner = structurePlanner
+        self.layoutWait = layoutWait
+        self.layoutGrace = layoutGrace
+        self.layoutCeiling = layoutCeiling
         self.pressureSample = pressureSample
     }
 
@@ -136,7 +176,22 @@ struct CleanupRouter: TextFormatter {
         // those; the grammar pass changes words inside sentences, which is a question the
         // layout pass never asks. So they overlap, and the plan is mapped onto the
         // grammar-cleaned sentences afterwards.
+        //
+        // And it is given a deadline of its own (`layoutCeiling`) rather than the scaled
+        // per-passage one it used to carry, because the deadline is not the user's patience
+        // any more: the wait is. The pass is only ever *awaited* for as long as the user
+        // was already waiting anyway plus a grace, so the ceiling's whole job is to make a
+        // model call end even after the router has stopped caring — which cancellation
+        // alone does not do, because a CoreML decode runs to completion regardless.
         let planSentences = SpokenStructure.sentenceSplit(beforeModel.text)
+        // When the pass was started, whether or not one was: the wait below is what is left
+        // of a budget this much of which has already gone. (D-09.)
+        let planBegan = ContinuousClock.now
+        // The answer, the moment it lands. Read after Stage B so a plan that came back while
+        // the cleanup was still running is taken whatever the clock says — otherwise a
+        // loaded machine's scheduler can let the grace timer beat an already-finished task,
+        // which is the exact failure this pass is being untangled from.
+        let planAnswered = LockedBox<StructurePlanOutcome?>(nil)
         var planTask: Task<StructurePlanOutcome, Never>?
         if let planner = structurePlanner, formatsLists,
            // Stage C already found the list, so there is nothing to ask about. The gate is
@@ -149,7 +204,14 @@ struct CleanupRouter: TextFormatter {
                wordCount: decision.wordCount,
                sawMarkers: markersBeforeModel
            ) {
-            planTask = Task { await planner.plan(for: planSentences) }
+            // The rules route has no cleanup pass to hide a slow plan inside, so there the
+            // planner's own budget is the whole deadline and the router waits it out.
+            let ceiling: Duration? = decision.usesModel ? layoutCeiling : nil
+            planTask = Task {
+                let outcome = await planner.plan(for: planSentences, deadline: ceiling)
+                planAnswered.value = outcome
+                return outcome
+            }
         }
 
         var text: String
@@ -214,7 +276,13 @@ struct CleanupRouter: TextFormatter {
         // paragraph breaks, and enumerations announced without numbers at all.
         var planRejection: String?
         if let planTask, let planner = structurePlanner {
-            let outcome = await planTask.value
+            let outcome = await resolveLayoutPlan(
+                planTask,
+                answered: planAnswered,
+                sentences: planSentences,
+                began: planBegan,
+                waitIsBounded: decision.usesModel
+            )
             let sentences = SpokenStructure.sentenceSplit(text)
             planRejection = outcome.rejection
             if let plan = outcome.plan {
@@ -296,6 +364,45 @@ struct CleanupRouter: TextFormatter {
         laidOut = SpokenStructure.collapsingDoubledMarkers(laidOut)
         trace?.noteOutput(laidOut, seconds: Date().timeIntervalSince(began))
         return laidOut
+    }
+
+    /// How long to wait for the layout pass once the cleanup has finished, and what to do
+    /// when the wait is up. (D-09.)
+    ///
+    /// The pass runs *beside* the cleanup, so the only question left is what to do with its
+    /// answer. Three cases, in order:
+    ///
+    /// - **it is already here** — take it, whatever the clock says. This is the whole point
+    ///   of starting it early, and it is read from a box rather than from the task so a
+    ///   finished plan cannot lose a race to a timer on a loaded machine;
+    /// - **the model route** — the user has waited as long as this passage's plan is worth,
+    ///   so wait out whatever is left of that budget and at least the grace, then cancel
+    ///   and say so;
+    /// - **the rules route** — there is no cleanup to hide a slow plan inside, so the
+    ///   planner's own deadline was the only one and the wait is unbounded, as it was.
+    private func resolveLayoutPlan(
+        _ planTask: Task<StructurePlanOutcome, Never>,
+        answered: LockedBox<StructurePlanOutcome?>,
+        sentences: [String],
+        began: ContinuousClock.Instant,
+        waitIsBounded: Bool
+    ) async -> StructurePlanOutcome {
+        if let ready = answered.value { return ready }
+        guard waitIsBounded else { return await planTask.value }
+
+        let spent = ContinuousClock.now - began
+        let wait = max(layoutWait(sentences.count) - spent, layoutGrace)
+        if let finished = await withBoundedWait(wait) { await planTask.value } {
+            return finished
+        }
+        // The wait is the user's, not the plan's: it goes on inside the pass's own ceiling,
+        // and nothing here waits for it.
+        planTask.cancel()
+        let total = Self.seconds(spent + wait)
+        return .failed(
+            String(format: "the layout pass ran out of time after %.1fs", total),
+            seconds: total
+        )
     }
 
     /// Why this run has no structure in it, in one line a person can read.
@@ -456,6 +563,11 @@ struct CleanupRouter: TextFormatter {
     static let appleChunkWidth = 1
 
     /// Production wiring: Stage A plus the user's existing engine choice.
+    ///
+    /// - Parameter layoutPass: the Stage D planner. `.automatic` is what a dictation gets;
+    ///   `.omitted` exists for `--probe-layout`, whose only question is what the layout pass
+    ///   costs the cleanup, and that cannot be answered without running the identical
+    ///   cleanup without it.
     static func production(
         choice: CleanupEngineChoice,
         preferences: CleanupPreferences,
@@ -463,7 +575,8 @@ struct CleanupRouter: TextFormatter {
         target: OutputProfile,
         context: ScreenContext,
         skipsModelWhenBusy: Bool,
-        trace: CleanupTrace? = nil
+        trace: CleanupTrace? = nil,
+        layoutPass: LayoutPass = .automatic
     ) -> CleanupRouter {
         let engine = preferredEngine(choice: choice, fixesGrammar: fixesGrammar)
         // Long utterances go to the model in sentence groups rather than in one call that
@@ -521,7 +634,8 @@ struct CleanupRouter: TextFormatter {
         // gigabytes and seconds inside a dictation somebody is waiting on, so it is a seam
         // rather than a default.
         let planner: (any StructurePlanning)? =
-            preferences.formatsLists && FoundationModelFormatter.isAvailable
+            layoutPass == .automatic && preferences.formatsLists
+                && FoundationModelFormatter.isAvailable
                 ? AppleStructurePlanner()
                 : nil
         return CleanupRouter(
@@ -1814,6 +1928,8 @@ extension CleanupRouter {
             failures.append("a run that rendered a list also recorded why it rendered none")
         }
 
+        failures += await layoutDeadlineFailures(prose: longProse)
+
         // The grammar the constrained providers use has to describe the same shape the
         // decoder accepts, or the on-device model's plans are refused on arrival.
         let grammar = StructurePlanPrompt.grammar()
@@ -1827,6 +1943,205 @@ extension CleanupRouter {
         }
         if LLMStructurePlanner.firstJSONObject(in: "```json\n\(sample)\n```") != sample {
             failures.append("a fenced layout plan was not recovered from the answer")
+        }
+
+        return failures
+    }
+
+    /// D-09: the layout pass is budgeted against the cleanup pass it runs beside.
+    ///
+    /// The pass used to carry its own wall-clock ceiling — `min(6, max(3.5, 0.3 ×
+    /// sentences))` seconds, counted from the moment it started — and it was started
+    /// *before* the cleanup, so every second of that ceiling was a second of a wait the
+    /// user was already having. On this Mac it was asked six times and one answer was used;
+    /// four were "the layout pass ran out of time after 3.5s" while the user went on
+    /// waiting another 3.4–8 s for the cleanup. The deadline saved nothing.
+    ///
+    /// Now the pass has a hard ceiling (`layoutPassCeiling`) so a model call always ends,
+    /// and the *router* decides how long to wait for it, measured from the plan's own
+    /// start: the nominal budget already spent, plus a grace. A plan that answers while
+    /// the cleanup is still running is therefore always used, and a plan that has not
+    /// answers by the time the cleanup is finished gets `layoutGrace` and no more.
+    private static func layoutDeadlineFailures(prose: String) async -> [String] {
+        var failures: [String] = []
+        let markdownApp = OutputProfile(
+            bundleID: "md.obsidian",
+            displayName: "Obsidian",
+            capabilities: [.markdown, .bullets, .numbered, .tables, .code]
+        )
+        // Milliseconds rather than seconds, so a case is not a second of suite time, and a
+        // nominal well clear of the grace so the two are distinguishable.
+        let nominal = Duration.milliseconds(300)
+        let grace = Duration.milliseconds(100)
+        let waits: @Sendable (Int) -> Duration = { _ in nominal }
+        let busy = CleanupComputePressure.simulated(realtimeASRBusy: true)
+
+        /// The plan a model that read this passage properly would answer: one paragraph
+        /// break after the third sentence. Built from the sentences it was handed rather
+        /// than typed, so a change to the split shows up here instead of as a silently
+        /// different layout.
+        @Sendable func paragraphPlan(_ sentences: [String]) -> StructurePlanOutcome {
+            guard sentences.count >= 4 else { return .failed("too short to lay out", seconds: 0) }
+            return StructurePlanOutcome(
+                plan: StructurePlan(blocks: [
+                    .init(kind: .prose, from: 1, to: 3),
+                    .init(kind: .prose, from: 4, to: sentences.count),
+                ]),
+                rejection: nil,
+                seconds: 0
+            )
+        }
+
+        /// One router, run end to end, answering the two questions every case below asks:
+        /// how long the hold took, and what the record says.
+        @discardableResult
+        func run(
+            semantic: any TextFormatter,
+            planner: ScriptedStructurePlanner,
+            busy defersToRules: Bool = false
+        ) async -> (record: CleanupRecord, elapsed: Double) {
+            let trace = CleanupTrace()
+            let began = ContinuousClock.now
+            _ = await CleanupRouter(
+                semantic: semantic,
+                engine: .apple,
+                formatsLists: true,
+                targetRendersLists: true,
+                skipsModelWhenBusy: defersToRules,
+                target: markdownApp,
+                trace: trace,
+                structurePlanner: planner,
+                layoutWait: waits,
+                layoutGrace: grace,
+                pressureSample: { defersToRules ? busy : .idle }
+            ).format(prose)
+            return (trace.snapshot, seconds(ContinuousClock.now - began))
+        }
+
+        // a. The plan answers at 500 ms, the cleanup at 700 ms: the plan came back while
+        // the user was still waiting, so it is used — and the pass was handed the hard
+        // ceiling rather than the nominal 300 ms it is about to be given on the wall.
+        do {
+            let planner = ScriptedStructurePlanner(planName: "half-second") { sentences in
+                try? await Task.sleep(for: .milliseconds(500))
+                return paragraphPlan(sentences)
+            }
+            let (record, _) = await run(
+                semantic: SlowFormatter(delay: .milliseconds(700)),
+                planner: planner
+            )
+            if record.structureSource != "model plan" {
+                failures.append(
+                    "a layout plan that finished while the cleanup was still running was not "
+                        + "used — the record says "
+                        + (record.structureSource ?? "nothing")
+                        + " (\(record.structurePlanRejected ?? "no reason given"))"
+                )
+            }
+            if record.structurePlanModel != "half-second" {
+                failures.append("a used layout plan was not recorded as one")
+            }
+            if record.structurePlanRejected != nil {
+                failures.append(
+                    "a layout plan that was used was also recorded as rejected: "
+                        + (record.structurePlanRejected ?? "")
+                )
+            }
+            if planner.lastDeadline.value != layoutPassCeiling {
+                failures.append(
+                    "the layout pass was given \(planner.lastDeadline.value.map(String.init) ?? "no deadline")"
+                        + " on the model route, expected the ceiling \(layoutPassCeiling)"
+                )
+            }
+        }
+
+        // b. The plan would answer at 1,500 ms and the cleanup at 700 ms. The user waits the
+        // 100 ms grace past the cleanup and no longer: the old code waited the full 1.5 s.
+        do {
+            let planner = ScriptedStructurePlanner(planName: "one-and-a-half") { sentences in
+                try? await Task.sleep(for: .milliseconds(1500))
+                return paragraphPlan(sentences)
+            }
+            let (record, elapsed) = await run(
+                semantic: SlowFormatter(delay: .milliseconds(700)),
+                planner: planner
+            )
+            // 800 ms nominal, 1,100 ms with room for a loaded machine. The old code's 1,500 ms
+            // is outside it, which is the case.
+            if elapsed > 1.1 {
+                failures.append(
+                    "the router waited \(elapsed)s for a layout plan that had already been given "
+                        + "its whole budget, expected about 0.8s"
+                )
+            }
+            if record.structurePlanRejected?.contains("ran out of time") != true {
+                failures.append(
+                    "a layout plan dropped for time recorded "
+                        + (record.structurePlanRejected.map { "\"\($0)\"" } ?? "no reason")
+                )
+            }
+            if record.structureSource == "model plan" {
+                failures.append("a layout plan that arrived after the router gave up was still used")
+            }
+        }
+
+        // c. The plan answers at 500 ms, the cleanup at 100 ms. There is no wait left to
+        // hide it in, so it is dropped at the nominal budget — which is what happens today,
+        // and what makes b a change rather than a different number for the same rule.
+        do {
+            let planner = ScriptedStructurePlanner(planName: "late") { sentences in
+                try? await Task.sleep(for: .milliseconds(500))
+                return paragraphPlan(sentences)
+            }
+            let (record, elapsed) = await run(
+                semantic: SlowFormatter(delay: .milliseconds(100)),
+                planner: planner
+            )
+            if elapsed > 0.75 {
+                failures.append(
+                    "a slow layout plan beside a fast cleanup held the hold for \(elapsed)s, "
+                        + "expected about 0.3s"
+                )
+            }
+            if record.structurePlanRejected?.contains("ran out of time") != true {
+                failures.append(
+                    "a layout plan dropped at its nominal budget recorded "
+                        + (record.structurePlanRejected.map { "\"\($0)\"" } ?? "no reason")
+                )
+            }
+        }
+
+        // d. The rules route has no cleanup pass to hide a plan inside, so the planner's own
+        // budget stands and the router does not hand it a deadline. The budget-growth rules
+        // above are that budget, and they stay.
+        do {
+            let planner = ScriptedStructurePlanner(planName: "rules-route") { sentences in
+                paragraphPlan(sentences)
+            }
+            let (record, _) = await run(
+                semantic: KeepAsIsFormatter(),
+                planner: planner,
+                busy: true
+            )
+            if record.route != "rules" {
+                failures.append(
+                    "the rules-route case ran \(record.route ?? "no route"), so it proves nothing"
+                )
+            }
+            if planner.lastDeadline.value != nil {
+                failures.append(
+                    "the layout pass was given \(planner.lastDeadline.value.map(String.init) ?? "")"
+                        + " on the rules route, expected no deadline"
+                )
+            }
+            // ...and it is still asked, and still used, on that route: the deadline is the
+            // only thing D-09 changes.
+            if record.structureSource != "model plan" {
+                failures.append(
+                    "the rules route stopped using a layout plan it was given: the record says "
+                        + (record.structureSource ?? "nothing")
+                )
+            }
         }
 
         return failures

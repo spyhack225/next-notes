@@ -599,7 +599,16 @@ enum StructureFixtures {
 protocol StructurePlanning: Sendable {
     /// For the record: `apple`, `appLLM`, `scripted` (`qwen3.5-4b` in older runs).
     var planName: String { get }
-    func plan(for sentences: [String]) async -> StructurePlanOutcome
+    /// - Parameter deadline: the ceiling the *caller* is holding this pass to. Nil leaves
+    ///   the planner's own budget in charge, which is what the rules route wants: there is
+    ///   no cleanup pass running beside it to hide a slow plan inside. (D-09.)
+    func plan(for sentences: [String], deadline: Duration?) async -> StructurePlanOutcome
+}
+
+extension StructurePlanning {
+    func plan(for sentences: [String]) async -> StructurePlanOutcome {
+        await plan(for: sentences, deadline: nil)
+    }
 }
 
 struct StructurePlanOutcome: Sendable {
