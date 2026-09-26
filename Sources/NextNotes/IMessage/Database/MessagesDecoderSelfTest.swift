@@ -60,6 +60,25 @@ enum MessagesDecoderSelfTest {
     /// characters returns a mangled prefix.
     static let oracleNonASCII = "héllo 🌍 café — naïve"
 
+    // MARK: IM-17c's fixtures — a third party's payload, and the keys that stand in for a
+    // link preview, a detected entity and a bundle id.
+    //
+    // **These are placeholders, and the reason is the same one the oracle sentence is a
+    // placeholder for: a self-test may not carry anybody's content.** What they have to be is
+    // *shaped* like the thing they stand in for — prose, and a URL, because `UsageLog.sanitise`
+    // strips neither and that is exactly why they are the right thing to try to leak.
+
+    /// A third party's promotional offer, in the shape one arrives in: prose with a `$` in it.
+    static let foreignOffer = "FIXTURE-THIRD-PARTY-OFFER save 30% on your next $90 order today"
+    /// The URL that came with it.
+    static let foreignLink = "https://example.invalid/fix-17c-offer"
+
+    /// Three attribute keys standing in for the three things a measured body carried that are
+    /// not the sender's words. They are fixtures, so they are named like fixtures.
+    static let fixtureKeyA = "fixture-im17c-link-preview"
+    static let fixtureKeyB = "fixture-im17c-detected-entity"
+    static let fixtureKeyC = "fixture-im17c-bundle-id"
+
     /// Where IM-01's **real** `attributedBody` lives, when it has been captured.
     ///
     /// ## Why the bytes are not in this repository, in three steps
@@ -96,6 +115,10 @@ enum MessagesDecoderSelfTest {
         var failures: [String] = []
         var blocked: [String] = []
         var caseCount = 0
+        /// Counts a case measured, and nothing else — no name, no value, no fragment. The whole
+        /// point of IM-17c's number is that a macOS which starts attaching more graph is
+        /// *visible*, and a number nothing prints is a field rather than a measurement.
+        var measured: [String] = []
 
         func check(_ name: String, _ body: () async throws -> String?) async rethrows {
             caseCount += 1
@@ -487,7 +510,7 @@ enum MessagesDecoderSelfTest {
             // error, which is the failure the whole task exists to prevent. 202 prefixes, and
             // both outcomes have to occur or the sweep is not testing anything.
             try await check("no_prefix_of_a_real_body_decodes_to_a_different_string") {
-                guard case .text(let whole) = MessagesDecoder.body(fromAttributedBody: fixture.blob) else {
+                guard case .text(let whole, _) = MessagesDecoder.body(fromAttributedBody: fixture.blob) else {
                     return "the real body did not decode, so there is no whole string to compare against"
                 }
                 var read = 0
@@ -497,7 +520,7 @@ enum MessagesDecoderSelfTest {
                     read += 1
                     let prefix = Data(fixture.blob.prefix(count))
                     switch MessagesDecoder.body(fromAttributedBody: prefix) {
-                    case .text(let value):
+                    case .text(let value, _):
                         decoded += 1
                         if value.isEmpty {
                             return "the first \(count) of \(fixture.blob.count) bytes decoded to \"\""
@@ -518,6 +541,55 @@ enum MessagesDecoderSelfTest {
                         + "both have to happen or the sweep proves nothing"
                 }
                 return nil
+            }
+
+            // 15. The count, on real bytes, and the negative over it. IM-17c.
+            //
+            // **The positive half is already case 11; this is the half that says the walk
+            // stopped.** On this body the sender's 27 bytes are read and the 101 bytes behind
+            // them are not, and those 101 hold an `NSDictionary` keyed by
+            // `__kIMMessagePartAttributeName` — a *named attribute* this decoder passes over
+            // without naming. A count of zero here would mean the walk had read the whole body,
+            // which is the one thing the guarantee says it never does.
+            //
+            // **The negative is over the whole rendered envelope, not over one field**, so a
+            // future field that carries a third party's string is caught without anyone editing
+            // this: nothing at all that the walk passed over may appear in what a caller can
+            // see. The check prints counts and lengths only — never a run's content, because a
+            // run of somebody else's payload in a log file is the leak this case exists to
+            // prevent.
+            try await check("real_body_passes_over_its_attribute_graph") {
+                var row = MessageRow()
+                row.attributedBody = fixture.blob
+                let envelope = MessagesDecoder.envelope(for: row)
+                guard envelope.source == .attributedBody else {
+                    return "the body came from \(envelope.source), not .attributedBody"
+                }
+                guard case .text(let value, let discarded) = envelope.body else {
+                    return "the real body did not decode, so there is nothing to have passed over"
+                }
+                guard value == fixture.expected else {
+                    // The sentence is the sender's own and is already named by case 11; this
+                    // case is about the number, so it says so rather than quoting it again.
+                    return "the real body decoded to something that is not the attested sentence"
+                }
+                guard discarded > 0 else {
+                    return "a real body that carries a named attribute reported 0 bytes passed over"
+                }
+                guard discarded < fixture.blob.count else {
+                    return "\(discarded) of \(fixture.blob.count) bytes reported as passed over, "
+                        + "so the walk claims to have read none of it"
+                }
+                guard envelope.discardedBytes == discarded else {
+                    return "the envelope says \(envelope.discardedBytes), the body says \(discarded)"
+                }
+                measured.append("real body — \(discarded) of \(fixture.blob.count) bytes passed "
+                                + "over unread, and one named attribute is in them")
+                return Self.nothingPassedOverReaches(
+                    String(describing: envelope),
+                    from: fixture.blob,
+                    discardedBytes: discarded,
+                    caseName: "the real body")
             }
         } else if case .absent = realBody {
             // Named, uncounted, and saying where the bytes are — so the next agent inherits a
@@ -542,6 +614,12 @@ enum MessagesDecoderSelfTest {
                   + "\(pointer)")
             block("no-prefix-of-a-real-body-decodes-to-a-different-string",
                   "the property TYPEDSTREAM-NOTES.md §4.1 names, on real bytes. \(pointer)")
+            block("real-body-passes-over-its-attribute-graph",
+                  "IM-17c's count and its negative, on real bytes. This body is the plain end of "
+                  + "the range IM-01 measured — its 101 unread bytes hold an NSDictionary keyed by "
+                  + "one Apple attribute — and the bodies that carry a detected-entity list, a "
+                  + "link preview and a third party's payload were not committed, so the count has "
+                  + "never been read against one that has all three. \(pointer)")
         }
 
         // MARK: The oracle
@@ -629,7 +707,7 @@ enum MessagesDecoderSelfTest {
                 return "NSArchiver wrote nothing"
             }
             let body = MessagesDecoder.body(fromAttributedBody: blob)
-            if case .text(let text) = body { return "an NSNumber came back as \"\(text)\"" }
+            if case .text(let text, _) = body { return "an NSNumber came back as \"\(text)\"" }
             guard case .unreadable(let reason) = body else { return "body is \(body)" }
             guard case .notAString = reason else { return "the refusal is \(reason)" }
             return nil
@@ -655,7 +733,7 @@ enum MessagesDecoderSelfTest {
                 read += 1
                 let prefix = Data(blob.prefix(count))
                 switch MessagesDecoder.body(fromAttributedBody: prefix) {
-                case .text(let text):
+                case .text(let text, _):
                     guard text == expected else {
                         return "the first \(count) of \(blob.count) bytes decoded to \"\(text)\""
                     }
@@ -680,7 +758,7 @@ enum MessagesDecoderSelfTest {
                 return "the oracle's stream did not have a length byte to stretch"
             }
             let body = MessagesDecoder.body(fromAttributedBody: stretched)
-            if case .text(let text) = body { return "an over-long length decoded to \"\(text)\"" }
+            if case .text(let text, _) = body { return "an over-long length decoded to \"\(text)\"" }
             guard case .unreadable(let reason) = body else { return "body is \(body)" }
             guard case .truncated = reason else { return "the refusal is \(reason), not a truncation" }
             return nil
@@ -699,7 +777,7 @@ enum MessagesDecoderSelfTest {
             wrongSystem[wrongSystem.startIndex + 14] = 0x2c
             wrongSystem[wrongSystem.startIndex + 15] = 0x01      // 0x012c = 300
             let body = MessagesDecoder.body(fromAttributedBody: wrongSystem)
-            if case .text(let text) = body {
+            if case .text(let text, _) = body {
                 return "a header with system version 300 decoded to \"\(text)\""
             }
             guard case .unreadable(let reason) = body else { return "body is \(body)" }
@@ -721,7 +799,7 @@ enum MessagesDecoderSelfTest {
             var smashed = blob
             for index in 2..<13 { smashed[smashed.startIndex + index] = 0x20 }
             let body = MessagesDecoder.body(fromAttributedBody: smashed)
-            if case .text(let text) = body { return "a smashed signature decoded to \"\(text)\"" }
+            if case .text(let text, _) = body { return "a smashed signature decoded to \"\(text)\"" }
             guard case .unreadable(let reason) = body else { return "body is \(body)" }
             guard case .notATypedStream(let offset) = reason else { return "the refusal is \(reason)" }
             guard offset == MessagesSchemaVersion.signatureOffset else {
@@ -741,6 +819,157 @@ enum MessagesDecoderSelfTest {
             return nil
         }
 
+        // MARK: Only the sender's own words leave the decoder — IM-17c
+        //
+        // **The four cases below are the safety property the whole feature rests on**, and the
+        // first of them is the one that was red before the fix. A real `attributedBody` is an
+        // attribute graph, not a string: on 2026-09-26 the bodies measured on this Mac carried
+        // a detected-entity list, a link preview, a `com.apple.*` bundle id, and — in one of
+        // them — `__kMSHSMessage`, a third party's promotional payload as its own nested object
+        // with its own nested string. A conversation with yourself is addressed to your own
+        // phone number, so that payload really does arrive in the paired chat.
+        //
+        // The decoder's answer is a **positive rule**: the characters of the string this body
+        // *is*. Everything else in the stream is left unread, and a shape that is not a text
+        // balloon is refused rather than searched.
+
+        // 27. **The negative, and the one that was red.** A root that is not a text balloon is
+        // refused — it is not searched for a string it happens to contain.
+        //
+        // **This is the mutation that proves the test can fail.** On the walk this replaced, the
+        // reader descended into nested objects until it found a string it could justify, so it
+        // answered with the offer carried inside the foreign object: the same value, read as the
+        // message. The refusal is the guarantee, and `notAString` is the honest name for it.
+        await check("archiver_a_foreign_payload_is_never_the_message") {
+            let payload = DecoderForeignPayload(offer: Self.foreignOffer, link: Self.foreignLink)
+            guard let blob = DecoderArchiverOracle.archive(payload) else {
+                return "NSArchiver wrote nothing for the foreign payload"
+            }
+            // The precondition, and it is the whole case: the bytes really do carry a nested
+            // string, so a refusal is a decision rather than an accident.
+            guard blob.count > Self.foreignOffer.utf8.count else {
+                return "the foreign payload's stream is shorter than the string it carries, so "
+                    + "the case cannot tell a refusal from a blob that was never read"
+            }
+            var row = MessageRow()
+            row.attributedBody = blob
+            let envelope = MessagesDecoder.envelope(for: row)
+            if case .text(let text, _) = envelope.body {
+                return "a foreign object answered as the message — \(text.utf8.count) bytes"
+            }
+            guard case .unreadable(let reason) = envelope.body else {
+                return "a foreign object came back as \(envelope.decodeState), not a refusal"
+            }
+            guard case .notAString = reason else { return "the refusal is \(reason)" }
+            if envelope.text != nil { return "a refused body also carried text" }
+            return Self.nothingPassedOverReaches(
+                String(describing: envelope), from: blob, discardedBytes: 0, caseName: "the payload")
+        }
+
+        // 28. A link preview does not change the message. Apple's own encoder, a real
+        // `NSAttributedString.Key.link` and a real URL — the shape a body with a link carries,
+        // written by the writer this whole file uses as its oracle.
+        await check("archiver_a_link_preview_does_not_change_the_message") {
+            let expected = Self.oracleSentence
+            let link = "https://example.invalid/preview-fixture"
+            guard let url = URL(string: link),
+                  let blob = DecoderArchiverOracle.archive(NSMutableAttributedString(
+                    string: expected,
+                    attributes: [.link: url])) else {
+                return "NSArchiver wrote nothing for an attributed string carrying a link"
+            }
+            var row = MessageRow()
+            row.attributedBody = blob
+            let envelope = MessagesDecoder.envelope(for: row)
+            guard envelope.text == expected else {
+                return "the message is \(envelope.text?.utf8.count ?? 0) bytes, expected the "
+                    + "sender's \(expected.utf8.count)"
+            }
+            guard envelope.discardedBytes > 0 else {
+                return "a body carrying a link attribute reported 0 bytes passed over, so the "
+                    + "count cannot see the graph at all"
+            }
+            return Self.nothingPassedOverReaches(
+                String(describing: envelope), from: blob,
+                discardedBytes: envelope.discardedBytes, caseName: "the link preview")
+        }
+
+        // 29. The same sentence, twice, with different amounts of graph behind it. **The count
+        // has to move**, or it is decoration: the design's reason for the number is that a
+        // macOS which starts attaching more per message is *visible*, and a count that reads the
+        // same for a body with one attribute and a body with three cannot see that.
+        await check("archiver_a_growing_graph_grows_the_count") {
+            let expected = Self.oracleSentence
+            guard let bare = DecoderArchiverOracle.archive(
+                NSMutableAttributedString(string: expected)),
+                  let one = DecoderArchiverOracle.archive(NSMutableAttributedString(
+                    string: expected, attributes: [NSAttributedString.Key(Self.fixtureKeyA): "a"])),
+                  let three = DecoderArchiverOracle.archive(NSMutableAttributedString(
+                    string: expected,
+                    attributes: [NSAttributedString.Key(Self.fixtureKeyA): "a",
+                                 NSAttributedString.Key(Self.fixtureKeyB): "b",
+                                 NSAttributedString.Key(Self.fixtureKeyC): "c"])) else {
+                return "NSArchiver wrote nothing for one of the three bodies"
+            }
+            func discarded(_ blob: Data) -> (count: Int, problem: String?)? {
+                let body = MessagesDecoder.body(fromAttributedBody: blob)
+                guard case .text(let value, let count) = body else { return (0, "body is \(body)") }
+                guard value == expected else {
+                    return (0, "one of the bodies decoded to a different string")
+                }
+                return (count, nil)
+            }
+            guard let bareResult = discarded(bare), bareResult.problem == nil,
+                  let oneResult = discarded(one), oneResult.problem == nil,
+                  let threeResult = discarded(three), threeResult.problem == nil else {
+                return "one of the three bodies did not decode as the sender's sentence"
+            }
+            // Monotonicity, and not an exact number: how many bytes Apple's own encoder writes
+            // around an *empty* attribute dictionary is a fact about the encoder and not this
+            // decoder's claim, so what is asserted is that the count moves with the graph and
+            // never with the sentence.
+            guard bareResult.count <= oneResult.count else {
+                return "a body with no attributes reported \(bareResult.count) and one reported "
+                    + "\(oneResult.count)"
+            }
+            guard oneResult.count > 0 else {
+                return "a body with one attribute reported \(oneResult.count)"
+            }
+            guard threeResult.count > oneResult.count else {
+                return "three attributes reported \(threeResult.count) and one reported "
+                    + "\(oneResult.count)"
+            }
+            return nil
+        }
+
+        // 30. The count is a count. `MessageBody` carries an `Int` and a `String` and nothing
+        // else, so there is no field a name, a value or a fragment could ride in — and this
+        // case says it over the type rather than over a convention.
+        await check("archiver_the_count_carries_no_names_and_no_values") {
+            let expected = Self.oracleSentence
+            guard let blob = DecoderArchiverOracle.archive(NSMutableAttributedString(
+                string: expected,
+                attributes: [NSAttributedString.Key(Self.fixtureKeyA): "a",
+                             NSAttributedString.Key(Self.fixtureKeyB): "b"])) else {
+                return "NSArchiver wrote nothing"
+            }
+            let body = MessagesDecoder.body(fromAttributedBody: blob)
+            guard case .text(let value, let count) = body else { return "body is \(body)" }
+            guard value == expected, count > 0 else { return "text or count is wrong" }
+            // One string and one integer, and the integer is not derived from the string: a
+            // character count of the sender's text is the smallest possible fingerprint of it,
+            // so the count is about the *body*, and this pins that it moves with the graph and
+            // not with the sentence.
+            let rendered = String(describing: body)
+            guard !rendered.contains(Self.fixtureKeyA), !rendered.contains(Self.fixtureKeyB) else {
+                return "the body's own description carries an attribute name"
+            }
+            guard count != expected.count, count != expected.utf8.count else {
+                return "the count \(count) is the sender's text length, which is a fingerprint"
+            }
+            return nil
+        }
+
         // MARK: What no corpus and no artefact can answer
         //
         // Each of these is an assertion the roadmap names that nothing available can support.
@@ -756,6 +985,9 @@ enum MessagesDecoderSelfTest {
         // marker puts the verdict *before* them on stdout — and a reader, or
         // `Scripts/acceptance.sh`, reads the last line.
         var lines = blocked.map { "IMESSAGE_DECODE_BLOCKED: \($0)" }
+        // `IMESSAGE_DECODE_COUNT` is deliberately **not** a verdict token: it is neither `_OK`
+        // nor `_FAILED`, so `Scripts/acceptance.sh` reads past it, and it carries counts only.
+        lines.append(contentsOf: measured.map { "IMESSAGE_DECODE_COUNT: \($0)" })
         lines.append(contentsOf: failures.map { "IMESSAGE_DECODE_WRONG: \($0)" })
         lines.append(failures.isEmpty
             ? "IMESSAGE_DECODE_OK: \(caseCount) cases"
@@ -767,7 +999,7 @@ enum MessagesDecoderSelfTest {
     /// else. Inlined rather than a helper per case so a failure names the case it came from.
     private static func expect(_ blob: Data, toDecodeTo expected: String, caseName: String) -> String? {
         switch MessagesDecoder.body(fromAttributedBody: blob) {
-        case .text(let text):
+        case .text(let text, _):
             if text == expected { return nil }
             if text.isEmpty { return "\(caseName) decoded to the empty string" }
             if expected.hasPrefix(text) {
@@ -780,6 +1012,58 @@ enum MessagesDecoderSelfTest {
         case .notText, .absent:
             return "\(caseName) came back as \(MessagesDecoder.body(fromAttributedBody: blob))"
         }
+    }
+
+    // MARK: - The negative: nothing the walk passed over may reach a caller
+
+    /// Assert that **no run of printable text from the bytes the walk did not read appears in
+    /// what a caller can see** — over the whole rendered value, not over one field, so a new
+    /// field carrying a third party's payload is caught without anyone editing the case.
+    ///
+    /// ## Why it is built out of runs rather than a list of names
+    ///
+    /// Naming the attributes would be the denylist the design refuses: a bet on this macOS's
+    /// attribute names, and a test that only knows the ones somebody remembered. Instead every
+    /// maximal printable-ASCII run of six bytes or more in the discarded region is a candidate,
+    /// which is why `__kIMMessagePartAttributeName`, a link URL and a prose offer are all caught
+    /// by the same three lines and a future tenth attribute is caught by them too.
+    ///
+    /// Six bytes is the floor because the format's own bytes are dense: `streamtyped`, a class
+    /// name, a `+` and a length all sit within a few bytes of each other, and a shorter floor
+    /// would report the format rather than the payload. The discarded region is the right place
+    /// to look because the sender's own sentence is *not* in it — it is what the walk read — so
+    /// nothing here can be a false positive on the message.
+    ///
+    /// **A failure names how many runs and how long, never what they were.** A log line that
+    /// printed the offending run would be the leak.
+    private static func nothingPassedOverReaches(
+        _ rendered: String, from blob: Data, discardedBytes: Int, caseName: String
+    ) -> String? {
+        // A refusal reads nothing at all, so the whole body is the region the caller must not
+        // be quoting from.
+        let passedOver = discardedBytes > 0 ? blob.suffix(discardedBytes) : blob[...]
+        var runs: [String] = []
+        var current = ""
+        for byte in passedOver {
+            if byte >= 0x20, byte < 0x7F {
+                current.append(Character(UnicodeScalar(byte)))
+            } else {
+                if current.count >= 6 { runs.append(current) }
+                current = ""
+            }
+        }
+        if current.count >= 6 { runs.append(current) }
+        guard !runs.isEmpty else {
+            return "\(caseName): the discarded region holds no printable run of six bytes or more, "
+                + "so the case cannot see a leak"
+        }
+        let leaked = runs.filter { rendered.contains($0) }
+        guard leaked.isEmpty else {
+            return "\(caseName): \(leaked.count) of \(runs.count) runs from the "
+                + "\(passedOver.count) bytes the walk did not read appear in the value a caller "
+                + "can see, the longest \(leaked.map(\.count).max() ?? 0) bytes"
+        }
+        return nil
     }
 
     // MARK: - The local real body
@@ -860,6 +1144,65 @@ extension MessagesDecoderSelfTest.RealBodyFixture {
         }
         return Data(bytes)
     }
+}
+
+// MARK: - The shape a third party's payload arrives in
+
+/// A stand-in for the one object this roadmap measured and could not commit.
+///
+/// `TYPEDSTREAM-NOTES.md`, 2026-09-26: inside one real `attributedBody` on this Mac there was
+/// **`__kMSHSMessage` — a third party's promotional payload carried as its own nested object,
+/// with its own nested string, a `$` value, a class range and a date range**, beside a
+/// `__kIMDataDetectedLinkAttributeName` URL, a `__kIMLinkPreviewAttributeName`, a
+/// `__kIMDataDetectedResult` list and a `com.apple.*` bundle id. **A conversation with yourself
+/// is addressed to your own phone number, so a remote turn arrives wearing somebody else's
+/// marketing, and its row carries their payload.** A row in a thread is not a sentence.
+///
+/// **Why this is a class and not a fixture.** A `attributedBody` is a typedstream, and the
+/// roadmap forbids synthesising one — which is why the oracle above asks `NSArchiver` to write
+/// real bytes. Asking it to write *this* object writes real bytes too, in the real shape: an
+/// object that is **not a text balloon** and whose first field is a nested string, with a URL
+/// beside it. That is the shape a decoder that *searches* the graph answers with.
+///
+/// **It conforms to `NSCoding` by hand, and the conformance is the interesting part.** Two
+/// things about it were measured while writing this case, and both are the reason
+/// `MessagesDecoder` is hand-written at all:
+///
+/// 1. **`NSArchiver` signals failure by raising an `NSException`, and Swift cannot catch one.**
+///    The first version of this class did not say `: NSCoding`, so its `encode(with:)` was
+///    never bridged to the selector `encodeWithCoder:`, and the archiver raised
+///    `-[ForeignPayload encodeWithCoder:]: unrecognized selector` — which **terminated the
+///    process**, mid-self-test, with no Swift error and no verdict. That is §2.2's argument in
+///    miniature: the system API's failure channel is the process, and a self-test that touches
+///    the owner's machine has no way to degrade into a failed case.
+/// 2. **`NSArchiver` is the *unkeyed* archiver.** `coder.encode(x, forKey:)` raises
+///    *"encodeObject:forKey: only defined for abstract class"*, so this encodes positionally.
+///
+/// It is a test fixture, in a self-test, in this file, and it is the one place in the tree that
+/// writes anything resembling somebody else's payload — with placeholder text, for the reason the
+/// oracle sentence is a placeholder.
+@objc(DecoderForeignPayload)
+private final class DecoderForeignPayload: NSObject, NSCoding {
+    /// The prose a third party's payload carries. **First**, which is the whole point: the walk
+    /// this replaced searched for the first string it could justify and would land here.
+    @objc let offer: NSString
+    /// The URL that came with it.
+    @objc let link: NSString
+
+    init(offer: String, link: String) {
+        self.offer = offer as NSString
+        self.link = link as NSString
+        super.init()
+    }
+
+    @objc func encode(with coder: NSCoder) {
+        coder.encode(offer)
+        coder.encode(link)
+    }
+
+    /// Nothing ever unarchives this class — it exists to be *written* — and a decoder half that
+    /// has never been run is worse than one that says so.
+    required init?(coder: NSCoder) { return nil }
 }
 
 // MARK: - Apple's encoder, used as an oracle

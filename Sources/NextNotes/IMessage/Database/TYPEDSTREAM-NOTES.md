@@ -891,3 +891,99 @@ answer), `real_body_and_the_text_column_agree` (`both-paths`, positive half),
 **Still blocked, and honestly so:** `effect-bubble-classification` (no effect bubble was captured
 — all ten rows had `payload_data` absent) and `voice-note-as-not-text` (still needs a projected
 `is_audio_message` column, which is IM-04's shape rather than this task's).
+
+---
+
+## 2026-09-26 — IM-17c: a walk is not a search, and the count is bytes
+
+The section above measured a real body end to end. This one records what walking it *past* the
+sentence found, and the one change to `MessagesDecoder` that IM-17c makes.
+
+### The 202-byte body in full, as a graph
+
+The whole blob, annotated. Offsets are into the 202 bytes; `+` is the unshared-string tag, `*` the
+shared C-string tag, `@` an object. **The first six bytes after each offset are printed with it**, so
+every line can be checked against `real-body.txt`'s `blob=` without a second tool:
+
+```
+0000  04 0b 73 74 72 65 61   "streamtyped" 81 e8 03  — the header, measured above
+0010  84 01 40 84 84 84     new shared string 0 = "@"
+0013  84 84 84 12 4e 53     the root's class chain: "NSAttributedString", v0
+0029  00 84 84 08 4e 53     its superclass "NSObject", v0
+0035  00 85 92 84 84 84     chain closed by nil; 0x36 is a field — a *reference* to shared 0,
+                             so an object, and 0x84 84 08 is a nested "NSString", v1, its chain
+                             closed by the reference 0x94
+0046  84 01 2b 1b 48 c3     new shared string 4 = "+", then 0x1b = 27 — THE SENDER'S SENTENCE
+0049  1b 48 c3 a9 6c 6c     27 bytes, read by their declared length. Two of them are one é.
+0065  86 84 02 69 49 01     END of the nested string.  **THE WALK STOPS HERE: 101 of 202.**
+0066  84 02 69 49 01 19     a two-character type tag, "iI", this decoder does not name
+006a  01 19 92 84 84 84     two more bytes this note does not model either
+006c  92 84 84 84 0c 4e     field: a reference to "@"; 0x6d opens the attribute graph
+0070  0c 4e 53 44 69 63     "NSDictionary" (12 bytes, 0x71..0x7c), v0, chain closed at 0x7e
+007f  84 01 69 01 92 84     a count of one entry, then a reference to "@"
+0083  92 84 96 96 1d 5f     an object with an empty class chain; 0x87 = 29, a key of 29 bytes
+0088  5f 5f 6b 49 4d 4d     __kIMMessagePartAttributeName, 0x88..0xa4
+00a5  86 92 84 84 84 08     END; 0xa6 the value -- a field, then a chain: "NSNumber" v0 …
+00bc  75 65 00 94 84 01     … "NSValue" v0 (0xb7..0xbd); 0xbf closes the chain, 0xc2 = "*"
+00c9  86 86 86              three end-of-object markers, and the body ends at 0xc9
+```
+
+**Four things in there, and only one of them is the sender's words.** The walk reads 101 of the 202
+bytes and stops at offset 101 (`0x65`, the end-of-object marker that closes the nested string). The
+**101 bytes behind it** hold the `NSDictionary`, its count, one 29-byte key, and the value object —
+and the key appears **twice**, once as the dictionary's key and once as a `char *` inside the value.
+So even the *plain* body — the plain end of the range, with no link preview, no detected entity, no
+bundle id and no third party in it — carries a named attribute, and the decoder passes over both
+copies without naming either. `IM-17c`'s count is **101** on this body, and the count is **bytes**,
+for the reason in the next section.
+
+### Why the count is bytes and not attribute names, in one measured fact
+
+`TYPEDSTREAM-NOTES.md` §1.4 says a reader that maps one byte to one type desynchronises on
+`{CGSize=dd}`, and §5.3 says only the string is modelled. **Those two rules together mean the tail
+cannot be walked.** The very first frame after the sentence's end-of-object marker is
+`84 02 69 49` — a two-character type tag, `iI`, that this decoder does not name. Reading past it
+means guessing a width, and a guessed width on a real attribute graph is how a reader desynchronises
+and returns a plausible wrong answer. So:
+
+- an accurate count of **named attributes** needs a grammar-aware skipper this decoder deliberately
+  does not have;
+- a count of **names** is the denylist bet the design refuses — one name is a bet on this macOS's
+  attribute list;
+- a count of **unread bytes** is exact, needs no guess, is about the *format* rather than about
+  anybody's message, and moves when macOS attaches more graph.
+
+`MessageBody.text` therefore carries `discardedBytes`, and `IM-17c`'s design called the field
+`discardedAttributeCount`. The name is wrong and the number is the honest one, which is the
+trade this file makes: **a number whose name says what it is beats a number whose name says what
+it was meant to be.** `discardedBytes == 0` on a body that carries a nested object would mean the
+walk had read the whole body, which is the one thing the guarantee says it never does.
+
+### The walk is anchored, and that is the whole of the fix
+
+The walk this replaced **searched**: it descended into nested objects until it found a string it
+could justify, and carried on past a nested object that held none. Against the graph above that is
+harmless — the sentence comes first. Against the 298-byte and ~1140-byte bodies from the same
+capture it is not, because they carry a detected-entity list, a link preview, a `com.apple.*`
+bundle id and a `__kMSHSMessage` **whose first field is its own nested string**. A search over that
+graph can land on the offer, and a search that lands on the offer returns it as the message.
+
+The rule now is one line and it is positive:
+
+> The answer is the characters of the string this body **is** — the first string-typed field of an
+> object whose class chain says it is a text balloon or a string — and nothing else in the graph
+> is read as text at all.
+
+One object, one field, one string. A root that is not a text balloon is `notAString`. A nested
+object that is not a string is `notAString` — **not a place to keep digging**. The two sets of
+names this needs (`stringClasses`, `textBalloons`) are *recognitions*, like
+`MessagesSchemaVersion.supported`: they say what a message body **is**, and a reader that stopped
+recognising one would refuse the body rather than misread it.
+
+**What this changed about the design, said out loud.** `IM-17-DESIGN.md` §5 (IM-17c) says the walk
+does not change. It had to: the design's own sentence is *"the decoder walks the streamer's object
+graph **to the top-level `NSMutableString`**, returns that one string, and returns a refusal for
+everything else"*, and the shipped walk was a search rather than a walk-to. Everything else the
+design asked for is as written — one `Int`, no bag, no dictionary, no array of names, and the
+count on the value rather than beside it. The field's *name* is the one thing not as written, for
+the reason above.

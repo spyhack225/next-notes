@@ -60,6 +60,63 @@ import Foundation
 ///
 /// **`U+FFFC` is left in the text.** It is how a photo is marked; stripping it makes a photo
 /// message look empty, which is the exact failure this task exists to prevent.
+///
+/// ## Only the sender's own words leave this file (IM-17c, 2026-09-26)
+///
+/// A real `attributedBody` is **not text with a header**. Inside one 202-byte body measured on
+/// this Mac: `NSAttributedString`, a nested `NSString` holding the sentence, and then a
+/// `NSDictionary` keyed by `__kIMMessagePartAttributeName`. The 202-byte body is the *plain* end
+/// of the range; the 298-byte and ~1140-byte bodies from the same capture carry a detected-entity
+/// list, a link preview, a `com.apple.*` bundle id, and — in one of them — **`__kMSHSMessage`, a
+/// third party's promotional payload carried as its own nested object with its own nested string, a
+/// `$` value, a class range and a date range** (`TYPEDSTREAM-NOTES.md`, *The stream is an
+/// attribute graph, not a string*). A Messages conversation with yourself is addressed to your own
+/// phone number, so **a remote turn arrives wearing somebody else's marketing**, and the row it
+/// arrives in is not a sentence.
+///
+/// So the decoder's guarantee is a **positive rule**, and it is one line long:
+///
+/// > **The answer is the characters of the string this body *is* — the first string-typed field
+/// > of an object whose class chain says it is a text balloon or a string — and nothing else in
+/// > the graph is read as text at all.**
+///
+/// **Why this point and not somewhere else.** It is the only place in the app where the blob
+/// exists as bytes, and it is upstream of the classifier, the adapter, the memory gate, the
+/// knowledge index, the model and the usage log — so one narrow return type here is upstream of
+/// every consumer, where a scrubber on the way to the model, a filter in the usage log or a check
+/// in the query seam is a separate place for somebody to remember. `UsageLog.sanitise` is
+/// demonstrably the wrong one of those: it strips quoted content, addresses, URLs, paths and long
+/// digit runs, and **a promotional offer is none of those — it is prose, and it survives every
+/// rule in it**.
+///
+/// **Why the rule is not a denylist, and this is the load-bearing sentence.** A list of attribute
+/// names to strip is a bet on the current macOS release: the measured graph held eight named
+/// attributes plus a nested object whose shape nobody here knows, and an update adds a ninth. This
+/// file never needed that list and still does not — there is nothing in it to add a name to. The
+/// only two sets of names in this decoder are *recognitions* (`MessagesSchemaVersion.supported`,
+/// `stringClasses`, `textBalloons`), which say **what a message body is**, and a reader that
+/// stopped recognising it would refuse the body rather than misread it.
+///
+/// **A search is the hole, and closing it is what changed.** The walk this file used to run
+/// descended into nested objects looking for the first string it could justify, and carried on
+/// past a nested object that held none. That is a *search*, and a search over a graph that carries
+/// a third party's nested object can land **on** that nested object: the offer, read as the
+/// message. The walk is now anchored — one object, one field, one string — and everything else in
+/// the stream is left unread. `archiver_a_foreign_payload_is_never_the_message` is the case that
+/// pins it, and it is red on the old walk.
+///
+/// **What the count is, and what it is not.** `MessageBody.text` carries `discardedBytes`: the
+/// number of bytes of the body the walk did **not** read, which on the attested 202-byte real body
+/// is 101 of 202. It is a **volume about the format**, not about anybody's message, and it is the
+/// only number this file adds. It is deliberately *not* a list of the names that were passed over
+/// (a name is exactly the bet above) and *not* a count of attributes: counting attributes
+/// accurately needs a grammar-aware skipper over the attribute runs, this decoder deliberately does
+/// not model that grammar, and the tail's very first frame on the real body is a type tag the
+/// reader does not name — guessing its width is the desynchronisation `TYPEDSTREAM-NOTES.md` §1.4
+/// warns about. So the count is a **lower bound on what was discarded, in the one unit that is
+/// exact**, and a macOS that starts attaching more graph makes it grow. `discardedBytes == 0` on a
+/// body that measurably carries a nested object would mean the walk had read everything, which is
+/// the one thing this guarantee says it never does.
 enum MessagesDecoder {
     /// The largest `attributedBody` this will read at all, and over it is a refusal rather
     /// than a truncation.
@@ -69,10 +126,11 @@ enum MessagesDecoder {
     /// microseconds instead of an allocation on the read path.
     static let maxBodyBytes = 1 << 20
 
-    /// How deep the walk into nested objects goes. Measured depth for a message body is
-    /// **two** (`NSMutableAttributedString` → `NSMutableString`); this is a bound on a
-    /// malformed or hostile blob, not a shape we expect to reach.
-    static let maxObjectDepth = 8
+    /// How deep the walk into nested objects goes. **Exactly two**, and that is now a property
+    /// of the walk rather than a bound on it (IM-17c): a text balloon and the one string field
+    /// inside it. It stays as a named constant because a reader that can be asked "how far does
+    /// this go" should answer with data rather than with a number somebody remembers.
+    static let maxObjectDepth = 2
 
     /// Shared strings one stream may register. A real body registers a handful (the class
     /// names, the type tags, the C strings); this is a bound on a blob that is not a stream.
@@ -117,8 +175,21 @@ struct IMessageEnvelope: Equatable, Sendable {
     /// that writes one. Downstream, `text != nil` is a claim the type system backs.
     var text: String? {
         switch body {
-        case .text(let value): value
+        case .text(let value, _): value
         case .unreadable, .notText, .absent: nil
+        }
+    }
+
+    /// How much of the body the walk did not read — a volume about the *format*, never about
+    /// the message. See `MessageBody.text`'s comment and the file header's IM-17c section.
+    ///
+    /// **Zero for a body that is not `.text`**, and that is not a measurement: a refusal is not
+    /// a partial read, and a body with no sender's words has nothing to have passed anything
+    /// over. The number that matters is on a body that decoded.
+    var discardedBytes: Int {
+        switch body {
+        case .text(_, let discarded): discarded
+        case .unreadable, .notText, .absent: 0
         }
     }
 
@@ -162,7 +233,10 @@ extension MessagesDecoder {
         let body: MessageBody
         let source: MessageBodySource
         if let text = row.text, !text.isEmpty {
-            body = .text(text)
+            // The column *is* the sender's words, so there is no walk and nothing passed over.
+            // A link preview or a nested payload lives in the stream, not here, which is also
+            // why this path is the safe one to take first.
+            body = .text(text, discardedBytes: 0)
             source = .textColumn
         } else if let blob = row.attributedBody {
             body = MessagesDecoder.body(fromAttributedBody: blob)
@@ -200,14 +274,15 @@ extension MessagesDecoder {
                 return .unreadable(reason: .unsupportedStreamVersion(found: version.streamerVersion,
                                                                     system: version.systemVersion))
             }
-            guard let text = try reader.firstString() else {
-                return .unreadable(reason: .notAString(offset: reader.offset))
-            }
+            // The positive rule, in the one place that owns it: the sender's own words and
+            // nothing else. See the file header's IM-17c section for why it is here and not in
+            // a scrubber three layers up.
+            let decoded = try reader.senderText(of: blob)
             // A stream that parses and holds a zero-length string is a body with no text in it,
             // not a body we could not read. Answering `.text("")` would put the one value this
             // whole task exists to keep out of the pipeline into it, so the invariant below
             // holds instead: **`text` is nil or non-empty, whichever column answered.**
-            return text.isEmpty ? .absent : .text(text)
+            return decoded.text.isEmpty ? .absent : .text(decoded.text, discardedBytes: decoded.discardedBytes)
         } catch let failure as MessageDecodeFailure {
             return .unreadable(reason: failure)
         } catch {
@@ -261,9 +336,23 @@ struct MessagesSchemaVersion: Equatable, Hashable, Sendable {
 
 /// What a message's body turned out to be. The only stored fact about a body, and the reason
 /// `text` and `decodeState` are derived rather than written twice.
+///
+/// **One string, and one number. That is the whole of it (IM-17c).** There is no bag, no
+/// dictionary and no array of attribute names, because a body carries a third party's payload
+/// (see the file header) and the only place that payload must not reach is *here*. A new case
+/// with a second string in it is a compile error at every `case .text` in the tree, which is
+/// the enforcement; `archiver_a_foreign_payload_is_never_the_message` and
+/// `archiver_a_link_preview_does_not_change_the_message` are the assertions.
 enum MessageBody: Equatable, Sendable {
     /// A body somebody can read. From `text`, or from a decoded stream.
-    case text(String)
+    ///
+    /// `discardedBytes` is how much of the body the walk did **not** read — the attribute
+    /// graph, a detected-entity list, a link preview, a nested object that is not the
+    /// sender's. It travels *with* the string rather than beside it so that a value carrying
+    /// the sender's words and a value carrying a volume of somebody else's payload are one
+    /// thing a caller has to hold, and so the number cannot be filled in by a caller that
+    /// never ran the walk.
+    case text(String, discardedBytes: Int)
     /// A body this Mac could not read. **Never the empty string** — there is no way to spell
     /// that here, which is the point.
     case unreadable(reason: MessageDecodeFailure)
@@ -355,12 +444,21 @@ enum MessageBodySource: Equatable, Sendable {
 /// or refuses.
 ///
 /// **Why it can afford not to model the type grammar.** The text is the first field of a nested
-/// string object, and this reader returns as soon as it has it — so every value it has to
-/// understand is one of three: an object (`@`, descend), a string (`+` or `*`, take it), or
-/// the end of the object. It never has to step over a value whose width it does not know,
-/// because it never reaches one. That is the whole of `TYPEDSTREAM-NOTES.md` §5.3's "only the
-/// string is wanted, so only the string is modelled" — and it is why a *different* root shape
-/// is a refusal rather than a guess.
+/// string object, and this reader stops as soon as it has it — so every value it has to
+/// understand is one of three: an object (`@`, open it), a string (`+` or `*`, take it), or a
+/// refusal. It never has to step over a value whose width it does not know, because it never
+/// reaches one. That is the whole of `TYPEDSTREAM-NOTES.md` §5.3's "only the string is wanted,
+/// so only the string is modelled" — and it is why a *different* root shape is a refusal rather
+/// than a guess.
+///
+/// **Stopping is also the privacy guarantee (IM-17c).** The attribute graph behind the text —
+/// the detected entities, the link preview, the bundle id, the nested object that is somebody
+/// else's — is never *read*, so there is nothing downstream that could hold it. A reader that
+/// walked the tail in order to count or inspect it would be modelling the grammar after all, and
+/// the tail's first frame on the real 202-byte body is a type tag this decoder does not name
+/// (`iI`, immediately after the text's end-of-object marker). Guessing that one's width is the
+/// desynchronisation `TYPEDSTREAM-NOTES.md` §1.4 warns about, which is why the count this
+/// reader reports is unread **bytes** and not a list of names.
 ///
 /// **Every loop is bounded by the bytes remaining** and every read is bounds-checked. A parser
 /// that can fail to advance is a hang inside the message read path, and a hang there is a
@@ -534,67 +632,102 @@ private struct TypedStreamReader {
         return TypedStreamReader.signed(head) + 110
     }
 
-    // MARK: Objects
+    // MARK: The sender's own words
 
-    /// The first string this reader can justify, or nil when the stream holds none.
+    /// The string this body **is**, and how much of the body the walk did not read.
     ///
-    /// The root of a message body is an object, so the top level is one type-prefixed value
-    /// group whose tag is `@`; anything else is refused rather than searched for.
-    mutating func firstString() throws -> String? {
-        guard let tag = try readSharedString(),
-              String(decoding: tag, as: UTF8.self) == "@" else {
-            return nil
+    /// **This is the positive rule, and the whole of the privacy guarantee.** One object, one
+    /// field, one string:
+    ///
+    /// | the root's class chain says | the walk reads | anything else |
+    /// |---|---|---|
+    /// | it is a **string** (`stringClasses`) | its first field, as characters | left unread |
+    /// | it is a **text balloon** (`textBalloons`) | its first field's one string field | left unread |
+    /// | neither | `notAString` | — |
+    ///
+    /// A nested object that is not a string is `notAString` too, **not** a place to keep
+    /// looking. That is the whole difference from the search this replaced: the old walk
+    /// descended into nested objects until it found a string it could justify, and a graph
+    /// carrying a third party's payload can be searched *onto* that payload.
+    mutating func senderText(of blob: Data) throws -> DecodedText {
+        // The root of a body is one type-prefixed object value, and its tag is `@`.
+        guard let rootTag = try readSharedString(),
+              MessagesDecoder.tagName(rootTag) == "@" else {
+            throw MessageDecodeFailure.notAString(offset: offset)
         }
-        return try string(inObjectAt: 0)
+        let root = try openObject()
+        let isString = root.contains(where: MessagesDecoder.stringClasses.contains)
+        let isBalloon = root.contains(where: MessagesDecoder.textBalloons.contains)
+        guard isString || isBalloon else {
+            // An object that is not a text balloon is not a message body, whatever it holds.
+            // `NSNumber`'s first field is its `objCType`, a `char *`, and reading it would
+            // answer `q`.
+            throw MessageDecodeFailure.notAString(offset: offset)
+        }
+        let text = isString ? try characters() : try characters(ofStringFieldOfBalloon: root, depth: 1)
+        return DecodedText(text: text, discardedBytes: blob.count - offset)
     }
 
-    /// Read a literal object and return the first field of it that is a string, descending
-    /// into a nested object when the field is one.
-    private mutating func string(inObjectAt depth: Int) throws -> String? {
-        guard depth <= MessagesDecoder.maxObjectDepth else {
-            throw MessageDecodeFailure.structureUnreadable(offset: offset)
-        }
+    /// Consume the `new` marker and read the class chain of the object the cursor is on.
+    private mutating func openObject() throws -> [String] {
         guard try take() == Tag.new_ else {
             // A nil, or a reference to an object written earlier. Neither can be read as a
             // body: there is no first occurrence of a message's own text to point at, so a
             // reference here is a shape this decoder does not know.
             throw MessageDecodeFailure.structureUnreadable(offset: offset)
         }
-        let classNames = try readClassChain()
-        while true {
-            let head = try take()
-            if head == Tag.endOfObject { return nil }
-            guard let tag = try readSharedString(head: head) else {
-                throw MessageDecodeFailure.structureUnreadable(offset: offset)
-            }
-            switch String(decoding: tag, as: UTF8.self) {
-            case "@":
-                if let nested = try string(inObjectAt: depth + 1) { return nested }
-            case "+", "*":
-                // The gate. A character pointer is only the text when the object holding it is
-                // a string: `NSNumber`'s first field is the `objCType` `char *` and reading it
-                // would answer `q`. Matching on the class *chain* rather than the leaf name
-                // means a private concrete subclass (`__NSCFString` and its relations) is
-                // recognised through its superclass, which is in the stream, while
-                // `NSMutableAttributedString` — which contains the word "String" and holds no
-                // text in its first field — is not mistaken for one.
-                guard classNames.contains(where: MessagesDecoder.stringClasses.contains) else {
-                    throw MessageDecodeFailure.notAString(offset: offset)
-                }
-                let unshared = tag.count == 1 && tag[0] == UInt8(ascii: "+")
-                let raw = unshared ? try readUnsharedString() : try readCString()
-                guard let raw else { throw MessageDecodeFailure.notAString(offset: offset) }
-                guard let text = String(bytes: raw, encoding: .utf8) else {
-                    throw MessageDecodeFailure.notAString(offset: offset)
-                }
-                return text
-            default:
-                // A type this reader does not model. Refused, and *not* stepped over: skipping
-                // a value means knowing its width, and a reader that guesses widths is a reader
-                // that desynchronises and returns a plausible wrong sentence.
-                throw MessageDecodeFailure.structureUnreadable(offset: offset)
-            }
+        return try readClassChain()
+    }
+
+    /// The characters of a string object: its first field, read by its declared byte length.
+    ///
+    /// `+` is an unshared string (a length and that many bytes) and `*` is a shared C string
+    /// (a reference into the table, one level deeper because a `*` is deduplicated and a `+`
+    /// is not). Both are read by length, so a truncated one is a refusal and never a prefix.
+    private mutating func characters() throws -> String {
+        let head = try take()
+        guard let tag = try readSharedString(head: head) else {
+            throw MessageDecodeFailure.notAString(offset: offset)
         }
+        let raw: [UInt8]?
+        switch MessagesDecoder.tagName(tag) {
+        case "+": raw = try readUnsharedString()
+        case "*": raw = try readCString()
+        default: throw MessageDecodeFailure.notAString(offset: offset)
+        }
+        guard let raw, let text = String(bytes: raw, encoding: .utf8) else {
+            throw MessageDecodeFailure.notAString(offset: offset)
+        }
+        return text
+    }
+
+    /// The one string field of a text balloon: its first field, which has to *be* a string.
+    ///
+    /// The class chain is matched rather than the leaf name, which is what lets a private
+    /// concrete subclass (`__NSCFString` and its relations) be recognised through the
+    /// superclass that is in the stream — and it is also what keeps
+    /// `NSMutableAttributedString`, which contains the word "String" and holds no text in its
+    /// first field, from being mistaken for one.
+    private mutating func characters(ofStringFieldOfBalloon balloon: [String], depth: Int) throws -> String {
+        guard balloon.contains(where: MessagesDecoder.textBalloons.contains) else {
+            throw MessageDecodeFailure.notAString(offset: offset)
+        }
+        guard let fieldTag = try readSharedString(), MessagesDecoder.tagName(fieldTag) == "@" else {
+            throw MessageDecodeFailure.notAString(offset: offset)
+        }
+        // The one bound the walk still needs, and it is checked rather than assumed: the walk
+        // reaches depth two on a real body and can go no further, so a blob that asks for a
+        // third is refused instead of being read.
+        guard depth < MessagesDecoder.maxObjectDepth else {
+            throw MessageDecodeFailure.structureUnreadable(offset: offset)
+        }
+        let nested = try openObject()
+        guard nested.contains(where: MessagesDecoder.stringClasses.contains) else {
+            // **A nested object that is not a string is where the old walk used to keep
+            // digging.** It is a refusal here, and the refusal is the guarantee.
+            throw MessageDecodeFailure.notAString(offset: offset)
+        }
+        return try characters()
     }
 
     /// The class chain of the object just opened: literal classes in order, each a name and a
@@ -623,7 +756,7 @@ private struct TypedStreamReader {
 }
 
 extension MessagesDecoder {
-    /// The classes whose first field is the text, matched anywhere in a class chain.
+    /// The classes whose **first field is the text**, matched anywhere in a class chain.
     ///
     /// **Data, for the same reason `MessagesSchemaVersion.supported` is data**: what a macOS
     /// writes is a fact about macOS, and a reader that has to be edited to recognise a new
@@ -634,4 +767,47 @@ extension MessagesDecoder {
         "NSMutableString",
         "NSConcreteString"
     ]
+
+    /// The classes that **are a message body**: an attributed string, whose first field is one
+    /// string and whose second is the attribute graph this decoder does not read.
+    ///
+    /// **This is a recognition, not a removal list, and that distinction is the whole design
+    /// (IM-17c).** It says *what a body is*, in the same way `stringClasses` says what a string
+    /// is and `MessagesSchemaVersion.supported` says what a header is: a recognition a future
+    /// macOS extends by one line. Nothing in this file names an attribute, and a macOS that
+    /// attaches a ninth attribute, a tenth class or a nested object nobody has seen changes
+    /// nothing here — the walk stops at the sentence and the rest of the body is never read.
+    ///
+    /// **Measured 2026-09-26 on Messages' own bytes**: the 202-byte self-message's root chain is
+    /// `NSAttributedString` → `NSObject`, and the oracle's `NSMutableAttributedString` writes
+    /// `NSMutableAttributedString` → `NSAttributedString` → `NSObject`. A private concrete
+    /// subclass is recognised through its superclass, which is in the stream.
+    static let textBalloons: Set<String> = [
+        "NSAttributedString",
+        "NSMutableAttributedString"
+    ]
+
+    /// A type-encoding tag as a name.
+    ///
+    /// One spelling of the comparison, because the walk compares tags in four places and a
+    /// reader that guessed which bytes are a tag would be guessing at every integer in the
+    /// stream. A tag this decoder does not model comes back as its own name, which no `case`
+    /// below matches — so an unknown tag is a refusal rather than a step.
+    static func tagName(_ tag: [UInt8]) -> String {
+        String(decoding: tag, as: UTF8.self)
+    }
+}
+
+/// The decoder's answer: the string the body is, and the volume of the body it passed over.
+///
+/// **Two fields, both about the format.** `text` is the sender's own words and nothing else —
+/// see the file header's IM-17c section — and `discardedBytes` is how much of the body the walk
+/// did not read, which is a lower bound on the attribute graph, the detected entities, the link
+/// preview and any nested object that came with the message.
+struct DecodedText: Equatable, Sendable {
+    /// Non-empty, or the decoder answered `.absent` instead. There is no way to spell `""` here.
+    var text: String
+    /// Bytes of the body the walk stopped short of. Zero only for a body that is nothing but
+    /// the sentence.
+    var discardedBytes: Int
 }
