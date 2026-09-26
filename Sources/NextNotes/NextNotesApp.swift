@@ -745,7 +745,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let problems = await DictationHygieneSelfTest.run()
                 for problem in problems { writeSelfTest("DICTATION_HYGIENE_WRONG: \(problem)") }
                 writeSelfTest(problems.isEmpty
-                    ? "DICTATION_HYGIENE_OK: history appends in memory, retention is opt-in"
+                    ? "DICTATION_HYGIENE_OK: history appends in memory, retention is opt-in, the clipboard survives"
                     : "DICTATION_HYGIENE_FAILED: \(problems.count) problem(s)")
                 SelfTest.failed = !problems.isEmpty
                 NSApp.terminate(nil)

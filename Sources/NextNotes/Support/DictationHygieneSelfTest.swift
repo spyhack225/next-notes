@@ -1,3 +1,4 @@
+import AppKit
 import CryptoKit
 import Foundation
 
@@ -22,6 +23,9 @@ import Foundation
 /// after — and never written, which is the same rule `AGENTS.md` states for the controller
 /// ("a self-test must never call `RunLog.record`") enforced from the other side.
 ///
+/// **D-15b, the clipboard.** The pasteboard path restores the user's old clipboard ~500 ms
+/// after typing, and a copy made inside that window is theirs; see `clipboardFailures`.
+///
 /// The final line is `DICTATION_HYGIENE_OK` or
 /// `DICTATION_HYGIENE_FAILED: <n> problem(s)`, written by `NextNotesApp` from the array
 /// this returns.
@@ -31,6 +35,7 @@ enum DictationHygieneSelfTest {
     static func run() async -> [String] {
         var problems: [String] = []
         problems += historyFailures()
+        problems += await clipboardFailures()
         return problems
     }
 
@@ -209,6 +214,66 @@ enum DictationHygieneSelfTest {
     }
 
     // MARK: - Helpers
+
+    /// The pasteboard, D-15b.
+    ///
+    /// The pasteboard path writes the dictated text, posts ⌘V, and puts the user's old
+    /// clipboard back about 500 ms later. A copy made inside that window used to be
+    /// silently overwritten, because the restore was unconditional: the user pressed ⌘C
+    /// while their dictation was still being typed and lost whatever they had copied.
+    ///
+    /// Two cases on a private pasteboard, so nothing here touches `NSPasteboard.general`,
+    /// posts a real ⌘V, or can disturb what the user has on the real one: case 1 does
+    /// nothing and the saved contents must come back; case 2 copies "C" inside the window
+    /// and that copy must survive. Case 1 is the one that would break if the guard were
+    /// wrong in the other direction — a restore that never runs leaves the dictated text on
+    /// the clipboard, which is how the AX path's `couldNotReturn` rescue is chosen.
+    private static func clipboardFailures() async -> [String] {
+        var problems: [String] = []
+        let pasteboard = NSPasteboard(name: .init("ai.pivotstudio.nextnotes.selftest"))
+        // Claimed and released rather than left registered, so a run cannot outlive itself
+        // holding a pasteboard name the next one wants.
+        pasteboard.releaseGlobally()
+        defer { pasteboard.releaseGlobally() }
+
+        pasteboard.clearContents()
+        pasteboard.setString("A", forType: .string)
+        let first = await TextInjector.insertViaPasteboard(
+            "B",
+            pasteboard: pasteboard,
+            postPaste: {},
+            restoreDelay: .milliseconds(50)
+        )
+        await first?.value
+        if pasteboard.string(forType: .string) != "A" {
+            problems.append(
+                "the saved clipboard was not restored: it reads \(read(pasteboard))"
+            )
+        }
+
+        pasteboard.clearContents()
+        pasteboard.setString("A", forType: .string)
+        let second = await TextInjector.insertViaPasteboard(
+            "B",
+            pasteboard: pasteboard,
+            postPaste: {},
+            restoreDelay: .milliseconds(200)
+        )
+        try? await Task.sleep(for: .milliseconds(20))
+        pasteboard.clearContents()
+        pasteboard.setString("C", forType: .string)
+        await second?.value
+        if pasteboard.string(forType: .string) != "C" {
+            problems.append(
+                "a copy made during the restore window was overwritten: the pasteboard reads \(read(pasteboard))"
+            )
+        }
+        return problems
+    }
+
+    private static func read(_ pasteboard: NSPasteboard) -> String {
+        pasteboard.string(forType: .string).map { "\"\($0)\"" } ?? "nothing"
+    }
 
     /// `"size|mtime|digest"`, or nil when the file is absent. The digest as well as the
     /// mtime, for the reason `SelfTestStoreGuard` gives: an atomic write can replace a file

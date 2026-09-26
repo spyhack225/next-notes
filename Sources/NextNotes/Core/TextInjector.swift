@@ -335,8 +335,28 @@ enum TextInjector {
 
     // MARK: - Strategy 2: Pasteboard + ⌘V
 
-    private static func insertViaPasteboard(_ text: String) async {
-        let pasteboard = NSPasteboard.general
+    /// Writes the text to the pasteboard, posts ⌘V, and puts the previous contents back.
+    ///
+    /// The restore is conditional, and that is the whole point of this function. The 40 /
+    /// 80 / 420 ms shape is unchanged — it is the tail half of the "the text lands, then
+    /// the clipboard goes back" story — but between the write and the restore the user is
+    /// free to press ⌘C, and the old unconditional restore threw their copy away.
+    /// `changeCount` is the pasteboard's own generation counter and moves on every write by
+    /// anyone, so the restore runs only while the contents are still the ones this function
+    /// put there.
+    ///
+    /// Three of the four arguments exist so `--selftest-dictation-hygiene` can drive this
+    /// without a pasteboard of its own and without typing into whatever is focused: a
+    /// private `NSPasteboard`, a no-op `postPaste`, and a short `restoreDelay`. The returned
+    /// `Task` is the restore, handed back so the test can await it instead of guessing how
+    /// long 420 ms is; the two production call sites discard it.
+    @discardableResult
+    static func insertViaPasteboard(
+        _ text: String,
+        pasteboard: NSPasteboard = .general,
+        postPaste: @MainActor () -> Void = postCommandV,
+        restoreDelay: Duration = .milliseconds(420)
+    ) async -> Task<Void, Never>? {
         let saved = pasteboard.pasteboardItems?.compactMap { item -> [NSPasteboard.PasteboardType: Data] in
             var copy: [NSPasteboard.PasteboardType: Data] = [:]
             for type in item.types {
@@ -347,19 +367,28 @@ enum TextInjector {
 
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+        // Read after the write, not before: this is the generation the restore is allowed
+        // to undo, and anything that moves it since belongs to the user.
+        let ourGeneration = pasteboard.changeCount
 
         // Give the target app a moment to observe the new pasteboard generation before
         // ⌘V arrives, or a fast paste can grab the *previous* contents.
         try? await Task.sleep(for: .milliseconds(40))
-        postCommandV()
+        postPaste()
         Log.inject.info("pasted (\(text.count) chars)")
 
         // Long enough for the paste to land, short enough that Return can follow it
         // before the clipboard is restored. The restore itself waits out the rest of
         // the original 500 ms budget in the background.
         try? await Task.sleep(for: .milliseconds(80))
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(420))
+        return Task { @MainActor in
+            try? await Task.sleep(for: restoreDelay)
+            guard pasteboard.changeCount == ourGeneration else {
+                // Something wrote to the pasteboard while the dictated text was on it —
+                // almost always the user pressing ⌘C. Their copy is what belongs there.
+                Log.inject.info("clipboard changed during the restore window; left it alone")
+                return
+            }
             restore(saved, to: pasteboard)
         }
     }
