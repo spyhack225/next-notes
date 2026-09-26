@@ -33,8 +33,14 @@ APPNAME  := Next Notes.app
 ## mid-`cp` — measured during the 2026-09-25 roadmap as three install failures in an hour,
 ## each of which can also install a plausible-but-wrong bundle (one run's binary, another's
 ## frameworks). A directory nobody else can name cannot be written by two processes.
-## `$$` is this make's pid, constant across the recipe lines of one run.
-STAGE_RUN := $(STAGE)/install-$$
+##
+## The suffix is **make's own pid**, read with `$(shell …)`. `$$` does not work here: in a
+## variable assignment it expands to a literal `$`, so every invocation would share the
+## directory named `install-$` — measured, the first version of this fix printed
+## `built …/install-$/Next Notes.app` and staged into one shared path again. Every
+## `$(shell)` child is parented to the same make, so `$$PPID` is that pid, and it is stable
+## across expansions within one run and different between concurrent runs.
+STAGE_RUN = $(STAGE)/install-$(shell printf %s $$PPID)
 BUNDLE   := $(STAGE_RUN)/$(APPNAME)
 CONTENTS := $(BUNDLE)/Contents
 WEBRTC_LIB_DIR := $(STAGE)/webrtc/current
