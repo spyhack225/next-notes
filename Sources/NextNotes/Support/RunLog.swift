@@ -106,20 +106,35 @@ struct DictationRun: Codable, Sendable, Identifiable {
 /// Append-only on the hot path so recording a run is one write; deletes rewrite the file.
 @MainActor
 enum RunLog {
+    /// Where the file lives, pointed somewhere else by a self-test.
+    ///
+    /// A `@TaskLocal` rather than a parameter so every call site keeps its shape, and so no
+    /// production code has to ask whether a test is running: `--selftest-dictation-hygiene`
+    /// installs the value for the length of a case and the store follows it. `AGENTS.md`'s
+    /// "A self-test must never call `RunLog.record`" is the older, narrower rule; this is
+    /// what makes the history *store* testable with the owner's file nowhere in sight.
+    @TaskLocal static var directoryOverride: URL?
+
     static var directory: URL {
-        AppIdentity.applicationSupportDirectory
+        directoryOverride ?? AppIdentity.applicationSupportDirectory
     }
 
     private static var runsURL: URL { directory.appendingPathComponent("runs.jsonl") }
 
+    /// A recorded hold, in the list and on disk.
+    ///
+    /// The store is appended to rather than reloaded, so the Dictation list sees the new row
+    /// in the same turn with no read of the file behind it. `append` to the file is still the
+    /// durable half and still happens first: if the process died between the two, the next
+    /// launch's `reload` would have the row anyway.
     static func record(_ run: DictationRun) {
         append(run)
-        RunStore.shared.reload()
+        RunStore.shared.append(run)
     }
 
     static func record(_ runs: [DictationRun]) {
         runs.forEach(append)
-        RunStore.shared.reload()
+        RunStore.shared.append(contentsOf: runs)
     }
 
     private static func append(_ run: DictationRun) {
@@ -177,6 +192,81 @@ enum RunLog {
         KnowledgeIndexer.shared.removeAllDictations()
         RunStore.shared.reload()
     }
+
+    // MARK: - Retention
+
+    /// The runs a policy would remove, chosen from `runs` and nothing else.
+    ///
+    /// Pure, and the reason `prune` below is testable at all: a self-test can hand it
+    /// 5,002 runs and a date without writing a file. Sorted by date rather than by
+    /// position, because the file's order is append order and a run whose `date` was
+    /// written by a machine with a wrong clock is still the older one.
+    static func toPrune(
+        _ runs: [DictationRun],
+        policy: DictationHistoryRetention,
+        now: Date
+    ) -> Set<UUID> {
+        switch policy {
+        case .forever:
+            return []
+        case .days90:
+            guard let days = policy.maxAgeDays else { return [] }
+            let cutoff = now.addingTimeInterval(-days * 86_400)
+            return Set(runs.filter { $0.date < cutoff }.map(\.id))
+        case .rows5000:
+            guard let keep = policy.maxRuns else { return [] }
+            // Oldest first, by date rather than by position: `runs.jsonl` is append order,
+            // and a run written by a machine whose clock was wrong is still the older one.
+            guard runs.count > keep else { return [] }
+            let oldest = runs.sorted { $0.date < $1.date }.prefix(runs.count - keep)
+            return Set(oldest.map(\.id))
+        }
+    }
+
+    /// Rewrites the file without the runs `toPrune` selects, and tells the knowledge index
+    /// about the same ids so a pruned run cannot still be found by search.
+    ///
+    /// A no-op unless the policy actually selects something, so the common case costs a
+    /// parse and no write.
+    @discardableResult
+    static func prune(
+        policy: DictationHistoryRetention,
+        now: Date = Date()
+    ) -> Int {
+        let runs = load()
+        let doomed = toPrune(runs, policy: policy, now: now)
+        guard !doomed.isEmpty else { return 0 }
+        rewrite(runs.filter { !doomed.contains($0.id) })
+        KnowledgeIndexer.shared.removeDictations(Array(doomed))
+        return doomed.count
+    }
+
+    /// Prunes at most once a day, and never at all under `.forever`.
+    ///
+    /// Called from launch, so the day gate is what keeps a machine that is opened five
+    /// times a morning from rewriting a file it just rewrote. The marker is a date string
+    /// rather than a timer, because "yesterday's sweep happened" is the only question
+    /// being asked and a process that quits overnight would otherwise never answer it.
+    @discardableResult
+    static func pruneIfDue(
+        policy: DictationHistoryRetention,
+        now: Date = Date(),
+        defaults: UserDefaults = .standard
+    ) -> Int {
+        guard policy != .forever else { return 0 }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = .current
+        let today = formatter.string(from: now)
+        guard defaults.string(forKey: lastPruneKey) != today else { return 0 }
+        let removed = prune(policy: policy, now: now)
+        defaults.set(today, forKey: lastPruneKey)
+        return removed
+    }
+
+    /// The last day `pruneIfDue` swept. Public so a self-test can point it elsewhere and
+    /// so the name is not spelled twice.
+    static let lastPruneKey = "dictationHistoryPrunedOn"
 
     /// Replaces the whole file. Deleting can't be an append, and rewriting also persists the
     /// ids that older runs were assigned on load.

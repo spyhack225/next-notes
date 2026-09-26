@@ -290,6 +290,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // cache (G N4). This removes what is already there and records that it ran.
         _ = PrivateURLSession.purgeLegacyCache()
 
+        // D-15a: retention is opt-in, and when it is on this is the one place it runs —
+        // at launch, at most once a day (`pruneIfDue`'s own gate). `.forever` answers
+        // before the file is read, so a machine that never opts in pays nothing, and a
+        // self-test never reaches here because the harness returned above.
+        let retention = Settings.shared.dictationHistoryRetention
+        if retention != .forever {
+            let pruned = RunLog.pruneIfDue(policy: retention)
+            if pruned > 0 {
+                Log.app.info("Dictation history · pruned \(pruned) old run(s) under the \(retention.rawValue) limit")
+            }
+        }
+
         // Dictation, the island and the menu bar must outlive an empty window list. Without
         // this, macOS 26's MenuBarExtra failure path ends in a voluntary exit (~1 s, no
         // crash report) once AppKit decides nothing is keeping the process open.
@@ -723,6 +735,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-dictation") {
             runDictationSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-dictation-hygiene") {
+            // D-15a/D-15b: the history file and the clipboard. No microphone, no grant and
+            // no model — everything it touches is behind an injected directory or a private
+            // pasteboard, which is why this is INTEGRATION rather than CORE.
+            Task { @MainActor in
+                let problems = await DictationHygieneSelfTest.run()
+                for problem in problems { writeSelfTest("DICTATION_HYGIENE_WRONG: \(problem)") }
+                writeSelfTest(problems.isEmpty
+                    ? "DICTATION_HYGIENE_OK: history appends in memory, retention is opt-in"
+                    : "DICTATION_HYGIENE_FAILED: \(problems.count) problem(s)")
+                SelfTest.failed = !problems.isEmpty
+                NSApp.terminate(nil)
+            }
             return true
         }
         if arguments.contains("--selftest-tools") {

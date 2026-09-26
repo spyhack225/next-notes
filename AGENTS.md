@@ -48,6 +48,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-island    --selftest-orb        --selftest-gws
 --selftest-agent <meeting-dir>             --selftest-cleanup [engine]
 --selftest-dictation --selftest-calls      --selftest-axreadback
+--selftest-dictation-hygiene
 --selftest-learn     --selftest-context [bundle-id]
 --selftest-tools     --selftest-wake       --selftest-tasks
 --selftest-persona   --selftest-memory     --selftest-schedule

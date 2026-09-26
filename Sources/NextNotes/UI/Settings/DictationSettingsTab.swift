@@ -113,6 +113,18 @@ struct DictationSettingsTab: View {
             }
 
             Section {
+                Picker("Keep dictation history", selection: $settings.dictationHistoryRetention) {
+                    ForEach(DictationHistoryRetention.allCases) { policy in
+                        Text(policy.displayName).tag(policy)
+                    }
+                }
+            } header: {
+                Text("History")
+            } footer: {
+                SettingsNote(text: retentionNote)
+            }
+
+            Section {
                 Toggle("Clean up transcripts", isOn: $settings.cleanupEnabled)
 
                 if settings.cleanupEnabled {
@@ -285,6 +297,26 @@ struct DictationSettingsTab: View {
     private var learningNote: String {
         "Any past dictation can be corrected in the list. "
             + settings.dictionaryLearning.explanation
+    }
+
+    /// What the chosen limit would take, counted by the same selection the sweep uses, so
+    /// the number under the picker cannot disagree with what launch actually does. It is
+    /// the one question this setting raises — how much of my own history survives — and a
+    /// bare list of three choices cannot answer it.
+    private var retentionNote: String {
+        let policy = settings.dictationHistoryRetention
+        let held = runs.runs.count
+        guard policy != .forever else {
+            return "You have \(held) \(held == 1 ? "transcript" : "transcripts"). "
+                + policy.explanation
+        }
+        let going = RunLog.toPrune(runs.runs, policy: policy, now: Date()).count
+        guard going > 0 else {
+            return "You have \(held) \(held == 1 ? "transcript" : "transcripts"). "
+                + policy.explanation + " Nothing is past the limit yet."
+        }
+        return "You have \(held) \(held == 1 ? "transcript" : "transcripts"). "
+            + policy.explanation + " \(going) \(going == 1 ? "is" : "are") past the limit now."
     }
 
     private var placementNote: String {

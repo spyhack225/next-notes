@@ -250,6 +250,59 @@ enum CleanupContext: String, CaseIterable, Sendable {
     var displayName: String { self == .general ? "General" : "Email" }
 }
 
+/// How much dictation history to keep (D-15a).
+///
+/// Forever is the default and stays the default: a transcript is the only copy of
+/// something the user said, and deleting one is a decision they make, not one the app
+/// makes for them. The two limits exist because `runs.jsonl` grows without bound — about
+/// 1.5 KB a run with its cleanup record — and nothing else in the app prunes it.
+enum DictationHistoryRetention: String, CaseIterable, Sendable, Identifiable {
+    case forever
+    case days90
+    case rows5000
+
+    var id: String { rawValue }
+
+    /// What the picker says, in the words a person would use.
+    var displayName: String {
+        switch self {
+        case .forever: "Forever"
+        case .days90: "90 days"
+        case .rows5000: "Last 5,000"
+        }
+    }
+
+    /// The sentence under the picker, per choice.
+    var explanation: String {
+        switch self {
+        case .forever:
+            "Nothing is deleted. A transcript is the only copy of what you said, so this "
+                + "is what the app ships with."
+        case .days90:
+            "Transcripts older than 90 days are removed, at launch, once a day."
+        case .rows5000:
+            "Only the most recent 5,000 transcripts are kept. Older ones are removed, at "
+                + "launch, once a day."
+        }
+    }
+
+    /// Runs older than this are pruned; `nil` when age is not the limit.
+    var maxAgeDays: Double? {
+        switch self {
+        case .forever, .rows5000: nil
+        case .days90: 90
+        }
+    }
+
+    /// How many runs are kept, oldest first; `nil` when the count is not the limit.
+    var maxRuns: Int? {
+        switch self {
+        case .forever, .days90: nil
+        case .rows5000: 5_000
+        }
+    }
+}
+
 struct CleanupPreferences: Sendable {
     let tone: CleanupTone
     let formatsLists: Bool
@@ -386,6 +439,16 @@ final class Settings {
     /// always did.
     var switchAwayBehavior: SwitchAwayBehavior {
         didSet { defaults.set(switchAwayBehavior.rawValue, forKey: Keys.switchAwayBehavior) }
+    }
+
+    /// How much dictation history to keep.
+    ///
+    /// Off by default: `.forever` is the shipped behaviour, and the only thing this
+    /// setting can do is delete a transcript the user has not asked to lose.
+    var dictationHistoryRetention: DictationHistoryRetention {
+        didSet {
+            defaults.set(dictationHistoryRetention.rawValue, forKey: Keys.dictationHistoryRetention)
+        }
     }
 
     /// Press Return after the text is typed, so Slack / Messages / mail send it.
@@ -974,6 +1037,7 @@ final class Settings {
         static let llmMetalEnabled = "llmMetalEnabled"
         static let hudPlacement = "hudPlacement"
         static let switchAwayBehavior = "switchAwayBehavior"
+        static let dictationHistoryRetention = "dictationHistoryRetention"
         static let autoSendEnabled = "autoSendEnabled"
         static let autoSendApps = "autoSendApps"
         static let dictionaryLearning = "dictionaryLearning"
@@ -1104,6 +1168,11 @@ final class Settings {
         switchAwayBehavior = SwitchAwayBehavior(
             rawValue: defaults.string(forKey: Keys.switchAwayBehavior) ?? ""
         ) ?? .returnToApp
+        // Forever, deliberately: this setting can only delete the user's own transcripts,
+        // and nothing else in the app prunes `runs.jsonl`.
+        dictationHistoryRetention = DictationHistoryRetention(
+            rawValue: defaults.string(forKey: Keys.dictationHistoryRetention) ?? ""
+        ) ?? .forever
         autoSendEnabled = defaults.object(forKey: Keys.autoSendEnabled) as? Bool ?? true
         autoSendApps = defaults.dictionary(forKey: Keys.autoSendApps) as? [String: String] ?? [:]
         hasCompletedOnboarding = defaults.object(forKey: Keys.hasCompletedOnboarding) as? Bool ?? false
