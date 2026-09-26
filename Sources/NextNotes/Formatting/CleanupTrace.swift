@@ -1,5 +1,37 @@
 import Foundation
 
+/// What happened to one sentence group of a chunked pass, in the order a person would
+/// rank them: a group the model tidied is a group the user got, and a group that was not
+/// reached is a group left as spoken. (D-08.)
+enum CleanupGroupVerdict: String {
+    case accepted
+    case partlyAccepted = "partly accepted"
+    case rejected
+    case notReached = "not reached"
+
+    /// Bigger is worse. The run-level `guardVerdict` is the worst of a chunked pass's
+    /// groups, because a run that lost a group must not report the groups it kept.
+    var rank: Int {
+        switch self {
+        case .accepted: return 0
+        case .partlyAccepted: return 1
+        case .rejected: return 2
+        case .notReached: return 3
+        }
+    }
+
+    /// The worse of two recorded verdicts, tolerating a value this build does not know (an
+    /// old row, or a hand-edited one): anything unrecognised is treated as not reached,
+    /// which is the answer that never hides a lost group.
+    static func worse(_ a: String?, _ b: String?) -> String? {
+        guard let b else { return a }
+        guard let a else { return b }
+        let rankA = CleanupGroupVerdict(rawValue: a)?.rank ?? 3
+        let rankB = CleanupGroupVerdict(rawValue: b)?.rank ?? 3
+        return rankA >= rankB ? a : b
+    }
+}
+
 /// What one cleanup pass actually did, recorded as it happens.
 ///
 /// ## Why this exists
@@ -190,6 +222,55 @@ final class CleanupTrace: @unchecked Sendable {
             $0.modelSeconds = ($0.modelSeconds ?? 0) + seconds
         }
     }
+
+    // MARK: - One row per sentence group (D-08)
+
+    /// Whether *this* group ran on a session staged for it. Filed before the call, like the
+    /// run-level bit, so a group that never answers still says whether it was prewarmed.
+    func noteGroupPrewarmed(index: Int, _ used: Bool) {
+        mutate {
+            $0.groupPrewarmed = Self.row($0.groupPrewarmed, at: index, value: used, gap: false)
+        }
+    }
+
+    /// One group's verdict and how long it took. The run-level writers still run, so the
+    /// totals are unchanged; what this adds is the per-group row beside them, and the
+    /// run-level *verdict* as the worst of them — a chunked pass that lost a group must not
+    /// report the groups it kept, which is exactly what the last writer used to decide.
+    func noteGroup(index: Int, verdict: String, seconds: Double) {
+        mutate {
+            $0.groupVerdicts = Self.row(
+                $0.groupVerdicts, at: index, value: verdict, gap: CleanupGroupVerdict.notReached.rawValue
+            )
+            $0.groupSeconds = Self.row($0.groupSeconds, at: index, value: seconds, gap: 0)
+            $0.guardVerdict = CleanupGroupVerdict.worse(verdict, $0.guardVerdict)
+        }
+    }
+
+    /// The pass is over, so the reason can finally say how much of the dictation it covers.
+    ///
+    /// A per-group row answers "which group failed"; only here can the run say "one of two
+    /// parts", which is what a person reads in the Settings panel. Skipped when the pass ran
+    /// out of budget, because then the reason is the truncation and the count would be
+    /// describing a different failure.
+    func noteGroupsFinished(total: Int, truncated: Bool) {
+        guard !truncated else { return }
+        mutate {
+            guard let verdicts = $0.groupVerdicts, let reason = $0.fallbackReason else { return }
+            let failed = verdicts.filter { CleanupGroupVerdict(rawValue: $0) != .accepted }.count
+            guard failed > 0 else { return }
+            $0.fallbackReason = "\(failed) of \(total) parts could not be tidied: \(reason)"
+        }
+    }
+
+    /// Grows an optional per-group array so index `at` exists, padding with `gap` for a
+    /// group that has not reported yet.
+    private static func row<T>(_ rows: [T]?, at index: Int, value: T, gap: T) -> [T] {
+        var rows = rows ?? []
+        while rows.count <= index { rows.append(gap) }
+        rows[index] = value
+        return rows
+    }
 }
 
 /// The per-run snapshot filed beside the transcript.
@@ -238,6 +319,13 @@ struct CleanupRecord: Codable, Sendable, Hashable {
 
     /// How many sentence groups a long transcript was split into. 1 for everything normal.
     var chunks: Int?
+
+    /// One entry per sentence group of a chunked pass, in transcript order: what happened
+    /// to it, how long it took, and whether it ran on a session staged for it. Nil on a run
+    /// that was not chunked, and on every row written before D-08.
+    var groupVerdicts: [String]?
+    var groupSeconds: [Double]?
+    var groupPrewarmed: [Bool]?
 
     /// Whether spoken structure markers were still in the text at Stage C, and what was
     /// rendered from them.

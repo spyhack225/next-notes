@@ -114,7 +114,8 @@ struct FoundationModelFormatter: TextFormatter {
 
         guard modelCall != nil || Self.isAvailable else {
             Log.speech.info("Foundation model unavailable — using rule-based cleanup")
-            trace?.noteModelFailed(
+            note(
+                .notReached,
                 reason: Self.unavailableReason ?? "Apple's on-device model is unavailable",
                 seconds: 0
             )
@@ -153,15 +154,25 @@ struct FoundationModelFormatter: TextFormatter {
                         staged = stagedSession != nil
                     }
                     trace?.noteSessionPrewarmed(staged)
+                    // The same bit for the group this call belongs to, so a chunked pass can
+                    // say which of its groups ran prewarmed. (D-08.)
+                    if let group = CleanupGroupContext.current {
+                        trace?.noteGroupPrewarmed(index: group.index, staged)
+                    }
                     // A staged session was staged at key-down and is warm by construction;
                     // otherwise the process is as warm as its last completed Apple-model call.
                     let warmth: Warmth = staged
                         ? .staged
                         : await MainActor.run { AppleModelWarmth.current() }
                     trace?.noteAssumedWarmth(warmth)
+                    // A call in a wave of `n` on an engine that answers one call at a time
+                    // waits its turn, so its own budget is that many times the solo budget.
+                    // The chunker charges the wave the same sum, so the two cannot disagree
+                    // about whether a wave was affordable. (D-08.)
+                    let queued = max(1, CleanupGroupContext.current?.callsInWave ?? 1)
                     // Nothing between here and `respond` throws, so the seal is always
                     // published and the waiting task can never wait forever.
-                    seal.publish(Self.timeout(for: trimmed, warmth: warmth) * scale)
+                    seal.publish(Self.timeout(for: trimmed, warmth: warmth) * scale * queued)
                     return try await Self.respond(
                         user: user,
                         instructions: instructions,
@@ -197,28 +208,47 @@ struct FoundationModelFormatter: TextFormatter {
                         \(salvage.rejectedSentences, privacy: .public) of \
                         \(salvage.totalSentences, privacy: .public) sentences left as spoken
                         """)
-                    trace?.noteModelSalvaged(
+                    note(
+                        .partlyAccepted,
                         reason: salvage.plainReason,
                         seconds: Date().timeIntervalSince(began)
                     )
                     return salvage.text
                 }
                 Log.speech.info("Foundation model output rejected — \(reason, privacy: .public)")
-                trace?.noteModelRejected(
+                note(
+                    .rejected,
                     reason: "the tidied version changed too much to trust (\(reason))",
                     seconds: Date().timeIntervalSince(began)
                 )
                 return await fallback.format(trimmed)
             }
-            trace?.noteModelAccepted(seconds: Date().timeIntervalSince(began))
+            note(.accepted, reason: nil, seconds: Date().timeIntervalSince(began))
             return cleaned
         } catch {
             Log.speech.info("Foundation model cleanup failed (\(Self.describe(error), privacy: .public)) — falling back")
-            trace?.noteModelFailed(
-                reason: Self.describe(error),
-                seconds: Date().timeIntervalSince(began)
-            )
+            note(.notReached, reason: Self.describe(error), seconds: Date().timeIntervalSince(began))
             return await fallback.format(trimmed)
+        }
+    }
+
+    /// One exit from `format`, filed the same way whether this call cleaned a whole
+    /// transcript or one group of a chunked pass: the run-level writers, and beside them the
+    /// per-group row when the chunker named the call. (D-08.)
+    private func note(_ verdict: CleanupGroupVerdict, reason: String?, seconds: Double) {
+        let trace = self.trace
+        switch verdict {
+        case .accepted:
+            trace?.noteModelAccepted(seconds: seconds)
+        case .partlyAccepted:
+            trace?.noteModelSalvaged(reason: reason ?? "", seconds: seconds)
+        case .rejected:
+            trace?.noteModelRejected(reason: reason ?? "", seconds: seconds)
+        case .notReached:
+            trace?.noteModelFailed(reason: reason ?? "", seconds: seconds)
+        }
+        if let group = CleanupGroupContext.current {
+            trace?.noteGroup(index: group.index, verdict: verdict.rawValue, seconds: seconds)
         }
     }
 
@@ -485,9 +515,14 @@ actor CleanupSessionWarmer {
 
     /// Build the session the next cleanup will use, and ask the framework to wake the model
     /// behind it. Cheap and safe to call on a hold that never produces a transcript.
+    ///
+    /// Two sessions may be staged for one prompt, because a chunked pass sends several
+    /// sentence groups against the *same* instructions and a session is handed out once:
+    /// with one, only the first group of a long dictation ran prewarmed and the rest paid
+    /// the wake-up. The total stays `capacity`. (D-08.)
     func stage(instructions: String) {
         guard FoundationModelFormatter.isAvailable else { return }
-        guard !staged.contains(where: { $0.instructions == instructions }) else { return }
+        guard staged.filter({ $0.instructions == instructions }).count < 2 else { return }
         let session = LanguageModelSession(instructions: instructions)
         session.prewarm()
         staged.append((instructions, session))

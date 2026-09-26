@@ -93,6 +93,23 @@ enum SentenceChunker {
     }
 }
 
+/// Which sentence group a model call belongs to, and how many calls it was queued behind.
+///
+/// A task-local rather than a parameter because the number is needed one layer down —
+/// `FoundationModelFormatter.format` sizes its own budget and reports its own verdict — behind
+/// a protocol every engine implements and exactly one of them needs to know this. Only the
+/// chunker that dispatches the group names it; nothing else in the pipeline sees it. (D-08.)
+struct CleanupGroup: Sendable {
+    /// The group being cleaned, zero-based in transcript order.
+    let index: Int
+    /// How many calls were dispatched in the wave this one belongs to.
+    let callsInWave: Int
+}
+
+enum CleanupGroupContext {
+    @TaskLocal static var current: CleanupGroup?
+}
+
 /// Runs an inner formatter over sentence groups and reassembles the result.
 ///
 /// Each group is an independent call, so one that fails degrades to its own input rather
@@ -156,6 +173,27 @@ struct ChunkedFormatter: TextFormatter {
     /// common case without asking the machine for anything it does not have.
     var width: Int = 2
 
+    /// Whether the engine answers one call at a time, so a wave of `n` costs the sum of its
+    /// calls' ceilings rather than the longest of them. (D-08.)
+    ///
+    /// Apple's on-device model does: a second `respond` on the same process runs after the
+    /// first has finished, so width 2 handed it two groups and timed each as if it had the
+    /// machine to itself. Three chunked runs on this Mac between 2026-09-23 and 09-24 lost
+    /// their whole cleanup that way — Σ model 18.79 s inside a 9.77 s wall — with the 26 s
+    /// pass budget barely touched. S1-mini and the on-device engine answer their requests in
+    /// parallel, so they keep the longest-of-the-wave rule.
+    var serialisesCalls: Bool = false
+
+    /// Stages a session for the group it is handed, called once per group after the first
+    /// before that group's wave is dispatched. Nil — the default — stages nothing. (D-08.)
+    ///
+    /// Apple's prewarm is prompt-specific and every group in a pass is sent the same prompt,
+    /// so the session staged at key-down can only ever serve the first group; a second
+    /// staged session is what makes the rest of the pass prewarmed too. The group text is
+    /// passed in because the seam is about groups, and Apple's key is the prompt rather than
+    /// the sentence, so production's closure ignores it.
+    var stageNext: (@Sendable (String) async -> Void)? = nil
+
     func format(_ raw: String) async -> String {
         let groups = SentenceChunker.chunks(raw, maxWords: maxWords)
         trace?.noteChunks(max(1, groups.count))
@@ -175,15 +213,22 @@ struct ChunkedFormatter: TextFormatter {
         while next < groups.count {
             let wave = Array(next..<min(next + max(1, width), groups.count))
             // Room for this wave to finish inside the budget, not merely room to start it.
-            // The ceiling is the longest call in the wave, because they run together. From
-            // the second wave on the answer is `perCallTimeoutAfterFirstWave`: the first
-            // wave has already run on the model, so charging every later wave the cold
-            // ceiling would spend the pass's budget on a wake-up that has happened. (D-07.)
+            // Each call is charged its own ceiling: from the second wave on the answer is
+            // `perCallTimeoutAfterFirstWave`, because the first wave has already run on the
+            // model and charging every later wave the cold ceiling would spend the pass's
+            // budget on a wake-up that has happened. (D-07.)
             let remaining = budget - (ContinuousClock.now - began)
-            let ceiling = wave.map { index -> Duration in
+            let ceilings = wave.map { index -> Duration in
                 if next == 0 { return perCallTimeout(groups[index]) }
                 return perCallTimeoutAfterFirstWave?(groups[index]) ?? perCallTimeout(groups[index])
-            }.max() ?? .zero
+            }
+            // They run together on an engine that answers in parallel, so the longest of
+            // them is the wave. On one that answers a call at a time the wave takes the sum
+            // of them, and refusing a wave it cannot finish is what stops the pass running
+            // past the controller's deadline. (D-08.)
+            let ceiling = serialisesCalls
+                ? ceilings.reduce(.zero, +)
+                : (ceilings.max() ?? .zero)
             if ranOut || remaining <= .zero || remaining < ceiling {
                 if !ranOut {
                     ranOut = true
@@ -196,12 +241,23 @@ struct ChunkedFormatter: TextFormatter {
                 next += wave.count
                 continue
             }
+            // Every group after the first gets a session of its own, staged *before* the
+            // wave is dispatched so the group's `take` finds it waiting. (D-08.)
+            if let stageNext {
+                for index in wave where index > 0 { await stageNext(groups[index]) }
+            }
             let inner = inner
+            let serialisesCalls = serialisesCalls
             let cleanedWave = await withTaskGroup(of: (Int, String).self) { group in
                 for index in wave {
                     let text = groups[index]
                     group.addTask {
-                        let result = await inner.format(text)
+                        // The call knows which group it is and how many are queued with it,
+                        // which is what a serialising engine's budget has to be sized
+                        // against. (D-08.)
+                        let result = await CleanupGroupContext.$current.withValue(
+                            CleanupGroup(index: index, callsInWave: serialisesCalls ? wave.count : 1)
+                        ) { await inner.format(text) }
                         let trimmed = result.trimmingCharacters(in: .whitespacesAndNewlines)
                         return (index, trimmed.isEmpty ? text : trimmed)
                     }
@@ -213,6 +269,9 @@ struct ChunkedFormatter: TextFormatter {
             for (index, piece) in cleanedWave { pieces[index] = piece }
             next += wave.count
         }
+        // One verdict per group is only half a record; the run-level line has to say how
+        // much of the dictation that was. (D-08.)
+        trace?.noteGroupsFinished(total: groups.count, truncated: ranOut)
 
         var cleaned = ""
         for (index, piece) in pieces.enumerated() {

@@ -423,6 +423,38 @@ struct CleanupRouter: TextFormatter {
         }
     }
 
+    /// How many sentence groups may be in the model at once, per engine.
+    ///
+    /// Two everywhere except Apple, where the width is a measurement rather than a
+    /// preference: `--selftest-cleanup-router --probe-chunk-width` runs the same two
+    /// ~90-word groups at width 1 and at width 2 on the real model, warmed first, in a fresh
+    /// process, and prints `CHUNK_WIDTH w1_wall=<s> w2_wall=<s>`. The rule is
+    /// `w2 ≤ 0.85 × w1`.
+    ///
+    /// Measured on this Mac on 2026-09-25, two fresh processes, best of two rounds each:
+    /// `w1_wall=5.92 w2_wall=6.28` and `w1_wall=6.30 w2_wall=6.24`. The bars were 5.03 and
+    /// 5.36. So width 2 is between 6 % slower and 1 % faster than sending the same two
+    /// groups one after the other — the model answers the second request after the first
+    /// either way, which is the serialising behaviour `ChunkedFormatter.serialisesCalls`
+    /// prices. **Apple is width 1.**
+    ///
+    /// S1-mini and the on-device engine keep 2: their requests are answered in parallel —
+    /// a local llama.cpp server per request — so two at once is two at once. That is also
+    /// why the number is per engine rather than one constant. (D-08.)
+    static func chunkWidth(for engine: CleanupSemanticEngine) -> Int {
+        switch engine {
+        case .apple: return Self.appleChunkWidth
+        case .s1Mini, .appLLM: return 2
+        }
+    }
+
+    /// Apple's width, from `--probe-chunk-width` on 2026-09-25 (see `chunkWidth(for:)`).
+    /// One, because a second group in the model does not overlap the first on this engine —
+    /// which is exactly what the wave-aware ceilings in `ChunkedFormatter` then have to
+    /// price, and why D-08 is not a no-op for a width of 1: a wave of two still happens on
+    /// any engine that is asked for one.
+    static let appleChunkWidth = 1
+
     /// Production wiring: Stage A plus the user's existing engine choice.
     static func production(
         choice: CleanupEngineChoice,
@@ -437,6 +469,27 @@ struct CleanupRouter: TextFormatter {
         // Long utterances go to the model in sentence groups rather than in one call that
         // misses its deadline and hands back the raw transcript. Below the threshold this
         // wrapper is one word count and one passthrough.
+        //
+        // Apple answers one call at a time, so its groups are queued rather than overlapped
+        // (`serialisesCalls`), timed as the wave they are, and each group after the first
+        // gets a session of its own staged before its wave starts. The group text is not
+        // used: Apple's prewarm is keyed on the prompt, and every group in a pass shares it.
+        // (D-08.)
+        let stageNext: (@Sendable (String) async -> Void)?
+        if engine == .apple {
+            stageNext = { _ in
+                await CleanupSessionWarmer.shared.stage(
+                    instructions: CleanupInstructions.system(
+                        for: preferences,
+                        fixesGrammar: fixesGrammar,
+                        target: target,
+                        context: context
+                    )
+                )
+            }
+        } else {
+            stageNext = nil
+        }
         let semantic = ChunkedFormatter(
             inner: makeSemantic(
                 engine,
@@ -448,7 +501,10 @@ struct CleanupRouter: TextFormatter {
             ),
             trace: trace,
             perCallTimeout: Self.perCallTimeout(for: engine),
-            perCallTimeoutAfterFirstWave: Self.perCallTimeoutAfterFirstWave(for: engine)
+            perCallTimeoutAfterFirstWave: Self.perCallTimeoutAfterFirstWave(for: engine),
+            width: Self.chunkWidth(for: engine),
+            serialisesCalls: engine == .apple,
+            stageNext: stageNext
         )
         let targetRendersLists = target.capabilities.contains(.bullets)
             || target.capabilities.contains(.numbered)
@@ -795,6 +851,12 @@ extension CleanupRouter {
             await CleanupWarmthProbe.run()
         }
 
+        // D-08, same shape again: `--probe-chunk-width` beside the flag times the same two
+        // groups at width 1 and width 2 on the real model and asserts nothing.
+        if ChunkWidthProbe.isRequested {
+            await ChunkWidthProbe.run()
+        }
+
         if failures.isEmpty {
             emit("CLEANUP_ROUTER_OK")
             return true
@@ -978,6 +1040,224 @@ extension CleanupRouter {
             }
         }
 
+        failures += await chunkedWaveFailures()
+
+        return failures
+    }
+
+    /// D-08: a chunked pass against a model that answers one call at a time.
+    ///
+    /// Width 2 sends two sentence groups into the model together and times each as if it had
+    /// the machine to itself. Apple's model does not: the second request waits for the first.
+    /// Three of this Mac's chunked runs since 2026-09-23 lost their whole cleanup that way
+    /// (Σ model 18.79 s in a 9.77 s wall, timed out) with the 26 s pass budget barely
+    /// touched, and only the group the key-down staged session happens to serve ever ran
+    /// prewarmed.
+    private static func chunkedWaveFailures() async -> [String] {
+        var failures: [String] = []
+        // Every case forces cold, so the budget a call is given is a number this test chose
+        // rather than whatever the process last measured — `warmWindow = -1 s` makes every
+        // elapsed reading fall outside it, which is D-07's injection point.
+        let savedWindow = await MainActor.run { AppleModelWarmth.warmWindow }
+        await MainActor.run { AppleModelWarmth.warmWindow = .seconds(-1) }
+
+        // Three sentences, each longer than `maxWords: 10`, so the fixture splits into
+        // exactly three groups of one whole sentence each.
+        let alpha = "We are shipping the installer on Friday and the release note the day after."
+        let bravo = "The beta group gets the announcement on Monday morning before the launch."
+        let charlie = "Support will keep watching the forum for the first week of the rollout."
+        let pair = alpha + " " + bravo
+        let groups = SentenceChunker.chunks(alpha + " " + bravo + " " + charlie, maxWords: 10)
+        if groups != [alpha, bravo, charlie] {
+            failures.append(
+                "the chunk fixtures split into \(groups.count) group(s) instead of three, "
+                    + "so the wave cases prove nothing"
+            )
+        }
+        // One call's own budget, pinned: a cold call on `alpha`, scaled to 250 ms. A
+        // serialised wave of two needs twice that on the wall, which is the whole point.
+        let solo = FoundationModelFormatter.timeout(for: alpha, warmth: .cold)
+        let soloScale = 0.25 / seconds(solo)
+
+        // a. The second call in a serialised wave finishes at ~400 ms, which is inside a
+        // ceiling of `2 × 250 ms` and outside a ceiling of one call's own 250 ms.
+        do {
+            let trace = CleanupTrace()
+            let gate = SerialCallGate()
+            var inner = FoundationModelFormatter(trace: trace)
+            inner.timeScale = soloScale
+            inner.modelCall = CleanupModelCall(
+                takeSession: { _ in false },
+                respond: { prompt in
+                    try await gate.hold(.milliseconds(200))
+                    // The transcript back out of the prompt, so the case measures the
+                    // ceiling and not the guard.
+                    return Self.transcript(fromPrompt: prompt)
+                }
+            )
+            let began = ContinuousClock.now
+            let output = await ChunkedFormatter(
+                inner: inner,
+                maxWords: 10,
+                trace: trace,
+                perCallTimeout: { _ in .milliseconds(200) },
+                width: 2,
+                serialisesCalls: true
+            ).format(pair)
+            let elapsed = ContinuousClock.now - began
+            let snapshot = trace.snapshot
+            if snapshot.groupVerdicts != ["accepted", "accepted"] {
+                failures.append(
+                    "  chunk width: a serialised wave of two gave \(quoted(snapshot.groupVerdicts)) "
+                        + "(run verdict \(snapshot.guardVerdict ?? "nil"), reason "
+                        + "\(snapshot.fallbackReason ?? "nil")), expected two accepted groups"
+                )
+            }
+            if SentenceChunker.wordCount(output) != SentenceChunker.wordCount(pair) {
+                failures.append("  chunk width: a serialised wave changed the transcript's length")
+            }
+            // Two 200 ms calls in a row is ~400 ms; anything near the doubled budget is a
+            // ceiling being waited out rather than a call being answered.
+            if elapsed > .milliseconds(900) {
+                failures.append("  chunk width: two serialised 200 ms calls took \(elapsed)")
+            }
+        }
+
+        // b. The wave's ceiling is the *sum* of its calls' ceilings when the engine
+        // serialises, so a wave that could not finish is not started. The control runs the
+        // same fixture with the max, which does fit — otherwise this case would pass for
+        // any reason at all.
+        do {
+            let serialisedBox = CounterBox()
+            let serialisedTrace = CleanupTrace()
+            let serialisedOut = await ChunkedFormatter(
+                inner: StallingFormatter(ceiling: .milliseconds(200), box: serialisedBox),
+                maxWords: 10,
+                trace: serialisedTrace,
+                budget: .milliseconds(300),
+                perCallTimeout: { _ in .milliseconds(200) },
+                width: 2,
+                serialisesCalls: true
+            ).format(pair)
+            let serialisedCalls = await serialisedBox.count
+            if serialisedCalls != 0 {
+                failures.append(
+                    "  chunk width: a serialised wave of two 200 ms ceilings started with "
+                        + "300 ms of budget left (\(serialisedCalls) call(s))"
+                )
+            }
+            if serialisedTrace.snapshot.fallbackReason == nil {
+                failures.append("  chunk width: the refused wave recorded no reason")
+            }
+            if SentenceChunker.wordCount(serialisedOut) != SentenceChunker.wordCount(pair) {
+                failures.append("  chunk width: the refused wave did not leave the text as spoken")
+            }
+            let plainBox = CounterBox()
+            _ = await ChunkedFormatter(
+                inner: StallingFormatter(ceiling: .milliseconds(200), box: plainBox),
+                maxWords: 10,
+                budget: .milliseconds(300),
+                perCallTimeout: { _ in .milliseconds(200) },
+                width: 2
+            ).format(pair)
+            if await plainBox.count == 0 {
+                failures.append(
+                    "  chunk width: the control wave started no call either, so the sum is not "
+                        + "what refused it"
+                )
+            }
+        }
+
+        // c. Every group after the first gets a session staged for it before its wave is
+        // awaited, so a chunked pass is prewarmed throughout and not only for the group the
+        // key-down staged session happens to serve.
+        do {
+            let staged = StagedGroupBox()
+            _ = await ChunkedFormatter(
+                inner: KeepAsIsFormatter(),
+                maxWords: 10,
+                budget: .seconds(5),
+                perCallTimeout: { _ in .milliseconds(200) },
+                width: 2,
+                stageNext: { text in await staged.record(text) }
+            ).format(alpha + " " + bravo + " " + charlie)
+            let recorded = await staged.texts
+            if recorded != [bravo, charlie] {
+                failures.append(
+                    "  chunk width: stageNext was called for \(quoted(recorded)), expected the two "
+                        + "groups after the first"
+                )
+            }
+        }
+
+        // d. One group answers and one does not: the record says which, and the run's own
+        // verdict is the worse of the two rather than whichever group happened to write
+        // last — today a run that lost its cleanup reports `accepted`.
+        do {
+            let trace = CleanupTrace()
+            var answers = FoundationModelFormatter(trace: trace)
+            answers.timeScale = soloScale
+            answers.modelCall = CleanupModelCall(
+                takeSession: { _ in true },
+                respond: { prompt in
+                    try await Task.sleep(for: .milliseconds(40))
+                    return Self.transcript(fromPrompt: prompt)
+                }
+            )
+            var stalls = FoundationModelFormatter(trace: trace)
+            stalls.timeScale = soloScale
+            stalls.modelCall = CleanupModelCall(
+                takeSession: { _ in false },
+                respond: { _ in
+                    try await Task.sleep(for: .seconds(30))
+                    return ""
+                }
+            )
+            let output = await ChunkedFormatter(
+                inner: GroupScriptedFormatter(marker: bravo, first: answers, second: stalls),
+                maxWords: 10,
+                trace: trace,
+                budget: .seconds(5),
+                perCallTimeout: { _ in .milliseconds(200) },
+                width: 2,
+                serialisesCalls: true
+            ).format(pair)
+            let snapshot = trace.snapshot
+            if snapshot.groupVerdicts != ["accepted", "not reached"] {
+                failures.append(
+                    "  chunk width: per-group verdicts were \(quoted(snapshot.groupVerdicts)), "
+                        + "expected [accepted, not reached]"
+                )
+            }
+            if snapshot.guardVerdict != "not reached" {
+                failures.append(
+                    "  chunk width: a run that lost a group recorded "
+                        + "\(snapshot.guardVerdict ?? "nil"), expected the worse verdict"
+                )
+            }
+            if snapshot.groupSeconds?.count != 2 {
+                failures.append(
+                    "  chunk width: \(snapshot.groupSeconds?.count ?? 0) group second(s) recorded, expected 2"
+                )
+            }
+            if snapshot.groupPrewarmed != [true, false] {
+                failures.append(
+                    "  chunk width: per-group prewarm was \(String(describing: snapshot.groupPrewarmed)), "
+                        + "expected [true, false]"
+                )
+            }
+            if !(snapshot.fallbackReason?.contains("1 of 2 parts") ?? false) {
+                failures.append(
+                    "  chunk width: the run's reason did not name the failed group count "
+                        + "(\(snapshot.fallbackReason ?? "nil"))"
+                )
+            }
+            if !output.localizedCaseInsensitiveContains("installer") {
+                failures.append("  chunk width: the group that answered lost its own words")
+            }
+        }
+
+        await MainActor.run { AppleModelWarmth.warmWindow = savedWindow }
         return failures
     }
 
@@ -1554,6 +1834,22 @@ extension CleanupRouter {
 
     private static func oneLine(_ text: String) -> String {
         text.replacingOccurrences(of: "\n", with: " \u{21B5} ")
+    }
+
+    /// The transcript back out of a whole user prompt.
+    ///
+    /// `CleanupModelCall.respond` is handed the prompt the model would have been given, and
+    /// a fake model that answers "the same text" has to take the transcript out of it — a
+    /// prompt echoed back reads to the guard as invented words, and the case would then fail
+    /// for the guard rather than for the thing it is about.
+    private static func transcript(fromPrompt prompt: String) -> String {
+        String(prompt.split(separator: "\n\n", maxSplits: 1).last ?? "")
+    }
+
+    /// A list of values, for a failure line that has to name them.
+    private static func quoted(_ values: [String]?) -> String {
+        guard let values, !values.isEmpty else { return "none" }
+        return values.map { "\"\($0)\"" }.joined(separator: ", ")
     }
 
     /// One bad sentence must not cost the user every repair in the other five.
@@ -2187,3 +2483,59 @@ private struct ProsifyingFormatter: TextFormatter {
             .joined(separator: " ")
     }
 }
+
+/// A model that answers one call at a time, the shape D-08 exists for.
+///
+/// Apple's on-device model runs a second `respond` on the same process after the first has
+/// finished, so a wave of two takes two calls' worth of wall and the second call's ceiling
+/// has to be sized for that. Reproduced with a plain queue rather than a timer, so the case
+/// measures the ceiling and not the scheduler.
+private actor SerialCallGate {
+    private var held = false
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+
+    /// Takes the model for `duration` and gives it back, cancelling cleanly.
+    func hold(_ duration: Duration) async throws {
+        if held {
+            await withCheckedContinuation { waiting.append($0) }
+        } else {
+            held = true
+        }
+        do {
+            try await Task.sleep(for: duration)
+        } catch {
+            release()
+            throw error
+        }
+        release()
+    }
+
+    private func release() {
+        if waiting.isEmpty {
+            held = false
+        } else {
+            waiting.removeFirst().resume()
+        }
+    }
+}
+
+/// Records what `ChunkedFormatter.stageNext` was asked to stage, in the order it was asked.
+/// The self-test's stand-in for `CleanupSessionWarmer`, which needs a real model to mean
+/// anything. (D-08.)
+private actor StagedGroupBox {
+    private(set) var texts: [String] = []
+    func record(_ text: String) { texts.append(text) }
+}
+
+/// Two real formatters behind one seam, chosen by which sentence group arrived, so a chunked
+/// pass can be given a group that answers and a group that does not. (D-08.)
+private struct GroupScriptedFormatter: TextFormatter {
+    let marker: String
+    let first: any TextFormatter
+    let second: any TextFormatter
+
+    func format(_ raw: String) async -> String {
+        await (raw == marker ? second : first).format(raw)
+    }
+}
+
