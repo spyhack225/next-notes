@@ -99,7 +99,7 @@ enum MessagesDatabaseSelfTest {
                     return count == 2 ? nil : "expected 2 messages in the fixture, found \(count)"
                 }
 
-                // 5. All nine capabilities on a complete schema.
+                // 5. All ten capabilities on a complete schema.
                 try await check("capabilities") {
                     let absent = MessagesCapability.allCases
                         .filter { basic.capabilities.flag(for: $0) == false }
@@ -205,6 +205,14 @@ enum MessagesDatabaseSelfTest {
             // attributedBody and no payload_data column. The probes must say so and the
             // queries must degrade rather than throw — that is the whole point of
             // carrying a capability value into every projection.
+            //
+            // **The tenth capability, `is_audio_message`, is not exercised here** and the
+            // reason is worth naming: `--degraded` removes the two body columns and nothing
+            // else, by design, so a fixture that lacked the audio column would have to be
+            // built with the separate `--no-audio` mode — and that mode exists for the *row
+            // shape* rather than for the probe. `MessagesDecoderSelfTest`'s
+            // `a_database_without_the_audio_column_degrades_rather_than_throwing` is where
+            // its absence is asserted, against a database that really lacks the column.
             do {
                 let degraded = try MessagesDatabase(root: corpus.url("basic-text-degraded"))
                 try await check("degraded_capabilities") {

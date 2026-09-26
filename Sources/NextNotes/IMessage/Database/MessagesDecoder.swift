@@ -55,8 +55,12 @@ import Foundation
 ///    put a fabricated reading into a log line and a metric.
 /// 2. There is a `.notATypedStream(offset:)` case. The notes' five cases have nowhere to put
 ///    "these bytes are not this format", and that is a fact a bug report needs.
-/// 3. `MessageBodySource` has four cases rather than two. A source of `.textColumn` attached
-///    to a body that came from `payload_data` would be a lie the enum could not express.
+/// 3. `MessageBodySource` has five cases, not the two this task's table implied. A source of
+///    `.textColumn` attached to a body that came from `payload_data` would be a lie the enum
+///    could not express, and every consumer downstream reads that field to decide which column
+///    to trust. The fifth case joined them on 2026-09-26 for the same reason — a voice note is
+///    classified by `is_audio_message` when the stream refuses, and answering `.attributedBody`
+///    there would have said the walk classified something it never read.
 ///
 /// **`U+FFFC` is left in the text — unless it is the whole of it.** It is how a photo is marked,
 /// and stripping it out of `U+FFFC a caption` makes a photo message look empty, which is the
@@ -198,6 +202,15 @@ struct IMessageEnvelope: Equatable, Sendable {
     /// have passed anything over"; the 314-byte effect disproves the reasoning — it has nothing to
     /// *read* and 237 bytes to pass over — and a `0` there would have been the one value that says
     /// the walk had read the whole body.
+    ///
+    /// **The one route that reports the whole body is the voice-note column, and that is a
+    /// measurement rather than a shortcut.** When `is_audio_message` classifies a row the walk had
+    /// refused, the walk read none of it, so "the bytes of this body that no caller can see as the
+    /// sender's words" is *every* byte of it — 2 of 2 on the corpus row, and whatever a real
+    /// voice note turns out to be. A count *smaller* than the body there would say the walk had
+    /// read part of a body with no words in it, which is the failure this whole guarantee is
+    /// about. The row with no body column is the other `0`, and there it is honest: there is
+    /// nothing to have passed over.
     var discardedBytes: Int {
         switch body {
         case .text(_, let discarded): discarded
@@ -224,7 +237,7 @@ extension MessagesDecoder {
     /// The normaliser. One row in, one envelope out, and every decision in one place.
     ///
     /// The precedence is the roadmap's, and the order is load-bearing rather than incidental:
-///
+    ///
     /// 1. **`text` present and non-empty wins.** A hybrid balloon carries both columns and the
     ///    cheap one is the right answer; a stream parse is work we do not need to do.
     /// 2. **`attributedBody` next.** For an iMessage this is the body, and for a photo or a
@@ -234,17 +247,23 @@ extension MessagesDecoder {
     ///    throw away the caption.
     /// 3. **`payload_data` + `balloon_bundle_id` next.** That pair is a non-text balloon: a
     ///    tapback, an app extension's message. The bundle id survives into the value, so the
-    ///    agent layer can say what arrived. **This is one of two routes to `.notText`, not the
+    ///    agent layer can say what arrived. **This is one of three routes to `.notText`, not the
     ///    only one** — the roadmap's table used to say it was the only one, and 2026-09-26's
     ///    measurement is four effect rows with *both* columns NULL. An effect is classified by
-    ///    the walk instead; see `body(fromAttributedBody:)` and the section below.
-    /// 4. **Neither body column** is `.absent`, which is an ordinary row — an SMS whose
+    ///    the walk; a voice note is classified by `is_audio_message` when the walk has nothing
+    ///    to say. See `body(fromAttributedBody:)` and the two sections below.
+    /// 4. **`is_audio_message` last**, and only when nothing above produced an answer. A voice
+    ///    note is a balloon with no words in it, so it is `.notText`; and it is a column rather
+    ///    than a guess, which is what makes the answer possible on a row whose `attributedBody`
+    ///    refuses. It cannot outrank a sentence, because a caption is the sender's words.
+    /// 5. **Neither body column** is `.absent`, which is an ordinary row — an SMS whose
     ///    `attributedBody` is genuinely NULL — and not an error.
     ///
     /// An **empty** `text` falls through rather than answering: `""` is not a message, and
     /// treating an empty column as text is how a decoder ends up claiming a body it did not
     /// read. A row with an empty `text` and no blob is `.absent`, which is the honest name for
-    /// "there is no body here to read".
+    /// "there is no body here to read" — unless the database says the row is audio, and then
+    /// there is a third answer again.
     static func envelope(for row: MessageRow) -> IMessageEnvelope {
         let body: MessageBody
         let source: MessageBodySource
@@ -255,11 +274,28 @@ extension MessagesDecoder {
             body = .text(text, discardedBytes: 0)
             source = .textColumn
         } else if let blob = row.attributedBody {
-            body = MessagesDecoder.body(fromAttributedBody: blob, balloonBundleID: row.balloonBundleID)
-            source = .attributedBody
-        } else if row.payloadData != nil, let bundleID = row.balloonBundleID, !bundleID.isEmpty {
+            let walked = MessagesDecoder.body(fromAttributedBody: blob, balloonBundleID: row.balloonBundleID)
+            if walked.deliveredNothing, row.isAudioMessage == true {
+                // The column's turn, and the last turn there is. `discardedBytes` is the whole
+                // body rather than a part of it, because the walk read none of it: the point of
+                // the number is "no caller can see any of this body as the sender's words", and
+                // the whole body is the honest answer when nothing was read.
+                body = .notText(bundleID: MessagesDecoder.namedBalloon(row.balloonBundleID),
+                                discardedBytes: blob.count)
+                source = .isAudioMessage
+            } else {
+                body = walked
+                source = .attributedBody
+            }
+        } else if row.payloadData != nil, let bundleID = MessagesDecoder.namedBalloon(row.balloonBundleID) {
             body = .notText(bundleID: bundleID, discardedBytes: 0)
             source = .payloadData
+        } else if row.isAudioMessage == true {
+            // No body column and no walk: there is nothing to have passed over, so the count is
+            // 0 here and only here. The classification is the same one.
+            body = .notText(bundleID: MessagesDecoder.namedBalloon(row.balloonBundleID),
+                            discardedBytes: 0)
+            source = .isAudioMessage
         } else {
             body = .absent
             source = .noColumn
@@ -271,6 +307,17 @@ extension MessagesDecoder {
                         service: row.service,
                         body: body,
                         source: source)
+    }
+
+    /// `message.balloon_bundle_id`, or `nil` when nothing named this balloon.
+    ///
+    /// One rule for all three routes to `.notText`, and `nil` rather than `""` for the same
+    /// reason `IMessageEnvelope.text` has no empty case: **an absent name and an empty one are
+    /// different facts and only the first is true.** A NULL column, a zero-length column and a
+    /// column this database does not have all mean nothing named it.
+    static func namedBalloon(_ bundleID: String?) -> String? {
+        guard let bundleID, !bundleID.isEmpty else { return nil }
+        return bundleID
     }
 
     /// One `attributedBody` blob → `.text`, `.notText` or `.unreadable(reason:)`.
@@ -301,7 +348,7 @@ extension MessagesDecoder {
             // a scrubber three layers up.
             let decoded = try reader.senderText(of: blob)
             let discarded = decoded.discardedBytes
-            let bundleID = (balloonBundleID?.isEmpty == false) ? balloonBundleID : nil
+            let bundleID = namedBalloon(balloonBundleID)
             // **The attachment marker, when it is the whole of the body.** A balloon whose one
             // string is a single object-replacement character is an attachment: there is no
             // sentence in it to read, so it is `.notText` rather than a sentence. Measured on
@@ -387,6 +434,69 @@ extension MessagesDecoder {
 // measurement corrected is its payload — an id that may be absent — and its count. A new case
 // would be a second spelling of a state the enum already has, and the type-level enforcement
 // that matters here (`Text` has no `""`, `.text` cannot carry a second string) is untouched by it.
+
+// MARK: A voice note is not an unreadable message
+
+// IM-05d, 2026-09-26. **The same question as the effect, one row over, and the two answers are
+// on different columns.** The roadmap said a voice note is `.notText` and named the signal it
+// expected: `message.is_audio_message`. What it did not know is which of two signals a *real*
+// voice note actually carries, and the two candidates are on opposite sides of the walk:
+//
+// | candidate | what it can answer | what it cannot |
+// |---|---|---|
+// | **`is_audio_message`**, a column | a row whose body refuses, and a row with no body at all | nothing about what the body holds — it says what the row *is*, never what the bytes say |
+// | **the class chain / the three bytes**, the walk | a readable body that declares itself (`U+FFFC`), and a caption beside it | a body it cannot read, which is the case a voice note on this corpus is |
+//
+// ## Which one carries it, measured: on the corpus row, only the column
+//
+// `Tests/Fixtures/chatdb`'s `voice-note` case has carried `is_audio_message=1` since IM-04
+// built it, and its `attributedBody` is the two-byte `X'0001'` sentinel. **There is no class
+// chain on that row to read**: the walk stops at the header and refuses, so a decoder that knew
+// nothing but the walk could not tell it from a text body that failed to decode — which is
+// exactly what IM-05 recorded when it printed `IMESSAGE_DECODE_BLOCKED: voice-note-as-not-text`
+// and classified the row as a refusal. That is the *only* half of the question that could be
+// answered without the owner's phone, and the column answers it.
+//
+// ## The half that is not, and is named rather than guessed
+//
+// **A real voice note's `attributedBody` has not been captured.** Every attachment measured on
+// this Mac so far — four effect rows — is a text balloon whose whole string is `U+FFFC`, and
+// **if a voice note is one of those the walk classifies it and the column is redundant for that
+// row.** That is a prediction, not a measurement, and the roadmap's rule about oracle cases
+// applies with full force: closing the blocked line by asking `NSArchiver` to write a plausible
+// body would assert a fact about Messages that nothing here has read. The assertion stays
+// blocked on the capture and says so by name.
+//
+// **So the code answers both, and they are complementary by construction rather than by
+// accident.** The walk goes first, so a caption is the sender's words and the column never
+// overrules a sentence; the column goes last, so it only ever answers on a body the walk had
+// nothing to say about. Whichever of the two a real row carries, the row is `.notText` — and
+// if a future macOS carries neither, the row is a refusal, which is the honest answer and the
+// one the blocked line is waiting to be able to rule out.
+//
+// ## Why not the other two states
+//
+// - **Not text**, for the same reason an effect is not: an audio attachment has no words in it,
+//   and `.text` of a caption-free marker is a character the sender never typed.
+// - **Not `.unreadable`**, on the same grounds the effect case set out, and this row is the
+//   *stronger* example of it: the body here is not a body at all in any sense this Mac can
+//   read, so crying "I could not read that" once per voice note is crying wolf on ordinary use.
+//   A person who is told that every time they send a recording stops believing the sentence
+//   that matters.
+// - **`.notText` with no id**, and the type is what makes that expressible. `bundleID` is
+//   `String?` because a measured effect row had nothing to name it, and a voice note is the
+//   same answer to a second question: `balloon_bundle_id` is NULL on a voice note the same way
+//   it is on an effect, and the classification is not required to invent an app to exist.
+//
+// ## What the walk is not asked to do
+//
+// **The audio route reads no byte of the body.** That is why `discardedBytes` there is the
+// *whole* body rather than a part of it: the count means "no caller can see any of this body as
+// the sender's words", and when nothing was read that is every byte of it. A count of 0 would be
+// the one value that says the walk had read a body with nothing in it, which is the same
+// mistake IM-05c found on the effect rows and the reason that case asserts `> blob.count / 2`.
+// A body with **no** body column at all is the one place the count is honestly 0, because there
+// is nothing there to have passed over — and it is the only place.
 
 // MARK: - The version gate
 
@@ -528,6 +638,24 @@ enum MessageDecodeFailure: Error, Equatable, Sendable {
     }
 }
 
+extension MessageBody {
+    /// Whether the walk produced **nothing a caller could show** — a refusal, or a body with
+    /// nothing in it.
+    ///
+    /// This is the question `is_audio_message` gets asked, and it is asked here rather than in
+    /// `envelope(for:)` so the answer cannot be spelled two ways. **`.notText` is deliberately
+    /// not one of these**: the walk *read* that one and it is already the right answer, so a
+    /// row that also says it is audio must not have its own answer written over the walk's.
+    /// `.text` is excluded for the same reason and more obviously — a caption is the sender's
+    /// words and a column does not outrank a sentence.
+    var deliveredNothing: Bool {
+        switch self {
+        case .text, .notText: false
+        case .unreadable, .absent: true
+        }
+    }
+}
+
 /// What a caller can say about a body, without being handed the reason's innards.
 ///
 /// **The name and nothing else, deliberately.** `.notText` carries the id — because naming what
@@ -547,11 +675,18 @@ enum MessageDecodeState: Equatable, Sendable {
 /// Which column produced the body. `.noColumn` is the honest answer for a row that had
 /// nothing to read; a source that lied would be worse than no source at all.
 ///
-/// **A `.notText` body can come from either of two columns**, and this is what says which:
+/// **A `.notText` body can come from any of three columns**, and this is what says which:
 /// `.payloadData` is the tapback route (`payload_data` + `balloon_bundle_id`, no stream to
-/// read) and `.attributedBody` is the effect route (a stream the walk read, which declared
-/// itself to hold no words). One state, two columns, and the accessor that tells them apart is
-/// data rather than a second case.
+/// read), `.attributedBody` is the effect route (a stream the walk read, which declared
+/// itself to hold no words) and `.isAudioMessage` is the voice-note route (a stream the walk
+/// could not read, or none, on a row the database says is audio). One state, three columns,
+/// and the accessor that tells them apart is data rather than a second case.
+///
+/// **The fifth case is why this field exists at all.** An earlier version answered
+/// `.attributedBody` for a voice note, which was a lie in the direction that matters: the
+/// stream said nothing whatever about that row, and `envelope(for:)`'s audio rule is the only
+/// thing that classified it. A caller asking "did the walk classify this or did a column?"
+/// was getting a wrong answer, and the wrong answer was the reassuring one.
 enum MessageBodySource: Equatable, Sendable {
     /// `message.text`.
     case textColumn
@@ -559,6 +694,8 @@ enum MessageBodySource: Equatable, Sendable {
     case attributedBody
     /// `message.payload_data` + `balloon_bundle_id` — a non-text balloon named by its column.
     case payloadData
+    /// `message.is_audio_message` on a row the walk had nothing to say about.
+    case isAudioMessage
     /// Nothing answered.
     case noColumn
 }

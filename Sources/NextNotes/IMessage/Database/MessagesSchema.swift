@@ -27,6 +27,18 @@ struct MessagesCapabilities: Equatable, Sendable {
     var hasBalloonBundleID = false
     /// `message.is_sent`.
     var hasIsSent = false
+    /// `message.is_audio_message` — a voice note. [IM-05d, 2026-09-26]
+    ///
+    /// **The tenth, and the only one whose absence changes what a row *is*.** The other nine
+    /// answer "can this Mac read this row's …" and a missing column costs a field. This one
+    /// answers "can this Mac tell a voice note from a body it failed to read", and a missing
+    /// column costs a *classification*: with it, a voice note is a balloon with no words in it
+    /// and says so; without it, the same row is a refusal, and the refusal is a thing a person
+    /// is shown. That is why it is a capability and not one of the two columns
+    /// `MessagesQueries.Column.Presence.column` carries — a reader that has to ask
+    /// "is this row audio or is the column simply not there" cannot answer either question
+    /// from a `Bool?`.
+    var hasAudioMessage = false
 
     func flag(for capability: MessagesCapability) -> Bool {
         switch capability {
@@ -39,6 +51,7 @@ struct MessagesCapabilities: Equatable, Sendable {
         case .payloadData: hasPayloadData
         case .balloonBundleID: hasBalloonBundleID
         case .isSent: hasIsSent
+        case .audioMessage: hasAudioMessage
         }
     }
 }
@@ -59,6 +72,7 @@ enum MessagesCapability: String, CaseIterable, Sendable {
     case payloadData
     case balloonBundleID
     case isSent
+    case audioMessage
 
     /// The raw column name in `message`.
     var column: String {
@@ -72,6 +86,7 @@ enum MessagesCapability: String, CaseIterable, Sendable {
         case .payloadData: "payload_data"
         case .balloonBundleID: "balloon_bundle_id"
         case .isSent: "is_sent"
+        case .audioMessage: "is_audio_message"
         }
     }
 
@@ -86,13 +101,14 @@ enum MessagesCapability: String, CaseIterable, Sendable {
         case .payloadData: \.hasPayloadData
         case .balloonBundleID: \.hasBalloonBundleID
         case .isSent: \.hasIsSent
+        case .audioMessage: \.hasAudioMessage
         }
     }
 }
 
 /// The probed shape of one database: every table this task reads, and its columns.
 ///
-/// `capabilities` is the published nine, derived from `message`'s columns, so the answer a
+/// `capabilities` is the published ten, derived from `message`'s columns, so the answer a
 /// caller reads and the answer a query projects cannot drift apart.
 struct MessagesSchema: Sendable {
     /// Table name → its column names, for the tables named in `probedTables` only.

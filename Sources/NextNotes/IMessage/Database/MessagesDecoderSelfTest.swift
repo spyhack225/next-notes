@@ -161,6 +161,38 @@ enum MessagesDecoderSelfTest {
     /// data and the data said something else.
     static let effectCasesEnvironmentKey = "IMESSAGE_DECODE_EFFECT_CASES"
 
+    /// Where a **real voice note** lives, when the owner has sent one to their own conversation
+    /// the way they sent an effect on 2026-09-26.
+    ///
+    /// **A third key rather than a reuse of the effect one, for one reason: the two cases
+    /// select different rows.** The effect case takes every row whose annotation says
+    /// `text = NULL`; a voice note is not identified by the absence of text — a voice note with
+    /// a caption has text — but by `is_audio_message = 1`. Pointing the voice-note case at the
+    /// effect block would therefore assert about effect rows, which is the one thing a capture
+    /// read is not allowed to be.
+    ///
+    /// **The block is the same shape and the same reader** (`parseCaptureBlock`), because the
+    /// format is IM-01's and one format wants one reader. What the capture has to add is one
+    /// column: IM-01's `--imessage-self-flow` emits `attributedBody`, `text`, `is_from_me` and
+    /// `date`, and **it does not emit `is_audio_message`**, so a voice-note capture is that same
+    /// block with `is_audio_message=1` on the audio row's `msg` line. The blocked line below
+    /// says so where somebody reading a blocked line will find it.
+    ///
+    /// **The reader is verified without the bytes.** The two cases that drive it in process are
+    /// about the reader, and the classification on a real body stays blocked — which is the only
+    /// ordering that leaves a capture one command away from an answer rather than from a
+    /// debugging session. The path from the variable to a case was walked end to end on
+    /// 2026-09-26 against a copy of IM-01's block with one row marked audio, which selected it,
+    /// counted five more cases, and classified it from the walk — so the reader is not the thing
+    /// standing between a capture and an answer.
+    ///
+    /// **The body's hex has to be inlined.** A row whose `attributedBody` is a shell reference —
+    /// `attributedBody="$BLOBBODY"`, which is how IM-01's *first* row is written — is skipped,
+    /// because a body this process cannot see is not a body it is being asked to resolve shell
+    /// over. A capture whose only audio row is such a reference therefore reports **no** audio
+    /// row, which is a **failure** naming that, not a blocked line.
+    static let audioCasesEnvironmentKey = "IMESSAGE_DECODE_AUDIO_CASES"
+
     static func run() async -> String {
         var failures: [String] = []
         var blocked: [String] = []
@@ -401,30 +433,181 @@ enum MessagesDecoderSelfTest {
             }
 
             // 10. The voice note. The corpus README says this row is IM-05's `.notText` case,
-            // and it cannot be: nothing in IM-04's `MessageRow` distinguishes an audio message
-            // from a text message whose body happens to be unreadable, and the honest answer
-            // from this row today is the refusal. Reported as blocked rather than papered over.
-            try await check("voice_note_is_classified_not_decoded") {
+            // and on 2026-09-26 it became one: `MessageRow` projects `is_audio_message`, and
+            // that column is the whole of the classification on this row — the `attributedBody`
+            // here is the two-byte `X'0001'` sentinel, so there is no class chain to read and the
+            // walk has nothing to say. `MessagesDecoder.swift`'s "A voice note is not an
+            // unreadable message" is the long form, including the half that is still blocked.
+            try await check("voice_note_is_not_text_and_not_unreadable") {
                 let database = try MessagesDatabase(root: corpus.url("voice-note"))
                 let rows = try await database.messages(after: 0, chatGUID: DecoderFixtureCorpus.directChatGUID)
                 guard rows.count == 1 else { return "expected 1 row, got \(rows.count)" }
                 guard rows[0].cacheHasAttachments == true else {
                     return "row 1 does not say it has an attachment"
                 }
+                guard rows[0].isAudioMessage == true else {
+                    return "row 1 does not say it is an audio message"
+                }
                 let envelope = MessagesDecoder.envelope(for: rows[0])
                 if envelope.text == "" { return "a voice note came back as \"\"" }
                 guard envelope.text == nil else { return "a voice note came back as \"\(envelope.text!)\"" }
-                guard case .unreadable = envelope.body else {
-                    return "a voice note came back \(envelope.body)"
+                guard case .notText(let bundleID, _) = envelope.body else {
+                    return "a voice note came back as \(envelope.decodeState), which is not .notText"
+                }
+                // **The id is optional and this row is why.** Nothing named the balloon, and a
+                // voice note is not required to name an app to be classified as one; before
+                // `bundleID` became `String?` the only two ways to build this case were to
+                // invent an id or to pass `""`, and both are lies a person would be shown.
+                guard bundleID == nil else {
+                    return "a voice note named an app — \(bundleID!.utf8.count) bytes of an "
+                        + "identity nothing supplied"
+                }
+                guard envelope.decodeState == .notText(bundleID: nil) else {
+                    return "decodeState is \(envelope.decodeState)"
+                }
+                // **And the source says which of the two signals did the work.** On this row the
+                // walk refused, so `.attributedBody` would be a lie in the direction that
+                // matters: it would say the bytes classified the row when they said nothing at
+                // all. This is the assertion that distinguishes the column from the walk.
+                guard envelope.source == .isAudioMessage else {
+                    return "the classification came from \(envelope.source), not .isAudioMessage"
                 }
                 return nil
             }
-            block("voice-note-as-not-text",
-                  "the corpus README's `.notText` for `voice-note` needs a signal this row does not "
-                  + "carry: IM-04's `MessageRow` does not project `is_audio_message`, and its "
-                  + "`attributedBody` is the `X'0001'` sentinel. Needs a projected column in "
-                  + "`MessagesQueries` — a projection IM-05 does not own — so the row is "
-                  + "classified as a refusal today, which is honest and not what the README says")
+
+            // 10b. The count, and it is the half that would be impossible to assert on a `.text`
+            // body. **A voice note has no words in it, and the number says the walk read none of
+            // it anyway.** An earlier version of this decoder answered `0` discarded bytes for
+            // every body that was not `.text`, on the reasoning that "a body with no sender's
+            // words has nothing to have passed over"; the effect rows disproved that on 2026-09-26
+            // (314 bytes, 237 unread) and a voice note is the same argument from the other side —
+            // its walk did not even start, so *every* byte is unread. A count smaller than the
+            // body would mean the walk had read part of a body with nothing in it.
+            try await check("voice_note_passes_over_the_whole_body") {
+                let database = try MessagesDatabase(root: corpus.url("voice-note"))
+                let rows = try await database.messages(after: 0, chatGUID: DecoderFixtureCorpus.directChatGUID)
+                guard let blob = rows.first?.attributedBody, blob.count > 0 else {
+                    return "the voice-note row has no body to have passed over"
+                }
+                let envelope = MessagesDecoder.envelope(for: rows[0])
+                let discarded = envelope.discardedBytes
+                guard case .notText(_, let reported) = envelope.body, reported == discarded else {
+                    return "the envelope says \(discarded) and the body says \(envelope.body)"
+                }
+                guard discarded > 0 else {
+                    return "a \(blob.count)-byte voice note reported 0 bytes passed over, which is "
+                        + "the one value that says the walk read the whole body"
+                }
+                guard discarded > blob.count / 2 else {
+                    return "\(discarded) of \(blob.count) bytes reported as passed over — less than "
+                        + "half, so the walk claims to have read most of a body with no words in it"
+                }
+                guard discarded == blob.count else {
+                    return "\(discarded) of \(blob.count) bytes passed over, so the walk claims to "
+                        + "have read \(blob.count - discarded) bytes of a body it had nothing to read"
+                }
+                guard envelopeCarriesNoMarker(envelope) else {
+                    return "the attachment marker reached a caller on a body that is not a message"
+                }
+                measured.append("voice note — \(discarded) of \(blob.count) bytes passed over "
+                                + "unread, the whole of them, and the walk refused before it started")
+                return nil
+            }
+
+            // 10c. The same voice note on a database that **can** say it is one and the row does
+            // not: the column exists, the value is 0, and the honest answer is the refusal. This
+            // is the half that says the classification is the *column's* and not the
+            // attachment's — `cache_has_attachments` and a settled join row are identical on both
+            // fixtures, so a decoder that classified on those would classify this row too.
+            try await check("a_voice_note_the_row_does_not_label_is_a_refusal") {
+                let database = try MessagesDatabase(root: corpus.url("voice-note-unlabelled"))
+                let rows = try await database.messages(after: 0, chatGUID: DecoderFixtureCorpus.directChatGUID)
+                guard rows.count == 1 else { return "expected 1 row, got \(rows.count)" }
+                guard rows[0].cacheHasAttachments == true else {
+                    return "the unlabelled row does not have the attachment, so the two fixtures "
+                        + "differ in more than the one column"
+                }
+                guard database.capabilities.hasAudioMessage else {
+                    return "the plain fixture has no is_audio_message column, so this case is not "
+                        + "about a row that declined to set one"
+                }
+                guard rows[0].isAudioMessage == false else {
+                    return "isAudioMessage is \(String(describing: rows[0].isAudioMessage)), not false"
+                }
+                let envelope = MessagesDecoder.envelope(for: rows[0])
+                if envelope.text == "" { return "an unlabelled voice note came back as \"\"" }
+                guard envelope.text == nil, case .unreadable = envelope.body else {
+                    return "an unlabelled voice note came back as \(envelope.decodeState)"
+                }
+                return nil
+            }
+
+            // 10d. **The column's absence, on a database that really lacks it.** `MessagesSchema`
+            // and `MessageRow` were the restriction the roadmap put on this assertion, and it is
+            // lifted — so the interesting question is the other one: what does a Mac that cannot
+            // see the column answer? The honest answer is the refusal, and the case says so
+            // rather than leaving the degradation untested, because a *nil* in a field is the one
+            // thing a projection bug and a real absence look identical from.
+            try await check("a_database_without_the_audio_column_degrades_rather_than_throwing") {
+                let database = try MessagesDatabase(root: corpus.url("voice-note-unlabelled-no-audio"))
+                guard database.capabilities.hasAudioMessage == false else {
+                    return "the --no-audio fixture still has an is_audio_message column, so nothing "
+                        + "is being degraded"
+                }
+                // The statement itself, read off the schema rather than inferred from a row that
+                // happened to come back: a database without the column projects `NULL`, and the
+                // query above still names every other column.
+                let sql = MessagesQueries.messages(schema: database.schema,
+                                                  joinedToChat: true, filteredToChat: true)
+                guard sql.contains("NULL AS isAudioMessage") else {
+                    return "the projection did not substitute for the missing column"
+                }
+                // One column, and not a statement that gave up: the rest of the projection is
+                // the ordinary one, so the degradation is the audio flag and nothing else.
+                for ordinary in ["m.guid AS guid", "m.text AS text", "m.is_from_me AS isFromMe",
+                                 "m.attributedBody AS attributedBody"] {
+                    guard sql.contains(ordinary) else {
+                        return "the projection also lost \(ordinary), so this is not a one-column "
+                            + "degradation"
+                    }
+                }
+                // And the query runs, which is the half that matters on somebody's live history:
+                // a `WHERE` or an `ORDER BY` naming a column this database lacks is a throw in a
+                // watcher, and the field has to be nil rather than a fabricated `false`.
+                let rows = try await database.messages(after: 0, chatGUID: DecoderFixtureCorpus.directChatGUID)
+                guard rows.count == 1 else { return "expected 1 row, got \(rows.count)" }
+                guard rows[0].isAudioMessage == nil else {
+                    return "a row on a database with no such column reported "
+                        + "\(String(describing: rows[0].isAudioMessage))"
+                }
+                guard rows[0].cacheHasAttachments == true, rows[0].text == nil else {
+                    return "the unlabelled row did not survive the projection intact"
+                }
+                let envelope = MessagesDecoder.envelope(for: rows[0])
+                if envelope.text == "" { return "an unlabelled voice note came back as \"\"" }
+                guard envelope.text == nil, case .unreadable = envelope.body else {
+                    return "on a database that cannot tell, the row came back as "
+                        + "\(envelope.decodeState) — the refusal is the honest answer and this "
+                        + "case is what keeps it from being quietly improved into a claim"
+                }
+                return nil
+            }
+
+            // 10e. The projection on a database that **has** the column, so `10d`'s `NULL AS` is
+            // a fact about the absence rather than the only thing the projection ever writes.
+            try await check("the_audio_column_is_projected_when_the_database_has_it") {
+                let database = try MessagesDatabase(root: corpus.url("voice-note"))
+                let sql = MessagesQueries.messages(schema: database.schema,
+                                                  joinedToChat: true, filteredToChat: true)
+                guard sql.contains("\(MessagesCapability.audioMessage.column) AS isAudioMessage") else {
+                    return "the projection does not read the column the capability governs"
+                }
+                let rows = try await database.messages(after: 0, chatGUID: DecoderFixtureCorpus.directChatGUID)
+                guard rows.count == 1, rows[0].isAudioMessage == true else {
+                    return "the row did not come back labelled as audio"
+                }
+                return nil
+            }
         } catch {
             failures.append("fixtures: \(error)")
         }
@@ -828,6 +1011,263 @@ enum MessagesDecoderSelfTest {
                   + "`~/Library/Caches/NextNotesBuild/imessage/self-flow-case.sh`. It is not "
                   + "committed and cannot be: `make-chatdb-fixture.sh`'s sanitisation guard refuses "
                   + "the hex of a 314-byte body as a bare 11-digit number")
+        }
+
+        // MARK: A voice note, the two signals, and which of them does the work
+        //
+        // The corpus case above answers the question with a real SQLite column and a real
+        // refusal, and it is the half that could be answered without a phone. These four are the
+        // other half, and they are about **the classifier's precedence** rather than about what
+        // Messages writes — which is the one question the oracle is the right instrument for.
+        // `TYPEDSTREAM-NOTES.md` §2.3 sanctions it for "the parser's mechanics" and
+        // `IMESSAGE_DECODE_REAL_BLOB` for the layout; a claim about which of two code paths runs
+        // first is a third thing and it needs neither a capture nor a claim about Apple.
+
+        // 31. **A column does not outrank a sentence.** A voice note whose body carries words is
+        // a voice note with a caption, and the caption is the sender's — so `is_audio_message`
+        // is the *last* check and not the first. A classifier that read the column first would
+        // throw away a sentence the user actually sent, and the throwaway is invisible: the row
+        // would still be classified "correctly" as a voice note.
+        await check("an_audio_row_whose_body_has_words_is_text") {
+            let expected = Self.oracleSentence
+            guard let blob = DecoderArchiverOracle.archive(
+                NSMutableAttributedString(string: expected)) else {
+                return "NSArchiver wrote nothing"
+            }
+            // The precondition, without which the case proves nothing: the walk really can read
+            // this body, so a refusal would be the audio rule and not the walk.
+            guard case .text = MessagesDecoder.body(fromAttributedBody: blob) else {
+                return "the body did not decode on its own, so the case cannot tell the audio rule "
+                    + "from the walk"
+            }
+            var row = MessageRow()
+            row.attributedBody = blob
+            row.isAudioMessage = true
+            let envelope = MessagesDecoder.envelope(for: row)
+            guard envelope.text == expected else {
+                return "an audio row with a sentence came back as "
+                    + "\(envelope.text.map { "\"\($0)\"" } ?? "nil")"
+            }
+            guard envelope.decodeState == .decoded, envelope.source == .attributedBody else {
+                return "state \(envelope.decodeState) from \(envelope.source)"
+            }
+            return nil
+        }
+
+        // 32. **The walk's verdict stands when it has one.** A body that declares itself to hold
+        // no words is `.notText` whatever the row says, and the *source* is what says the walk
+        // did it rather than the column — the distinction the `MessageBodySource` fifth case
+        // exists for. Without this, a voice note whose body is a marker-only balloon would be
+        // reported as classified by `is_audio_message` when the bytes classified it, and a
+        // caller using the source to decide what to trust would trust the wrong column.
+        await check("an_audio_row_the_walk_read_is_classified_by_the_walk") {
+            let marker = MessagesDecoder.attachmentMarker
+            guard let blob = DecoderArchiverOracle.archive(
+                NSMutableAttributedString(string: marker,
+                                          attributes: [NSAttributedString.Key(Self.fixtureKeyA): "a"])) else {
+                return "NSArchiver wrote nothing for a marker-only balloon"
+            }
+            guard case .notText = MessagesDecoder.body(fromAttributedBody: blob) else {
+                return "the marker-only balloon did not classify as .notText on its own, so the "
+                    + "case cannot tell the walk's answer from the column's"
+            }
+            var row = MessageRow()
+            row.attributedBody = blob
+            row.isAudioMessage = true
+            let envelope = MessagesDecoder.envelope(for: row)
+            guard envelope.text == nil, case .notText = envelope.body else {
+                return "an audio row with a marker-only body came back as \(envelope.decodeState)"
+            }
+            guard envelope.source == .attributedBody else {
+                return "the walk classified this row, and the source says \(envelope.source)"
+            }
+            return Self.nothingPassedOverReaches(
+                String(describing: envelope), from: blob,
+                discardedBytes: envelope.discardedBytes, caseName: "the audio marker balloon")
+        }
+
+        // 33. **The leak check on the route the column took, and the case that the walk read
+        // nothing.** The body here is the foreign-payload object: not a text balloon, so the
+        // walk refuses on it — which is exactly the row shape that sends a voice note to the
+        // audio rule — and it carries a third party's prose and a URL behind the refusal. The
+        // classification reads **no byte of it**, so the whole body is the discarded region and
+        // the count is the whole body. The mutation that reddens this is the one IM-05c found:
+        // reach past the walk, into the region it did not read, for something id-shaped to put in
+        // `bundleID`.
+        await check("the_audio_column_hands_out_nothing_from_the_graph") {
+            let payload = DecoderForeignPayload(offer: Self.foreignOffer, link: Self.foreignLink)
+            guard let blob = DecoderArchiverOracle.archive(payload) else {
+                return "NSArchiver wrote nothing for the foreign payload"
+            }
+            guard blob.count > Self.foreignOffer.utf8.count else {
+                return "the payload's stream is shorter than the string it carries, so there is no "
+                    + "graph for the leak check to see"
+            }
+            var row = MessageRow()
+            row.rowID = 1
+            // **This guid shares no word with the fixtures, and that is not an accident.** The
+            // first version of this case was `FIXTURE-AUDIO-0001`, and the leak check reported
+            // *one 7-byte sub-run* — `FIXTURE` — because the foreign payload's own prose opens
+            // with the same word, and both appear in the rendered value as **whole delimited
+            // tokens**. The delimited rule removes interior collisions (`Message` inside
+            // `IMessageEnvelope`, `ttribute` inside `attributedBody`) and it cannot remove this
+            // one, because a shared *word* is delimited on both sides by design. So a fixture's
+            // own name must not appear in a field the check renders; this row is what a capture
+            // looks like instead, and a real guid is a UUID that shares nothing with anything.
+            row.guid = "AUDIO-ROW-1"
+            row.attributedBody = blob
+            row.isAudioMessage = true
+            let envelope = MessagesDecoder.envelope(for: row)
+            guard case .notText(let bundleID, _) = envelope.body else {
+                return "an audio row whose body refused came back as \(envelope.decodeState)"
+            }
+            guard bundleID == nil else {
+                return "the audio route named an app — \(bundleID!.utf8.count) bytes of an identity "
+                    + "nothing supplied"
+            }
+            guard envelope.source == .isAudioMessage else {
+                return "the classification came from \(envelope.source), not .isAudioMessage"
+            }
+            // The precondition for the negative: the region the count names has to *have*
+            // something in it, or the assertion below is a tautology.
+            guard envelope.discardedBytes == blob.count else {
+                return "\(envelope.discardedBytes) of \(blob.count) bytes passed over, so the "
+                    + "region the leak check reads is not the whole body"
+            }
+            return Self.nothingPassedOverReaches(
+                String(describing: envelope), from: blob,
+                discardedBytes: envelope.discardedBytes, caseName: "the audio route")
+        }
+
+        // MARK: A real voice note, when the owner has sent one
+        //
+        // **The blocked line is about a row shape, and the reader is verified without it.** A
+        // capture that arrives into a reader nobody has ever run is a second thing to debug at
+        // the moment the answer is one command away, so the two cases below drive
+        // `parseAudioCapture` in process — a claim about the reader, not about Messages — and
+        // the classification stays blocked.
+
+        await check("an_audio_capture_block_selects_the_row_that_says_it_is_audio") {
+            let block = """
+            # row 60001 · NULL · 13 bytes, first 16: 00 01 02 03
+                msg ROWID=1 guid=FIXTURE-CAPTURE-0001 \\
+                    is_audio_message=1 attributedBody=blob:000102030405060708090A0B0C
+            # row 60002 · 14 characters · 13 bytes, first 16: 00 01 02 03
+                msg ROWID=2 guid=FIXTURE-CAPTURE-0002 \\
+                    attributedBody=blob:000102030405060708090A0B0C
+            """
+            guard case .loaded(let rows) = Self.parseAudioCapture(block, named: "synthetic block") else {
+                return "a block with one audio row and one sentence was not usable"
+            }
+            guard rows.count == 1 else { return "expected the one audio row, got \(rows.count)" }
+            guard rows[0].rowID == 60001 else { return "it selected row \(rows[0].rowID)" }
+            guard rows[0].textWasNull else {
+                return "the block annotates text as NULL and the reader does not believe it"
+            }
+            // **The annotation and the body have to agree, and this is the check that says so.**
+            // It is the same rule `effect_row_*_has_the_measured_columns` follows, and it earned
+            // its keep the first time it ran: the annotation above said 12 bytes and the body was
+            // 13, and a reader that had taken the annotation's word for it would have agreed with
+            // itself about a capture that does not agree with itself.
+            guard rows[0].blob?.count == 13, rows[0].measuredBytes == 13 else {
+                return "\(rows[0].blob?.count ?? 0) bytes of body against an annotated "
+                    + "\(rows[0].measuredBytes)"
+            }
+            return nil
+        }
+
+        // The rest of the row shape, and **a value the reader reads without ever printing**.
+        // `balloon_bundle_id` is a schema key; a capture's own value for it goes into the row and
+        // into a classification, and no failure line in this file may name it — which is only
+        // checkable if something in the file does carry one and nothing prints it.
+        await check("an_audio_capture_row_carries_the_columns_it_was_given_and_no_others") {
+            let named = "com.example.fixture-not-a-real-bundle"
+            let block = """
+            # row 60001 · NULL · 4 bytes, first 16: 00 01 02 03
+                msg ROWID=1 guid=FIXTURE-CAPTURE-0001 is_audio_message=1 \\
+                    attributedBody=blob:00010203 payload_data=blob:AABBCC \\
+                    balloon_bundle_id=\(named)
+            # row 60002 · NULL · 4 bytes, first 16: 00 01 02 03
+                msg ROWID=2 guid=FIXTURE-CAPTURE-0002 is_audio_message=1 \\
+                    attributedBody=blob:00010203
+            """
+            guard case .loaded(let rows) = Self.parseAudioCapture(block, named: "synthetic block"),
+                  rows.count == 2 else {
+                return "two audio rows in one block did not come back as two"
+            }
+            guard rows[0].payloadPresent else {
+                return "the row declares payload_data and the reader did not see it"
+            }
+            guard rows[0].balloonBundleID == named else {
+                return "the reader did not read the bundle id the block carries"
+            }
+            // And the absence half, because a reader that reports a column nobody set is a
+            // fabricated fact and a fabricated fact in a row is a classification built on it.
+            guard !rows[1].payloadPresent else { return "a row with no payload_data claims some" }
+            guard rows[1].balloonBundleID == nil else {
+                return "a row with no balloon_bundle_id named one — \(rows[1].balloonBundleID!.utf8.count) "
+                    + "bytes of an identity nothing supplied"
+            }
+            return nil
+        }
+
+        await check("a_capture_block_with_no_audio_row_is_unusable_not_merely_empty") {
+            // **Present and pointing at the wrong thing is a failure, not a block** — the same
+            // rule `effect_capture_artefact` follows. A block of ordinary sentences read by a
+            // voice-note case would otherwise make this one print "nothing to assert" and pass.
+            let block = """
+            # row 60002 · 14 characters · 13 bytes, first 16: 00 01 02 03
+                msg ROWID=2 guid=FIXTURE-CAPTURE-0002 \\
+                    attributedBody=blob:000102030405060708090A0B0C
+            """
+            guard case .unreadable = Self.parseAudioCapture(block, named: "synthetic block") else {
+                return "a block with no row saying it is audio was accepted"
+            }
+            return nil
+        }
+
+        let audioCapture = Self.loadAudioCapture()
+        if case .unreadable(let reason) = audioCapture {
+            // Pointed at something and it is not the capture this case is about: a **failure**,
+            // for the same reason `effect_capture_artefact` is one. This run was asked for a real
+            // voice note and did not get one, and a green line saying it was waiting is the
+            // failure this whole design prevents.
+            failures.append("audio_capture_artefact: \(reason)")
+        }
+        if case .loaded(let rows) = audioCapture {
+            // **What this case would assert, and why none of it runs today.** Every step below is
+            // a claim about a real voice note's row shape, and the only source for that shape is
+            // a row the owner's phone wrote.
+            block("voice-note-row-shape-from-a-real-message",
+                  "a real voice note's `attributedBody` and its four body columns, and only that. "
+                  + "The classification itself is answered twice over — \(rows.count) captured "
+                  + "audio row(s) went through the reader and the corpus case is green — so what "
+                  + "is left is *which signal a real row carries*: every attachment measured on "
+                  + "this Mac so far is a text balloon whose whole string is U+FFFC, and **if a "
+                  + "voice note is one of those the walk classifies it and the column is redundant "
+                  + "for that row.** Nothing here has read a voice note's bytes, so that is a "
+                  + "prediction, and the roadmap's rule about oracle cases forbids closing this "
+                  + "line with one. A further capture wants the same `msg` line with "
+                  + "`is_audio_message=1` on it and that row's body hex inlined rather than "
+                  + "referred to a shell variable, and the bytes are not committed for the same "
+                  + "reason the effect's are not")
+        } else if case .absent = audioCapture {
+            block("voice-note-row-shape-from-a-real-message",
+                  "the owner has not captured a voice note to their own conversation yet, and "
+                  + "this is the only assertion in the file that cannot be built from anything "
+                  + "else. To run it: set \(audioCasesEnvironmentKey) to a `cases.sh` block whose "
+                  + "audio row carries `is_audio_message=1` in its `msg` line **and inlines that "
+                  + "row's body hex** — IM-01's `--imessage-self-flow` does not emit the audio "
+                  + "column today, so the capture has to add it, and a row whose `attributedBody` "
+                  + "is a shell reference is skipped. The reader is already case-covered and the "
+                  + "path from the variable to a case was walked end to end on 2026-09-26. What it "
+                  + "answers is the one question the corpus cannot: **whether a real voice note's "
+                  + "body is a marker-only text balloon, in which case the walk classifies it and "
+                  + "`is_audio_message` is redundant for that row, or a body this Mac refuses, in "
+                  + "which case the column is the only signal there is.** Every attachment "
+                  + "measured on this Mac so far is the first shape, and nothing has read a voice "
+                  + "note's bytes, so that is a prediction. The bytes are not committed for the "
+                  + "same reason the effect's are not")
         }
 
         // MARK: The oracle
@@ -1302,6 +1742,38 @@ enum MessagesDecoderSelfTest {
     /// `.notText` assertions do not have the blind spot, because they compare against a known
     /// value rather than a rendering.
     ///
+    /// **And a second cost, found on 2026-09-26 by the voice-note case, which is the same class
+    /// as the first and worth more than it looks.** The delimited rule removes a collision that
+    /// is *interior* to a longer identifier on either side. It cannot remove one between two
+    /// **whole words**: a row whose `guid` was `FIXTURE-AUDIO-0001`, read against a foreign
+    /// payload whose prose opens `FIXTURE-THIRD-PARTY-OFFER`, reports a seven-byte leak that is
+    /// not a leak at all — the same seven bytes, a whole word on both sides, both of them this
+    /// file's own fixture vocabulary. Nothing in the rendering can tell the difference, and the
+    /// right repair is not a smarter rule but a fixture that does not put one of its own names in
+    /// a field this function renders. That is a constraint on the *cases*, stated here because the
+    /// alternative is a check that cries wolf on a phrase and gets ignored for the real thing.
+    ///
+    /// **The splice hole above was measured on this route, not merely reasoned about.**
+    /// `the_audio_column_hands_out_nothing_from_the_graph` feeds this function the discarded
+    /// region of a body that carries a third party's class name and prose. Four mutations, each
+    /// reverted, in `~/Library/Caches/NextNotesBuild/imessage/`:
+    ///
+    /// | mutation | what reached the caller | what caught it |
+    /// |---|---|---|
+    /// | M1 — search the discarded region for a long printable run, unspliced | the 21-byte class name | the case's own `bundleID == nil` |
+    /// | M1b — the same, with that assertion relaxed | the same 21 bytes | **this function**, on a whole delimited value |
+    /// | M1c — the same, pasted onto `com.apple.` | the same 21 bytes | **this function**: the `.` is itself a delimiter, so the run is still delimited |
+    /// | M1d — the same, pasted between two letters | the same 21 bytes | **nothing. `IMESSAGE_DECODE_OK: 36 cases`** |
+    ///
+    /// M1d is the documented splice hole, reached: `xDecoderForeignPayloady` renders with the
+    /// payload interior to a longer alphanumeric token, and the rule is about delimiters. **So the
+    /// exact-value assertions are the primary defence on this route and this function is the
+    /// backstop** — which is the reverse of the arrangement in IM-17c, where a `.text` body has
+    /// no second string to carry an id at all. The honest summary is that a leak which arrives
+    /// *spliced into a longer word* is not detected by any rendering-based check in this tree,
+    /// and closing it would mean comparing against known values rather than a reflection, which
+    /// is what `envelopeCarriesNoMarker` does for the marker and would mean for every field.
+    ///
     /// Six bytes is the floor because the format's own bytes are dense: `streamtyped`, a class
     /// name, a `+` and a length all sit within a few bytes of each other, and a shorter floor
     /// would report the format rather than the payload. The discarded region is the right place
@@ -1489,22 +1961,107 @@ extension MessagesDecoderSelfTest {
     /// which is a failure — somebody pointed this at data and the data is not what it claims.
     /// Nothing here is repaired.
     static func loadEffectCapture() -> EffectCapture {
-        guard let path = ProcessInfo.processInfo.environment[effectCasesEnvironmentKey],
+        switch readCaptureBlock(effectCasesEnvironmentKey) {
+        case .absent: return .absent
+        case .unreadable(let reason): return .unreadable(reason)
+        case .bodies(let bodies):
+            // **The predicate the case is about, taken from the capture and not from us**: only
+            // the rows whose own annotation says `text = NULL`. Everything else in the block is
+            // an ordinary sentence and is none of this case's business.
+            return .loaded(bodies.filter(\.textWasNull).map {
+                EffectRow(rowID: $0.rowID, textWasNull: true, measuredBytes: $0.measuredBytes, blob: $0.blob)
+            })
+        }
+    }
+}
+
+// MARK: - Reading IM-01's `cases.sh` block, for either kind of row
+
+extension MessagesDecoderSelfTest {
+    /// One annotated body in a capture block, with the `msg` line's own fields beside it.
+    ///
+    /// **`fields` is a dictionary of the row's columns as the block wrote them, and it is where
+    /// the two cases take their different predicates from**: the effect case reads the
+    /// annotation, the voice-note case reads `is_audio_message`. Nothing is normalised, defaulted
+    /// or guessed, and a value is never printed — a `balloon_bundle_id` out of a real capture is
+    /// a schema key no person should ever be shown, which is why the effect case's failure line
+    /// reports its length and not its content.
+    struct CapturedBody: Sendable {
+        var rowID: Int
+        var textWasNull: Bool
+        var measuredBytes: Int
+        var blob: Data
+        var fields: [String: String] = [:]
+    }
+
+    /// What a block holds: a value rather than a flag, so a caller can tell *nobody pointed at a
+    /// file* (`.absent`, and its cases stay uncounted) from *somebody pointed at a file that is
+    /// not this* (`.unreadable`, and a **failure**). The same three-way answer `RealBody` and
+    /// `EffectCapture` give, for the same reason.
+    enum CaptureBlock {
+        case absent
+        case unreadable(String)
+        case bodies([CapturedBody])
+    }
+
+    /// Read the block named by `key`, or say why it is not usable.
+    ///
+    /// **One reader for both captures, and the reason is the reason this file is a file.** The
+    /// block format is IM-01's — a `# row N · <text> · <len> bytes` annotation above a `msg`
+    /// line whose `attributedBody=blob:<hex>` carries the body — and a second parser for it
+    /// would be a second place the format is understood, which fails silently and points at
+    /// nothing. The two cases then differ in one predicate each, over the same rows.
+    static func readCaptureBlock(_ key: String) -> CaptureBlock {
+        guard let path = ProcessInfo.processInfo.environment[key],
               !path.trimmingCharacters(in: .whitespaces).isEmpty else {
             return .absent
         }
         guard let contents = try? String(contentsOfFile: path, encoding: .utf8) else {
-            return .unreadable("\(effectCasesEnvironmentKey) is set to \(path), which could not be read")
+            return .unreadable("\(key) is set to \(path), which could not be read")
         }
-        var pending: (rowID: Int, textWasNull: Bool, bytes: Int)?
-        var rows: [EffectRow] = []
+        return parseCaptureBlock(contents, named: path)
+    }
+
+    /// The parser, over text rather than a path, so a self-test can drive it without an
+    /// environment variable it cannot set.
+    ///
+    /// **A `msg` is a record, not a line, and the difference is the whole parse.** The generator
+    /// wraps a long row across two or three lines with trailing backslashes, and a reader that
+    /// treats each line as a row assembles a `msg` whose `attributedBody` arrived on one line and
+    /// whose `is_audio_message` arrived on another — which is exactly what the first version of
+    /// this function did, and the case above caught it: a two-row block came back as one row,
+    /// silently, because the column that selects a voice note and the body that proves it were
+    /// never in the same place. So the annotation above a `msg` is held aside, a record opens at
+    /// a line beginning `msg`, and it absorbs every following line's `k=v` pairs until the next
+    /// one opens.
+    static func parseCaptureBlock(_ contents: String, named path: String) -> CaptureBlock {
+        struct Record {
+            var annotation: (rowID: Int, textWasNull: Bool, bytes: Int)?
+            var fields: [String: String] = [:]
+        }
+        var records: [Record] = []
+        var pendingAnnotation: (rowID: Int, textWasNull: Bool, bytes: Int)?
+        var current: Record?
         for line in contents.split(separator: "\n", omittingEmptySubsequences: true) {
-            if let annotation = effectAnnotation(line) {
-                pending = annotation
+            if let annotation = captureAnnotation(line) {
+                pendingAnnotation = annotation
                 continue
             }
-            guard let hex = effectBlobHex(line) else { continue }
-            guard let annotation = pending else {
+            let fields = captureFields(line)
+            guard !fields.isEmpty else { continue }
+            if captureStartsARow(line) || current == nil {
+                if let current { records.append(current) }
+                current = Record(annotation: pendingAnnotation)
+                pendingAnnotation = nil
+            }
+            current?.fields.merge(fields) { _, newest in newest }
+        }
+        if let current { records.append(current) }
+
+        var bodies: [CapturedBody] = []
+        for record in records {
+            guard let hex = captureInlineBlob(record.fields["attributedBody"]) else { continue }
+            guard let annotation = record.annotation else {
                 return .unreadable("\(path) has an attributedBody with no measurement above it — "
                                    + "every body in this block is annotated by the capture that "
                                    + "wrote it, and this one is not")
@@ -1513,18 +2070,18 @@ extension MessagesDecoderSelfTest {
                 return .unreadable("\(path)'s body above row \(annotation.rowID) is "
                                    + "\(hex.count) characters, which is not a whole number of hex bytes")
             }
-            // **The predicate the case is about, taken from the capture and not from us**: only
-            // the rows whose own annotation says `text = NULL`. Everything else in the block is
-            // an ordinary sentence and is none of this case's business.
-            if annotation.textWasNull {
-                rows.append(EffectRow(rowID: annotation.rowID,
-                                      textWasNull: true,
-                                      measuredBytes: annotation.bytes,
-                                      blob: blob))
-            }
-            pending = nil
+            bodies.append(CapturedBody(rowID: annotation.rowID,
+                                       textWasNull: annotation.textWasNull,
+                                       measuredBytes: annotation.bytes,
+                                       blob: blob,
+                                       fields: record.fields))
         }
-        return .loaded(rows)
+        return .bodies(bodies)
+    }
+
+    /// Whether a line opens a new `msg` record rather than continuing the one above it.
+    static func captureStartsARow(_ line: Substring) -> Bool {
+        line.trimmingCharacters(in: .whitespaces).hasPrefix("msg ")
     }
 
     /// `# row 55198 · NULL · 314 bytes, first 16: 04 0B …` → `(55198, true, 314)`.
@@ -1533,7 +2090,7 @@ extension MessagesDecoderSelfTest {
     /// count like `12 characters`. **The number beside `row` is never interpreted** — it is the
     /// real `ROWID` on the owner's machine and is opaque here, exactly as
     /// `IMessageEnvelope.rowID`'s own comment says it is.
-    private static func effectAnnotation(_ line: Substring) -> (rowID: Int, textWasNull: Bool, bytes: Int)? {
+    static func captureAnnotation(_ line: Substring) -> (rowID: Int, textWasNull: Bool, bytes: Int)? {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard trimmed.hasPrefix("#") else { return nil }
         let parts = trimmed.dropFirst().split(separator: "·", omittingEmptySubsequences: true)
@@ -1542,8 +2099,8 @@ extension MessagesDecoderSelfTest {
         let rowToken = head.split(separator: " ").last.map(String.init) ?? ""
         guard let rowID = Int(rowToken) else { return nil }
         // `12 characters` and `NULL` are the only two shapes the generator writes, and the
-        // second is the one this case is about. Anything else is a shape we do not know how to
-        // read, so it is not treated as a NULL.
+        // second is the one the effect case is about. Anything else is a shape we do not know how
+        // to read, so it is not treated as a NULL.
         let textField = parts[1].trimmingCharacters(in: .whitespaces)
         let textWasNull = textField == "NULL"
         let bytesToken = parts[2].trimmingCharacters(in: .whitespaces)
@@ -1552,14 +2109,129 @@ extension MessagesDecoderSelfTest {
         return (rowID, textWasNull, bytes)
     }
 
-    /// The hex of one `attributedBody=blob:…` line, or `nil` for any other line.
+    /// The `k=v` pairs on one `msg` line, with the generator's double quotes stripped.
     ///
-    /// The first `msg` in the block writes `attributedBody="$BLOBBODY_REAL"` — a shell variable
-    /// this process cannot resolve — and it carries a `12 characters` annotation, so it is
-    /// skipped by the `text = NULL` filter rather than by a special case here.
-    private static func effectBlobHex(_ line: Substring) -> String? {
-        guard let range = line.range(of: "attributedBody=blob:") else { return nil }
-        return String(line[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+    /// **Every line of a `msg` is scanned, not just the one that starts with `msg`.** The
+    /// generator wraps a long row across lines with a trailing `\`, and `attributedBody` is
+    /// routinely on the second of them — so a reader that only looked at the first line would
+    /// find no body at all, silently, on every row the capture tool wrapped. The trailing
+    /// backslash is dropped rather than treated as part of the value; a value carrying a quote
+    /// of its own is left as it stands rather than unescaped, because this reader's cases assert
+    /// over a body and not over shell.
+    static func captureFields(_ line: Substring) -> [String: String] {
+        var fields: [String: String] = [:]
+        for token in line.split(separator: " ") {
+            var pair = token
+            while pair.hasSuffix("\\") { pair = pair.dropLast() }
+            guard let split = pair.firstIndex(of: "=") else { continue }
+            var value = String(pair[pair.index(after: split)...])
+            if value.hasPrefix("\"") { value.removeFirst() }
+            if value.hasSuffix("\"") { value.removeLast() }
+            fields[String(pair[..<split])] = value
+        }
+        return fields
+    }
+
+    /// The hex of a `blob:`-prefixed column value, or `nil` when the value is not inline hex.
+    ///
+    /// `nil` is also the answer for a body the block refers to by shell variable —
+    /// `attributedBody="$BLOBBODY"` — because a body this process cannot see is a body it is not
+    /// being asked to resolve shell over. Such a row is **skipped, not an error**: the capture
+    /// holds the expansion and IM-01's own effect rows were selected by a different predicate.
+    static func captureInlineBlob(_ value: String?) -> String? {
+        guard let value, value.hasPrefix("blob:") else { return nil }
+        let hex = String(value.dropFirst("blob:".count))
+        return hex.isEmpty ? nil : hex
+    }
+}
+
+// MARK: - The local voice-note capture
+
+extension MessagesDecoderSelfTest {
+    /// One row of a real voice-note capture: the shape `MessagesDecoder` will be handed, and the
+    /// measurement the case checks it against.
+    struct AudioRow: Sendable {
+        /// `message.ROWID` on the machine the capture came from. Opaque; used only for naming.
+        var rowID: Int
+        /// The capture said `text` was NULL on this row.
+        var textWasNull: Bool
+        /// The body length the capture annotated, in bytes.
+        var measuredBytes: Int
+        /// The body, when the block inlines it as hex. **Optional because a real voice note may
+        /// have no `attributedBody` at all**, and that is a shape worth being able to hold rather
+        /// than one worth guessing at.
+        var blob: Data?
+        /// `message.balloon_bundle_id`, when the block carries one. Never printed.
+        var balloonBundleID: String?
+        /// Whether the block says `payload_data` was present. **A flag and not the bytes**: the
+        /// question is whether the column had anything in it, and the answer that reaches a log
+        /// is a yes or a no.
+        var payloadPresent: Bool
+    }
+
+    /// What the voice-note block holds, in the three-way shape every capture in this file uses.
+    enum AudioCapture {
+        case absent
+        case loaded([AudioRow])
+        case unreadable(String)
+    }
+
+    /// Read the capture named by `audioCasesEnvironmentKey`.
+    static func loadAudioCapture() -> AudioCapture {
+        switch readCaptureBlock(audioCasesEnvironmentKey) {
+        case .absent: return .absent
+        case .unreadable(let reason): return .unreadable(reason)
+        case .bodies(let bodies): return audioCapture(from: bodies, named: "the capture")
+        }
+    }
+
+    /// Select the audio rows out of a parsed block.
+    ///
+    /// **The predicate is the block's own `msg` line, not the annotation.** The effect case
+    /// selects on `text = NULL` because that is what makes an effect an effect; a voice note is
+    /// not identified by the absence of text — a voice note with a caption has text — but by
+    /// `is_audio_message=1`, which is the column the classification is about and therefore the
+    /// one that has to be in the capture for the case to mean anything.
+    static func parseAudioCapture(bodies: [CapturedBody]) -> [AudioRow] {
+        bodies.compactMap { body in
+            guard body.fields["is_audio_message"] == "1" else { return nil }
+            let bundleID = body.fields["balloon_bundle_id"]
+            return AudioRow(rowID: body.rowID,
+                            textWasNull: body.textWasNull,
+                            measuredBytes: body.measuredBytes,
+                            blob: body.blob,
+                            balloonBundleID: (bundleID?.isEmpty == false) ? bundleID : nil,
+                            payloadPresent: captureInlineBlob(body.fields["payload_data"]) != nil)
+        }
+    }
+
+    /// **The "present but not this" rule, in one place and on both paths.**
+    ///
+    /// A block that yields no audio row is `.unreadable`, not an empty `.loaded`. It is the case
+    /// where somebody pointed this at data and the data is not what it claims, and it has to be a
+    /// **failure** at the call site rather than a run that prints "0 rows read" and comes back
+    /// green.
+    ///
+    /// **It is here because the first version applied the rule to the text-only overload and not
+    /// to the one the environment variable reaches**, so a real capture with no audio row printed
+    /// a blocked line and passed. The two entry points now share this function, which is the only
+    /// reason a second one could not drift from the first.
+    static func audioCapture(from bodies: [CapturedBody], named path: String) -> AudioCapture {
+        let rows = parseAudioCapture(bodies: bodies)
+        return rows.isEmpty
+            ? .unreadable("\(path) was read and no row in it carries is_audio_message=1, so it is "
+                          + "not a voice-note capture — somebody pointed this at data and the data "
+                          + "is not what it claims")
+            : .loaded(rows)
+    }
+
+    /// `parseAudioCapture` over a block read from text, for the cases that have no file.
+    static func parseAudioCapture(_ contents: String, named path: String) -> AudioCapture {
+        switch parseCaptureBlock(contents, named: path) {
+        case .unreadable(let reason): return .unreadable(reason)
+        case .absent: return .absent
+        case .bodies(let bodies): return audioCapture(from: bodies, named: path)
+        }
     }
 }
 
@@ -1686,17 +2358,25 @@ private struct DecoderFixtureCorpus {
     static let smsChatGUID = "+15550000001"
 
     struct Fixture: Sendable {
-        /// The generator's case name, which is also the file name except when degraded.
+        /// The generator's case name, which is also the file name except when a removal mode
+        /// renamed it.
         var fixture: String
         /// The file this entry is read from. The generator writes `<case>-degraded.sqlite` for
-        /// `--degraded` on its own, so this is not something the test gets to choose.
+        /// `--degraded` and `<case>-no-audio.sqlite` for `--no-audio` on its own, so this is not
+        /// something the test gets to choose.
         var name: String
         var degraded: Bool
+        /// The one `--no-audio` entry: a database whose `message` table genuinely has no
+        /// `is_audio_message` column. Defaulted rather than required, because it is one entry
+        /// out of ten and the alternative is a second parallel list of fixtures to keep in step.
+        var noAudio: Bool = false
         var chatGUID: String
     }
 
     /// Only the cases this test has a reason to open. `--degraded` is refused by the generator
-    /// for the cases that write the two removed columns, so it is asked for by name.
+    /// for the cases that write the two removed columns, so it is asked for by name; `--no-audio`
+    /// is refused for the case that writes `is_audio_message`, so the one entry that wants it is
+    /// the case that does not.
     let cases: [Fixture] = [
         Fixture(fixture: "basic-text", name: "basic-text", degraded: false,
                 chatGUID: DecoderFixtureCorpus.directChatGUID),
@@ -1711,7 +2391,11 @@ private struct DecoderFixtureCorpus {
                 chatGUID: DecoderFixtureCorpus.directChatGUID),
         Fixture(fixture: "unsend", name: "unsend", degraded: false, chatGUID: DecoderFixtureCorpus.selfChatGUID),
         Fixture(fixture: "voice-note", name: "voice-note", degraded: false,
-                chatGUID: DecoderFixtureCorpus.directChatGUID)
+                chatGUID: DecoderFixtureCorpus.directChatGUID),
+        Fixture(fixture: "voice-note-unlabelled", name: "voice-note-unlabelled", degraded: false,
+                chatGUID: DecoderFixtureCorpus.directChatGUID),
+        Fixture(fixture: "voice-note-unlabelled", name: "voice-note-unlabelled-no-audio",
+                degraded: false, noAudio: true, chatGUID: DecoderFixtureCorpus.directChatGUID)
     ]
 
     let directory: URL
@@ -1736,10 +2420,14 @@ private struct DecoderFixtureCorpus {
         for entry in corpus.cases {
             var arguments = [script.path, entry.fixture, "--outdir", directory.path]
             if entry.degraded { arguments.append("--degraded") }
+            if entry.noAudio { arguments.append("--no-audio") }
             let result = run(arguments)
+            let modes = [entry.degraded ? "--degraded" : "", entry.noAudio ? "--no-audio" : ""]
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
             guard result.status == 0 else {
                 corpus.discard()
-                throw CorpusError.buildFailed("\(entry.fixture)\(entry.degraded ? " --degraded" : ""): "
+                throw CorpusError.buildFailed("\(entry.fixture)\(modes.isEmpty ? "" : " " + modes): "
                                               + (result.reason.isEmpty ? "exit \(result.status)" : result.reason))
             }
         }

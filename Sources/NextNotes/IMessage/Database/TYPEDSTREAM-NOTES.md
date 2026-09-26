@@ -256,7 +256,23 @@ that has not been made:
   a third writer could.
 - `U+FFFC` behaviour on this OS. The 2026-09-26 capture has no photo in it, and
   §1.3's claim that the first printable run in a real body is `streamtyped` was
-  confirmed — a scan would have returned the format's own name on all nine.
+  confirmed — a scan would have returned the format's own name on all nine. The
+  **effect** rows did carry it (four rows whose whole string is `U+FFFC`, §IM-05c);
+  a *photo* and a *voice note* are still unmeasured.
+- **whether a voice note's body is a marker-only text balloon, a real sentence, or
+  something the walk refuses** — added 2026-09-26 by IM-05d. It is the one open
+  format question that decides *which* of two signals classifies a voice note, and
+  the two candidates are on opposite sides of the walk: a marker-only balloon is
+  classified by the bytes (`U+FFFC` and nothing else, exactly as an effect is), and
+  a body the walk cannot read is classified by `message.is_audio_message`. Every
+  attachment measured on this Mac so far is the first shape. **The decoder answers
+  either** — the walk first, the column last, so a caption stays the sender's words
+  and a refusal is a classification rather than a shrug — and
+  `--selftest-imessage-decode` prints the rest as
+  `IMESSAGE_DECODE_BLOCKED: voice-note-row-shape-from-a-real-message`. **It must not
+  be closed with an `NSArchiver` case**: that would be a claim about the parser's
+  mechanics standing in for a claim about Messages' bytes, which is the one thing the
+  oracle has never been allowed to do here.
 - the `payload_data` + `balloon_bundle_id` shape for an effect bubble
   (IM-01 experiment 11) — nothing in this note claims to know it, and the
   2026-09-26 rows all had `payload_data=absent`
@@ -1120,3 +1136,76 @@ which is in `attributedBody`. No floor removes that collision. So a candidate no
 it is **delimited** on both sides in the rendered value: a value that reaches a caller is a value
 and a value is delimited. What that does not cover — a payload spliced onto the end of another
 value — is stated in the code rather than left to be discovered.
+
+## 2026-09-26 — IM-05d: a voice note, and the signal that says what it is
+
+**The trigger.** The last blocked Phase 1 assertion, `voice-note-as-not-text`, was blocked on a
+restriction — *"IM-04's `MessageRow` does not project `is_audio_message`, and a file this task may
+not edit"* — rather than on anything unknown. The restriction was lifted, `MessagesQueries` and
+`MessagesSchema` are IM-05d's files, and the question became answerable from the corpus.
+
+### Which signal carries the answer [measured on the corpus row]
+
+**The column, and there is nothing else on that row.** `Tests/Fixtures/chatdb`'s `voice-note` case
+has carried `is_audio_message=1` since IM-04 built it, and its `attributedBody` is the two-byte
+`X'0001'` sentinel:
+
+```text
+is_audio_message = 1
+attributedBody   = X'0001'        2 bytes — a streamer version this decoder does not support
+```
+
+**There is no class chain on that row to read.** The walk stops at byte 0 and refuses, so a decoder
+that knew nothing but the walk could not tell it from a text body that failed to decode — which is
+precisely what IM-05 recorded when it classified the row as a refusal and printed the blocked line.
+A column is the only signal here, and that is *not* an argument against the walk: it is an argument
+for a decoder that has both.
+
+### The candidate the corpus cannot answer [open]
+
+A **real** voice note's body is unmeasured, and the two candidates are on opposite sides of the
+walk:
+
+| shape | classified by | what the column adds |
+|---|---|---|
+| a marker-only text balloon, like all four effect rows | **the walk**, on `U+FFFC` and nothing else | nothing for that row |
+| a body the walk refuses, or no body at all | **`is_audio_message`** | the whole classification |
+| a marker with a caption beside it | **neither** — it is text, and the caption is the sender's | nothing, by design |
+
+**The shipped rule answers all three, and the order is the argument:** the walk first, so a caption
+is text; the column last, so it only ever answers on a body the walk had nothing to say about. The
+column is therefore never redundant — it is the only one of the two that works on a refusal — and
+the walk is never redundant, because it is the only one that can see a sentence. What is *not*
+claimed is which of the two a real voice note needs, and that is the one line still blocked
+(`voice-note-row-shape-from-a-real-message`), waiting on a capture.
+
+### What the count is on a row the walk never entered
+
+`discardedBytes` is the **whole body** on this route — 2 of 2 on the corpus row, and whatever a real
+voice note is. The number means "no caller can see any of this body as the sender's words", and when
+nothing was read that is every byte of it. A count *smaller* than the body would claim the walk had
+read part of a body with no words in it, which is the failure IM-17c's guarantee is about; a count of
+`0` — the answer this decoder gave every non-`.text` body until the effect rows — would claim it had
+read all of it. The row with **no** body column is the one honest `0`, because there is nothing
+there to have passed over.
+
+### The leak hole, measured rather than reasoned about
+
+IM-05c left one shape uncovered and said so: a payload **spliced** onto another value is interior to
+a longer identifier in the rendered value, and the delimited rule is about delimiters. IM-05d's
+audio route is the most tempting place to reach for an id, and four mutations (each reverted,
+`~/Library/Caches/NextNotesBuild/imessage/IM-05d-red-M1*.txt`) settled it:
+
+| mutation | reached the caller | caught by |
+|---|---|---|
+| search the discarded region for a long printable run | the 21-byte class name | the case's own `bundleID == nil` |
+| the same, that assertion relaxed | the same 21 bytes | the leak sweep |
+| the same, pasted onto `com.apple.` | the same 21 bytes | the leak sweep — `.` is a delimiter |
+| **the same, pasted between two letters** | **the same 21 bytes** | **nothing** |
+
+**And the corpus could not have caught any of them**, because a two-byte body has nothing in it to
+leak. A leak assertion on this route only means something over a body that *carries* a graph, which
+is a claim about the parser's mechanics and therefore `NSArchiver`'s — the one instrument
+`IMESSAGE_DECODE_REAL_BLOB` is not. On this route the exact-value assertions are the primary defence
+and the sweep is the backstop, which is the reverse of IM-17c, where a `.text` body has no second
+string to carry an id at all.

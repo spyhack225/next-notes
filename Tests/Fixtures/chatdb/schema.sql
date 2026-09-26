@@ -10,16 +10,28 @@
 -- carried the real database's 200 columns would be a second thing to keep
 -- correct and would assert nothing.
 --
--- A line ending in `--optional:<name>` is removed in `--degraded` mode. That
--- marker is the whole of the degraded mechanism: the marker shares the line
+-- A line ending in `--optional:<name>` is removed in `--degraded` mode, and a
+-- line ending in `--optional-audio:<name>` is removed in `--no-audio` mode. That
+-- marker is the whole of the removal mechanism: the marker shares the line
 -- with the column, so the removal is an exact string match and the full schema
--- and the degraded schema cannot drift apart. Exactly two columns carry it —
--- `attributedBody` and `payload_data`, the two IM-05's decoder needs to know
--- about and the two that decide whether text can be decoded at all. No other
--- column may carry the marker: every other column, including
+-- and the removed schema cannot drift apart. Exactly three columns carry a
+-- marker, one per mode.
+--
+-- `--degraded` removes two: `attributedBody` and `payload_data`, the two
+-- IM-05's decoder needs to know about and the two that decide whether text can
+-- be decoded at all. `--no-audio` removes one: `is_audio_message`, and it
+-- exists for a reason the other two do not have a reason for. Those two ask
+-- "can this Mac read the body of a message"; this one asks "can this Mac tell a
+-- voice note from a body it failed to read", and a row is a *different kind of
+-- object* when the answer is no — so the absence has to be testable against a
+-- database that really does not have the column, rather than against a
+-- database that has it and left it NULL. `voice-note-unlabelled --no-audio` is
+-- that database, and it is the only case that mode is for.
+--
+-- No other column may carry either marker: every other column, including
 -- `balloon_bundle_id`, `is_sent`, `error` and `handle.uncanonicalized_id`,
--- exists in both modes, because a degraded fixture is supposed to be this
--- database with two columns missing, not a smaller database.
+-- exists in both modes, because a removed-column fixture is supposed to be
+-- this database with one or two columns missing, not a smaller database.
 
 PRAGMA page_size = 4096;
 PRAGMA user_version = 1;
@@ -73,7 +85,7 @@ CREATE TABLE message (
     is_from_me                  INTEGER DEFAULT 0,
     is_empty                    INTEGER DEFAULT 0,
     is_sent                     INTEGER DEFAULT 0,
-    is_audio_message            INTEGER DEFAULT 0,
+    is_audio_message            INTEGER DEFAULT 0, --optional-audio:is_audio_message
     cache_has_attachments       INTEGER DEFAULT 0,
     balloon_bundle_id           TEXT,
     payload_data                BLOB, --optional:payload_data

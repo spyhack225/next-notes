@@ -79,6 +79,7 @@ real bytes from outside this directory rather than inside it.
 Tests/Fixtures/chatdb/make-chatdb-fixture.sh --list          # every case and its purpose
 Tests/Fixtures/chatdb/make-chatdb-fixture.sh basic-text      # -> basic-text.sqlite
 Tests/Fixtures/chatdb/make-chatdb-fixture.sh basic-text --degraded
+Tests/Fixtures/chatdb/make-chatdb-fixture.sh voice-note-unlabelled --no-audio
 Tests/Fixtures/chatdb/make-chatdb-fixture.sh --all           # every case
 Tests/Fixtures/chatdb/make-chatdb-fixture.sh basic-text --sql   # print the SQL, write nothing
 ```
@@ -104,7 +105,8 @@ columns the built file actually has:
 CHATDB_FIXTURE basic-text -> …/basic-text.sqlite | tables 7 | rows 7 [message 2, chat 1, handle 1, …] | optional columns present:attributedBody payload_data balloon_bundle_id …
 ```
 
-`--degraded` prints the same line with `absent:attributedBody payload_data`.
+`--degraded` prints the same line with `absent:attributedBody payload_data`, and
+`--no-audio` with `absent:is_audio_message`.
 
 ## The cases
 
@@ -115,7 +117,8 @@ CHATDB_FIXTURE basic-text -> …/basic-text.sqlite | tables 7 | rows 7 [message 
 | `direct-message` | a DM chat joined to **two** handles, one message each way | **IM-04** · the join methods; **IM-09** · walking `chat_handle_join` → `handle.uncanonicalized_id` to a send target | synthetic |
 | `group-message` | `chat.guid` shaped `iMessage;+;<opaque>`, three handles joined | **IM-09** · the guid says nothing addressable, so the only route to a target is the join; three handles so "returns the first" is distinguishable from "returns all" | synthetic |
 | `sms` | `service`/`service_name` = `SMS`, `text` populated, `attributedBody` genuinely NULL | **IM-05** · the developer's-own-test row — a decoder that reads only `text` passes here and fails everywhere else | synthetic |
-| `voice-note` | an `attachment` with the CAF voice UTI, joined via `message_attachment_join`; `is_audio_message=1`, `cache_has_attachments=1` | **IM-15** · a voice note is a file, not a duplex turn. ⚠️ **was** claimed as IM-05's `.notText` case; that is **wrong and blocked** (2026-09-25) — `MessageRow` does not project `is_audio_message`, and this row's `attributedBody` is the `X'0001'` sentinel, so nothing distinguishes it from a text body that failed to decode. Needs a projected column in `MessagesQueries` | synthetic |
+| `voice-note` | an `attachment` with the CAF voice UTI, joined via `message_attachment_join`; `is_audio_message=1`, `cache_has_attachments=1` | **IM-05** · a voice note is `.notText`, never text and never `.unreadable`, and the **column** is what classifies this row — its `attributedBody` is the `X'0001'` sentinel, so there is no class chain to read at all. IM-15 · a voice note is a file, not a duplex turn | synthetic |
+| `voice-note-unlabelled` | **the same voice note**, same chat, same attachment, same unreadable body — and the one line that would name it is not written, so `is_audio_message` takes its default `0` | **IM-05** · the honest degradation, and the reason the classification is the column's and not the attachment's: `cache_has_attachments` and the settled join row are identical to `voice-note`, so a decoder that classified on those would classify this row too | synthetic |
 | `reply` | two rows, the second's `thread_originator_guid` (and `_part`) pointing at the first | **IM-05** · IM-01 experiment 6; grouping is by the originator pair | synthetic |
 | `reaction` | a tapback row: `type=2000`, `associated_message_guid` at its target, `balloon_bundle_id` + `payload_data` | **IM-05** · a `payload_data` + `balloon_bundle_id` row returns `.notText(bundleID:)` | synthetic |
 | `edit` | an edited row: `date_edited` non-zero, `associated_message_guid` at the row it replaced | **IM-05** · IM-01 experiment 8; an edit must not decode as if it never happened | synthetic |
@@ -138,6 +141,31 @@ cannot have.
 fixture that looks like a capability probe and asserts nothing — and for
 `both-paths` a degraded build could not express the case at all, since the whole
 case is one row per body column.
+
+**`--no-audio` removes exactly one column, and it is not `--degraded`.** It drops
+`is_audio_message` and nothing else, and it exists for a reason the two body
+columns do not have a reason for. Those two ask "can this Mac read the body of a
+message"; this one asks "can this Mac tell a voice note from a body it failed to
+read", and on that row the answer changes what the row **is** — `.notText` with
+the column, `.unreadable` without it. A test that used a row holding a NULL where
+the column *should* be would prove a reader's nil-handling and nothing about the
+probe, so `--no-audio` builds `voice-note-unlabelled` into a database whose
+`message` table really has no such column, and
+`MessagesQueries` projects `NULL AS isAudioMessage` for it. The two modes are
+independent: a `--degraded` build keeps the audio column (a degraded fixture is
+this database with two columns missing, not a smaller database) and a
+`--no-audio` build keeps both body columns.
+
+`--no-audio` is **refused for `voice-note`**, with a one-line reason, because that case is the
+one that writes the column — so the mode cannot quietly build a database whose only message is a
+voice note that nobody can see. Every other case builds under it, and `voice-note-unlabelled` is
+the one it exists for.
+
+Both modes are driven by a marker in `schema.sql` rather than by a list in the
+script, so the full schema and the two reduced schemas cannot drift apart, and
+`--optional:` is not a substring of `--optional-audio:` — the two filters are
+separate. The summary line reports the audio column like any other, so a
+`--no-audio` build says `absent:is_audio_message` on its face.
 
 ## Determinism
 
@@ -166,6 +194,23 @@ column except the five that identify the row or carry the body, the
 `strings(1)` scan of the file, and the `--degraded` refusal. The other sixteen
 builds were not re-run, so the count above still describes the twelve-case corpus
 and the thirteenth is covered separately.
+
+`voice-note-unlabelled` and the `--no-audio` mode joined on 2026-09-26 (IM-05d),
+and were verified the same way rather than asserted: both new builds twice with
+matching digests, `voice-note` twice likewise, and — the half that matters and
+that a `strings(1)` scan cannot give — the **column's real absence**, read back
+with
+
+```bash
+/usr/bin/sqlite3 voice-note-unlabelled-no-audio.sqlite \
+  "SELECT count(*) FROM pragma_table_info('message') WHERE name='is_audio_message'"
+```
+
+which answers `0`, while a query naming it answers `no such column`. That is the
+difference between a database that lacks the column and one that has it holding
+a NULL, and the whole reason this mode exists. The digests are not in the
+transcripts: they change whenever a case does, and the check that matters is the
+one above, run twice.
 
 One thing that verification caught, recorded because it is the kind of bug a
 fixture corpus hides: **a default of the bare word `NULL` becomes the
@@ -199,7 +244,11 @@ them: `is_audio_message` (experiment 5, a voice note) and
 `associated_message_type` (a reaction's target type). `date_edited` and
 `is_retracted` are not in §2.2 at all — the roadmap names them as
 *capabilities* to probe without saying which columns carry them, so they are
-marked as such above.
+marked as such above. `is_audio_message` joined the third removal mode on
+2026-09-26 (IM-05d) as `MessagesCapability.audioMessage`, because unlike the
+other nine a missing `is_audio_message` changes a row's classification rather
+than only what a field can say; the reason is in
+`MessagesCapabilities.hasAudioMessage`'s comment.
 
 The join tables are modelled with their own `ROWID` rather than as composite-key
 rowid aliases, which is what real `chat.db` does. That is deliberate:

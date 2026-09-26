@@ -8,14 +8,23 @@
 # date('now'). Two runs of the same case produce a byte-identical file, which
 # is how "a fixture is deterministic" is checked rather than asserted in prose.
 #
-#   make-chatdb-fixture.sh <case> [--degraded] [--outdir DIR] [--sql]
+#   make-chatdb-fixture.sh <case> [--degraded] [--no-audio] [--outdir DIR] [--sql]
 #   make-chatdb-fixture.sh --list
-#   make-chatdb-fixture.sh --all [--degraded]
+#   make-chatdb-fixture.sh --all [--degraded] [--no-audio]
 #
 # --degraded emits a database whose `message` table genuinely has no
 # `attributedBody` and no `payload_data` column, for IM-04's capability probe
 # and for proving that messages(after:) degrades rather than throwing. A case
 # that writes either column is refused rather than silently half-built.
+#
+# --no-audio emits a database whose `message` table genuinely has no
+# `is_audio_message` column, and it removes exactly one column. It exists for
+# the one probe whose absence changes what a row *is* rather than what a row
+# says: with the column, a voice note is a balloon with no words in it
+# (`.notText`); without it, the same row is a body this Mac could not read
+# (`.unreadable`), and only a database that really lacks the column can say so
+# without lying. A case that writes the column is refused, so the mode cannot
+# quietly build a database whose one message is a voice note nobody can see.
 #
 # SQLite is pinned to Apple's build by absolute path: an older anaconda sqlite3
 # sits earlier on PATH on the development machine and the two do not agree on
@@ -38,7 +47,8 @@ ROWID_STRIDE=60000000000
 # Columns the roadmap §2.2 flags as often-missed, plus the ones
 # MessagesCapabilities probes. The summary line reports which are present.
 OPTIONAL_MESSAGE_COLUMNS="attributedBody payload_data balloon_bundle_id is_sent error \
-date_edited is_retracted associated_message_guid thread_originator_guid cache_has_attachments"
+date_edited is_retracted associated_message_guid thread_originator_guid is_audio_message \
+cache_has_attachments"
 OPTIONAL_HANDLE_COLUMNS="uncanonicalized_id"
 
 FIXTURE_TABLES="message chat handle attachment chat_message_join message_attachment_join chat_handle_join"
@@ -163,11 +173,32 @@ msg_default() {
     return 1
 }
 
+# removed_flag <column>  ->  the flag that removes this column, or failure.
+#
+# One rule for both removal modes, and the reason a third mode is two lines here
+# rather than a pair of case statements per column. `--degraded` and `--no-audio`
+# are independent filters on schema.sql, and a column this function names is a
+# column that mode does not have: it must be left out of the INSERT, and a case
+# that sets one must be refused rather than half-built.
+removed_flag() {
+    if [ "$DEGRADED" = 1 ]; then
+        case $1 in
+            attributedBody|payload_data) printf -- '--degraded'; return 0 ;;
+        esac
+    fi
+    if [ "$NO_AUDIO" = 1 ]; then
+        case $1 in
+            is_audio_message) printf -- '--no-audio'; return 0 ;;
+        esac
+    fi
+    return 1
+}
+
 # msg <rowid=N> <guid=G> [column=value ...]
 #
-# The canonical message row writer, and the reason --degraded is two lines
-# rather than thirteen: the removed columns live in schema.sql only, and a case
-# that tries to set one is an error rather than a quietly wrong database.
+# The canonical message row writer, and the reason the removal modes are two
+# lines rather than thirteen: the removed columns live in schema.sql only, and a
+# case that tries to set one is an error rather than a quietly wrong database.
 msg() {
     kv_get ROWID "$@" >/dev/null || die "msg: ROWID is required"
     kv_get guid "$@" >/dev/null || die "msg: guid is required"
@@ -175,8 +206,8 @@ msg() {
 
     for _ma in "$@"; do
         _mk=$(kv_key "$_ma")
-        if [ "$DEGRADED" = 1 ] && { [ "$_mk" = attributedBody ] || [ "$_mk" = payload_data ]; }; then
-            die "case writes $_mk, which --degraded removes; run this case without --degraded"
+        if _mf=$(removed_flag "$_mk"); then
+            die "case writes $_mk, which $_mf removes; run this case without $_mf"
         fi
         in_list "$_mk" "$MSG_COLUMNS" || die "msg: unknown message column '$_mk'"
     done
@@ -184,12 +215,10 @@ msg() {
     _mcols=''
     _mvals=''
     for _mc in $MSG_COLUMNS; do
-        # In --degraded these two are not in the table, so they are not in the
-        # INSERT either. A default of NULL is not enough: the column list is
-        # positional and naming a column that is not there is an error.
-        if [ "$DEGRADED" = 1 ] \
-            && { [ "$_mc" = attributedBody ] || [ "$_mc" = payload_data ]; }
-        then
+        # A removed column is not in the table, so it is not in the INSERT either. A default of
+        # NULL is not enough: the column list is positional and naming a column that is not
+        # there is an error.
+        if removed_flag "$_mc" >/dev/null 2>&1; then
             continue
         fi
         if _mv=$(kv_get "$_mc" "$@"); then
@@ -279,12 +308,21 @@ build_sql() {
     : > "$SQL_FILE"
 
     # One source of truth for both modes: a line ending `--optional:<name>` is
-    # the whole of the degraded filter, and the marker shares the line with the
-    # column so the match is exact and the two schemas cannot drift.
+    # the whole of the `--degraded` filter, and a line ending
+    # `--optional-audio:<name>` the whole of the `--no-audio` one. The marker
+    # shares the line with the column so the match is exact and the two schemas
+    # cannot drift. The two filters are independent and neither is a subset of
+    # the other: `--optional:` is not a substring of `--optional-audio:`, so a
+    # no-audio build keeps both body columns and a degraded build keeps the
+    # audio column.
     if [ "$DEGRADED" = 1 ]; then
         grep -v -- '--optional:' "$SCHEMA" > "$SQL_FILE"
     else
         cat "$SCHEMA" > "$SQL_FILE"
+    fi
+    if [ "$NO_AUDIO" = 1 ]; then
+        grep -v -- '--optional-audio:' "$SQL_FILE" > "$SQL_FILE.filtered"
+        mv "$SQL_FILE.filtered" "$SQL_FILE"
     fi
 
     printf '\n' >> "$SQL_FILE"
@@ -319,7 +357,8 @@ summary_line() {
     _db=$1
     _out=$2
     _tag="$CASE"
-    [ "$DEGRADED" = 1 ] && _tag="$CASE-degraded"
+    if [ "$DEGRADED" = 1 ]; then _tag="$CASE-degraded"; fi
+    if [ "$NO_AUDIO" = 1 ]; then _tag="$CASE-no-audio"; fi
 
     _sel=''
     for _t in $FIXTURE_TABLES; do
@@ -359,6 +398,8 @@ list_cases() {
 
 DEGRADED=0
 DEGRADED_FLAG=
+NO_AUDIO=0
+NO_AUDIO_FLAG=
 WANT_SQL=0
 WANT_ALL=0
 OUTDIR=$HERE
@@ -374,11 +415,12 @@ command -v "$SQLITE" >/dev/null 2>&1 || die "sqlite3 not found at '$SQLITE'; ove
 while [ $# -gt 0 ]; do
     case $1 in
         --degraded) DEGRADED=1; DEGRADED_FLAG=--degraded ;;
+        --no-audio) NO_AUDIO=1; NO_AUDIO_FLAG=--no-audio ;;
         --sql)      WANT_SQL=1 ;;
         --outdir)   shift; [ $# -gt 0 ] || die "--outdir needs a directory"; OUTDIR=$1 ;;
         --list)     list_cases; exit 0 ;;
         --all)      WANT_ALL=1 ;;
-        -h|--help)  sed -n '3,20p' "$0" | sed 's/^#\{1,\} \{0,1\}//'; exit 0 ;;
+        -h|--help)  sed -n '3,32p' "$0" | sed 's/^#\{1,\} \{0,1\}//'; exit 0 ;;
         -*)         die "unknown option '$1' (try --help)" ;;
         *)          if [ -n "$CASE" ]; then die "more than one case named ('$CASE' and '$1')"; fi
                     CASE=$1 ;;
@@ -390,10 +432,12 @@ done
 # where it says rather than where the order of the words happened to put it.
 if [ "$WANT_ALL" = 1 ]; then
     if [ -n "$CASE" ]; then
-        "$0" "$CASE" ${DEGRADED_FLAG:+"$DEGRADED_FLAG"} --outdir "$OUTDIR"
+        "$0" "$CASE" ${DEGRADED_FLAG:+"$DEGRADED_FLAG"} ${NO_AUDIO_FLAG:+"$NO_AUDIO_FLAG"} \
+            --outdir "$OUTDIR"
     else
         for _c in $ALL_CASES; do
-            "$0" "$_c" ${DEGRADED_FLAG:+"$DEGRADED_FLAG"} --outdir "$OUTDIR" || exit 1
+            "$0" "$_c" ${DEGRADED_FLAG:+"$DEGRADED_FLAG"} ${NO_AUDIO_FLAG:+"$NO_AUDIO_FLAG"} \
+                --outdir "$OUTDIR" || exit 1
         done
     fi
     exit 0
@@ -412,7 +456,8 @@ fi
 
 mkdir -p "$OUTDIR"
 OUT=$OUTDIR/$CASE.sqlite
-[ "$DEGRADED" = 1 ] && OUT=$OUTDIR/$CASE-degraded.sqlite
+if [ "$DEGRADED" = 1 ]; then OUT=$OUTDIR/$CASE-degraded.sqlite; fi
+if [ "$NO_AUDIO" = 1 ]; then OUT=$OUTDIR/$CASE-no-audio.sqlite; fi
 rm -f "$OUT"
 
 # One write transaction, PRAGMAs outside it (page_size is a no-op inside one).

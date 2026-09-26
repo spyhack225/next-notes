@@ -6,7 +6,9 @@ import SQLite3
 /// A `nil` in an optional field means "this database has no such column", not "this
 /// message's value was absent" — the two read the same way on purpose, because the only
 /// question a caller can act on is whether the *database* can answer at all, and that is
-/// `MessagesCapabilities`.
+/// `MessagesCapabilities`. **One field is the exception and says so on itself:
+/// `isAudioMessage`**, because for that one the two answers are different claims rather than
+/// the same claim in two words.
 struct MessageRow: Equatable, Sendable {
     /// `message.ROWID` — the watermark IM-06 advances, and an opaque handle here.
     var rowID: Int64 = 0
@@ -46,6 +48,14 @@ struct MessageRow: Equatable, Sendable {
     var isDelivered: Bool?
     /// `message.cache_has_attachments`.
     var cacheHasAttachments: Bool?
+    /// `message.is_audio_message` — a voice note.
+    ///
+    /// **The one optional field whose absence changes what a row *is* rather than what it
+    /// says**, which is why it is a capability and not a plain probed column. Every other `nil`
+    /// here means "this database cannot answer that about this row"; a `nil` here means the
+    /// database cannot tell a voice note from a body this Mac failed to read, so the decoder
+    /// has to say the second rather than the first. See `MessagesCapabilities.hasAudioMessage`.
+    var isAudioMessage: Bool?
 }
 
 /// One row of `chat`, with the participants the join tables can name.
@@ -141,8 +151,10 @@ enum MessagesQueries {
             case identity
             /// Present when the capability it stands for is on.
             case capability(MessagesCapability)
-            /// Present when the table has the column. `cache_has_attachments` and
-            /// `handle.uncanonicalized_id` are probed but are not one of the nine.
+            /// Present when the table has the column. `cache_has_attachments`,
+            /// `thread_originator_part` and `handle.uncanonicalized_id` are probed but are not
+            /// one of the ten — and the reason `is_audio_message` *is* one of the ten is
+            /// `MessagesCapabilities.hasAudioMessage`'s own comment.
             case column
         }
 
@@ -169,7 +181,7 @@ enum MessagesQueries {
 
     // MARK: - The columns
 
-    /// `message`, in projection order. The nine optional ones are named through
+    /// `message`, in projection order. The ten optional ones are named through
     /// `MessagesCapability` so the name and the flag that governs it cannot disagree.
     static let messageColumns: [Column] = [
         Column(.message, "ROWID", "rowID", .identity),
@@ -184,6 +196,7 @@ enum MessagesQueries {
         Column(.message, MessagesCapability.payloadData.column, "payloadData", .capability(.payloadData)),
         Column(.message, MessagesCapability.balloonBundleID.column, "balloonBundleID", .capability(.balloonBundleID)),
         Column(.message, MessagesCapability.isSent.column, "isSent", .capability(.isSent)),
+        Column(.message, MessagesCapability.audioMessage.column, "isAudioMessage", .capability(.audioMessage)),
         Column(.message, MessagesCapability.retractionMetadata.column, "isRetracted", .capability(.retractionMetadata)),
         Column(.message, MessagesCapability.editMetadata.column, "dateEdited", .capability(.editMetadata)),
         Column(.message, MessagesCapability.deliveryState.column, "isDelivered", .capability(.deliveryState)),
@@ -374,6 +387,7 @@ enum MessagesQueries {
         row.threadOriginatorPart = text(statement, messageColumns, "threadOriginatorPart")
         row.isDelivered = flag(statement, messageColumns, "isDelivered")
         row.cacheHasAttachments = flag(statement, messageColumns, "cacheHasAttachments")
+        row.isAudioMessage = flag(statement, messageColumns, "isAudioMessage")
         return row
     }
 

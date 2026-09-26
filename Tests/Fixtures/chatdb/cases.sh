@@ -25,8 +25,8 @@
 BLOBBODY="blob:0001"
 
 ALL_CASES="basic-text self-message direct-message group-message sms voice-note \
-reply reaction edit unsend delayed-attachment-join empty-attributed-body \
-both-paths"
+voice-note-unlabelled reply reaction edit unsend delayed-attachment-join \
+empty-attributed-body both-paths"
 
 case_purpose() {
     case $1 in
@@ -41,7 +41,9 @@ case_purpose() {
         sms)
             printf 'IM-05: service SMS, text present, attributedBody genuinely NULL' ;;
         voice-note)
-            printf 'IM-05/IM-15: an audio attachment joined to its message' ;;
+            printf 'IM-05/IM-15: an audio attachment joined to its message, is_audio_message=1' ;;
+        voice-note-unlabelled)
+            printf 'IM-05: the same voice note on a database that cannot label it (--no-audio)' ;;
         reply)
             printf 'IM-05: a thread_originator_guid pointing at the earlier row' ;;
         reaction)
@@ -164,10 +166,18 @@ case_sms() {
     chat_message 1 1
 }
 
-# A voice note. IM-05 classifies it as .notText rather than as an empty string,
-# and IM-15 later copies the file out — so the attachment row needs a voice UTI,
-# a filename, a mime type and a settled transfer_state. cache_has_attachments=1
-# plus a real join row is the settled half of the shape IM-06's race case inverts.
+# A voice note. IM-05 classifies it as .notText rather than as an empty string
+# or a refusal, and IM-15 later copies the file out — so the attachment row needs
+# a voice UTI, a filename, a mime type and a settled transfer_state.
+# cache_has_attachments=1 plus a real join row is the settled half of the shape
+# IM-06's race case inverts.
+#
+# **The `is_audio_message=1` on this row is the whole of the classification, and
+# that is the measurement IM-05d recorded on 2026-09-26.** The `attributedBody`
+# below is the `X'0001'` sentinel, so there is no class chain to read at all: the
+# walk refuses, and a column is the only thing on this row that says what it is.
+# `voice-note-unlabelled` is the other half of the pair, and the reason the
+# classification needs no third signal.
 case_voice_note() {
     handle_row ROWID=1 id=+15550000001 uncanonicalized_id=+15550000001 \
         person_centric_id=REDACTED-PERSON-1
@@ -180,6 +190,38 @@ case_voice_note() {
         attributedBody="$BLOBBODY"
     attach_row ROWID=1 guid=FIXTURE-ATT-VOICE-0001 \
         filename=FIXTURE-VOICE-0001.caf uti=com.apple.coreaudio-format \
+        mime_type=audio/x-caf transfer_state=5 total_bytes=2048
+
+    chat_message 1 1
+    msg_attachment 1 1
+}
+
+# The same voice note on a database that cannot say it is one.
+#
+# **It is the same conversation, the same attachment and the same unreadable body,
+# and it is a different kind of object**, because the one column that named it is
+# not written. This case is what the *absence* of `is_audio_message` looks like
+# from inside a Messages database, and it is why `--no-audio` exists: with the
+# column present but the row not setting it (this case, built plainly) a reader
+# can tell "not audio" from "this Mac cannot tell", and with the column gone
+# (`--no-audio`) it can only say the second. A test that used a row holding a
+# NULL where the column *should* be would prove the reader's nil-handling and
+# nothing about the probe.
+#
+# The `msg` writer refuses a case that writes `is_audio_message` in this mode, so
+# this case cannot quietly grow into a voice note nobody can see.
+case_voice_note_unlabelled() {
+    handle_row ROWID=1 id=+15550000001 uncanonicalized_id=+15550000001 \
+        person_centric_id=REDACTED-PERSON-1
+    chat_row ROWID=1 guid='iMessage;-;+15550000001' \
+        chat_identifier=+15550000001 display_name=REDACTED-PERSON-1
+    chat_handle 1 1
+
+    msg ROWID=1 guid=FIXTURE-VOICE-UNLABELLED-0001 handle_id=1 is_from_me=0 \
+        cache_has_attachments=1 \
+        attributedBody="$BLOBBODY"
+    attach_row ROWID=1 guid=FIXTURE-ATT-VOICE-UNLABELLED-0001 \
+        filename=FIXTURE-VOICE-UNLABELLED-0001.caf uti=com.apple.coreaudio-format \
         mime_type=audio/x-caf transfer_state=5 total_bytes=2048
 
     chat_message 1 1
