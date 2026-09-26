@@ -69,6 +69,11 @@ final class RealtimeAgent {
     private var currentTurnSource: AgentUtteranceSource = .text
     let isVoiceWorker: Bool
     private(set) var voiceWork: VoiceConversationWork?
+    /// An offer or a confirmation question this conversation is waiting on (P1-02). Typed
+    /// turns only; the voice coordinator has its own `PendingIntent` until P1-07. The
+    /// session id is part of the action, so a cleared or rotated conversation drops it with
+    /// no extra hook — `AgentSession.endSession` assigns a new `sessionID`.
+    private(set) var typedPending: PendingAction?
     private(set) var voiceInputActive = false
     /// Output has its own lifetime: yielding speech must not invalidate work.
     private(set) var speechGeneration = 0
@@ -165,6 +170,9 @@ final class RealtimeAgent {
     var fileRetrievalForTesting: (any FileRetrieving)?
     /// Receives one event per planner round and per rejected call. Nil in production.
     var plannerTraceForTesting: (@MainActor (PlannerTraceEvent) -> Void)?
+    /// Replaces the pending action a typed turn would otherwise have to earn. Nil in
+    /// production; a self-test that drives `handle` reaches the same block without one.
+    func setTypedPendingForTesting(_ action: PendingAction?) { typedPending = action }
 
     private init() { isVoiceWorker = false }
 
@@ -328,8 +336,30 @@ final class RealtimeAgent {
         }
         AgentAuditLog.shared.record(kind: .request, title: String(text.prefix(300)), detail: source.rawValue)
         AgentSession.shared.recordUser(text, source: source)
+        // P1-02: a "yes" carries the action. Resolved before `AgentTurnIntent`, because the
+        // synthesized prompt is a request, not an acknowledgement. The session row keeps the
+        // literal "yes" — what the person said is what the conversation shows.
+        var effectiveText = text
+        var pendingOriginal = text
+        if source == .text, let pending = typedPending {
+            typedPending = nil
+            if pending.isFresh(), pending.sessionID == AgentSession.shared.sessionID {
+                if PendingAction.isConfirmation(text) {
+                    effectiveText = pending.confirmedPrompt(acknowledgment: text)
+                    // The request a new offer is measured against is the original one, not
+                    // the prompt this turn was built from.
+                    pendingOriginal = pending.requestText
+                    AgentAuditLog.shared.record(
+                        kind: .request, title: pending.requestText,
+                        detail: "pending_ack → plan (typed; heard: \(String(text.prefix(80))))")
+                } else if PendingAction.isNegative(text) {
+                    replyTrace.end(note: "pending-declined")
+                    return conclude(mine, "Okay, I won't.", route: "pending-declined")
+                }
+            }
+        }
         let intent = AgentTurnIntent.resolve(
-            text, choice: choice,
+            effectiveText, choice: choice,
             hasConversationContext: AgentSession.shared.hasPriorAssistantTurn
         )
 
@@ -389,8 +419,9 @@ final class RealtimeAgent {
                 route: "task"
             )
         case .toolLoop:
-            // A conversational turn does not need the full tool catalogue. The
-            // model first answers or opts into tools; only the latter shows work.
+            // A typed turn makes exactly one model call: the planner, which answers
+            // directly when no tool is needed. A voice turn still gets the header pass,
+            // because production voice is answered by the coordinator, not here.
             beginWork(title: "Thinking…")
             let speech = AgentToolSpeechTracker(
                 agent: self, turn: mine, allowSpeech: source == .voice,
@@ -399,11 +430,18 @@ final class RealtimeAgent {
             let work = source == .voice ? VoiceConversationWork(text) : nil
             voiceWork = work
             defer { if voiceWork === work { voiceWork = nil } }
-            let result = await runModelTurn(text, speech: speech, voice: source == .voice)
+            let result = await runModelTurn(effectiveText, speech: speech, voice: source == .voice)
             let reply = result.reply
             speech.finishPendingFirstTokenTrace(note: isCurrent(mine) ? "no-token" : "superseded")
             guard isCurrent(mine) else {
                 return AgentTurn(reply: lastReply, delegated: false)
+            }
+            if source == .text {
+                typedPending = PendingAction.detect(
+                    reply: result.reply, request: pendingOriginal,
+                    allowedIDs: Set(Self.plannableTools().map(\.id)),
+                    origin: result.usedTools ? .typedQuestion : .typedOffer,
+                    sessionID: AgentSession.shared.sessionID)
             }
             let speakable = !AgentSpeechPolicy.spokenClauses(reply).isEmpty
             // A model may still return a listing despite the voice instruction.

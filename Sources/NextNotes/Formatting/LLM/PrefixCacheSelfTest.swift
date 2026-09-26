@@ -221,13 +221,16 @@ enum PrefixCacheSelfTest {
         }
 
         // 5. The typed prewarm prefills the typed prefix, and the next typed turn reuses it.
+        // P1-02: the typed turn's first prompt is the planner's, so that is what the prewarm
+        // fills and what this case measures against. Both sides move together, which is the
+        // point: a prewarm of a prompt no typed turn sends passes nothing.
         do {
             try await runtime.prepareForConversation(workClass: .background, voice: false)
         } catch {
             failures.append(
                 "prepareForConversation(voice: false) failed: \(error.localizedDescription)")
         }
-        let typedSystem = RealtimeAgent.voiceRoutingSystem(voice: false)
+        let typedSystem = await RealtimeAgent.typedWarmSystem()
         let family = await runtime.family
         let prefix = ChatTemplate.renderPrefix(family, system: typedSystem)
         if let prefixTokens = try? await runtime.countTokens(prefix) {

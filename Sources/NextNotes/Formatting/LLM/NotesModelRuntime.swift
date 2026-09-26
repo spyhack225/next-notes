@@ -456,21 +456,27 @@ actor NotesModelRuntime {
     /// The first reply otherwise still pays Metal/context initialization after
     /// `prepare()` has reported success.
     ///
-    /// `voice` selects which system prompt the warm-up prefills (P0-18): the typed route
-    /// warms `RealtimeAgent.voiceRoutingSystem(voice: false)` and a voice session warms the
-    /// voice prompt, each rendered through the loaded family's own prefix and decoded with
-    /// no sampling. A warm-up whose prefix the live KV cache already starts with is skipped,
-    /// so typing in the Agent pane costs nothing after the first keystroke.
+    /// `voice` selects which system prompt the warm-up prefills (P0-18), each rendered
+    /// through the loaded family's own prefix and decoded with no sampling. A warm-up whose
+    /// prefix the live KV cache already starts with is skipped, so typing in the Agent pane
+    /// costs nothing after the first keystroke.
     ///
     /// The old body prefilled the **voice** prompt whatever the route and returned early
     /// whenever a context existed, so the typed prewarm warmed the wrong tokens — the
     /// difference between the two prompts is most of the prefix a typed turn needs.
+    ///
+    /// P1-02 changed which prompt the typed route sends: a typed turn is a planner round,
+    /// so the typed prewarm now prefills `RealtimeAgent.typedWarmSystem()`. Warming the
+    /// response-header prompt a typed turn no longer sends cost the first reply a whole
+    /// prefill — measured 913 tokens decoded before, 1,731 after.
     func prepareForConversation(
         workClass: WorkClass = .realtimeAgent, voice: Bool = false
     ) async throws {
         try await withLane(workClass) { jobID in
             try await loadIfNeeded(schedulerJobID: jobID)
-            let system = RealtimeAgent.voiceRoutingSystem(voice: voice)
+            let system = voice
+                ? RealtimeAgent.voiceRoutingSystem(voice: true)
+                : await RealtimeAgent.typedWarmSystem()
             let prefix = ChatTemplate.renderPrefix(family, system: system)
             guard let vocabulary else { throw LlamaError.notLoaded }
             let tokens = try tokenizePrompt(prefix, vocabulary: vocabulary)

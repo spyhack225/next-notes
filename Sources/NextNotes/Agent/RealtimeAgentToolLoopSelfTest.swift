@@ -470,6 +470,7 @@ enum RealtimeAgentToolLoopSelfTest {
             agent.localModelLimitForTesting = nil
             agent.toolLoopLimitForTesting = nil
             agent.answerDepthForTesting = nil
+            agent.setTypedPendingForTesting(nil)
         }
 
         let turn = await agent.handle(
@@ -493,7 +494,7 @@ enum RealtimeAgentToolLoopSelfTest {
                 )
             ) == .toolLoop(prompt: "tell me which app is frontmost")
         )
-        check("tool request did not enter the separate planner", rounds >= 3)
+        check("tool request did not enter the separate planner", rounds >= 2)
         check("tool planner did not receive a real tool result", sawResult)
         // Measured without the persona, which has its own budget (`--selftest-persona`).
         let plannerPersona = PersonaStore.shared.fullPersona().count
@@ -502,8 +503,9 @@ enum RealtimeAgentToolLoopSelfTest {
         check("tool loop returned no final answer", !turn.reply.isEmpty)
         check("tool loop leaked a tool tag to the user", !turn.reply.contains("<tool_call>"))
 
-        // A conversational answer streams in its routing pass. No second
-        // model prefill, and no full tool schema on the speech path.
+        // P1-02: the typed path makes exactly one model call now — the planner's — so a
+        // conversational answer is the planner's own first round rather than a header pass
+        // followed by a refusal guard. The voice branch keeps its header pass (P3-01).
         let directState = ToolLoopTestState()
         agent.localModelProviderForTesting = ToolLoopTestProvider(
             state: directState, firstCall: ""
@@ -513,13 +515,23 @@ enum RealtimeAgentToolLoopSelfTest {
         let directRounds = await directState.rounds
         let firstPromptCharacters = await directState.firstSystemCharacters
         check("conversation entered tool planning (\(directRounds) rounds)", directRounds == 1)
-        let firstPrompt = RealtimeAgent.voiceRoutingSystem(voice: false)
-        check("first pass omitted the model tool decision", firstPrompt.contains("<use_tools/>"))
+        check("typed turn used the response-header pass",
+              !(await directState.sawHeaderPass))
+        check("typed turn did not reach the planner prompt", await directState.sawToolCatalogue)
+        check("typed conversation asked for \(await directState.lastMaxTokens.map(String.init) ?? "-") "
+            + "tokens, expected at least 1,024", (await directState.lastMaxTokens ?? 0) >= 1_024)
         // The persona is the user's own text and is budgeted separately
-        // (`--selftest-persona`); this ceiling is about the tool roster.
+        // (`--selftest-persona`); this ceiling is about the tool roster, and it is the
+        // planner's own prompt that a typed conversation now pays for. The 1,500 the
+        // speech path keeps is below it — the speech path is a header prompt with no
+        // catalogue at all. 8,000 is the same bound the tool-request planner prompt is
+        // held to above; the *sized* assertion is `PROMPT_TOKENS < 900` for 12 tools,
+        // which is P1-03's to shrink. Measured 2026-09-25: 6,316 with the full roster.
         let personaCharacters = PersonaStore.shared.fullPersona().count
-        check("conversation prompt still carries the full tool roster (\(firstPromptCharacters) chars, persona \(personaCharacters))",
-              firstPromptCharacters - personaCharacters < 1_500)
+        print("CONVERSATION_PROMPT_CHARS: \(firstPromptCharacters) persona \(personaCharacters) "
+            + "roster \(firstPromptCharacters - personaCharacters)")
+        check("the tool planner's prompt left its measured budget (\(firstPromptCharacters) chars, persona \(personaCharacters))",
+              firstPromptCharacters - personaCharacters < 8_000)
 
 
         var utc = Calendar(identifier: .gregorian)
@@ -617,6 +629,11 @@ enum RealtimeAgentToolLoopSelfTest {
         check("verified tool result produced no voice fallback", !recorder.spoken.isEmpty)
         check("voice turn lost the full text result", voiceTurn.reply.contains("/private/"))
         check("voice summary added an extra model round", (await voiceState.rounds) == 3)
+        // The speech path's own first pass, which P1-02 leaves alone: it must not pick up
+        // the tool roster. The persona is the user's own text, budgeted separately.
+        let voiceFirstPass = await voiceState.firstSystemCharacters
+        check("conversation prompt still carries the full tool roster (\(voiceFirstPass) chars, persona \(personaCharacters))",
+              voiceFirstPass - personaCharacters < 1_500)
         await AgentCaptureController.shared.endSession(source: .done)
         recorder.reset()
         let answerState = ToolLoopTestState()
@@ -639,25 +656,26 @@ enum RealtimeAgentToolLoopSelfTest {
         await AgentCaptureController.shared.endSession(source: .done)
         AgentSpeechSynthesizer.shared.restoreSystemBacking()
 
-        // P0-05: the typed first pass's budget comes from the reader's window and the
-        // persona depth, not the fixed 112. Red-first: `AgentAnswerBudget.tokens` is a stub
-        // until the fix, so every case below records 112.
+        // P0-05 + P1-02 step 6: the budget a typed pass asks for comes from the reader's
+        // window and the persona depth, never a literal — and after P1-02 that pass is the
+        // planner round, whose cap used to be the 256 that truncated tool calls (H1 #3).
+        // The depth rule itself is pinned in the table below, where `wanted` lives.
         agent.toolLoopLimitForTesting = nil
         let deepState = ToolLoopTestState()
         agent.answerDepthForTesting = .deep
         agent.localModelProviderForTesting = ToolLoopTestProvider(
-            state: deepState, firstCall: "", window: 32_768, firstPassAnswer: "<answer/>4.")
+            state: deepState, firstCall: "", window: 32_768, firstPassAnswer: "4.")
         _ = await agent.runModelTurn("What's 2+2?", voice: false)
-        let deepMax = await deepState.firstPassMaxTokens
-        check("typed first pass asked for \(deepMax ?? -1), expected 500", deepMax == 500)
+        let deepMax = await deepState.lastMaxTokens
+        check("typed planner round asked for \(deepMax ?? -1), expected 1,024", deepMax == 1_024)
 
         let fastState = ToolLoopTestState()
         agent.answerDepthForTesting = .fast
         agent.localModelProviderForTesting = ToolLoopTestProvider(
-            state: fastState, firstCall: "", window: 32_768, firstPassAnswer: "<answer/>4.")
+            state: fastState, firstCall: "", window: 32_768, firstPassAnswer: "4.")
         _ = await agent.runModelTurn("What's 2+2?", voice: false)
-        let fastMax = await fastState.firstPassMaxTokens
-        check("fast typed first pass asked for \(fastMax ?? -1), expected 128", fastMax == 128)
+        let fastMax = await fastState.lastMaxTokens
+        check("fast typed planner round asked for \(fastMax ?? -1), expected 1,024", fastMax == 1_024)
 
         // A small window: the depth budget is clamped to the room left after the prompt.
         let smallState = ToolLoopTestState()
@@ -666,21 +684,26 @@ enum RealtimeAgentToolLoopSelfTest {
         AgentSession.shared.recordUser(pad, source: .text)
         AgentSession.shared.recordAssistant(pad)
         agent.localModelProviderForTesting = ToolLoopTestProvider(
-            state: smallState, firstCall: "", window: 1_536, firstPassAnswer: "<answer/>4.")
+            state: smallState, firstCall: "", window: 1_536, firstPassAnswer: "4.")
         _ = await agent.runModelTurn("What's 2+2?", voice: false)
-        let smallMax = await smallState.firstPassMaxTokens
-        let smallPrompt = await smallState.firstPassPromptTokens
-        let smallExpected = smallPrompt.map { max(64, min(500, 1_536 - $0 - 256)) }
+        let smallMax = await smallState.lastMaxTokens
+        let smallPrompt = await smallState.lastPromptTokens
+        let smallExpected = smallPrompt.map { max(64, min(1_024, 1_536 - $0 - 256)) }
         print("ANSWER_BUDGET: deep=\(deepMax ?? -1) fast=\(fastMax ?? -1) "
             + "small=\(smallMax ?? -1) prompt=\(smallPrompt ?? -1)")
-        check("small-window first pass asked for \(smallMax ?? -1), expected "
+        check("small-window planner round asked for \(smallMax ?? -1), expected "
             + "\(smallExpected ?? -1) from a \(smallPrompt ?? -1)-token prompt",
               smallMax != nil && smallMax == smallExpected)
 
-        // The pure table, independent of any provider.
+        // The pure table, independent of any provider. `.typedAnswer` is the `.localModel`
+        // answer now that the typed first pass is gone, and its depth sensitivity is
+        // pinned here: a planner round's wanted value is floored at 1,024.
         let table: [(String, AgentAnswerBudget.Kind, AgentResponsiveness, Int, Int, Int)] = [
             ("typedAnswer/deep/262144", .typedAnswer, .deep, 262_144, 2_000, 500),
+            ("typedAnswer/fast/32768", .typedAnswer, .fast, 32_768, 2_000, 128),
+            ("typedAnswer/deep/1536-clamped", .typedAnswer, .deep, 1_536, 1_000, 280),
             ("plannerRound/deep/32768", .plannerRound(background: false), .deep, 32_768, 2_000, 1_024),
+            ("plannerRound/fast/32768", .plannerRound(background: false), .fast, 32_768, 2_000, 1_024),
             ("plannerRound(background)/fast/8192", .plannerRound(background: true), .fast, 8_192, 2_000, 768),
             ("finalAnswer/balanced/4096", .finalAnswer, .balanced, 4_096, 3_900, 64),
         ]
@@ -695,28 +718,143 @@ enum RealtimeAgentToolLoopSelfTest {
         // nothing says exactly that — it is not an "incomplete response" and it is not
         // prefixed as a model failure.
         agent.toolLoopLimitForTesting = nil
+        MultiStepNotices.resetForTesting()
         agent.localModelProviderForTesting = CutOffTestProvider(visible: nil, cutOffVisible: false)
         let thoughtOnly = await agent.runModelTurn("What can you do?", voice: false)
         let thoughtOnlySentence = "The model spent its whole answer thinking and wrote nothing. "
             + "Try again, or pick a model without the Reasoning label in Settings ▸ Agent."
+        // A typed turn now reaches the planner, and the planner is where P0-22's once-per-
+        // session online notice is prefixed. That sentence is not what this case is about,
+        // so it resets the notice and then asks whether the cut-off sentence is the ending.
         check("a cut-off with no text answered \"\(thoughtOnly.reply)\"",
-              thoughtOnly.reply == thoughtOnlySentence)
+              thoughtOnly.reply.hasSuffix(thoughtOnlySentence))
         check("a cut-off with no text kept the incomplete-response sentence",
               !thoughtOnly.reply.contains("incomplete response"))
         check("a cut-off with no text was prefixed as a model failure",
               !thoughtOnly.reply.hasPrefix("The model could not answer:"))
 
         // P0-17 f. A cut-off after visible text keeps the answer and ends with the cut-off
-        // note, rather than replacing both with the failure sentence.
+        // note, rather than replacing both with the failure sentence. P1-02 removed the
+        // typed header pass, so the note is now added by the planner's own round — the
+        // provider yields the text and then reports the cut-off, exactly as a reasoning
+        // model does when its visible budget runs out.
+        MultiStepNotices.resetForTesting()
         agent.localModelProviderForTesting = CutOffTestProvider(
-            visible: "<answer/>Hello the", cutOffVisible: true)
+            visible: "Hello the", cutOffVisible: true)
         let truncated = await agent.runModelTurn("Say hello.", voice: false)
         check("a cut-off after visible text lost the answer: \"\(truncated.reply)\"",
-              truncated.reply.hasPrefix("Hello the"))
+              truncated.reply.contains("Hello the"))
         check("a cut-off after visible text did not say it was cut off: \"\(truncated.reply)\"",
               truncated.reply.hasSuffix("(The answer was cut off.)"))
         check("a cut-off after visible text was prefixed as a model failure",
               !truncated.reply.hasPrefix("The model could not answer:"))
+
+        // P1-02. Four cases, each written before the fix and each failing on the header
+        // pass: a typed "hi" that cost two model round trips and could not hold a tool
+        // call's arguments, and a "yes" that re-derived its own action.
+        agent.toolLoopLimitForTesting = nil
+        agent.answerDepthForTesting = .deep
+
+        // Case 1: one typed "hi" is one model call, on the planner's own prompt, with a cap
+        // big enough to hold a tool call and its arguments.
+        let hiLog = PlannerScriptLog()
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000,
+            script: ["Hi. What would you like to do?"], log: hiLog)
+        let hi = await agent.handle("hi", source: .text)
+        let hiCalls = hiLog.calls
+        check("a typed \"hi\" made \(hiCalls.count) model call(s), expected exactly 1",
+              hiCalls.count == 1)
+        check("the typed \"hi\" did not use the planner prompt",
+              hiCalls.first?.system.contains("Available tools:") == true)
+        check("a typed turn used the response-header prompt",
+              !hiCalls.contains { $0.system.contains("<use_tools/>") })
+        check("a typed \"hi\" asked for \(hiCalls.first?.maxTokens ?? -1) tokens, expected at "
+            + "least 1,024", (hiCalls.first?.maxTokens ?? 0) >= 1_024)
+        check("a typed \"hi\" answered \"\(hi.reply)\"", !hi.reply.isEmpty)
+
+        // Case 1b: the same turn against a nearly full window. 4,096 − (4,096 − 400) − 256
+        // = 144: the room rule clamps, `contextTokens / 4` would not. The budget log line
+        // is an `os.Logger` write, so what is pinned here is the label it carries.
+        let tightLog = PlannerScriptLog()
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 4_096 - 400,
+            script: ["Hi."], log: tightLog)
+        _ = await agent.handle("hi", source: .text)
+        let tightMax = tightLog.calls.first?.maxTokens ?? -1
+        check("a nearly full window asked for \(tightMax) tokens, expected 144 (room-clamped)",
+              tightMax == 144)
+        check("the planner round's budget log line is not labelled \(AgentAnswerBudget.Kind.plannerRound(background: false).label)",
+              AgentAnswerBudget.Kind.plannerRound(background: false).label == "plannerRound")
+
+        // Case 2: the offer, then "yes". The confirmation must reach the planner carrying
+        // the earlier request, and the plan must run the tool the user already agreed to.
+        let toolLog = ScriptedToolLog()
+        AgentToolExecutor.fakeForTesting = { tool, _ in
+            toolLog.record(tool.id)
+            return AgentToolResult(summary: "1) Marcus Lee · Pricing sheet v3\n2) Ana Ruiz · Deck")
+        }
+        defer { AgentToolExecutor.fakeForTesting = nil }
+        let emailLog = PlannerScriptLog()
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000,
+            script: [
+                "I can look through your inbox. Would you like me to do that?",
+                "<tool_call>{\"name\":\"search_email\",\"arguments\":{\"query\":\"in:inbox\"},"
+                    + "\"rationale\":\"read the inbox\"}</tool_call>",
+                "You have two new messages: a pricing sheet and a deck for Friday.",
+            ], log: emailLog)
+        agent.setTypedPendingForTesting(nil)
+        let offer = await agent.handle("Summarize my last emails", source: .text)
+        check("the offer did not end in a question: \"\(offer.reply)\"",
+              offer.reply.hasSuffix("?"))
+        check("an offer that asks a question kept no pending action (\(agent.typedPending == nil))",
+              agent.typedPending != nil)
+        let confirmed = await agent.handle("yes", source: .text)
+        let emailCalls = emailLog.calls
+        check("a confirmation reached the model as \"\(String((emailCalls.last?.user ?? "").suffix(60)))\"",
+              emailCalls.last?.user.contains("The user answered: yes") == true)
+        check("a confirmation lost the earlier request",
+              emailCalls.last?.user.contains("Summarize my last emails") == true)
+        check("a confirmation ran no tool: \(toolLog.toolIDs)", toolLog.toolIDs == ["search_email"])
+        check("the confirmed turn did not answer: \"\(confirmed.reply)\"",
+              confirmed.reply.contains("pricing"))
+
+        // Case 3: the same offer, declined. One sentence, and no model call at all.
+        let declineLog = PlannerScriptLog()
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000,
+            script: ["Shall I check the pricing sheet for you?"], log: declineLog)
+        agent.setTypedPendingForTesting(nil)
+        _ = await agent.handle("Summarize my last emails", source: .text)
+        let beforeDecline = declineLog.calls.count
+        let declined = await agent.handle("no", source: .text)
+        check("a decline answered \"\(declined.reply)\"", declined.reply == "Okay, I won't.")
+        check("a decline made \(declineLog.calls.count - beforeDecline) model call(s), expected 0",
+              declineLog.calls.count == beforeDecline)
+        check("a decline left a pending action behind", agent.typedPending == nil)
+
+        // Case 4: the offer, then the conversation is cleared. The pending action dies with
+        // its session, so "yes" is a new request and the model sees it alone.
+        let orphanLog = PlannerScriptLog()
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000,
+            script: ["Would you like me to read that message?"], log: orphanLog)
+        agent.setTypedPendingForTesting(nil)
+        _ = await agent.handle("Read my latest email", source: .text)
+        check("the second offer kept no pending action (\(agent.typedPending == nil))",
+              agent.typedPending != nil)
+        AgentSession.shared.clear()
+        let orphan = await agent.handle("yes", source: .text)
+        let orphanUser = orphanLog.calls.last?.user ?? ""
+        check("a cleared conversation carried the confirmation into the new request: "
+            + "\"\(String(orphanUser.suffix(40)))\"",
+              !orphanUser.contains("The user answered: yes"))
+        check("the new request carried the confirmation prompt",
+              orphanUser.contains("Current user request:\nyes"))
+
+        agent.setTypedPendingForTesting(nil)
+        agent.answerDepthForTesting = nil
 
         // P1-10a step 0 (landed in M-12): the Apple provider reads the framework's own
         // window, not the old 4,096 constant. Apple FM only; ABSENT elsewhere.
@@ -741,20 +879,27 @@ private actor ToolLoopTestState {
     var completed = false
     var lastSystemCharacters = 0
     var firstSystemCharacters = 0
-    /// P0-05: what the last first-pass conversation call asked for, and the prompt the
-    /// provider counted for that same system + messages.
-    var firstPassMaxTokens: Int?
-    var firstPassPromptTokens: Int?
+    /// P1-02: the evidence that a typed turn is one model call. `sawHeaderPass` is the
+    /// defect itself — the response-header prompt (`<use_tools/>`) reaching a typed turn at
+    /// all — and `sawToolCatalogue` is the fix, the planner's own "Available tools:" block.
+    var sawHeaderPass = false
+    var sawToolCatalogue = false
+    /// P0-05 / P1-02: what the last model call asked for, and the prompt the provider
+    /// counted for that same system + user. After P1-02 the typed pass is a planner round.
+    var lastMaxTokens: Int?
+    var lastPromptTokens: Int?
 
-    func recordFirstPass(maxTokens: Int, promptTokens: Int?) {
-        firstPassMaxTokens = maxTokens
-        firstPassPromptTokens = promptTokens
+    func recordCall(maxTokens: Int, promptTokens: Int?) {
+        lastMaxTokens = maxTokens
+        lastPromptTokens = promptTokens
     }
 
     func next(user: String, system: String) -> Int {
         rounds += 1
         if rounds == 1 { firstSystemCharacters = system.count }
         lastSystemCharacters = system.count
+        if system.contains("<use_tools/>") { sawHeaderPass = true }
+        if system.contains("Available tools:") { sawToolCatalogue = true }
         if user.contains("computer.active_app returned") { sawToolResult = true }
         return rounds
     }
@@ -772,7 +917,7 @@ private struct ToolLoopTestProvider: LLMProvider {
     /// The window this provider reports. P0-05 varies it so the budget's room rule can be
     /// exercised without a small model installed.
     let window: Int
-    /// A canned first-pass answer for the budget cases; nil keeps the older script.
+    /// A canned answer for a pass that makes no tool call; nil keeps the older script.
     let firstPassAnswer: String?
     var contextTokens: Int { window }
     var unavailableReason: String? { get async { nil } }
@@ -792,14 +937,11 @@ private struct ToolLoopTestProvider: LLMProvider {
 
     func countTokens(_ text: String) async throws -> Int { text.count / 4 + 1 }
 
-    /// Records what the typed/voice first pass asked for. The protocol's default would
-    /// forward to `stream`; this one also keeps the budget evidence (P0-05).
+    /// The protocol's default forwards to `stream`; this one also keeps the budget
+    /// evidence for the voice branch's header pass (P0-05).
     func streamConversation(
         system: String, messages: [LLMChatMessage], maxTokens: Int
     ) async -> AsyncThrowingStream<String, Error> {
-        let promptTokens = try? await countTokens(
-            system + messages.map(\.content).joined(separator: "\n"))
-        await state.recordFirstPass(maxTokens: maxTokens, promptTokens: promptTokens)
         let user = messages.map { "\($0.role.rawValue.capitalized): \($0.content)" }
             .joined(separator: "\n\n")
         return await stream(system: system, user: user, maxTokens: maxTokens)
@@ -807,9 +949,15 @@ private struct ToolLoopTestProvider: LLMProvider {
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         _ = await state.next(user: user, system: system)
+        // The response-header prompt is the *voice* branch's, and it is the only system
+        // that mentions `<use_tools/>`: a typed turn reaches the planner instead, so the
+        // planner answers the request on its first round (P1-02).
         let choosing = system.contains("<use_tools/>")
         let afterTool = user.contains("computer.active_app returned")
-        let wait = afterTool ? secondRoundDelay : (choosing ? delay : .zero)
+        // `delay` is "this model stalls", not "this model stalls on the header prompt":
+        // since P1-02 a typed turn has no header prompt, and a timeout case that only
+        // stalled there would test nothing.
+        let wait = afterTool ? secondRoundDelay : delay
         if wait > .zero { try await Task.sleep(for: wait) }
         let text: String
         if choosing {
@@ -823,15 +971,27 @@ private struct ToolLoopTestProvider: LLMProvider {
     }
 
     func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
-        AsyncThrowingStream { continuation in
+        // Counted exactly as the planner round counts it, so a self-test can predict the
+        // cap the room rule produces.
+        let promptTokens = try? await countTokens(system + "\n" + user)
+        await state.recordCall(maxTokens: maxTokens, promptTokens: promptTokens)
+        return AsyncThrowingStream { continuation in
             let task = Task {
                 do {
                     if firstCall.isEmpty {
                         _ = await state.next(user: user, system: system)
                         if let firstPassAnswer {
                             continuation.yield(firstPassAnswer)
-                        } else {
+                        } else if system.contains("<use_tools/>") {
+                            // The voice header pass still answers with a header (P3-01
+                            // moves the remaining callers onto the coordinator).
                             continuation.yield("<answer/>First answer.")
+                            try await Task.sleep(for: delay)
+                            continuation.yield(" Second answer.")
+                        } else {
+                            // A planner round answers in plain prose: there is no header to
+                            // emit, because there is no header pass (P1-02).
+                            continuation.yield("First answer.")
                             try await Task.sleep(for: delay)
                             continuation.yield(" Second answer.")
                         }
@@ -845,6 +1005,97 @@ private struct ToolLoopTestProvider: LLMProvider {
             }
             continuation.onTermination = { @Sendable _ in task.cancel() }
         }
+    }
+}
+
+/// P1-02's scripted planner. One canned completion per call, in order, and the exact
+/// `(system, user, maxTokens)` of every call — the evidence that a typed turn is one model
+/// round trip carrying the planner's own prompt.
+private final class PlannerScriptLog: @unchecked Sendable {
+    struct Call: Sendable {
+        let system: String
+        let user: String
+        let maxTokens: Int
+    }
+
+    private let lock = NSLock()
+    private var storage: [Call] = []
+
+    func record(_ call: Call) {
+        lock.lock()
+        storage.append(call)
+        lock.unlock()
+    }
+
+    var calls: [Call] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage
+    }
+}
+
+/// `countTokens` is pinned here rather than estimated, so the budget's room rule
+/// (`contextTokens − promptTokens − 256`) is exercised exactly, with no model installed.
+/// Not `.appLLM`: `AgentAnswerBudget.readerContextTokens` reads the resident runtime's real
+/// window for that provider, and a self-test must not depend on what happens to be loaded.
+private struct PlannerScriptProvider: LLMProvider {
+    let id: LLMProviderID
+    let window: Int
+    let promptTokens: Int
+    let script: [String]
+    let log: PlannerScriptLog
+    var contextTokens: Int { window }
+    var unavailableReason: String? { get async { nil } }
+
+    func countTokens(_ text: String) async throws -> Int { promptTokens }
+
+    func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+        let text = await next(system: system, user: user, maxTokens: maxTokens)
+        return LLMCompletion(text: text, generatedTokens: text.count, duration: 0)
+    }
+
+    func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                let text = await next(system: system, user: user, maxTokens: maxTokens)
+                continuation.yield(text)
+                continuation.finish()
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
+    }
+
+    func streamConversation(
+        system: String, messages: [LLMChatMessage], maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        let user = messages.map { "\($0.role.rawValue.capitalized): \($0.content)" }
+            .joined(separator: "\n\n")
+        return await stream(system: system, user: user, maxTokens: maxTokens)
+    }
+
+    private func next(system: String, user: String, maxTokens: Int) async -> String {
+        let index = log.calls.count
+        log.record(.init(system: system, user: user, maxTokens: maxTokens))
+        return index < script.count ? script[index] : "There is nothing more to add."
+    }
+}
+
+/// The tool answers the P1-02 cases see. The P1-01 seam (`AgentToolExecutor.fakeForTesting`)
+/// answers every tool, so no real mail is read and no approval card is drawn.
+private final class ScriptedToolLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [String] = []
+
+    func record(_ toolID: String) {
+        lock.lock()
+        storage.append(toolID)
+        lock.unlock()
+    }
+
+    var toolIDs: [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage
     }
 }
 
@@ -862,6 +1113,15 @@ private struct CutOffTestProvider: LLMProvider {
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         throw OpenRouterError.cutOff(visibleText: cutOffVisible)
+    }
+
+    /// Both shapes a typed pass takes. P1-02 removed the header pass, so the planner
+    /// round's `stream` has to cut off the same way the header pass's did.
+    func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            if let visible { continuation.yield(visible) }
+            continuation.finish(throwing: OpenRouterError.cutOff(visibleText: cutOffVisible))
+        }
     }
 
     func streamConversation(
