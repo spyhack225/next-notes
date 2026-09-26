@@ -990,7 +990,10 @@ enum MultiStepPlanRouting: Sendable {
             }
         }
         guard hits >= 2 else { return false }
-        // The single-step shortcut would have caught this without any model round.
+        // The shortcut takes only sentences it fully consumes (P1-08), so a compound
+        // request is never vetoed: "find the pricing document and email it to Marcus" is
+        // exactly the two-step request this function exists to notice, and the shortcut
+        // used to answer it with a file search.
         return AgentDirectIntent.parse(text) == nil
     }
 

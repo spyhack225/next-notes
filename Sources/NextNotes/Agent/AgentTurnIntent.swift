@@ -30,7 +30,7 @@ enum AgentTurnIntent: Equatable {
     var progressTitle: String {
         switch self {
         case .capabilities, .reply, .unknown: ""
-        case .localModel: "Answering…"
+        case .localModel: "Working with tools…"
         case .toolLoop: "Working with tools…"
         case .calendar: "Checking the calendar…"
         case .mail: "Checking email…"
@@ -56,37 +56,56 @@ enum AgentTurnIntent: Equatable {
     ) -> AgentTurnIntent {
         _ = hasConversationContext
         if choice.source == .explicit && choice.id != .local { return .delegate }
-        // Explicit on-device Q&A remains an answer-only choice. It cannot
-        // silently turn into a computer or cloud write.
-        if explicitlyRequestsOnDeviceModel(text),
-           let prompt = localModelPrompt(for: text) {
+        // "Ask the agent", "ask the app": the person is addressing this app, not a model
+        // inside it, so the rest of the sentence is a request and the planner is what
+        // answers it. These prefixes used to select the answer-only local model, which is
+        // where "Ask the agent what's on my calendar tomorrow" came back "I don't have that
+        // information" — with get_agenda in the roster and no route that could reach it.
+        if let rest = strippedPrefix(text, among: addressesTheAgent) {
+            return .toolLoop(prompt: rest)
+        }
+        // Explicit on-device phrasing is still its own route, and it is still the app's own
+        // model: the planner, with read tools only. It cannot become a write, and it cannot
+        // become a different model.
+        if let prompt = localModelPrompt(for: text) {
             return .localModel(prompt: prompt)
         }
         return .toolLoop(prompt: text)
     }
 
-    /// Explicit on-device phrasing selects the answer-only local model route.
-    /// Role-named: "ask app" / "ask agent" are the future-proof forms. "ask qwen" and
-    /// "ask gemma" stay as legacy aliases for utterances spoken when the app LLM
-    /// carried those names.
-    static func localModelPrompt(for text: String) -> String? {
+    /// The phrasings that address this app rather than a model inside it. Longest first so
+    /// "ask the agent" is never read as a shorter prefix of itself.
+    private static let addressesTheAgent = [
+        "ask the agent", "ask agent", "ask the app", "ask app",
+    ]
+
+    /// The phrasings that mean the on-device model specifically. "ask the model" is here
+    /// because a person who says it means the thing on their Mac; "ask qwen" and "ask gemma"
+    /// are the legacy spellings for utterances spoken when the app LLM carried those names.
+    private static let onDevicePrefixes = [
+        "ask the local model", "ask local model",
+        "ask the on-device model", "ask the on device model",
+        "use the local model", "use local model",
+        "ask the model", "ask model", "use the model",
+        "ask qwen", "ask gemma",
+    ]
+
+    /// The words after one of `prefixes`, or nil when the sentence does not start with one.
+    ///
+    /// Word-bounded on both sides, which is the whole reason this is one function rather
+    /// than a `hasPrefix` per list: "ask apple support" begins with the letters of
+    /// "ask app", and a prefix test alone read it as the local-model route. The separator
+    /// may be a space, a colon or a comma, and it is trimmed away with the punctuation
+    /// around it — "ask the local model, explain this" is one request.
+    static func strippedPrefix(_ text: String, among prefixes: [String]) -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let lowered = trimmed.lowercased()
-        let prefixes = [
-            "ask the model", "ask model", "use the model",
-            "ask the local model", "ask local model",
-            "ask the on-device model", "ask the on device model",
-            "use the local model", "use local model",
-            "ask the app", "ask app", "use the app model", "use app model",
-            "ask agent", "ask the agent",
-            "ask qwen", "ask gemma",
-        ]
-        guard let prefix = prefixes.first(where: {
-            guard lowered.hasPrefix($0) else { return false }
-            let remainder = lowered.dropFirst($0.count)
-            return remainder.isEmpty || remainder.first?.isWhitespace == true
-                || remainder.first == ":" || remainder.first == ","
-        }) else {
+        guard let prefix = prefixes.first(where: { lowered.hasPrefix($0) }) else {
+            return nil
+        }
+        let remainder = lowered.dropFirst(prefix.count)
+        guard remainder.isEmpty || remainder.first?.isWhitespace == true
+                || remainder.first == ":" || remainder.first == "," else {
             return nil
         }
         let prompt = trimmed.dropFirst(prefix.count)
@@ -96,27 +115,8 @@ enum AgentTurnIntent: Equatable {
         return prompt.isEmpty ? nil : prompt
     }
 
-    private static func localModelPrefixOnly(for text: String) -> Bool {
-        let lowered = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return [
-            "ask the model", "ask model", "use the model",
-            "ask the local model", "ask local model",
-            "ask the on-device model", "ask the on device model",
-            "use the local model", "use local model",
-            "ask the app", "ask app", "use the app model", "use app model",
-            "ask agent", "ask the agent",
-            "ask qwen", "ask gemma",
-        ].contains(lowered)
+    /// Explicit on-device phrasing selects the on-device route.
+    static func localModelPrompt(for text: String) -> String? {
+        strippedPrefix(text, among: onDevicePrefixes)
     }
-
-    static func explicitlyRequestsOnDeviceModel(_ text: String) -> Bool {
-        let lowered = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return ["ask the local model", "ask local model", "ask the on-device model",
-                "ask the on device model", "use the local model", "use local model",
-                "ask the app", "ask app", "use the app model", "use app model",
-                "ask agent", "ask the agent",
-                "ask qwen", "ask gemma"]
-            .contains { lowered.hasPrefix($0) }
-    }
-
 }

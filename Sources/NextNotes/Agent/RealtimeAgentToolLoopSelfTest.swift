@@ -977,10 +977,120 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runBudgetCases(agent: agent, check: check))
         failures.append(contentsOf: await runRendererCases(agent: agent, check: check))
         failures.append(contentsOf: await runClaimGuardCases(agent: agent, check: check))
+        failures.append(contentsOf: runDirectIntentCases(check: check))
+        failures.append(contentsOf: await runOnDeviceBoundaryCases(agent: agent, check: check))
 
         for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
         return failures.isEmpty
+    }
+
+    /// P1-08's table. Pure: no model, no provider, no store.
+    ///
+    /// The shortcut exists because a planner round cost 44.78 s of prefill for a request
+    /// whose arguments were in the sentence. It also dropped the rest of the sentence, so
+    /// "open youtube and play the latest Cortech video" was answered "Opened youtube.com."
+    /// in 0.3 s and "find the pricing document and email it to Marcus" was answered with a
+    /// file search. The fix is not a smarter parser — it is the shortcut claiming only
+    /// sentences it fully consumes, and the planner seeing the rest.
+    ///
+    /// Red on the unmodified parser: rows 3, 4 and 6 (leftover words), and "ask the agent"
+    /// (routed to the answer-only local model instead of the planner). Rows 1, 2, 5 and 7
+    /// are the regressions that must not move — two of them are measured utterances
+    /// (2026-09-20 20:45:00Z and 20:45:41Z) and one is the eval's own A03 guard.
+    @MainActor
+    static func runDirectIntentCases(check: (String, Bool) -> Void) -> [String] {
+        var failures: [String] = []
+        func case1(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+        let youtube = AgentDirectIntent.openURL(url: "https://www.youtube.com", app: nil)
+
+        // Input | strict | loose
+        let table: [(input: String, strict: AgentDirectIntent?, loose: AgentDirectIntent?)] = [
+            ("open youtube", youtube, youtube),
+            ("open chrome and go to youtube.com",
+             .openURL(url: "https://youtube.com", app: "Google Chrome"),
+             .openURL(url: "https://youtube.com", app: "Google Chrome")),
+            // Leftovers: "search cats" is a second thing to do, so the shortcut must not claim it.
+            ("open youtube and search cats", nil, youtube),
+            ("open youtube and play the latest cortech video", nil, youtube),
+            ("find the pricing document", .locate(query: "pricing document", wantsFolder: false),
+             .locate(query: "pricing document", wantsFolder: false)),
+            // Leftovers: the email half is a send, and a shortcut that stops after the
+            // search says "I'll email it to Marcus" and does nothing of the sort.
+            ("find the pricing document and email it to marcus", nil,
+             .locate(query: "pricing document email marcus", wantsFolder: false)),
+            ("open safari", .openApp("Safari"), .openApp("Safari")),
+        ]
+        for row in table {
+            let strict = AgentDirectIntent.parse(row.input)
+            let loose = AgentDirectIntent.parse(row.input, wholeSentence: false)
+            case1("shortcut took \"\(row.input)\" with words left over: \(String(describing: strict))",
+                  strict == row.strict)
+            case1("the loose parse changed for \"\(row.input)\": \(String(describing: loose))",
+                  loose == row.loose)
+        }
+
+        // A gate may only add routes, so the loose parse is what the voice coordinator
+        // keeps: "open youtube and play the latest cortech video" must still reach work
+        // rather than the conversational model.
+        case1("the voice coordinator's parse is not the strict one",
+              AgentDirectIntent.parse("open youtube and play the latest cortech video",
+                                      wholeSentence: false) != nil)
+        // "ask the agent" is this app. It used to select the answer-only local model, which
+        // is why "Ask the agent what's on my calendar tomorrow" answered "I don't have that
+        // information" with get_agenda sitting in the roster.
+        let choice = AgentHarnessChoice(
+            id: .local, source: .settings, available: true, fallbackToLocal: false, note: "")
+        case1("\"ask the agent\" is not the planner",
+              AgentTurnIntent.resolve(
+                "Ask the agent what's on my calendar tomorrow", choice: choice)
+                  == .toolLoop(prompt: "what's on my calendar tomorrow"))
+        // Explicit on-device phrasing keeps its own route — now a read-only plan on the
+        // app's own model rather than a tool-less answer.
+        case1("explicit on-device phrasing lost its route",
+              AgentTurnIntent.resolve("ask the local model what is 2+2", choice: choice)
+                  == .localModel(prompt: "what is 2+2"))
+        // The word boundary. "ask apple support" starts with the letters of "ask app".
+        case1("\"ask apple support\" was read as \"ask app\"",
+              AgentTurnIntent.resolve("ask apple support", choice: choice)
+                  == .toolLoop(prompt: "ask apple support"))
+        // The delegate is still asked first: a named external harness is not this app.
+        case1("a named external harness no longer delegates",
+              AgentTurnIntent.resolve(
+                "ask the agent what's on my calendar tomorrow",
+                choice: AgentHarnessChoice(
+                    id: .claude, source: .explicit, available: true,
+                    fallbackToLocal: true, note: "")
+              ) == .delegate)
+
+        // The read-only boundary of the on-device route, as a fact about the builder the
+        // route hands `maxRisk: .read` to. Everything above a read is absent, so the
+        // planner on this turn cannot even name it.
+        let onDeviceReader = AgentCapabilityManifest.Reader(
+            provider: .appLLM, displayName: "fixture", contextTokens: 32_768)
+        let onDevice = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: onDeviceReader)
+        let readOnly = AgentCapabilityManifestBuilder.build(
+            onDevice, request: "ask the local model what is on my calendar", maxRisk: .read)
+        case1("the read-only manifest admitted a tool above .read",
+              readOnly.allowed.allSatisfy { $0.risk <= .read })
+        case1("the read-only manifest admitted a write",
+              readOnly.allowedIDs.isDisjoint(with: [
+                "computer.open_app", "browser.navigate", "send_email", "draft_email",
+                "create_event", "schedule.create", "memory.remember", "filesystem.write",
+            ]))
+        case1("the read-only manifest cannot read the calendar",
+              readOnly.allowedIDs.contains("get_agenda"))
+        // And the ordinary turn is unchanged: the ceiling is a parameter, not a new default.
+        let ordinary = AgentCapabilityManifestBuilder.build(
+            allEnabledFixture(), request: "what's on my calendar", maxRisk: .send)
+        case1("the ordinary manifest lost a write",
+              !ordinary.allowedIDs.isDisjoint(with: ["send_email", "create_event"]))
+        case1("the reader was not bound to the manifest: \(readOnly.reader.contextTokens)",
+              readOnly.reader == onDeviceReader)
+        return failures
     }
 
     /// P1-10's eight cases. Written before the fix; every one of them fails on the
@@ -1541,6 +1651,82 @@ enum RealtimeAgentToolLoopSelfTest {
                   remaining == .seconds(60))
         }
 
+        return failures
+    }
+
+    /// P1-08's read-only boundary, where it matters: not as a property of the manifest
+    /// builder but as what a turn can execute.
+    ///
+    /// "Ask the local model" is a read-only route, and the reason is that the person who
+    /// says it has asked for this Mac and for a question — not for a send. A model that
+    /// reaches for a write anyway must not reach it, and the sentence it gets back must be
+    /// an ordinary one with no id in it.
+    ///
+    /// The control row is the same script on an ordinary turn, where the same call does run.
+    /// Without it a green first row would prove something about the script rather than about
+    /// the ceiling, and that is the mistake this pairing exists to rule out.
+    @MainActor
+    static func runOnDeviceBoundaryCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        var failures: [String] = []
+        func fail(_ name: String) { failures.append(name) }
+
+        struct Outcome {
+            let reply: String
+            let tools: [String]
+            let rounds: Int
+        }
+        @MainActor
+        func run(_ request: String, script: [String]) async -> Outcome {
+            let log = PlannerScriptLog()
+            let ran = ScriptedToolLog()
+            AgentToolExecutor.fakeForTesting = { tool, _ in
+                ran.record(tool.id)
+                return AgentToolResult(summary: "Sent to marcus@example.com.")
+            }
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+            agent.setTypedPendingForTesting(nil)
+            agent.budgetForTesting = nil
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.clear()
+            let turn = await agent.handle(request, source: .text)
+            AgentToolExecutor.fakeForTesting = nil
+            return Outcome(reply: turn.reply, tools: ran.toolIDs, rounds: log.calls.count)
+        }
+
+        let hermes: (String) -> String = { "<tool_call>\($0)</tool_call>" }
+        let send = hermes(
+            #"{"name":"send_email","arguments":{"to":"marcus@example.com","subject":"Pricing","body":"Attached."}}"#)
+        let sendCase = "ask the local model send marcus the pricing sheet by email"
+
+        // 1. The ceiling. The model asks for a send; nothing above a read may run.
+        let refused = await run(sendCase, script: [send, "I can look things up for you here."])
+        check("the on-device turn ran \(refused.tools) above its read ceiling, expected none",
+              refused.tools.isEmpty)
+        check("the refused write was named to the person: \"\(refused.reply)\"",
+              !refused.reply.lowercased().contains("send_email"))
+        check("the refusal was not a dead end (\(refused.rounds) model call(s))",
+              refused.rounds >= 2)
+        check("the on-device turn answered nothing at all: \"\(refused.reply)\"",
+              !refused.reply.isEmpty)
+
+        // 2. The control. The same call, on an ordinary turn, does run — so row 1 is the
+        //    ceiling and not a script that could never have worked.
+        let ordinary = await run(
+            "send marcus the pricing sheet by email", script: [send, "Sent to Marcus."])
+        check("the control turn did not run the write (\(ordinary.tools))",
+              ordinary.tools == ["send_email"])
+
+        // 3. A read on the same route still runs, so the ceiling is not a wall.
+        let read = await run("ask the local model what is on my calendar today", script: [
+            hermes(#"{"name":"get_agenda","arguments":{}}"#),
+            "You have a standup at 9:30.",
+        ])
+        check("the on-device route could not read: \(read.tools)", read.tools == ["get_agenda"])
+        check("the on-device read was thrown away: \"\(read.reply)\"",
+              read.reply.contains("standup"))
         return failures
     }
 

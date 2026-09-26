@@ -81,15 +81,26 @@ enum AgentDirectIntent: Equatable, Sendable {
         "open", "find", "show", "reveal", "go to", "get to", "look for", "locate", "bring up",
     ]
 
+    /// "launch Chrome", "start Safari", "take me to youtube.com". Separate from
+    /// `locateVerbs` because these are the four the strict remainder has to consume whole.
+    private static let navigateVerbs = ["launch", "start", "navigate to", "take me to", "go to"]
+
     /// Nil whenever the sentence is not plainly one of the three. A miss costs a planner
     /// round; a false positive costs the user an action they did not ask for, so every rule
     /// below needs an explicit verb and an explicit object.
-    static func parse(_ utterance: String) -> AgentDirectIntent? {
+    ///
+    /// `wholeSentence` is the whole contract of the shortcut, and it is the default because
+    /// this is the only caller that runs an action from what it parsed. `false` is for the
+    /// voice coordinator's routing gate, which may only ever *add* a route to work: it asks
+    /// "is this a request the planner should see?", not "may I answer it myself?", and a
+    /// stricter question there would hand compound requests to the conversational model
+    /// instead of to the planner.
+    static func parse(_ utterance: String, wholeSentence: Bool = true) -> AgentDirectIntent? {
         let text = normalize(utterance)
         guard !text.isEmpty else { return nil }
         guard startsWithActionVerb(text) else { return nil }
-        if let file = parseLocate(text) { return file }
-        return parseOpen(text)
+        if let file = parseLocate(text, wholeSentence: wholeSentence) { return file }
+        return parseOpen(text, wholeSentence: wholeSentence)
     }
 
     /// Lowercased, de-punctuated, with wake words and false starts trimmed off the front.
@@ -118,20 +129,58 @@ enum AgentDirectIntent: Equatable, Sendable {
 
     // MARK: - Apps and pages
 
-    private static func parseOpen(_ text: String) -> AgentDirectIntent? {
+    /// Words that only shape a request rather than name one: "open youtube **in a new tab**",
+    /// "**launch** Safari", "open chrome **and go to** youtube.com". The app branch has
+    /// always dropped these; the strict remainder drops the same ones, and nothing else.
+    private static let structural: Set<String> = [
+        "launch", "start", "app", "the", "a", "on", "in", "with", "up",
+        "and", "then", "page", "website", "site", "tab", "new", "go", "to",
+    ]
+
+    /// Everything `openRemainder(_:)` treats as consumed: the words above, the filler a
+    /// dictated request carries at the front, the verb in any of its spoken spellings, and
+    /// the two-word site words ("google drive" names a page, not two extra words).
+    private static let openConsumed: Set<String> = {
+        var words = structural
+        words.formUnion(leadingFiller)
+        words.formUnion(actionVerbs)
+        for phrase in locateVerbs + navigateVerbs {
+            words.formUnion(phrase.split(separator: " ").map(String.init))
+        }
+        // Every word of every app and site name, so "open google chrome" leaves nothing.
+        for name in Array(knownApps.keys) + Array(knownSites.keys) {
+            words.formUnion(name.split(separator: " ").map(String.init))
+        }
+        return words
+    }()
+
+    private static func parseOpen(
+        _ text: String, wholeSentence: Bool = true
+    ) -> AgentDirectIntent? {
         let app = namedApp(in: text)
-        if let url = namedURL(in: text) { return .openURL(url: url, app: app) }
+        let url = namedURL(in: text)
+        // "open chrome" with nothing else in the sentence beyond filler. Anything left over
+        // is a second instruction, so the shortcut stands down and the planner reads it.
+        if wholeSentence, !openRemainder(text).isEmpty { return nil }
+        if let url { return .openURL(url: url, app: app) }
         guard let app else { return nil }
-        // "open chrome" with nothing else in the sentence beyond filler.
-        let structural: Set<String> = ["launch", "start", "app", "the", "a", "on", "in", "with", "up"]
-        let remainder = text
-            .replacingOccurrences(of: spokenAppPhrase(for: app, in: text) ?? "", with: " ")
-            .split(whereSeparator: \.isWhitespace)
-            .map(String.init)
-            .filter { !leadingFiller.contains($0) && !locateVerbs.contains($0)
-                && !structural.contains($0) }
-        guard remainder.isEmpty else { return nil }
         return .openApp(app)
+    }
+
+    /// The words of an open/launch sentence that the shortcut has not accounted for.
+    ///
+    /// The shortcut exists to skip a planner round for a request whose arguments are in the
+    /// sentence, and it is only honest when the sentence *is* those arguments. The live eval
+    /// measured what happens otherwise: "open youtube and play the latest Cortech video"
+    /// answered "Opened youtube.com." in 0.3 s — the page opened, the request was dropped,
+    /// and nothing said so. A non-empty answer here is a second instruction this parser
+    /// cannot read, so the planner reads it instead.
+    private static func openRemainder(_ text: String) -> [String] {
+        text.split(whereSeparator: \.isWhitespace).map(String.init).filter { word in
+            if openConsumed.contains(word) { return false }
+            // A spelled domain, scheme or path is the page, not an instruction.
+            return !word.contains(".") && !word.contains("/") && !word.contains(":")
+        }
     }
 
     /// A spelled domain, or a site word the user said on its own.
@@ -167,10 +216,6 @@ enum AgentDirectIntent: Equatable, Sendable {
             }
         }
         return nil
-    }
-
-    private static func spokenAppPhrase(for app: String, in text: String) -> String? {
-        knownApps.first { $0.value == app && text.contains($0.key) }?.key
     }
 
     // MARK: - Deterministic tool-shape verbs (P0-6)
@@ -353,14 +398,61 @@ enum AgentDirectIntent: Equatable, Sendable {
         "folder", "folders", "directory", "file", "files",
     ]
 
-    private static func parseLocate(_ text: String) -> AgentDirectIntent? {
+    private static func parseLocate(
+        _ text: String, wholeSentence: Bool = true
+    ) -> AgentDirectIntent? {
         let words = text.split(whereSeparator: \.isWhitespace).map(String.init)
         guard words.contains(where: { fileWords.contains($0) }) else { return nil }
+        if wholeSentence, hasSecondStep(in: words) { return nil }
         let wantsFolder = words.contains { ["folder", "folders", "directory"].contains($0) }
             || words.contains("project") || words.contains("projects")
         let query = locateQuery(words)
         guard !query.isEmpty else { return nil }
         return .locate(query: query, wantsFolder: wantsFolder)
+    }
+
+    /// Verbs that make a second instruction where `actionVerbs` alone would not: none of
+    /// them can open one of these sentences, and every one of them is a second thing to do
+    /// when it follows a find. "find the pricing document and email it to Marcus" is the
+    /// measured case — the shortcut answered with a file search and said nothing about the
+    /// email it had just agreed to.
+    private static let extraStepVerbs: Set<String> = [
+        "share", "attach", "play", "print", "delete", "move", "copy", "rename", "upload",
+    ]
+
+    /// Every word that can open one of these sentences, so "where does the request end" is a
+    /// question about the request rather than about the first verb the set happens to share.
+    private static let openingVerbs: Set<String> = {
+        var words = actionVerbs
+        for phrase in locateVerbs + navigateVerbs {
+            words.formUnion(phrase.split(separator: " ").map(String.init))
+        }
+        return words
+    }()
+
+    /// Whether the sentence asks for a second thing after the first.
+    ///
+    /// Two shapes, both measured. Another verb of `actionVerbs ∪ extraStepVerbs` anywhere
+    /// after the verb that opened the sentence — "find the pricing document and email it to
+    /// Marcus". Or a sequencer ("and", "then") followed by one of them — "find the pricing
+    /// document and open it", which is two actions even though "open" is also a word
+    /// `locateQuery` reads as a naming marker.
+    ///
+    /// The one shape that is not a second step is a naming marker at the *end*. The
+    /// 2026-09-20 20:45:41Z recogniser wrote "get to my folder to my document folder in open
+    /// next project" for one folder, and `locateQuery` reads that trailing "open" as the word
+    /// that introduces the name. Counting it as an instruction would be counting the name.
+    private static func hasSecondStep(in words: [String]) -> Bool {
+        let stepVerbs = actionVerbs.union(extraStepVerbs)
+        guard let opening = words.firstIndex(where: { openingVerbs.contains($0) }) else {
+            return false
+        }
+        let tail = Array(words.dropFirst(opening + 1))
+        for (index, word) in tail.enumerated() where word == "and" || word == "then" {
+            if index + 1 < tail.count, stepVerbs.contains(tail[index + 1]) { return true }
+        }
+        let nameStart = tail.lastIndex { ["called", "named", "open"].contains($0) }
+        return (nameStart.map { Array(tail[..<$0]) } ?? tail).contains { stepVerbs.contains($0) }
     }
 
     /// The name inside the sentence.

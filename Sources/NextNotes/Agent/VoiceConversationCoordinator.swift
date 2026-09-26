@@ -736,8 +736,15 @@ final class VoiceConversationCoordinator {
     /// request text plus the route that matched, or nil to continue to the garble
     /// gate and the frontend. Open/click/type/locate shapes come first through the
     /// existing direct-intent parser; mail, calendar, docs and memory verbs follow.
+    ///
+    /// The parse here is the loose one on purpose (P1-08). This gate may only ever *add* a
+    /// newWork route, and what it is asking is "should the planner see this?" — a compound
+    /// request like "open youtube and play the latest Cortech video" answers yes under the
+    /// loose parse and no under the strict one, and the strict answer would hand it to the
+    /// conversational frontend instead. The strict parse is for the caller that runs the
+    /// action, which is `runPlannedTurn`.
     private func toolShapeRoute(_ text: String, allowedIDs: Set<String>) -> (text: String, route: String)? {
-        if let direct = AgentDirectIntent.parse(text) {
+        if let direct = AgentDirectIntent.parse(text, wholeSentence: false) {
             return (text, "direct:" + direct.requiredToolIDs.joined(separator: "+"))
         }
         if let match = AgentDirectIntent.toolShapeMatch(

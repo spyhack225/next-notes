@@ -1120,11 +1120,22 @@ extension RealtimeAgent {
     /// The planned turn: resolve one provider, bind the reader, then run rounds. `provider`
     /// is the voice branch's already-resolved choice — a turn resolves once (P0-14), so a
     /// second resolution here would be the exact bug that task closed.
+    ///
+    /// - Parameters:
+    ///   - maxRisk: the turn's ceiling. `.send` is every ordinary turn; the explicit
+    ///     on-device route passes `.read`, which is what keeps a write, a click and a send
+    ///     out of the schema and therefore out of `allowed` — the one list the executor and
+    ///     the call-name resolver both read.
+    ///   - allowFallback: false for a turn the person pinned to one model ("ask the local
+    ///     model"). A model that cannot run is then the honest "cannot run" sentence, never
+    ///     a different model the person did not choose and did not consent to.
     func runPlannedTurn(
         _ prompt: String,
         speech: AgentToolSpeechTracker? = nil,
         voice: Bool = false,
-        provider: (any LLMProvider)? = nil
+        provider: (any LLMProvider)? = nil,
+        allowFallback: Bool = true,
+        maxRisk: AgentRisk = .send
     ) async -> PlannedTurnResult {
         let owner = currentGeneration
         let background = isVoiceWorker
@@ -1160,18 +1171,27 @@ extension RealtimeAgent {
         AgentCapabilityManifestRuntime.publishedReader = reader
         let manifest = AgentCapabilityManifestBuilder.build(
             .live(reader: reader), request: requestForRanking,
-            previousRequest: AgentSession.shared.recentUserTexts(limit: 2).dropLast().last)
+            previousRequest: AgentSession.shared.recentUserTexts(limit: 2).dropLast().last,
+            maxRisk: maxRisk)
         defer { AgentCapabilityManifestRuntime.publishedReader = nil }
-        guard !manifest.allowed.isEmpty else {
+        // A read-capped turn is a question first: with nothing readable in reach the planner
+        // still answers from what it was given, and refusing would make "ask the local model
+        // what is 2+2" depend on whether Google happens to be connected. A turn that may
+        // write cannot answer without a tool, so an empty allow-list there is the catalogue
+        // itself failing to load.
+        if maxRisk > .read, manifest.allowed.isEmpty {
             return PlannedTurnResult(
                 reply: "The local tool catalogue is unavailable.",
                 usedTools: false, calledToolIDs: [])
         }
         // Open an app, open a page, find a folder: the arguments are in the sentence and a
-        // planner round costs 45 s of prefill on this machine. A correction in flight goes
-        // to the planner instead — the shortcut reads one sentence, not a conversation.
-        // A confirmed "yes" always goes to the planner: its prompt is the earlier request
-        // plus the answer, and the shortcut must not re-derive the action from it (P1-02).
+        // planner round costs 45 s of prefill on this machine. Only a sentence the shortcut
+        // fully consumes takes it — "open youtube and play the latest cortech video" is two
+        // instructions and the planner is the only thing that can do both. A correction in
+        // flight goes to the planner instead: the shortcut reads one sentence, not a
+        // conversation. A confirmed "yes" always goes to the planner: its prompt is the
+        // earlier request plus the answer, and the shortcut must not re-derive the action
+        // from it (P1-02).
         if !prompt.hasPrefix(PendingAction.confirmedPrefix),
            work?.followUps.isEmpty ?? true,
            let direct = AgentDirectIntent.parse(requestForRanking),
@@ -1192,8 +1212,9 @@ extension RealtimeAgent {
         publishAnsweringModel(chosen)
         // The knowledge graph reaches a cloud planner only with its own consent.
         let planned: PlannedTurnResult = await KnowledgeGraphScope.$reader.withValue(chosen.id) {
-            await runPlannedToolLoop(prompt, speech: speech, voice: voice, owner: owner, background: background,
-                                     work: work, manifest: manifest, provider: chosen)
+            await runPlannedToolLoop(prompt, speech: speech, voice: voice, owner: owner,
+                                     background: background, work: work, manifest: manifest,
+                                     provider: chosen, allowFallback: allowFallback)
         }
         if let notice, !notice.isEmpty {
             return PlannedTurnResult(
@@ -1216,7 +1237,7 @@ extension RealtimeAgent {
     private func runPlannedToolLoop(
         _ prompt: String, speech: AgentToolSpeechTracker?, voice: Bool, owner: Int, background: Bool,
         work: VoiceConversationWork?, manifest initialManifest: AgentCapabilityManifest,
-        provider chosenProvider: any LLMProvider
+        provider chosenProvider: any LLMProvider, allowFallback: Bool = true
     ) async -> PlannedTurnResult {
         // The turn's provider, mutable for the single in-turn fallback: a file that fails a
         // real load here re-resolves once to something that can run, and never reports the
@@ -1625,7 +1646,7 @@ extension RealtimeAgent {
                 roundRecorder.fail(message: message)
                 if modelUnavailable {
                     roundRecorder.fellBack(.modelUnavailable)
-                    if !fellBackOnce,
+                    if allowFallback, !fellBackOnce,
                        let replacement = await fallbackProvider(for: prompt, voice: voice),
                        replacement.id != provider.id {
                         fellBackOnce = true
