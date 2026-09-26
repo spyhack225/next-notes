@@ -152,7 +152,18 @@ enum MessagesSchemaProbe {
 
     /// Every table a query in `MessagesQueries` can read. A table that is absent is not an
     /// error; the query that wanted it projects nothing and says so.
-    static let probedTables = ["message", "chat", "handle", "chat_message_join", "chat_handle_join"]
+    ///
+    /// **`message_attachment_join` and `attachment` joined this list on 2026-09-26**, which is
+    /// what let `AttachmentJoinResolver` delete its own copy of those two tables' column names.
+    /// The resolver had carried them with a comment saying so — `MessagesQueries` said *"this
+    /// file is the only place a Messages column name is written down"* while the one exception
+    /// was written down somewhere else, and an exception that is *documented* is still an
+    /// exception. Five tables then seven, and the last two cost one `PRAGMA` each at open.
+    static let probedTables = [
+        "message", "chat", "handle",
+        "chat_message_join", "chat_handle_join",
+        "message_attachment_join", "attachment"
+    ]
 
     /// `PRAGMA table_info` reports `(cid, name, type, notnull, default, pk)`, so the name
     /// is column **1** — reading column 0 answers a question nobody asked.

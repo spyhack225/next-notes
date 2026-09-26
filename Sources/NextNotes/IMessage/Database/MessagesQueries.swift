@@ -63,6 +63,34 @@ struct ChatRow: Equatable, Sendable {
     var participants: [String] = []
 }
 
+/// One row of `attachment`, as far as the join table can name it.
+///
+/// **No file is opened and no path is resolved.** IM-14 copies attachments out and owns
+/// everything about doing that safely; this type is the *row*, and a filename in it is the
+/// name Messages wrote rather than something this app has decided to trust.
+///
+/// **Lived in `AttachmentJoinResolver.swift` until 2026-09-26**, whose copy of it was the second
+/// place a Messages column name existed — every field below is one, named in its own comment.
+/// It is here now because the type, its columns, the statement that reads it and the reader that
+/// fills it are one fact, and this file is where that fact lives.
+struct MessagesAttachment: Equatable, Sendable {
+    /// `attachment.guid`.
+    var guid: String = ""
+    /// `attachment.filename`.
+    var filename: String?
+    /// `attachment.uti` — `public.jpeg` and friends. The authoritative type on Apple
+    /// platforms, and `mimeType` is the one a person reads.
+    var uti: String?
+    /// `attachment.mime_type`.
+    var mimeType: String?
+    /// `attachment.transfer_state`. A row still transferring is why the settling race
+    /// exists at all, so this is carried rather than filtered on: a caller that wants
+    /// "downloaded only" says so rather than having the value hidden from it.
+    var transferState: Int64?
+    /// `attachment.total_bytes`.
+    var totalBytes: Int64?
+}
+
 /// Every statement this task runs against a Messages database, and every raw column name
 /// in it.
 ///
@@ -71,6 +99,15 @@ struct ChatRow: Equatable, Sendable {
 /// is not there is projected as `NULL AS <name>` — so the value reads nil and the row is
 /// still a row. Nothing outside this file can name a column, which is what keeps
 /// "the capability struct drives every query" a fact rather than a habit.
+///
+/// **That sentence was a claim with one exception until 2026-09-26**, when
+/// `AttachmentJoinResolver` carried its own `message_attachment_join` and `attachment`
+/// column names, its own `PRAGMA` probe and its own column readers, and said in a comment
+/// that the exception was a debt. It is not an exception any more: both tables are in
+/// `MessagesSchemaProbe.probedTables`, the statement is `attachments(schema:)`, the presence
+/// rule is `canReadAttachments(_:)`, and the reader is `attachmentRow(_:)`. A second place
+/// for a name is the kind of thing nothing fails about, which is exactly why it has to be
+/// deleted rather than documented.
 ///
 /// Raw SQLite rows stop here. What reaches the agent layer is IM-05's `IMessageEnvelope`.
 enum MessagesQueries {
@@ -81,6 +118,10 @@ enum MessagesQueries {
             case message = "m"
             case chat = "c"
             case handle = "h"
+            /// The join table from `message` to `attachment`. Read by `attachments(schema:)` and
+            /// named here rather than in the resolver, for the reason in this file's header.
+            case messageAttachmentJoin = "j"
+            case attachment = "a"
 
             /// The schema key this table is probed under.
             var name: String {
@@ -88,6 +129,8 @@ enum MessagesQueries {
                 case .message: "message"
                 case .chat: "chat"
                 case .handle: "handle"
+                case .messageAttachmentJoin: "message_attachment_join"
+                case .attachment: "attachment"
                 }
             }
         }
@@ -159,6 +202,27 @@ enum MessagesQueries {
         Column(.chat, "service_name", "serviceName", .column)
     ]
 
+    /// `attachment`, in projection order — **moved here from `AttachmentJoinResolver` on
+    /// 2026-09-26**, along with the `MessagesAttachment` type it fills, the statement that reads
+    /// it and the presence rule that decides whether the statement can run at all.
+    ///
+    /// The reason is the one this file's header states: a Messages column name is written down
+    /// here and nowhere else. The resolver carried its own list of six, plus its own
+    /// `PRAGMA table_info` probe, plus its own `text`/`integer` column readers, and it said in a
+    /// comment that this was a debt a later task owed. One place for a name is a fact; one place
+    /// for a name **plus a comment recording that there is a second** is a fact with a countdown
+    /// on it, because the second place fails silently and nothing points at it. IM-06's settling race is unchanged by any of this — the same statement,
+    /// the same order, the same per-message deadline — and the resolver's own read-only
+    /// connection still carries its own `PRAGMA query_only`.
+    static let attachmentColumns: [Column] = [
+        Column(.attachment, "guid", "guid", .column),
+        Column(.attachment, "filename", "filename", .column),
+        Column(.attachment, "uti", "uti", .column),
+        Column(.attachment, "mime_type", "mimeType", .column),
+        Column(.attachment, "transfer_state", "transferState", .column),
+        Column(.attachment, "total_bytes", "totalBytes", .column)
+    ]
+
     // MARK: - The statements
 
     /// The highest `message.ROWID` in the database, or 0 when it is empty.
@@ -205,6 +269,41 @@ enum MessagesQueries {
     /// The most recently created chats, newest first.
     static func chats(schema: MessagesSchema) -> String {
         "SELECT \(chatProjection(schema)) FROM chat AS c ORDER BY c.ROWID DESC LIMIT ?"
+    }
+
+    /// Every attachment joined to one `message.ROWID`, ordered by the attachment's own `ROWID`.
+    ///
+    /// **The order is the point and it is not cosmetic.** IM-06's settling race refetches a row
+    /// until its join rows appear, and a watcher that reported a photo's caption plus its
+    /// extensions in a different order on each refetch would deliver the same message twice
+    /// with the attachments swapped. `ORDER BY a.ROWID ASC` is the same clause the resolver
+    /// wrote before this statement moved here, unchanged.
+    ///
+    /// `?` is the `message.ROWID`. `attachment.ROWID` is used in the join and the order and
+    /// cannot be projected as `NULL AS …`, because a rowid table always has one and
+    /// `PRAGMA table_info` does not report it — which is why `canReadAttachments` asks about the
+    /// columns it *can* see and the order rides on a rowid SQLite has never withheld.
+    static func attachments(schema: MessagesSchema) -> String {
+        "SELECT \(projection(attachmentColumns, schema)) FROM message_attachment_join AS j "
+            + "JOIN attachment AS a ON a.ROWID = j.attachment_rowid "
+            + "WHERE j.message_rowid = ? ORDER BY a.ROWID ASC"
+    }
+
+    /// Whether this database can answer "which attachments is this message's" at all.
+    ///
+    /// **A conjunction of every name the statement above mentions**, which is the shape
+    /// `canJoinMessagesToChats` and `participantsPresent` already use: a query that names a
+    /// column the probe says is absent is a crash in a watcher on somebody's live history, so
+    /// the answer has to be derivable from the probed schema rather than remembered.
+    ///
+    /// A database missing either table is not an error and not a refusal — it is
+    /// `AttachmentResolution.joinTableAbsent`, which is a *different answer* from "this message
+    /// had no attachments", and a caller that cares about attachments has to be able to say
+    /// "this Mac cannot tell me".
+    static func canReadAttachments(_ schema: MessagesSchema) -> Bool {
+        schema.has("message_attachment_join", "message_rowid")
+            && schema.has("message_attachment_join", "attachment_rowid")
+            && attachmentColumns.allSatisfy { $0.isPresent(in: schema) }
     }
 
     /// Where `participants` lands in a row: one past every projected chat column.
@@ -293,6 +392,18 @@ enum MessagesQueries {
             .filter { !$0.isEmpty }
             .sorted()
         return row
+    }
+
+    /// One `attachment` row, from a statement built out of `attachmentColumns`.
+    static func attachmentRow(_ statement: OpaquePointer) -> MessagesAttachment {
+        var attachment = MessagesAttachment()
+        attachment.guid = text(statement, attachmentColumns, "guid") ?? ""
+        attachment.filename = text(statement, attachmentColumns, "filename")
+        attachment.uti = text(statement, attachmentColumns, "uti")
+        attachment.mimeType = text(statement, attachmentColumns, "mimeType")
+        attachment.transferState = integer(statement, attachmentColumns, "transferState")
+        attachment.totalBytes = integer(statement, attachmentColumns, "totalBytes")
+        return attachment
     }
 
     // MARK: - Column readers

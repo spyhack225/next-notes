@@ -414,7 +414,54 @@ enum MessagesWatcherSelfTest {
                 return nil
             }
 
-            // 10. A row with no guid is claimed on its row id, and — the part that matters —
+            // 10. **The invariant this file used to break**, asserted rather than described.
+            //
+            // `MessagesQueries` says it is the only place a Messages column name is written
+            // down, and until 2026-09-26 this file wrote six of them down itself — with a
+            // comment saying it did, which is the part that made it a debt rather than a fact.
+            // Three assertions, in the order they would fail:
+            //
+            // - both tables are in the **one** probe's table list, so a schema that names
+            //   `attachment` is a schema the probe can answer for;
+            // - the presence rule is a **conjunction**, so a database with the join table and
+            //   only some of `attachment`'s columns answers *no* rather than crashing on the
+            //   first column it does not have — this is the case that would otherwise be a
+            //   `no such column` in a watcher on somebody's live history;
+            // - and the resolver's own answer is that rule's answer, not a second one.
+            try await check("the_join_tables_are_probed_by_the_one_probe") {
+                for table in ["message_attachment_join", "attachment"]
+                where !MessagesSchemaProbe.probedTables.contains(table) {
+                    return "\(table) is not in MessagesSchemaProbe.probedTables, so nothing can "
+                        + "probe it and MessagesQueries cannot name its columns"
+                }
+
+                var partial = MessagesSchema()
+                partial.columns["message_attachment_join"] = ["message_rowid", "attachment_rowid"]
+                // Every column but one: the rule has to be false on a *partial* answer, not
+                // only on a table that is not there at all.
+                partial.columns["attachment"] = Set(
+                    MessagesQueries.attachmentColumns.map(\.raw).dropLast())
+                if MessagesQueries.canReadAttachments(partial) {
+                    return "canReadAttachments said yes to a database whose attachment table is "
+                        + "missing \(MessagesQueries.attachmentColumns.last?.raw ?? "?")"
+                }
+
+                let root = corpus.copy("delayed-attachment-join", as: "oneprobe")
+                let database = try MessagesDatabase(root: root)
+                guard MessagesQueries.canReadAttachments(database.schema) else {
+                    return "the fixture has the join table and every attachment column, and the "
+                        + "presence rule said no"
+                }
+                let resolver = try AttachmentJoinResolver(databasePath: database.path,
+                                                          clock: ManualClock().clock)
+                defer { resolver.close() }
+                guard resolver.hasJoinTable else {
+                    return "the resolver and MessagesQueries disagree about the same file"
+                }
+                return nil
+            }
+
+            // 11. A row with no guid is claimed on its row id, and — the part that matters —
             // does not poison the cache for the rows around it.
             try await check("a_row_without_a_guid_is_claimed_by_row_id") {
                 let root = corpus.copy("direct-message", as: "noguid")
@@ -442,7 +489,7 @@ enum MessagesWatcherSelfTest {
                 return nil
             }
 
-            // 11. A database with no `cache_has_attachments` column. The flag reads nil,
+            // 12. A database with no `cache_has_attachments` column. The flag reads nil,
             // which is not "no attachments" — and a watcher that believed it was would
             // report a photo as a caption with no picture on exactly the release that
             // dropped the column. The resolver answers by looking instead.
@@ -469,7 +516,7 @@ enum MessagesWatcherSelfTest {
                 return nil
             }
 
-            // 12. The lifecycle. Three files armed, a loss re-arms them and catches up, a
+            // 13. The lifecycle. Three files armed, a loss re-arms them and catches up, a
             // refused stream is logged and the others are still armed, and `stop()` closes
             // every descriptor. The descriptors are real — `open(O_EVTONLY)` on files the
             // test created — so a leak here is a leak in the test process too.
@@ -518,7 +565,7 @@ enum MessagesWatcherSelfTest {
                 return nil
             }
 
-            // 13. The guid cache is bounded, which is what keeps a machine that never quits
+            // 14. The guid cache is bounded, which is what keeps a machine that never quits
             // from growing a `Set<String>` forever. Eviction is safe because the row id
             // covers everything older than the cache — see the type's own header.
             await check("the_guid_cache_is_bounded") {

@@ -1,29 +1,6 @@
 import Foundation
 import SQLite3
 
-/// One row of `attachment`, as far as the join table can name it.
-///
-/// **No file is opened and no path is resolved.** IM-14 copies attachments out and owns
-/// everything about doing that safely; this type is the *row*, and a filename in it is the
-/// name Messages wrote rather than something this app has decided to trust.
-struct MessagesAttachment: Equatable, Sendable {
-    /// `attachment.guid`.
-    var guid: String = ""
-    /// `attachment.filename`.
-    var filename: String?
-    /// `attachment.uti` — `public.jpeg` and friends. The authoritative type on Apple
-    /// platforms, and `mimeType` is the one a person reads.
-    var uti: String?
-    /// `attachment.mime_type`.
-    var mimeType: String?
-    /// `attachment.transfer_state`. A row still transferring is why the settling race
-    /// exists at all, so this is carried rather than filtered on: a caller that wants
-    /// "downloaded only" says so rather than having the value hidden from it.
-    var transferState: Int64?
-    /// `attachment.total_bytes`.
-    var totalBytes: Int64?
-}
-
 /// What the watcher learned about a row's attachments, and how long it waited to learn it.
 ///
 /// The cases are answers, not errors. A row with no attachments and a row whose join table
@@ -116,13 +93,26 @@ final class AttachmentJoinResolver: @unchecked Sendable {
     let clock: MessagesWatcherClock
     let policy: Policy
     /// Whether this database can answer "which attachments is this message's" at all.
+    ///
+    /// **Asked of this connection, once, at init, and kept** rather than asked again: a missing
+    /// join table is a capability the same way a missing `attributedBody` column is, and a query
+    /// that named it anyway would be a crash on somebody's live history. The answer comes from
+    /// `MessagesQueries.canReadAttachments` over a schema this file probed through
+    /// `MessagesSchemaProbe` — the same probe the actor runs, on this connection, so the
+    /// capability provably belongs to the connection that will run the query. Eight statements
+    /// once, at the moment the watcher is armed, in exchange for not having a second opinion
+    /// about the shape of somebody's database.
     let hasJoinTable: Bool
 
     /// Opened through `MessagesDatabase.openReadOnly`, so this connection carries the same
     /// two defences as the actor's: the read-only open flag and `PRAGMA query_only = ON`.
-    /// A second connection is the price of not editing IM-04's file to add a method; it is
-    /// not a second policy.
+    /// A second connection is the price of not asking the actor to lend its handle across an
+    /// actor boundary; it is not a second policy, and `queryOnlyEnabled()` lets a test say so.
     private let connection: OpaquePointer
+    /// The probed shape of **this** connection. Kept so the statement is built from it rather
+    /// than from a literal, which is the whole of what "one place a column name is written
+    /// down" means in practice.
+    private let schema: MessagesSchema
     /// One SQLite handle, and the retry loop's Task and the watcher's pass can both reach
     /// it. `FULLMUTEX` covers the connection's own reentrancy; this covers *which* caller
     /// steps it, so `close()` cannot shut it under a running query.
@@ -133,15 +123,19 @@ final class AttachmentJoinResolver: @unchecked Sendable {
     /// - Parameter databasePath: the canonical `chat.db` path — `MessagesDatabase.path`,
     ///   not a URL, because `realpath(3)` has already been applied there and this file
     ///   must not have a second opinion about it.
+    /// - Throws: `MessagesDatabase.OpenError.unreadable` when this connection cannot read the
+    ///   file, or when it is not a Messages database at all. Both are the same answers the actor
+    ///   gives for the same file, and every caller reaches this only after that one succeeded —
+    ///   so a throw here is not a new failure mode, it is the same one arriving twice.
     init(databasePath: String, clock: MessagesWatcherClock, policy: Policy = Policy()) throws {
         self.clock = clock
         self.policy = policy
-        self.connection = try MessagesDatabase.openReadOnly(at: databasePath)
-        // Probed before anything is read, and the answer is kept rather than asked again:
-        // a missing join table is a capability, the same way a missing `attributedBody`
-        // column is, and a query that named it anyway would be a crash on somebody's live
-        // history.
-        self.hasJoinTable = AttachmentJoinResolver.probesJoinTable(self.connection)
+        let opened = try MessagesDatabase.openReadOnly(at: databasePath)
+        // Probed before anything is read, and the answer is kept rather than asked again.
+        let probed = try MessagesSchemaProbe.probe(opened)
+        self.connection = opened
+        self.schema = probed
+        self.hasJoinTable = MessagesQueries.canReadAttachments(probed)
     }
 
     deinit { close() }
@@ -223,24 +217,17 @@ final class AttachmentJoinResolver: @unchecked Sendable {
     }
 
     // MARK: - The two tables
-
-    /// Whether `message_attachment_join` is here, read with `PRAGMA table_info`.
-    ///
-    /// **`PRAGMA table_info` on a table that is not there answers with an empty list rather
-    /// than an error**, which is why the answer is a *count* and not a nil statement — the
-    /// same reason `MessagesSchemaProbe` counts `sqlite_master` first.
-    private static func probesJoinTable(_ db: OpaquePointer) -> Bool {
-        var statement: OpaquePointer?
-        guard sqlite3_prepare_v2(db, "PRAGMA table_info(message_attachment_join)", -1, &statement, nil) == SQLITE_OK,
-              let statement else {
-            sqlite3_finalize(statement)
-            return false
-        }
-        defer { sqlite3_finalize(statement) }
-        var columns = 0
-        while sqlite3_step(statement) == SQLITE_ROW { columns += 1 }
-        return columns > 0
-    }
+    //
+    // **Named in `MessagesQueries` and nowhere else, as of 2026-09-26.** This file used to
+    // carry its own `PRAGMA table_info` probe, its own six column names, its own two column
+    // readers and a comment recording that it was doing so — while `MessagesQueries`' header
+    // claimed to be the only place a Messages column name was written down. The claim was
+    // almost true, which is the worst kind of almost: a second place for a name fails
+    // silently, so the only defence is that there is not one. The statement is now
+    // `MessagesQueries.attachments(schema:)`, the reader is
+    // `MessagesQueries.attachmentRow(_:)`, and the capability is
+    // `MessagesQueries.canReadAttachments(_:)` over a schema probed by `MessagesSchemaProbe`
+    // — the same three names the actor uses, and the same per-message deadline on top of them.
 
     /// The join and its attachments, ordered by the attachment's own `ROWID` so two
     /// refetches of a settled row answer in the same order.
@@ -249,9 +236,6 @@ final class AttachmentJoinResolver: @unchecked Sendable {
         defer { lock.unlock() }
         guard !closed else { return [] }
         queryCount += 1
-        let sql = "SELECT a.guid, a.filename, a.uti, a.mime_type, a.transfer_state, a.total_bytes "
-            + "FROM message_attachment_join AS j JOIN attachment AS a ON a.ROWID = j.attachment_rowid "
-            + "WHERE j.message_rowid = ? ORDER BY a.ROWID ASC"
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(connection, sql, -1, &statement, nil) == SQLITE_OK,
               let statement else {
@@ -262,50 +246,13 @@ final class AttachmentJoinResolver: @unchecked Sendable {
         sqlite3_bind_int64(statement, 1, messageRowID)
         var found: [MessagesAttachment] = []
         while sqlite3_step(statement) == SQLITE_ROW {
-            found.append(AttachmentJoinResolver.attachmentRow(statement))
+            found.append(MessagesQueries.attachmentRow(statement))
         }
         return found
     }
 
-    /// The two tables this file is allowed to name, in projection order.
-    ///
-    /// **Local, and that is a debt this file states rather than hides.** `MessagesQueries`
-    /// holds every other Messages column name in the app and its header says so; its
-    /// `MessagesSchemaProbe.probedTables` does not list `message_attachment_join` or
-    /// `attachment`, and both of those files belong to IM-04, which this task may not edit.
-    /// So the names live here, once, in one place, with their own probe — and the right fix
-    /// is to fold both tables into `MessagesQueries` and `probedTables` in a task that owns
-    /// them. `KnowledgeStore`'s own column readers are the precedent for a local projection.
-    private enum AttachmentColumns {
-        static let guid = Int32(0)
-        static let filename = Int32(1)
-        static let uti = Int32(2)
-        static let mimeType = Int32(3)
-        static let transferState = Int32(4)
-        static let totalBytes = Int32(5)
-    }
-
-    private static func attachmentRow(_ statement: OpaquePointer) -> MessagesAttachment {
-        var attachment = MessagesAttachment()
-        attachment.guid = text(statement, AttachmentColumns.guid) ?? ""
-        attachment.filename = text(statement, AttachmentColumns.filename)
-        attachment.uti = text(statement, AttachmentColumns.uti)
-        attachment.mimeType = text(statement, AttachmentColumns.mimeType)
-        attachment.transferState = integer(statement, AttachmentColumns.transferState)
-        attachment.totalBytes = integer(statement, AttachmentColumns.totalBytes)
-        return attachment
-    }
-
-    private static func text(_ statement: OpaquePointer, _ column: Int32) -> String? {
-        guard let value = sqlite3_column_text(statement, column) else { return nil }
-        return String(cString: value)
-    }
-
-    /// A SQLite integer, distinguishing a NULL from a zero — the same rule
-    /// `MessagesQueries.integer` states, kept rather than shared so this file owns
-    /// everything it reads.
-    private static func integer(_ statement: OpaquePointer, _ column: Int32) -> Int64? {
-        guard sqlite3_column_type(statement, column) != SQLITE_NULL else { return nil }
-        return sqlite3_column_int64(statement, column)
-    }
+    /// Built once rather than per call, and from the probed schema rather than from a literal —
+    /// which is the difference between a statement that follows the database and one that
+    /// assumes it.
+    private var sql: String { MessagesQueries.attachments(schema: schema) }
 }
