@@ -538,7 +538,9 @@ enum RealtimeAgentToolLoopSelfTest {
         defer {
             agent.localModelProviderForTesting = nil
             agent.localModelLimitForTesting = nil
-            agent.toolLoopLimitForTesting = nil
+            agent.budgetForTesting = nil
+            agent.coldForTesting = nil
+            agent.maxCallsForTesting = nil
             agent.answerDepthForTesting = nil
             agent.setTypedPendingForTesting(nil)
         }
@@ -620,8 +622,11 @@ enum RealtimeAgentToolLoopSelfTest {
 
         // A successful read is a usable answer even when a second model pass
         // runs past the turn's deadline. This was the missing calendar reply.
+        // P1-06: the seam is the whole budget now, with the same totals this case had.
         let fallbackState = ToolLoopTestState()
-        agent.toolLoopLimitForTesting = .seconds(2)
+        agent.budgetForTesting = .init(
+            perRound: .seconds(2), perReadCall: .seconds(2),
+            ceiling: .seconds(2), coldLoadAllowance: .zero)
         agent.localModelProviderForTesting = ToolLoopTestProvider(
             state: fallbackState, secondRoundDelay: .seconds(4)
         )
@@ -665,7 +670,9 @@ enum RealtimeAgentToolLoopSelfTest {
         check("malformed model mutation bypassed argument validation", forbidden.reply.contains("did not run"))
 
         // A stalled model is bounded and cannot produce a late visible answer.
-        agent.toolLoopLimitForTesting = .milliseconds(80)
+        agent.budgetForTesting = .init(
+            perRound: .milliseconds(80), perReadCall: .milliseconds(80),
+            ceiling: .milliseconds(80), coldLoadAllowance: .zero)
         agent.localModelProviderForTesting = ToolLoopTestProvider(
             state: ToolLoopTestState(), delay: .milliseconds(400)
         )
@@ -674,7 +681,7 @@ enum RealtimeAgentToolLoopSelfTest {
 
         // An ordinary answer, with no tool tag, must begin speaking from the
         // first complete streamed clause. Barge-in must suppress later chunks.
-        agent.toolLoopLimitForTesting = nil
+        agent.budgetForTesting = nil
         let recorder = RecordingSpeechBacking()
         AgentSpeechSynthesizer.shared.useTestingBacking(recorder)
         agent.localModelProviderForTesting = ToolLoopTestProvider(
@@ -729,7 +736,7 @@ enum RealtimeAgentToolLoopSelfTest {
         // window and the persona depth, never a literal — and after P1-02 that pass is the
         // planner round, whose cap used to be the 256 that truncated tool calls (H1 #3).
         // The depth rule itself is pinned in the table below, where `wanted` lives.
-        agent.toolLoopLimitForTesting = nil
+        agent.budgetForTesting = nil
         let deepState = ToolLoopTestState()
         agent.answerDepthForTesting = .deep
         agent.localModelProviderForTesting = ToolLoopTestProvider(
@@ -786,7 +793,7 @@ enum RealtimeAgentToolLoopSelfTest {
         // P0-17 e. A reasoning model that spent its whole answer budget thinking and wrote
         // nothing says exactly that — it is not an "incomplete response" and it is not
         // prefixed as a model failure.
-        agent.toolLoopLimitForTesting = nil
+        agent.budgetForTesting = nil
         MultiStepNotices.resetForTesting()
         agent.localModelProviderForTesting = CutOffTestProvider(visible: nil, cutOffVisible: false)
         let thoughtOnly = await agent.runModelTurn("What can you do?", voice: false)
@@ -821,7 +828,7 @@ enum RealtimeAgentToolLoopSelfTest {
         // P1-02. Four cases, each written before the fix and each failing on the header
         // pass: a typed "hi" that cost two model round trips and could not hold a tool
         // call's arguments, and a "yes" that re-derived its own action.
-        agent.toolLoopLimitForTesting = nil
+        agent.budgetForTesting = nil
         agent.answerDepthForTesting = .deep
 
         // Case 1: one typed "hi" is one model call, on the planner's own prompt, with a cap
@@ -945,10 +952,268 @@ enum RealtimeAgentToolLoopSelfTest {
             tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
         defer { AgentCapabilityManifestBuilder.inputsOverrideForTesting = nil }
         failures.append(contentsOf: await runToleranceCases(agent: agent, check: check))
+        failures.append(contentsOf: await runBudgetCases(agent: agent, check: check))
 
         for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
         return failures.isEmpty
+    }
+
+    /// P1-06's cases: a per-round deadline, a ceiling, the cold-load allowance, and the one
+    /// final answer-only round that has to be affordable when a plan runs out of rounds or
+    /// calls.
+    ///
+    /// Cases 1 and 6 are the red-first pair and both fail on the unmodified loop: the plan
+    /// held one number for every round together, so a three-step plan was cut off before the
+    /// answer, and a plan that hit the call cap ended on a sentence with nothing in it.
+    @MainActor
+    static func runBudgetCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        var failures: [String] = []
+        func fail(_ name: String) { failures.append(name) }
+
+        let hermes: (String) -> String = { "<tool_call>\($0)</tool_call>" }
+        let agenda = hermes(#"{"name":"get_agenda","arguments":{}}"#)
+        let mail = hermes(#"{"name":"search_email","arguments":{"query":"in:inbox"}}"#)
+        let decisions = hermes(#"{"name":"meeting.decisions","arguments":{}}"#)
+        let fixture = "Design sync, Dentist"
+
+        /// One scripted plan: the provider's script, the delay each round spends, the calls
+        /// the model made, and the reads the executor answered.
+        struct Case {
+            let reply: String
+            let tools: [String]
+            let calls: [PlannerScriptLog.Call]
+        }
+
+        @MainActor
+        func run(
+            request: String = "summarize my last emails and list tomorrow",
+            script: [String], delays: [Duration] = [],
+            budget: ToolLoopBudget, depth: AgentResponsiveness? = nil,
+            cold: Bool? = nil, maxCalls: Int? = nil,
+            result: String = fixture
+        ) async -> Case {
+            let log = PlannerScriptLog()
+            let ran = ScriptedToolLog()
+            AgentToolExecutor.fakeForTesting = { tool, _ in
+                ran.record(tool.id)
+                return AgentToolResult(summary: result)
+            }
+            agent.localModelProviderForTesting = BudgetScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000,
+                script: script, delays: delays, log: log)
+            agent.budgetForTesting = budget
+            agent.coldForTesting = cold
+            agent.maxCallsForTesting = maxCalls
+            agent.answerDepthForTesting = depth
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.clear()
+            let turn = await agent.handle(request, source: .text)
+            AgentToolExecutor.fakeForTesting = nil
+            agent.budgetForTesting = nil
+            agent.coldForTesting = nil
+            agent.maxCallsForTesting = nil
+            agent.answerDepthForTesting = nil
+            return Case(reply: turn.reply, tools: ran.toolIDs, calls: log.calls)
+        }
+
+        // Case 1. Three tool rounds at 2 s each and an answer round: 8 s of work that the
+        // old 18 s total could not hold either, because the reads and the answer each paid
+        // the whole plan's clock. The per-round deadline is what makes it fit.
+        do {
+            let result = await run(
+                script: [agenda, mail, decisions, "Tomorrow: Dentist and Design sync."],
+                delays: [.seconds(2)],
+                budget: .init(perRound: .seconds(3), perReadCall: .seconds(3),
+                              ceiling: .seconds(20), coldLoadAllowance: .zero))
+            check("a three-read plan answered \"\(result.reply)\"",
+                  result.reply.hasSuffix("Tomorrow: Dentist and Design sync."))
+            check("a three-read plan made \(result.calls.count) model call(s), expected 4",
+                  result.calls.count == 4)
+            check("a three-read plan ran \(result.tools.count) read(s), expected 3",
+                  result.tools.count == 3)
+            check("a three-read plan said it ran out of time: \"\(result.reply)\"",
+                  !result.reply.contains("took too long"))
+        }
+
+        // Case 2. One round over its own deadline, after a read succeeded. The read's result
+        // is the answer; the plan is not.
+        do {
+            let result = await run(
+                script: [agenda, "Here is your day."],
+                delays: [.zero, .seconds(4)],
+                budget: .init(perRound: .seconds(3), perReadCall: .seconds(3),
+                              ceiling: .seconds(20), coldLoadAllowance: .zero))
+            check("a round over its deadline threw the verified read away: \"\(result.reply)\"",
+                  result.reply.hasPrefix(fixture))
+            check("a round over its deadline did not say so: \"\(result.reply)\"",
+                  result.reply.contains("too long"))
+            check("a round over its deadline ran \(result.tools.count) read(s), expected 1",
+                  result.tools.count == 1)
+        }
+
+        // Case 3. The ceiling. Six 2 s rounds against 7 s: the plan stops on the ceiling, and
+        // what it had verified still leads the reply.
+        do {
+            let result = await run(
+                script: [agenda, mail, decisions, agenda, mail, decisions, "Later."],
+                delays: [.seconds(2)],
+                budget: .init(perRound: .seconds(3), perReadCall: .seconds(3),
+                              ceiling: .seconds(7), coldLoadAllowance: .zero))
+            check("the ceiling let the plan answer \"\(result.reply)\"",
+                  result.reply.hasPrefix(fixture))
+            check("the ceiling did not stop the plan: \(result.calls.count) model call(s)",
+                  result.calls.count == 4)
+        }
+
+        // Case 4. The cold-load allowance. The first round is paying for weights, so its
+        // deadline is perRound + the allowance, and only the first round's.
+        do {
+            let result = await run(
+                script: [agenda, "Here is your day."],
+                delays: [.seconds(5), .zero],
+                budget: .init(perRound: .seconds(3), perReadCall: .seconds(3),
+                              ceiling: .seconds(20), coldLoadAllowance: .seconds(3)),
+                cold: true)
+            check("a cold first round over its deadline answered \"\(result.reply)\"",
+                  result.reply.contains("Here is your day."))
+            check("a cold first round made \(result.calls.count) model call(s), expected 2",
+                  result.calls.count == 2)
+        }
+
+        // Case 5. The call cap. Four reads, then the model is out of calls: it gets one
+        // answer-only round, with no catalogue and a small visible cap, and its prose is the
+        // reply. Before the final round this ended on "I couldn’t finish the tool plan within
+        // the safe limit." with no result in it at all.
+        let expectedFinalVisible = AgentAnswerBudget.tokens(
+            kind: .finalAnswer, contextTokens: 4_096, promptTokens: 2_000, depth: .fast)
+        do {
+            let result = await run(
+                script: (0..<4).map { index in
+                    hermes(#"{"name":"search_email","arguments":{"query":"q\#(index)"}}"#)
+                } + ["Here is what I found: result-4."],
+                budget: .init(perRound: .seconds(5), perReadCall: .seconds(5),
+                              ceiling: .seconds(60), coldLoadAllowance: .zero),
+                depth: .fast)
+            check("the call cap ran \(result.tools.count) read(s), expected exactly 4",
+                  result.tools.count == 4)
+            check("the call cap made \(result.calls.count) model call(s), expected 5 "
+                + "(four rounds and one answer-only round)", result.calls.count == 5)
+            let final = result.calls.last
+            check("the final round was sent a tool catalogue",
+                  final?.system.contains("Available tools:") != true)
+            check("the final round was not told to answer: \""
+                + String((final?.user ?? "").suffix(60)) + "\"",
+                  (final?.user ?? "").hasSuffix("Answer now from what you have; no tool calls."))
+            check("the final round asked for \(final?.maxTokens ?? -1) visible tokens, "
+                + "expected \(expectedFinalVisible)",
+                  final?.maxTokens == expectedFinalVisible)
+            check("the call cap answered \"\(result.reply)\"",
+                  result.reply.hasSuffix("Here is what I found: result-4."))
+            check("the call cap ended on the bare safe-limit sentence: \"\(result.reply)\"",
+                  !result.reply.contains("safe limit"))
+        }
+
+        // Case 6. Round exhaustion, with the call cap raised so rounds run out first. Six
+        // rounds, then exactly one answer-only round: seven provider calls.
+        do {
+            let result = await run(
+                script: (0..<6).map { index in
+                    hermes(#"{"name":"search_email","arguments":{"query":"q\#(index)"}}"#)
+                } + ["Here is what I found: result-6."],
+                budget: .init(perRound: .seconds(5), perReadCall: .seconds(5),
+                              ceiling: .seconds(60), coldLoadAllowance: .zero),
+                depth: .fast, maxCalls: 20)
+            check("round exhaustion ran \(result.tools.count) read(s), expected 6",
+                  result.tools.count == 6)
+            check("round exhaustion made \(result.calls.count) model call(s), expected "
+                + "\(ToolLoopBudget.plannerMaxRounds(maxCalls: 4) + 1)",
+                  result.calls.count == ToolLoopBudget.plannerMaxRounds(maxCalls: 4) + 1)
+            check("round exhaustion answered \"\(result.reply)\"",
+                  result.reply.hasSuffix("Here is what I found: result-6."))
+        }
+
+        // Case 7. A final round that disobeys and emits a call anyway. Nothing runs, and the
+        // reply is still the last thing the plan verified.
+        do {
+            let result = await run(
+                script: (0..<4).map { index in
+                    hermes(#"{"name":"search_email","arguments":{"query":"q\#(index)"}}"#)
+                } + [hermes(#"{"name":"search_email","arguments":{"query":"q4"}}"#)],
+                budget: .init(perRound: .seconds(5), perReadCall: .seconds(5),
+                              ceiling: .seconds(60), coldLoadAllowance: .zero),
+                depth: .fast)
+            check("a disobedient final round executed \(result.tools.count) read(s), expected 4",
+                  result.tools.count == 4)
+            check("a disobedient final round lost the verified read: \"\(result.reply)\"",
+                  result.reply.hasPrefix(fixture))
+        }
+
+        // Case 8. Rounds follow calls, so one rebuttal or one repair cannot cost the plan
+        // its answer round. The table is pure: no provider, no turn.
+        for (depth, maxCalls, expected) in [
+            (AgentResponsiveness.fast, 4, 6),
+            (AgentResponsiveness.balanced, 8, 10),
+            (AgentResponsiveness.deep, 8, 10),
+        ] {
+            let rounds = ToolLoopBudget.plannerMaxRounds(maxCalls: maxCalls)
+            check("planner rounds for \(depth.rawValue) with a call cap of \(maxCalls) "
+                + "is \(rounds), expected \(expected)", rounds == expected)
+        }
+
+        // Case 9. The table itself, and the two deadlines it produces. Pure.
+        check("a typed cloud turn did not resolve to the cloud budget",
+              ToolLoopBudget.forTurn(provider: .openRouter, voice: false, background: false)
+                  == .typedCloud)
+        check("a typed local turn did not resolve to the local budget",
+              ToolLoopBudget.forTurn(provider: .appLLM, voice: false, background: false)
+                  == .typedLocal)
+        check("the interactive voice path did not resolve to its own budget",
+              ToolLoopBudget.forTurn(provider: .appLLM, voice: true, background: false)
+                  == .voiceInteractive)
+        check("a background worker did not resolve to the worker budget",
+              ToolLoopBudget.forTurn(provider: .appLLM, voice: true, background: true)
+                  == .voiceWorker)
+        let local = ToolLoopBudget.typedLocal
+        check("a cold first round got \(local.roundLimit(round: 0, cold: true, ceilingRemaining: local.ceiling)) "
+            + "s, expected 75", local.roundLimit(round: 0, cold: true, ceilingRemaining: local.ceiling)
+                == .seconds(75))
+        check("a warm second round got the cold allowance",
+              local.roundLimit(round: 1, cold: true, ceilingRemaining: local.ceiling)
+                == .seconds(30))
+        check("a round overran the ceiling it had left",
+              local.roundLimit(round: 0, cold: true, ceilingRemaining: .seconds(20))
+                == .seconds(20))
+        check("a read call overran the ceiling it had left",
+              local.readCallLimit(ceilingRemaining: .seconds(9)) == .seconds(9))
+        check("a read call was not widened by the cold allowance",
+              local.readCallLimit(ceilingRemaining: local.ceiling) == local.perReadCall)
+
+        // Case 10. The correction refill: once, then not again for ten seconds. Pure, so
+        // the rule is pinned without a model and without a stopwatch.
+        do {
+            let now = ContinuousClock.now
+            var remaining = Duration.seconds(0)
+            check("a correction with no time left did not refill",
+                  ToolLoopBudget.refill(ceilingRemaining: &remaining, budget: .voiceWorker,
+                                        lastRefill: nil, now: now))
+            check("a refilled ceiling is \(remaining), expected 60",
+                  remaining == .seconds(60))
+            check("a second correction inside the interval refilled again",
+                  !ToolLoopBudget.refill(ceilingRemaining: &remaining, budget: .voiceWorker,
+                                         lastRefill: now,
+                                         now: now.advanced(by: .seconds(9))))
+            check("a correction past the interval did not refill",
+                  ToolLoopBudget.refill(ceilingRemaining: &remaining, budget: .voiceWorker,
+                                        lastRefill: now,
+                                        now: now.advanced(by: .seconds(11))))
+            check("a second refill is \(remaining), expected 60 (never more than the half)",
+                  remaining == .seconds(60))
+        }
+
+        return failures
     }
 
     /// P1-04's cases. Split out because there are thirteen of them and they share one
@@ -984,7 +1249,7 @@ enum RealtimeAgentToolLoopSelfTest {
             agent.localModelProviderForTesting = PlannerScriptProvider(
                 id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
             agent.setTypedPendingForTesting(nil)
-            agent.toolLoopLimitForTesting = nil
+            agent.budgetForTesting = nil
             AgentSession.shared.clear()
             let turn = await agent.handle(request, source: .text)
             AgentToolExecutor.fakeForTesting = nil
@@ -1505,6 +1770,51 @@ private struct PlannerScriptProvider: LLMProvider {
         let index = log.calls.count
         log.record(.init(system: system, user: user, maxTokens: maxTokens))
         return index < script.count ? script[index] : "There is nothing more to add."
+    }
+}
+
+/// P1-06's scripted planner. One canned completion per call, in order, and a per-call delay
+/// so a case can spend exactly as long in each round as the budget under test allows. The
+/// recorded `(system, user, maxTokens)` of every call is the evidence for what the final
+/// answer-only round was sent and what it asked for.
+private struct BudgetScriptProvider: LLMProvider {
+    let id: LLMProviderID
+    let window: Int
+    let promptTokens: Int
+    let script: [String]
+    /// One entry per call, the last repeating for the calls after it. Empty spends no time.
+    let delays: [Duration]
+    let log: PlannerScriptLog
+    var contextTokens: Int { window }
+    var unavailableReason: String? { get async { nil } }
+
+    func countTokens(_ text: String) async throws -> Int { promptTokens }
+
+    func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+        let index = log.calls.count
+        // Recorded before the sleep, so a round the budget abandons is still on the record:
+        // the call was made, the deadline is what ended it.
+        log.record(.init(system: system, user: user, maxTokens: maxTokens))
+        let delay = delays.isEmpty ? Duration.zero : delays[min(index, delays.count - 1)]
+        if delay > .zero { try await Task.sleep(for: delay) }
+        let text = index < script.count ? script[index] : "There is nothing more to add."
+        return LLMCompletion(text: text, generatedTokens: text.count, duration: 0)
+    }
+
+    func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    let completion = try await complete(
+                        system: system, user: user, maxTokens: maxTokens)
+                    continuation.yield(completion.text)
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
     }
 }
 

@@ -259,9 +259,10 @@ enum ToolLoopLiveEval {
         let agent = RealtimeAgent.shared
         // The real provider through the production-routing seam: it keeps the eval off the
         // Codex hand-off (which would launch another app) and off the multi-step OpenRouter
-        // reroute. Production budgets stay on (`toolLoopLimitForTesting` stays nil).
+        // reroute. Production budgets stay on: `budgetForTesting` stays nil, so every case
+        // runs on the real `ToolLoopBudget` this run's turn resolves.
         agent.localModelProviderForTesting = provider
-        agent.toolLoopLimitForTesting = nil
+        agent.budgetForTesting = nil
         agent.fileRetrievalForTesting = fixtures.files
         agent.denyUnattendedApprovalsForTesting = true
         // P1-03 replaced `toolGatesForTesting` with a whole `AgentCapabilityInputs`, so the
@@ -275,7 +276,7 @@ enum ToolLoopLiveEval {
         AgentToolExecutor.fakeForTesting = fixtures.run
         defer {
             agent.localModelProviderForTesting = nil
-            agent.toolLoopLimitForTesting = nil
+            agent.budgetForTesting = nil
             agent.fileRetrievalForTesting = nil
             agent.plannerTraceForTesting = nil
             agent.denyUnattendedApprovalsForTesting = false

@@ -23,7 +23,6 @@ final class RealtimeAgent {
         /// Workspace and file reads. A second path used to add 50 s of model time
         /// on top of this; that is gone.
         static let tool: Duration = .seconds(20)
-        static let cloudTool: Duration = .seconds(90)
         static let localModel: Duration = .seconds(90)
         static let captureFinish: Duration = .seconds(8)
         /// A local model cold load took 18.1 s in the September 14 recording, before
@@ -161,8 +160,15 @@ final class RealtimeAgent {
     /// the configured local provider and never use this seam.
     var localModelProviderForTesting: (any LLMProvider)?
     var localModelLimitForTesting: Duration?
-    /// Only the production-route tool-loop self-test shortens the planner deadline.
-    var toolLoopLimitForTesting: Duration?
+    /// P1-06: the self-test seam for the whole budget, which is three numbers and not one.
+    /// Nil in production, where `ToolLoopBudget.forTurn` answers from the turn itself.
+    var budgetForTesting: ToolLoopBudget?
+    /// Forces the cold-load allowance on or off where a self-test needs it. Nil in
+    /// production, where the answer is whether the app's own model is resident.
+    var coldForTesting: Bool?
+    /// Raises the tool-call cap so a self-test can make *rounds* run out before calls do.
+    /// Nil in production, where the cap comes from the responsiveness setting.
+    var maxCallsForTesting: Int?
     /// Only the production-route tool-loop self-test overrides the persona depth. A
     /// self-test must never write `agentResponsiveness` into the user's defaults.
     var answerDepthForTesting: AgentResponsiveness?
@@ -460,13 +466,12 @@ final class RealtimeAgent {
         case .calendar, .mail, .files, .drive, .computer:
             beginWork(title: intent.progressTitle)
             let toolTrace = LatencyTrace.start(.agentToolCallToResult)
-            let limit: Duration = if case .toolLoop = intent,
-                Settings.shared.agentModelProvider == .openRouter {
-                Limits.cloudTool
-            } else {
-                Limits.tool
-            }
-            let boxed = await withBoundedWait(limit) {
+            // P1-06 step 11: the cloud branch here was dead. `intent` is
+            // `.calendar`/`.mail`/`.files`/`.drive`/`.computer` inside this case and can
+            // never be `.toolLoop`, so `Limits.cloudTool` was unreachable — and a dead
+            // deadline is a second answer to "how long may this take", which is the thing
+            // P1-06 exists to remove. The planner's own budget is `ToolLoopBudget`.
+            let boxed = await withBoundedWait(Limits.tool) {
                 await RealtimeAgent.shared.perform(intent)
             }
             toolTrace.end(note: boxed == nil ? "timeout" : intent.progressTitle)
