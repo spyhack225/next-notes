@@ -102,13 +102,26 @@ enum Permissions {
         }
     }
 
-    /// Whether this process can read a row out of the Messages database — which is the only
-    /// way to know whether Full Disk Access is granted, because that grant has no query API
-    /// either. A thin read of `MessagesDatabaseHealth`, kept here so this file stays the one
-    /// place a caller looks for "can I do the thing", and the reason it is a `func` and not
-    /// a `var` is the reason the probe is not free: it opens a file Messages owns.
-    static func hasMessagesAccess() async -> Bool {
-        await MessagesDatabaseHealth.probe().isReadable
+    /// **The** answer to "can this process read the Messages database", which is the only way
+    /// to know whether Full Disk Access is granted — that grant has no query API either.
+    ///
+    /// It returns the **state**, not a `Bool`, and that is the point. It first returned a `Bool`
+    /// and had no caller: the Settings section reduced the probe to a `Bool` itself and the
+    /// Permissions checklist reduced it again, so two views answered the same row by two
+    /// routes and the honest reason a row failed could not reach the person reading it. One
+    /// entry point, and it hands back the whole state so the *verdict* stays a pure function
+    /// somewhere the self-test can hold.
+    ///
+    /// A `func` rather than a `var` because the probe is not free: it opens a file Messages
+    /// owns, and `MessagesDatabaseHealth` is what caches it.
+    nonisolated static func messagesAccessState() async -> MessagesDatabaseHealth.State {
+        await MessagesDatabaseHealth.probe()
+    }
+
+    /// The convenience form, for the callers that only need the yes or the no. It reads the
+    /// same cached state, so using it costs nothing extra and cannot disagree with it.
+    nonisolated static func hasMessagesAccess() async -> Bool {
+        await messagesAccessState().isReadable
     }
 
     /// Shows the system Accessibility prompt if the app isn't yet trusted.

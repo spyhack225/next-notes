@@ -287,7 +287,7 @@ struct PermissionsChecklist: View {
         guard !isProbingMessagesAccess else { return }
         isProbingMessagesAccess = true
         Task { @MainActor in
-            let state = await MessagesDatabaseHealth.probe()
+            let state = await Permissions.messagesAccessState()
             hasMessagesAccess = state.isReadable
             isProbingMessagesAccess = false
         }

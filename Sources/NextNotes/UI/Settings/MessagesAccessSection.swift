@@ -100,9 +100,14 @@ struct MessagesAccessSection: View {
     private func probe(force: Bool) {
         isProbing = true
         Task { @MainActor in
-            let state = force
-                ? await MessagesDatabaseHealth.probeNow()
-                : await MessagesDatabaseHealth.probe()
+            // A forced check has to actually re-read. `messagesAccessState()` is cached for
+            // 30 s so the checklist's 2 s poll is not opening a 96 MB database fifteen times a
+            // minute, and without dropping the cache first a person who has just come back
+            // from System Settings would press the button and be told nothing had changed.
+            // Invalidating is the one thing that belongs to the caller, because only the
+            // caller knows the answer might have moved.
+            if force { await MessagesDatabaseHealth.invalidate() }
+            let state = await Permissions.messagesAccessState()
             verdict = MessagesAccessVerdict.verdict(for: state)
             isProbing = false
         }
