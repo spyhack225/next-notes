@@ -37,30 +37,18 @@ extension Duration {
     }
 }
 
-private enum GeneralToolStepError: Error, Sendable {
-    /// A step failed. `modelUnavailable` is true when the failure was the chosen model
-    /// itself — `LlamaError.modelUnopenable` or `.modelMissing` — which is the one failure
-    /// a turn may honestly retry on another provider. `contextOverflow` is P1-10's third
-    /// shape: the prompt did not fit the reader, which is the answer being too big and not
-    /// the model failing.
-    case message(String, modelUnavailable: Bool, contextOverflow: Bool)
-    /// The planner's model pass was cut off before it wrote anything visible. The reply is
-    /// the cut-off's own sentence, never "The tool planner failed: …".
-    case cutOff
-}
+/// One step's execution, as `ToolStepRunner` returns it from the executor closure. The
+/// classified outcome, plus the class the usage log records when the step failed — P1-04's
+/// error class is not derivable from the outcome, because a recoverable failure and an
+/// infrastructure failure can both be `other`.
+///
+/// Its round-level predecessor, `GeneralToolStepError`, is gone: P1-05 moved the round's
+/// failures to `PlannerRoundError`, which carries the same three facts as three cases rather
+/// than one case with two flags, so a backend cannot report a model-unavailable failure as a
+/// plain one by forgetting a boolean.
 
-/// What one planner round produced, and whether the pass ended on `finish_reason: length`
-/// after writing it. P0-17's honesty rule: a typed reply that was cut off says so, which
-/// needs the flag to survive the round boundary.
-private struct PlannerRoundOutcome: Sendable {
-    let text: String
-    let cutOff: Bool
-}
-
-/// One executed step: the classified outcome, plus the class the usage log records when the
-/// step failed. P1-04 — the error class is not derivable from the outcome, because a
-/// recoverable failure and an infrastructure failure can both be `other`.
-private struct ToolExecution: Sendable {
+/// One executed step, as the runner's executor closure returns it.
+struct ToolExecution: Sendable {
     let outcome: ToolStepOutcome
     var errorClass: UsageErrorClass?
 
@@ -1049,7 +1037,9 @@ extension RealtimeAgent {
     /// The parser needs the roster to tell a call from an explanation, and it is the same
     /// roster the executor enforces — one list, read twice, rather than a second list in the
     /// parser that could drift from the one that decides what may run.
-    @MainActor
+    /// `nonisolated` because a backend's round runs off the main actor and reads it there.
+    /// The manifest is a `Sendable` value of plain data, so there is nothing here to isolate.
+    nonisolated
     static func callNames(_ manifest: AgentCapabilityManifest) -> Set<String> {
         var names: Set<String> = []
         for entry in manifest.allowed {
@@ -1246,7 +1236,8 @@ extension RealtimeAgent {
         var fellBackOnce = false
         // The turn's one manifest. It changes in exactly one place: a call to an allowed tool
         // outside the schema widens the catalogue for the next round, so the model is not
-        // asked the same question twice with the same omission.
+        // asked the same question twice with the same omission. The runner owns the widened
+        // value; the loop mirrors it into the prompt it is about to build.
         var manifest = initialManifest
         let clock = ContinuousClock()
         // P1-02 step 6: once per plan, the reader's real window and the persona depth.
@@ -1259,8 +1250,8 @@ extension RealtimeAgent {
                 provider: provider.id, voice: voice, background: background || isVoiceWorker)
         // Charge model/read compute, not the time the person spends speaking or reviewing an
         // approval: `waitForVoiceInput` and a write's own `execute()` are outside every charge
-        // below. A ceiling is not an attention budget, it is the plan's own clock.
-        var ceilingRemaining = budget.ceiling
+        // below. A ceiling is not an attention budget, it is the plan's own clock — and the
+        // runner holds it, so a round and a read cannot disagree about what the plan has spent.
         // P1-06 step 2: the cold-load allowance. The app's own model can be asked to answer
         // before its weights are resident, and a first token can be 11–25 s away — which the
         // round's own deadline would otherwise spend before the model has decided anything.
@@ -1270,13 +1261,6 @@ extension RealtimeAgent {
         let cold = coldForTesting ?? runtimeCold
         if cold { beginWork(title: Self.coldModelTitle) }
         var results: [String] = []
-        var lastVerifiedResult: String?
-        var callsUsed = 0
-        var completedCalls = Set<String>()
-        // P0-5: what actually happened, for the timeout sentence. Tool ids in the
-        // order they finished; the in-flight id is passed per call site.
-        var completedToolIDs: [String] = []
-        var currentToolID: String? = nil
         // One depth for the whole plan: the visible cap of every round, the call cap and the
         // round backstop all read `depth` (which is the persona setting, or the self-test's
         // override of it). Reading the setting a second time here is how the roadmap's cases
@@ -1314,21 +1298,29 @@ extension RealtimeAgent {
         // claim correction, then the honest sentence rather than the text.
         var claimCorrected = false
         // P1-04: repairs and repeats are the two ways a turn costs itself another round, and
-        // both are capped. The cap is what makes the tolerant parser safe to have: a model
-        // that keeps writing the same wrong call spends two rounds learning it, not twenty.
-        var repairs = 0
-        var repeatedSignatures = 0
-        let maxRepairs = 2
-        // Tool output this turn has seen, for memory provenance, and the one-sentence
-        // confirmations of memory writes the reply must carry.
-        var untrustedOutputs = AgentSession.shared.recentAssistantTexts()
-        // Any tool result outside memory and schedule this turn, or a recall that returned
-        // indexed passages: a reminder written after it asks with a card, since the result
-        // may have supplied it.
-        var readToolOutput = false
-        var memoryConfirmations: [String] = []
+        // both are capped inside the runner. The cap is what makes the tolerant parser safe to
+        // have: a model that keeps writing the same wrong call spends two rounds learning it,
+        // not twenty.
+        //
+        // Everything per-*call* lives in `runner` from here on — the signature dedupe, the
+        // provenance, the executor and the classified outcome — because Apple's `Tool.call`
+        // body is a second caller of exactly those lines, and one rule with two callers is how
+        // a write stops waiting for a person. The loop keeps the round, the results and every
+        // sentence a person reads.
+        let runner = ToolStepRunner(
+            agent: self, owner: owner, work: work, provider: provider, manifest: manifest,
+            budget: budget, ceilingRemaining: budget.ceiling, request: prompt,
+            maxCalls: maxCalls, readerContextTokens: window,
+            untrustedOutputs: AgentSession.shared.recentAssistantTexts())
+        // P1-05: which backend this turn's reader gets, decided once before the first round
+        // from the provider the turn already resolved and the manifest it was given.
+        // `--planner native|prompt` on the command line overrides it for one process, which is
+        // how the live eval compares the two without touching a preference.
+        var backendChoice = await PlannerBackends.make(for: provider, manifest: manifest)
+        Log.agent.info(
+            "tool plan backend · \(backendChoice.label, privacy: .public) model=\(provider.displayModelName, privacy: .public)")
         func confirmed(_ reply: String) -> String {
-            let missing = memoryConfirmations.filter { !reply.contains($0) }
+            let missing = runner.memoryConfirmations.filter { !reply.contains($0) }
             return missing.isEmpty ? reply : (missing + [reply]).joined(separator: " ")
         }
         // P1-10a step 1: every result enters the prompt through here, and it enters capped
@@ -1353,14 +1345,14 @@ extension RealtimeAgent {
             plannerTraceForTesting?(.stopped(reason: "completed=\(completed.joined(separator: ",")) "
                 + "inFlight=\(inFlight ?? "-") reason=\(reason)"))
             return confirmed(AgentReplyRenderer.render(
-                .timedOut(lastVerified: lastVerifiedResult), voice: voice))
+                .timedOut(lastVerified: runner.lastVerifiedResult), voice: voice))
         }
         // Every exit from the loop reports the same three facts, so "the plan used tools" is
         // a property of the result rather than of the branch a turn happened to leave by.
         func planned(_ reply: String) -> PlannedTurnResult {
             PlannedTurnResult(
-                reply: reply, usedTools: !completedToolIDs.isEmpty,
-                calledToolIDs: completedToolIDs)
+                reply: reply, usedTools: !runner.completedToolIDs.isEmpty,
+                calledToolIDs: runner.completedToolIDs)
         }
         // P1-04: an end that keeps what the plan already verified and says nothing about
         // steps. `incomplete(_:completed:inFlight:)` is the *timeout* sentence, and its
@@ -1368,7 +1360,7 @@ extension RealtimeAgent {
         // so a repair that ran out of budget cannot use it.
         func stopped(_ reason: String) -> String {
             plannerTraceForTesting?(.stopped(reason: reason))
-            guard let lastVerifiedResult else { return confirmed(reason) }
+            guard let lastVerifiedResult = runner.lastVerifiedResult else { return confirmed(reason) }
             return confirmed(ToolResultBudget.cap(lastVerifiedResult, to: 1_200)
                 + "\n\n" + reason)
         }
@@ -1389,7 +1381,7 @@ extension RealtimeAgent {
         // ceiling, because a plan that spent its whole allowance still owes the person a reply.
         func finalAnswerRound(reason: FinalRoundReason) async -> String {
             let finalSystem = Self.plannerSystem(
-                manifest: manifest, voice: voice, request: prompt, catalogue: false)
+                manifest: runner.manifest, voice: voice, request: prompt, catalogue: false)
             let finalUser = AgentToolLoop.userMessage(
                 original: lastGroundedPrompt, results: results,
                 readerContextTokens: window)
@@ -1401,11 +1393,16 @@ extension RealtimeAgent {
             Log.agent.info(
                 """
                 tool plan final round · reason=\(reason.rawValue, privacy: .public) \
-                visible=\(visible) read=\(results.count, privacy: .public)
+                visible=\(visible) read=\(results.count, privacy: .public) \
+                backend=\(backendChoice.label, privacy: .public)
                 """)
             // Captured by value, like the round's: `provider` is mutable for the one
             // in-turn fallback and this closure is `@Sendable`.
             let finalProvider = provider
+            // P1-06: this round is told to answer and carries no catalogue, so it is asked
+            // through `complete(…)` and never through a grammar. A grammar over the manifest
+            // would steer a round that has nothing it is allowed to run, and the
+            // prompt-convention path is the right one for it either way.
             let text: String? = await withBoundedWait(budget.perRound) {
                 (try? await finalProvider.complete(
                     system: finalSystem, user: finalUser, maxTokens: visible))?.text
@@ -1414,13 +1411,93 @@ extension RealtimeAgent {
             let prose = text.map { AgentToolCallParser.parse($0, knownNames: []).prose } ?? ""
             guard !prose.isEmpty else {
                 return incomplete("I couldn’t finish the tool plan within the safe limit.",
-                                  completed: completedToolIDs, inFlight: nil)
+                                  completed: runner.completedToolIDs, inFlight: nil)
             }
             // `confirmed` keeps the memory confirmations, which the call-cap exit used to drop.
             return confirmed(prose)
         }
         // P1-06 step 10 (H1 #17): a correction starts the round clock over, and once every
         // ten seconds tops the ceiling back up to half of what the budget allows.
+        // P1-05: Apple's session runs its own call loop, so the rounds below are not this
+        // turn's path at all. One branch, and the turn's own renderings still apply: the
+        // runner already did every call through the same executor, so `completedToolIDs`,
+        // `lastVerifiedResult` and the memory confirmations are the loop's own values.
+        if case .wholeTurn(let wholeTurn) = backendChoice {
+            runner.request = prompt
+            let wholeSystem = Self.plannerSystem(
+                manifest: runner.manifest, voice: voice, request: prompt)
+            let wholeUser = lastGroundedPrompt
+            let wholeTokens = (try? await provider.countTokens(wholeSystem + "\n" + wholeUser))
+                ?? (wholeSystem.count + wholeUser.count) / 4
+            let wholeVisible = AgentAnswerBudget.tokens(
+                kind: .finalAnswer, contextTokens: window, promptTokens: wholeTokens, depth: depth)
+            Log.agent.info(
+                "tool plan whole turn · backend=\(backendChoice.label, privacy: .public) tools=\(runner.manifest.selected.count, privacy: .public)")
+            do {
+                // `withBoundedWait` takes a non-throwing body, so the throw is carried out
+                // and rethrown here: a whole turn that failed is handled below, and a
+                // whole turn that timed out is the same plain sentence as any other.
+                let whole = await withBoundedWait(budget.ceiling) { () -> Result<String, Error> in
+                    do {
+                        return .success(try await wholeTurn.runTurn(
+                            system: wholeSystem, request: wholeUser, manifest: runner.manifest,
+                            executor: runner, maxTokens: wholeVisible))
+                    } catch {
+                        return .failure(error)
+                    }
+                }
+                let text: String
+                switch whole {
+                case .success(let answer):
+                    text = answer
+                case .failure(let error):
+                    throw error
+                case nil:
+                    // The whole turn ran out of the plan's own clock. The stop page, the
+                    // bridge's `STOP:` sentences and the renderer all end it, and the same
+                    // sentence a timed-out round produces is the honest one here.
+                    speech?.cancel()
+                    return planned(incomplete("I stopped the tool plan because it took too long.",
+                                             completed: runner.completedToolIDs,
+                                             inFlight: runner.currentToolID))
+                }
+                return planned(confirmed(text))
+            } catch let error as PlannerRoundError {
+                switch error {
+                case .modelUnavailable:
+                    speech?.cancel()
+                    if allowFallback, !fellBackOnce,
+                       let replacement = await fallbackProvider(for: prompt, voice: voice),
+                       replacement.id != provider.id {
+                        fellBackOnce = true
+                        provider = replacement
+                        runner.adopt(provider: replacement)
+                        backendChoice = await PlannerBackends.make(
+                            for: replacement, manifest: runner.manifest)
+                        publishAnsweringModel(replacement)
+                    } else {
+                        publishAnsweringModel(nil)
+                        return planned(confirmed(Self.noModelReply))
+                    }
+                case .cutOff:
+                    speech?.cancel()
+                    return planned(confirmed(
+                        OpenRouterError.cutOff(visibleText: false).localizedDescription))
+                case .contextOverflow:
+                    speech?.cancel()
+                    return planned(confirmed(AgentReplyRenderer.render(
+                        .contextOverflow(lastVerified: runner.lastVerifiedResult), voice: voice)))
+                case .failed(let message):
+                    speech?.cancel()
+                    return planned(confirmed(AgentReplyRenderer.render(
+                        .modelFailed(message), voice: voice)))
+                }
+            } catch {
+                speech?.cancel()
+                return planned(confirmed(AgentReplyRenderer.render(
+                    .modelFailed(error.localizedDescription), voice: voice)))
+            }
+        }
         var seenRevision = work?.revision ?? 0
         var lastRefill: ContinuousClock.Instant? = nil
         while rounds < maxRounds {
@@ -1428,9 +1505,13 @@ extension RealtimeAgent {
             let revision = work?.revision ?? 0
             if revision != seenRevision {
                 seenRevision = revision
+                // One clock charges everything (P1-06), so a refill is charged to the runner
+                // rather than to a second copy of the remaining budget.
+                var remaining = runner.ceilingRemaining
                 if ToolLoopBudget.refill(
-                    ceilingRemaining: &ceilingRemaining, budget: budget,
+                    ceilingRemaining: &remaining, budget: budget,
                     lastRefill: lastRefill, now: clock.now) {
+                    runner.charge(remaining - runner.ceilingRemaining)
                     lastRefill = clock.now
                     Log.agent.info("tool plan ceiling refill · revision=\(revision, privacy: .public)")
                 }
@@ -1448,6 +1529,12 @@ extension RealtimeAgent {
             // Rebuilt per round rather than hoisted, so a widened catalogue reaches the next
             // round. The persona, memory and rules are unchanged by a widen, so the llama.cpp
             // prefix cache still holds for everything above the date line.
+            manifest = runner.manifest
+            runner.request = currentRequest
+            runner.revisionIsCurrent = { [work] in
+                guard let work else { return true }
+                return work.revision == revision
+            }
             let system = Self.plannerSystem(manifest: manifest, voice: voice, request: prompt)
             speech?.beginResponse()
             guard isCurrent(owner) else {
@@ -1458,12 +1545,23 @@ extension RealtimeAgent {
             // does not spend one asking. Decided here rather than only where a call is parsed,
             // because a wasted round costs a whole prefill and then discards the answer the
             // model was about to write.
-            guard callsUsed + repairs < maxCalls else {
+            guard runner.canRunAnother else {
                 return planned(await finalAnswerRound(reason: .callsExhausted))
             }
-            guard ceilingRemaining > .zero else {
+            guard runner.ceilingRemaining > .zero else {
                 return planned(incomplete("I stopped the tool plan because it took too long.",
-                                         completed: completedToolIDs, inFlight: currentToolID))
+                                         completed: runner.completedToolIDs,
+                                         inFlight: runner.currentToolID))
+            }
+            // The manifest this round sends: a `let` for the round's closures, because
+            // `manifest` is a `var` the next round's widen writes.
+            let roundManifest = manifest
+            // P1-05: the round's backend. Read per round rather than hoisted, because the one
+            // in-turn fallback re-resolves the provider and a backend holds a copy of it — a
+            // hoisted backend would keep asking a model the turn had already given up on.
+            // A whole-turn planner was handled above and never reaches here.
+            guard case .rounds(let roundBackend) = backendChoice else {
+                return planned(confirmed(Self.noModelReply))
             }
             // P1-10a step 2: the prompt is measured, not assumed. `AgentAnswerBudget`
             // already shrinks the *visible* cap to the room left, which turns an oversized
@@ -1521,14 +1619,14 @@ extension RealtimeAgent {
                 plannerTraceForTesting?(.stopped(reason: "context overflow at "
                     + "\(promptTokens) tokens of \(window)"))
                 return planned(confirmed(AgentReplyRenderer.render(
-                    .contextOverflow(lastVerified: lastVerifiedResult), voice: voice)))
+                    .contextOverflow(lastVerified: runner.lastVerifiedResult), voice: voice)))
             }
-            let spokenConfirmations = memoryConfirmations.joined(separator: " ")
+            let spokenConfirmations = runner.memoryConfirmations.joined(separator: " ")
             // P1-06 step 3: this round's own deadline, never more than the ceiling has left.
             // The cold allowance rides on round zero only — it pays for weights, and there are
             // weights once.
             let roundLimit = budget.roundLimit(
-                round: rounds, cold: cold, ceilingRemaining: ceilingRemaining)
+                round: rounds, cold: cold, ceilingRemaining: runner.ceilingRemaining)
             let completionBegan = clock.now
             speech?.noteModel(currentProvider)
             let roundRecorder = ModelPassRecorder(
@@ -1554,57 +1652,45 @@ extension RealtimeAgent {
                 window=\(window) prompt=\(promptTokens) visible=\(roundMaxTokens)
                 """
             )
-            let completion: Result<PlannerRoundOutcome, GeneralToolStepError>? = await withBoundedWait(roundLimit) {
-                // Hoisted out of `do` so the `catch` legs can keep what was streamed
-                // before the cut-off: a `catch` clause cannot see a `do` local.
-                var assembled = ""
+            // P1-05: the round now comes from an `AgentPlannerBackend` rather than from
+            // `provider.stream` directly, so the same round runs on a GBNF grammar, on
+            // Apple's native tools, on an OpenAI-style `tools` array, or on the prompt
+            // convention. `interactive` is the only difference between the two lanes, and it
+            // is the voice frontend's own round.
+            let completion: Result<PlannerRound, PlannerRoundError>? = await withBoundedWait(roundLimit) {
                 do {
-                    let stream = await ModelPassRecorder.$current.withValue(roundRecorder) {
-                        if voice && !background {
-                            return await LatencyCorrelation.$current.withValue(correlation) {
-                                await currentProvider.streamInteractiveConversation(
-                                    system: system, messages: [.init(role: .user, content: user)],
-                                    maxTokens: roundMaxTokens)
-                            }
-                        } else {
-                            return await currentProvider.stream(system: system, user: user,
-                                                               maxTokens: roundMaxTokens)
-                        }
-                    }
-                    for try await chunk in stream {
-                        try Task.checkCancellation()
-                        if !chunk.isEmpty { roundRecorder.noteFirstToken() }
-                        assembled += chunk
-                        if let speech {
-                            // A memory write is said out loud: its confirmation leads the
-                            // spoken answer, unless this response turns out to be a tool call.
-                            let leading = assembled.trimmingCharacters(in: .whitespacesAndNewlines)
-                            let prefix = spokenConfirmations.isEmpty || leading.isEmpty
-                                || leading.hasPrefix("<") || leading.hasPrefix("{")
-                                ? "" : spokenConfirmations + " "
-                            let snapshot = prefix + assembled
-                            if !AgentRefusalGuard.mayBeDenial(assembled),
-                               !ToolClaimGuard.mayBeClaim(assembled) {
-                                await speech.receive(snapshot)
+                    return .success(try await ModelPassRecorder.$current.withValue(roundRecorder) {
+                        try await LatencyCorrelation.$current.withValue(correlation) {
+                            try await roundBackend.round(
+                                system: system, messages: [.init(role: .user, content: user)],
+                                manifest: roundManifest, maxTokens: roundMaxTokens,
+                                interactive: voice && !background
+                            ) { assembled in
+                                if !assembled.isEmpty { roundRecorder.noteFirstToken() }
+                                guard let speech else { return }
+                                // A memory write is said out loud: its confirmation leads the
+                                // spoken answer, unless this response turns out to be a call.
+                                let leading = assembled.trimmingCharacters(in: .whitespacesAndNewlines)
+                                let prefix = spokenConfirmations.isEmpty || leading.isEmpty
+                                    || leading.hasPrefix("<") || leading.hasPrefix("{")
+                                    ? "" : spokenConfirmations + " "
+                                let snapshot = prefix + assembled
+                                if !AgentRefusalGuard.mayBeDenial(assembled),
+                                   !ToolClaimGuard.mayBeClaim(assembled) {
+                                    await speech.receive(snapshot)
+                                }
                             }
                         }
-                    }
-                    return .success(.init(text: assembled, cutOff: false))
-                } catch OpenRouterError.cutOff(let visibleText) {
-                    // A truncated plan keeps what it wrote — a later task repairs a partial
-                    // call — and a plan with nothing visible says why in its own words
-                    // rather than as "The tool planner failed:". P0-17: a typed reply that
-                    // was cut off keeps its text and says it was cut off.
-                    if visibleText { return .success(.init(text: assembled, cutOff: true)) }
-                    return .failure(.cutOff)
+                    })
+                } catch let error as PlannerRoundError {
+                    // A truncated plan keeps what it wrote, and a plan with nothing visible
+                    // says why in its own words rather than as "The tool planner failed:".
+                    return .failure(error)
                 } catch {
-                    return .failure(.message(
-                        error.localizedDescription,
-                        modelUnavailable: error.isModelUnavailable,
-                        contextOverflow: error.isContextOverflow))
+                    return .failure(LlamaGrammarPlanner.roundError(from: error, visible: ""))
                 }
             }
-            ceilingRemaining -= completionBegan.duration(to: clock.now)
+            runner.charge(completionBegan.duration(to: clock.now))
             roundRecorder.noteModelEnd()
             await waitForVoiceInput()
             guard isCurrent(owner) else {
@@ -1622,43 +1708,49 @@ extension RealtimeAgent {
                 roundReason = "timeout"
                 roundRecorder.fail(message: "The model took too long to answer.")
                 return planned(incomplete("I stopped the tool plan because it took too long.",
-                                         completed: completedToolIDs, inFlight: currentToolID))
+                                         completed: runner.completedToolIDs,
+                                         inFlight: runner.currentToolID))
             }
-            let completionText: String
-            var replyWasCutOff = false
+            let round: PlannerRound
+            let replyWasCutOff: Bool
             switch completion {
-            case .success(let outcome):
-                completionText = outcome.text
-                replyWasCutOff = outcome.cutOff
-            case .failure(.message(let message, let modelUnavailable, let contextOverflow)):
-                speech?.cancel()
+            case .success(let produced):
+                round = produced
+                replyWasCutOff = produced.cutOff
+            case .failure(.contextOverflow(let message)):
                 // P1-10a step 3: a prompt that did not fit the reader is a plain sentence
                 // about the size of the answer, not a planner failure and not a model
                 // failure. It is checked before the in-turn fallback because a fallback
                 // would try the same prompt again and be refused the same way.
-                if contextOverflow {
-                    roundReason = "error"
-                    roundRecorder.fail(message: message)
-                    return planned(confirmed(AgentReplyRenderer.render(
-                        .contextOverflow(lastVerified: lastVerifiedResult), voice: voice)))
-                }
+                speech?.cancel()
                 roundReason = "error"
                 roundRecorder.fail(message: message)
-                if modelUnavailable {
-                    roundRecorder.fellBack(.modelUnavailable)
-                    if allowFallback, !fellBackOnce,
-                       let replacement = await fallbackProvider(for: prompt, voice: voice),
-                       replacement.id != provider.id {
-                        fellBackOnce = true
-                        provider = replacement
-                        publishAnsweringModel(replacement)
-                        continue
-                    }
-                    publishAnsweringModel(nil)
-                    return planned(confirmed(Self.noModelReply))
+                return planned(confirmed(AgentReplyRenderer.render(
+                    .contextOverflow(lastVerified: runner.lastVerifiedResult), voice: voice)))
+            case .failure(.modelUnavailable(let message)):
+                speech?.cancel()
+                roundReason = "error"
+                roundRecorder.fail(message: message)
+                roundRecorder.fellBack(.modelUnavailable)
+                if allowFallback, !fellBackOnce,
+                   let replacement = await fallbackProvider(for: prompt, voice: voice),
+                   replacement.id != provider.id {
+                    fellBackOnce = true
+                    provider = replacement
+                    runner.adopt(provider: replacement)
+                    backendChoice = await PlannerBackends.make(
+                        for: replacement, manifest: runner.manifest)
+                    publishAnsweringModel(replacement)
+                    continue
                 }
+                publishAnsweringModel(nil)
+                return planned(confirmed(Self.noModelReply))
+            case .failure(.failed(let message)):
                 // P1-10b: the raw reason goes to the usage log above; a person gets the
                 // one sentence, which names no provider, no id and no error text.
+                speech?.cancel()
+                roundReason = "error"
+                roundRecorder.fail(message: message)
                 return planned(confirmed(AgentReplyRenderer.render(
                     .modelFailed(message), voice: voice)))
             case .failure(.cutOff):
@@ -1668,36 +1760,37 @@ extension RealtimeAgent {
                 roundReason = "length"
                 return planned(confirmed(OpenRouterError.cutOff(visibleText: false).localizedDescription))
             }
-            // P1-04: the tolerant parser, given this turn's roster. Everything the model
-            // fenced off is read in any of the formats it uses, and what could not be read
-            // comes back as a repair rather than as the answer.
-            let parsed = AgentToolCallParser.parse(
-                completionText, knownNames: Self.callNames(manifest))
-            let parsedCalls = parsed.calls
+            // P1-04: the tolerant parser, given this turn's roster, is where a round's calls
+            // are read — including on the native backends, because the grammar produces Hermes
+            // JSON the same parser reads and there is one reader rather than two. A grammar or
+            // native round's `malformed` is always empty; that is what the constraint buys,
+            // and the repair legs below stay for a model that is not under one.
+            let parsedCalls = round.calls
             plannerTraceForTesting?(.round(
                 index: rounds, systemCharacters: system.count, userCharacters: user.count,
-                maxTokens: roundMaxTokens, raw: completionText,
+                maxTokens: roundMaxTokens, raw: round.raw,
                 seconds: completionBegan.duration(to: clock.now).secondsValue))
             roundRecorder.proposed(parsedCalls.map {
                 AgentToolRegistry.shared.tool(named: $0.name)?.id ?? $0.name
             })
             speech?.finish(hasToolCalls: !parsedCalls.isEmpty)
-            if parsedCalls.isEmpty, !parsed.malformed.isEmpty {
+            if parsedCalls.isEmpty, !round.malformed.isEmpty {
                 // The model reached for a tool and the call could not be read. The excerpt
                 // goes to the model and to the log; the person is told nothing about it now,
                 // because on the next round there is either a call or an answer.
-                for malformed in parsed.malformed {
+                for malformed in round.malformed {
                     Log.agent.info("""
                         tool planner call unreadable: kind=\(malformed.kind.rawValue, privacy: .public) \
                         name=\(malformed.nameGuess ?? "-", privacy: .public) \
                         text=\(String(malformed.excerpt.prefix(200)), privacy: .public)
                         """)
                 }
-                guard repairs < maxRepairs, callsUsed + repairs < maxCalls else {
+                guard runner.canRunAnother else {
                     return planned(stopped(
                         "I couldn't read that request, so I stopped there."))
                 }
-                results.append(contentsOf: parsed.malformed.map { malformed in
+                var repairsSpent = 0
+                results.append(contentsOf: round.malformed.map { malformed in
                     // A name the model wrote for a tool this turn does not have is a
                     // different repair from an unreadable one, and the useful one: the
                     // resolver says what does exist.
@@ -1709,6 +1802,7 @@ extension RealtimeAgent {
                             message: "There is no tool called \(guess).",
                             options: suggestions).modelText)
                     }
+                    repairsSpent += 1
                     return carried("tool", ToolRepair(
                         kind: malformed.kind == .truncated ? .truncatedCall : .malformedCall,
                         message: (malformed.kind == .truncated
@@ -1718,13 +1812,16 @@ extension RealtimeAgent {
                             + " Send it again, complete, as one request."
                     ).modelText)
                 })
-                repairs += 1
+                // The repair budget is the runner's, so a round that could not be read and a
+                // call that could not be executed are charged the same way. One `execute` of a
+                // call nothing can resolve is how the two stay one number.
+                runner.chargeRepairs(repairsSpent)
                 continue
             }
             if parsedCalls.isEmpty {
-                let reply = parsed.prose
-                if reply.isEmpty, !memoryConfirmations.isEmpty {
-                    return planned(memoryConfirmations.joined(separator: " "))
+                let reply = round.text
+                if reply.isEmpty, !runner.memoryConfirmations.isEmpty {
+                    return planned(runner.memoryConfirmations.joined(separator: " "))
                 }
                 if replyWasCutOff {
                     // The typed header pass used to add this note, and P1-02 removed that
@@ -1754,7 +1851,7 @@ extension RealtimeAgent {
                 let unsupportedClaims = ToolClaimGuard.unsupported(
                     ToolClaimGuard.claims(
                         in: reply, roster: ToolClaimGuard.roster(for: manifest)),
-                    completed: completedToolIDs)
+                    completed: runner.completedToolIDs)
                 if !unsupportedClaims.isEmpty {
                     speech?.cancel()
                     AgentAuditLog.shared.record(
@@ -1778,238 +1875,49 @@ extension RealtimeAgent {
                     return planned("I stopped the tool plan.")
                 }
                 if revision != (work?.revision ?? 0) { break }
-                // P1-04: the name the model wrote is resolved to a canonical id this turn may
-                // execute — exact, alias, router, normalised spelling, then a near miss. A
-                // name that resolves to nothing used to end the plan with "The tool planner
-                // requested an unavailable tool; nothing else was run.", which is a sentence
-                // about the app's insides read by a person who asked a question. It is now a
-                // repair: the model is told what does exist and gets another round.
+                // P1-05: one call is one call. The name the model wrote is resolved, checked
+                // against the manifest, grounded against what the user said, executed through
+                // `ToolStepRunner` — the only caller of `AgentToolExecutor.run` in the
+                // planner — and classified. None of that is here, because Apple's
+                // `Tool.call` body does the same work from inside the model framework and two
+                // copies of the permission boundary is how a write stops waiting for a person.
                 //
-                // One case is not a repair: a tool this build has and this turn may not run.
-                // The manifest already carries the one plain sentence a person needs for it
-                // (`Readiness.reason`), and that sentence is the whole reply — it says what to
-                // do, and it names no id.
-                if let registered = AgentToolRegistry.shared.tool(named: call.name),
-                   let blocked = manifest.unavailable.first(where: { $0.id == registered.id }),
-                   let sentence = blocked.readiness.reason {
-                    plannerTraceForTesting?(.rejectedCall(
-                        name: call.name, reason: "not ready: \(sentence)"))
-                    return planned(confirmed(sentence))
+                // What is here is what the runner cannot do: speak. Every sentence a person
+                // reads is rendered by the loop, from the runner's disposition.
+                let step = await runner.execute(call)
+                if let usage = step.usage { roundRecorder.executed(usage) }
+                if let output = step.output {
+                    results.append(carried(step.canonicalID, output))
+                    speech?.recordVerifiedResult(toolID: step.canonicalID, output: output)
                 }
-                let resolution = ToolCallNameResolver.resolve(
-                    call.name, allowed: manifest.allowed)
-                guard case .tool(let canonicalID) = resolution,
-                      let tool = AgentToolRegistry.shared.tool(named: canonicalID),
-                      let entry = manifest.entry(named: canonicalID) else {
-                    plannerTraceForTesting?(.rejectedCall(
-                        name: call.name, reason: "unknown tool"))
-                    guard case .unknown(let suggestions) = resolution, repairs < maxRepairs else {
-                        return planned(stopped(
-                            "I couldn't find a way to do that, so I stopped there."))
-                    }
-                    results.append(carried(call.name, ToolRepair(
-                        kind: .unknownTool,
-                        message: "There is no tool called \(call.name).",
-                        options: suggestions).modelText))
-                    repairs += 1
+                switch step.disposition {
+                case .completed:
                     continue
-                }
-                if !manifest.selectedIDs.contains(entry.id) {
-                    manifest = manifest.widened(toInclude: entry.intent)
-                }
-                // P0-07: a write may only commit while the input that planned it is
-                // classified. Reads run through user speech; the round barrier above
-                // already decided when this round started.
-                let risk = tool.risk
-                let arguments = AgentToolLoop.groundedArguments(
-                    for: canonicalID, proposed: call.arguments, request: currentRequest
-                )
-                // Keyed on the canonical id, so an alias and its own spelling are one step.
-                let signature = canonicalID + "|" + arguments.keys.sorted()
-                    .map { "\($0)=\(arguments[$0] ?? "")" }.joined(separator: "|")
-                guard completedCalls.insert(signature).inserted else {
-                    // H-audit 2026-09-23 (H1 #20). Small models re-issue a call whose result
-                    // was long or empty. That is a question, not a loop: the result is
-                    // already in `results` above, so the note points at it and the plan goes
-                    // on. One note per turn; the second repeat ends the plan.
-                    repeatedSignatures += 1
-                    if repeatedSignatures == 1, repairs < maxRepairs {
-                        results.append(carried(canonicalID,
-                            "You already ran \(canonicalID) with these arguments; its result is "
-                                + "above. Answer now or choose a different step."))
-                        repairs += 1
-                        continue
-                    }
-                    // P1-06 step 9: the second repeat ends the plan, and the plan still owes
-                    // the person an answer from what it verified.
-                    return planned(await finalAnswerRound(reason: .repeatedCall))
-                }
-                guard callsUsed + repairs < maxCalls else {
-                    return planned(await finalAnswerRound(reason: .callsExhausted))
-                }
-                guard ceilingRemaining > .zero else {
+                case .repaired(let toolID, let note):
+                    results.append(carried(toolID, note))
+                    continue
+                case .skipped:
+                    continue
+                case .answerNow(let reason):
+                    return planned(await finalAnswerRound(
+                        reason: reason == .repeatedCall ? .repeatedCall : .callsExhausted))
+                case .outOfTime:
                     return planned(incomplete("I stopped the tool plan because it took too long.",
-                                             completed: completedToolIDs, inFlight: currentToolID))
-                }
-                currentToolID = canonicalID
-                // P1-06 step 6: what is happening now, in the words the person would use. Set
-                // before the call, not after it — a title that names a step which finished
-                // while the next one is already running is a claim the app cannot back up.
-                beginWork(title: AgentActivityProjector.title(for: tool, arguments: arguments))
-                let policy = PermissionPolicy.fromSettings()
-                // Bound by this code, not taken from the model: what the user said this
-                // turn, and every tool result it has seen so far.
-                let provenance = MemoryProvenance(
-                    origin: .userConversation,
-                    sessionID: AgentSession.shared.sessionID,
-                    userText: [currentRequest] + AgentSession.shared.recentUserTexts(),
-                    untrustedText: untrustedOutputs,
-                    readToolOutputThisTurn: readToolOutput
-                )
-                // Captured by value: this closure is `@Sendable` and `provider` is mutable
-                // for the one fallback above.
-                let executingProvider = provider
-                // P0-20a: the timer's clock starts inside the executor's post-approval
-                // `fire`, so the recorded `ms` is execution and never the card's wait.
-                let executionTimer = ToolExecutionTimer()
-                let toolCallBegan = clock.now
-                // P1-04: the closure returns the classified outcome rather than a string, so
-                // the decision about what a failure *means* is made in one table
-                // (`ToolErrorClassifier`) instead of in whichever `catch` leg the error
-                // happened to be thrown from. `errorClass` rides along because the usage log
-                // still records which failure it was.
-                let execute: @Sendable () async -> ToolExecution = {
-                    do {
-                        // P1-10a: the reader this plan resolved, bound around the step so a
-                        // tool that shapes its own answer — `WorkspaceToolRunner` caps a mail
-                        // body, a calendar and a Drive listing — sizes it for the model that
-                        // will read it instead of for a constant chosen before any of them
-                        // were known. Outside a planned turn nothing is bound and those
-                        // callers keep today's 2,000.
-                        let result = try await MemoryProvenance.$current.withValue(provenance) {
-                            try await ToolExecutionTimer.$current.withValue(executionTimer) {
-                                try await ToolResultBudget.$readerContextTokens.withValue(window) {
-                                    try await AgentToolExecutor.run(
-                                        canonicalID, arguments: arguments, policy: policy,
-                                        taskID: work?.id.uuidString,
-                                        autoApproveReads: true,
-                                        promptIfNeeded: !self.denyUnattendedApprovalsForTesting,
-                                        isStillValid: {
-                                            guard await self.mayCommitEffect(risk: risk) else { return false }
-                                            return self.isCurrent(owner) && revision == (work?.revision ?? 0)
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                        // P1-5 additive hook: a completed step's reference and link are
-                        // the run's artifacts — keep them so the terminal card can link
-                        // them. See AgentArtifactLedger; the summary path is unchanged.
-                        AgentArtifactLedger.capture(taskID: work?.id.uuidString, result: result)
-                        // P0.1, the seam this loop was missing: a screenshot step parks
-                        // its capture in `ScreenshotStore` and returns a park summary.
-                        // The run's own model — cloud or on-device, under the same
-                        // `VisionScope` plus per-run consent every provider call
-                        // enforces — is what describes the pixels, and the description
-                        // is what the planner reads next round.
-                        if RealtimeToolSelection.screenshotToolIDs.contains(canonicalID) {
-                            let described = await VisionHandoff.describe(
-                                provider: executingProvider,
-                                toolID: canonicalID,
-                                arguments: arguments,
-                                parkSummary: result.summary,
-                                cloudConsent: Settings.shared.visionCloudConsent,
-                                request: currentRequest
-                            )
-                            return ToolExecution(outcome: .success(described))
-                        }
-                        return ToolExecution(outcome: .success(result.summary))
-                    } catch {
-                        return ToolExecution(
-                            outcome: ToolErrorClassifier.classify(error, tool: tool),
-                            errorClass: (error.isModelUnavailable
-                                ? .modelUnavailable : .other))
+                                             completed: runner.completedToolIDs,
+                                             inFlight: step.canonicalID))
+                case .endTurn(let end):
+                    switch end {
+                    case .notReady(let sentence), .stopped(let sentence):
+                        return planned(confirmed(sentence))
+                    case .denied(let sentence):
+                        return planned(confirmed(AgentReplyRenderer.render(
+                            .denied(sentence), voice: voice)))
+                    case .infrastructure(let sentence):
+                        // P1-10b: the id leaves this sentence. The reason is already plain —
+                        // the store's own — and the audit log is where the id belongs.
+                        return planned(confirmed(AgentReplyRenderer.render(
+                            .infrastructure(sentence), voice: voice)))
                     }
-                }
-                // A write may be awaiting human approval or remote confirmation.
-                // Never detach it behind a timeout: that could say "stopped" while
-                // the write later commits. Read-only work keeps the deadline.
-                let execution: ToolExecution?
-                if tool.risk > .read {
-                    execution = await execute()
-                } else {
-                    let callBegan = clock.now
-                    let readLimit = budget.readCallLimit(ceilingRemaining: ceilingRemaining)
-                    execution = await withBoundedWait(readLimit) { await execute() }
-                    ceilingRemaining -= callBegan.duration(to: clock.now)
-                }
-                guard let execution else {
-                    return planned(incomplete("I stopped the tool plan because it took too long.",
-                                             completed: completedToolIDs, inFlight: canonicalID))
-                }
-                let executionMS = executionTimer.executionMs
-                    ?? ModelPassRecorder.milliseconds(toolCallBegan.duration(to: clock.now))
-                switch execution.outcome {
-                case .success(let output):
-                    results.append(carried(canonicalID, output))
-                    roundRecorder.executed(UsageToolRun(
-                        id: tool.id, ok: true, ms: executionMS, errorClass: nil))
-                    speech?.recordVerifiedResult(toolID: canonicalID, output: output)
-                    callsUsed += 1
-                    completedToolIDs.append(canonicalID)
-                    currentToolID = nil
-                    if tool.namespace == .memory, tool.risk > .read {
-                        let sentence = output.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
-                        if !sentence.isEmpty { memoryConfirmations.append(sentence) }
-                    } else {
-                        untrustedOutputs.append(output)
-                        if RealtimeToolSelection.readsUntrustedOutput(namespace: tool.namespace, output: output) {
-                            readToolOutput = true
-                        }
-                    }
-                    // A mutation completes one step, not the user's whole
-                    // objective. Keep its verified result and plan remaining work.
-                    lastVerifiedResult = output
-                case .recoverable(let repair):
-                    // P1-04: a failure the model can fix goes back as a tool result. Nothing
-                    // was written — the executor threw before committing — so the signature
-                    // comes out of `completedCalls` and the corrected call is allowed to be
-                    // the same call. A failure thrown *after* a write committed is classified
-                    // as infrastructure below, which is why this leg is safe.
-                    roundRecorder.executed(UsageToolRun(
-                        id: tool.id, ok: false, ms: executionMS,
-                        errorClass: (execution.errorClass ?? .other).rawValue))
-                    guard repairs < maxRepairs else {
-                        currentToolID = nil
-                        return planned(stopped(
-                            "I couldn't finish that, so I stopped there."))
-                    }
-                    results.append(carried(canonicalID, repair.modelText))
-                    completedCalls.remove(signature)
-                    callsUsed += 1
-                    repairs += 1
-                    currentToolID = nil
-                case .denied(let sentence):
-                    return planned(confirmed(AgentReplyRenderer.render(
-                        .denied(sentence), voice: voice)))
-                case .infrastructure(let sentence):
-                    // Do not hand a denial back to the model for a possible optimistic
-                    // rewrite — that is the original rule and it is right. An infrastructure
-                    // failure is the same shape: a retry would ask the same machine the same
-                    // question. A failed tool ends this turn visibly.
-                    roundRecorder.executed(UsageToolRun(
-                        id: tool.id, ok: false, ms: executionMS,
-                        errorClass: (execution.errorClass ?? .other).rawValue))
-                    if revision != (work?.revision ?? 0) {
-                        completedCalls.remove(signature)
-                        currentToolID = nil
-                        break
-                    }
-                    currentToolID = nil
-                    // P1-10b: the id leaves this sentence. The reason is already plain — the
-                    // store's own — and the audit log is where the id belongs.
-                    return planned(confirmed(AgentReplyRenderer.render(
-                        .infrastructure(sentence), voice: voice)))
                 }
             }
         }

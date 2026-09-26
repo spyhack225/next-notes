@@ -31,6 +31,24 @@ struct GBNFGrammar: Sendable, Equatable {
         return GBNFGrammar(text: builder.render())
     }
 
+    /// A grammar whose root the caller composes, for the one shape `GBNFSchema` does not
+    /// describe: a tool call's `<tool_call>` tags around a JSON body.
+    ///
+    /// The body is still a `GBNFSchema`, so the shape the sampler enforces and the shape the
+    /// caller decodes cannot drift — what is composed here is only the wrapper, and
+    /// `structuralProblems()` still checks the whole thing exactly as `json(_:)` does.
+    ///
+    /// The build closure *returns* the root because a schema's rule name is not always the
+    /// label it was asked for: `.freeText(maxCharacters:)` defines `<name>-free`, so a root
+    /// written before the rules exist would be a reference to nothing. `structuralProblems()`
+    /// is what catches that, and it is why this is an internal seam rather than a string.
+    static func composed(_ build: (inout GBNFBuilder) -> String) -> GBNFGrammar {
+        var builder = GBNFBuilder()
+        let root = build(&builder)
+        builder.add("root", root)
+        return GBNFGrammar(text: builder.render())
+    }
+
     /// Rule names referenced but never defined, and a missing start symbol. Empty for a
     /// grammar `llama_sampler_init_grammar` can parse — the same check the native parser
     /// makes, run without a vocabulary so a self-test needs no model.
@@ -60,6 +78,12 @@ struct GBNFGrammar: Sendable, Equatable {
 
 /// The JSON shapes a grammar can be built from. Every object's keys are required and in
 /// order; optional values are `.nullable`.
+///
+/// Two cases are not JSON. `.oneOf` is the alternative the Agent planner needs — one rule per
+/// selected tool, so the sampler cannot name a tool the manifest did not offer — and
+/// `.freeText` is a plain answer, which is the other half of a planner round. Both are
+/// bounded like everything else here: an unbounded rule is how a small model spends its
+/// whole budget on one field.
 indirect enum GBNFSchema: Sendable, Equatable {
     case string(maxLength: Int)
     case integer
@@ -70,6 +94,11 @@ indirect enum GBNFSchema: Sendable, Equatable {
     case nullable(GBNFSchema)
     case array(GBNFSchema, maxItems: Int)
     case object([(String, GBNFSchema)])
+    /// One of several shapes, rendered `( a | b | … )` with a rule per branch.
+    case oneOf([GBNFSchema])
+    /// Answer text: a first character that cannot begin a call, then up to
+    /// `maxCharacters - 1` of anything but a NUL.
+    case freeText(maxCharacters: Int)
 
     static func == (lhs: GBNFSchema, rhs: GBNFSchema) -> Bool {
         switch (lhs, rhs) {
@@ -80,13 +109,16 @@ indirect enum GBNFSchema: Sendable, Equatable {
         case (.array(let a, let m), .array(let b, let n)): a == b && m == n
         case (.object(let a), .object(let b)):
             a.count == b.count && zip(a, b).allSatisfy { $0.0 == $1.0 && $0.1 == $1.1 }
+        case (.oneOf(let a), .oneOf(let b)):
+            a.count == b.count && zip(a, b).allSatisfy { $0 == $1 }
+        case (.freeText(let a), .freeText(let b)): a == b
         default: false
         }
     }
 }
 
 /// Emits rules for a schema. Rule names are `[a-z0-9-]` only — GBNF does not allow `_`.
-private struct GBNFBuilder {
+struct GBNFBuilder {
     private var rules: [(String, String)] = []
     private var names: Set<String> = []
 
@@ -101,7 +133,14 @@ private struct GBNFBuilder {
         return ordered.map { "\($0.0) ::= \($0.1)" }.joined(separator: "\n") + "\n"
     }
 
-    private func sanitized(_ name: String) -> String {
+    func sanitized(_ name: String) -> String {
+        Self.ruleName(name)
+    }
+
+    /// A GBNF rule name for any label: lowercase ASCII alphanumerics and `-`, everything else
+    /// a dash. `schedule.create` becomes `schedule-create`, which is why a caller never spells
+    /// a rule name itself.
+    static func ruleName(_ name: String) -> String {
         let mapped = name.lowercased().unicodeScalars.map { scalar -> Character in
             CharacterSet.alphanumerics.contains(scalar) && scalar.isASCII ? Character(scalar) : "-"
         }
@@ -140,6 +179,31 @@ private struct GBNFBuilder {
             }
             let rule = sanitized(name)
             add(rule, "\"{\" ws " + parts.joined(separator: " ws ") + " ws \"}\"")
+            return rule
+        case .oneOf(let options):
+            // One rule per branch rather than a nested alternation: twelve tools make an
+            // alternation a decoder has to walk, and a named branch is a name the tests and
+            // the log can point at. Empty is a grammar that accepts nothing, never a rule
+            // that silently matches everything.
+            var branches: [String] = []
+            for (index, option) in options.enumerated() {
+                let branch = sanitized(name + "-opt" + String(index))
+                add(branch, rule(for: option, name: name + "-opt" + String(index)))
+                branches.append(branch)
+            }
+            guard !branches.isEmpty else {
+                add("no-choice", "\"\"")
+                return "no-choice"
+            }
+            return "(" + branches.joined(separator: " | ") + ")"
+        case .freeText(let maxCharacters):
+            // The first character is what makes this an answer rather than a call: `<`, `{`
+            // and `[` open markup, and leading whitespace is a model's way of stalling.
+            // Everything after it is bounded but otherwise free, so prose is not narrowed to
+            // the JSON the rest of this file describes.
+            let limit = max(1, maxCharacters)
+            let rule = sanitized(name) + "-free"
+            add(rule, "[^<{\\[\\x00-\\x20] [^\\x00]{0,\(limit - 1)}")
             return rule
         }
     }

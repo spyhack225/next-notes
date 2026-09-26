@@ -1,17 +1,34 @@
 import Foundation
 
-/// Tool calling, added to Phase 4's providers rather than built into them.
+/// Tool calling is native wherever the reader supports it, and a prompt convention where it
+/// does not.
 ///
-/// An extension, and one that both providers get for free, because tool calling here is a
-/// prompt convention rather than a runtime feature: the catalogue goes into the system
-/// message as a `<tools>` block and the calls come back as `<tool_call>` tags in ordinary
-/// text. The on-device model was tuned on exactly that shape.
+/// Four channels, one answer, and the choice is `PlannerBackends`' alone:
 ///
-/// Apple's `Tool` protocol was the obvious alternative for the second provider and is the
-/// wrong shape twice over: it wants a compile-time `@Generable` argument type per tool,
-/// which a catalogue built at runtime cannot supply, and it *performs* the call itself —
-/// the one thing this agent must never do. Every write in Phase 7 is a question for a person
-/// before it is an action, so the model's job ends at naming one.
+/// - **The app's own runtime** (llama.cpp, any GGUF): a GBNF grammar built from the turn's
+///   `AgentCapabilityManifest`, so the sampler cannot emit an unoffered tool name or an
+///   argument object of the wrong shape. The prompt is unchanged — the catalogue stays prose
+///   and the call stays Hermes JSON — which is what keeps P0-18's KV prefix reuse holding.
+/// - **Apple Foundation Models**: one `Tool` per selected entry with a `GenerationSchema`
+///   built from `DynamicGenerationSchema`, and a `Tool.call` body that is a *bridge* into
+///   `ToolStepRunner`.
+/// - **OpenRouter and a model app on this Mac**: a `tools` array in the request body with
+///   `tool_choice: "auto"`, and the calls reassembled out of the `tool_calls` stream.
+/// - **Anything else**, and the rollback path: today's prose catalogue plus the Hermes
+///   instruction, read by P1-04's tolerant parser.
+///
+/// ## Why the framework never gets to perform a call
+///
+/// The old note here rejected Apple's `Tool` protocol because it "performs the call itself".
+/// That objection is right and it is now answered by construction rather than by avoidance:
+/// `ManifestTool.call` does one thing — hand an `AgentToolCall` to `ToolStepRunner` and map
+/// the outcome to text — and `ToolStepRunner` is the only caller of `AgentToolExecutor.run`
+/// inside the planner. The framework still only ever *names* a call, and every write is still
+/// a question for a person before it is an action.
+///
+/// The second old objection — that `Tool` wants a compile-time `@Generable` argument type
+/// per tool — is answered by `Arguments = GeneratedContent`, which a runtime-built catalogue
+/// can supply.
 extension LLMProvider {
     func complete(
         system: String,

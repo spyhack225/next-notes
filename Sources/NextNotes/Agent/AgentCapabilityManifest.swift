@@ -134,6 +134,34 @@ struct AgentCapabilityManifest: Sendable, Equatable {
                     selectedIntents: selectedIntents.union([intent]))
     }
 
+    /// The same turn, written for a shorter window: every selected entry's description at the
+    /// compact width. Nil when nothing was left to trim, so a caller never rebuilds a
+    /// manifest it did not need to rebuild.
+    ///
+    /// P1-05's Apple FM leg needs it because Apple's session has the shortest window anything
+    /// here asks — a twelve-entry catalogue plus a persona plus a history is a lot of 4,096
+    /// tokens — and the alternative to a shorter catalogue is a session the framework refuses.
+    /// The same words at the same widths the prompt's own renderer uses, so there is one
+    /// catalogue rendered two ways rather than two catalogues.
+    func compactedForApple() -> AgentCapabilityManifest? {
+        let widths = Self.compactDescriptionWidth
+        let compacted = selected.map { entry in
+            let description = String(entry.modelDescription.prefix(widths))
+            return description == entry.modelDescription ? entry : AgentCapabilityManifest.Entry(
+                id: entry.id, aliases: entry.aliases, namespace: entry.namespace,
+                intent: entry.intent, source: entry.source, risk: entry.risk,
+                executionMode: entry.executionMode, modelDescription: description,
+                parameters: entry.parameters, readiness: entry.readiness,
+                userPhrase: entry.userPhrase)
+        }
+        guard compacted != selected else { return nil }
+        return copy(selected: compacted, selectedIntents: selectedIntents)
+    }
+
+    /// The width `renderCatalogue(compact: true)` already uses. One number, so the compacted
+    /// manifest and the compacted prompt cannot be different catalogues.
+    static let compactDescriptionWidth = 60
+
     func copy(selected: [Entry], selectedIntents: Set<AgentIntentClass>) -> AgentCapabilityManifest {
         AgentCapabilityManifest(
             reader: reader, maxRisk: maxRisk, allowed: allowed, unavailable: unavailable,
@@ -159,7 +187,7 @@ struct AgentCapabilityManifest: Sendable, Equatable {
             if compact {
                 let required = entry.parameters.filter(\.isRequired).map(\.name)
                 let tail = required.isEmpty ? "" : "; needs " + required.joined(separator: ", ")
-                return "- \(entry.id): \(String(entry.modelDescription.prefix(60)))\(tail)"
+                return "- \(entry.id): \(String(entry.modelDescription.prefix(compactDescriptionWidth)))\(tail)"
             }
             let arguments = entry.parameters.map { parameter in
                 parameter.isRequired
@@ -170,6 +198,50 @@ struct AgentCapabilityManifest: Sendable, Equatable {
                 + String(entry.modelDescription.prefix(85))
                 + (arguments.isEmpty ? "" : "; " + arguments)
         }.joined(separator: "\n")
+    }
+
+    /// Every spelling this turn's manifest will accept, canonical ids and aliases both.
+    ///
+    /// The parser needs the roster to tell a call from an explanation, and it is the same
+    /// roster the executor enforces — one list, read twice, rather than a second list in the
+    /// parser that could drift from the one that decides what may run.
+    @MainActor
+    static func callNames(_ manifest: AgentCapabilityManifest) -> Set<String> {
+        var names: Set<String> = []
+        for entry in manifest.allowed {
+            names.insert(entry.id)
+            for alias in entry.aliases { names.insert(alias) }
+        }
+        return names
+    }
+
+    /// The OpenAI-style `tools` array for `selected`, one entry per tool.
+    ///
+    /// Built from `selected` — the same list the prompt's catalogue and P1-05's grammar are
+    /// built from — because a `tools` array over a *different* set than the schema the model
+    /// was shown is worse than no `tools` array at all: the sampler is then steering toward
+    /// calls the prompt forbids. `--selftest-native-tools` asserts the two are the same set
+    /// rather than trusting this comment.
+    ///
+    /// The name is the canonical id. Dots are legal in an OpenAI-style name (the documented
+    /// pattern is `^[a-zA-Z0-9_.-]{1,64}$`) and the id is the identity the executor and
+    /// `ToolCallNameResolver` both use, so nothing has to be mapped back afterwards.
+    func toolWireDefinitions() -> [ToolWireDefinition] {
+        selected.map { entry in
+            var properties: [String: Any] = [:]
+            for parameter in entry.parameters { properties[parameter.name] = parameter.schema }
+            let schema: [String: Any] = [
+                "type": "object",
+                "properties": properties,
+                "required": entry.parameters.filter(\.isRequired).map(\.name),
+            ]
+            let encoded = (try? JSONSerialization.data(
+                withJSONObject: schema, options: [.sortedKeys]))
+                .map { String(decoding: $0, as: UTF8.self) } ?? "{\"type\":\"object\"}"
+            return ToolWireDefinition(
+                name: entry.id, description: entry.modelDescription,
+                parametersJSON: encoded)
+        }
     }
 
     /// Rule lines for the selected intents only.

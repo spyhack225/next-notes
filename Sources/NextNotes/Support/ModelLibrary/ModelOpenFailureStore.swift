@@ -106,11 +106,14 @@ private extension ModelOpenFailureStore.Key {
 }
 
 extension SelfTest {
-    /// The two flags allowed to read the owner's saved model choice while the harness is
-    /// running. P0-14b's exit harness and the Metal probe both answer a question about the
-    /// model this Mac actually has selected; every other self-test keeps the isolated,
-    /// empty selection. Read-only: nothing here writes `modelLibrary.*`.
+    /// The three flags allowed to read the owner's saved model choice while the harness is
+    /// running. P0-14b's exit harness, the Metal probe and P1-05's constrained-tool-calling
+    /// test each answer a question about the model this Mac actually has selected — the last
+    /// one because a grammar that has never been run against the real sampler is a comment —
+    /// and every other self-test keeps the isolated, empty selection. Read-only: nothing here
+    /// writes `modelLibrary.*`.
     static var allowsSavedModelSelection: Bool {
         requested == "--selftest-agent-answers" || requested == "--selftest-llm-metal"
+            || requested == "--selftest-native-tools"
     }
 }

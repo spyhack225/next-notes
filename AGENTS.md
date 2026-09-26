@@ -165,6 +165,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-toolloop-live [--model apple|<id>] [--only C01,M05] [--quick] [--report <path>]
 --selftest-toolloop-live-grader
 --selftest-capability-manifest
+--selftest-native-tools
 ```
 
 `usage.jsonl` is the one local record of which model or engine ran each pass — Agent,
@@ -609,6 +610,33 @@ planner prompt for an id its own schema lacks, and checks every switch, consent 
 case. A name that resolves to nothing, or to a tool outside the manifest, still ends the turn
 with "The tool planner requested an unavailable tool; nothing else was run." — P1-04 owns the
 tolerant half.
+
+**The planner asks for tool calls natively where the reader supports it, and the grammar and
+the schema must be the same set.** `PlannerBackends` is the only place a backend is chosen,
+from the provider the turn already resolved and the manifest it was given: a GBNF grammar over
+`manifest.selected` for the on-device runtime, one `Tool` per selected entry for Apple
+Foundation Models, a `tools` array for OpenRouter and a model app on this Mac, and
+`PromptConventionPlanner` — today's prose catalogue and Hermes tags — for everything else,
+for a server that rejects the field, and as the rollback path. The grammar's `"name"`
+enumeration and the prompt's catalogue and the `tools` array all come from `selected`, because
+a grammar over a *different* set than the schema the model was shown is worse than no grammar:
+the sampler would be steering toward calls the prompt forbids.
+`--selftest-native-tools` proves the three are one set by reading the ids back out of the
+*rendered* grammar, not out of the code that built it. Two rules that are not negotiable: a
+`Tool.call` body only ever hands an `AgentToolCall` to `ToolStepRunner`, which is the sole
+caller of `AgentToolExecutor.run` inside the planner, so a write is still a question for a
+person before it is an action; and nothing throws out of `Tool.call` for a denial or an
+exhausted budget, because a throw aborts the whole response with
+`LanguageModelSession.ToolCallError` — it returns a `STOP:` sentence and records
+`runner.terminal`. The grammar is a *sampler* parameter and not a prompt, which is why
+P0-18's prefix reuse still holds; `--selftest-llm-prefix-cache` measures that rather than
+assuming it. `Settings.agentNativeToolCalling` (defaults key `agentNativeToolCalling`, no UI)
+is **off by default**: the task's own rule is to flip it only after three full
+`--selftest-toolloop-live` runs score at least as well on both models, which is the Phase-1
+exit artefact. `--planner native|prompt` forces one path for a single eval process and never
+writes a preference. P1-04's tolerant parser is still what reads a round on every path —
+grammar-valid text is read by the same reader, so the repair loop stays reachable for a model
+that is not under a grammar.
 
 **A refusal is judged per clause, and an offer is a refusal.** `AgentRefusalGuard` splits the
 reply at sentence ends and at "but"/"however", and a clause counts only when it both names a

@@ -119,12 +119,60 @@ protocol LLMProvider: Sendable {
         messages: [LLMChatMessage],
         maxTokens: Int
     ) async -> AsyncThrowingStream<String, Error>
+
+    /// Whether this provider can take a structured `tools` array and return calls as calls.
+    ///
+    /// A provider that cannot has to be asked for a call in prose instead, so this is a
+    /// question about the endpoint rather than about the model, and it is answered before a
+    /// round rather than repaired after one. Only the llama runtime can constrain decoding
+    /// with a grammar (`enforcesGrammar`); this is the separate OpenAI-style channel.
+    ///
+    /// `async` because the answer can come from main-actor state — OpenRouter's model
+    /// catalogue — and a provider is a value handed to actors that cannot read it.
+    var supportsStructuredToolCalls: Bool { get async }
 }
 
 extension LLMProvider {
     var displayModelName: String { id.displayName }
 
     var enforcesGrammar: Bool { false }
+
+    var supportsStructuredToolCalls: Bool { false }
+
+    /// A stream whose decoding is constrained to `grammar`, where the provider supports it.
+    ///
+    /// The default ignores the grammar rather than throwing: a provider that cannot enforce
+    /// one is a provider the planner asked with the wrong backend, and the caller — not this
+    /// shim — decides that. `PlannerBackends` is the one place the decision is made.
+    func stream(
+        system: String, user: String, maxTokens: Int, grammar: GBNFGrammar
+    ) async -> AsyncThrowingStream<String, Error> {
+        await stream(system: system, user: user, maxTokens: maxTokens)
+    }
+
+    func streamConversation(
+        system: String, messages: [LLMChatMessage], maxTokens: Int, grammar: GBNFGrammar
+    ) async -> AsyncThrowingStream<String, Error> {
+        await streamConversation(system: system, messages: messages, maxTokens: maxTokens)
+    }
+
+    func streamInteractiveConversation(
+        system: String, messages: [LLMChatMessage], maxTokens: Int, grammar: GBNFGrammar
+    ) async -> AsyncThrowingStream<String, Error> {
+        await streamInteractiveConversation(system: system, messages: messages, maxTokens: maxTokens)
+    }
+
+    /// A stream that asks for `tools` and returns the calls as Hermes tags.
+    ///
+    /// The tag round trip is deliberate for this default. `OpenAICompatibleLLMProvider`
+    /// already reassembles a server's structured `tool_calls` into those tags, and
+    /// `AgentToolCallParser` already reads them — so one reader serves both channels, and
+    /// P1-04's recovery stays reachable for a model that ignored the `tools` field.
+    func streamConversation(
+        system: String, messages: [LLMChatMessage], maxTokens: Int, tools: [ToolWireDefinition]
+    ) async -> AsyncThrowingStream<String, Error> {
+        await streamConversation(system: system, messages: messages, maxTokens: maxTokens)
+    }
 
     func complete(system: String, user: String, maxTokens: Int, grammar: GBNFGrammar) async throws -> LLMCompletion {
         try await complete(system: system, user: user, maxTokens: maxTokens)
@@ -224,6 +272,163 @@ struct LLMChatMessage: Sendable {
     enum Role: String, Sendable { case system, user, assistant }
     let role: Role
     let content: String
+    /// A `role: "assistant"` turn that carried structured calls, for an endpoint that wants
+    /// the previous round's calls back in the shape it sent them. Nil for a plain turn, and
+    /// for every provider that speaks Hermes tags instead.
+    var toolCalls: [ToolCallTurn] = []
+    /// The call this `role: "tool"` turn is the answer to.
+    var toolCallID: String?
+
+    init(role: Role, content: String, toolCalls: [ToolCallTurn] = [], toolCallID: String? = nil) {
+        self.role = role
+        self.content = content
+        self.toolCalls = toolCalls
+        self.toolCallID = toolCallID
+    }
+}
+
+/// One call as a `role: "assistant"` turn carries it back to an OpenAI-style endpoint.
+struct ToolCallTurn: Sendable, Equatable, Codable {
+    let id: String
+    let name: String
+    /// The arguments as the server sent them, so the wire round-trips byte for byte.
+    let argumentsJSON: String
+
+    struct Function: Codable, Sendable, Equatable {
+        let name: String
+        let arguments: String
+    }
+
+    let type: String = "function"
+    let function: Function
+
+    init(id: String, name: String, argumentsJSON: String) {
+        self.id = id
+        self.name = name
+        self.argumentsJSON = argumentsJSON
+        self.function = Function(name: name, arguments: argumentsJSON)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, type
+        case function
+        case name
+        case argumentsJSON = "arguments"
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        function = try container.decode(Function.self, forKey: .function)
+        name = function.name
+        argumentsJSON = function.arguments
+    }
+}
+
+/// One tool as an OpenAI-style endpoint wants it.
+///
+/// Carried as encoded bytes rather than as `[[String: Any]]` so it crosses an actor boundary
+/// under Swift 6 without a second copy of the JSON-schema rules. The `parameters` blob is
+/// `WorkspaceTool.Parameter.schema` — "everything is a string", because the model writes
+/// command-line arguments and a schema promising an array produces one that then has to be
+/// flattened back into a flag anyway.
+struct ToolWireDefinition: Sendable, Equatable {
+    let name: String
+    let description: String
+    let parametersJSON: String
+
+    /// The `{"type":"function","function":{…}}` envelope, or nil when the parameters blob is
+    /// not a JSON object — a caller that cannot serialise its own schema must not send a
+    /// half-built tool.
+    func envelope() -> [String: Any]? {
+        guard let data = parametersJSON.data(using: .utf8),
+              let parameters = try? JSONSerialization.jsonObject(with: data),
+              let object = parameters as? [String: Any] else { return nil }
+        return [
+            "type": "function",
+            "function": [
+                "name": name,
+                "description": description,
+                "parameters": object,
+            ] as [String: Any],
+        ]
+    }
+
+    /// A `Codable` request struct's view of one tool: the envelope's three fields, with the
+    /// parameters carried as already-encoded JSON.
+    var encoded: (name: String, description: String, parameters: RawJSON) {
+        (name, description, RawJSON(parametersJSON))
+    }
+}
+
+/// One fragment of one structured tool call, as the server numbered it.
+///
+/// Top-level rather than nested in `OpenAICompatibleLLMProvider` because two providers read
+/// it: that one and OpenRouter. The typealiases at the bottom of that file keep its own call
+/// sites spelling it the old way, so nothing there had to churn to share it.
+struct ToolCallDelta: Equatable, Sendable {
+    let index: Int
+    let name: String?
+    let argumentsFragment: String?
+}
+
+/// Reassembles `tool_calls` deltas into the `<tool_call>` tags `AgentToolCallParser` reads.
+///
+/// The index is the server's, and both the name and the arguments can be split across
+/// chunks. Turning them back into tags rather than into a richer type is deliberate: one
+/// reader of a planner completion whether the model wrote tags itself or the server
+/// structured them, and P1-04's recovery stays reachable for a model that ignored the field.
+struct ToolCallAccumulator: Sendable {
+    private var order: [Int] = []
+    private var names: [Int: String] = [:]
+    private var arguments: [Int: String] = [:]
+
+    mutating func apply(_ delta: ToolCallDelta) {
+        if !order.contains(delta.index) { order.append(delta.index) }
+        if let name = delta.name, !name.isEmpty { names[delta.index, default: ""] += name }
+        if let fragment = delta.argumentsFragment {
+            arguments[delta.index, default: ""] += fragment
+        }
+    }
+
+    /// The calls, as the arguments the server sent rather than a parsed object, so the wire
+    /// round-trips byte for byte when they go back as an assistant turn.
+    var turns: [ToolCallTurn] {
+        order.compactMap { index in
+            guard let name = names[index], !name.isEmpty else { return nil }
+            return ToolCallTurn(
+                id: "call_\(index)", name: name, argumentsJSON: arguments[index] ?? "{}")
+        }
+    }
+
+    /// The calls as the `<tool_call>` tags `AgentToolCallParser` reads, in the server's order.
+    /// The app's own tag renderer, so the wire round trip produces text the one existing
+    /// reader understands rather than a second format only the planner knows.
+    func tags() -> String {
+        turns.map { OpenAICompatibleLLMProvider.toolCallTag(
+            name: $0.name, argumentsJSON: $0.argumentsJSON) }
+            .joined(separator: "\n")
+    }
+
+    var isEmpty: Bool { order.isEmpty }
+}
+
+/// A pre-encoded JSON value, written into a `Codable` body without being decoded first.
+///
+/// The reason `ToolWireDefinition` carries bytes rather than `[String: Any]`: a `Codable`
+/// request struct has to hold the tools too, and `[String: Any]` cannot cross an actor
+/// boundary under Swift 6. Encoding a `Data` field as raw JSON is the same trick the
+/// manifests' own blob storage uses.
+struct RawJSON: Encodable, Sendable, Equatable {
+    private let data: Data
+
+    init(_ json: String) { self.data = Data(json.utf8) }
+    init(_ data: Data) { self.data = data }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(data)
+    }
 }
 
 @MainActor

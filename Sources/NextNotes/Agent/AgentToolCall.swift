@@ -63,8 +63,12 @@ struct ToolCallParse: Sendable, Equatable {
 /// constantly: a complete, correct call object followed by the model's own reasoning, which
 /// arrives as `"},"rationale":"…` and used to cost the whole turn.
 enum AgentToolCallParser {
-    private static let openTag = "<tool_call>"
-    private static let closeTag = "</tool_call>"
+    /// The two tag strings, internal rather than private because P1-05's grammar builds its
+    /// `<tool_call>` literals out of them. A grammar that spelled the tag a second way would
+    /// steer the sampler toward a shape this parser could not read — and nothing would fail,
+    /// because the call would simply never arrive.
+    static let openTag = "<tool_call>"
+    static let closeTag = "</tool_call>"
 
     /// The keys the arguments have been observed under. Hermes says `arguments`; a fine-tune
     /// on OpenAI's function format, a gateway and a MiniCPM prompt each say something else,

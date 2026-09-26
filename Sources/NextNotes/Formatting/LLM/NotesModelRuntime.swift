@@ -716,27 +716,31 @@ actor NotesModelRuntime {
     func streamConversation(
         system: String,
         messages: [LLMChatMessage],
-        maxTokens: Int
+        maxTokens: Int,
+        grammar: GBNFGrammar? = nil
     ) -> AsyncThrowingStream<String, Error> {
         streamPrompt(
             system: system,
             messages: messages,
             maxTokens: maxTokens,
-            renderSpecial: true
+            renderSpecial: true,
+            grammar: grammar
         )
     }
 
     func streamInteractiveConversation(
         system: String,
         messages: [LLMChatMessage],
-        maxTokens: Int
+        maxTokens: Int,
+        grammar: GBNFGrammar? = nil
     ) -> AsyncThrowingStream<String, Error> {
         streamPrompt(
             system: system,
             messages: messages,
             maxTokens: maxTokens,
             workClass: .realtimeAgent,
-            renderSpecial: true
+            renderSpecial: true,
+            grammar: grammar
         )
     }
 
@@ -745,7 +749,8 @@ actor NotesModelRuntime {
         messages: [LLMChatMessage],
         maxTokens: Int,
         workClass: WorkClass = .background,
-        renderSpecial: Bool = false
+        renderSpecial: Bool = false,
+        grammar: GBNFGrammar? = nil
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
@@ -757,6 +762,7 @@ actor NotesModelRuntime {
                             messages: messages,
                             maxTokens: maxTokens,
                             renderSpecial: renderSpecial,
+                            grammar: grammar,
                             yield: { piece in continuation.yield(piece) }
                         )
                     }
@@ -964,6 +970,7 @@ actor NotesModelRuntime {
         messages: [LLMChatMessage],
         maxTokens: Int,
         renderSpecial: Bool = false,
+        grammar: GBNFGrammar? = nil,
         yield: @escaping @Sendable (String) -> Void
     ) async throws {
         let firstTokenTrace = LatencyTrace.start(.modelFirstToken)
@@ -985,6 +992,14 @@ actor NotesModelRuntime {
             throw LlamaError.inputTooLong
         }
 
+        // Built before the prefill, so a grammar the native parser refuses costs nothing —
+        // the same rule `completeWhileScheduled` follows, and the reason it matters more here:
+        // this path is the one a user's turn waits on.
+        guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: grammar) else {
+            throw LlamaError.samplerFailed
+        }
+        defer { llama_sampler_free(sampler) }
+
         let contextTrace = LatencyTrace.start(.modelContext)
         let hadContext = context != nil
         let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
@@ -995,11 +1010,6 @@ actor NotesModelRuntime {
         prefillTrace.end(
             note: "app_llm prompt_tokens=\(promptTokens.count) reused=\(reused) "
                 + "decoded=\(promptTokens.count - reused)")
-
-        guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: nil) else {
-            throw LlamaError.samplerFailed
-        }
-        defer { llama_sampler_free(sampler) }
 
         var output = ""
         var pending = ""

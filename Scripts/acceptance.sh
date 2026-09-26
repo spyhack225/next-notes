@@ -161,6 +161,9 @@ INTEGRATION_ENTRIES=(
   "selftest-toolloop-live-grader|300"
   # one per-turn source of truth for the tools a turn may use (P1-03)
   "selftest-capability-manifest|300"
+  # constrained tool calling: the grammar over the manifest, the Apple FM tool build, and
+  # the OpenAI-style `tools` body must all describe the same tool set (P1-05)
+  "selftest-native-tools|600"
   # model architecture guard and private networking (P0-13, P0-19)
   "selftest-model-unopenable|300"
   "selftest-private-network|300"

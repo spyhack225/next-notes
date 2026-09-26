@@ -74,6 +74,10 @@ enum OpenRouterStreamEvent: Sendable, Equatable {
     case reasoning(characters: Int)
     case finish(String)
     case usage(OpenRouterUsage)
+    /// One fragment of one structured tool call. Reassembled by the same accumulator the
+    /// OpenAI-compatible path uses, so a cloud call and a local-server call are read by one
+    /// piece of code rather than two.
+    case toolCalls([OpenAICompatibleLLMProvider.ToolCallDelta])
 }
 
 /// What one streamed pass produced. `visibleCharacters` is what the user saw;
@@ -83,4 +87,10 @@ struct OpenRouterStreamSummary: Sendable, Equatable {
     var reasoningCharacters = 0
     var finishReason: String?
     var usage: OpenRouterUsage?
+    /// Characters of structured calls the model wrote instead of prose. Counted separately
+    /// because a turn that called a tool and said nothing has written something: treating it
+    /// as an empty pass would throw `invalidResponse` at the one round that worked.
+    var toolCallCharacters = 0
+    /// The accumulated calls, in the order the server numbered them, as tags.
+    var toolCallTags: String?
 }

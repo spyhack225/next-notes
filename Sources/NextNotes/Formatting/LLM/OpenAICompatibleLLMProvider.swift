@@ -140,18 +140,41 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
         )
     }
 
+    /// The request's `tools` field, when the planner has a manifest to offer.
+    ///
+    /// This provider already parses a server's structured `tool_calls` and turns them back
+    /// into tags, so the endpoint speaks the shape; the only question was whether to ask for
+    /// it, and that is what the field answers.
+    var supportsStructuredToolCalls: Bool { true }
+
     func streamConversation(
         system: String,
         messages: [LLMChatMessage],
         maxTokens: Int
     ) async -> AsyncThrowingStream<String, Error> {
+        await streamConversation(
+            system: system, messages: messages, maxTokens: maxTokens, tools: nil)
+    }
+
+    func streamConversation(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int,
+        tools: [ToolWireDefinition]?
+    ) async -> AsyncThrowingStream<String, Error> {
         var wire = [Message(role: "system", content: system)]
-        wire.append(contentsOf: messages.map { Message(role: $0.role.rawValue, content: $0.content) })
+        wire.append(contentsOf: messages.map { message in
+            Message(
+                role: message.role.rawValue, content: message.content,
+                toolCalls: message.toolCalls.isEmpty ? nil : message.toolCalls,
+                toolCallID: message.toolCallID)
+        })
         let body = wire
         return AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    let request = try makeRequest(messages: body, maxTokens: maxTokens, stream: true)
+                    let request = try makeRequest(
+                        messages: body, maxTokens: maxTokens, stream: true, tools: tools)
                     let (bytes, response) = try await session.bytes(for: request)
                     guard let http = response as? HTTPURLResponse else { throw LocalServerError.unreadable }
                     guard (200..<300).contains(http.statusCode) else {
@@ -251,13 +274,6 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
         return "<tool_call>\(json)</tool_call>"
     }
 
-    /// One fragment of one tool call, as the server numbered it.
-    struct ToolCallDelta: Equatable, Sendable {
-        let index: Int
-        let name: String?
-        let argumentsFragment: String?
-    }
-
     /// One server-sent event: text, calls, an end marker, or any combination — servers
     /// differ about which of them may share a chunk, so all three are carried together
     /// rather than made to compete for one slot.
@@ -269,37 +285,19 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
         var isEmpty: Bool { text.isEmpty && toolCalls.isEmpty && !isDone }
     }
 
-    /// Reassembles `tool_calls` deltas. The index is the server's, and both the name and
-    /// the arguments can be split across chunks.
-    struct ToolCallAccumulator: Sendable {
-        private var order: [Int] = []
-        private var names: [Int: String] = [:]
-        private var arguments: [Int: String] = [:]
-
-        mutating func apply(_ delta: ToolCallDelta) {
-            if !order.contains(delta.index) { order.append(delta.index) }
-            if let name = delta.name, !name.isEmpty { names[delta.index, default: ""] += name }
-            if let fragment = delta.argumentsFragment {
-                arguments[delta.index, default: ""] += fragment
-            }
-        }
-
-        func tags() -> String {
-            order.compactMap { index -> String? in
-                guard let name = names[index], !name.isEmpty else { return nil }
-                let tag = OpenAICompatibleLLMProvider.toolCallTag(
-                    name: name, argumentsJSON: arguments[index] ?? "{}"
-                )
-                return tag.isEmpty ? nil : tag
-            }.joined(separator: "\n")
-        }
-
-        var isEmpty: Bool { order.isEmpty }
-    }
+    /// The delta and the accumulator moved to `LLMProvider.swift` in P1-05: OpenRouter reads
+    /// the same two, and a second copy of "how a split tool call is put back together" is a
+    /// second answer to one question. The aliases keep this file's own call sites spelling
+    /// them the way they always have.
+    typealias ToolCallDelta = NextNotes.ToolCallDelta
+    typealias ToolCallAccumulator = NextNotes.ToolCallAccumulator
 
     // MARK: - Wire
 
-    private func makeRequest(messages: [Message], maxTokens: Int, stream: Bool) throws -> URLRequest {
+    private func makeRequest(
+        messages: [Message], maxTokens: Int, stream: Bool,
+        tools: [ToolWireDefinition]? = nil
+    ) throws -> URLRequest {
         guard !modelID.isEmpty else { throw LocalServerError.noModel(serverName) }
         var request = URLRequest(url: baseURL.appendingPathComponent("chat/completions"))
         request.httpMethod = "POST"
@@ -307,7 +305,9 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
         request.timeoutInterval = stream ? 300 : 600
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(
-            ChatRequest(model: modelID, messages: messages, max_tokens: maxTokens, stream: stream)
+            ChatRequest(
+                model: modelID, messages: messages, max_tokens: maxTokens, stream: stream,
+                tools: tools)
         )
         return request
     }
@@ -322,13 +322,65 @@ struct OpenAICompatibleLLMProvider: LLMProvider {
         }
     }
 
-    struct Message: Codable, Sendable { let role: String; let content: String }
+    struct Message: Codable, Sendable {
+        let role: String
+        let content: String
+        /// P1-05 step 5c: the previous round's calls go back as an assistant turn that
+        /// carried them, and their results as `role: "tool"` turns keyed by id — not pasted
+        /// into the user's text, which is how a tool result could be mistaken for an
+        /// instruction.
+        let toolCalls: [ToolCallTurn]?
+        let toolCallID: String?
+
+        enum CodingKeys: String, CodingKey {
+            case role, content
+            case toolCalls = "tool_calls"
+            case toolCallID = "tool_call_id"
+        }
+
+        init(role: String, content: String,
+             toolCalls: [ToolCallTurn]? = nil, toolCallID: String? = nil) {
+            self.role = role
+            self.content = content
+            self.toolCalls = toolCalls
+            self.toolCallID = toolCallID
+        }
+    }
 
     private struct ChatRequest: Encodable {
+        struct Tool: Encodable {
+            let type = "function"
+            let function: Function
+            struct Function: Encodable {
+                let name: String
+                let description: String
+                let parameters: RawJSON
+            }
+        }
         let model: String
         let messages: [Message]
         let max_tokens: Int
         let stream: Bool
+        let tools: [Tool]?
+        let tool_choice: String?
+
+        /// An empty or unsendable list means the field is omitted entirely, which is why
+        /// every existing body is byte-identical to what it was before P1-05.
+        init(model: String, messages: [Message], max_tokens: Int, stream: Bool,
+             tools: [ToolWireDefinition]? = nil) {
+            self.model = model
+            self.messages = messages
+            self.max_tokens = max_tokens
+            self.stream = stream
+            let encoded = (tools ?? []).compactMap { definition -> Tool? in
+                guard definition.envelope() != nil else { return nil }
+                let parts = definition.encoded
+                return Tool(function: .init(
+                    name: parts.name, description: parts.description, parameters: parts.parameters))
+            }
+            self.tools = encoded.isEmpty ? nil : encoded
+            self.tool_choice = encoded.isEmpty ? nil : "auto"
+        }
     }
 
     struct CompletionResponse: Decodable {

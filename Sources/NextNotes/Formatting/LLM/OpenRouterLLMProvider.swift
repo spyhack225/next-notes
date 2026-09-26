@@ -514,6 +514,51 @@ struct OpenRouterLLMProvider: LLMProvider {
         }
     }
 
+    /// The same stream with the request's `tools` field filled in — the planner's whole-turn
+    /// channel for a cloud reader. The calls come back as `tool_calls` deltas and are
+    /// reassembled into the same `<tool_call>` tags the prompt-convention path produces, so
+    /// `AgentToolCallParser` is the only reader of a planner completion either way.
+    func streamConversation(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int,
+        tools: [ToolWireDefinition]
+    ) async -> AsyncThrowingStream<String, Error> {
+        let requestMessages = [LLMChatMessage(role: .system, content: system)] + messages
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    let summary = try await performStream(
+                        messages: requestMessages, maxTokens: maxTokens, tools: tools
+                    ) { continuation.yield($0) }
+                    // Arguments arrive in fragments, so the tags can only be handed on once
+                    // the stream has ended and the JSON is complete.
+                    if let tags = summary.toolCallTags, !tags.isEmpty {
+                        continuation.yield(tags)
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
+    }
+
+    /// Whether the configured cloud model is recorded as accepting a `tools` array.
+    ///
+    /// Read from OpenRouter's own model metadata rather than assumed: a model that answers
+    /// HTTP 400 for the field would end a turn on a wire detail, and the whole point of asking
+    /// is to remove that class of failure. A model this process has not catalogued is
+    /// `false`, which is the honest answer and the prompt-convention path.
+    ///
+    /// `async` because the catalogue is main-actor state and this provider is a value handed
+    /// to actors. `MainActor.assumeIsolated` would read it without the hop and has crashed
+    /// this app once already.
+    var supportsStructuredToolCalls: Bool {
+        get async { await OpenRouterCatalog.shared.model(id: modelID)?.supportsTools ?? false }
+    }
+
     /// One streamed pass with the provider's two one-shot recoveries: a provider that
     /// refuses the reasoning field gets the same request without it, and a pass cut off
     /// before any visible text gets one retry with a doubled allowance. The summary is what
@@ -522,18 +567,19 @@ struct OpenRouterLLMProvider: LLMProvider {
     func performStream(
         messages: [LLMChatMessage],
         maxTokens: Int,
+        tools: [ToolWireDefinition]? = nil,
         yield: @Sendable (String) -> Void
     ) async throws -> OpenRouterStreamSummary {
         var policy = reasoning
         do {
             return try await performStream(
-                messages: messages, maxTokens: maxTokens, policy: policy, yield: yield)
+                messages: messages, maxTokens: maxTokens, policy: policy, tools: tools, yield: yield)
         } catch let error as OpenRouterError {
             guard policy != .off, Self.rejectsReasoning(error) else { throw error }
             await Self.rememberNoReasoning(modelID: modelID)
             policy = .off
             return try await performStream(
-                messages: messages, maxTokens: maxTokens, policy: policy, yield: yield)
+                messages: messages, maxTokens: maxTokens, policy: policy, tools: tools, yield: yield)
         }
     }
 
@@ -541,10 +587,11 @@ struct OpenRouterLLMProvider: LLMProvider {
         messages: [LLMChatMessage],
         maxTokens: Int,
         policy: OpenRouterReasoningPolicy,
+        tools: [ToolWireDefinition]? = nil,
         yield: @Sendable (String) -> Void
     ) async throws -> OpenRouterStreamSummary {
         let request = try await makeRequest(
-            messages: messages, maxTokens: maxTokens, stream: true, policy: policy)
+            messages: messages, maxTokens: maxTokens, stream: true, policy: policy, tools: tools)
         let (bytes, response) = try await PrivateURLSession.shared.bytes(for: request)
         let lines = try await Self.validatedLines(response, bytes: bytes)
         // The retry is built only where another attempt is allowed: a reasoning pass that
@@ -554,7 +601,8 @@ struct OpenRouterLLMProvider: LLMProvider {
             let retryPolicy = policy.doubled(contextTokens: contextTokens)
             retry = {
                 let request = try await makeRequest(
-                    messages: messages, maxTokens: maxTokens, stream: true, policy: retryPolicy)
+                    messages: messages, maxTokens: maxTokens, stream: true,
+                    policy: retryPolicy, tools: tools)
                 let (more, moreResponse) = try await PrivateURLSession.shared.bytes(for: request)
                 return try await Self.validatedLines(moreResponse, bytes: more)
             }
@@ -584,6 +632,16 @@ struct OpenRouterLLMProvider: LLMProvider {
             }
             if let content = choice.delta.content, !content.isEmpty {
                 events.append(.content(content))
+            }
+            if let calls = choice.delta.tool_calls, !calls.isEmpty {
+                // Several calls can share one delta when a model asks for two things at once,
+                // and both the name and the arguments can be split across deltas — the index
+                // is the only thing that pairs them.
+                events.append(.toolCalls(calls.enumerated().map { offset, call in
+                    OpenAICompatibleLLMProvider.ToolCallDelta(
+                        index: call.index ?? offset, name: call.function?.name,
+                        argumentsFragment: call.function?.arguments)
+                }))
             }
             if let finish = choice.finish_reason, !finish.isEmpty {
                 events.append(.finish(finish))
@@ -627,7 +685,11 @@ struct OpenRouterLLMProvider: LLMProvider {
                 throw OpenRouterError.cutOff(visibleText: summary.visibleCharacters > 0)
             }
         }
-        guard summary.visibleCharacters > 0 else { throw OpenRouterError.invalidResponse }
+        // A round that called a tool and said nothing *has* written something. Counting only
+        // prose would throw `invalidResponse` at the one round the `tools` channel exists for.
+        guard summary.visibleCharacters > 0 || summary.toolCallCharacters > 0 else {
+            throw OpenRouterError.invalidResponse
+        }
         return summary
     }
 
@@ -636,6 +698,7 @@ struct OpenRouterLLMProvider: LLMProvider {
         yield: @Sendable (String) -> Void
     ) async throws -> OpenRouterStreamSummary where S.Element == String {
         var summary = OpenRouterStreamSummary()
+        var calls = OpenAICompatibleLLMProvider.ToolCallAccumulator()
         for try await line in lines {
             try Task.checkCancellation()
             if line == "data: [DONE]" { break }
@@ -650,9 +713,17 @@ struct OpenRouterLLMProvider: LLMProvider {
                     summary.finishReason = reason
                 case .usage(let usage):
                     summary.usage = usage
+                case .toolCalls(let deltas):
+                    for delta in deltas { calls.apply(delta) }
                 }
             }
         }
+        // Arguments arrive in fragments, so a call can only be handed on once the stream has
+        // finished and its JSON is complete. The tags are not yielded here: the caller
+        // decides whether they join the answer or are handed over separately.
+        let tags = calls.tags()
+        summary.toolCallCharacters = tags.count
+        summary.toolCallTags = tags.isEmpty ? nil : tags
         return summary
     }
 
@@ -697,14 +768,25 @@ struct OpenRouterLLMProvider: LLMProvider {
         messages: [LLMChatMessage],
         visibleMaxTokens: Int,
         stream: Bool,
-        policy: OpenRouterReasoningPolicy
+        policy: OpenRouterReasoningPolicy,
+        tools: [ToolWireDefinition]? = nil
     ) throws -> Data {
         try JSONEncoder().encode(ChatRequest(
             model: model,
-            messages: messages.map { ChatRequest.Message(role: $0.role.rawValue, content: $0.content) },
+            messages: messages.map { message in
+                ChatRequest.Message(
+                    role: message.role.rawValue, content: message.content,
+                    tool_calls: message.toolCalls.isEmpty ? nil : message.toolCalls.map {
+                        ChatRequest.MessageToolCall(
+                            id: $0.id,
+                            function: .init(name: $0.name, arguments: $0.argumentsJSON))
+                    },
+                    tool_call_id: message.toolCallID)
+            },
             max_tokens: visibleMaxTokens + policy.allowance,
             stream: stream,
-            reasoning: reasoningField(policy)
+            reasoning: reasoningField(policy),
+            tools: tools
         ))
     }
 
@@ -720,7 +802,7 @@ struct OpenRouterLLMProvider: LLMProvider {
 
     private func makeRequest(
         messages: [LLMChatMessage], maxTokens: Int, stream: Bool,
-        policy: OpenRouterReasoningPolicy? = nil
+        policy: OpenRouterReasoningPolicy? = nil, tools: [ToolWireDefinition]? = nil
     ) async throws -> URLRequest {
         guard !modelID.isEmpty else { throw OpenRouterError.missingModel }
         guard let key = await OpenRouterKeyStore.keyAsync() else { throw OpenRouterError.missingKey }
@@ -735,7 +817,8 @@ struct OpenRouterLLMProvider: LLMProvider {
             visibleMaxTokens: maxTokens,
             stream: stream,
             policy: await boundedPolicy(
-                policy ?? reasoning, messages: messages, visible: maxTokens)
+                policy ?? reasoning, messages: messages, visible: maxTokens),
+            tools: tools
         )
         return request
     }
@@ -762,14 +845,77 @@ struct OpenRouterLLMProvider: LLMProvider {
     }
 
     private struct ChatRequest: Encodable {
-        struct Message: Encodable, Sendable { let role: String; let content: String }
+        struct Message: Encodable, Sendable {
+            let role: String
+            let content: String
+            /// P1-05 step 5c: the previous round's calls go back as an assistant turn that
+            /// carried them, and their results as `role: "tool"` turns keyed by id — not
+            /// pasted into the user's text, which is how a tool result used to become
+            /// something the model could mistake for an instruction.
+            var tool_calls: [MessageToolCall]?
+            var tool_call_id: String?
+
+            init(role: String, content: String,
+                 tool_calls: [MessageToolCall]? = nil, tool_call_id: String? = nil) {
+                self.role = role
+                self.content = content
+                self.tool_calls = tool_calls
+                self.tool_call_id = tool_call_id
+            }
+        }
+        struct MessageToolCall: Encodable, Sendable {
+            struct Function: Encodable, Sendable {
+                let name: String
+                let arguments: String
+            }
+            let id: String
+            let type = "function"
+            let function: Function
+        }
         struct Reasoning: Encodable, Sendable { let effort: String; let exclude: Bool }
+        struct Tool: Encodable, Sendable {
+            let type = "function"
+            let function: Function
+            struct Function: Encodable, Sendable {
+                let name: String
+                let description: String
+                /// Encoded from the wire definition's own JSON, so the parameters the model
+                /// is offered are byte-for-byte what the manifest wrote.
+                let parameters: RawJSON
+            }
+        }
         let model: String
         let messages: [Message]
         let max_tokens: Int
         let stream: Bool
         /// Nil for `.off`; the synthesized encoder omits it, so that body is unchanged.
         let reasoning: Reasoning?
+        /// Nil for every non-planner caller, and the field is omitted entirely then — an
+        /// empty `tools` array is read by some servers as "this model has no tools", which
+        /// is the opposite of what the prompt says.
+        let tools: [Tool]?
+        let tool_choice: String?
+
+        /// `tools` nil, or a list where nothing encodable survived, means the field is
+        /// omitted — see `tools` above for why an empty array is worse than nothing.
+        init(
+            model: String, messages: [Message], max_tokens: Int, stream: Bool,
+            reasoning: Reasoning?, tools: [ToolWireDefinition]? = nil
+        ) {
+            self.model = model
+            self.messages = messages
+            self.max_tokens = max_tokens
+            self.stream = stream
+            self.reasoning = reasoning
+            let encoded = (tools ?? []).compactMap { definition -> Tool? in
+                guard definition.envelope() != nil else { return nil }
+                let parts = definition.encoded
+                return Tool(function: .init(
+                    name: parts.name, description: parts.description, parameters: parts.parameters))
+            }
+            self.tools = encoded.isEmpty ? nil : encoded
+            self.tool_choice = encoded.isEmpty ? nil : "auto"
+        }
     }
     private struct CompletionResponse: Decodable {
         struct Choice: Decodable {
@@ -784,8 +930,18 @@ struct OpenRouterLLMProvider: LLMProvider {
     private struct StreamEvent: Decodable {
         struct Choice: Decodable {
             struct Delta: Decodable {
+                struct ToolCall: Decodable {
+                    struct Function: Decodable {
+                        let name: String?
+                        let arguments: String?
+                    }
+                    let index: Int?
+                    let id: String?
+                    let function: Function?
+                }
                 let content: String?
                 let reasoning: String?
+                let tool_calls: [ToolCall]?
             }
             let delta: Delta
             let finish_reason: String?
@@ -833,10 +989,18 @@ extension OpenRouterLLMProvider {
 
     /// Chat request body with an optional vision turn. With no consented images the
     /// user message is the same plain string `makeRequest` sends.
+    /// The chat body, plus the `tools` array when a caller has one.
+    ///
+    /// `tools` is nil for every existing caller — this is the notes and vision path — and
+    /// non-nil only for the planner, from `AgentCapabilityManifest.toolWireDefinitions()`, so
+    /// the same list the prompt's catalogue names is the list the model is offered.
+    /// `tool_choice: "auto"` because the planner decides whether a tool is needed, and
+    /// `"required"` would make every question a call.
     static func chatBody(
         model: String, system: String, user: String,
         images: [LLMImage], consent: Bool, maxTokens: Int, stream: Bool,
-        policy: OpenRouterReasoningPolicy = .off
+        policy: OpenRouterReasoningPolicy = .off,
+        tools: [ToolWireDefinition]? = nil
     ) throws -> Data {
         let parts = imageParts(images, consent: consent)
         let userMessage: [String: Any]
@@ -853,6 +1017,16 @@ extension OpenRouterLLMProvider {
         ]
         if case .capped = policy {
             body["reasoning"] = ["effort": "low", "exclude": true]
+        }
+        // A tool whose schema will not serialise is dropped rather than sent half-built, and a
+        // `tools` array that ends up empty is not sent at all: an empty array is read by some
+        // servers as "this model has no tools", which is the opposite of the prompt.
+        if let tools {
+            let envelopes = tools.compactMap { $0.envelope() }
+            if !envelopes.isEmpty {
+                body["tools"] = envelopes
+                body["tool_choice"] = "auto"
+            }
         }
         return try JSONSerialization.data(withJSONObject: body)
     }

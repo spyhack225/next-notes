@@ -964,6 +964,26 @@ final class Settings {
         didSet { defaults.set(agentResponsiveness.rawValue, forKey: Keys.agentResponsiveness) }
     }
 
+    /// Whether the planner asks a model for tool calls through whatever native channel the
+    /// reader has — a GBNF grammar for the on-device runtime, Apple's `Tool` protocol, an
+    /// OpenAI-style `tools` array — instead of the prose catalogue and the Hermes tags.
+    ///
+    /// **Off by default, and deliberately so.** The task's own rule is to flip this only after
+    /// `--selftest-toolloop-live` scores at least as well on the prompt path on both the
+    /// Agent-role model and Apple FM, with zero malformed-call repairs in the trace; that
+    /// takes three full 30-case runs, which is the Phase-1-exit artefact rather than this
+    /// task's. The prompt-convention path is a complete, tested, first-class backend, so
+    /// nothing is waiting on this switch — and the live eval can force either path for one
+    /// process with `--planner native|prompt`.
+    ///
+    /// No UI row: the person using this app does not choose a decoding strategy, and a
+    /// defaults key they cannot see is the honest shape for a rollout switch. A rollback is
+    /// `defaults write ai.pivotstudio.nextnotes agentNativeToolCalling -bool false`.
+    var agentNativeToolCalling: Bool {
+        get { defaults.object(forKey: Keys.agentNativeToolCalling) as? Bool ?? false }
+        set { defaults.set(newValue, forKey: Keys.agentNativeToolCalling) }
+    }
+
     var acpBackendID: String {
         didSet { defaults.set(acpBackendID, forKey: Keys.acpBackendID) }
     }
@@ -1163,6 +1183,7 @@ final class Settings {
         static let agentSchedulesEnabled = "agentSchedulesEnabled"
         static let agentQuietHoursStart = "agentQuietHoursStart"
         static let agentQuietHoursEnd = "agentQuietHoursEnd"
+        static let agentNativeToolCalling = "agentNativeToolCalling"
         static let agentRoutineSpeech = "agentRoutineSpeech"
         static let agentLaunchAtLogin = "agentLaunchAtLogin"
         static let knowledgeIndexEnabled = KnowledgeIndexSettings.enabledKey

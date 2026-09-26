@@ -1766,6 +1766,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-native-tools") {
+            Task { @MainActor in
+                SelfTest.failed = !(await NativeToolsSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-capability-manifest") {
             Task { @MainActor in
                 SelfTest.failed = !(await AgentCapabilityManifestSelfTest.run())

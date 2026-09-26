@@ -89,6 +89,17 @@ struct LlamaLLMProvider: LLMProvider {
         )
     }
 
+    func streamConversation(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int,
+        grammar: GBNFGrammar
+    ) async -> AsyncThrowingStream<String, Error> {
+        await runtime.streamConversation(
+            system: system, messages: messages, maxTokens: maxTokens, grammar: grammar
+        )
+    }
+
     func streamInteractiveConversation(
         system: String,
         messages: [LLMChatMessage],
@@ -96,6 +107,17 @@ struct LlamaLLMProvider: LLMProvider {
     ) async -> AsyncThrowingStream<String, Error> {
         await runtime.streamInteractiveConversation(
             system: system, messages: messages, maxTokens: maxTokens
+        )
+    }
+
+    func streamInteractiveConversation(
+        system: String,
+        messages: [LLMChatMessage],
+        maxTokens: Int,
+        grammar: GBNFGrammar
+    ) async -> AsyncThrowingStream<String, Error> {
+        await runtime.streamInteractiveConversation(
+            system: system, messages: messages, maxTokens: maxTokens, grammar: grammar
         )
     }
 }
