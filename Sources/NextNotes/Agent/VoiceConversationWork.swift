@@ -42,25 +42,54 @@ enum VoiceResponseEnvelope: Equatable {
     case tools
     case invalid
 
+    /// The markers that mean "this is a call, not an answer". P1-04: a model that reached
+    /// for a tool and wrote the call instead of a header used to fail the turn with "The
+    /// model returned an invalid response header." — the one case where the planner could
+    /// have run the call and was never asked.
+    private static let callMarkers = [
+        "<tool_call", "<function", "<invoke", "{\"name\"", "{\"tool\"", "[TOOL_CALLS]",
+        "<|python_tag|>", "name=\"",
+    ]
+
     static func parse(_ snapshot: String) -> Self {
-        let text = snapshot.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = strippingReasoning(snapshot).trimmingCharacters(in: .whitespacesAndNewlines)
+        let lowered = text.lowercased()
         let answer = "<answer/>"
         let answerWrapper = "<answer>"
         let tools = "<use_tools/>"
-        if text.hasPrefix(answer) || text.hasPrefix(answerWrapper) {
-            let prefix = text.hasPrefix(answer) ? answer : answerWrapper
-            var body = String(text.dropFirst(prefix.count))
+        // Case-insensitive, and the unslashed spelling: a model that writes `<Answer/>` or
+        // `<use_tools>` meant exactly one thing, and the difference is capitalisation.
+        if lowered.hasPrefix(answer) || lowered.hasPrefix(answerWrapper) {
+            let prefix = lowered.hasPrefix(answer) ? answer.count : answerWrapper.count
+            var body = String(text.dropFirst(prefix))
             let closing = "</answer>"
             if let count = (1...closing.count).reversed().first(where: {
-                body.hasSuffix(String(closing.prefix($0)))
+                body.lowercased().hasSuffix(String(closing.prefix($0)))
             }) { body.removeLast(count) }
             return .answer(body)
         }
-        if text.hasPrefix(tools) { return .tools }
-        if answer.hasPrefix(text) || answerWrapper.hasPrefix(text) || tools.hasPrefix(text) {
+        if lowered.hasPrefix(tools) || lowered.hasPrefix("<use_tools>") { return .tools }
+        if answer.hasPrefix(lowered) || answerWrapper.hasPrefix(lowered) || tools.hasPrefix(lowered)
+            || callMarkers.contains(where: { $0.hasPrefix(lowered) }) {
             return .pending
         }
+        if callMarkers.contains(where: { lowered.hasPrefix($0) }) { return .tools }
         if text.hasPrefix("<") || text.hasPrefix("{") { return .invalid }
         return .answer(text)
+    }
+
+    /// A `<think>` block is reasoning, in whatever case the model spelled it.
+    private static func strippingReasoning(_ text: String) -> String {
+        guard text.contains("<think>") else { return text }
+        var out = text
+        while let open = out.range(of: "<think>") {
+            if let close = out[open.upperBound...].range(of: "</think>") {
+                out = String(out[..<open.lowerBound]) + String(out[close.upperBound...])
+            } else {
+                out = String(out[..<open.lowerBound])
+                break
+            }
+        }
+        return out
     }
 }

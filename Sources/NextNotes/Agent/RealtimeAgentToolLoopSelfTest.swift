@@ -532,7 +532,6 @@ enum RealtimeAgentToolLoopSelfTest {
         func check(_ name: String, _ condition: Bool) {
             if !condition { failures.append(name) }
         }
-
         let agent = RealtimeAgent.shared
         let providerState = ToolLoopTestState()
         agent.localModelProviderForTesting = ToolLoopTestProvider(state: providerState)
@@ -937,9 +936,368 @@ enum RealtimeAgentToolLoopSelfTest {
                   apple.contextTokens == appleContext)
         }
 
+        // P1-04. Thirteen cases, each written before the fix and each failing on the
+        // unmodified loop: the tolerant parser, the three-way error split, the name
+        // resolver, the repair cap, the repeated-call note and relative-date grounding.
+        // The roster is pinned so the manifest is the catalogue and not whatever this Mac
+        // happens to have connected, which is the same fixture the live eval pins.
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
+        defer { AgentCapabilityManifestBuilder.inputsOverrideForTesting = nil }
+        failures.append(contentsOf: await runToleranceCases(agent: agent, check: check))
+
         for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
         return failures.isEmpty
+    }
+
+    /// P1-04's cases. Split out because there are thirteen of them and they share one
+    /// scripted-executor helper; `run()` owns the marker and the failure list.
+    @MainActor
+    static func runToleranceCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        var failures: [String] = []
+        func fail(_ name: String) { failures.append(name) }
+
+        /// One scripted turn: a provider script, a fake executor, and the calls it made.
+        struct Case {
+            let reply: String
+            let tools: [String]
+            let users: [String]
+        }
+
+        @MainActor
+        func run(
+            request: String, script: [String],
+            fake: @escaping @Sendable (AgentTool, [String: String], Int) async throws
+                -> AgentToolResult = { _, _, _ in AgentToolResult(summary: "ok") }
+        ) async -> Case {
+            let log = PlannerScriptLog()
+            let ran = ScriptedToolLog()
+            let counter = CallCounter()
+            AgentToolExecutor.fakeForTesting = { tool, arguments in
+                let index = await counter.next()
+                ran.record("\(tool.id)|\(arguments.keys.sorted().map { "\($0)=\(arguments[$0] ?? "")" }.joined(separator: ","))")
+                return try await fake(tool, arguments, index)
+            }
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+            agent.setTypedPendingForTesting(nil)
+            agent.toolLoopLimitForTesting = nil
+            AgentSession.shared.clear()
+            let turn = await agent.handle(request, source: .text)
+            AgentToolExecutor.fakeForTesting = nil
+            return Case(reply: turn.reply, tools: ran.toolIDs, users: log.calls.map(\.user))
+        }
+
+        let hermes: (String) -> String = { "<tool_call>\($0)</tool_call>" }
+
+        // 1. `"parameters"` instead of `"arguments"`. The old parser read one key, so the
+        //    call reached the executor with no name and ended the turn with
+        //    "The tool computer.open_app did not run: …" — over the spelling of the key.
+        do {
+            let result = await run(
+                request: "open Safari", script: [hermes(#"{"name":"computer.open_app","parameters":{"name":"Safari"}}"#)])
+            check("a `parameters` call ran with empty arguments (P1-04 case 1)",
+                  result.tools == ["computer.open_app|name=Safari"])
+            check("a `parameters` call still ended with \"\(result.reply)\"",
+                  !result.reply.contains("did not run"))
+        }
+
+        // 2. Qwen3-Coder XML, unwrapped.
+        do {
+            let result = await run(
+                request: "search my inbox",
+                script: [#"<function=search_email><parameter=query>in:inbox</parameter></function>"#])
+            check("the Qwen3-Coder XML form did not execute (\(result.tools))",
+                  result.tools == ["search_email|query=in:inbox"])
+        }
+
+        // 3. Attribute XML.
+        do {
+            let result = await run(
+                request: "what is on my agenda",
+                script: [#"<function name="get_agenda"><parameter name="date">2026-09-24</parameter></function>"#])
+            check("the attribute XML form did not execute (\(result.tools))",
+                  result.tools == ["get_agenda|date=2026-09-24"])
+        }
+
+        // 4. An alias for a canonical id. `workspace.search_email` is the alias the
+        //    registry itself registers; `files.find` is the same mechanism and is pinned in
+        //    the pure resolver checks below, because the indexed-folder tools are
+        //    `needsSetup` under the harness (its index is an empty temporary store) and a
+        //    turn cannot be given one.
+        do {
+            let result = await run(
+                request: "search my inbox for the pricing sheet",
+                script: [hermes(#"{"name":"workspace.search_email","arguments":{"query":"pricing"}}"#)])
+            check("a registered alias did not run its canonical id (\(result.tools))",
+                  result.tools == ["search_email|query=pricing"])
+        }
+
+        // 5. A near miss. `get_calender` is four edits from `get_agenda` and one edit from
+        //    "calendar", which is what the model meant and what the manifest calls it.
+        do {
+            let result = await run(
+                request: "what is on my calendar",
+                script: [hermes(#"{"name":"get_calender","arguments":{}}"#)])
+            check("the near miss get_calender did not run get_agenda (\(result.tools))",
+                  result.tools.contains { $0.hasPrefix("get_agenda|") })
+        }
+
+        // 6. An unknown name is a repair, not the end of the plan.
+        do {
+            let result = await run(
+                request: "what is on my agenda",
+                script: [
+                    hermes(#"{"name":"launch_rocket","arguments":{}}"#),
+                    hermes(#"{"name":"get_agenda","arguments":{}}"#),
+                    "You have two things today.",
+                ])
+            let repair = result.users.last { $0.contains("ERROR unknown_tool") } ?? ""
+            check("an unknown tool produced no repair round (users \(result.users.count))",
+                  !repair.isEmpty)
+            check("the unknown-tool repair named no valid option", repair.contains("Valid options:"))
+            check("the unknown-tool repair did not reach the corrected call (\(result.tools))",
+                  result.tools.contains { $0.hasPrefix("get_agenda|") })
+            check("the unknown-tool turn ended with \"\(result.reply)\"",
+                  !result.reply.contains("unavailable tool"))
+        }
+
+        // 7. A recoverable failure the model can fix: a missing app with near names.
+        do {
+            let result = await run(
+                request: "open Claude",
+                script: [
+                    hermes(#"{"name":"computer.open_app","arguments":{"name":"Claude Code"}}"#),
+                    hermes(#"{"name":"computer.open_app","arguments":{"name":"Claude"}}"#),
+                    "Opened Claude.",
+                ],
+                fake: { tool, _, index in
+                    if index == 0 {
+                        throw AgentError.notFound(
+                            "No app called \u{201c}Claude Code\u{201d} is installed. "
+                            + "Apps with a similar name: Claude, ChatGPT.")
+                    }
+                    return AgentToolResult(summary: "Opened \(tool.id).")
+                })
+            let repair = result.users.last { $0.contains("ERROR not_found") } ?? ""
+            check("a missing app produced no not_found repair", !repair.isEmpty)
+            check("the not_found repair hid the near names from the model",
+                  repair.contains("ChatGPT"))
+            check("the not_found turn never opened the app (\(result.tools))",
+                  result.tools == ["computer.open_app|name=Claude Code",
+                                   "computer.open_app|name=Claude"])
+            check("the repaired turn answered \"\(result.reply)\"", result.reply.contains("Claude"))
+        }
+
+        // 8. A call cut off mid-object. The model is told, and its second attempt runs.
+        do {
+            let truncated = #"<tool_call>{"name":"draft_email","arguments":{"to":"a@b.com","body":"the deck goes out Friday, "#
+            let result = await run(
+                request: "draft an email to a@b.com about the deck",
+                script: [
+                    truncated,
+                    hermes(#"{"name":"draft_email","arguments":{"to":"a@b.com","body":"the deck goes out Friday"}}"#),
+                    "The draft is ready for your approval.",
+                ])
+            let repair = result.users.last { $0.contains("ERROR truncated_call") } ?? ""
+            check("a truncated call produced no truncated_call repair", !repair.isEmpty)
+            check("the truncated turn ran \(result.tools.count) call(s) instead of the whole second attempt (\(result.tools))",
+                  result.tools.count == 1 && result.tools[0].contains("to=a@b.com")
+                    && !result.tools[0].hasSuffix("Friday,"))
+            check("the truncated turn ended with \"\(result.reply)\"",
+                  !result.reply.contains("invalid tool request"))
+        }
+
+        // 9. A denial ends the turn. The model is never asked to try again: an optimistic
+        //    rewrite of a refused write is the danger the original rule names.
+        do {
+            let result = await run(
+                request: "send the deck to Marcus",
+                script: [
+                    hermes(#"{"name":"send_email","arguments":{"to":"m@example.com","subject":"Deck","body":"Attached"}}"#),
+                    "There is nothing more to add.",
+                ],
+                fake: { _, _, _ in throw AgentError.permissionDenied("You declined.") })
+            check("a denial did not end the turn with its own sentence: \"\(result.reply)\"",
+                  result.reply.contains("You declined."))
+            check("a denial was handed back to the model for another round",
+                  result.users.count == 1)
+        }
+
+        // 10. The repair cap. Two repairs per turn, then a plain sentence.
+        do {
+            let result = await run(
+                request: "what is on my agenda",
+                script: Array(repeating: hermes(#"{"name":"launch_rocket","arguments":{}}"#), count: 5))
+            check("the repair cap let \(result.users.filter { $0.contains("ERROR unknown_tool") }.count) repair rounds through, expected 2",
+                  result.users.filter { $0.contains("ERROR unknown_tool") }.count == 2)
+            check("the repair cap called the model \(result.users.count) time(s), expected 3",
+                  result.users.count == 3)
+            check("the repair cap did not end in a plain sentence: \"\(result.reply)\"",
+                  !result.reply.isEmpty && !result.reply.contains("unavailable tool"))
+        }
+
+        // 11. The parser table. No model, no executor, no turn.
+        // The roster the parser is given, and it is a roster: `launch_rocket` is deliberately
+        // absent, which is what makes the last row a repair rather than a call.
+        let known: Set<String> = [
+            "get_agenda", "search_email", "schedule.create", "draft_email", "meeting.decisions",
+            "files.find", "filesystem.find", "computer.open_app",
+        ]
+        let rows: [(String, String, Int, Int)] = [
+            // input, expected call names (joined), expected calls, expected malformed
+            ("I would send an email.", "", 0, 0),
+            (#"<think>Let me check.</think><tool_call>{"name":"get_agenda","arguments":{}}</tool_call>"#,
+             "get_agenda", 1, 0),
+            (#"<think>still thinking {"name":"get_agenda""#, "", 0, 0),
+            // The measured leak: one closing brace too many, then the model's own reasoning.
+            (hermes(#"{"name":"meeting.decisions","arguments":{}}},"rationale":"The user is asking."}"#),
+             "meeting.decisions", 1, 0),
+            (hermes("{\"name\":\"search_email\",\"arguments\":{\"query\":\"x\"}}，“rationale”:“because.”}"),
+             "search_email", 1, 0),
+            (#"{"name":"schedule.create","arguments":{"text":"book"},"rationale":"nightly"},"rationale":"why"}"#,
+             "schedule.create", 1, 0),
+            (hermes(#"{"name":"get_agenda","arguments":{},"rationale":"ok",}"#), "get_agenda", 1, 0),
+            (#"<function=search_email><parameter=query>in:inbox</parameter></function>"#,
+             "search_email", 1, 0),
+            (#"<function name="get_agenda"><parameter name="date">2026-09-24</parameter></function>"#,
+             "get_agenda", 1, 0),
+            (hermes(#"<function name="get_agenda"><param name="date">2026-09-24</param></function>"#),
+             "get_agenda", 1, 0),
+            (#"[TOOL_CALLS][{"name":"get_agenda","arguments":{}}]"#, "get_agenda", 1, 0),
+            (#"<|python_tag|>{"name":"get_agenda","arguments":{}}"#, "get_agenda", 1, 0),
+            (##"{"type":"function","function":{"name":"get_agenda","arguments":"{}"}}"##,
+             "get_agenda", 1, 0),
+            (#"{"tool":"get_agenda","args":{}}"#, "get_agenda", 1, 0),
+            (hermes(#"{"name":"draft_email","arguments":{"to":"a@b.com","body":"x"#), "", 0, 1),
+            // The ceiling: a tail that is a second object is ambiguous, so it is refused.
+            (hermes(#"{"name":"get_agenda","arguments":{}},"rationale":"x","more":{"a":1}}"#), "", 0, 1),
+            // Braces in an explanation are not a call, and they are not an answer either.
+            (#"Sure. {"name": "x"} is not a call here."#, "", 0, 1),
+            // A marked call is a call: the name is not in this turn's roster, and the
+            // resolver is what turns that into a repair with the options.
+            (hermes(#"{"name":"launch_rocket","arguments":{}}"#), "launch_rocket", 1, 0),
+            // The same name with no marker is not a call at all, because braces in an
+            // explanation are not a request to run anything.
+            (#"{"name":"launch_rocket","arguments":{}}"#, "", 0, 1),
+        ]
+        for (index, row) in rows.enumerated() {
+            let parsed = AgentToolCallParser.parse(row.0, knownNames: known)
+            let names = parsed.calls.map(\.name).joined(separator: ",")
+            check("parser row \(index + 1) read [\(names)] (\(parsed.calls.count) call(s), "
+                + "\(parsed.malformed.count) malformed), expected [\(row.1)] (\(row.2)/\(row.3))",
+                  names == row.1 && parsed.calls.count == row.2 && parsed.malformed.count == row.3)
+        }
+        // Prose is what is left once every call is removed, and it is the whole completion
+        // when there was no call at all.
+        let withProse = AgentToolCallParser.parse(
+            "I checked.\n" + hermes(#"{"name":"get_agenda","arguments":{}}"#) + "\nThat is today.",
+            knownNames: known)
+        check("the parser kept the prose around a call: \"\(withProse.prose)\"",
+              withProse.prose == "I checked.\n\nThat is today.")
+        // The legacy entry point still refuses prose, which `--selftest-agent` and the
+        // meeting callers depend on.
+        check("`calls(in:)` read prose as a call",
+              AgentToolCallParser.calls(in: "I would send an email.").isEmpty)
+
+        // 12. Relative dates come from the clock, not from the model's training data.
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(secondsFromGMT: 0)!
+        let knownDay = utc.date(from: DateComponents(year: 2026, month: 9, day: 14))!
+        let tomorrow = AgentToolLoop.groundedArguments(
+            for: "get_agenda", proposed: ["date": "2023-10-27"],
+            request: "What do I have tomorrow?", now: knownDay, calendar: utc)
+        check("a stale proposed date survived \"tomorrow\" (\(tomorrow["date"] ?? "-"))",
+              tomorrow["date"] == "2026-09-15")
+        let weekday = AgentToolLoop.groundedArguments(
+            for: "get_agenda", proposed: [:], request: "what is on tuesday",
+            now: knownDay, calendar: utc)
+        check("\"on tuesday\" was not grounded to the next Tuesday (\(weekday["date"] ?? "-"))",
+              weekday["date"] == "2026-09-15")
+        let sameDay = AgentToolLoop.groundedArguments(
+            for: "get_agenda", proposed: [:], request: "what is on monday",
+            now: knownDay, calendar: utc)
+        check("\"on monday\" said on a Monday was not today (\(sameDay["date"] ?? "-"))",
+              sameDay["date"] == "2026-09-14")
+        let twoDays = AgentToolLoop.groundedArguments(
+            for: "get_agenda", proposed: ["date": "2023-10-27"],
+            request: "today and tomorrow", now: knownDay, calendar: utc)
+        check("a request naming two relative days was grounded anyway (\(twoDays["date"] ?? "-"))",
+              twoDays["date"] == "2023-10-27")
+
+        // 13. A repeated call is a question, not a loop: the note points at the result the
+        //     model already has and the turn goes on to answer.
+        do {
+            let result = await run(
+                request: "what is on my agenda",
+                script: [
+                    hermes(#"{"name":"get_agenda","arguments":{"date":"2026-09-24"}}"#),
+                    hermes(#"{"name":"get_agenda","arguments":{"date":"2026-09-24"}}"#),
+                    "You have two events tomorrow.",
+                ],
+                fake: { _, _, _ in AgentToolResult(summary: "Design sync, Dentist") })
+            check("the repeated call ran \(result.tools.count) time(s), expected 1",
+                  result.tools.count == 1)
+            let note = result.users.last { $0.contains("You already ran get_agenda") } ?? ""
+            check("the repeated call produced no \"already ran\" note", !note.isEmpty)
+            check("the repeated turn answered \"\(result.reply)\"",
+                  result.reply.contains("two events"))
+            check("the repeated turn ended with \"\(result.reply)\"",
+                  !result.reply.contains("repeated a completed step"))
+        }
+
+        // 13b. A second repeat ends the plan. P1-06 replaces the ending with a final
+        //      answer-only round; before it lands, the plan stops and keeps what it verified.
+        do {
+            let result = await run(
+                request: "what is on my agenda",
+                script: Array(repeating: hermes(
+                    #"{"name":"get_agenda","arguments":{"date":"2026-09-24"}}"#), count: 5),
+                fake: { _, _, _ in AgentToolResult(summary: "Design sync, Dentist") })
+            check("the second repeat ran the tool \(result.tools.count) time(s), expected 1",
+                  result.tools.count == 1)
+            check("the second repeat threw the verified result away: \"\(result.reply)\"",
+                  result.reply.contains("Design sync"))
+        }
+
+        // The name resolver on its own, so a near miss that would have cost a whole plan is
+        // pinned without a model round.
+        let allowed = AgentCapabilityManifestBuilder.build(
+            AgentCapabilityInputs.allEnabled(
+                tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend),
+            request: "what is on my calendar").allowed
+        for (spelling, expected) in [
+            ("get_agenda", "get_agenda"),
+            ("files.find", "filesystem.find"),
+            ("get_calender", "get_agenda"),
+            ("search_emial", "search_email"),
+        ] {
+            let resolved = ToolCallNameResolver.resolve(spelling, allowed: allowed)
+            check("\(spelling) resolved to \(resolved), expected \(expected)",
+                  resolved == .tool(expected))
+        }
+        if case .unknown(let suggestions) = ToolCallNameResolver.resolve(
+            "launch_rocket", allowed: allowed) {
+            check("an unknown name offered no options to correct itself with (\(suggestions))",
+                  suggestions.isEmpty == false)
+        } else {
+            fail("launch_rocket resolved to a tool")
+        }
+
+        return failures
+    }
+}
+
+/// The index a scripted executor sees, so a case can fail its first attempt and succeed its
+/// second. An actor because the fake is `@Sendable` and the loop is on the main actor.
+private actor CallCounter {
+    private var count = 0
+    func next() -> Int {
+        defer { count += 1 }
+        return count
     }
 }
 

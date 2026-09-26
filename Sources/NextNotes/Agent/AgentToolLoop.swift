@@ -63,24 +63,55 @@ enum AgentToolLoop {
         )
     }
 
-    /// A relative day in the current request is grounded by the device clock,
-    /// not by a small model's remembered training date. This validates an
-    /// already-selected calendar tool; it does not decide whether to call one.
+    /// A relative day in the current request is grounded by the device clock, not by a small
+    /// model's remembered training date. This validates an already-selected calendar tool; it
+    /// does not decide whether to call one.
+    ///
+    /// "Tomorrow" and "on Tuesday" are here for the same reason "today" was: a 4B model
+    /// answered C02 with a date from its training data, and the eval graded it `WRONG_TOOL`
+    /// for calling the right tool on the wrong day. Exactly one relative day is grounded —
+    /// "today and tomorrow" is two, and guessing which one the person meant is worse than
+    /// leaving the model's own answer to be corrected by the card.
     static func groundedArguments(
         for tool: String, proposed: [String: String], request: String,
         now: Date = Date(), calendar: Calendar = .current
     ) -> [String: String] {
         guard tool == "get_agenda",
-              request.range(of: #"\btoday\b"#, options: [.regularExpression, .caseInsensitive]) != nil,
-              request.range(of: #"\b\d{4}-\d{2}-\d{2}\b"#, options: .regularExpression) == nil
+              request.range(of: #"\b\d{4}-\d{2}-\d{2}\b"#, options: .regularExpression) == nil,
+              let day = relativeDay(in: request, now: now, calendar: calendar)
         else { return proposed }
         var grounded = proposed
-        let components = calendar.dateComponents([.year, .month, .day], from: now)
-        guard let year = components.year, let month = components.month, let day = components.day else {
+        let components = calendar.dateComponents([.year, .month, .day], from: day)
+        guard let year = components.year, let month = components.month, let dayNumber = components.day else {
             return proposed
         }
-        grounded["date"] = String(format: "%04d-%02d-%02d", year, month, day)
+        grounded["date"] = String(format: "%04d-%02d-%02d", year, month, dayNumber)
         return grounded
+    }
+
+    /// The one relative day a request names, or nil. Today, tomorrow, yesterday, or
+    /// `on <weekday>` meaning the next such day — today when today is that day.
+    private static func relativeDay(in request: String, now: Date, calendar: Calendar) -> Date? {
+        let lowered = request.lowercased()
+        var candidates: [Date] = []
+        for (word, offset) in [("today", 0), ("tomorrow", 1), ("yesterday", -1)]
+        where lowered.range(
+            of: "\\b\(word)\\b", options: .regularExpression) != nil {
+            candidates.append(calendar.date(byAdding: .day, value: offset, to: now) ?? now)
+        }
+        for (index, name) in calendar.weekdaySymbols.enumerated() {
+            let weekday = (index + 1) % 7
+            let spoken = name.lowercased()
+            guard lowered.contains("on \(spoken)") || lowered.contains("on \(spoken.prefix(3))")
+            else { continue }
+            // The next such day, counting today as one of them: "on Tuesday" said on a
+            // Tuesday is today, which is what a person means.
+            let offset = (weekday - calendar.component(.weekday, from: now) + 7) % 7
+            candidates.append(calendar.date(byAdding: .day, value: offset, to: now) ?? now)
+        }
+        // Two different relative days in one sentence is not a grounding question.
+        guard candidates.count == 1 else { return nil }
+        return candidates.first
     }
 
     @MainActor

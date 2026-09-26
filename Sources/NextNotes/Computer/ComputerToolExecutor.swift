@@ -76,7 +76,16 @@ enum ComputerToolExecutor {
         let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: trimmed)
             ?? Self.applicationURL(named: trimmed)
         guard let url else {
-            throw AgentError.noIntegration("No application named \(trimmed) is installed.")
+            // "open Claude" (09-14 16:54Z) got "Nothing is connected that can do “No
+            // application named Claude Code is installed.”" twice — which reads as an access
+            // problem, when the app is installed under another name and the model was never
+            // told. So the near names come with it: a missing app is a fact about this Mac,
+            // and the model can be told.
+            let similar = Self.installedAppNames(sharingTokenWith: trimmed)
+            let tail = similar.isEmpty
+                ? "" : " Apps with a similar name: \(similar.joined(separator: ", "))."
+            throw AgentError.notFound(
+                "No app called \u{201c}\(trimmed)\u{201d} is installed." + tail)
         }
         NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
         return AgentToolResult(summary: "Opened \(url.deletingPathExtension().lastPathComponent).")
@@ -127,6 +136,42 @@ enum ComputerToolExecutor {
             }
         }
         return nil
+    }
+
+    /// Up to five installed app names sharing a word with what was asked for.
+    ///
+    /// The three standard folders, one level deep, is the same sweep `applicationURL(named:)`
+    /// already does — this is a second read of a list this file already builds, not a new
+    /// index. Three letters is the shortest token that carries a name, and the list is capped
+    /// because a repair message is read by a 4B model, not by a person.
+    @MainActor
+    private static func installedAppNames(sharingTokenWith request: String) -> [String] {
+        let wanted = Set(request.lowercased()
+            .split(whereSeparator: { !$0.isLetter })
+            .map(String.init)
+            .filter { $0.count >= 3 })
+        guard !wanted.isEmpty else { return [] }
+        var names: [String] = []
+        for directory in [
+            URL(fileURLWithPath: "/Applications"),
+            URL(fileURLWithPath: "/System/Applications"),
+            FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications"),
+        ] {
+            guard let children = try? FileManager.default.contentsOfDirectory(
+                at: directory, includingPropertiesForKeys: nil
+            ) else { continue }
+            for child in children where child.pathExtension == "app" {
+                let name = child.deletingPathExtension().lastPathComponent
+                let tokens = Set(name.lowercased()
+                    .split(whereSeparator: { !$0.isLetter })
+                    .map(String.init)
+                    .filter { $0.count >= 3 })
+                if !tokens.isDisjoint(with: wanted), !names.contains(name) {
+                    names.append(name)
+                }
+            }
+        }
+        return Array(names.prefix(5))
     }
 
     @MainActor

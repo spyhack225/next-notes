@@ -212,7 +212,7 @@ enum UsageErrorClass: String, Codable, Sendable, CaseIterable {
             case .permissionDenied, .needsPermission: return .permission
             case .cancelled: return .cancelled
             case .unknownTool, .missingArgument, .noProposals, .emptyTranscript,
-                 .disabled, .notSignedIn, .noProvider, .noIntegration:
+                 .disabled, .notSignedIn, .noProvider, .noIntegration, .notFound:
                 return .other
             case .backendUnavailable, .acpHandshakeUnavailable: return .modelUnavailable
             }

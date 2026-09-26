@@ -42,9 +42,6 @@ private enum GeneralToolStepError: Error, Sendable {
     /// itself — `LlamaError.modelUnopenable` or `.modelMissing` — which is the one failure
     /// a turn may honestly retry on another provider.
     case message(String, modelUnavailable: Bool)
-    /// A memory write the model can correct in the same turn: over budget, no unique
-    /// match, not declarative. Its message carries the current entries.
-    case recoverable(String)
     /// The planner's model pass was cut off before it wrote anything visible. The reply is
     /// the cut-off's own sentence, never "The tool planner failed: …".
     case cutOff
@@ -56,6 +53,19 @@ private enum GeneralToolStepError: Error, Sendable {
 private struct PlannerRoundOutcome: Sendable {
     let text: String
     let cutOff: Bool
+}
+
+/// One executed step: the classified outcome, plus the class the usage log records when the
+/// step failed. P1-04 — the error class is not derivable from the outcome, because a
+/// recoverable failure and an infrastructure failure can both be `other`.
+private struct ToolExecution: Sendable {
+    let outcome: ToolStepOutcome
+    var errorClass: UsageErrorClass?
+
+    init(outcome: ToolStepOutcome, errorClass: UsageErrorClass? = nil) {
+        self.outcome = outcome
+        self.errorClass = errorClass
+    }
 }
 
 private enum QuickTurnResult: Sendable {
@@ -716,9 +726,19 @@ extension RealtimeAgent {
                     trace.end(note: "model-tools")
                     return AgentModelTurnResult(reply: reply, usedTools: true)
                 case .answer(let answer):
+                    // P1-04: an `<answer/>` header followed by a call is not a failed header,
+                    // it is a call the model wrote in the wrong wrapper. `parse` routes a
+                    // recognised call marker to `.tools` already, so this leg is the
+                    // residue — and it escalates to the planner rather than ending the turn
+                    // with "invalid tool request", which is a sentence the person reads and
+                    // the live eval grades as a leak.
                     if answer.contains("<tool_call") || answer.contains("<use_tools") {
                         speech?.cancel()
-                        return AgentModelTurnResult(reply: "The model returned an invalid tool request.", usedTools: false)
+                        beginWork(title: "Working with tools…")
+                        let trace = LatencyTrace.start(.agentToolCallToResult)
+                        let reply = await runPlannedToolLoop(prompt, speech: speech, voice: voice, provider: provider)
+                        trace.end(note: "answer-header-then-call")
+                        return AgentModelTurnResult(reply: reply, usedTools: true)
                     }
                     let text = answer.trimmingCharacters(in: .whitespacesAndNewlines)
                     // "I don't know what you are working on. I need to check your files and
@@ -906,6 +926,21 @@ extension RealtimeAgent {
         return AgentPromptContext.assemble(
             .toolLoop, rules: plannerRules(manifest: manifest, voice: voice),
             capabilities: capabilities, skills: skills).system
+    }
+
+    /// Every spelling this turn's manifest will accept, canonical ids and aliases both.
+    ///
+    /// The parser needs the roster to tell a call from an explanation, and it is the same
+    /// roster the executor enforces — one list, read twice, rather than a second list in the
+    /// parser that could drift from the one that decides what may run.
+    @MainActor
+    static func callNames(_ manifest: AgentCapabilityManifest) -> Set<String> {
+        var names: Set<String> = []
+        for entry in manifest.allowed {
+            names.insert(entry.id)
+            for alias in entry.aliases { names.insert(alias) }
+        }
+        return names
     }
 
     /// The rules, then the rule lines the selected intents earned. The second half is
@@ -1104,6 +1139,12 @@ extension RealtimeAgent {
         // telling us something the correction cannot fix, and a loop here would cost the
         // user another prefill for nothing.
         var rebutted = false
+        // P1-04: repairs and repeats are the two ways a turn costs itself another round, and
+        // both are capped. The cap is what makes the tolerant parser safe to have: a model
+        // that keeps writing the same wrong call spends two rounds learning it, not twenty.
+        var repairs = 0
+        var repeatedSignatures = 0
+        let maxRepairs = 2
         // Tool output this turn has seen, for memory provenance, and the one-sentence
         // confirmations of memory writes the reply must carry.
         var untrustedOutputs = AgentSession.shared.recentAssistantTexts()
@@ -1142,6 +1183,15 @@ extension RealtimeAgent {
             PlannedTurnResult(
                 reply: reply, usedTools: !completedToolIDs.isEmpty,
                 calledToolIDs: completedToolIDs)
+        }
+        // P1-04: an end that keeps what the plan already verified and says nothing about
+        // steps. `incomplete(_:completed:inFlight:)` is the *timeout* sentence, and its
+        // "Remaining steps are unfinished." trailer is what the live eval grades as a leak,
+        // so a repair that ran out of budget cannot use it.
+        func stopped(_ reason: String) -> String {
+            plannerTraceForTesting?(.stopped(reason: reason))
+            guard let lastVerifiedResult else { return confirmed(reason) }
+            return confirmed(lastVerifiedResult + "\n" + reason)
         }
         while rounds < maxRounds {
             await waitForVoiceInput()
@@ -1290,11 +1340,6 @@ extension RealtimeAgent {
                     return planned(confirmed(Self.noModelReply))
                 }
                 return planned(confirmed("The tool planner failed: " + message))
-            case .failure(.recoverable(let message)):
-                speech?.cancel()
-                roundReason = "error"
-                roundRecorder.fail(message: message)
-                return planned(confirmed("The tool planner failed: " + message))
             case .failure(.cutOff):
                 // The model spent its whole answer thinking: that is not a planner
                 // failure, and the cut-off's sentence is the whole reply.
@@ -1302,7 +1347,12 @@ extension RealtimeAgent {
                 roundReason = "length"
                 return planned(confirmed(OpenRouterError.cutOff(visibleText: false).localizedDescription))
             }
-            let parsedCalls = AgentToolCallParser.calls(in: completionText)
+            // P1-04: the tolerant parser, given this turn's roster. Everything the model
+            // fenced off is read in any of the formats it uses, and what could not be read
+            // comes back as a repair rather than as the answer.
+            let parsed = AgentToolCallParser.parse(
+                completionText, knownNames: Self.callNames(manifest))
+            let parsedCalls = parsed.calls
             plannerTraceForTesting?(.round(
                 index: rounds, systemCharacters: system.count, userCharacters: user.count,
                 maxTokens: roundMaxTokens, raw: completionText,
@@ -1311,20 +1361,47 @@ extension RealtimeAgent {
                 AgentToolRegistry.shared.tool(named: $0.name)?.id ?? $0.name
             })
             speech?.finish(hasToolCalls: !parsedCalls.isEmpty)
-            if parsedCalls.isEmpty {
-                if completionText.contains("<tool_call>") || completionText.contains("</tool_call>") {
-                    // The one case where the raw completion is the only evidence: the model
-                    // reached for a tool and the parser could not read the call. Info level,
-                    // like the heard-transcript line; the unified log drops it in minutes.
+            if parsedCalls.isEmpty, !parsed.malformed.isEmpty {
+                // The model reached for a tool and the call could not be read. The excerpt
+                // goes to the model and to the log; the person is told nothing about it now,
+                // because on the next round there is either a call or an answer.
+                for malformed in parsed.malformed {
                     Log.agent.info("""
-                        tool planner call unparseable: len=\(completionText.count) \
-                        open=\(completionText.contains("<tool_call>")) \
-                        close=\(completionText.contains("</tool_call>")) \
-                        text=\(String(completionText.prefix(200)), privacy: .public)
+                        tool planner call unreadable: kind=\(malformed.kind.rawValue, privacy: .public) \
+                        name=\(malformed.nameGuess ?? "-", privacy: .public) \
+                        text=\(String(malformed.excerpt.prefix(200)), privacy: .public)
                         """)
-                    return planned("The tool planner returned an invalid tool request.")
                 }
-                let reply = completionText.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard repairs < maxRepairs, callsUsed + repairs < maxCalls else {
+                    return planned(stopped(
+                        "I couldn't read that request, so I stopped there."))
+                }
+                results.append(contentsOf: parsed.malformed.map { malformed in
+                    // A name the model wrote for a tool this turn does not have is a
+                    // different repair from an unreadable one, and the useful one: the
+                    // resolver says what does exist.
+                    if let guess = malformed.nameGuess,
+                       case .unknown(let suggestions) = ToolCallNameResolver.resolve(
+                        guess, allowed: manifest.allowed) {
+                        return AgentPrompts.toolResult(name: guess, output: ToolRepair(
+                            kind: .unknownTool,
+                            message: "There is no tool called \(guess).",
+                            options: suggestions).modelText)
+                    }
+                    return AgentPrompts.toolResult(name: "tool", output: ToolRepair(
+                        kind: malformed.kind == .truncated ? .truncatedCall : .malformedCall,
+                        message: (malformed.kind == .truncated
+                            ? "Your last request was cut off: "
+                            : "Your last request could not be read: ")
+                            + malformed.excerpt
+                            + " Send it again, complete, as one request."
+                    ).modelText)
+                })
+                repairs += 1
+                continue
+            }
+            if parsedCalls.isEmpty {
+                let reply = parsed.prose
                 if reply.isEmpty, !memoryConfirmations.isEmpty {
                     return planned(memoryConfirmations.joined(separator: " "))
                 }
@@ -1358,21 +1435,44 @@ extension RealtimeAgent {
                     return planned("I stopped the tool plan.")
                 }
                 if revision != (work?.revision ?? 0) { break }
-                guard callsUsed < maxCalls else {
+                guard callsUsed + repairs < maxCalls else {
                     return planned("I couldn’t finish the tool plan within the safe limit.")
                 }
-                // The manifest decides, and it accepts an alias as readily as a canonical id —
-                // a model that emits `files.find` for `filesystem.find` gets the call, which
-                // is what the alias table is for. A name that resolves to nothing, or to a tool
-                // outside this turn's allowlist, still ends the plan: a wrong-class call widens
-                // the next round, a name that does not exist cannot be widened into one.
-                guard let tool = AgentToolRegistry.shared.tool(named: call.name),
-                      let entry = manifest.entry(named: call.name)
-                else {
+                // P1-04: the name the model wrote is resolved to a canonical id this turn may
+                // execute — exact, alias, router, normalised spelling, then a near miss. A
+                // name that resolves to nothing used to end the plan with "The tool planner
+                // requested an unavailable tool; nothing else was run.", which is a sentence
+                // about the app's insides read by a person who asked a question. It is now a
+                // repair: the model is told what does exist and gets another round.
+                //
+                // One case is not a repair: a tool this build has and this turn may not run.
+                // The manifest already carries the one plain sentence a person needs for it
+                // (`Readiness.reason`), and that sentence is the whole reply — it says what to
+                // do, and it names no id.
+                if let registered = AgentToolRegistry.shared.tool(named: call.name),
+                   let blocked = manifest.unavailable.first(where: { $0.id == registered.id }),
+                   let sentence = blocked.readiness.reason {
                     plannerTraceForTesting?(.rejectedCall(
-                        name: call.name, reason: "unavailable tool"))
-                    return planned(
-                        "The tool planner requested an unavailable tool; nothing else was run.")
+                        name: call.name, reason: "not ready: \(sentence)"))
+                    return planned(confirmed(sentence))
+                }
+                let resolution = ToolCallNameResolver.resolve(
+                    call.name, allowed: manifest.allowed)
+                guard case .tool(let canonicalID) = resolution,
+                      let tool = AgentToolRegistry.shared.tool(named: canonicalID),
+                      let entry = manifest.entry(named: canonicalID) else {
+                    plannerTraceForTesting?(.rejectedCall(
+                        name: call.name, reason: "unknown tool"))
+                    guard case .unknown(let suggestions) = resolution, repairs < maxRepairs else {
+                        return planned(stopped(
+                            "I couldn't find a way to do that, so I stopped there."))
+                    }
+                    results.append(AgentPrompts.toolResult(name: call.name, output:
+                        ToolRepair(kind: .unknownTool, message:
+                            "There is no tool called \(call.name).",
+                            options: suggestions).modelText))
+                    repairs += 1
+                    continue
                 }
                 if !manifest.selectedIDs.contains(entry.id) {
                     manifest = manifest.widened(toInclude: entry.intent)
@@ -1382,11 +1482,27 @@ extension RealtimeAgent {
                 // already decided when this round started.
                 let risk = tool.risk
                 let arguments = AgentToolLoop.groundedArguments(
-                    for: call.name, proposed: call.arguments, request: currentRequest
+                    for: canonicalID, proposed: call.arguments, request: currentRequest
                 )
-                let signature = call.name + "|" + arguments.keys.sorted()
+                // Keyed on the canonical id, so an alias and its own spelling are one step.
+                let signature = canonicalID + "|" + arguments.keys.sorted()
                     .map { "\($0)=\(arguments[$0] ?? "")" }.joined(separator: "|")
                 guard completedCalls.insert(signature).inserted else {
+                    // H-audit 2026-09-23 (H1 #20). Small models re-issue a call whose result
+                    // was long or empty. That is a question, not a loop: the result is
+                    // already in `results` above, so the note points at it and the plan goes
+                    // on. One note per turn; the second repeat ends the plan.
+                    repeatedSignatures += 1
+                    if repeatedSignatures == 1, repairs < maxRepairs {
+                        results.append(AgentPrompts.toolResult(
+                            name: canonicalID,
+                            output: "You already ran \(canonicalID) with these arguments; its "
+                                + "result is above. Answer now or choose a different step."))
+                        repairs += 1
+                        continue
+                    }
+                    // P1-06 replaces this with its final answer-only round, which keeps
+                    // `lastVerifiedResult` and the memory confirmations.
                     return planned(incomplete("The planner repeated a completed step, so I stopped it.",
                                              completed: completedToolIDs, inFlight: currentToolID))
                 }
@@ -1394,7 +1510,7 @@ extension RealtimeAgent {
                     return planned(incomplete("I stopped the tool plan because it took too long.",
                                              completed: completedToolIDs, inFlight: currentToolID))
                 }
-                currentToolID = call.name
+                currentToolID = canonicalID
                 let policy = PermissionPolicy.fromSettings()
                 // Bound by this code, not taken from the model: what the user said this
                 // turn, and every tool result it has seen so far.
@@ -1412,12 +1528,17 @@ extension RealtimeAgent {
                 // `fire`, so the recorded `ms` is execution and never the card's wait.
                 let executionTimer = ToolExecutionTimer()
                 let toolCallBegan = clock.now
-                let execute: @Sendable () async -> Result<String, GeneralToolStepError> = {
+                // P1-04: the closure returns the classified outcome rather than a string, so
+                // the decision about what a failure *means* is made in one table
+                // (`ToolErrorClassifier`) instead of in whichever `catch` leg the error
+                // happened to be thrown from. `errorClass` rides along because the usage log
+                // still records which failure it was.
+                let execute: @Sendable () async -> ToolExecution = {
                     do {
                         let result = try await MemoryProvenance.$current.withValue(provenance) {
                             try await ToolExecutionTimer.$current.withValue(executionTimer) {
                                 try await AgentToolExecutor.run(
-                                    call.name, arguments: arguments, policy: policy,
+                                    canonicalID, arguments: arguments, policy: policy,
                                     taskID: work?.id.uuidString,
                                     autoApproveReads: true,
                                     promptIfNeeded: !self.denyUnattendedApprovalsForTesting,
@@ -1438,29 +1559,29 @@ extension RealtimeAgent {
                         // `VisionScope` plus per-run consent every provider call
                         // enforces — is what describes the pixels, and the description
                         // is what the planner reads next round.
-                        if RealtimeToolSelection.screenshotToolIDs.contains(call.name) {
+                        if RealtimeToolSelection.screenshotToolIDs.contains(canonicalID) {
                             let described = await VisionHandoff.describe(
                                 provider: executingProvider,
-                                toolID: call.name,
+                                toolID: canonicalID,
                                 arguments: arguments,
                                 parkSummary: result.summary,
                                 cloudConsent: Settings.shared.visionCloudConsent,
                                 request: currentRequest
                             )
-                            return .success(described)
+                            return ToolExecution(outcome: .success(described))
                         }
-                        return .success(result.summary)
-                    } catch let error as MemoryWriteError where error.isRecoverable {
-                        return .failure(.recoverable(error.localizedDescription))
+                        return ToolExecution(outcome: .success(result.summary))
                     } catch {
-                        return .failure(.message(error.localizedDescription,
-                                                 modelUnavailable: error.isModelUnavailable))
+                        return ToolExecution(
+                            outcome: ToolErrorClassifier.classify(error, tool: tool),
+                            errorClass: (error.isModelUnavailable
+                                ? .modelUnavailable : .other))
                     }
                 }
                 // A write may be awaiting human approval or remote confirmation.
                 // Never detach it behind a timeout: that could say "stopped" while
                 // the write later commits. Read-only work keeps the deadline.
-                let execution: Result<String, GeneralToolStepError>?
+                let execution: ToolExecution?
                 if tool.risk > .read {
                     execution = await execute()
                 } else {
@@ -1470,18 +1591,18 @@ extension RealtimeAgent {
                 }
                 guard let execution else {
                     return planned(incomplete("I stopped the tool plan because it took too long.",
-                                             completed: completedToolIDs, inFlight: call.name))
+                                             completed: completedToolIDs, inFlight: canonicalID))
                 }
                 let executionMS = executionTimer.executionMs
                     ?? ModelPassRecorder.milliseconds(toolCallBegan.duration(to: clock.now))
-                switch execution {
+                switch execution.outcome {
                 case .success(let output):
-                    results.append(AgentPrompts.toolResult(name: call.name, output: output))
+                    results.append(AgentPrompts.toolResult(name: canonicalID, output: output))
                     roundRecorder.executed(UsageToolRun(
                         id: tool.id, ok: true, ms: executionMS, errorClass: nil))
-                    speech?.recordVerifiedResult(toolID: call.name, output: output)
+                    speech?.recordVerifiedResult(toolID: canonicalID, output: output)
                     callsUsed += 1
-                    completedToolIDs.append(call.name)
+                    completedToolIDs.append(canonicalID)
                     currentToolID = nil
                     if tool.namespace == .memory, tool.risk > .read {
                         let sentence = output.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
@@ -1495,39 +1616,42 @@ extension RealtimeAgent {
                     // A mutation completes one step, not the user's whole
                     // objective. Keep its verified result and plan remaining work.
                     lastVerifiedResult = output
-                case .failure(.recoverable(let message)):
-                    // Hand the store's answer back so the model can merge or replace in
-                    // this turn. Nothing was written, so there is nothing to rewrite.
+                case .recoverable(let repair):
+                    // P1-04: a failure the model can fix goes back as a tool result. Nothing
+                    // was written — the executor threw before committing — so the signature
+                    // comes out of `completedCalls` and the corrected call is allowed to be
+                    // the same call. A failure thrown *after* a write committed is classified
+                    // as infrastructure below, which is why this leg is safe.
                     roundRecorder.executed(UsageToolRun(
                         id: tool.id, ok: false, ms: executionMS,
-                        errorClass: UsageErrorClass.other.rawValue))
-                    results.append(AgentPrompts.toolResult(name: call.name, output: message))
+                        errorClass: (execution.errorClass ?? .other).rawValue))
+                    guard repairs < maxRepairs else {
+                        currentToolID = nil
+                        return planned(stopped(
+                            "I couldn't finish that, so I stopped there."))
+                    }
+                    results.append(AgentPrompts.toolResult(
+                        name: canonicalID, output: repair.modelText))
                     completedCalls.remove(signature)
                     callsUsed += 1
+                    repairs += 1
                     currentToolID = nil
-                case .failure(.message(let message, let modelUnavailable)):
+                case .denied(let sentence), .infrastructure(let sentence):
+                    // Do not hand a denial back to the model for a possible optimistic
+                    // rewrite — that is the original rule and it is right. An infrastructure
+                    // failure is the same shape: a retry would ask the same machine the same
+                    // question. A failed tool ends this turn visibly.
                     roundRecorder.executed(UsageToolRun(
                         id: tool.id, ok: false, ms: executionMS,
-                        errorClass: (modelUnavailable
-                            ? UsageErrorClass.modelUnavailable : UsageErrorClass.other).rawValue))
+                        errorClass: (execution.errorClass ?? .other).rawValue))
                     if revision != (work?.revision ?? 0) {
                         completedCalls.remove(signature)
                         currentToolID = nil
                         break
                     }
-                    // Do not hand a denial/error back to the model for a possible
-                    // optimistic rewrite. A failed tool ends this turn visibly.
                     currentToolID = nil
-                    return planned(confirmed("The tool " + call.name + " did not run: " + message))
-                case .failure(.cutOff):
-                    // Only the planner completion above produces a cut-off; a tool step
-                    // cannot. If one ever did, it ends the turn the way a failed step does.
-                    roundRecorder.executed(UsageToolRun(
-                        id: tool.id, ok: false, ms: executionMS,
-                        errorClass: UsageErrorClass.cutOff.rawValue))
-                    currentToolID = nil
-                    return planned(confirmed("The tool " + call.name + " did not run: "
-                        + OpenRouterError.cutOff(visibleText: false).localizedDescription))
+                    return planned(confirmed("The tool " + canonicalID + " did not run: "
+                        + sentence))
                 }
             }
         }

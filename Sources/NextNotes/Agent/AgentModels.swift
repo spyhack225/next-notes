@@ -253,6 +253,10 @@ enum AgentError: LocalizedError, Equatable {
     case permissionDenied(String)
     case needsPermission(String)
     case noIntegration(String)
+    /// Something named in the request is not on this Mac. Distinct from `noIntegration`
+    /// because it is a fact about the world the model can be told, and told it will pick a
+    /// different name — the near names travel in the string.
+    case notFound(String)
     case cancelled
     case backendUnavailable(String)
     /// ACP failed before initializing. This is the only failure that may expose the
@@ -284,6 +288,8 @@ enum AgentError: LocalizedError, Equatable {
             reason
         case .noIntegration(let name):
             "Nothing is connected that can do \u{201c}\(name)\u{201d}."
+        case .notFound(let reason):
+            reason
         case .cancelled:
             "The task was cancelled."
         case .backendUnavailable(let reason):
