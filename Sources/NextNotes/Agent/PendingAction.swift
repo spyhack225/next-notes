@@ -1,8 +1,8 @@
 import Foundation
 
 /// An offer or a confirmation question the agent is waiting on. A bare "yes" resolves to
-/// it without a model deciding what "yes" meant. Shared by typed turns (P1-02) and voice
-/// (P1-07), which today has its own `PendingIntent`.
+/// it without a model deciding what "yes" meant. One type for typed turns (P1-02) and
+/// voice (P1-07), which had a second, narrower struct of its own until this landed.
 ///
 /// 2026-09-22 00:58–01:01Z: "Summarize my last emails and list me my events for tomorrow"
 /// got *"I don't have access to your email or calendar data without a tool call … would you
@@ -88,15 +88,22 @@ struct PendingAction: Equatable, Sendable {
 
     // MARK: - The answer
 
-    /// "yes", "yeah", "yep", "sure", "ok", "okay", "please", "please do", "go ahead",
-    /// "do it", "use them", "use it", "use your tools", optionally followed by ≤ 5 words
-    /// with no action verb other than "use"/"do". Typed only; voice keeps
-    /// `VoiceTurnPolicy.isBareAcknowledgment` (exact list) until P1-07.
+    /// Words only a *typed* confirmation adds to the shared vocabulary: "please" and
+    /// "yea" are typed answers a person types, and "use your tools" is the phrase the
+    /// denial loop actually produced on 2026-09-22. P1-07 removed the typed list rather
+    /// than leaving two of them, so this is three words, not a second rule — the shape
+    /// (the phrase, then at most five more words with no instruction in them) is `matches`.
+    private static let typedAcknowledgmentExtras: Set<String> = [
+        "please", "yea", "use your tools",
+    ]
+
+    /// "yes", "yeah", "yep", "sure", "ok", "okay", "yes please", "go ahead", "do it",
+    /// "use them", … optionally followed by ≤ 5 words with no action verb other than
+    /// "use"/"do". The phrases are `VoiceTurnPolicy.acknowledgmentKeys` — the one list
+    /// voice, typed turns and P3-08's spoken approvals all read (P1-07) — so a word can
+    /// only be forgotten in one place.
     static func isConfirmation(_ text: String) -> Bool {
-        matches(text, phrases: [
-            "yes", "yeah", "yep", "yea", "aye", "sure", "ok", "okay", "please", "please do",
-            "go ahead", "do it", "use them", "use it", "use your tools",
-        ])
+        matches(text, phrases: VoiceTurnPolicy.acknowledgmentKeys.union(typedAcknowledgmentExtras))
     }
 
     /// "no", "nope", "don't", "do not", "cancel", "never mind", "nevermind", "stop", "not now".
@@ -109,7 +116,7 @@ struct PendingAction: Equatable, Sendable {
     /// A typed acknowledgment is the phrase and at most five more words, none of which is
     /// an instruction. "yes and open Safari" is a new request, not a confirmation — the
     /// gate may only *resolve* a pending action, never invent one.
-    private static func matches(_ text: String, phrases: [String]) -> Bool {
+    private static func matches(_ text: String, phrases: Set<String>) -> Bool {
         let tokens = AgentEntityResolver.tokens(text)
         guard !tokens.isEmpty else { return false }
         // Longest phrase first, so "never mind" is not read as "never" plus a trailing word.

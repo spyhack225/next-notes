@@ -39,6 +39,11 @@ final class VoiceConversationCoordinator {
     var responseDeadlineForTesting: Duration?
     var streamForTesting: (@Sendable (String, [LLMChatMessage]) async -> AsyncThrowingStream<String, Error>)?
     var workerForTesting: (@MainActor (VoiceConversationWork) async -> String)?
+    /// P1-07's hold can only be pinned by seeing what did *not* reach speech, and a
+    /// self-test cannot attach a real TTS stream to a capture session. Every answer
+    /// snapshot this path hands to the speech tracker is reported here first, in order.
+    /// Nil in production; it observes, it never substitutes.
+    var answerSpeechObserverForTesting: (@MainActor (String) -> Void)?
     /// The availability gate's test seam. Production reads Apple's own answer;
     /// a self-test cannot turn Apple Intelligence off, so it injects one here.
     var frontendUnavailableReasonForTesting: String?
@@ -48,21 +53,13 @@ final class VoiceConversationCoordinator {
     var prewarmObserverForTesting: (@MainActor () -> Void)?
     var hasActiveWork: Bool { jobs.contains { $0.status == "running" } }
 
-    /// A tool-shaped request the frontend answered instead of delegating (P0-6).
-    /// A bare acknowledgment ("yes", "use them", "do it") resolves to this without
-    /// a model call, so the ellipsis is never gambled on the small model.
-    struct PendingIntent: Equatable, Sendable {
-        let requestText: String
-        let capabilityID: String
-        let at: Date
-        /// An offer goes stale after three minutes of other conversation.
-        var isFresh: Bool { Date().timeIntervalSince(at) < 180 }
-    }
-    private(set) var pendingIntent: PendingIntent?
-    /// Identical spoken denials per session (P0-6 backstop): the second one plans
-    /// instead of speaking the same denial again.
-    private var denialCounts: [String: Int] = [:]
-    private var backstoppedDenials: Set<String> = []
+    /// A tool-shaped request the frontend answered instead of delegating (P0-6), or a
+    /// question a finished worker asked (P1-07). A bare acknowledgment ("yes", "use them",
+    /// "yes please") resolves to this without a model call, so the ellipsis is never
+    /// gambled on the small model and a worker's "Shall I set it for 10 pm?" is answered
+    /// rather than clarified. P1-07 deleted the voice path's own pending-intent struct:
+    /// this is the shared `PendingAction`, which also carries the typed path's offers.
+    private(set) var pendingAction: PendingAction?
     /// Exact texts this session has already met with a clarifier (P0-3, producer-level).
     /// Suppression is single-shot per distinct utterance: the same words reaching this
     /// path again go to the model. A stuck clarification loop is impossible by
@@ -272,9 +269,7 @@ final class VoiceConversationCoordinator {
     func closeSession() {
         cancelResponsePreparation()
         didPrewarmWorker = false
-        pendingIntent = nil
-        denialCounts = [:]
-        backstoppedDenials = []
+        pendingAction = nil
         clarifiedTexts = []
         inputEpoch &+= 1
         responseTask?.cancel()
@@ -404,27 +399,57 @@ final class VoiceConversationCoordinator {
                 return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
             }
         }
-        // P0-6 pending intent: a bare acknowledgment resolves to the stored request.
-        // Checked before the garble gate so "yes" with an offer is an answer, not noise.
-        if let pending = pendingIntent, pending.isFresh,
+        // P0-6 pending action: a bare acknowledgment resolves to the stored request.
+        // Checked before the garble gate so "yes" with an offer is an answer, not noise —
+        // and P1-07 makes that a promise rather than an accident: the noise gate below
+        // still holds "okay" and "ok", and the order here is the only thing between a
+        // person and the answer they just gave.
+        if let pending = pendingAction, pending.isFresh(),
            VoiceTurnPolicy.isBareAcknowledgment(text) {
-            pendingIntent = nil
+            pendingAction = nil
+            // A worker's question is answered *with* its question, so the planner is told
+            // the confirmation and told not to ask again. An offer the frontend made is
+            // resolved by re-running the request it offered, exactly as before.
+            let objective = pending.origin == .frontendOffer
+                ? pending.requestText
+                : pending.confirmedPrompt(acknowledgment: text)
             AgentAuditLog.shared.record(kind: .request, title: pending.requestText,
-                detail: "pending_ack → newWork (heard: \(String(text.prefix(80))))")
+                detail: "pending_ack → newWork (\(pending.origin.rawValue); heard: "
+                    + "\(String(text.prefix(80))))")
             resolveClassified(epoch: inputEpoch)
-            submit(pending.requestText)
+            prewarmWorkerModel()
+            submit(objective)
             return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
         }
         // P0-6 tool-shape gate BEFORE the frontend model: a request naming a registry
         // capability routes straight to submit. Same rule as P0-2's core tool set — it
         // may only ever add newWork routes, never subtract answers.
-        let allowedIDs = AgentCapabilityManifest.current(reader: .voiceFrontend).allowedIDs
+        //
+        // P1-07: one manifest value answers both gates, so the roster that decides a
+        // command and the roster that decides a question are the same read.
+        let voiceManifest = AgentCapabilityManifest.current(reader: .voiceFrontend)
+        let allowedIDs = voiceManifest.allowedIDs
         if let route = toolShapeRoute(text, allowedIDs: allowedIDs) {
             AgentAuditLog.shared.record(kind: .request, title: text,
                 detail: "tool_shape_route(\(route.route)) → newWork; planner keeps the decision")
             resolveClassified(epoch: inputEpoch)
             prewarmWorkerModel()
             submit(route.text)
+            return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
+        }
+        // P1-07: a question is a request to look, so it routes to work on the same terms a
+        // command does. "what's on my calendar" and "any new emails?" carry no verb beside
+        // a noun, so they missed the gate above, reached the on-device model, and came back
+        // "I don't have access to your calendar or tasks" with `get_agenda` in the roster.
+        // Gated on a *ready* tool of that class, so this can only hand a turn to work the
+        // turn could have done; a miss costs the model, which is where a question belongs.
+        if let intent = AgentDirectIntent.questionRoute(
+            in: text, readyIntents: Set(voiceManifest.allowed.map(\.intent))) {
+            AgentAuditLog.shared.record(kind: .request, title: text,
+                detail: "question_route(\(intent.rawValue)) → newWork; the planner reads the real data")
+            resolveClassified(epoch: inputEpoch)
+            prewarmWorkerModel()
+            submit(text)
             return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
         }
         // P0-3, producer-level: the only input this path may hold back is an *exact*
@@ -500,7 +525,15 @@ final class VoiceConversationCoordinator {
                         snapshot += delta
                         await progress.update(snapshot)
                         let parsed = VoiceFrontendEnvelope.parse(snapshot)
-                        if case .answer(let answer) = parsed {
+                        // P1-07: hold the audio while the answer may still be a denial. Speech
+                        // starts on the first complete clause, so "I don't have access to
+                        // your email" was already audible before the whole reply could be
+                        // judged against the manifest. The hold costs a pause; it never
+                        // costs a wrong word, because a reply that turns out honest is
+                        // spoken whole at the end instead.
+                        if case .answer(let answer) = parsed,
+                           !AgentRefusalGuard.mayBeDenial(answer) {
+                            await self.answerSpeechObserverForTesting?(answer)
                             await tracker.receive(answer)
                         }
                     }
@@ -531,26 +564,34 @@ final class VoiceConversationCoordinator {
             ) {
             case .answer(let answer):
                 assembled = answer.trimmingCharacters(in: .whitespacesAndNewlines)
-                // P0-6: remember a tool-shaped request the frontend answered, so a bare
-                // "yes" / "use them" resolves to the original text with no model call.
-                if let capability = namesCapability(text) {
-                    pendingIntent = PendingIntent(requestText: text, capabilityID: capability, at: Date())
-                }
-                // P0-6 backstop: the second identical denial plans instead of speaking.
+                // P1-07: escalate the FIRST denial the manifest contradicts, not the second
+                // identical one. The P0-6 backstop counted repeats because it could not tell
+                // a false denial from a true one; `AgentRefusalGuard` reads the roster, so
+                // one contradicted denial is already enough evidence and waiting for a
+                // second meant the person heard the same refusal twice before anything ran
+                // ("What is on your to-do list for today?" → four rewrites of it, 09-14).
                 // Reads auto-run in the tool loop; anything stronger waits for approval.
-                if AgentRefusalGuard.mayBeDenial(assembled) {
-                    let key = VoiceTranscriptCanonical.key(assembled)
-                    denialCounts[key, default: 0] += 1
-                    if (denialCounts[key] ?? 0) >= 2, !backstoppedDenials.contains(key) {
-                        backstoppedDenials.insert(key)
-                        AgentAuditLog.shared.record(kind: .reply, title: "Denial backstop",
-                            detail: "denial_backstop → newWork (second identical denial)")
-                        tracker.cancel()
-                        resolveClassified(epoch: inputEpoch)
-                        submit(text)
-                        return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
-                    }
+                if AgentRefusalGuard.rebuttal(for: assembled, manifest: voiceManifest) != nil {
+                    AgentAuditLog.shared.record(kind: .reply, title: "Denial escalation",
+                        detail: "denial_escalation → newWork (first contradicted denial)")
+                    tracker.cancel()
+                    // The turn is classified — it routed to work — so it also supersedes the
+                    // effect hold an earlier unclassified failure left behind (P0-07).
+                    resolveClassified(epoch: inputEpoch)
+                    prewarmWorkerModel()
+                    submit(text)
+                    return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
                 }
+                // P0-6, kept through `PendingAction.detect`: a tool-shaped request the
+                // frontend answered, or an offer it made, is pending so a bare "yes" /
+                // "use them" resolves to the original text with no model call. A denial the
+                // manifest does not contradict — it needs a setup step, or it cannot tell
+                // which of two things was meant — is spoken whole by the line below, and
+                // `detect` is the one rule that decides whether this turn is now an offer:
+                // its own capability rule replaced the coordinator's private version.
+                pendingAction = PendingAction.detect(
+                    reply: assembled, request: text, allowedIDs: allowedIDs,
+                    origin: .frontendOffer, sessionID: AgentSession.shared.sessionID)
                 resolveClassified(epoch: inputEpoch)
                 tracker.finish(hasToolCalls: false)
                 return agent.finishVoiceFrontend(assembled, turn: turn, streamed: tracker.didStreamSpeech)
@@ -706,26 +747,6 @@ final class VoiceConversationCoordinator {
         return nil
     }
 
-    /// The registry capability id the utterance names, if any (P0-6 pending slot).
-    /// A verb-shaped request is pending by construction; a question that merely
-    /// mentions a domain (mail, calendar, docs, memory) still names it, so a denial
-    /// of it can be kept and a later "use them" still resolves.
-    private func namesCapability(_ text: String) -> String? {
-        let allowedIDs = AgentCapabilityManifest.current(reader: .voiceFrontend).allowedIDs
-        if let direct = AgentDirectIntent.parse(text) {
-            let id: String
-            switch direct {
-            case .openURL: id = "browser.navigate"
-            case .openApp: id = "computer.open_app"
-            case .locate: id = FileToolCatalogue.findID
-            }
-            if allowedIDs.contains(id) { return id }
-        }
-        let normalized = AgentDirectIntent.normalize(text)
-        return AgentDirectIntent.toolShapeMatch(in: normalized, allowedIDs: allowedIDs)
-            ?? AgentDirectIntent.capabilityMention(in: normalized, allowedIDs: allowedIDs)
-    }
-
     private func frontendRequest(_ text: String) -> (indexed: [Job], messages: [LLMChatMessage]) {
         let indexed = Array(jobs.suffix(5))
         let workContext = indexed.enumerated().map { index, job in
@@ -766,6 +787,18 @@ final class VoiceConversationCoordinator {
             self.jobs[index].status = "finished"
             self.jobs[index].task = nil
             AgentTaskManager.shared.finishVoiceObjective(id: id, result: result)
+            // P1-07: a worker that ends on a question asked the person something, and the
+            // answer is a word ("okay"), not another objective. Without this the "okay" fell
+            // through to the noise gate — "Sorry — I didn't catch that." — and the reminder
+            // the worker had offered to set was never created. The pending action expires
+            // after three minutes and dies with the session, so a stale offer cannot
+            // hijack a later "yes".
+            if let pending = PendingAction.detect(
+                reply: result, request: work.original,
+                allowedIDs: AgentCapabilityManifest.current(reader: .voiceFrontend).allowedIDs,
+                origin: .workerQuestion, sessionID: AgentSession.shared.sessionID) {
+                self.pendingAction = pending
+            }
         }
         jobs[jobs.count - 1].task = task
     }
@@ -788,6 +821,7 @@ final class VoiceConversationCoordinator {
         workerForTesting = nil
         frontendUnavailableReasonForTesting = nil
         prewarmObserverForTesting = nil
+        answerSpeechObserverForTesting = nil
         lastFailure = nil
         responseDeadlineForTesting = nil
     }

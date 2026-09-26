@@ -72,18 +72,38 @@ enum VoiceTurnPolicy {
             .joined(separator: " ")
     }
 
-    /// A bare acknowledgment of a pending offer: at most 3 tokens and no action verb.
-    /// Only consulted when the coordinator holds a pending intent — without one,
-    /// `"Okay."` is noise, not an answer.
+    /// Exact signatures that accept a pending offer or a worker's question, in this
+    /// file's own `normalizedKey` form (lowercase, punctuation removed).
+    ///
+    /// This is the **one** acknowledgment vocabulary: P1-07 moved the voice list here and
+    /// `PendingAction.isConfirmation` (typed) reads it, so a phrase can only be forgotten
+    /// in one place. P3-08's spoken approvals are this set ∪ its approval-only words
+    /// ("send it", "approve") — the approval-only half is deliberately *not* here, because
+    /// a voice turn must not confirm an irreversible write by saying "do it".
+    ///
+    /// Membership, never a shape. The previous rule was "at most three tokens with no
+    /// action verb", which is the class of bug AGENTS.md names: a shape heuristic on the
+    /// conversational path eventually eats a real utterance, silently. Five ordinary
+    /// confirmations — "yes please", "yeah sure", "go for it", "sure go ahead",
+    /// "yes do it" — missed it and reached the frontend, so a worker's "Shall I set it for
+    /// 10 pm?" was answered with a clarification instead of a reminder.
+    ///
+    /// No entry contains an action verb other than "do", "use" or "go", which is what
+    /// keeps "yes send the email to Ana" out: a turn with a new instruction in it is a
+    /// new request, and a gate may only resolve a pending offer, never invent one.
+    static let acknowledgmentKeys: Set<String> = [
+        "yes", "yeah", "yep", "sure", "ok", "okay", "aye",
+        "do it", "use them", "use it", "go ahead", "sounds good", "please do",
+        "yes please", "yeah sure", "go for it", "sure go ahead", "yes do it", "yes go ahead",
+    ]
+
+    /// Whether this utterance is a bare acknowledgment. Exact membership in
+    /// `acknowledgmentKeys`; nil answer for anything else, including an instruction.
+    ///
+    /// Only consulted while a pending action is held — without one, `"Okay."` is noise,
+    /// not an answer, and the noise gate answers for it exactly as before.
     static func isBareAcknowledgment(_ utterance: String) -> Bool {
-        let tokens = AgentEntityResolver.tokens(utterance.lowercased())
-        guard !tokens.isEmpty, tokens.count <= 3 else { return false }
-        if tokens.contains(where: { AgentDirectIntent.actionVerbs.contains($0) }) { return false }
-        let joined = tokens.joined(separator: " ")
-        return [
-            "yes", "yeah", "yep", "sure", "ok", "okay", "aye",
-            "do it", "use them", "use it", "go ahead", "sounds good", "please do",
-        ].contains(joined)
+        acknowledgmentKeys.contains(normalizedKey(utterance))
     }
 
     static func selfTestFailures() -> [String] {
@@ -112,6 +132,19 @@ enum VoiceTurnPolicy {
         // P0-6 bare acknowledgments resolve only against a pending intent.
         for text in ["yes", "use them", "do it", "Okay", "go ahead"] where !isBareAcknowledgment(text) {
             failures.append("missed bare acknowledgment: \(text)")
+        }
+        // P1-07: the shared vocabulary grades itself. Every key it publishes must be a
+        // confirmation — a key nobody says is a hole in the one list the typed path, the
+        // voice path and P3-08 all read — and a turn carrying a new instruction must not be
+        // one, however short.
+        for key in VoiceTurnPolicy.acknowledgmentKeys.sorted()
+        where !isBareAcknowledgment(key) {
+            failures.append("a published acknowledgment key is not accepted: \(key)")
+        }
+        for text in ["yes send the email to Ana", "okay, open Safari", "sure, cancel the last task",
+                     "go ahead and delete it"]
+        where isBareAcknowledgment(text) {
+            failures.append("treated an instruction as a bare acknowledgment: \(text)")
         }
         for text in ["open Safari", "yes and open Safari", "use them to send it", "check my email"]
         where isBareAcknowledgment(text) {

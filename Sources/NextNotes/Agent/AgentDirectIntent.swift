@@ -239,6 +239,79 @@ enum AgentDirectIntent: Equatable, Sendable {
         "schedule", "book", "draft",
     ]
 
+    // MARK: - Question forms (P1-07)
+
+    /// One capability class and the ways a person *asks* for it, as opposed to commands it.
+    ///
+    /// The tool-shape gate above needs a verb beside a noun, so every one of the questions
+    /// people actually ask — "what's on my calendar", "any new emails?", "am I free at 3",
+    /// "what did we decide last meeting" — missed it and reached the on-device frontend,
+    /// which then answered "I don't have access to your calendar or tasks" while
+    /// `get_agenda` sat in the roster (09-14 14:28Z, and four rewrites of it). A question
+    /// is a request to look, so it routes to work exactly like a command does.
+    struct QuestionRoute: Sendable {
+        let intent: AgentIntentClass
+        /// Word-bounded patterns over `questionForm(_:)`, never a shape rule.
+        let patterns: [String]
+    }
+
+    static let questionRoutes: [QuestionRoute] = [
+        .init(intent: .calendar, patterns: [
+            #"\bwhat('s| is)( on)? my (calendar|agenda|schedule)\b"#,
+            #"\bwhat do i have (today|tomorrow|tonight|this (morning|afternoon|evening|week)|on \w+day)\b"#,
+            #"\bam i (free|busy)\b"#, #"\bany (meetings|events|calls) (today|tomorrow|this week)\b"#,
+            #"\bwhen('s| is) my next (meeting|call|event)\b"#,
+        ]),
+        .init(intent: .mail, patterns: [
+            #"\bany (new )?(e-?mails?|mail|messages)\b"#, #"\bdid i get (an? )?(e-?mail|message)\b"#,
+            #"\bwhat('s| is) in my inbox\b"#, #"\b(unread|latest|last|recent) (e-?mails?|mail)\b"#,
+        ]),
+        .init(intent: .reminders, patterns: [
+            #"\bremind me\b"#, #"\bmy (to-?do|todo)( list)?\b"#, #"\bwhat do i (need|have) to do\b"#,
+            #"\bset (a|an) (reminder|alarm)\b"#,
+        ]),
+        .init(intent: .meetings, patterns: [
+            #"\bwhat did (we|they|\w+) (decide|say|agree)\b"#, #"\b(last|previous|yesterday's) (meeting|call)\b"#,
+            #"\baction items?\b"#,
+        ]),
+    ]
+
+    /// The intent a question-form utterance asks for, or nil. Gated on `readyIntents`
+    /// — the classes the manifest has a *ready* tool for — so the route can only ever
+    /// hand a turn to work the turn could actually have done. It never answers and never
+    /// suppresses: a miss costs the frontend model, which is where a question belongs.
+    static func questionRoute(
+        in text: String, readyIntents: Set<AgentIntentClass>
+    ) -> AgentIntentClass? {
+        guard !readyIntents.isEmpty else { return nil }
+        let text = questionForm(text)
+        guard !text.isEmpty else { return nil }
+        for route in questionRoutes where readyIntents.contains(route.intent) {
+            for pattern in route.patterns
+            where text.range(of: pattern, options: .regularExpression) != nil {
+                return route.intent
+            }
+        }
+        return nil
+    }
+
+    /// Lowercased, curly apostrophes folded to ASCII, punctuation dropped, **no
+    /// leading filler trimmed**, unlike `normalize`. That trim is right for a command
+    /// ("can you also nothing get to my folder…") and wrong here: it removes "am" and
+    /// "i", so `\bam i (free|busy)\b` could never match a person asking whether they are
+    /// free. The apostrophe stays because "what's" is one word to a person and two to
+    /// `normalizedKey`; the hyphen stays because a pattern that names "to-do" and
+    /// "e-mail" is spelling the two spellings, not the space between them.
+    static func questionForm(_ utterance: String) -> String {
+        var text = utterance.lowercased()
+            .replacingOccurrences(of: "\u{2019}", with: "'")
+            .replacingOccurrences(of: "\u{2018}", with: "'")
+        text = String(text.map {
+            $0.isLetter || $0.isNumber || $0 == "'" || $0 == "-" || $0 == " " ? $0 : " "
+        })
+        return text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
     /// The capability id the normalized utterance names, or nil. A hit requires the
     /// tool to be in the planner's allow-list, so the fast path can never reach past it.
     static func toolShapeMatch(in normalized: String, allowedIDs: Set<String>) -> String? {

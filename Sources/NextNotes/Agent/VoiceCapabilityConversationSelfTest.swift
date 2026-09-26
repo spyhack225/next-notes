@@ -701,9 +701,9 @@ enum VoiceCapabilityConversationSelfTest {
         return String(oneLine.prefix(420))
     }
 
-    /// P0-3 / P0-4 / P0-6 (+D8) / P0-7 coordinator routing. Deterministic: every model
-    /// response is scripted, no tool runs, no RunLog. Wire with `--selftest-voice-turn-routing`
-    /// in `NextNotesApp.runRequestedSelfTest`.
+    /// P0-3 / P0-4 / P0-6 (+D8) / P0-7 / P1-07 coordinator routing. Deterministic: every
+    /// model response is scripted, no tool runs, no RunLog. Wire with
+    /// `--selftest-voice-turn-routing` in `NextNotesApp.runRequestedSelfTest`.
     @MainActor
     static func runTurnRouting() async -> Bool {
         guard SelfTest.isRunning else {
@@ -950,9 +950,12 @@ enum VoiceCapabilityConversationSelfTest {
         // MARK: P0-6 + D8 — the 5-turn email/calendar loop.
         //
         // T1 routes before any model call. T2 rephrases as a question the gate
-        // deliberately misses, so the scripted denial exercises the pending slot;
-        // T3 resolves it, T4 repeats the denial into the backstop, T5 confirms the
-        // re-stored pending still resolves.
+        // deliberately misses, so the scripted denial is the only answer the frontend
+        // has — and P1-07 escalates it to work on the FIRST occurrence, so nothing of
+        // it is ever spoken. T3 asks again in words that name a capability without
+        // commanding one and gets the honest limit, which is spoken whole and left
+        // pending. T4 resolves it. T5 confirms with nothing pending, which the shared
+        // acknowledgment vocabulary must NOT swallow.
         coordinator.resetForTesting()
         AgentSession.shared.clear()
         let loopProbe = TurnRoutingProbe()
@@ -967,57 +970,320 @@ enum VoiceCapabilityConversationSelfTest {
         if t1.reply != "I'm on it." {
             failures.append("tool-shaped request did not route before the model: " + bounded(t1.reply))
         }
+        var spokenAnswers: [String] = []
+        coordinator.answerSpeechObserverForTesting = { spokenAnswers.append($0) }
         await loopProbe.enqueueAnswer("<answer/>I don't have access to your email.")
         let t2 = await coordinator.handle(rephrase)
         outputs.append(("d8-2-denial", t2.reply))
-        if coordinator.pendingIntent?.requestText != rephrase {
-            failures.append("denied capability mention was not kept as pending")
+        if t2.reply != "I'm on it." {
+            failures.append("a contradicted denial was spoken instead of escalated: "
+                + bounded(t2.reply))
         }
-        let t3 = await coordinator.handle("use them")
-        outputs.append(("d8-3-ack", t3.reply))
-        if t3.reply != "I'm on it." {
-            failures.append("bare acknowledgment did not resolve to pending: " + bounded(t3.reply))
+        if spokenAnswers.contains(where: { $0.contains("don't have access") }) {
+            failures.append("a contradicted denial reached speech: " + bounded(spokenAnswers.joined(separator: " | ")))
         }
-        if coordinator.pendingIntent != nil {
-            failures.append("resolved pending intent was not cleared")
+        if coordinator.pendingAction != nil {
+            failures.append("an escalated denial left a pending action behind")
         }
-        await loopProbe.enqueueAnswer("<answer/>I don't have access to your email.")
-        let t4 = await coordinator.handle(rephrase)
-        outputs.append(("d8-4-backstop", t4.reply))
+        await loopProbe.enqueueAnswer(
+            "<answer/>I can't tell from this transcript which one you mean. Which of them?")
+        let t3 = await coordinator.handle("those emails")
+        outputs.append(("d8-3-honest-limit", t3.reply))
+        if !t3.reply.contains("can't tell from this transcript") {
+            failures.append("an honest limit was not spoken whole: " + bounded(t3.reply))
+        }
+        if coordinator.pendingAction?.requestText != "those emails" {
+            failures.append("a denied capability mention was not kept as pending")
+        }
+        let t4 = await coordinator.handle("use them")
+        outputs.append(("d8-4-ack", t4.reply))
         if t4.reply != "I'm on it." {
-            failures.append("second identical denial was spoken again: " + bounded(t4.reply))
+            failures.append("bare acknowledgment did not resolve to pending: " + bounded(t4.reply))
         }
-        let t5 = await coordinator.handle("yes")
-        outputs.append(("d8-5-ack", t5.reply))
-        if t5.reply != "I'm on it." {
-            failures.append("acknowledgment after the backstop did not resolve: " + bounded(t5.reply))
+        if coordinator.pendingAction != nil {
+            failures.append("resolved pending action was not cleared")
+        }
+        await loopProbe.enqueueAnswer("<answer/>Understood.")
+        let t5 = await coordinator.handle("yes please")
+        outputs.append(("d8-5-no-pending", t5.reply))
+        if t5.reply != "Understood." {
+            failures.append("an acknowledgment with nothing pending was swallowed: "
+                + bounded(t5.reply))
         }
         try? await Task.sleep(for: .milliseconds(150))
-        if await loopProbe.streamCalls != 2 {
-            failures.append("D8 loop used frontend inference \(await loopProbe.streamCalls)x, expected 2")
+        coordinator.answerSpeechObserverForTesting = nil
+        if await loopProbe.streamCalls != 3 {
+            failures.append("D8 loop used frontend inference \(await loopProbe.streamCalls)x, expected 3")
         }
-        if await loopProbe.workerPrompts != [request, rephrase, rephrase, rephrase] {
+        if await loopProbe.workerPrompts != [request, rephrase, "those emails"] {
             failures.append("D8 loop did not submit the original texts: "
                 + bounded((await loopProbe.workerPrompts).joined(separator: " | ")))
         }
         let denialsSpoken = outputs.filter { $0.0.hasPrefix("d8-") && $0.1.contains("don't have access") }
-        if denialsSpoken.count > 1 {
+        if !denialsSpoken.isEmpty {
             failures.append("the denial sentence was spoken \(denialsSpoken.count)x in one loop")
         }
 
-        // MARK: P0-7 — the single renderer and live-only claims.
-        let rawCases = [
-            "Codex stopped: ERROR: You've hit your usage limit, I'll do it myself",
-            "The model is not downloaded.",
-            "OpenRouter HTTP 429: Rate limited",
-            "https://openrouter.ai/api/v1 failed",
+        // MARK: P1-07 — question forms route to work before the frontend model runs.
+        //
+        // Written after the 09-14 failure: "what's on my calendar" and "any new emails?"
+        // do not carry a verb beside a noun, so they missed the tool-shape gate, reached
+        // the on-device model, and came back as "I don't have access to your calendar or
+        // tasks" with `get_agenda` in the roster. The roster is pinned by an override here,
+        // because the subject of this case is the routing rule and not whatever this Mac
+        // happens to have connected.
+        coordinator.resetForTesting()
+        AgentSession.shared.clear()
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
+        let routeProbe = TurnRoutingProbe()
+        coordinator.streamForTesting = { system, messages in
+            await routeProbe.stream(system: system, messages: messages)
+        }
+        coordinator.workerForTesting = { work in await routeProbe.ranWorker(work.original) }
+        let questionForms = [
+            "what's on my calendar", "any new emails?", "remind me to call mom at 5",
+            "what did we decide last meeting",
         ]
-        for raw in rawCases {
-            let rendered = RealtimeAgent.voiceSafeReply(raw)
+        let auditBeforeQuestions = AgentAuditLog.shared.entries.count
+        for utterance in questionForms {
+            let turn = await coordinator.handle(utterance)
+            outputs.append(("question-route:\(utterance)", turn.reply))
+            if turn.reply != "I'm on it." {
+                failures.append("a question form was answered instead of routed: \(utterance) → "
+                    + bounded(turn.reply))
+            }
+        }
+        if await routeProbe.streamCalls != 0 {
+            failures.append("question forms reached frontend inference "
+                + "\(await routeProbe.streamCalls)x")
+        }
+        if await routeProbe.workerPrompts != questionForms {
+            failures.append("question forms did not each submit their own text: "
+                + bounded((await routeProbe.workerPrompts).joined(separator: " | ")))
+        }
+        let questionEntries = Array(AgentAuditLog.shared.entries.prefix(
+            max(0, AgentAuditLog.shared.entries.count - auditBeforeQuestions)))
+        for utterance in questionForms {
+            if !questionEntries.contains(where: {
+                $0.title == utterance && $0.detail.contains("question_route(")
+            }) {
+                failures.append("no question_route audit row for \(utterance)")
+            }
+        }
+        // The positive corpus, beside the junk it is never confused with. This is the half
+        // whose absence let the 2026-09-22 shape gate silence the app while the suite stayed
+        // green: every one of these is an ordinary question and must reach the model.
+        let ordinaryQuestions = [
+            "can you hear me?", "what's the capital of France", "tell me a joke",
+            "how are you today", "what time is it?", "are you there?",
+            "what can you do?", "tell me about my day", "thanks, that's all",
+        ]
+        for utterance in ordinaryQuestions {
+            await routeProbe.enqueueAnswer("<answer/>Here you go.")
+            let turn = await coordinator.handle(utterance)
+            outputs.append(("question-positive:\(utterance)", turn.reply))
+            if turn.reply != "Here you go." {
+                failures.append("an ordinary question was not answered by the model: \(utterance) → "
+                    + bounded(turn.reply))
+            }
+        }
+        if await routeProbe.streamCalls != ordinaryQuestions.count {
+            failures.append("ordinary questions did not all reach the model "
+                + "\(await routeProbe.streamCalls)/\(ordinaryQuestions.count)")
+        }
+        if await routeProbe.workerPrompts != questionForms {
+            failures.append("an ordinary question was routed to work: "
+                + bounded((await routeProbe.workerPrompts).joined(separator: " | ")))
+        }
+        // The route is gated on the manifest, so it can only add a turn the machine could
+        // have done. With no tools at all, the same questions are the model's to answer —
+        // and the denials it gives back are then *true*, which is the point: the gate is
+        // not a denial machine.
+        coordinator.resetForTesting()
+        AgentSession.shared.clear()
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = AgentCapabilityInputs(
+            tools: [], switches: .init(memory: false, schedules: false, knowledgeTools: false, skills: false),
+            consent: .init(knowledgeGraphCloud: false, filesCloud: false),
+            workspace: .signedOut, accessibilityGranted: nil, fileIndexAvailable: false,
+            reader: .voiceFrontend)
+        let noToolsProbe = TurnRoutingProbe()
+        coordinator.streamForTesting = { system, messages in
+            await noToolsProbe.stream(system: system, messages: messages)
+        }
+        coordinator.workerForTesting = { work in await noToolsProbe.ranWorker(work.original) }
+        // Distinct sentences: an identical answer twice is the old backstop's trigger, and
+        // this case is about the manifest, not about repeat counting.
+        let honestDenials = [
+            "I can't look that up.", "I can't see that from here.",
+            "I don't have that reminder saved.", "I can't tell which meeting you mean.",
+        ]
+        for (utterance, denial) in zip(questionForms, honestDenials) {
+            await noToolsProbe.enqueueAnswer("<answer/>\(denial)")
+            let turn = await coordinator.handle(utterance)
+            outputs.append(("question-unready:\(utterance)", turn.reply))
+            if turn.reply != denial {
+                failures.append("a question with no ready tool did not reach the model: \(utterance) → "
+                    + bounded(turn.reply))
+            }
+        }
+        let noToolsWorkerPrompts = await noToolsProbe.workerPrompts
+        if await noToolsProbe.streamCalls != questionForms.count || !noToolsWorkerPrompts.isEmpty {
+            failures.append("a question with no ready tool still routed to work")
+        }
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = nil
+        // The table itself, independent of the coordinator: a class the manifest has no
+        // ready tool for is never a route, and no ordinary question is one either.
+        let ready: Set<AgentIntentClass> = [.calendar, .mail, .reminders, .meetings]
+        for (utterance, expected) in [
+            ("what's on my calendar", AgentIntentClass.calendar),
+            ("What do I have tomorrow?", .calendar), ("am I free at 3", .calendar),
+            ("any new emails?", .mail), ("did I get an email from Ana", .mail),
+            ("what's on my to-do list", .reminders), ("remind me to call mum", .reminders),
+            ("what did we decide last meeting", .meetings), ("action items from the call", .meetings),
+        ] {
+            if AgentDirectIntent.questionRoute(in: utterance, readyIntents: ready) != expected {
+                failures.append("question form did not route to \(expected.rawValue): \(utterance)")
+            }
+        }
+        for utterance in ["what's the capital of France", "can you hear me?",
+                          "what can you do?", "tell me a joke", "how are you today"] {
+            if let route = AgentDirectIntent.questionRoute(in: utterance, readyIntents: ready) {
+                failures.append("an ordinary question was routed to \(route.rawValue): \(utterance)")
+            }
+            if AgentDirectIntent.questionRoute(in: utterance, readyIntents: []) != nil {
+                failures.append("a question route fired with no ready tool: \(utterance)")
+            }
+        }
+
+        // MARK: P1-07 — a worker's question is a pending action, and "okay" answers it.
+        //
+        // The live half of the 09-14 loop: a finished worker asks "Shall I set it for 10 pm?"
+        // and the user's "okay" was read as noise — "Sorry — I didn't catch that." — so the
+        // reminder was never created. P1-14 keeps the "okay" alive through the echo filter;
+        // this is where it lands.
+        for phrase in ["okay", "yes please", "yeah sure", "go for it", "sure go ahead", "yes do it"] {
+            coordinator.resetForTesting()
+            AgentSession.shared.clear()
+            let workerProbe = TurnRoutingProbe()
+            coordinator.streamForTesting = { system, messages in
+                await workerProbe.stream(system: system, messages: messages)
+            }
+            coordinator.workerForTesting = { work in await workerProbe.ranWorker(work.original) }
+            await workerProbe.enqueueWorkerReply("Shall I set it for 10 pm?")
+            let asked = await coordinator.handle("set an alarm for 10 pm tonight")
+            outputs.append(("worker-question:\(phrase)-ask", asked.reply))
+            if asked.reply != "I'm on it." {
+                failures.append("the alarm request did not route to work: " + bounded(asked.reply))
+            }
+            try? await Task.sleep(for: .milliseconds(150))
+            if coordinator.pendingAction?.origin != .workerQuestion {
+                failures.append("a worker's question was not kept as a pending action (\(phrase))")
+            }
+            let answered = await coordinator.handle(phrase)
+            outputs.append(("worker-question:\(phrase)-ack", answered.reply))
+            if answered.reply != "I'm on it." {
+                failures.append("\"\(phrase)\" was clarified instead of answering the worker: "
+                    + bounded(answered.reply))
+            }
+            try? await Task.sleep(for: .milliseconds(150))
+            if await workerProbe.workerPrompts.count != 2 {
+                failures.append("\"\(phrase)\" did not start a second worker turn "
+                    + "\(await workerProbe.workerPrompts.count)/2")
+            }
+            if !(await workerProbe.workerPrompts.last ?? "").contains("The user answered: \(phrase)") {
+                failures.append("\"\(phrase)\" did not reach the confirmed prompt: "
+                    + bounded(await workerProbe.workerPrompts.last ?? ""))
+            }
+            if coordinator.pendingAction != nil {
+                failures.append("the confirmed pending action was not cleared (\(phrase))")
+            }
+        }
+        // With nothing pending, "okay" is still the exact known-noise fragment it always
+        // was: the clarifier once, and the model on the repeat.
+        coordinator.resetForTesting()
+        AgentSession.shared.clear()
+        let noiseProbe = TurnRoutingProbe()
+        coordinator.streamForTesting = { system, messages in
+            await noiseProbe.stream(system: system, messages: messages)
+        }
+        coordinator.workerForTesting = { work in await noiseProbe.ranWorker(work.original) }
+        let lonelyOkay = await coordinator.handle("okay")
+        outputs.append(("ack-nothing-pending-1", lonelyOkay.reply))
+        if !lonelyOkay.reply.contains("didn't catch") {
+            failures.append("\"okay\" with nothing pending was not clarified: " + bounded(lonelyOkay.reply))
+        }
+        await noiseProbe.enqueueAnswer("<answer/>I'm here.")
+        let repeatedOkay = await coordinator.handle("okay")
+        outputs.append(("ack-nothing-pending-2", repeatedOkay.reply))
+        if repeatedOkay.reply != "I'm here." {
+            failures.append("a repeated \"okay\" clarified twice instead of escalating: "
+                + bounded(repeatedOkay.reply))
+        }
+
+        // MARK: P1-07 — an honest denial is never escalated.
+        //
+        // "I can't tell from this transcript" says the model is short of information, not
+        // of a tool, and the mail class *is* ready on this Mac. Speaking it is the correct
+        // answer; a correction would be a lie told to fix a policy. The trailing question
+        // is what keeps the offer pending, which is the same rule a real answer follows.
+        coordinator.resetForTesting()
+        AgentSession.shared.clear()
+        let honestProbe = TurnRoutingProbe()
+        coordinator.streamForTesting = { system, messages in
+            await honestProbe.stream(system: system, messages: messages)
+        }
+        coordinator.workerForTesting = { work in await honestProbe.ranWorker(work.original) }
+        let honestDenial =
+            "I can't tell from this transcript which one you mean. Which of them?"
+        await honestProbe.enqueueAnswer("<answer/>\(honestDenial)")
+        let honest = await coordinator.handle("those emails")
+        outputs.append(("honest-denial", honest.reply))
+        if honest.reply != honestDenial {
+            failures.append("an honest denial was not spoken whole: " + bounded(honest.reply))
+        }
+        try? await Task.sleep(for: .milliseconds(150))
+        if !(await honestProbe.workerPrompts).isEmpty {
+            failures.append("an honest denial escalated to work: "
+                + bounded((await honestProbe.workerPrompts).joined(separator: " | ")))
+        }
+        if coordinator.pendingAction == nil {
+            failures.append("a question naming a capability was not kept as a pending action")
+        }
+
+        // MARK: P0-7 — the single renderer and live-only claims.
+        //
+        // These four raws are retargeted at `AgentReplyRenderer.render` with the outcome the
+        // turn actually ended on, because P1-10 made that the seam which owns the guarantee.
+        // `RealtimeAgent.voiceSafeReply` is now `scrub(text, outcome: nil)` — an outcome of nil
+        // means the text is an *answer*, and nothing in an answer is rewritten, which is the
+        // whole point of the change: "What's a sales quota?" and "that file is not downloaded
+        // yet" are a person's own topic. A raw provider error is not an answer, so it arrives
+        // with its outcome and is rewritten by the branch for that outcome. The guarantee is
+        // unchanged and is asserted identically: no `ERROR:`, no `http`, no provider's spelling
+        // of "not downloaded" reaches a person.
+        let rawCases: [(String, AgentTurnOutcome)] = [
+            ("Codex stopped: ERROR: You've hit your usage limit, I'll do it myself",
+             .infrastructure("Codex stopped: ERROR: You've hit your usage limit, I'll do it myself")),
+            ("The model is not downloaded.", .modelUnavailable("The model is not downloaded.")),
+            ("OpenRouter HTTP 429: Rate limited", .infrastructure("OpenRouter HTTP 429: Rate limited")),
+            ("https://openrouter.ai/api/v1 failed", .infrastructure("https://openrouter.ai/api/v1 failed")),
+        ]
+        for (raw, outcome) in rawCases {
+            let rendered = AgentReplyRenderer.render(outcome, voice: true)
             outputs.append(("renderer", "\(raw) → \(rendered)"))
             let lower = rendered.lowercased()
             if lower.contains("error:") || lower.contains("http") || lower.contains("is not downloaded") {
                 failures.append("renderer leaked raw text: \(bounded(rendered))")
+            }
+        }
+        // The answer path must still leave an answer alone: the same words as a *reply* are the
+        // person's own topic, and rewording them is the bug P1-10 removed. Both directions are
+        // pinned here so the retarget above cannot quietly become a weaker test.
+        for answer in ["What's a sales quota?", "that file is not downloaded yet"] {
+            let kept = RealtimeAgent.voiceSafeReply(answer)
+            if kept != answer {
+                failures.append("an answer was rewritten by the voice rule: \(bounded(kept))")
             }
         }
         func checkCode(_ name: String, _ condition: Bool) {
@@ -1195,10 +1461,14 @@ private actor TurnRoutingProbe {
     private(set) var workerPrompts: [String] = []
     private(set) var seenMessages: [[LLMChatMessage]] = []
     private var queued: [String] = []
+    private var workerReplies: [String] = []
     private var throwNext = false
 
     func enqueueAnswer(_ body: String) { queued.append(body) }
     func enqueueThrow() { throwNext = true }
+    /// What the scripted worker says back. A worker's *last sentence* is what a pending
+    /// action is detected from, so a case that exercises one has to script it.
+    func enqueueWorkerReply(_ reply: String) { workerReplies.append(reply) }
 
     func stream(system: String, messages: [LLMChatMessage]) -> AsyncThrowingStream<String, Error> {
         streamCalls += 1
@@ -1218,7 +1488,9 @@ private actor TurnRoutingProbe {
 
     func ranWorker(_ original: String) -> String {
         workerPrompts.append(original)
-        return "test worker; no external effect"
+        return workerReplies.isEmpty
+            ? "test worker; no external effect"
+            : workerReplies.removeFirst()
     }
 
     private enum ProbeError: Error {
