@@ -1927,6 +1927,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
 
+        // NextNotes-iMessage IM-05: the `attributedBody` decoder. Runs against the same
+        // generated fixtures — and the corpus holds no real typedstream yet, so the
+        // decode-identically assertion is reported as blocked on IM-01 rather than faked.
+        if arguments.contains("--selftest-imessage-decode") {
+            Task { @MainActor in
+                writeSelfTest(await MessagesDecoderSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+
         // Reached only when a `--selftest-…` flag was given that no branch above claimed —
         // in practice one whose required argument was left off, since `value(after:)`
         // returns nil for a trailing flag. Falling through to `return false` would launch

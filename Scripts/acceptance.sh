@@ -189,6 +189,10 @@ INTEGRATION_ENTRIES=(
   # Tests/Fixtures/chatdb at run time, so no .sqlite is committed and no
   # Messages grant, no real database and no model are involved
   "selftest-imessage-db|300"
+  # the attributedBody decoder against the same generated fixtures (IM-05); the
+  # corpus holds no real typedstream, so its decode-identically case reports
+  # blocked on IM-01 instead of passing quietly
+  "selftest-imessage-decode|300"
   # runs.jsonl appends in memory and retention is opt-in (D-15a), and the
   # clipboard restore never overwrites a copy the user just made (D-15b):
   # a temp directory and a private pasteboard, no grant and no model
