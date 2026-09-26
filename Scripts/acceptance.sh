@@ -185,6 +185,10 @@ INTEGRATION_ENTRIES=(
   # temporary audio kept 72 h with the disk guards (M-10): isolated store,
   # injected clock and free space, no model and no fixtures
   "selftest-audio-retention|120"
+  # read-only chat.db against the sanitised fixtures (IM-04): builds
+  # Tests/Fixtures/chatdb at run time, so no .sqlite is committed and no
+  # Messages grant, no real database and no model are involved
+  "selftest-imessage-db|300"
 )
 
 EXPERIMENTAL_ENTRIES=(

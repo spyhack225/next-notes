@@ -1889,6 +1889,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
 
+        // NextNotes-iMessage IM-04: a read-only chat.db. No TCC grant required — it runs
+        // entirely against the sanitised fixtures in Tests/Fixtures/chatdb/, which is why it
+        // is not a `via-open` entry. IM-04a adds the FDA probe cases to the same flag.
+        if arguments.contains("--selftest-imessage-db") {
+            Task { @MainActor in
+                writeSelfTest(await MessagesDatabaseSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+
         // Reached only when a `--selftest-…` flag was given that no branch above claimed —
         // in practice one whose required argument was left off, since `value(after:)`
         // returns nil for a trailing flag. Falling through to `return false` would launch
