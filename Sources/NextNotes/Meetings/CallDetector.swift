@@ -421,10 +421,15 @@ final class CallDetector {
     ///
     /// A key that named only the app would make this morning's Zoom call and this
     /// afternoon's the same event: `MeetingScheduler.meeting(for:)` would hand the second
-    /// one the first one's finished recording, and "a meeting is armed once" would refuse to
-    /// arm it at all. `since` survives a flicker — `apply` preserves it — so it stays
+    /// one the first one's finished recording, and "a meeting is armed once" would refuse
+    /// to arm it at all. `since` survives a flicker — `apply` preserves it — so it stays
     /// constant for the length of one call and changes for the next.
-    private static func identity(of call: CallActivity) -> String {
+    ///
+    /// Internal rather than private because M-11 stamps it on a meeting as the call that
+    /// covers it, and a call identity that only `event(for:)` could mint is one
+    /// `MeetingScheduler` cannot write.
+    static func identity(of call: CallActivity) -> String {
+
         let app = call.bundleID ?? "pid-\(call.pid)"
         return "\(app)@\(Int(call.since.timeIntervalSince1970))"
     }

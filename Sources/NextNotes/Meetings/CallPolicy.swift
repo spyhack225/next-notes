@@ -323,6 +323,144 @@ extension CallPolicy {
         return .arm
     }
 
+    // MARK: - A call, and the calendar it might be
+
+    /// One event near a call, paired with whether it is agreed to be recorded.
+    ///
+    /// The pairing is the caller's, not this file's: the events a call could be is a
+    /// question about the user's refusals as much as about the clock, and
+    /// `MeetingScheduler` is what knows those. What is here is the rule that turns a
+    /// shortlist into one decision.
+    struct CalendarCandidate: Sendable, Hashable {
+        var event: MeetingEvent
+        var isAutoRecord: Bool
+    }
+
+    /// What a call that has just settled should attach itself to.
+    enum CalendarMatch: Sendable, Equatable {
+        /// No event is near enough to be this call; it is an ad-hoc one.
+        case none
+        /// The event was agreed to in advance: start it now, as itself.
+        case startCalendar(eventID: String)
+        /// The event is near but is not agreed: ask about **it**, now.
+        case askCalendar(eventID: String)
+    }
+
+    /// Which nearby event, if any, a call that has just settled is.
+    ///
+    /// The same `correlationWindow` `covers(_:at:)` uses for a meeting that already
+    /// exists, applied one step earlier: joining six minutes early used to raise a second,
+    /// ad-hoc question beside the real event's, and two questions about one meeting
+    /// produce two recordings, the second of which is later written off as a failure.
+    ///
+    /// Nearest wins, and the earliest start breaks a tie, so two overlapping events answer
+    /// the same way every time this is asked — the calendar's own order is not promised.
+    /// An all-day block is never the answer, whatever its distance.
+    ///
+    /// Pure, and stated as cases by `--selftest-calendar`, because a clock and a
+    /// calendar are the two things this repo cannot hand a self-test.
+    static func calendarMatch(
+        at now: Date,
+        candidates: [CalendarCandidate]
+    ) -> CalendarMatch {
+        let nearest = candidates
+            .filter { !$0.event.isAllDay }
+            .filter { covers(MeetingWindow(isActive: false, start: $0.event.start, end: $0.event.end), at: now) }
+            .min { lhs, rhs in
+                let left = distance(from: now, to: lhs.event)
+                let right = distance(from: now, to: rhs.event)
+                if left != right { return left < right }
+                return lhs.event.start < rhs.event.start
+            }
+        guard let nearest else { return .none }
+        return nearest.isAutoRecord
+            ? .startCalendar(eventID: nearest.event.id)
+            : .askCalendar(eventID: nearest.event.id)
+    }
+
+    /// How far `now` sits from the stretch of clock an event occupies. Zero while it runs,
+    /// so an event in progress beats one that has not started yet.
+    private static func distance(from now: Date, to event: MeetingEvent) -> TimeInterval {
+        if now < event.start { return event.start.timeIntervalSince(now) }
+        if now > event.end { return now.timeIntervalSince(event.end) }
+        return 0
+    }
+
+    /// What to do with a recording that has run past its meeting.
+    enum OverrunDecision: Sendable, Equatable {
+        case keep
+        case stop(Reason)
+
+        enum Reason: String, Sendable {
+            /// The ceiling, and the only one that ignores whether anyone is talking.
+            case ceiling
+            /// Past the end, and nobody has spoken for `overrunSilence`.
+            case quiet
+            /// Past the end, and the call that covered it has hung up.
+            case callEnded
+        }
+    }
+
+    /// Whether a calendar recording has outlived its meeting.
+    ///
+    /// The old rule stopped every calendar recording five minutes after its scheduled
+    /// end, whatever was being said — it cut meetings off in the middle of a sentence by
+    /// design. The five minutes is now a *grace* and something has to have finished for
+    /// it to be spent: two minutes with nobody talking, or a covering call that has hung
+    /// up. Above that, the ceiling, which is the bound that stops a booked fifteen minutes
+    /// from quietly becoming an afternoon.
+    ///
+    /// Pure, for the same reason `shouldAutoRecord` is, and asserted case by case by
+    /// `--selftest-calendar`. `end` is optional and nil means *no schedule at all*, which
+    /// is exactly what a detected call is — so the exemption M-11 keeps is the data, not
+    /// a second rule: `arm` gives a detected call no end until the recording stops.
+    static func overrunDecision(
+        now: Date,
+        end: Date?,
+        lastSpeechAt: Date,
+        coveringCallEndedAt: Date?
+    ) -> OverrunDecision {
+        guard let end else { return .keep }
+        if now >= end.addingTimeInterval(overrunCeiling) { return .stop(.ceiling) }
+        guard now >= end.addingTimeInterval(overrunGrace) else { return .keep }
+        if coveringCallEndedAt != nil { return .stop(.callEnded) }
+        return now.timeIntervalSince(lastSpeechAt) >= overrunSilence ? .stop(.quiet) : .keep
+    }
+
+    /// How long past a scheduled end a recording may run before it is stopped — but only
+    /// once the room has gone quiet, or the call that covered it has gone. "One last
+    /// thing" is real, and the old rule cut meetings off in the middle of it by design.
+    static let overrunGrace: TimeInterval = 5 * 60
+    /// Nobody has spoken for this long when the end passes, and nobody is left on a call:
+    /// stop.
+    static let overrunSilence: TimeInterval = 2 * 60
+    /// However long a meeting overruns, it stops here. The bound that stops a booked
+    /// fifteen minutes from quietly becoming an afternoon.
+    static let overrunCeiling: TimeInterval = 60 * 60
+
+    /// How long a meeting recorded for a call survives that call's hang-up.
+    static let coveringCallGrace: TimeInterval = 60
+
+    /// Whether a recording covered by a call should stop now that the call has gone.
+    ///
+    /// The same trade as `offThreshold`, read the other way round: a call that dips — a
+    /// reconnect, a second device joining — must not cut a meeting in half, and a
+    /// recording that outlives its call by a minute is much the cheaper mistake. The
+    /// detector's own debounce is a second line of defence and not the only one; the
+    /// identity match is the other, so a *different* call ending never touches this one.
+    static func shouldStopAfterHangUp(
+        coveringCallID: String?,
+        endedCallID: String?,
+        endedAt: Date?,
+        liveCallID: String?,
+        now: Date
+    ) -> Bool {
+        guard let coveringCallID, let endedCallID, let endedAt else { return false }
+        guard endedCallID == coveringCallID else { return false }
+        guard liveCallID != coveringCallID else { return false }
+        return now.timeIntervalSince(endedAt) >= coveringCallGrace
+    }
+
     /// Apps that may be asked about but are never recorded without an answer.
     ///
     /// The plan's R1: a browser holding the microphone and the speakers might be a Meet

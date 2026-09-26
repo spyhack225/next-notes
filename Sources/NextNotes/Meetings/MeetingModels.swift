@@ -210,6 +210,16 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
     /// type arriving later.
     var calendarEventID: String?
     var providerID: String?
+    /// The call this meeting was started for, when there was one (M-11).
+    ///
+    /// `CallDetector.identity` of the call, which is stable for the length of that call
+    /// and different for the next one. A calendar event whose meeting was started early
+    /// because its call settled first carries it, and two rules read it: the recording
+    /// stops shortly after that call hangs up, and the overrun rule will stop it at the
+    /// scheduled end once the call has gone rather than waiting out the silence. Nil is
+    /// the ordinary case — a meeting nobody joined early, and every meeting written
+    /// before the field existed — and it is read, never inferred.
+    var coveringCallID: String?
     var attendees: [String] = []
     var conferenceURL: URL?
     var calendarName: String?
@@ -276,6 +286,26 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         title.range(of: #"^Meeting · \d"#, options: .regularExpression) != nil
     }
 
+    /// Whether this row is the same meeting as `other`, by calendar identity.
+    ///
+    /// The provider is part of the answer because two accounts can hand out the same
+    /// opaque event id, and a shared id would read one meeting's recording as another's.
+    /// A meeting with no calendar id is never the same as anything: a hand-started
+    /// recording has no identity to match on.
+    func isSameMeeting(as other: Meeting) -> Bool {
+        guard let id = calendarEventID else { return false }
+        return id == other.calendarEventID && providerID == other.providerID
+    }
+
+    /// A copy carrying the call that covers it (M-11). A value rather than a mutation
+    /// because the copy is what gets written: the tick, the island and the self-test all
+    /// read the row on disk, and a stamped field nothing saved is a field nothing reads.
+    func withCoveringCall(_ id: String?) -> Meeting {
+        var copy = self
+        copy.coveringCallID = id
+        return copy
+    }
+
     /// How long the recording ran, once it has stopped.
     var duration: TimeInterval? {
         guard let end else { return nil }
@@ -290,6 +320,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         end: Date? = nil,
         calendarEventID: String? = nil,
         providerID: String? = nil,
+        coveringCallID: String? = nil,
         attendees: [String] = [],
         conferenceURL: URL? = nil,
         calendarName: String? = nil,
@@ -309,6 +340,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         self.end = end
         self.calendarEventID = calendarEventID
         self.providerID = providerID
+        self.coveringCallID = coveringCallID
         self.attendees = attendees
         self.conferenceURL = conferenceURL
         self.calendarName = calendarName
@@ -339,6 +371,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         end = try container.decodeIfPresent(Date.self, forKey: .end)
         calendarEventID = try container.decodeIfPresent(String.self, forKey: .calendarEventID)
         providerID = try container.decodeIfPresent(String.self, forKey: .providerID)
+        coveringCallID = try container.decodeIfPresent(String.self, forKey: .coveringCallID)
         attendees = try container.decodeIfPresent([String].self, forKey: .attendees) ?? []
         conferenceURL = try container.decodeIfPresent(URL.self, forKey: .conferenceURL)
         calendarName = try container.decodeIfPresent(String.self, forKey: .calendarName)

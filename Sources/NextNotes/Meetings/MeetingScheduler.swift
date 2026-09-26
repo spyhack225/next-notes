@@ -21,9 +21,6 @@ final class MeetingScheduler {
     /// Thirty seconds is half the shortest useful lead time, so an event is never armed
     /// more than half a minute late, and it costs one pass over a cached array.
     static let tickInterval: TimeInterval = 30
-    /// How long past the scheduled end to keep recording. Meetings overrun; five minutes
-    /// catches the "one last thing" without recording the next hour of an empty room.
-    static let overrunGrace: TimeInterval = 5 * 60
     /// Stop a scheduled recording after this much silence on both tracks. The case it
     /// exists for is a call that ended without anyone touching Next Notes.
     static let silenceTimeout: TimeInterval = 10 * 60
@@ -73,6 +70,14 @@ final class MeetingScheduler {
     /// armed meeting cannot be that record, because a call the user skipped has no meeting
     /// left and would otherwise be armed again on the next evaluation.
     private var handledCall: MeetingEvent?
+
+    /// The call that covered the running recording, and when it was last seen to end.
+    ///
+    /// M-11. A meeting a call started early stops shortly after that call goes rather than
+    /// at the end of a schedule it never followed, and this is the pair the grace is
+    /// measured against: cleared the moment the same call is reported live again, so a
+    /// reconnect is one recording rather than two halves of one.
+    private var coveringCallEnded: (id: String, at: Date)?
 
     init(
         store: MeetingStore = .shared,
@@ -154,8 +159,12 @@ final class MeetingScheduler {
     }
 
     /// Records an upcoming event right now, whatever its lead time says.
+    ///
+    /// `coveringCallID` is the call this recording is happening for, when there is one
+    /// (M-11): the event's own meeting, started early because the call settled first. The
+    /// recording then ends with the call rather than with the schedule.
     @discardableResult
-    func recordNow(_ event: MeetingEvent) async -> Bool {
+    func recordNow(_ event: MeetingEvent, coveringCallID: String? = nil) async -> Bool {
         skipped.remove(event.overrideKey)
         IslandState.shared.clearArmed(event)
         // Only an armed meeting is reused. One that already ran is a finished recording
@@ -166,9 +175,13 @@ final class MeetingScheduler {
         // next tick writes off as "another meeting was being recorded", and leave that
         // failure in the list for good.
         if let existing, existing.status.isActive { return false }
-        let meeting = existing?.status == .armed
+        var meeting = existing?.status == .armed
             ? existing!
             : arm(event, now: Date(), announce: false)
+        if let coveringCallID, meeting.coveringCallID != coveringCallID {
+            meeting = meeting.withCoveringCall(coveringCallID)
+            store.save(meeting)
+        }
         Notifications.shared.withdrawMeetingArmed(meetingID: meeting.id)
         return await controller.start(meeting: meeting)
     }
@@ -220,15 +233,23 @@ final class MeetingScheduler {
             // `callDetectionAutoRecord` defaults to off. Record now is the only thing that
             // starts one, and `callChanged` retires it when the call ends — so it is also
             // never written off for missing a start time it does not have.
-            guard !meeting.isDetectedCall else { continue }
+            guard mayStartUnattended(meeting) else { continue }
             let scheduledEnd = meeting.end ?? meeting.start.addingTimeInterval(Self.armedGrace)
 
             // Too late: either the meeting is over, or a session that was already running
             // held on past the point where recording the rest would be worth anything.
             if now >= scheduledEnd.addingTimeInterval(Self.armedGrace) {
+                guard let reason = Self.missedReason(running: controller.session?.meeting, meeting: meeting)
+                else {
+                    Log.meeting.info("""
+                        "\(meeting.title, privacy: .public)" is the meeting already being \
+                        recorded — not writing it off
+                        """)
+                    continue
+                }
                 var missed = meeting
                 missed.status = .failed(
-                    controller.session == nil
+                    reason == .appWasNotRunning
                         ? "Next Notes wasn't running when this meeting started."
                         : "Another meeting was being recorded when this one started."
                 )
@@ -295,20 +316,57 @@ final class MeetingScheduler {
         guard let session = controller.session, session.isRecording else { return }
         guard session.meeting.calendarEventID != nil else { return }
 
-        // A detected call has no scheduled end — `end` is the instant it was noticed — so
-        // the overrun rule would stop it five minutes in, every time. What ends one is the
-        // detector seeing both flags go, which `callChanged` acts on. The silence rule stays
-        // as the backstop for a call whose flags never drop.
-        let overran = !session.meeting.isDetectedCall
-            && (session.meeting.end.map { now >= $0.addingTimeInterval(Self.overrunGrace) } ?? false)
-        let silent = now.timeIntervalSince(session.lastSpeechAt) >= Self.silenceTimeout
-        guard overran || silent else { return }
+        // The hang-up, when this recording is the one that call started (M-11). Only that
+        // call's ending counts: another call hanging up beside it says nothing about this
+        // meeting, and a meeting whose call is still up has not ended at all.
+        if CallPolicy.shouldStopAfterHangUp(
+            coveringCallID: session.meeting.coveringCallID,
+            endedCallID: coveringCallEnded?.id,
+            endedAt: coveringCallEnded?.at,
+            liveCallID: handledCall?.id,
+            now: now
+        ) {
+            await stop(session, "the call that covered it has ended")
+            return
+        }
 
+        // A detected call has no scheduled end — `end` is nil until the recording stops —
+        // so the overrun rule declines it outright, which is the whole of the exemption
+        // the plan keeps. What ends a call is the detector seeing both flags go, which
+        // `retire` acts on; the silence rule below stays as the backstop for a call whose
+        // flags never drop.
+        let coveringEndedAt = coveringCallEnded.flatMap { ended in
+            session.meeting.coveringCallID == ended.id ? ended.at : nil
+        }
+        if case .stop(let reason) = CallPolicy.overrunDecision(
+            now: now,
+            end: session.meeting.end,
+            lastSpeechAt: session.lastSpeechAt,
+            coveringCallEndedAt: coveringEndedAt
+        ) {
+            await stop(session, Self.overrunLogLine(reason))
+            return
+        }
+
+        guard now.timeIntervalSince(session.lastSpeechAt) >= Self.silenceTimeout else { return }
+        await stop(session, "silent for ten minutes")
+    }
+
+    private func stop(_ session: MeetingSession, _ why: String) async {
         Log.meeting.info("""
             auto-stopping "\(session.meeting.title, privacy: .public)" — \
-            \(overran ? "past its end time" : "silent for ten minutes", privacy: .public)
+            \(why, privacy: .public)
             """)
         await controller.stop()
+    }
+
+    /// The log line for an overrun, in the words a person would use for it.
+    private static func overrunLogLine(_ reason: CallPolicy.OverrunDecision.Reason) -> String {
+        switch reason {
+        case .ceiling: "over an hour past its end"
+        case .quiet: "past its end and nobody has spoken"
+        case .callEnded: "past its end and the call has ended"
+        }
     }
 
     // MARK: - Calls nobody put on a calendar
@@ -360,9 +418,13 @@ final class MeetingScheduler {
     private func callChanged(to call: CallDetector.CallActivity?, now: Date = Date()) async {
         let event = call.map(CallDetector.event(for:))
         if let previous = handledCall, previous.id != event?.id {
-            await retire(previous)
+            await retire(previous, now: now)
         }
         handledCall = event
+        // The same call reported live again after a dip — a reconnect, a second device —
+        // cancels the stop its hang-up had queued. `identity` is stable for the length of
+        // one call, so this is the same meeting and not a new one.
+        if let id = event?.id, coveringCallEnded?.id == id { coveringCallEnded = nil }
         guard let call, let event else { return }
         await answer(event, for: call, now: now)
         // "When a call starts…" triggers hear about it only now, once the call has been armed
@@ -388,9 +450,19 @@ final class MeetingScheduler {
             meetings: correlationWindows(),
             now: now
         )
+        // M-11: the call may be a meeting the user already has on their calendar rather
+        // than an ad-hoc one, and the recording it produces should carry that meeting's
+        // title and attendees — which is what the notes prompt resolves names from — rather
+        // than "Zoom call" with nobody on it. Decided once, before the switch, because the
+        // "already covered" branch needs it too: a meeting armed a moment ago still starts
+        // on its own schedule, and the call is what will end it.
+        let match = CallPolicy.calendarMatch(at: now, candidates: calendarCandidates())
 
         switch decision {
         case .attach:
+            if case .startCalendar(let eventID) = match {
+                stampCoveringCall(onEvent: eventID, for: call)
+            }
             // Deliberately nothing. A meeting is already armed or already recording over
             // this stretch of clock, and a Zoom call that is on the calendar has to produce
             // one recording rather than two — so the existing meeting *is* the answer, and
@@ -405,8 +477,105 @@ final class MeetingScheduler {
                 \(reason.explanation, privacy: .public)
                 """)
         case .arm:
-            await raise(event, for: call, answer: answer, now: now)
+            switch match {
+            case .startCalendar(let eventID):
+                await startCalendarEvent(eventID, for: call)
+            case .askCalendar(let eventID):
+                askAboutCalendarEvent(eventID, for: call, now: now)
+            case .none:
+                await raise(event, for: call, answer: answer, now: now)
+            }
         }
+    }
+
+    /// The nearby events a settled call could be, and whether each is agreed to be
+    /// recorded.
+    ///
+    /// Narrower than `calendar.upcoming` on purpose, because this list decides which
+    /// meeting a call is filed under and a call two rooms away is not it. Out: an
+    /// invitation the user declined, one they have said no to for this occurrence, an
+    /// event that is not shaped like a meeting (no link and nobody else), and — inside
+    /// `calendarMatch` — an all-day block, which is a day rather than a meeting.
+    ///
+    /// The global switch is deliberately not a filter. "Not automatically" is the state
+    /// that asks, and the question this raises is about the right meeting rather than
+    /// about an ad-hoc call beside it; a *stored* "no" is a refusal and stays out.
+    func calendarCandidates() -> [CallPolicy.CalendarCandidate] {
+        let settings = Settings.shared
+        return calendar.upcoming.compactMap { event in
+            guard event.isOrganizerOrSelfAccepted else { return nil }
+            guard !skipped.contains(event.overrideKey) else { return nil }
+            guard settings.autoRecordOverride(forEvent: event.overrideKey) != false else { return nil }
+            guard event.conferenceURL != nil || !event.attendees.isEmpty else { return nil }
+            return CallPolicy.CalendarCandidate(
+                event: event,
+                isAutoRecord: willAutoRecord(event)
+            )
+        }
+    }
+
+    /// The event behind an id from a `CalendarMatch`, which is the one the list above
+    /// was built from.
+    private func calendarEvent(_ eventID: String) -> MeetingEvent? {
+        calendar.upcoming.first { $0.id == eventID }
+    }
+
+    /// The meeting a call covers starts now, under the event's own name.
+    ///
+    /// This is the whole of M-11's first rule. Joining six minutes early used to raise a
+    /// second, ad-hoc question beside the real event's; answering it produced a recording
+    /// titled "Zoom call" with no attendees, and the event's own armed meeting was then
+    /// written off a quarter of an hour later as "Another meeting was being recorded when
+    /// this one started" — a failure row for a meeting that was being recorded.
+    private func startCalendarEvent(
+        _ eventID: String,
+        for call: CallDetector.CallActivity
+    ) async {
+        guard let event = calendarEvent(eventID) else { return }
+        let started = await recordNow(event, coveringCallID: CallDetector.identity(of: call))
+        guard started else {
+            Log.calls.info("""
+                \(call.displayName, privacy: .public) is on a call for \
+                "\(event.title, privacy: .public)", but something is already recording
+                """)
+            return
+        }
+        Log.calls.info("""
+            started "\(event.title, privacy: .public)" now — \
+            \(call.displayName, privacy: .public) is on a call for it
+            """)
+    }
+
+    /// The event is near and is not agreed, so the question is about **it** — the meeting
+    /// with its title and its attendees — rather than about an ad-hoc call beside it.
+    ///
+    /// Armed and not started: `mayStartUnattended` keeps the tick off a meeting nobody
+    /// has answered for, which is what makes asking the whole of the answer.
+    private func askAboutCalendarEvent(
+        _ eventID: String,
+        for call: CallDetector.CallActivity,
+        now: Date
+    ) {
+        guard let event = calendarEvent(eventID) else { return }
+        guard meeting(for: event) == nil else { return }
+        _ = arm(
+            event,
+            now: now,
+            announce: true,
+            body: "\(call.displayName) is on a call. Record it?"
+        )
+    }
+
+    /// The call covering an armed meeting is this one, so the recording ends with the
+    /// call rather than with the schedule. The tick still starts the meeting on time —
+    /// joining inside the lead time is the ordinary case and needs no early start.
+    private func stampCoveringCall(onEvent eventID: String, for call: CallDetector.CallActivity) {
+        guard let event = calendarEvent(eventID),
+              let meeting = meeting(for: event),
+              meeting.status == .armed,
+              meeting.coveringCallID == nil
+        else { return }
+        store.save(meeting.withCoveringCall(CallDetector.identity(of: call)))
     }
 
     private func raise(
@@ -437,9 +606,15 @@ final class MeetingScheduler {
 
     /// The call this meeting was armed for has ended, or detection was switched off under
     /// it. Whatever was raised comes down with it.
-    private func retire(_ event: MeetingEvent) async {
+    private func retire(_ event: MeetingEvent, now: Date = Date()) async {
         IslandState.shared.clearArmed(event)
         skipped.remove(event.overrideKey)
+        // M-11: the meeting recording this call is the *event's own* meeting — a calendar
+        // event started early because this call settled — so `meeting(for:)` below never
+        // finds it, and the branch that stops a call recording would not run for it either.
+        // It ends on the hang-up grace instead, which is measured from here and cancelled
+        // by the same call coming back.
+        noteCoveringCallEnded(event.id, now: now)
         guard let meeting = meeting(for: event) else { return }
 
         if meeting.status.isActive {
@@ -480,6 +655,62 @@ final class MeetingScheduler {
                 end: meeting.end
             )
         }
+    }
+
+    /// The call covering the running recording has gone, and when.
+    ///
+    /// A no-op for every call that is not covering one — which today is every call, and
+    /// after M-11 is the call a calendar meeting was started for. The recording is *not*
+    /// stopped here: `CallPolicy.coveringCallGrace` holds it for a minute first, because a
+    /// call that reconnects is one meeting and cutting it in half is worse than a minute
+    /// of an empty room.
+    private func noteCoveringCallEnded(_ callID: String, now: Date) {
+        guard let session = controller.session,
+              session.isRecording,
+              session.meeting.coveringCallID == callID
+        else { return }
+        coveringCallEnded = (id: callID, at: now)
+        Log.calls.info("""
+            "\(session.meeting.title, privacy: .public)" is covered by a call that has \
+            ended — stopping it in a minute unless the call comes back
+            """)
+    }
+
+    /// Whether the tick may start this armed meeting without asking again.
+    ///
+    /// `armDueEvents` only arms an event `willAutoRecord` accepts, so an armed calendar
+    /// meeting has almost always been agreed to in advance and the tick starting it on
+    /// time is that agreement arriving rather than a new one. The exception is a meeting
+    /// that exists only as a *question*: M-11 arms the event itself when a call lands near
+    /// one that is not agreed, so the person is asked about the right thing — and that one
+    /// waits for the answer, exactly as a detected call does.
+    ///
+    /// An event no longer in the calendar counts as agreed. Stranding a recording nobody
+    /// can start, with no question left to answer it, is the worse failure.
+    private func mayStartUnattended(_ meeting: Meeting) -> Bool {
+        guard !meeting.isDetectedCall else { return false }
+        guard let id = meeting.calendarEventID, let provider = meeting.providerID else { return true }
+        guard let event = calendar.upcoming.first(where: {
+            $0.id == id && $0.providerID.rawValue == provider
+        }) else { return true }
+        return willAutoRecord(event)
+    }
+
+    /// Why an armed meeting missed its window, or `nil` to write nothing at all.
+    enum MissedReason: Sendable, Equatable {
+        case appWasNotRunning
+        case anotherMeetingWasRecording
+    }
+
+    /// Pure, so `--selftest-calendar` states the rule rather than the wiring: the session
+    /// in the way may be this meeting's own recording, started early by the call that
+    /// covers it, and that is the answer to the question rather than a conflict. Writing
+    /// a failure row for a meeting that is being recorded is the false row this case
+    /// exists to prevent.
+    static func missedReason(running: Meeting?, meeting: Meeting) -> MissedReason? {
+        guard let running else { return .appWasNotRunning }
+        guard !running.isSameMeeting(as: meeting) else { return nil }
+        return .anotherMeetingWasRecording
     }
 
     // MARK: - Internals
@@ -536,7 +767,15 @@ final class MeetingScheduler {
     private func handle(_ action: Notifications.Action) {
         switch action {
         case .recordNow(let id):
-            guard let meeting = store.meeting(id: id), meeting.status == .armed else { return }
+            guard var meeting = store.meeting(id: id), meeting.status == .armed else { return }
+            // M-11: the person answered "yes" to a meeting whose call is still up, so that
+            // call is what ends the recording. A detected call is left out — it already has
+            // the call's own end-of-call rule, and stamping it here would give one meeting
+            // two ways to be the same call.
+            if let live = calls.current, meeting.coveringCallID == nil, !meeting.isDetectedCall {
+                meeting = meeting.withCoveringCall(CallDetector.identity(of: live))
+                store.save(meeting)
+            }
             Task { await controller.start(meeting: meeting) }
         case .skip(let id):
             guard let meeting = store.meeting(id: id), meeting.status == .armed else { return }

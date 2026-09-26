@@ -993,11 +993,32 @@ hand-written `init(from:)`; new fields go in it as `decodeIfPresent`. `id`, `tit
 `start` stay required on purpose — minting a fresh id would orphan the folder instead.
 
 **An armed meeting's `end` is the time the calendar said, not a time anything measured.**
-That is what the "stop five minutes after the scheduled end" rule reads, and it survives a
-relaunch where an in-memory map would not; `MeetingSession` overwrites it at stop. The
-visible cost is that an armed row shows the scheduled duration. Auto-stop — the overrun and
-the ten-minutes-of-silence rule — applies only to calendar-backed sessions: a recording
-someone started by hand is never cut off for being quiet.
+That is what the overrun rule reads, and it survives a relaunch where an in-memory map would
+not; `MeetingSession` overwrites it at stop. The visible cost is that an armed row shows the
+scheduled duration. Auto-stop — the overrun and the ten-minutes-of-silence rule — applies only
+to calendar-backed sessions: a recording someone started by hand is never cut off for being
+quiet.
+
+**The overrun rule listens for speech, and a call is the meeting.** "Stop five minutes after
+the scheduled end" is now `CallPolicy.overrunDecision`, and the five minutes is a *grace*
+rather than a deadline: it stops there only once nobody has spoken for two minutes, or the
+call that covered the meeting has hung up, and never later than end + 60 minutes. A rule that
+cut meetings off mid-sentence by design was the cost of a number nobody measured. The
+detected-call exemption is unchanged and is now the *data* rather than a branch: `arm` gives a
+detected call no `end` at all until the recording stops, and a nil `end` is what the pure
+function declines. `Meeting.coveringCallID` (a `decodeIfPresent` field, `CallDetector.identity`
+of the call) is the other half: a call that settles inside `CallPolicy.correlationWindow` of a
+nearby event starts **that event's own meeting** — its title, its attendees, which the notes
+prompt resolves names from — rather than raising a second ad-hoc question beside it, and the
+recording ends 60 seconds after that call hangs up, unless the same call comes back. Ten
+minutes early used to produce two recordings, the second of which was written off as "Another
+meeting was being recorded when this one started" — a failure row for a meeting that was being
+recorded; `MeetingScheduler.missedReason` now refuses to write that row when the session in the
+way is the meeting's own. The same grace reasoning as `CallPolicy.offThreshold`, read the other
+way round: a call that reconnects must not cut a meeting in half, and a recording that outlives
+its call by a minute is much the cheaper mistake. One consequence to read before changing the
+tick: `mayStartUnattended` is what keeps a meeting armed as a *question* from starting itself,
+which is what makes asking the whole of the answer.
 
 **`--fake-calendar` replaces the real providers, it does not join them.** A flag that added
 an invented meeting beside the real ones could start recording something that is actually

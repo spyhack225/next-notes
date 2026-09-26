@@ -2608,10 +2608,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             let decisionFailures = Self.autoRecordDecisionFailures()
             let nextFailures = Self.nextEventSelectionFailures()
+            let callFailures = Self.calendarCallFailures()
             for failure in decisionFailures { writeSelfTest("  DECISION_WRONG: \(failure)") }
             for failure in nextFailures { writeSelfTest("  NEXT_WRONG: \(failure)") }
+            for failure in callFailures { writeSelfTest("  CALENDAR_CALL_WRONG: \(failure)") }
 
-            let failures = decisionFailures + nextFailures
+            let failures = decisionFailures + nextFailures + callFailures
             if failures.isEmpty {
                 writeSelfTest("""
                     CALENDAR_OK: \(service.upcoming.count) upcoming event(s), \
@@ -2711,6 +2713,162 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let actual = CalendarService.nextEvent(in: events, now: now)
             return actual == expected ? nil : name
         }
+    }
+
+    /// What a call that has just settled does about the calendar, and what ends a
+    /// recording afterwards (M-11).
+    ///
+    /// Four pure rules with no clock, no calendar and no microphone behind them, which is
+    /// the only way a self-test can reach them: a call six minutes before a meeting is the
+    /// thing this rule exists for, and there is no way to arrange one from a terminal.
+    /// Every case states the instant it is about, because each of these decisions is about
+    /// a distance from an end time and a wrong answer is one second from a right one.
+    private static func calendarCallFailures() -> [String] {
+        let now = Date()
+        func event(
+            id: String = "auto",
+            startOffset: TimeInterval,
+            duration: TimeInterval = 1800,
+            allDay: Bool = false
+        ) -> MeetingEvent {
+            MeetingEvent(
+                id: id,
+                providerID: .fake,
+                title: "Auto meeting",
+                start: now.addingTimeInterval(startOffset),
+                end: now.addingTimeInterval(startOffset + duration),
+                attendees: ["Sam"],
+                isOrganizerOrSelfAccepted: true,
+                conferenceURL: nil,
+                calendarName: "Test",
+                isAllDay: allDay
+            )
+        }
+        func candidate(_ event: MeetingEvent, auto: Bool = true) -> CallPolicy.CalendarCandidate {
+            CallPolicy.CalendarCandidate(event: event, isAutoRecord: auto)
+        }
+
+        // A call six minutes before a meeting is the whole use case; twelve is not a call
+        // for this meeting, and an all-day block is not a meeting at all. Every offset here
+        // is measured from now to the event's *start*, so a positive number is a call
+        // before the meeting and a negative one is a meeting already under way.
+        let matchCases: [(String, CallPolicy.CalendarMatch, [CallPolicy.CalendarCandidate])] = [
+            ("joining six minutes early starts the event",
+             .startCalendar(eventID: "auto"),
+             [candidate(event(startOffset: 360))]),
+            ("twelve minutes early is outside the correlation window",
+             .none,
+             [candidate(event(startOffset: 720))]),
+            ("a meeting already under way is that meeting",
+             .startCalendar(eventID: "auto"),
+             [candidate(event(startOffset: -600))]),
+            ("a meeting that ended five minutes ago still covers a call",
+             .startCalendar(eventID: "auto"),
+             [candidate(event(startOffset: -3000, duration: 2700))]),
+            ("an event that is not agreed to is asked about, not started",
+             .askCalendar(eventID: "manual"),
+             [candidate(event(id: "manual", startOffset: 360), auto: false)]),
+            ("an all-day block is never the meeting",
+             .none,
+             [candidate(event(startOffset: 0, duration: 86_400, allDay: true))]),
+            ("with no events near, it is an ad-hoc call",
+             .none,
+             [candidate(event(startOffset: 3600))]),
+            ("the nearest of two overlapping events wins",
+             .startCalendar(eventID: "near"),
+             [candidate(event(id: "far", startOffset: 540)),
+              candidate(event(id: "near", startOffset: 120))]),
+        ]
+
+        var failures = matchCases.compactMap { name, expected, candidates in
+            CallPolicy.calendarMatch(at: now, candidates: candidates) == expected ? nil : name
+        }
+
+        // The end time the overrun rule reads. Every case states its own instant as an
+        // offset from it, because each of these decisions is a distance from an end time
+        // and a wrong answer is one second away from a right one.
+        let end = now.addingTimeInterval(3600)
+        let overrunCases: [
+            (String, CallPolicy.OverrunDecision, TimeInterval?, TimeInterval, TimeInterval?)
+        ] = [
+            // (name, expected, offset from the end, seconds since the last word, since the call went)
+            ("well inside the end keeps recording", .keep, -600, 5, nil),
+            ("five minutes past the end, mid-sentence, keeps recording", .keep, 300, 30, nil),
+            ("five minutes past the end in a quiet room stops", .stop(.quiet), 300, 180, nil),
+            ("five minutes past the end after a hang-up stops", .stop(.callEnded), 300, 30, 61),
+            ("an hour past the end stops whatever is happening", .stop(.ceiling), 3600, 5, nil),
+            ("just under the hour, talking, stays on", .keep, 3500, 5, nil),
+            ("a detected call has no schedule to overrun", .keep, nil, 7200, nil),
+        ]
+
+        failures += overrunCases.compactMap { name, expected, offset, speechAgo, callEndedAgo in
+            let at = offset.map { end.addingTimeInterval($0) } ?? now
+            let decision = CallPolicy.overrunDecision(
+                now: at,
+                end: offset == nil ? nil : end,
+                lastSpeechAt: at.addingTimeInterval(-speechAgo),
+                coveringCallEndedAt: callEndedAgo.map { at.addingTimeInterval(-$0) }
+            )
+            return decision == expected ? nil : name
+        }
+
+        // The hang-up grace, read against one fixed instant. `endedAgo` is how long ago
+        // the call that covered this meeting went.
+        let hangUpCases: [
+            (String, Bool, String?, String?, TimeInterval, String?)
+        ] = [
+            (name: "a minute after the hang-up the meeting stops",
+             expected: true, covering: "call-1", ended: "call-1", endedAgo: 61, live: nil),
+            ("inside the grace it is still recording",
+             false, "call-1", "call-1", 30, nil),
+            ("the same call coming back cancels the stop",
+             false, "call-1", "call-1", 61, "call-1"),
+            ("a meeting with no call is not a hang-up",
+             false, nil, "call-1", 600, nil),
+            ("another call's hang-up says nothing about this one",
+             false, "call-1", "call-2", 600, nil),
+            ("a meeting whose call never ended is not a hang-up",
+             false, "call-1", nil, 600, "call-1"),
+        ]
+
+        failures += hangUpCases.compactMap { name, expected, covering, ended, endedAgo, live in
+            let stop = CallPolicy.shouldStopAfterHangUp(
+                coveringCallID: covering,
+                endedCallID: ended,
+                endedAt: now.addingTimeInterval(-endedAgo),
+                liveCallID: live,
+                now: now
+            )
+            return stop == expected ? nil : name
+        }
+
+        // The failure row a meeting that is *being recorded* must never get.
+        let armed = Meeting(
+            title: "Quarterly",
+            start: now,
+            end: now.addingTimeInterval(1800),
+            calendarEventID: "quarterly",
+            providerID: CalendarProviderID.fake.rawValue,
+            status: .armed
+        )
+        var recording = armed
+        recording.status = .recording
+        let other = Meeting(
+            title: "Something else",
+            start: now,
+            calendarEventID: "other",
+            providerID: CalendarProviderID.fake.rawValue
+        )
+        let missedCases: [(String, MeetingScheduler.MissedReason?, Meeting?)] = [
+            ("the running session is the meeting's own recording", nil, recording),
+            ("a different recording is a real conflict", .anotherMeetingWasRecording, other),
+            ("nothing running means the app was not there", .appWasNotRunning, nil),
+        ]
+        failures += missedCases.compactMap { name, expected, running in
+            MeetingScheduler.missedReason(running: running, meeting: armed) == expected ? nil : name
+        }
+
+        return failures
     }
 
     /// Runs a WAV file through the meeting transcriber and prints the segments as JSON.
