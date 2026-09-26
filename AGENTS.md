@@ -783,6 +783,33 @@ start against a half-deleted bundle. The wrapper verifies the executable exists 
 not bare-invoke `/Applications/Next Notes.app/Contents/MacOS/NextNotes` from an agent
 shell, and do not `open` the GUI as a side effect of install.
 
+**The staging bundle is per make invocation, and only the swap takes the lock.**
+`app:` assembles into `~/Library/Caches/NextNotesBuild/install-<make-pid>/`, a path no other
+process can name, so two concurrent `make install` runs cannot interleave their `cp`s into one
+directory — which is what three install failures in an hour measured on 2026-09-25, along with
+the worse variant of publishing one run's binary against another's frameworks. The suffix is
+make's own pid read with `$(shell printf %s $$PPID)`, **not** `$$`: in a variable assignment
+`$$` expands to a literal `$` and every run would share one directory. The swap into
+/Applications keeps `install.lock` because it touches the path every launch and self-test
+resolves. `install-bundle.sh` reaps the per-run directory, and `install-*` directories older
+than a day left by a make that died mid-stage.
+
+**`make app` also refreshes one report in the background, and an agent can read it instead of
+re-deriving it.** `Scripts/dictation-gates.sh` computes the two evidence-gated tasks of
+`roadmap/done/DICTATION-MEETINGS-LIMITS` — D-13 (presses refused while a hold is finishing) and
+D-14 (a dictation hold overlapping a meeting whose transcription waited on the speech lane) —
+and writes three files atomically into
+`~/Library/Caches/NextNotesBuild/dictation-meetings/`: `gates-latest.txt` in words,
+`gates-latest.json`, and one `gates-history.jsonl` line per run with the commit it ran against.
+Each task reads `proceed`, `won't do (evidence)`, or `not enough data` with the shortfall
+named; **an undecided gate is never a pass**. The thresholds are the task text's own (100 owner
+holds over 7 days, 3 qualifying occurrences each). `make gates` runs the same script in the
+foreground, and `python3 Scripts/dictation-stats.py --gates` is the reader underneath. The run
+is detached, read-only on the owner's stores, and cannot fail a build: if the reader breaks it
+records `GATES_RUN_FAILED` in the history and leaves the last good report in place, so a stale
+report never looks like "no news". Today's real answer is `not enough data` for both, because
+`dictation.hold` rows begin at D-01b (2026-09-25).
+
 **`make acceptance` runs the catalogue in tiers so the signal is not buried.**
 `Scripts/acceptance.sh` drives the installed bundle through the same `run-selftest.sh`
 launcher, one flag at a time, and classifies each run from its own output: a final `*_OK` is
