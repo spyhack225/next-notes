@@ -241,28 +241,21 @@ final class RealtimeAgent {
         conclude(turn, Self.voiceSafeReply(text), route: "on-device-frontend", speak: !streamed)
     }
 
-    /// The single voice-boundary renderer (P0-7). Typed provider failures become
-    /// consumer-worded sentences; raw `ERROR:` prefixes and URLs never reach speech.
-    /// Everything else passes through untouched.
+    /// The single voice-boundary scrub (P0-7, rewritten by P1-10b).
+    ///
+    /// It used to be a renderer as well: any reply containing "quota", "rate limit",
+    /// "not downloaded" or `429` was replaced wholesale with a usage-limit or a
+    /// download-notice sentence, on every voice reply. That made "What's a sales quota?"
+    /// and "that file is not downloaded yet" come back as an error, and on the streamed
+    /// path the rewritten sentence was what `conclude` recorded — so the next turn learned
+    /// a limit had been hit. Those sentences now live in `AgentReplyRenderer.render`, keyed
+    /// on the *outcome*, and are reachable only when a provider or a hand-off actually
+    /// failed.
+    ///
+    /// What is left is the scrub: registry ids, "step n/m" and raw tool markup, and
+    /// nothing else. An answer's own words are never touched.
     static func voiceSafeReply(_ text: String) -> String {
-        let lower = text.lowercased()
-        if lower.contains("usage limit") || lower.contains("you've hit your")
-            || lower.contains("you have hit your") || lower.contains("quota")
-            || lower.contains("rate limit") || lower.contains("rate-limit")
-            || lower.range(of: "\\b429\\b", options: .regularExpression) != nil {
-            return "You've hit the usage limit, so I stopped there. Check your plan or try again later."
-        }
-        if lower.contains("is not downloaded") || lower.contains("not downloaded")
-            || lower.contains("is no longer on this mac") {
-            return "The voice model isn't ready yet. Open Settings ▸ Models to get it."
-        }
-        var clean = text
-        if let range = clean.range(of: "^ERROR:\\s*", options: .regularExpression) {
-            clean.removeSubrange(range)
-        }
-        clean = clean.replacingOccurrences(of: "https?://\\S+", with: "that link",
-                                           options: .regularExpression)
-        return clean.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        AgentReplyRenderer.scrub(text, outcome: nil)
     }
 
     /// A hesitation has no answer to record or speak. Background work has its
@@ -616,8 +609,17 @@ final class RealtimeAgent {
             return AgentTurn(reply: lastReply, delegated: false)
         }
         Log.agent.info("realtime · \(route, privacy: .public)")
-        finish(reply, speak: speak, spokenReply: spokenReply, contextKind: contextKind)
-        return AgentTurn(reply: reply, delegated: delegated)
+        // P1-10b step 6: the one gate every path passes — typed, the voice frontend, the
+        // voice worker's announcement, run-locally-once. The 09-22 03:00Z leak ("Use
+        // filesystem.find to search") reached a person because three of these paths had no
+        // filter at all and the fourth had the wrong one. The unscrubbed text goes to the
+        // audit log, which is where ids belong; the person, the session history and the
+        // next turn's context all get the scrubbed one.
+        let shown = AgentReplyRenderer.scrub(reply, outcome: nil)
+        finish(shown, speak: speak, spokenReply: spokenReply.map {
+            AgentReplyRenderer.scrub($0, outcome: nil)
+        }, contextKind: contextKind, unscrubbed: shown == reply ? nil : reply)
+        return AgentTurn(reply: shown, delegated: delegated)
     }
 
     /// A direct tool's full response stays in the feed; its voice form must be
@@ -861,13 +863,18 @@ final class RealtimeAgent {
         Log.agent.info("realtime · \(route, privacy: .public)")
         // The speech bridge already consumed the chunks. Recording through `finish` is
         // still needed, but speaking the completed answer again would duplicate TTS.
-        finish(reply, speak: false)
-        return AgentTurn(reply: reply, delegated: false)
+        // The same scrub as `conclude`: streamed is a different gate, not a different rule.
+        let shown = AgentReplyRenderer.scrub(reply, outcome: nil)
+        finish(shown, speak: false, unscrubbed: shown == reply ? nil : reply)
+        return AgentTurn(reply: shown, delegated: false)
     }
 
+    /// - Parameter unscrubbed: the reply as it arrived, when the caller scrubbed it. The
+    ///   audit log keeps that — the ids and the raw failure text are what a person reads
+    ///   when they ask why the turn went the way it did.
     private func finish(
         _ reply: String, speak: Bool = true,
-        spokenReply: String? = nil, contextKind: String? = nil
+        spokenReply: String? = nil, contextKind: String? = nil, unscrubbed: String? = nil
     ) {
         lastReply = reply
         isThinking = false
@@ -878,7 +885,7 @@ final class RealtimeAgent {
         // The audit log is internal, so the model's id may appear here (P0-20a). The pane
         // still shows `answeringModel.name`.
         AgentAuditLog.shared.record(
-            kind: .reply, title: reply,
+            kind: .reply, title: unscrubbed ?? reply,
             detail: answeringModel.map { "Answered by \($0.name)" } ?? "")
         AgentCaptureController.shared.noteAssistantReply(reply)
         if AgentCaptureController.shared.isSessionActive {

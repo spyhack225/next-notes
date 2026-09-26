@@ -14,7 +14,19 @@ enum WorkspaceToolRunner {
 
     /// How much of a tool's answer is fed back to the model, in characters. A Drive listing
     /// or a long thread would otherwise eat the context the transcript needs.
-    static let maxResultCharacters = 2_000
+    ///
+    /// P1-10: the cap is the reader's, not a constant. Inside a planned turn the planner
+    /// binds `ToolResultBudget.$readerContextTokens`, so a 262,144-token reader is allowed
+    /// twelve thousand characters and a 4,096-token one seven hundred; outside one — the
+    /// meeting agent, a scheduled routine, any caller with no bound reader — this is the
+    /// historical 2,000, which is what those callers measured against.
+    static func maxResultCharacters(toolID: String) -> Int {
+        // 2,000 is the no-reader fallback: the meeting agent and a scheduled routine
+        // answer on a model whose window this function cannot know, and 2,000 is what they
+        // have measured against.
+        guard let reader = ToolResultBudget.readerContextTokens else { return 2_000 }
+        return ToolResultBudget.characterCap(readerContextTokens: reader, toolID: toolID)
+    }
     /// How many messages a search lists, and how many it reads metadata for. The search's own
     /// `maxResults` argument can ask for fewer; it is clamped to `maxSearchResults`.
     static let maxSearchResults = 25
@@ -27,6 +39,21 @@ enum WorkspaceToolRunner {
     static func run(
         _ proposal: AgentProposal,
         cli: any WorkspaceCLIRunning = GoogleWorkspaceCLI.shared
+    ) async throws -> WorkspaceToolResult {
+        // P1-10: the reader of the plan in flight. The planner binds it around
+        // `AgentToolExecutor.run`, so every answer this runner shapes below is capped for
+        // the model that will read it. Rebinding it to whatever is already in scope is a
+        // no-op inside a planned turn and leaves `nil` — today's 2,000 — everywhere else.
+        try await ToolResultBudget.$readerContextTokens.withValue(
+            ToolResultBudget.readerContextTokens
+        ) {
+            try await runBounded(proposal, cli: cli)
+        }
+    }
+
+    private static func runBounded(
+        _ proposal: AgentProposal,
+        cli: any WorkspaceCLIRunning
     ) async throws -> WorkspaceToolResult {
         guard let tool = proposal.definition else {
             throw AgentError.unknownTool(proposal.tool)
@@ -124,7 +151,8 @@ enum WorkspaceToolRunner {
             lines.append(line)
         }
         lines.append("To read one in full, call read_email with its number.")
-        return WorkspaceToolResult(summary: truncated(lines.joined(separator: "\n")))
+        return WorkspaceToolResult(summary: truncated(lines.joined(separator: "\n"),
+                                                    toolID: "search_email"))
     }
 
     /// Metadata for each id, at most `metadataConcurrency` at a time, in whatever order they
@@ -206,7 +234,8 @@ enum WorkspaceToolRunner {
         }
         // No `reference:` — nothing consumes one for a read, and an id carried further is an
         // id that can reach a surface somebody reads.
-        return WorkspaceToolResult(summary: truncated(lines.joined(separator: "\n")))
+        return WorkspaceToolResult(summary: truncated(lines.joined(separator: "\n"),
+                                                    toolID: "read_email"))
     }
 
     /// `+read` prefers plain text; an HTML-only message comes back with `body_text` empty and
@@ -470,7 +499,8 @@ enum WorkspaceToolRunner {
             "- \(when(event)) \(string(event, "summary") ?? "(no title)")"
         }
         return WorkspaceToolResult(
-            summary: truncated("On \(dayLabel(start)):\n" + lines.joined(separator: "\n"))
+            summary: truncated("On \(dayLabel(start)):\n" + lines.joined(separator: "\n"),
+                             toolID: "get_agenda")
         )
     }
 
@@ -494,7 +524,8 @@ enum WorkspaceToolRunner {
             let id = file["id"] as? String ?? ""
             return "- \(file["name"] as? String ?? "(unnamed)") — id \(id)"
         }
-        return WorkspaceToolResult(summary: truncated(lines.joined(separator: "\n")))
+        return WorkspaceToolResult(summary: truncated(lines.joined(separator: "\n"),
+                                                    toolID: "find_drive_files"))
     }
 
     private static func readDoc(
@@ -510,7 +541,7 @@ enum WorkspaceToolRunner {
         // any use to a model.
         let text = documentText(in: try? output.json())
         return WorkspaceToolResult(
-            summary: truncated(text.isEmpty ? "The document is empty." : text),
+            summary: truncated(text.isEmpty ? "The document is empty." : text, toolID: "read_doc"),
             reference: id,
             link: documentURL(id)
         )
@@ -886,9 +917,11 @@ enum WorkspaceToolRunner {
         return pieces.joined().trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private static func truncated(_ text: String) -> String {
-        guard text.count > maxResultCharacters else { return text }
-        return String(text.prefix(maxResultCharacters)) + "\n…"
+    /// The cap, cut the way `ToolResultBudget` cuts: at a line boundary, and saying how
+    /// much was not shown. The old constant cut mid-word and appended a bare "…", which a
+    /// small model reads as the end of the answer rather than as a cut.
+    private static func truncated(_ text: String, toolID: String) -> String {
+        ToolResultBudget.cap(text, to: maxResultCharacters(toolID: toolID))
     }
 
     /// The midnight the model meant. An unparseable date means today, which answers something
@@ -1060,7 +1093,7 @@ extension WorkspaceToolRunner {
             if !result.summary.contains("Can you send the deck by Friday") {
                 wrong("read_email lost the body: \(bounded(result.summary))")
             }
-            if result.summary.count > maxResultCharacters + 4 {
+            if result.summary.count > maxResultCharacters(toolID: "read_email") + 40 {
                 wrong("read_email returned \(result.summary.count) characters, over the cap")
             }
         } catch {

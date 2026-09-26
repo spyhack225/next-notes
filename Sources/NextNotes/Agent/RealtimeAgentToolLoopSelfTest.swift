@@ -623,6 +623,17 @@ enum RealtimeAgentToolLoopSelfTest {
         // A successful read is a usable answer even when a second model pass
         // runs past the turn's deadline. This was the missing calendar reply.
         // P1-06: the seam is the whole budget now, with the same totals this case had.
+        // P1-10 inverts the sentence, not the behaviour: the read still survives, and the
+        // reply no longer names the tool that ran or counts the steps. "Did
+        // computer.active_app (step 1/8). Timed out on get_agenda." is a sentence about
+        // the app's insides, and the 09-22 reply that reached a typed person was its
+        // ancestor. The read is the answer; the timeout is one line under it.
+        let readResult = "Safari is frontmost; its window is “YouTube”."
+        AgentToolExecutor.fakeForTesting = { tool, _ in
+            tool.id == "computer.active_app"
+                ? AgentToolResult(summary: readResult)
+                : AgentToolResult(summary: "ok")
+        }
         let fallbackState = ToolLoopTestState()
         agent.budgetForTesting = .init(
             perRound: .seconds(2), perReadCall: .seconds(2),
@@ -631,16 +642,18 @@ enum RealtimeAgentToolLoopSelfTest {
             state: fallbackState, secondRoundDelay: .seconds(4)
         )
         let fallback = await agent.handle("which app is frontmost?", source: .text)
-        check("a completed read was thrown away on model timeout",
-              fallback.reply.contains("Remaining steps are unfinished.")
-                  && fallback.reply.components(separatedBy: "\n").first?.isEmpty == false)
+        check("a completed read was thrown away on model timeout: \"\(fallback.reply)\"",
+              fallback.reply.hasPrefix(readResult))
         check("the second model pass was never exercised", (await fallbackState.rounds) >= 2)
-        // P0-5: the timeout names what actually ran, with its step count.
-        check("timeout sentence did not name the last tool",
-              fallback.reply.contains("computer.active_app"))
-        check("timeout sentence lost its step count",
-              fallback.reply.range(of: #"step \d+/\d+"#,
-                                   options: .regularExpression) != nil)
+        // P1-10b: the three things this sentence used to print.
+        check("the timeout sentence named the tool that ran: \"\(fallback.reply)\"",
+              !fallback.reply.contains("computer.active_app"))
+        check("the timeout sentence carried a step count: \"\(fallback.reply)\"",
+              fallback.reply.range(of: #"\bstep \d+/\d+\b"#,
+                                   options: .regularExpression) == nil)
+        check("the timeout sentence did not say it ran out of time: \"\(fallback.reply)\"",
+              fallback.reply.contains("ran out of time"))
+        AgentToolExecutor.fakeForTesting = nil
 
         // The same budget on the live loop, measured on the prompt a real navigation turn
         // sends. P1-03 replaced the hand-picked twelve-tool roster with the whole classes the
@@ -667,7 +680,13 @@ enum RealtimeAgentToolLoopSelfTest {
             state: ToolLoopTestState(), firstCall: "computer.type"
         )
         let forbidden = await agent.handle("type a secret", source: .text)
-        check("malformed model mutation bypassed argument validation", forbidden.reply.contains("did not run"))
+        // P1-10b: the executor still refuses it, and the refusal no longer names the tool
+        // or counts steps. "did not run" is gone from every user-facing string in the
+        // Agent (P1-10's own Done-when), so the check is on what the sentence now owes:
+        // it must not claim the text was typed, and it must name no id.
+        check("malformed model mutation bypassed argument validation: \"\(forbidden.reply)\"",
+              !forbidden.reply.contains("did not run")
+                  && !forbidden.reply.localizedCaseInsensitiveContains("typed"))
 
         // A stalled model is bounded and cannot produce a late visible answer.
         agent.budgetForTesting = .init(
@@ -677,7 +696,10 @@ enum RealtimeAgentToolLoopSelfTest {
             state: ToolLoopTestState(), delay: .milliseconds(400)
         )
         let timedOut = await agent.handle("inspect this", source: .text)
-        check("tool planner timeout was not visible", timedOut.reply.contains("too long"))
+        // P1-10b: the sentence is the renderer's — the person is still told, in the words
+        // the renderer uses for a timeout.
+        check("tool planner timeout was not visible: \"\(timedOut.reply)\"",
+              timedOut.reply.localizedCaseInsensitiveContains("ran out of time"))
 
         // An ordinary answer, with no tool tag, must begin speaking from the
         // first complete streamed clause. Barge-in must suppress later chunks.
@@ -953,10 +975,315 @@ enum RealtimeAgentToolLoopSelfTest {
         defer { AgentCapabilityManifestBuilder.inputsOverrideForTesting = nil }
         failures.append(contentsOf: await runToleranceCases(agent: agent, check: check))
         failures.append(contentsOf: await runBudgetCases(agent: agent, check: check))
+        failures.append(contentsOf: await runRendererCases(agent: agent, check: check))
 
         for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
         return failures.isEmpty
+    }
+
+    /// P1-10's eight cases. Written before the fix; every one of them fails on the
+    /// unmodified loop, because the loop had no cap, no fitter and no renderer — it
+    /// appended every result verbatim and printed `computer.active_app (step 1/8)` at a
+    /// typed person.
+    ///
+    /// Case 1 (the inverted timeout sentence) lives in `run()` beside the fixture it
+    /// belongs to, because that fixture is the live loop's own and moving it would change
+    /// what it measures. Case 7 is red by construction on today's `voiceSafeReply`, which
+    /// replaces the whole reply when it contains "quota" or "not downloaded" — so
+    /// "What's a sales quota?" came back as a usage-limit notice.
+    @MainActor
+    static func runRendererCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        var failures: [String] = []
+        func fail(_ name: String) { failures.append(name) }
+
+        let hermes: (String) -> String = { "<tool_call>\($0)</tool_call>" }
+        /// A result with a known size and no newline, so the character count the cap
+        /// produced is exact rather than a function of where the lines happened to fall.
+        func bulkResult() -> String { String(repeating: "abcdefghij", count: 3_000) }
+        func charactersOfBulk(_ text: String) -> Int {
+            text.components(separatedBy: "abcdefghij").count - 1
+        }
+
+        // Case 2. The renderer table: every outcome, through `render`, and then through
+        // `scrub` as `conclude` applies it. Nothing a person reads may carry a registry
+        // id, "step n/m", "ERROR:" or — on anything that is not an answer — a URL.
+        let outcomes: [(String, AgentTurnOutcome)] = [
+            ("timedOut/nil", .timedOut(lastVerified: nil)),
+            ("timedOut/result", .timedOut(lastVerified: "Design sync at 15:00.")),
+            ("stopped", .stopped),
+            ("denied", .denied("You declined, so nothing was sent.")),
+            ("infrastructure/plain", .infrastructure("the backend said no in a plain way")),
+            ("infrastructure/usage", .infrastructure(
+                "429 Too Many Requests: you've hit your quota")),
+            ("repairLimit", .repairLimit(lastVerified: nil)),
+            ("contextOverflow", .contextOverflow(lastVerified: "3 files found.")),
+            ("modelUnavailable", .modelUnavailable("Gemma is not downloaded")),
+            ("modelFailed", .modelFailed("Error: context not initialized at 0x1")),
+            ("handedOffFellBack", .handedOffFellBack(
+                note: "Codex stopped: ERROR: You've hit your usage limit. "
+                    + "Visit https://chatgpt.com/codex/settings/usage",
+                then: .modelFailed("the harness exited 1"))),
+        ]
+        // The ids and aliases the scrub has to know about, read from the one registry, so
+        // a new tool is covered the day it is added.
+        let registryNames: [String] = RealtimeAgent.callNames(
+            AgentCapabilityManifestBuilder.build(
+                allEnabledFixture(), request: "what is on my agenda")).sorted()
+        check("the scrub table has no ids to check against (\(registryNames.count))",
+              registryNames.count > 20)
+        for (name, outcome) in outcomes {
+            for voice in [true, false] {
+                let text = AgentReplyRenderer.render(outcome, voice: voice)
+                let both = text + " " + AgentReplyRenderer.scrub(text, outcome: outcome)
+                let lower = both.lowercased()
+                let leaked = registryNames.filter { both.localizedCaseInsensitiveContains($0) }
+                check("render(\(name), voice: \(voice)) leaked \(leaked.prefix(3).joined(separator: ", "))",
+                      leaked.isEmpty)
+                check("render(\(name), voice: \(voice)) printed ERROR:",
+                      !lower.contains("error:"))
+                check("render(\(name), voice: \(voice)) printed a step count",
+                      both.range(of: #"\bstep \d+/\d+\b"#, options: .regularExpression) == nil)
+                if case .answer = outcome {} else {
+                    check("render(\(name), voice: \(voice)) kept a url: \"\(boundedReply(both))\"",
+                          !lower.contains("http://") && !lower.contains("https://"))
+                }
+            }
+        }
+        // The 09-22 string that reached a typed person, verbatim, and what it must become.
+        let codex = AgentReplyRenderer.render(
+            .infrastructure("Codex stopped: ERROR: You've hit your usage limit. "
+                + "Visit https://chatgpt.com/codex/settings/usage"),
+            voice: false)
+        check("the 09-22 Codex string is not a usage-limit sentence: \"\(boundedReply(codex))\"",
+              codex.contains("usage limit"))
+        check("the 09-22 Codex string kept its url: \"\(boundedReply(codex))\"",
+              !codex.contains("chatgpt.com"))
+        check("the 09-22 Codex string kept a tool id: \"\(boundedReply(codex))\"",
+              !codex.contains("Codex stopped"))
+        // The four causes the table maps, and the four actions that fix them.
+        for (reason, expected) in [
+            ("not signed in", "Connect it in Settings"),
+            ("The helper is not installed", "isn't installed"),
+            ("Google timed out", "didn't answer in time"),
+            ("HTTP 429: quota exceeded", "usage limit"),
+        ] {
+            let text = AgentReplyRenderer.render(.infrastructure(reason), voice: false)
+            check("infrastructure(\(reason)) rendered \"\(boundedReply(text))\", expected \(expected)",
+                  text.localizedCaseInsensitiveContains(expected))
+        }
+
+        // Case 3. The cap ladder, as a pure table, and then through a real turn.
+        for (tokens, expected) in [(4_096, 700), (8_192, 1_200), (32_768, 4_000), (262_144, 12_000)] {
+            let cap = ToolResultBudget.characterCap(readerContextTokens: tokens)
+            check("a \(tokens)-token reader got a \(cap)-character cap, expected \(expected)",
+                  cap == expected)
+        }
+        check("a document-reading tool did not get twice the cap",
+              ToolResultBudget.characterCap(readerContextTokens: 262_144, toolID: "read_doc")
+                  == 24_000)
+        check("an ordinary tool got the document tool's cap",
+              ToolResultBudget.characterCap(readerContextTokens: 262_144, toolID: "search_email")
+                  == 12_000)
+        check("WorkspaceToolRunner's cap with no bound reader is not 2,000",
+              WorkspaceToolRunner.maxResultCharacters(toolID: "search_email") == 2_000)
+        let bound = ToolResultBudget.$readerContextTokens.withValue(262_144) {
+            WorkspaceToolRunner.maxResultCharacters(toolID: "search_email")
+        }
+        check("WorkspaceToolRunner's cap inside a 262,144-token reader is \(bound), expected 12,000",
+              bound == 12_000)
+        // And the same four numbers through the loop, with the result the model reads.
+        for (window, expected) in [(4_096, 700), (8_192, 1_200), (32_768, 4_000), (262_144, 12_000)] {
+            let seen = await largestResultSeen(agent: agent, hermes: hermes, bulk: bulkResult(),
+                                               window: window, tool: "search_email")
+            check("a \(window)-token reader was shown \(seen.characters) characters of a "
+                + "30,000-character result, expected at most \(expected) "
+                + "(reply: \(boundedReply(seen.reply)))", seen.characters <= expected)
+        }
+        let readDoc = await largestResultSeen(agent: agent, hermes: hermes, bulk: bulkResult(),
+                                              window: 262_144, tool: "read_doc")
+        check("read_doc at 262,144 tokens was shown \(readDoc.characters) characters, "
+            + "expected over 12,000 and at most 24,000 (reply: \(boundedReply(readDoc.reply)))",
+              readDoc.characters > 12_000 && readDoc.characters <= 24_000)
+
+        // Case 4. The per-round fitter. A provider that counts characters honestly, a
+        // 4,096-token window and four large results: every round it sends has to leave the
+        // visible budget and the headroom inside the window, or the pass is refused for
+        // being too long — which is the failure this case exists to prevent.
+        do {
+            let log = PlannerScriptLog()
+            let calls = Array(repeating: hermes(
+                #"{"name":"search_email","arguments":{"query":"q"}}"#), count: 5)
+                + ["Here is what I found."]
+            agent.localModelProviderForTesting = CountingScriptProvider(
+                window: 4_096, script: calls, log: log)
+            AgentToolExecutor.fakeForTesting = { _, _ in
+                AgentToolResult(summary: bulkResult())
+            }
+            agent.answerDepthForTesting = .fast
+            agent.budgetForTesting = .init(
+                perRound: .seconds(5), perReadCall: .seconds(5),
+                ceiling: .seconds(60), coldLoadAllowance: .zero)
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.clear()
+            let turn = await agent.handle("summarize my last four emails", source: .text)
+            AgentToolExecutor.fakeForTesting = nil
+            agent.localModelProviderForTesting = nil
+            agent.answerDepthForTesting = nil
+            agent.budgetForTesting = nil
+            var worst = 0
+            for call in log.calls {
+                let estimate = (call.system.count + call.user.count) / 4
+                let total = estimate + call.maxTokens + AgentAnswerBudget.safetyTokens
+                worst = max(worst, total)
+            }
+            print("FITTED_PROMPT: \(log.calls.count) round(s), worst total \(worst) tokens "
+                + "of 4,096")
+            check("the fitter let a round ask for \(worst) tokens of a 4,096-token window",
+                  !log.calls.isEmpty && worst <= 4_096)
+            check("the fitter ended the turn on the overflow sentence: \"\(boundedReply(turn.reply))\"",
+                  !turn.reply.contains("did not produce an answer"))
+        }
+
+        // Case 5. A provider that says the prompt did not fit is `.contextOverflow`, and
+        // the sentence is the plain one — not "The tool planner failed: ".
+        do {
+            agent.localModelProviderForTesting = OverflowingScriptProvider()
+            agent.budgetForTesting = nil
+            agent.setTypedPendingForTesting(nil)
+            let turn = await agent.handle("what is on my agenda", source: .text)
+            agent.localModelProviderForTesting = nil
+            check("a context-window error is not a planner failure: \"\(boundedReply(turn.reply))\"",
+                  !turn.reply.contains("The tool planner failed"))
+            check("a context-window error has no plain sentence: \"\(boundedReply(turn.reply))\"",
+                  turn.reply.localizedCaseInsensitiveContains("too much to read"))
+        }
+
+        // Case 6. The 09-22 03:00Z leak, through the one gate every path passes.
+        do {
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000,
+                script: ["Use filesystem.find to search for the pricing sheet."],
+                log: PlannerScriptLog())
+            agent.setTypedPendingForTesting(nil)
+            let turn = await agent.handle("find the pricing sheet", source: .text)
+            agent.localModelProviderForTesting = nil
+            check("a typed reply leaked a tool id through conclude: \"\(boundedReply(turn.reply))\"",
+                  !turn.reply.contains("filesystem.find"))
+            check("the scrub took the sentence with it: \"\(boundedReply(turn.reply))\"",
+                  turn.reply.localizedCaseInsensitiveContains("pricing"))
+        }
+
+        // Case 7. An answer is never rewritten. These three are the user's own topic, and
+        // today's voice rule replaced all of them with a usage-limit or a
+        // download-notice.
+        for (answer, label) in [
+            ("A sales quota is the target a rep must hit in a period.", "a sales quota"),
+            ("The file is not downloaded yet, so open it from Drive first.", "not downloaded"),
+            ("I hit a rate limit on the stairs.", "a rate limit"),
+        ] {
+            check("scrub rewrote an answer about \(label): \"\(answer)\"",
+                  AgentReplyRenderer.scrub(answer, outcome: nil) == answer)
+            check("voiceSafeReply rewrote an answer about \(label)",
+                  RealtimeAgent.voiceSafeReply(answer) == answer)
+        }
+        check("voiceSafeReply rewrote a plain question",
+              RealtimeAgent.voiceSafeReply("What's a sales quota? It's a sales target.")
+                  == "What's a sales quota? It's a sales target.")
+        let usage = AgentReplyRenderer.render(
+            .infrastructure("429 Too Many Requests: you've hit your quota"), voice: true)
+        check("a 429 is not the usage-limit sentence: \"\(boundedReply(usage))\"",
+              usage.localizedCaseInsensitiveContains("usage limit"))
+        let missing = AgentReplyRenderer.render(
+            .modelUnavailable("Gemma is not downloaded"), voice: true)
+        check("a model that is not downloaded is named as not ready: \"\(boundedReply(missing))\"",
+              missing.localizedCaseInsensitiveContains("isn't ready"))
+        // The four raw P0-7 fixtures, through `render` — which is the call
+        // `VoiceCapabilityConversationSelfTest` has to make now that `voiceSafeReply` is a
+        // scrub. Pinned here because the fix is in a file this task does not own, and a
+        // handoff nobody can check is a handoff nobody will make. P0-7's own three
+        // conditions: no "error:", no "http", no "is not downloaded".
+        for raw in [
+            "Codex stopped: ERROR: You've hit your usage limit, I'll do it myself",
+            "The model is not downloaded.",
+            "OpenRouter HTTP 429: Rate limited",
+            "https://openrouter.ai/api/v1 failed",
+        ] {
+            let outcome: AgentTurnOutcome = raw.contains("not downloaded")
+                ? .modelUnavailable(raw) : .infrastructure(raw)
+            let fixed = AgentReplyRenderer.render(outcome, voice: true)
+            let fixedLower = fixed.lowercased()
+            check("P0-7 fixture \"\(raw)\" still leaks raw text through render: "
+                + "\"\(boundedReply(fixed))\"",
+                  !fixedLower.contains("error:") && !fixedLower.contains("http")
+                    && !fixedLower.contains("is not downloaded"))
+        }
+
+        // Case 8. A speakable answer is spoken. The verified result used to win over the
+        // reply, so "You have two events: standup at 9 and review at 3." was replaced by
+        // the agenda count while the person was waiting for the sentence they could read.
+        do {
+            let tracker = AgentToolSpeechTracker(
+                agent: agent, turn: agent.currentGeneration, allowSpeech: false)
+            tracker.recordVerifiedResult(toolID: "get_agenda",
+                                         output: "- 09:00 standup\n- 15:00 review")
+            let spoken = tracker.spokenFallback(
+                for: "You have two events: standup at 9 and review at 3.")
+            check("a speakable answer was replaced by the result summary: \"\(boundedReply(spoken))\"",
+                  spoken.contains("standup at 9"))
+            let noVerified = AgentToolSpeechTracker(
+                agent: agent, turn: agent.currentGeneration, allowSpeech: false)
+            let unspeakable = noVerified.spokenFallback(for: "See /Users/x/a.txt")
+            check("an unspeakable answer with no result read a path aloud: \"\(boundedReply(unspeakable))\"",
+                  unspeakable == "I have the result, but its details are easier to read "
+                    + "in the conversation.")
+        }
+
+        return failures
+    }
+
+    /// How much of a 30,000-character result the next round's user message actually
+    /// carried, for one reader window. A real turn through the real loop, so the number is
+    /// the one the model would read rather than the one the table predicts.
+    @MainActor
+    private static func largestResultSeen(
+        agent: RealtimeAgent, hermes: (String) -> String, bulk: String,
+        window: Int, tool: String
+    ) async -> (characters: Int, reply: String) {
+        let log = PlannerScriptLog()
+        let arguments = tool == "read_doc"
+            ? #"{"document_id":"1"}"# : #"{"query":"pricing"}"#
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: window, promptTokens: 2_000,
+            script: [hermes("{\"name\":\"\(tool)\",\"arguments\":\(arguments)}"),
+                     "Here is what it says."],
+            log: log)
+        AgentToolExecutor.fakeForTesting = { _, _ in AgentToolResult(summary: bulk) }
+        agent.budgetForTesting = nil
+        agent.setTypedPendingForTesting(nil)
+        AgentSession.shared.clear()
+        let ran = ScriptedToolLog()
+        AgentToolExecutor.fakeForTesting = { tool, _ in
+            ran.record(tool.id)
+            return AgentToolResult(summary: bulk)
+        }
+        let turn = await agent.handle("what is in the pricing sheet", source: .text)
+        AgentToolExecutor.fakeForTesting = nil
+        agent.localModelProviderForTesting = nil
+        // Every round, not only the last: the point is how much of the result the model was
+        // shown, and a plan that took a repair round puts the result in an earlier one.
+        let seen = log.calls.map(\.user).map { user -> Int in
+            (user.components(separatedBy: bulk.prefix(10)).count - 1) * 10
+        }.max() ?? 0
+        return (seen, "\(log.calls.count) round(s); tools=\(ran.toolIDs); "
+            + "longest user \(log.calls.map(\.user.count).max() ?? 0) chars; " + turn.reply)
+    }
+
+    /// A reply is logged, never replayed into the unified log whole.
+    private static func boundedReply(_ text: String) -> String {
+        String(text.prefix(160).replacingOccurrences(of: "\n", with: " "))
     }
 
     /// P1-06's cases: a per-round deadline, a ceiling, the cold-load allowance, and the one
@@ -1035,7 +1362,7 @@ enum RealtimeAgentToolLoopSelfTest {
             check("a three-read plan ran \(result.tools.count) read(s), expected 3",
                   result.tools.count == 3)
             check("a three-read plan said it ran out of time: \"\(result.reply)\"",
-                  !result.reply.contains("took too long"))
+                  !result.reply.localizedCaseInsensitiveContains("ran out of time"))
         }
 
         // Case 2. One round over its own deadline, after a read succeeded. The read's result
@@ -1049,7 +1376,7 @@ enum RealtimeAgentToolLoopSelfTest {
             check("a round over its deadline threw the verified read away: \"\(result.reply)\"",
                   result.reply.hasPrefix(fixture))
             check("a round over its deadline did not say so: \"\(result.reply)\"",
-                  result.reply.contains("too long"))
+                  result.reply.localizedCaseInsensitiveContains("ran out of time"))
             check("a round over its deadline ran \(result.tools.count) read(s), expected 1",
                   result.tools.count == 1)
         }
@@ -1834,6 +2161,68 @@ private final class ScriptedToolLog: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return storage
+    }
+}
+
+/// P1-10's fitter fixture: a scripted planner that counts characters honestly
+/// (`characters / 4`) and reports a 4,096-token window, so the per-round fitter is measured
+/// against a real estimate rather than a pinned one. The last script entry repeats.
+private struct CountingScriptProvider: LLMProvider {
+    let id = LLMProviderID.localServer
+    let window: Int
+    let script: [String]
+    let log: PlannerScriptLog
+    var contextTokens: Int { window }
+    var unavailableReason: String? { get async { nil } }
+
+    func countTokens(_ text: String) async throws -> Int { max(1, text.count / 4) }
+
+    func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+        let index = log.calls.count
+        log.record(.init(system: system, user: user, maxTokens: maxTokens))
+        let text = index < script.count ? script[index] : "There is nothing more to add."
+        return LLMCompletion(text: text, generatedTokens: text.count, duration: 0)
+    }
+
+    func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    let completion = try await complete(
+                        system: system, user: user, maxTokens: maxTokens)
+                    continuation.yield(completion.text)
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
+    }
+}
+
+/// P1-10's overflow fixture: a provider that refuses every pass the way llama.cpp does when
+/// the prompt is longer than the model's context. Both shapes of turn are refused, so the
+/// turn cannot pass by taking the header path.
+private struct OverflowingScriptProvider: LLMProvider {
+    let id = LLMProviderID.appLLM
+    var contextTokens: Int { 4_096 }
+    var unavailableReason: String? { get async { nil } }
+
+    func countTokens(_ text: String) async throws -> Int { max(1, text.count / 4) }
+
+    func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+        throw LlamaError.inputTooLong
+    }
+
+    func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { $0.finish(throwing: LlamaError.inputTooLong) }
+    }
+
+    func streamConversation(
+        system: String, messages: [LLMChatMessage], maxTokens: Int
+    ) async -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { $0.finish(throwing: LlamaError.inputTooLong) }
     }
 }
 

@@ -32,13 +32,30 @@ enum AgentToolLoop {
 
     /// Builds the next user message. Empty results is the original utterance; later
     /// rounds are that utterance plus what the tools already returned.
-    static func userMessage(original: String, results: [String]) -> String {
+    ///
+    /// `readerContextTokens` exists for one reason: by round four the prompt is carrying
+    /// four answers, and the two that matter are the last two. Everything older is reduced
+    /// to its first line — which is a tool answer's own summary — so the newest result
+    /// reaches the model whole instead of being crowded out by three earlier ones
+    /// (P1-10a). The default is 8,192 because `ScheduledRunner`'s caller keeps compiling
+    /// without it, and 8,192 is the window that number was measured against.
+    static func userMessage(
+        original: String, results: [String], readerContextTokens: Int = 8_192
+    ) -> String {
         guard !results.isEmpty else { return original }
+        // A result arrives here as `"<name> returned:\n<text>"`, so this function cannot
+        // tell a mail body from a file listing and must not halve one of them: the limit
+        // below is the *document* ceiling, and the planner has already applied the tighter
+        // per-tool cap where it knew the id. What this buys is the scheduled-routine loop,
+        // which appends uncapped results and has no other place to bound them.
+        let ceiling = ToolResultBudget.characterCap(readerContextTokens: readerContextTokens) * 2
+        let carried = ToolResultBudget.fold(results)
+            .map { ToolResultBudget.cap($0, to: ceiling) }
         return """
             \(original)
 
             What you have already done:
-            \(results.joined(separator: "\n"))
+            \(carried.joined(separator: "\n"))
 
             Continue. If you have enough to answer, reply in plain language with no tool calls.
             """
