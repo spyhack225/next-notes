@@ -845,7 +845,12 @@ final class RealtimeAgent {
     }
 
     private static func conversationGroundedPrompt(_ prompt: String, reader: LLMProviderID) -> String {
-        let conversation = AgentSession.shared.contextForCurrentTurn(maxCharacters: 3_000)
+        // P1-11: the third model-facing view of the conversation, and the one the explicit
+        // on-device route reads. It is not asked to check a claim — that route is answer-only
+        // by the person's own request — but it must not be *shown* an earlier turn's
+        // fabrication, which is how G turns A1 and A6 happened.
+        let conversation = AgentSession.shared.contextForCurrentTurn(
+            maxCharacters: 3_000, scrubToolClaims: true)
         let grounding = NextMemory.shared.grounding(for: prompt, reader: reader)
         var sections: [String] = []
         if !conversation.isEmpty {
@@ -1162,7 +1167,13 @@ final class AgentSession {
     /// The last user row is the active request; include only completed earlier turns.
     /// Fit whole turns from the tail so a long tool answer cannot erase its question.
     /// Turns folded by compaction arrive first, as one summary labelled reference-only.
-    func contextForCurrentTurn(maxCharacters: Int? = nil) -> String {
+    ///
+    /// `scrubToolClaims` is P1-11's: the two views a model is shown this turn (the planner's
+    /// string context and the first pass's chat history) ask for the claim sentences to be
+    /// dropped, because a 4B model copies an earlier turn's fabricated sentence out of the
+    /// history rather than inventing one (G turns A1, A6, A7). The stored rows and the
+    /// sidebar are not touched, and every other caller keeps the plain view.
+    func contextForCurrentTurn(maxCharacters: Int? = nil, scrubToolClaims: Bool = false) -> String {
         let tail = messages[tailStartIndex...]
         let earlier = tail.last?.role == "user" ? tail.dropLast() : tail
         var remaining = min(Self.contextCharacters, max(0, maxCharacters ?? Self.contextCharacters))
@@ -1181,9 +1192,17 @@ final class AgentSession {
             } else {
                 label = "Assistant\(message.contextKind.map { " [\($0) result]" } ?? "")"
             }
+            // Assistant rows only. What the person said is evidence about the request and is
+            // never edited; a row that was entirely a claim leaves nothing to show, so it is
+            // dropped rather than shown as a bare label.
+            let body = scrubToolClaims && message.role != "user"
+                ? ToolClaimGuard.scrubHistory(
+                    message.modelContextText, roster: ToolClaimGuard.registryNames)
+                : message.modelContextText
+            guard !body.isEmpty else { continue }
             let room = min(1_800, remaining - label.count - 2)
             guard room > 0 else { break }
-            let line = "\(label): \(String(message.modelContextText.prefix(room)))"
+            let line = "\(label): \(String(body.prefix(room)))"
             selected.append(line)
             // The separator counts too, so the joined context stays inside the budget.
             remaining -= line.count + 2
@@ -1194,8 +1213,12 @@ final class AgentSession {
     /// Keep the speaker roles intact for chat models. The previous string
     /// context put every past Assistant answer inside the current User message;
     /// The local model then copied a past answer when the person asked about an error.
+    ///
+    /// `scrubToolClaims` is P1-11's, and it drops sentences from **assistant** rows only:
+    /// what the person said is evidence about the request and stays exactly as written.
     func chatHistoryForCurrentTurn(maxCharacters: Int, excludingLastUser: Bool = true,
-                                  includeDeliveryNotes: Bool = true) -> [LLMChatMessage] {
+                                  includeDeliveryNotes: Bool = true,
+                                  scrubToolClaims: Bool = false) -> [LLMChatMessage] {
         let tail = messages[tailStartIndex...]
         let earlier = excludingLastUser && tail.last?.role == "user" ? tail.dropLast() : tail
         var remaining = max(0, maxCharacters)
@@ -1207,7 +1230,14 @@ final class AgentSession {
             guard message.role == "user" || message.role == "assistant" else { continue }
             let room = min(1_800, remaining)
             guard room > 0 else { break }
-            let content = String((includeDeliveryNotes ? message.modelContextText : message.text).prefix(room))
+            let raw = includeDeliveryNotes ? message.modelContextText : message.text
+            // Assistant rows only, for the reason `contextForCurrentTurn` gives: the claim
+            // sentences in an earlier answer are the ones a model copies back as its own.
+            let body = scrubToolClaims && message.role == "assistant"
+                ? ToolClaimGuard.scrubHistory(raw, roster: ToolClaimGuard.registryNames)
+                : raw
+            guard !body.isEmpty else { continue }
+            let content = String(body.prefix(room))
             selected.append(LLMChatMessage(
                 role: message.role == "user" ? .user : .assistant,
                 content: content

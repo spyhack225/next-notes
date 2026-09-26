@@ -569,7 +569,10 @@ extension RealtimeAgent {
         Self.publishGrounding()
         // A stable work item receives microphone follow-ups while this producer
         // runs. An obsolete response is discarded before it can become an action.
-        let history = AgentSession.shared.chatHistoryForCurrentTurn(maxCharacters: 2_500)
+        // P1-11: this view drops an earlier turn's claim sentences, which is the
+        // one thing a 4B model copies instead of inventing.
+        let history = AgentSession.shared.chatHistoryForCurrentTurn(
+            maxCharacters: 2_500, scrubToolClaims: true)
         let coldLocalModel = localModelProviderForTesting == nil && provider.id == .appLLM
             ? !(await NotesModelRuntime.shared.isLoaded) : false
         if coldLocalModel { beginWork(title: "Loading local model…") }
@@ -663,8 +666,10 @@ extension RealtimeAgent {
                         switch VoiceResponseEnvelope.parse(assembled) {
                         case .answer(let answer):
                             // Hold the audio while the sentence could still be a denial the
-                            // roster contradicts; see `AgentRefusalGuard.mayBeDenial`.
-                            if let speech, !AgentRefusalGuard.mayBeDenial(answer) {
+                            // roster contradicts, or a claim nothing ran; see
+                            // `AgentRefusalGuard.mayBeDenial` and `ToolClaimGuard.mayBeClaim`.
+                            if let speech, !AgentRefusalGuard.mayBeDenial(answer),
+                               !ToolClaimGuard.mayBeClaim(answer) {
                                 await speech.receive(answer)
                             }
                         case .tools:
@@ -822,6 +827,21 @@ extension RealtimeAgent {
                         trace.end(note: "refusal-escalation")
                         return AgentModelTurnResult(reply: reply, usedTools: true)
                     }
+                    // P1-11: this pass has no tools at all, so a claim of a completed one is
+                    // unsupported by definition. The planner is the same escalation the
+                    // refusal above uses — it can run what is missing, and it is where the
+                    // claim is checked again with something behind it.
+                    if !ToolClaimGuard.unsupported(
+                        ToolClaimGuard.claims(
+                            in: text, roster: ToolClaimGuard.registryNames),
+                        completed: []).isEmpty {
+                        speech?.cancel()
+                        beginWork(title: "Working with tools…")
+                        let trace = LatencyTrace.start(.agentToolCallToResult)
+                        let reply = await runPlannedToolLoop(prompt, speech: speech, voice: voice, provider: provider)
+                        trace.end(note: "claim-escalation")
+                        return AgentModelTurnResult(reply: reply, usedTools: true)
+                    }
                     speech?.finish(hasToolCalls: false)
                     return AgentModelTurnResult(
                         reply: text.isEmpty
@@ -954,7 +974,12 @@ extension RealtimeAgent {
     /// The earlier-conversation section's header, in one spelling. P1-10a's fitter drops
     /// this section first when a round's prompt will not fit, and a header it had to
     /// re-spell would be a second copy of the rule.
-    static let conversationSectionLabel = "Earlier Agent conversation:"
+    ///
+    /// P1-11 adds the parenthetical because the section no longer carries the earlier turn's
+    /// claims: what it does carry is data, and nothing in it ran in this turn. The scrub is
+    /// the real defence; this tells the model the rule it is already being given.
+    static let conversationSectionLabel =
+        "Earlier Agent conversation (earlier turns; nothing in it ran in this turn):"
 
     /// The tools a turn may execute, from the one manifest.
     ///
@@ -1248,8 +1273,8 @@ extension RealtimeAgent {
         let maxCalls = maxCallsForTesting ?? callCap
         let memoryGrounding = NextMemory.shared.grounding(for: prompt)
         let conversation = AgentSession.shared.contextForCurrentTurn(
-            maxCharacters: provider.contextTokens < 8_000 ? 2_500 : 6_000
-        )
+            maxCharacters: provider.contextTokens < 8_000 ? 2_500 : 6_000,
+            scrubToolClaims: true)
         var contextSections: [String] = []
         if !conversation.isEmpty {
             contextSections.append(Self.conversationSectionLabel + "\n" + conversation)
@@ -1264,6 +1289,9 @@ extension RealtimeAgent {
         // telling us something the correction cannot fix, and a loop here would cost the
         // user another prefill for nothing.
         var rebutted = false
+        // P1-11's own budget, for the same reason and independently of the one above: one
+        // claim correction, then the honest sentence rather than the text.
+        var claimCorrected = false
         // P1-04: repairs and repeats are the two ways a turn costs itself another round, and
         // both are capped. The cap is what makes the tolerant parser safe to have: a model
         // that keeps writing the same wrong call spends two rounds learning it, not twenty.
@@ -1534,7 +1562,8 @@ extension RealtimeAgent {
                                 || leading.hasPrefix("<") || leading.hasPrefix("{")
                                 ? "" : spokenConfirmations + " "
                             let snapshot = prefix + assembled
-                            if !AgentRefusalGuard.mayBeDenial(assembled) {
+                            if !AgentRefusalGuard.mayBeDenial(assembled),
+                               !ToolClaimGuard.mayBeClaim(assembled) {
                                 await speech.receive(snapshot)
                             }
                         }
@@ -1694,6 +1723,28 @@ extension RealtimeAgent {
                     results.append(ToolResultBudget.cap(note, to: 1_200))
                     AgentAuditLog.shared.record(kind: .reply, title: "Re-planned after a false refusal",
                                                 detail: String(reply.prefix(120)))
+                    continue
+                }
+                // P1-11 (G N5). "I ran the get_agenda tool. Your main calendar for today shows
+                // no booked events." — four of nine Apple FM turns, typed, 2026-09-23. The
+                // prompt already forbids inventing a result; this is what catches the model
+                // that ignored it, and it costs one re-plan rather than the turn. A claim a
+                // call in this turn backs is not a claim and falls through untouched.
+                let unsupportedClaims = ToolClaimGuard.unsupported(
+                    ToolClaimGuard.claims(
+                        in: reply, roster: ToolClaimGuard.roster(for: manifest)),
+                    completed: completedToolIDs)
+                if !unsupportedClaims.isEmpty {
+                    speech?.cancel()
+                    AgentAuditLog.shared.record(
+                        kind: .reply, title: "Re-planned after an unsupported tool claim",
+                        detail: String(reply.prefix(120)))
+                    if claimCorrected {
+                        return planned(confirmed(AgentReplyRenderer.render(
+                            .answer(ToolClaimGuard.honestReply), voice: voice)))
+                    }
+                    claimCorrected = true
+                    results.append(ToolClaimGuard.replanNote)
                     continue
                 }
                 return planned(reply.isEmpty ? "The tool plan did not produce an answer." : confirmed(reply))

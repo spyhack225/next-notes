@@ -976,6 +976,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runToleranceCases(agent: agent, check: check))
         failures.append(contentsOf: await runBudgetCases(agent: agent, check: check))
         failures.append(contentsOf: await runRendererCases(agent: agent, check: check))
+        failures.append(contentsOf: await runClaimGuardCases(agent: agent, check: check))
 
         for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
@@ -1539,6 +1540,219 @@ enum RealtimeAgentToolLoopSelfTest {
             check("a second refill is \(remaining), expected 60 (never more than the half)",
                   remaining == .seconds(60))
         }
+
+        return failures
+    }
+
+    /// P1-11's cases. A reply may not claim a tool ran when none did (G N5), and the history
+    /// a model is shown carries no claim to copy.
+    ///
+    /// Written before the guard. Cases a, b, d and every positive row of e fail on the
+    /// unmodified loop, because the loop had nowhere to look: `completedToolIDs` was kept and
+    /// never consulted on the way out, and "Earlier Agent conversation" carried an earlier
+    /// turn's fabricated sentence verbatim.
+    ///
+    /// Case c and the zero rows of e are the other half of the task and are the reason this
+    /// can ship: a claim the turn's own call backs passes through untouched, and an honest
+    /// negative — the answer a person gets when a search really did match nothing — is not a
+    /// claim and is never replaced by `honestReply`.
+    @MainActor
+    static func runClaimGuardCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        var failures: [String] = []
+        func fail(_ name: String) { failures.append(name) }
+
+        /// One scripted plan: the provider's script, the calls the executor answered, and the
+        /// exact user message of every round. The last of those is what carries the re-plan
+        /// note, and what must not carry a stale claim.
+        struct Case {
+            let reply: String
+            let tools: [String]
+            let users: [String]
+        }
+
+        @MainActor
+        func run(
+            request: String, script: [String],
+            seeding: [(user: String, assistant: String)] = []
+        ) async -> Case {
+            let log = PlannerScriptLog()
+            let ran = ScriptedToolLog()
+            AgentToolExecutor.fakeForTesting = { tool, _ in
+                ran.record(tool.id)
+                return AgentToolResult(summary: "Design sync, Dentist")
+            }
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+            agent.setTypedPendingForTesting(nil)
+            agent.budgetForTesting = nil
+            AgentSession.shared.clear()
+            // Seeded after the clear, because that is the state a stale claim would arrive in.
+            for turn in seeding {
+                AgentSession.shared.recordUser(turn.user, source: .text)
+                AgentSession.shared.recordAssistant(turn.assistant)
+            }
+            let turn = await agent.handle(request, source: .text)
+            AgentToolExecutor.fakeForTesting = nil
+            return Case(reply: turn.reply, tools: ran.toolIDs, users: log.calls.map(\.user))
+        }
+
+        let hermes: (String) -> String = { "<tool_call>\($0)</tool_call>" }
+        let agenda = hermes(#"{"name":"get_agenda","arguments":{}}"#)
+        let calendar = "what's on my calendar today?"
+        // G turn A7, word for word: the sentence reached a typed person on 2026-09-23.
+        let invented = "I ran the get_agenda tool. Your main calendar for today shows no booked events."
+
+        // a. A claim with nothing behind it buys one re-plan, and the round after it runs the
+        //    tool and answers from what it returned. The fabricated sentence is never delivered.
+        do {
+            let result = await run(
+                request: calendar,
+                script: [
+                    invented,
+                    agenda,
+                    "You have a standup at 9:30 and a budget review at 2.",
+                ])
+            check("an unsupported claim made \(result.users.count) model call(s), expected 3 "
+                + "(the claim, the re-plan, the answer)", result.users.count == 3)
+            check("the re-plan round was not told that no tool ran",
+                  result.users.count > 1 && result.users[1].contains(ToolClaimGuard.replanNote))
+            check("the re-planned turn ran \(result.tools), expected the agenda read",
+                  result.tools == ["get_agenda"])
+            check("the fabricated answer reached the user: \"\(result.reply)\"",
+                  !result.reply.contains("no booked events"))
+            check("the re-planned turn did not answer from what the tool returned: "
+                + "\"\(result.reply)\"", result.reply.contains("standup at 9:30"))
+        }
+
+        // b. A second claim is the end of the turn, and the honest sentence replaces it whole.
+        do {
+            let result = await run(request: calendar, script: [invented, invented, invented])
+            check("a second unsupported claim did not end on the honest sentence: "
+                + "\"\(result.reply)\"", result.reply.contains(ToolClaimGuard.honestReply))
+            check("the second-strike reply kept the fabricated tool name: \"\(result.reply)\"",
+                  !result.reply.contains("get_agenda"))
+            check("the second-strike reply kept the fabricated answer: \"\(result.reply)\"",
+                  !result.reply.contains("no booked events"))
+            check("a claim re-planned \(result.users.count) time(s), expected exactly 2",
+                  result.users.count == 2)
+            check("the second strike ran a tool: \(result.tools)", result.tools.isEmpty)
+        }
+
+        // c. A claim the turn's own call backs is not touched. This is the row that keeps the
+        //    guard from being a refusal machine.
+        do {
+            let result = await run(
+                request: calendar,
+                script: [agenda, "I checked your calendar: standup at 9:30."])
+            check("a claim backed by the call that ran was rewritten: \"\(result.reply)\"",
+                  result.reply.contains("I checked your calendar: standup at 9:30."))
+            check("a backed claim was replaced by the honest sentence: \"\(result.reply)\"",
+                  !result.reply.contains(ToolClaimGuard.honestReply))
+            check("a backed claim cost an extra round: \(result.users.count)",
+                  result.users.count == 2)
+        }
+
+        // d. The history a model is shown carries no claim, and the store does. The seeded
+        //    sentence is G turn A1: an earlier turn's own fabrication, which is what four of
+        //    the nine Apple FM turns copied.
+        let stale = "I've searched Desktop, Documents, and Downloads — 7,831 files — "
+            + "using filesystem.find. No exact match for \u{201C}Indian direct\u{201D}."
+        do {
+            let result = await run(
+                request: "what was my last request?",
+                script: ["You asked me to look for Indian direct."],
+                seeding: [(user: "find indian direct", assistant: stale)])
+            let first = result.users.first ?? ""
+            check("the planner's prompt still carried the stale claim: \"\(first)\"",
+                  !first.contains("filesystem.find") && !first.contains("7,831 files"))
+            check("the planner's prompt lost what the person actually asked",
+                  first.contains("find indian direct"))
+            check("the scrub edited the stored conversation",
+                  AgentSession.shared.messages.contains { $0.text == stale })
+            // The voice first pass reads the other view, so both are pinned: the scrub on, and
+            // the same function's default off for every other caller.
+            let scrubbed = AgentSession.shared.chatHistoryForCurrentTurn(
+                maxCharacters: 2_500, scrubToolClaims: true)
+            check("the first pass's history view kept the stale claim",
+                  !scrubbed.contains { $0.content.contains("7,831 files") }
+                      && !scrubbed.contains { $0.content.contains("filesystem.find") })
+            check("the first pass's history view dropped the user's own words",
+                  !scrubbed.isEmpty)
+            let raw = AgentSession.shared.chatHistoryForCurrentTurn(maxCharacters: 2_500)
+            check("scrubbing is not the default for every caller of the history view",
+                  raw.contains { $0.content.contains("7,831 files") })
+            let context = AgentSession.shared.contextForCurrentTurn(
+                maxCharacters: 6_000, scrubToolClaims: true)
+            check("the string context view kept the stale claim",
+                  !context.contains("7,831 files") && context.contains("find indian direct"))
+        }
+
+        // e. The table, pure: no provider, no executor, no turn. The last column is the number
+        //    of *unsupported* claims, which is the only number that ends a turn.
+        let roster: Set<String> = [
+            "get_agenda", "search_email", "computer.open_app", "filesystem.find",
+        ]
+        func unsupported(_ text: String, completed: [String] = []) -> Int {
+            ToolClaimGuard.unsupported(
+                ToolClaimGuard.claims(in: text, roster: roster), completed: completed).count
+        }
+        let table: [(String, [String], Int)] = [
+            // The offer, the idiom, and the honest negative: none of them is a claim, and
+            // none of them may be replaced by the honest sentence.
+            ("I can check your calendar", [], 0),
+            ("Ran into traffic?", [], 0),
+            ("Shall I look at your calendar?", [], 0),
+            ("No new emails found in the last few days.", [], 0),
+            ("I couldn't find that in your inbox.", [], 0),
+            ("Here is your day: standup at 9:30, budget review at 2.", [], 0),
+            // A claim with nothing behind it, in each shape the guard reads. The G A7
+            // sentence is two claims, not one: the verb and the tool it names.
+            ("I checked your inbox", [], 1),
+            ("I ran the get_agenda tool.", [], 2),
+            ("7,831 files searched, no exact match.", [], 1),
+            ("I found Pricing 2026.pdf in your Documents folder.", [], 1),
+            // …and the same sentences with the call that backs them.
+            ("Earlier I opened Safari", ["computer.open_app"], 0),
+            ("I checked your calendar: standup at 9:30.", ["get_agenda"], 0),
+            ("I found Pricing 2026.pdf in your Documents folder.", ["filesystem.find"], 0),
+        ]
+        for (text, completed, expected) in table {
+            let got = unsupported(text, completed: completed)
+            check("claims(\"\(text)\") with completed=[\(completed.joined(separator: ","))] is "
+                + "\(got) unsupported, expected \(expected)", got == expected)
+        }
+        // A claim that names a tool says which one, so the audit row and the model can both
+        // be specific about it.
+        let named = ToolClaimGuard.claims(in: "Nothing matched, using filesystem.find.", roster: roster)
+        check("a claim naming a tool did not record which (\(named))",
+              named.contains { $0.toolID == "filesystem.find" })
+        let unnamed = ToolClaimGuard.claims(in: "I looked through your files.", roster: roster)
+        check("a first-person claim with no id invented one (\(unnamed))",
+              unnamed.count == 1 && unnamed[0].toolID == nil)
+        // The speech gate. Generous on purpose, like `AgentRefusalGuard.mayBeDenial`: a pause
+        // costs nothing, "I ran —" being heard does.
+        for (partial, expected) in [
+            ("I ran", true), ("I checked yo", true), ("I have", true),
+            ("I can check your calendar", false), ("Let me", false), ("", false),
+        ] {
+            check("mayBeClaim(\"\(partial)\") is \(ToolClaimGuard.mayBeClaim(partial)), "
+                + "expected \(expected)", ToolClaimGuard.mayBeClaim(partial) == expected)
+        }
+        // The history scrub, sentence by sentence, on the G A1 text itself.
+        let scrubbedHistory = ToolClaimGuard.scrubHistory(
+            "Here is your day: standup at 9:30. I've searched Desktop, Documents, and Downloads "
+                + "— 7,831 files — using filesystem.find. Nothing matched.", roster: roster)
+        check("the history scrub kept \"\(scrubbedHistory)\"",
+              scrubbedHistory == "Here is your day: standup at 9:30. Nothing matched.")
+        check("the history scrub rewrote a clean sentence",
+              ToolClaimGuard.scrubHistory("Nothing matched.", roster: roster) == "Nothing matched.")
+        // And the one list both the guard and the live eval read.
+        let names = ToolClaimGuard.registryNames
+        check("the shared name list lost a registered id (\(names.count) names)",
+              names.contains("get_agenda") && names.contains("filesystem.find")
+                  && names.contains("files.find") && names.contains("workspace.search_email"))
 
         return failures
     }
