@@ -183,12 +183,18 @@ enum CleanupGuard {
         let text: String
         let rejectedSentences: Int
         let totalSentences: Int
+        /// True when the pieces that were judged were clauses of one run-on rather than
+        /// sentences, so the record says "parts" and not "sentences". The two counts above
+        /// are left under their own names: they are the number of pieces either way, and
+        /// renaming them would have touched every caller for a word in a sentence. (D-11.)
+        let usedClauses: Bool
 
         /// For the per-run record. No jargon: the person reading this does not know what a
         /// guard is, and should not have to.
         var plainReason: String {
-            "\(rejectedSentences) of \(totalSentences) sentences changed too much to trust, "
-                + "so those were used as spoken"
+            let piece = usedClauses ? "part" : "sentence"
+            return "\(rejectedSentences) of \(totalSentences) \(piece)s changed too much to "
+                + "trust, so those were used as spoken"
         }
     }
 
@@ -209,11 +215,54 @@ enum CleanupGuard {
     /// sentence was the problem, it has not learned anything the aggregate did not know,
     /// and the aggregate is the more suspicious of the two.
     ///
+    /// ## Two grains, and why a run-on is the one that needed the second
+    ///
+    /// The paragraph above assumes the input has more than one sentence, which is the whole
+    /// reason it used to give up on a run-on. Parakeet returns one long sentence with no
+    /// internal full stops when the speaker did not pause — at 2026-09-22 03:42Z a 110-word
+    /// dictation was rejected for one invented word ("ui ux" expanded to "user interface")
+    /// and every filler removal and repair in the other 108 words was thrown away after
+    /// 5.2 s of waiting. So a sentence above `clauseWordThreshold` is opened into its
+    /// clauses and *those* are the units. The guard is right about the invention either way;
+    /// the grain was what hurt.
+    ///
+    /// The sentence grain is attempted second rather than dropped, so a long answer whose
+    /// clauses will not align — a model that rewrote the shape of the run-on — still gets
+    /// exactly the salvage it got before. An answer can therefore never salvage *less* than
+    /// it did; it can only salvage more.
+    ///
     /// - Returns: nil when there is nothing to salvage; the caller then falls back exactly
     ///   as it did before.
     static func salvage(original: String, cleaned: String, mode: Mode) -> Salvage? {
-        let sources = SentenceChunker.sentences(in: original)
-        let candidates = SentenceChunker.sentences(in: cleaned)
+        let sourceSentences = SentenceChunker.sentences(in: original)
+        let candidateSentences = SentenceChunker.sentences(in: cleaned)
+        let opened = sourceSentences.contains {
+            SentenceChunker.wordCount($0) > clauseWordThreshold
+        }
+        if let salvaged = judgePairs(
+            sources: units(of: sourceSentences),
+            candidates: units(of: candidateSentences),
+            usedClauses: opened,
+            mode: mode
+        ) {
+            return salvaged
+        }
+        return judgePairs(
+            sources: sourceSentences,
+            candidates: candidateSentences,
+            usedClauses: false,
+            mode: mode
+        )
+    }
+
+    /// The pair loop at one grain. nil when this grain has nothing to say — too few pieces,
+    /// pieces that will not align, or nothing the aggregate did not already know.
+    private static func judgePairs(
+        sources: [String],
+        candidates: [String],
+        usedClauses: Bool,
+        mode: Mode
+    ) -> Salvage? {
         guard sources.count > 1 else { return nil }
         guard let pairs = aligned(sources: sources, candidates: candidates) else { return nil }
 
@@ -243,9 +292,86 @@ enum CleanupGuard {
         return Salvage(
             text: text,
             rejectedSentences: rejected,
-            totalSentences: pairs.count
+            totalSentences: pairs.count,
+            usedClauses: usedClauses
         )
     }
+
+    // MARK: - Clauses
+
+    /// Above this many words a "sentence" is a run-on, and a verdict taken on all of it at
+    /// once is a verdict on 110 words of which one clause was the problem. (D-11.)
+    private static let clauseWordThreshold = 30
+
+    /// The shortest a piece may be and still be judged on its own.
+    ///
+    /// Four words, and it is a floor on *both* sides of every cut: a clause shorter than that
+    /// is a fragment, and `rejection` is a verdict about what was said in it — the length
+    /// ratio below 0.35 and the one-allowed-mis-hearing budget both assume a whole thought.
+    private static let minimumClauseWords = 4
+
+    /// A run-on opened into its clauses.
+    ///
+    /// Cut after a comma, a semicolon or a colon, and before "and", "but", "so", "because"
+    /// and "then" — the places a speaker actually pauses in, and the ones the model was asked
+    /// to punctuate, so the two halves of a pair are the two halves of the thought. Punctuation
+    /// stays with the clause it ends and a conjunction opens the next one, so joining the
+    /// clauses back together loses nothing.
+    ///
+    /// A closed list of conjunctions on purpose. Splitting on every "or", "which" or "that"
+    /// would make fragments out of sentences the guard had no trouble with, and a fragment
+    /// judged on its own is exactly the false verdict this change exists to avoid.
+    ///
+    /// Pure and deterministic — the same sentence always opens the same way, which is what
+    /// lets a fixture assert it. Returns `[sentence]` unchanged when the sentence is too short
+    /// to have two such pieces, so the caller never sees a differently-spaced version of a
+    /// sentence it did not need to touch.
+    static func clauses(in sentence: String) -> [String] {
+        let words = sentence.split(whereSeparator: \.isWhitespace).map(String.init)
+        guard words.count > minimumClauseWords * 2 else { return [sentence] }
+        var pieces: [String] = []
+        var current: [String] = []
+        for (index, word) in words.enumerated() {
+            // A conjunction opens the next clause, so what has to be long enough is what has
+            // been read *and* what is left.
+            let opens = index > 0
+                && current.count >= minimumClauseWords
+                && words.count - index >= minimumClauseWords
+                && clauseOpeners.contains(word.lowercased())
+            if opens {
+                pieces.append(current.joined(separator: " "))
+                current = []
+            }
+            current.append(word)
+            // A mark of punctuation ends the clause it follows, and is kept with it. Not
+            // after a cut above, or "…, and the rest" would leave a one-word clause.
+            let closes = !opens
+                && word.contains(where: { clausePunctuation.contains($0) })
+                && current.count >= minimumClauseWords
+                && words.count - (index + 1) >= minimumClauseWords
+            if closes {
+                pieces.append(current.joined(separator: " "))
+                current = []
+            }
+        }
+        if !current.isEmpty { pieces.append(current.joined(separator: " ")) }
+        return pieces
+    }
+
+    /// Sentences, with every run-on above the threshold replaced by its clauses.
+    private static func units(of sentences: [String]) -> [String] {
+        sentences.flatMap { sentence in
+            SentenceChunker.wordCount(sentence) > clauseWordThreshold
+                ? clauses(in: sentence)
+                : [sentence]
+        }
+    }
+
+    private static let clauseOpeners: Set<String> = [
+        "and", "but", "so", "because", "then",
+    ]
+    private static let clausePunctuation: Set<Character> = [",", ";", ":"]
+
 
     // MARK: - Aligning two sentence splits
 

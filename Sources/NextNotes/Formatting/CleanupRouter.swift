@@ -1608,12 +1608,106 @@ extension CleanupRouter {
         ) != nil {
             failures.append("a wholesale rewrite was salvaged instead of rejected")
         }
+        failures += clauseSalvageFailures()
         // The four-letter mis-hearing the old edit budget called an invention.
         if !CleanupGuard.related("walk", "work") {
             failures.append("\"walk\"/\"work\" is still not recognised as a mis-hearing")
         }
         if CleanupGuard.related("paris", "what") {
             failures.append("\"paris\"/\"what\" is now being treated as a mis-hearing")
+        }
+        return failures
+    }
+
+    /// D-11: a long run-on salvaged clause by clause, and nothing else moved.
+    ///
+    /// Parakeet returns one long sentence with no internal full stops, and `salvage` used to
+    /// give up on exactly that shape (`guard sources.count > 1`). At 2026-09-22 03:42Z a
+    /// 110-word dictation was rejected for one invented word — "ui ux" expanded to "user
+    /// interface" — and every filler removal and repair in the other 108 words was thrown
+    /// away after five seconds of waiting. The guard was right; the grain was wrong.
+    ///
+    /// Pure text in and a verdict out, so it belongs here rather than in the model suite.
+    private static func clauseSalvageFailures() -> [String] {
+        var failures: [String] = []
+        // 110 words, one sentence, the shape the recogniser actually returns. "um" three
+        // times, "you know" twice, and the one phrase the model cannot help expanding.
+        let spoken = "um I was basically talking to the team about the app, "
+            + "you know the flow needs a rewrite before we touch anything else, "
+            + "the ui ux of the app is confusing, "
+            + "um the reason is the onboarding takes too long for a new user, "
+            + "so people drop off in the middle of the flow and they never really come back "
+            + "at all, but we cannot tell which screen is the problem, "
+            + "and I think we need someone to watch ten sessions before we change it, "
+            + "um you know that is the one thing I would like to raise on the call, "
+            + "so can we put twenty minutes on the agenda"
+        // The answer the model actually gave: every filler gone, and "ui ux" expanded.
+        let answered = "I was talking to the team about the app, "
+            + "the flow needs a rewrite before we touch anything else, "
+            + "the user interface and user experience of the app is confusing, "
+            + "the reason is the onboarding takes too long for a new user, "
+            + "so people drop off in the middle of the flow and they never really come back "
+            + "at all, but we cannot tell which screen is the problem, "
+            + "and I think we need someone to watch ten sessions before we change it, "
+            + "that is the one thing I would like to raise on the call, "
+            + "so can we put twenty minutes on the agenda for it."
+
+        guard CleanupGuard.rejection(original: spoken, cleaned: answered, mode: .grammar) != nil
+        else {
+            failures.append("the run-on fixture is no longer rejected as a whole, so it "
+                + "tests nothing")
+            return failures
+        }
+        guard let salvage = CleanupGuard.salvage(
+            original: spoken,
+            cleaned: answered,
+            mode: .grammar
+        ) else {
+            failures.append("a 110-word run-on with one invented clause salvaged nothing")
+            return failures
+        }
+        for filler in [" um ", "you know"] where salvage.text.contains(filler) {
+            failures.append("clause-salvage: \(filler.debugDescription) survived the repair")
+        }
+        if !salvage.text.contains("ui ux") {
+            failures.append("clause-salvage: the clause the model invented was used")
+        }
+        if salvage.text.contains("interface") {
+            failures.append("clause-salvage: an invented word reached the text")
+        }
+        if !salvage.usedClauses {
+            failures.append("clause-salvage: the record would still say \"sentences\"")
+        }
+        if !salvage.plainReason.contains("parts") {
+            failures.append("clause-salvage: the reason does not name the grain it used")
+        }
+        // Below the clause threshold, nothing changes: one short sentence, one invention, no
+        // salvage. The finer grain must not start reaching answers it could not reach before.
+        let shortSpoken = "um the ui ux of the app is really confusing and the whole design "
+            + "team is worried about it now"
+        let shortAnswered = "The user interface and user experience of the app is really "
+            + "confusing, and the whole design team is worried about it now."
+        if CleanupGuard.salvage(
+            original: shortSpoken,
+            cleaned: shortAnswered,
+            mode: .grammar
+        ) != nil {
+            failures.append("clause-salvage: a 20-word sentence salvaged, which it never did")
+        }
+        if CleanupGuard.salvage(
+            original: "The build is green and it is passing every test, but the release notes "
+                + "still say the old date and nobody has read them since we rewrote the "
+                + "installer, and I am not going to sign it off until the docs agree with what "
+                + "the app actually does today, because that is the whole problem, and you know "
+                + "what, we can talk about it on the call.",
+            cleaned: "The build is green, and it is passing every test, but the release notes "
+                + "still say the old date, and nobody has read them since we rewrote the "
+                + "installer, and I am not going to sign it off until the docs agree with what "
+                + "the app actually does today, because that is the whole problem, and you know "
+                + "what, we can talk about it on the call.",
+            mode: .grammar
+        ) != nil {
+            failures.append("clause-salvage: a run-on nothing was wrong with was salvaged")
         }
         return failures
     }

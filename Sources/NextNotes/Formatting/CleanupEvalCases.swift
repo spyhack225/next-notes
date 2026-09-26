@@ -494,6 +494,31 @@ enum CleanupEvalCases {
             kind: .leaveAlone,
             forbids: ["1. ", "2. "]
         ),
+        // 2026-09-22 03:42Z, 110 words in one sentence: the shape Parakeet returns when the
+        // speaker did not pause, and the dictation the whole of D-11 exists for. The model's
+        // answer removed every filler and expanded "ui ux" to "user interface and user
+        // experience", so the guard turned the answer down as a whole — and the repair in the
+        // other 108 words went with it. `CleanupGuard.salvage` now opens a run-on into its
+        // clauses, so only the invented clause is put back. (D-11.)
+        Case(
+            id: "C21-long-run-on",
+            expectation: "keeps the filler removals; does not invent 'user interface'",
+            input: "um I was basically talking to the team about the app, you know the flow "
+                + "needs a rewrite before we touch anything else, the ui ux of the app is "
+                + "confusing, um the reason is the onboarding takes too long for a new user, "
+                + "so people drop off in the middle of the flow and they never really come "
+                + "back at all, but we cannot tell which screen is the problem, and I think we "
+                + "need someone to watch ten sessions before we change it, um you know that is "
+                + "the one thing I would like to raise on the call, so can we put twenty "
+                + "minutes on the agenda",
+            shipped: false,
+            kind: .fix,
+            requires: ["ui ux"],
+            forbids: ["user interface"],
+            // Whole phrases, not the bare filler: "um" on its own is a substring of ordinary
+            // words, and a case that fails on one of those is a case about nothing.
+            grammarForbids: ["you know", "um the reason"]
+        ),
     ]
 }
 
