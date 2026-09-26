@@ -12,6 +12,8 @@ struct PermissionsChecklist: View {
     @State private var hasMicrophone = false
     @State private var hasCalendar = false
     @State private var hasHeardSystemAudio = false
+    @State private var hasMessagesAccess: Bool?
+    @State private var isProbingMessagesAccess = false
     @State private var hasNotifications = false
     @State private var isGrantingAll = false
 
@@ -83,6 +85,29 @@ struct PermissionsChecklist: View {
                     if !granted { Permissions.openCalendarSettings() }
                     refresh()
                 }
+            }
+
+            PermissionRow(
+                title: "Messages",
+                detail: MessagesAccessVerdict.purpose,
+                systemImage: "message.fill",
+                // A real answer, unlike the row above: the probe opens the database and
+                // reads a row, so `true` is evidence rather than a bit somebody guessed.
+                // `nil` only in the moment before that first read lands, and `nil` draws
+                // the button — so there is no window in which this row shows a ✓ it has
+                // not earned. The button opens the pane because, like Accessibility,
+                // `canRequest` is false and there is nothing else a button could do.
+                isGranted: hasMessagesAccess,
+                actionTitle: "Grant…",
+                // `searching`: the press causes a read of something Next Notes did not
+                // write, to find out whether it can. The Workspace row below may show its
+                // own orb at the same moment; both are a few milliseconds long and both
+                // name work that is really running, which is the rule this slot was added
+                // for.
+                busy: isProbingMessagesAccess ? .searching : nil
+            ) {
+                Permissions.openFullDiskAccessSettings()
+                probeMessagesAccess()
             }
 
             // Not a macOS grant at all, and the only row that leads outside Next Notes: the
@@ -226,9 +251,32 @@ struct PermissionsChecklist: View {
         hasMicrophone = Permissions.hasMicrophone
         hasCalendar = Permissions.hasCalendar
         hasHeardSystemAudio = Permissions.hasHeardSystemAudio
-        // The only row that can't be answered synchronously — the notification center's
-        // settings are fetched, not read off a bit.
+        // The only other row that can't be answered synchronously, and for a different
+        // reason: the others read a bit the kernel already knows, and this one opens a
+        // database. The probe caches its own answer for `MessagesDatabaseHealth
+        // .cacheInterval`, so the 2 s poll below costs a dictionary read and the file is
+        // opened at most once every half minute — the same trade the `gws` row above
+        // refuses to make by spawning a process per tick.
+        probeMessagesAccess()
+        // The notification centre's settings are fetched, not read off a bit, so this one is
+        // asked asynchronously for that reason rather than the probe's.
         Task { hasNotifications = await Notifications.shared.isAuthorized() }
+    }
+
+    /// Ask the probe, and never leave the row claiming something it has not read.
+    ///
+    /// `hasMessagesAccess` is set to `false` rather than left alone on a failure, and that
+    /// is the point: `false` and "not asked yet" both draw the button, so clearing it to
+    /// `false` cannot put a ✓ on screen, and leaving a stale `true` after a grant is
+    /// revoked would be the one way this row could lie.
+    private func probeMessagesAccess() {
+        guard !isProbingMessagesAccess else { return }
+        isProbingMessagesAccess = true
+        Task { @MainActor in
+            let state = await MessagesDatabaseHealth.probe()
+            hasMessagesAccess = state.isReadable
+            isProbingMessagesAccess = false
+        }
     }
 }
 

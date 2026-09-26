@@ -20,6 +20,16 @@ import SQLite3
 ///
 /// The final line is `IMESSAGE_DB_OK: <n> cases` or `IMESSAGE_DB_FAILED: <reason>`. The
 /// per-case diagnostic lines are `IMESSAGE_DB_WRONG: …`, which is not a verdict token.
+///
+/// **IM-04a's six cases are the tail of the same list**, and they are about a grant rather
+/// than about SQLite. The probe reads a row out of the database, so case 21 is the only one
+/// in this file allowed to conclude the grant exists; cases 19 and 20 are the two ways it
+/// does not — a file that is not there, and a file that is there and still cannot be read —
+/// and case 20 is what separates a probe from a `stat`, since the owner's own `chat.db` is
+/// world-readable and answers `authorization denied` anyway. Case 23 is the one that
+/// matters, because it asserts the **absence** of a ✓ on a failure: a check that a
+/// successful read draws one passes on any version of this feature, and a check that a
+/// failure draws none is the only thing here that has never existed before this task.
 @MainActor
 enum MessagesDatabaseSelfTest {
     static func run() async -> String {
@@ -259,6 +269,116 @@ enum MessagesDatabaseSelfTest {
                     guard case .unreadable = error else { return "\(error) is not .unreadable" }
                     return nil
                 }
+            }
+
+            // 19. IM-04a: the Full Disk Access probe against a path that is not there.
+            //
+            // This is the case that makes the probe honest, and it is the one that has to
+            // exist at all: a probe whose failure mode was a throw would take a `Settings`
+            // row down with it, and a probe that could only say "granted" would be the
+            // named mistake this roadmap opens IM-04a with. `.unreadable` is a value to
+            // degrade to, and degrading is the designed response to everything this file
+            // can hit.
+            await check("fda_probe_missing_path_is_unreadable") {
+                let absent = corpus.directory.appendingPathComponent("no-messages-here.sqlite")
+                let state = await MessagesDatabaseHealth.probeNow(databaseAt: absent)
+                guard case .unreadable(let reason) = state else {
+                    return "a database that does not exist probed as \(state)"
+                }
+                // It reached the failure and came back with a sentence, rather than
+                // answering nothing at all.
+                guard !reason.isEmpty else { return ".unreadable carried no reason" }
+                return state.isReadable ? ".unreadable also claims it is readable" : nil
+            }
+
+            // 20. A file that *is* there and still cannot be read. This is the case that
+            // separates a probe from a `stat`, and it is the reason the probe exists: the
+            // owner's own `chat.db` is mode `-rw-r--r--` and answers `authorization denied`
+            // without the grant, so "the file exists" is the one answer this feature must
+            // never draw. A four-line text file stands in for it — present, readable by
+            // everybody, and not a database.
+            await check("fda_probe_ignores_a_file_it_cannot_read") {
+                let notADatabase = corpus.directory.appendingPathComponent("not-a-chat-db.sqlite")
+                try? "this is not a database".write(to: notADatabase, atomically: true, encoding: .utf8)
+                guard FileManager.default.fileExists(atPath: notADatabase.path) else {
+                    return "the control file was not written"
+                }
+                let state = await MessagesDatabaseHealth.probeNow(databaseAt: notADatabase)
+                return state.isReadable
+                    ? "a file that is not a database probed as readable"
+                    : nil
+            }
+
+            // 21. …and against a real database, which is the only thing that may say
+            // "granted". The fixture is a file with rows in it, so the open, the schema
+            // probe and the one row all succeed — the same three steps the owner's own
+            // `chat.db` goes through, with no grant involved.
+            await check("fda_probe_reads_a_row") {
+                let state = await MessagesDatabaseHealth.probeNow(
+                    databaseAt: corpus.url("basic-text"))
+                guard state.isReadable else { return "the basic-text fixture probed as \(state)" }
+                return state.reason == nil
+                    ? nil
+                    : ".readable also carried a reason: \(state.reason ?? "")"
+            }
+
+            // 22. There is no way to ask for this grant, and the row has to say so rather
+            // than offer a button that does nothing. A `true` here would mean the checklist
+            // could claim a prompt exists; it does not, and cannot.
+            await check("fda_cannot_be_requested") {
+                MessagesDatabaseHealth.canRequest
+                    ? "the probe says Full Disk Access can be requested from inside the app"
+                    : nil
+            }
+
+            // 23. The row cannot show a ✓ on a failure.
+            //
+            // Asserted as the **absence**, because presence is the easy half: every version
+            // of this feature that shows a ✓ shows one for `.readable`. What has never
+            // existed is a check that a failure draws none, and that is the claim the whole
+            // task is. Every state the probe can return other than `.readable` is fed in,
+            // so a new `.someOtherFailure` added later without a row here fails too.
+            await check("the_check_mark_needs_a_successful_read") {
+                let failures: [MessagesDatabaseHealth.State] = [
+                    .unreadable(reason: "there is no Messages database at /nowhere on this Mac."),
+                    .unreadable(reason: "macOS would not let Next Notes read your Messages database."),
+                    .unreadable(reason: "")
+                ]
+                for state in failures {
+                    let verdict = MessagesAccessVerdict.verdict(for: state)
+                    if verdict.mark == "✓" {
+                        return "\(state) drew a ✓"
+                    }
+                    if verdict.isGranted {
+                        return "\(state) claimed the grant"
+                    }
+                    if verdict.mark != "○" {
+                        return "\(state) drew \(verdict.mark), not the ○ a failure should show"
+                    }
+                }
+                // …and the positive half, so the case above is not passing because the
+                // glyph was never drawn at all.
+                let granted = MessagesAccessVerdict.verdict(for: .readable)
+                guard granted.mark == "✓", granted.isGranted else {
+                    return "a successful read drew \(granted.mark), not a ✓"
+                }
+                // The two states must not share a rendering. Two states rendering the same
+                // thing is how a row ends up green for a reason nobody chose.
+                return granted.mark == MessagesAccessVerdict.verdict(for: .unreadable(reason: "x")).mark
+                    ? "granted and not granted draw the same glyph"
+                    : nil
+            }
+
+            // 24. IM-03's sentence, in one piece. The second half is the promise that makes
+            // the ask reasonable, so a shortened paraphrase is a different sentence and not
+            // the same one said more briefly.
+            await check("messages_copy_is_im03s_verbatim") {
+                let expected = "Next Notes needs Full Disk Access to read the iMessage "
+                    + "conversation you choose for remote access. Messages are processed on "
+                    + "this Mac."
+                return MessagesAccessVerdict.purpose == expected
+                    ? nil
+                    : "the copy reads \"\(MessagesAccessVerdict.purpose)\""
             }
         } catch {
             failures.append("fixtures: \(error)")

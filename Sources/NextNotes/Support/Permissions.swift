@@ -98,6 +98,15 @@ enum Permissions {
         }
     }
 
+    /// Whether this process can read a row out of the Messages database — which is the only
+    /// way to know whether Full Disk Access is granted, because that grant has no query API
+    /// either. A thin read of `MessagesDatabaseHealth`, kept here so this file stays the one
+    /// place a caller looks for "can I do the thing", and the reason it is a `func` and not
+    /// a `var` is the reason the probe is not free: it opens a file Messages owns.
+    static func hasMessagesAccess() async -> Bool {
+        await MessagesDatabaseHealth.probe().isReadable
+    }
+
     /// Shows the system Accessibility prompt if the app isn't yet trusted.
     @discardableResult
     static func promptForAccessibility() -> Bool {
@@ -174,6 +183,15 @@ enum Permissions {
     /// here fails every read afterwards, and this pane is the only way back.
     static func openFilesAndFoldersSettings() {
         open("Privacy_FilesAndFolders")
+    }
+
+    /// Full Disk Access, and the only way to reach it: there is no prompt, no preflight and
+    /// no `AXIsProcessTrusted`-shaped equivalent, so the only honest thing a button can do
+    /// is put the person in the pane where the switch is. Which is why
+    /// `MessagesDatabaseHealth.canRequest` is `false` and why the row that leads here is
+    /// shaped like Accessibility's rather than like the microphone's.
+    static func openFullDiskAccessSettings() {
+        open("Privacy_AllFiles")
     }
 
     /// What to tell somebody whose Accessibility switch is on and who still is not trusted.

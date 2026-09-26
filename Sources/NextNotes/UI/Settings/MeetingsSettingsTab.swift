@@ -78,7 +78,6 @@ struct MeetingsSettingsTab: View {
                     )
                 )
 
-
                 if settings.meetingsDiarize {
                     ModelStatusRow(
                         title: "Speaker models",

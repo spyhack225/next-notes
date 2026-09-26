@@ -6,6 +6,50 @@ fine and will bite you.
 
 ---
 
+## What we optimize for
+
+**Efficiency, speed and full-duplex conversation come first.** The app has to feel fluent and
+fully interactive — a hold answers at key-down, a voice turn listens while it speaks, a long
+job shows its state instead of a still screen. A change is judged by that bar before it is
+judged by elegance: does it make the app faster or slower, more alive or more still, one step
+simpler or one step more complex?
+
+**Do not architect ahead of a need.** A second store, ledger, queue, channel or abstraction is
+the expensive kind of complexity because nothing fails when it is added — it just makes every
+later change slower to make and slower to run. The single-ledger, single-audio-channel,
+single-tool-manifest, single-usage-log paragraph below is this rule with the receipts. Prefer
+the existing seam and the smaller diff; when a task really needs a new layer, say why in the
+commit.
+
+**Never make the app feel slow or clumsy.** Concretely:
+- Anything the user is waiting on streams or shows what is happening; an indefinite spinner
+  over a minute-long model pass is not a design.
+- Do not add a sequential await, a fixed sleep, a debounce or a second confirmation to a path
+  the user's turn sits on. An approval for an irreversible action is the one confirmation that
+  earns its place — everything else belongs off the path.
+- Full duplex means the microphone, the model and the speaker overlap. A new gate, lock or
+  policy that serialises them is a regression even when it reads as safer.
+- The latency numbers the AGENT-OVERHAUL latency phase measures are features, not benchmarks.
+
+**Confidence, control and safety — without slowness, over-engineering or complexity.** The
+permission model already in this file is the shape: a read runs itself because it is invisible
+to everyone else, an irreversible write waits for one approval, and the card shows exactly what
+will happen before it does. That is what "in control" means. A switch for every choice, or
+ceremony that delays an action the user already asked for, is the failure mode this line exists
+to prevent: safety lives at the irreversible boundary, never in the path of everything.
+
+**Dumb simple, and never nerd-shaped.** The user is not an engineer and no interaction may
+require one. No screen, card, error or setting tells a person to get an API key, open Terminal,
+run a command, edit a config file or paste a model id when the app can do it for them; the
+default path needs no account, no key and no terminal. An advanced route may exist, but it is
+opt-in and never the first thing asked. Copy is what a non-technical person would say out loud —
+no jargon, no raw tool ids, no schema keys, nothing that reads as insider. When a technical step
+is genuinely unavoidable (a provider the person chose, a grant only they can give), it is one
+plain action at a time, with the reason and the exact next click. `--selftest-ui-strings` and
+`PersonaCareEval` are the floor, not the goal; if a flow needs a diagram, it is not done.
+
+---
+
 ## What this is
 
 Push-to-talk dictation. Hold a key, talk, release, and cleaned-up text is typed into
@@ -976,6 +1020,9 @@ still offering "Identify again". `--selftest-audio-retention` is the gate (INTEG
 it seeds its meetings through `MeetingStore.isolated()` and injects the clock and the
 free space, so it never depends on this Mac's disk.
 
+it seeds its meetings through `MeetingStore.isolated()` and injects the clock and the
+free space, so it never depends on this Mac's disk.
+
 **Speaker identification is on by default once its models are on disk, and a stored answer
 beats the default in either direction.** `Settings.meetingsDiarize` was off for years,
 which meant a fresh install labelled every remote voice "Others" and the notes' action
@@ -1236,6 +1283,13 @@ shipped with the OS, and it should inherit the user's appearance, accent colour 
 accessibility settings without a line of code here knowing about them — which is why nearly
 every token resolves to a semantic system value (`.controlBackgroundColor`, `.accentColor`,
 `.body`) rather than a literal.
+
+The person looking at it is **not technical**, and that is a design rule rather than an audience
+note: labels, errors and settings say what a person would say out loud, nothing in the default
+path asks for an API key, a terminal command or a file edit, and an advanced flow is opt-in and
+explained one plain action at a time. `--selftest-ui-strings` bans the worst words (`cron`,
+`artifact`, raw tool ids, schema keys) and `PersonaCareEval` checks the spoken copy; both are the
+floor, not the goal.
 
 Inside that native shell the app has **one visual voice of its own**, and it is the same one
 as the landing page in `site/`: the dotted orb, the dotted field it is made of, and the

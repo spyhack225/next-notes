@@ -9,6 +9,24 @@ The Windows port of Next Notes — push-to-talk dictation, on-device.
 
 ---
 
+## What we optimize for
+
+The same bar as the macOS app; the full statement is in
+[`AGENTS.md`](../AGENTS.md) § *What we optimize for*.
+
+- **Fast and fluent.** Transcription is the product, so a hold answers when the key goes up and
+  no part of the UI sits on the hotkey path. The deterministic dictionary pass is always there
+  and the model cleanup is optional — a slow optional pass must not become a required one.
+- **Simple for a non-technical person.** No API key, no console command, no config file, and
+  nothing that reads as insider: a person installs it, holds a key and talks. The by-hand model
+  download in [`docs/PARAKEET-WINDOWS.md`](../docs/PARAKEET-WINDOWS.md) is the one place that is
+  not true yet — it is a known gap to be closed by downloading the model inside the app, not a
+  pattern to extend.
+- **No speculative architecture.** The four platform interfaces and the platform-neutral projects
+  below are the whole abstraction budget. A fifth needs a measured reason, not a plan for one.
+
+---
+
 ## Why this is a rewrite, not a port
 
 Almost every layer of the macOS app is Apple-specific:

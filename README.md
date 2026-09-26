@@ -29,6 +29,14 @@ The Windows app is dictation only: it builds and is
 exercised in CI, but has not yet been used for a real microphone/key/injection session on
 Windows hardware.
 
+**What we optimize for.** Three things, in this order. **Speed and fluency** — a hold answers
+at key-down, a voice turn listens while it speaks, and a long job shows its state instead of a
+still screen. **Simplicity** — the app does the work itself rather than handing you an API key, a
+command line or a config file, and every screen says what a person would say out loud.
+**Control** — anything that creates, sends or deletes waits for one approval, and the card shows
+exactly what will happen before it does. The engineering form of this, and the rules an agent
+working on this repo follows, is [AGENTS.md](AGENTS.md) § *What we optimize for*.
+
 **Meetings record themselves by default.** Once Calendar access is granted, Next Notes reads
 your calendars (Apple Calendar through EventKit, and optionally Google Calendar through its
 API), and any event that looks like a real meeting — a conference link or at least one other

@@ -96,6 +96,9 @@ enum WakeWordLiveSelfTest {
             .appendingPathComponent("WakeWord/LiveFixtures", isDirectory: true)
     }
 
+    /// Audio files the live-capture probe (and the room recorder) recognise.
+    static let captureFileExtensions: Set<String> = ["wav", "aiff", "caf"]
+
     @MainActor
     static func run(fixtureDirectory: URL?) -> Outcome {
         var failures: [String] = []
@@ -303,7 +306,7 @@ enum WakeWordLiveSelfTest {
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: directory,
             includingPropertiesForKeys: nil
-        ).filter({ ["wav", "aiff", "caf"].contains($0.pathExtension.lowercased()) }).sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) else {
+        ).filter({ captureFileExtensions.contains($0.pathExtension.lowercased()) }).sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) else {
             SelfTest.diagnostic("  WAKE_MIC: no local captures (record into \(directory.path) to cover real rooms)")
             return
         }
@@ -344,7 +347,7 @@ enum WakeWordLiveSelfTest {
         SelfTest.diagnostic("  WAKE_MIC: \(heard)/\(files.count) local captures heard (informational, not in the verdict)")
     }
 
-    private static func currentManifestPhrase() -> String? {
+    static func currentManifestPhrase() -> String? {
         guard let directory = resolveFixtureDirectory(explicit: nil),
               let data = try? Data(contentsOf: directory.appendingPathComponent("manifest.json")),
               let manifest = try? JSONDecoder().decode(Manifest.self, from: data)

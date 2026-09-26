@@ -3,6 +3,56 @@ import AVFoundation
 import AppKit
 import Foundation
 import Observation
+import OSLog
+
+/// Where the dictation controller's error lines go (D-15c).
+///
+/// A seam, not a `SelfTest.isRunning` branch: the controller asks `log` where an error goes
+/// and never knows which of the two it was handed.
+///
+/// `--selftest-dictation` drives the real state machine with deliberately tiny deadlines —
+/// a 2-second transcription bound against an injected engine that never finishes on cue — so
+/// every one of those holds logs exactly the sentences a production failure logs. In the
+/// unified log they were indistinguishable from the real thing (I1-19 counted 8 + 4 + 4 of
+/// them on 2026-09-23), which is a slower audit and a real failure that a reader could talk
+/// herself out of. `.selfTest` writes the same sentences at **info** in a `selftest`
+/// category with a `[selftest]` prefix, so a run that injected the failure says so in the
+/// line itself and `--last 3m` greps for it by category.
+///
+/// Two closures rather than the single `error` the seam was specified with: `fail` writes
+/// under the `app` category and the three deadline lines under `speech`, and collapsing them
+/// would move a user-facing failure message into the speech category in production, which
+/// is a change nobody asked for. Production here is byte-identical to before.
+struct DictationLogger: Sendable {
+    var speechError: @Sendable (String) -> Void
+    var appError: @Sendable (String) -> Void
+
+    static let production = DictationLogger(
+        speechError: { message in
+            Log.speech.error("\(message, privacy: .public)")
+        },
+        appError: { message in
+            Log.app.error("\(message, privacy: .public)")
+        }
+    )
+
+    static let selfTest = DictationLogger(
+        speechError: { SelfTestLogger.shared.error($0) },
+        appError: { SelfTestLogger.shared.error($0) }
+    )
+}
+
+/// The one logger `--selftest-dictation`'s failures are written to. A type of its own so the
+/// category string is spelled once, and lazily created so an ordinary run pays nothing.
+private struct SelfTestLogger {
+    static let shared = SelfTestLogger()
+
+    private let logger = Logger(subsystem: AppIdentity.bundleIdentifier, category: "selftest")
+
+    func error(_ message: String) {
+        logger.info("[selftest] \(message, privacy: .public)")
+    }
+}
 
 /// Builds the engine named by the current setting.
 ///
@@ -343,6 +393,10 @@ final class DictationController {
     /// that used the real log would write its fixtures into the user's own history — which
     /// it did, until this seam existed.
     private let record: @MainActor (DictationRun) -> Void
+    /// Where this controller's error sentences go (D-15c). Production writes them at error
+    /// level; `--selftest-dictation` writes the same sentences at info in a `selftest`
+    /// category, because that run injects the failures on purpose.
+    private let log: DictationLogger
     /// Where one hold's outcome row goes (D-01b). Production writes a `dictation.hold`
     /// row through `UsageLog.shared`; a self-test passes its own sink so it can assert on
     /// the outcomes without touching any store.
@@ -536,9 +590,9 @@ final class DictationController {
             harvested.narrowed(toMentionsIn: raw)
         }
         if let narrowed { return narrowed }
-        Log.speech.error("""
-            narrowing \(harvested.candidates.count, privacy: .public) screen name(s) did not \
-            finish within \(String(describing: self.limits.narrow), privacy: .public) — \
+        log.speechError("""
+            narrowing \(harvested.candidates.count) screen name(s) did not \
+            finish within \(String(describing: self.limits.narrow)) — \
             using rank order
             """)
         return harvested.rankLimited()
@@ -740,6 +794,9 @@ final class DictationController {
         insert: @escaping @MainActor (String, TextInjector.Origin?) async -> TextInjector.Outcome
             = { await TextInjector.insert($0, returningTo: $1) },
         record: @escaping @MainActor (DictationRun) -> Void = { RunLog.record($0) },
+        // D-15c: a self-test passes `.selfTest` so the deadlines it injects on purpose do
+        // not read as production failures in the user's unified log.
+        log: DictationLogger = .production,
         // D-01b: one `dictation.hold` row per hold, whatever happened.
         outcome: @escaping @MainActor (DictationHoldOutcome) -> Void = {
             UsageLog.shared.record($0.usageRecord())
@@ -773,6 +830,7 @@ final class DictationController {
         self.limits = limits
         self.insert = insert
         self.record = record
+        self.log = log
         self.outcomeSink = outcome
         self.usage = usage
         self.captureSelection = captureSelection
@@ -1666,7 +1724,7 @@ final class DictationController {
             )
         }
         if !transcribed {
-            Log.speech.error("transcription did not finish within \(String(describing: self.limits.transcribe), privacy: .public)")
+            log.speechError("transcription did not finish within \(String(describing: self.limits.transcribe))")
         }
 
         guard self.session == session else { return }
@@ -1764,7 +1822,7 @@ final class DictationController {
                     seconds: Date().timeIntervalSince(began) - narrowedAt
                 )
                 trace.noteOutput(raw, seconds: Date().timeIntervalSince(began) - narrowedAt)
-                Log.speech.error("cleanup did not finish within \(String(describing: self.limits.cleanup), privacy: .public) — using the raw transcript")
+                log.speechError("cleanup did not finish within \(String(describing: self.limits.cleanup)) — using the raw transcript")
             }
             cleanupRecord = trace.snapshot
         }
@@ -2228,7 +2286,9 @@ final class DictationController {
         keepsAudio: Bool = true,
         result: DictationHoldResult
     ) {
-        Log.app.error("\(message, privacy: .public)")
+        // Plain `message`, not an interpolated `OSLogMessage`: the seam takes a `String`,
+        // and the production closure is the one that applies the redaction.
+        log.appError(message)
         // A Command Mode hold keeps its own card rather than handing the message to the
         // dictation error state. Gated on what this hold is rather than on whether a card is
         // up, so a leftover message from an earlier hold cannot claim an ordinary dictation's
