@@ -305,6 +305,21 @@ settings UI wrote a file the pipeline never read. If you add a seam like
 `OutputFormatInstructions` — a pure function with a written integration note and no caller —
 grep for its callers before assuming the feature ships.
 
+**There is one task ledger, one channel that starts audio, one tool manifest, and one usage log.**
+Four plans have each proposed adding a fifth of one of these, and a second copy of any of them
+fails silently rather than loudly. The single ledger is `TaskBridge` (`Agent/`, planned in
+`roadmap/in-progress/AGENT-OVERHAUL/04-PHASE-3-FULL-DUPLEX.md` §2.5); `VoiceConversationCoordinator.jobs`
+is being deleted and must not come back. The only thing that starts audio is `OutputScheduler`,
+enforced by an `OutputToken` whose initializer is `fileprivate` to that file — so "no backend
+independently decides to speak" is a compile error, not a convention. The per-turn tool authority
+is `AgentCapabilityManifest` (planned in `02-PHASE-1-TOOLS.md`). The usage log is `usage.jsonl`
+(`Support/Usage/`), which already has 8 MB rotation, 90-day compaction, `UsageLog.sanitise` and
+harness-temp isolation — **a job's token count is a sum over `UsageRecord`s carrying a task id,
+never a second ledger.** Durable background work (`agent-jobs.sqlite`, a `TaskEvent` journal,
+heartbeats, retry and crash recovery) extends `TaskBridge` rather than sitting beside it; see
+`07-PHASE-6-DURABLE-JOBS.md`. Before you add a task type, a delivery path, a tool registry or a
+metrics file, grep for the existing one and read what the executor above you concluded about it.
+
 **A prompt rule is only a rule for the engines that read prompts.** Every grammar, list,
 quotation and per-app formatting instruction lived in `CleanupInstructions.system` — and
 `S1MiniFormatter` is a 0.6B punctuation normaliser that takes no instructions at all. With
