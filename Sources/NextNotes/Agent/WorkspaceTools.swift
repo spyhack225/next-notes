@@ -64,7 +64,7 @@ struct WorkspaceTool: Sendable, Identifiable {
 /// Everything the agent is allowed to propose.
 ///
 /// Deliberately small. `gws` exposes every Workspace API there is, and handing a 4B model a
-/// hundred generated endpoints produces confident calls to the wrong one; these eleven are
+/// hundred generated endpoints produces confident calls to the wrong one; these twelve are
 /// the actions a meeting actually ends in, and each maps to a `gws` invocation that has been
 /// read rather than guessed.
 enum WorkspaceTools {
@@ -74,13 +74,41 @@ enum WorkspaceTools {
 
         WorkspaceTool(
             name: "search_email",
-            summary: "Search the user's Gmail and return the matching messages' senders, "
-                + "subjects and ids. Use Gmail's own search syntax.",
+            summary: "Search the user's Gmail, newest first, and return each message's sender, "
+                + "date and subject. Leave the query empty for the latest mail.",
             risk: .read,
             parameters: [
-                .init(name: "query", description: "A Gmail search query, e.g. from:ana@x.com deck.")
+                .init(
+                    name: "query",
+                    description: "Gmail search, e.g. from:ana@x.com, subject:deck, "
+                        + "newer_than:2d, is:unread. Empty = latest mail.",
+                    isRequired: false
+                ),
+                .init(
+                    name: "maxResults",
+                    description: "How many, 1–25. Default 10.",
+                    isRequired: false
+                ),
             ],
-            titleBuilder: { "Search email for \u{201c}\($0["query"] ?? "")\u{201d}" },
+            titleBuilder: { arguments in
+                let query = arguments["query"] ?? ""
+                return query.isEmpty ? "Check the latest email" : "Search email for \u{201c}\(query)\u{201d}"
+            },
+            previewBuilder: nil
+        ),
+        WorkspaceTool(
+            name: "read_email",
+            summary: "Read one email in full, by the number a search printed beside it.",
+            risk: .read,
+            parameters: [
+                .init(name: "message", description: "The number from the last search, or a message id.")
+            ],
+            titleBuilder: { arguments in
+                let message = arguments["message"] ?? ""
+                return message.isEmpty
+                    ? "Read an email"
+                    : "Read email \(message) from the last search"
+            },
             previewBuilder: nil
         ),
         WorkspaceTool(

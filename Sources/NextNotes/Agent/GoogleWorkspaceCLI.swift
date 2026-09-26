@@ -103,6 +103,28 @@ enum WorkspaceCLIError: LocalizedError, Equatable {
     }
 }
 
+/// The one thing `WorkspaceToolRunner` needs from the CLI, so it can be handed a fake.
+///
+/// The runner is the only place in the app that turns a model-written query into a command
+/// line, and every rule worth pinning about it — what the runner asks for, what it reads back,
+/// which operator it refuses — is about the *arguments* and the *JSON*, neither of which
+/// needs an account. So the seam is the whole protocol rather than a flag: `WorkspaceCLIOutput`'s
+/// memberwise init is all a fake has to construct, and a run of `--selftest-gws`'s fixture half
+/// touches no binary, no keyring and no mailbox.
+protocol WorkspaceCLIRunning: Sendable {
+    func run(_ arguments: [String], timeout: TimeInterval) async throws -> WorkspaceCLIOutput
+}
+
+extension WorkspaceCLIRunning {
+    /// The timeout every call site means, named in one place: long enough for an upload of a
+    /// meeting's audio, short enough that a wedged CLI does not hold an approved action open
+    /// for ever. A protocol requirement cannot carry a default argument, so the default lives
+    /// here rather than being repeated at twenty call sites.
+    func run(_ arguments: [String]) async throws -> WorkspaceCLIOutput {
+        try await run(arguments, timeout: GoogleWorkspaceCLI.defaultTimeout)
+    }
+}
+
 /// The Google Workspace CLI (`gws`), as the app's tool layer.
 ///
 /// `gws` is generated from Google's Discovery service, so it covers every Workspace API
@@ -477,3 +499,5 @@ private final class OutputBuffers: @unchecked Sendable {
     var out: Data { lock.withLock { outData } }
     var error: Data { lock.withLock { errorData } }
 }
+
+extension GoogleWorkspaceCLI: WorkspaceCLIRunning {}

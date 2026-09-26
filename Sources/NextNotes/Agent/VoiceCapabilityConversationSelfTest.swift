@@ -1045,7 +1045,7 @@ enum VoiceCapabilityConversationSelfTest {
         }
         let noCLI = VoiceCapabilitySnapshot.make(
             tools: RealtimeAgent.plannableTools(), availability: .init(cliOnPATH: false))
-        if noCLI.spokenSummary.contains("search email")
+        if noCLI.spokenSummary.contains("search and read email")
             && !noCLI.spokenSummary.contains("helper isn't installed") {
             failures.append("a missing helper CLI still claimed workspace tools silently")
         }

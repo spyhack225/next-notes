@@ -81,7 +81,7 @@ enum AgentRefusalGuard {
         Capability(subjects: ["calendar", "agenda", "meeting today", "schedule"],
                    toolIDs: ["get_agenda"], label: "their calendar"),
         Capability(subjects: ["email", "e-mail", "inbox", "gmail", "mail", "message", "messages"],
-                   toolIDs: ["search_email"], label: "their email"),
+                   toolIDs: ["search_email", "read_email"], label: "their email"),
         Capability(subjects: ["drive", "google drive", "google doc", "google docs", "doc", "docs",
                               "document", "sheet", "sheets", "slide", "slides"],
                    toolIDs: ["find_drive_files", "read_doc", "create_doc", "append_doc"],

@@ -50,11 +50,13 @@ enum AgentCapabilityManifestSelfTest {
         // The P1-03 brief calls this 63. It is 64: the old list has 64 ids, and
         // `filesystem.find` / `filesystem.tree` are two of them. Verified by diffing this set
         // against the source before it was deleted, and pinned at 64 so the count is itself
-        // the assertion.
+        // the assertion. P1-09 added `read_email` — a read, one call from the registry, and
+        // the first Workspace tool in this list that is a *new* capability rather than one
+        // that had been reachable all along — so the pin is 65.
         let parity = AgentCapabilityManifestBuilder.build(
             .allEnabled(tools: allTools, reader: local), request: "what's on my calendar")
         let expectedParity: Set<String> = [
-            "get_agenda", "search_email", "find_drive_files", "read_doc", "create_doc",
+            "get_agenda", "search_email", "read_email", "find_drive_files", "read_doc", "create_doc",
             "append_doc", "upload_to_drive", "create_event", "draft_email", "send_email",
             "reply_email",
             "meeting.current", "meeting.transcript", "meeting.recent_context",
@@ -74,10 +76,10 @@ enum AgentCapabilityManifestSelfTest {
             "search_knowledge", "expand_node", "timeline", "assemble",
             "skills.search", "skills.read", "skills.install",
         ]
-        check("parity: the expected set is not the 64 ids it claims to pin", expectedParity.count == 64)
+        check("parity: the expected set is not the 65 ids it claims to pin", expectedParity.count == 65)
         let parityIDs = parity.allowedIDs
         if parityIDs != expectedParity {
-            wrong("parity: allowed ids differ from the 64 pinned "
+            wrong("parity: allowed ids differ from the 65 pinned "
                 + "(missing \(expectedParity.subtracting(parityIDs).sorted().joined(separator: ", ")); "
                 + "extra \(parityIDs.subtracting(expectedParity).sorted().joined(separator: ", ")))")
         }

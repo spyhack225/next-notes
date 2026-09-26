@@ -82,7 +82,9 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
         var features: [String] = []
         if ids.contains("meeting.transcript") { features.append("read meeting transcripts and notes") }
         if ids.contains("get_agenda") { features.append("check your calendar") }
-        if ids.contains("search_email") { features.append("search email") }
+        if ids.contains("search_email") {
+            features.append(ids.contains("read_email") ? "search and read email" : "search email")
+        }
         if ids.contains("find_drive_files") { features.append("find Drive files") }
         if ids.contains("read_doc") { features.append("read Google documents") }
         if ids.contains("computer.inspect_ui") {

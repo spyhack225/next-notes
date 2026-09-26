@@ -202,6 +202,21 @@ so it is a modifier rather than a `--selftest-*` test — it records real-room "
 captures into the `WakeWord/LiveFixtures` overlay that `--selftest-wake-live` grades
 (`0` is a dry run that prints the directory and touches no microphone).
 
+A second modifier, added with P1-09: `--selftest-gws --live-mail` runs one real
+`search_email` against the signed-in account and prints
+`GWS_LIVE_MAIL: <n> messages, <n> senders parsed, <n> subjects parsed, <s>s`. It is a read, and
+it prints **counts and a duration only** — never a sender, a subject or a snippet, because
+this line lands in a log file. `--selftest-gws` itself needs nothing to be useful: its
+fixture half runs first, needs no binary, no keyring, no account and no model, and prints
+`GWS_FIXTURES_OK` before the binary half's lines; the final `GWS_OK` is printed only when both
+halves passed. Those fixtures are written in the JSON shapes `gws` actually returned on
+2026-09-26, which is why the sender is read from `payload.headers[]` and from `+read`'s
+`{"name","email"}` address object and not from a top-level `from` — the shape the old reader
+looked for is one neither command prints, which is where "from unknown sender" on 5 of 5 audit
+rows came from. `messages get --format metadata` is 601 bytes for the same message that
+`format: full` answers in 71,698, and the difference is the whole body, so a search reads
+metadata and there is no snippet: Gmail only sends one with the body attached.
+
 `--selftest-avatar` is the 2026-09-23 addition, and it has a companion diagnostic rather than
 a self-test: `--avatar-sheet [path]` renders all ten character states at three instants into
 one PNG with `ImageRenderer`, which needs no Screen Recording grant — so the vocabulary can
