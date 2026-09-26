@@ -123,6 +123,25 @@ struct MeetingsSettingsTab: View {
             }
 
             Section {
+                Toggle(
+                    "Understand the meeting while it happens",
+                    isOn: liveUnderstanding
+                )
+
+                if settings.meetingLiveUnderstanding != nil {
+                    // The third state is reachable again, and the row says plainly what the
+                    // switch will do rather than leaving a person to remember it.
+                    Button("Let Next Notes decide") {
+                        settings.meetingLiveUnderstanding = nil
+                    }
+                }
+            } header: {
+                Text("While it is running")
+            } footer: {
+                SettingsNote(text: liveUnderstandingNote)
+            }
+
+            Section {
                 Toggle("Write notes when a meeting ends", isOn: $settings.notesAutoGenerate)
                 Toggle("Connect notes to what Next Notes knows", isOn: $settings.notesRelatedContext)
 
@@ -153,7 +172,46 @@ struct MeetingsSettingsTab: View {
         }
     }
 
-    // MARK: - Calls
+    // MARK: - While the meeting is running
+
+    /// The switch, bound to the answer that will actually apply.
+    ///
+    /// The toggle shows the *effective* answer rather than the stored one, so a row on an
+    /// online model never reads "on" over a pass that will not run. Touching it records the
+    /// person's own answer, which is what turns it on for a model that is not on this Mac.
+    private var liveUnderstanding: Binding<Bool> {
+        Binding(
+            get: {
+                MeetingContextReconciler.isEnabled(
+                    stored: settings.meetingLiveUnderstanding,
+                    choice: roles.resolution(for: .agent).effective
+                )
+            },
+            set: { settings.meetingLiveUnderstanding = $0 }
+        )
+    }
+
+    /// Where this runs, said the way a person would say it — and the consent, named.
+    private var liveUnderstandingNote: String {
+        let name = roles.displayName(for: .agent)
+        // The *automatic* answer is the on-device answer, so asking it with nothing stored is
+        // how this says "runs here" without a second rule of its own about which models are
+        // local.
+        let onThisMac = MeetingContextReconciler.isEnabled(
+            stored: nil,
+            choice: roles.resolution(for: .agent).effective
+        )
+        let where_ = onThisMac
+            ? "It runs on \(name), here on this Mac, so nothing is sent anywhere."
+            : "It is set to run on \(name), which is not on this Mac — so your meeting's "
+                + "words are sent there. Turn it on to allow that, or pick a model on this "
+                + "Mac in Settings → Agent."
+        return "About once a minute of talking, Next Notes re-reads the last three minutes of "
+            + "the conversation and tidies the topics and requests it has written down. "
+            + where_
+            + " Anything it writes is a suggestion: a card still has to be read and approved "
+            + "before anything happens."
+    }
 
     /// The second trigger: a call nobody put on a calendar.
     private var callsSection: some View {

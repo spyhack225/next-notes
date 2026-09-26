@@ -579,6 +579,31 @@ final class Settings {
         didSet { defaults.set(meetingsFinalPass, forKey: Keys.meetingsFinalPass) }
     }
 
+    /// Re-read the live transcript while the meeting is still running, so topics and
+    /// requests appear during the call instead of only in the notes afterwards (M-14).
+    ///
+    /// Three states, and **no stored value is the point**: automatic. With nothing stored the
+    /// pass follows the model that would answer — on when it runs on this Mac (the model Next
+    /// Notes runs itself, or Apple's), off when it is an online model or a model app reached
+    /// over the network, because a minute of live meeting text is not something to send
+    /// somewhere every minute unasked. Turning it on here *is* the consent for exactly that;
+    /// turning it off means it never runs, whatever the model is.
+    ///
+    /// `MeetingContextReconciler.isEnabled` is the one place that answer is computed, from
+    /// this and the role store's decision — the effective value is not written here, so
+    /// nothing can be stored that disagrees with it.
+    var meetingLiveUnderstanding: Bool? {
+        didSet {
+            if let meetingLiveUnderstanding {
+                defaults.set(meetingLiveUnderstanding, forKey: Keys.meetingLiveUnderstanding)
+            } else {
+                // Not `set(nil, forKey:)`: that stores NSNull rather than removing the key,
+                // so the third state would come back as a value that is neither yes nor no.
+                defaults.removeObject(forKey: Keys.meetingLiveUnderstanding)
+            }
+        }
+    }
+
     /// Throw the recording away once the notes have been written.
     ///
     /// For keeping the audio only as long as the things made from it need it — diarization
@@ -1102,6 +1127,7 @@ final class Settings {
         static let meetingsDiarize = "meetingsDiarize"
         static let meetingsDiarizeOfferDismissed = "meetingsDiarizeOfferDismissed"
         static let meetingsFinalPass = "meetingsFinalPass"
+        static let meetingLiveUnderstanding = "meetingLiveUnderstanding"
         static let meetingsDeleteAudioAfterNotes = "meetingsDeleteAudioAfterNotes"
         static let notesAutoGenerate = "notesAutoGenerate"
         static let notesRelatedContext = "notesRelatedContext"
@@ -1245,6 +1271,11 @@ final class Settings {
         meetingsDiarizeOfferDismissed = defaults.object(forKey: Keys.meetingsDiarizeOfferDismissed)
             as? Bool ?? false
         meetingsFinalPass = defaults.object(forKey: Keys.meetingsFinalPass) as? Bool ?? true
+        // `as? NSNumber` rather than `as? Bool`: a key that somehow holds NSNull is a value
+        // that is neither answer, and it must read back as "never touched" (automatic).
+        meetingLiveUnderstanding = (defaults.object(
+            forKey: Keys.meetingLiveUnderstanding
+        ) as? NSNumber)?.boolValue
         meetingsDeleteAudioAfterNotes = defaults.object(forKey: Keys.meetingsDeleteAudioAfterNotes)
             as? Bool ?? false
         notesAutoGenerate = defaults.object(forKey: Keys.notesAutoGenerate) as? Bool ?? true

@@ -818,8 +818,146 @@ enum MeetingLiveAgent {
         check("a send-the-deck ask produced no card", !cards.isEmpty)
         check("the deck card could execute", cards.allSatisfy { !$0.canExecute })
 
+        failures.append(contentsOf: reconcileCadenceFailures(meetingID: meetingID))
+        failures.append(contentsOf: reconcileWindowFailures(meetingID: meetingID))
+        failures.append(contentsOf: reconcileConsentFailures())
+        failures.append(contentsOf: reconcileTaggingFailures(meetingID: meetingID))
+
         writeLine(failures)
         return failures.isEmpty
+    }
+
+    /// M-14: a pass runs on **speech time**, not on a count of finals.
+    ///
+    /// Driven through the same `Cadence` the store asks, over two minutes of two-second
+    /// finals — the shape M-01 made common, at one final every two seconds. A minute of
+    /// talking is what a pass is worth; eight finals arrive every ten to twenty seconds and
+    /// used to ask the model several times a minute.
+    private static func reconcileCadenceFailures(meetingID: UUID) -> [String] {
+        var failures: [String] = []
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        var cadence = MeetingContextReconciler.Cadence()
+        var passes = 0
+        for step in 0..<60 {
+            let now = start.addingTimeInterval(Double(step) * 2)
+            cadence.noteIngest(speechSeconds: 2)
+            if cadence.isDue(now: now) {
+                passes += 1
+                cadence.notePass(at: now)
+            }
+        }
+        if passes > 3 {
+            failures.append(
+                "two minutes of two-second finals scheduled \(passes) pass(es), expected 3 or fewer"
+            )
+        }
+        // And the other half of the rule: a fast talker is not summarised every ten seconds.
+        var rapid = MeetingContextReconciler.Cadence()
+        var rapidPasses = 0
+        for step in 0..<120 {
+            let now = start.addingTimeInterval(Double(step))
+            rapid.noteIngest(speechSeconds: 1)
+            if rapid.isDue(now: now) {
+                rapidPasses += 1
+                rapid.notePass(at: now)
+            }
+        }
+        if rapidPasses > 3 {
+            failures.append(
+                "two minutes of continuous speech scheduled \(rapidPasses) pass(es), expected 3 or fewer"
+            )
+        }
+        // The measured numbers, printed whether or not they are in range: this is a budget,
+        // and the next person to touch the cadence should see the cost rather than infer it.
+        emit(
+            "MEETING_LIVE_CADENCE: \(passes) pass(es) over 2 min of 2 s finals · "
+                + "\(rapidPasses) over 2 min of continuous speech · reads the last "
+                + "\(Int(MeetingContextReconciler.windowMinutes)) min · "
+                + "automatic: OpenRouter off, on-device on"
+        )
+        return failures
+    }
+
+    /// M-14: a pass reads the last three **minutes**, not the last thirty-two finals.
+    ///
+    /// A count of finals is a length proxy: at two seconds a final it is about a minute, at
+    /// one second it is half as long again, and it is never the thing the reader meant.
+    private static func reconcileWindowFailures(meetingID: UUID) -> [String] {
+        var failures: [String] = []
+        let now: TimeInterval = 390
+        let twoAndAHalfMinutesAgo = TranscriptSegment(
+            start: now - 150, end: now - 148,
+            text: "Priya will send the revised budget to Finance.",
+            source: .mic
+        )
+        let fourMinutesAgo = TranscriptSegment(
+            start: now - 240, end: now - 238,
+            text: "Parking lot for next quarter's roadmap.",
+            source: .system
+        )
+        let prompt = MeetingContextReconciler.ModelCompleter.prompt(
+            context: .empty(meetingID: meetingID, title: "Standup", participants: ["Sam"]),
+            now: now,
+            segments: [fourMinutesAgo, twoAndAHalfMinutesAgo]
+        )
+        if !prompt.contains("revised budget") {
+            failures.append("a pass could not see speech from two and a half minutes ago")
+        }
+        if prompt.contains("Parking lot") {
+            failures.append("a pass read speech from four minutes ago")
+        }
+        return failures
+    }
+
+    /// M-14: the pass has its own switch, and *automatic* means on-device only.
+    ///
+    /// Live meeting text is not something to send to a cloud model every minute behind
+    /// nobody's back, so with nothing stored an online model leaves it off. An explicit
+    /// answer is the person's own decision either way.
+    private static func reconcileConsentFailures() -> [String] {
+        var failures: [String] = []
+        if MeetingContextReconciler.isEnabled(stored: nil, choice: .cloud) {
+            failures.append("automatic mode ran a live pass on an OpenRouter model")
+        }
+        if !MeetingContextReconciler.isEnabled(stored: nil, choice: .builtIn) {
+            failures.append("automatic mode left the pass off on the model on this Mac")
+        }
+        if MeetingContextReconciler.isEnabled(stored: false, choice: .builtIn) {
+            failures.append("the pass ran with the switch off")
+        }
+        if !MeetingContextReconciler.isEnabled(stored: true, choice: .cloud) {
+            failures.append("turning the pass on explicitly did not consent to the cloud model")
+        }
+        return failures
+    }
+
+    /// M-14: model-written text is never the microphone's own words.
+    ///
+    /// `.mic` is the source that can authorise execution, so a topic the model invented
+    /// carried the same authority as a sentence the person actually said. The least-authority
+    /// source and an `inferred` confidence cost nothing and remove the claim.
+    private static func reconcileTaggingFailures(meetingID: UUID) -> [String] {
+        var failures: [String] = []
+        let parsed = MeetingContextReconciler.ModelCompleter.parse(
+            "{\"topics\":[\"Parking lot\"],\"unresolved\":[\"Who signs off?\"]}",
+            existing: .empty(meetingID: meetingID, title: "Standup", participants: []),
+            segments: []
+        )
+        let items = (parsed?.topics ?? []) + (parsed?.unresolvedItems ?? [])
+        if items.isEmpty {
+            failures.append("a model topic and an open question were both dropped")
+            return failures
+        }
+        if items.contains(where: { $0.source == .mic }) {
+            failures.append("a model-written topic claimed the microphone as its source")
+        }
+        if items.contains(where: { $0.confidence != "inferred" }) {
+            failures.append("a model-written topic claimed a confidence it did not measure")
+        }
+        if items.contains(where: { $0.isAuthoritative }) {
+            failures.append("a model-written item could authorise execution")
+        }
+        return failures
     }
 
     private static func writeLine(_ failures: [String]) {

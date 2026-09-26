@@ -11,9 +11,11 @@ import Observation
 /// Both share `ingestedKeys` (start|end|source|text). Session publishes the final *after*
 /// it ingests, so the bus redelivery is a no-op rather than a second extractor pass.
 ///
-/// A third, occasional writer is the light LLM reconcile: after enough finals or speech
-/// seconds it debounces and may tidy topics / unresolved / candidate wording. It never
-/// runs on every segment and never restores the old two-minute proposal poll.
+/// A third, occasional writer is the light LLM reconcile: after a minute of new speech, and
+/// never more often than every 45 s, it debounces and may tidy topics / unresolved /
+/// candidate wording. It reads the last three minutes of meeting time. It never runs on
+/// every segment and never restores the old two-minute proposal poll. Whether it runs at
+/// all is `Settings.meetingLiveUnderstanding` — automatic means a model on this Mac.
 @MainActor
 @Observable
 final class MeetingContextStore {
@@ -24,14 +26,15 @@ final class MeetingContextStore {
     @ObservationIgnored private var lastSegments = 0
     /// Dedupes Session ingest against bus finals (and bus against itself).
     @ObservationIgnored private var ingestedKeys: Set<String> = []
-    /// The model's short, source-labelled evidence window. Bounded independently of
-    /// the full meeting transcript and shared by session and transcript-bus ingest.
+    /// The model's short, source-labelled evidence buffer, bounded independently of the full
+    /// meeting transcript and shared by session and transcript-bus ingest. Sized from
+    /// `MeetingContextReconciler.evidenceBufferSegments` so it can hold a pass's whole
+    /// three-minute window; a pass windows it by time on the way out.
     @ObservationIgnored private var recentSegments: [TranscriptSegment] = []
 
-    /// Finals since the last reconcile attempt.
-    @ObservationIgnored private var finalsSinceReconcile = 0
-    /// Speech seconds (sum of segment durations) since the last reconcile attempt.
-    @ObservationIgnored private var speechSecondsSinceReconcile: TimeInterval = 0
+    /// How much new speech has arrived, and when the last pass ran. The rule is
+    /// `MeetingContextReconciler`'s, so the store and its self-test decide the same way.
+    @ObservationIgnored private var cadence = MeetingContextReconciler.Cadence()
     @ObservationIgnored private var reconcileTask: Task<Void, Never>?
     /// Injected for tests; production uses the selected Agent model.
     @ObservationIgnored private var completer: any MeetingContextCompleter =
@@ -177,17 +180,20 @@ final class MeetingContextStore {
 
     private func noteIngest(_ segments: [TranscriptSegment]) {
         recentSegments.append(contentsOf: segments.filter { $0.kind != .agentCommand })
-        if recentSegments.count > 80 {
-            recentSegments.removeFirst(recentSegments.count - 80)
+        if recentSegments.count > MeetingContextReconciler.evidenceBufferSegments {
+            recentSegments.removeFirst(
+                recentSegments.count - MeetingContextReconciler.evidenceBufferSegments
+            )
         }
-        finalsSinceReconcile += segments.count
-        speechSecondsSinceReconcile += segments.reduce(0) { partial, segment in
-            partial + max(0, segment.end - segment.start)
-        }
-        guard MeetingContextReconciler.shouldSchedule(
-            finalsSince: finalsSinceReconcile,
-            speechSecondsSince: speechSecondsSinceReconcile
-        ) else { return }
+        cadence.noteIngest(
+            speechSeconds: segments.reduce(0) { partial, segment in
+                partial + max(0, segment.end - segment.start)
+            }
+        )
+        // One rule, two places: this asks whether to *arm* a pass, and the completer asks
+        // again before it resolves a provider and spends a model call. Automatic mode with
+        // an online model must not even schedule the debounce.
+        guard isLiveUnderstandingEnabled, cadence.isDue(now: Date()) else { return }
         scheduleReconcile()
     }
 
@@ -204,19 +210,21 @@ final class MeetingContextStore {
 
     private func runReconcile() async {
         guard let context = current else { return }
-        guard MeetingContextReconciler.shouldSchedule(
-            finalsSince: finalsSinceReconcile,
-            speechSecondsSince: speechSecondsSinceReconcile
-        ) else { return }
+        let now = Date()
+        guard isLiveUnderstandingEnabled, cadence.isDue(now: now) else { return }
 
-        // Reset before awaiting so a late burst during the model call starts a fresh window
-        // rather than immediately re-arming on the same finals.
-        resetReconcileCadence()
+        // Counted before awaiting so a long stretch of talk that arrives while the model is
+        // working starts a fresh window rather than immediately re-arming on the same speech.
+        cadence.notePass(at: now)
 
+        let elapsed = meetingElapsed
         let snapshot = MeetingContextReconciler.Snapshot(
             context: context,
-            recentTranscript: recentTranscript(minutes: 3),
-            recentSegments: recentSegments
+            recentTranscript: recentTranscript(minutes: MeetingContextReconciler.windowMinutes),
+            recentSegments: MeetingContextReconciler.window(
+                recentSegments, endingAt: elapsed
+            ),
+            now: elapsed
         )
         let suggestion = await completer.refine(snapshot)
         guard suggestion.hasRefinements else { return }
@@ -238,8 +246,28 @@ final class MeetingContextStore {
     }
 
     private func resetReconcileCadence() {
-        finalsSinceReconcile = 0
-        speechSecondsSinceReconcile = 0
+        cadence.reset()
+    }
+
+    /// Whether a live pass may run: the person's switch, and in automatic mode whether the
+    /// model that would answer runs on this Mac.
+    ///
+    /// `ModelRoleStore.resolution` is the read-only decision P0-14 settled on, so this asks
+    /// the role store rather than re-resolving a provider of its own — the same question the
+    /// Agent turn asks, and `ModelRoleStore.provider(for: .agent)` hands back what it judged.
+    private var isLiveUnderstandingEnabled: Bool {
+        MeetingContextReconciler.isEnabled(
+            stored: Settings.shared.meetingLiveUnderstanding,
+            choice: ModelRoleStore.shared.resolution(for: .agent).effective
+        )
+    }
+
+    /// The meeting clock a window is measured against: the live session's elapsed time, or
+    /// the end of the last segment once there is no session — the pipeline finishing a
+    /// meeting it has already stopped. `TranscriptSegment.start` counts from the same zero,
+    /// so the two are comparable.
+    private var meetingElapsed: TimeInterval {
+        MeetingController.shared.session?.elapsed ?? recentSegments.last?.end ?? 0
     }
 
     private func isActive(_ meetingID: UUID) -> Bool {
