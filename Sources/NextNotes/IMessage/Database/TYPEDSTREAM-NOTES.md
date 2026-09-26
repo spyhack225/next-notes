@@ -16,17 +16,24 @@ would be built from.
 | Label | Meaning |
 |---|---|
 | **[measured]** | Checked on this machine on 2026-09-25, and the command is given. |
+| **[measured — Apple's encoder]** | Checked on this machine against bytes **`NSArchiver` wrote at test time**, not bytes Messages wrote. Says what the system encoder emits; says nothing about what Messages emits. The distinction is load-bearing and is stated at every use. |
 | **[published]** | From a public reverse-engineering write-up. Not Apple documentation, not verified against a blob on this Mac, and not verified on macOS 27. |
 | **[inferred]** | My reading of the above. Could be wrong. |
 | **[UNMEASURED]** | Nobody knows, including this file. This is what IM-01 is for. |
 
 **What was checked here, and what it rules out.** [measured] `~/Library/Messages/`
 on this machine answers `ls: Operation not permitted` — no Full Disk Access — so
-**there are no real bytes available to this note at all.** Every structural
-claim below is therefore `[published]` or `[inferred]`, and not one of them has
-been confirmed against a blob written by macOS 27. That is not a reason to
-proceed; it is the reason §3 exists and the reason the decoder must be built to
-refuse rather than to guess.
+**there are no real message bytes available to this note at all.** Every
+structural claim below is therefore `[published]` or `[inferred]`, with one
+exception that arrived later and is labelled separately: claims about **what
+Apple's own encoder writes** are `[measured — Apple's encoder]`, established by
+asking `NSArchiver` to archive known objects and reading the bytes back. That
+exception is narrower than it looks and does not narrow with repetition —
+**`NSArchiver` and Messages are two different writers of the same format**, and
+only the first has ever been observed. Not one claim here has been confirmed
+against a blob written by Messages. That is not a reason to proceed; it is the
+reason §3 exists and the reason the decoder must be built to refuse rather than
+to guess.
 
 **What [measured] *does* establish, and it is load-bearing.** From the SDK this
 repo builds against (`NSArchiver.h`):
@@ -77,14 +84,32 @@ begins with the same 16 bytes, and `file(1)` decomposes them:
 ```
 
 So the gate is a **pair**: the streamer version at offset 0, and a system
-version as a little-endian `u16` at offsets 14–15. Both are in the header, both
-must be matched, and neither is a macOS version — `1000` has been constant
-regardless of which macOS wrote it.
+version that is a typedstream integer **read from offset 13** — *not* a `u16`
+read at 14–15. Those two bytes are only where the value *lands* when the head
+byte in front of it happens to be `0x81`; a one-byte system version would sit at
+13, a `0x82` one at 14–17. Reading a fixed `u16` at 14–15 is reading a dump, not
+the format, and it is the kind of shortcut that works on every sample until the
+day it does not. Both halves are in the header, both must be matched, and
+neither is a macOS version — `1000` has been constant regardless of which macOS
+wrote it.
 
-[UNMEASURED] **Whether that pair is still `04` / `1000` on macOS 27.0.** The
-published work is from 2025 and the last macOS it names is not stated. This is
-the single most important number in this file and it is a number nobody has
-measured. See §3.
+[measured — Apple's encoder, 2026-09-25, macOS 27.0] **On this Mac that pair is
+still `04` / `1000`.** `NSArchiver.archivedData(withRootObject:)` wrote
+`04 0b "streamtyped" 81 e8 03` for all twelve root shapes tried — `NSString`,
+`NSMutableString`, `NSAttributedString`, `NSMutableAttributedString`, with and
+without attribute runs. This is no longer the blocking open question it was when
+this file was first written, and the decoder's gate is now written as data
+(`MessagesSchemaVersion.supported`) rather than as a guess.
+
+**Attribute that precisely, because this file exists because the format is
+undocumented and an over-claim here undoes the whole thing.** It is a
+measurement of *Apple's own encoder on this Mac*. It is **not** a measurement of
+what **Messages** writes, which is a different question, is still unknown, and is
+still IM-01's job. `~/Library/Messages/` answers *Operation not permitted* on
+this machine, so nothing in this repository has ever read a blob Messages
+wrote. What moved from [UNMEASURED] to [measured] is *"the encoder still writes
+this header"*; what did not move is *"Messages still writes this header"*. §3
+is unchanged and is still what closes the gap.
 
 [published] **The same container does carry other versions**, so the gate is
 real rather than ceremonial: `message_summary_info` (Ventura and later, the
@@ -105,8 +130,29 @@ bytes, and the cursor only advances because the bytes tell it how much to read:
 | `0x86` | end of an object |
 | `0x81` | a 2-byte integer follows |
 | `0x82` | a 4-byte integer follows |
-| `0x87` | an 8-byte integer follows |
 | `0x83` | a float/double follows; width comes from the type tag |
+| `0x87`–`0x91` | **reserved tags a real stream never writes** — not integers of any width |
+
+[measured — Apple's encoder, 2026-09-25] **Correction to an earlier version of
+this table, which listed `0x87` as an eight-byte integer marker. It is not, and
+the decoder refuses `0x87`–`0x91` as tags rather than reading a number out of
+nothing.** The public write-up the earlier table came from carries that row; the
+encoder does not produce it, and a reader that treated it as a width would read a
+64-bit length from a tag. `MessagesDecoder`'s `Tag` enum names only the tags it
+sees (`0x81`, `0x82`, `0x84`, `0x85`, `0x86`) and every other head byte in the
+tag range is `structureUnreadable`.
+
+[measured — Apple's encoder, 2026-09-25] **`0x80`–`0x8F` are the *tag* range, so
+the length is not written "one byte if it fits".** Two facts, and they are easy
+to conflate: a length above 127 escapes to `0x81` + little-endian `u16` (a
+540-byte payload does, and `--selftest-imessage-decode` asserts all 540 bytes
+come back rather than 36), **and** a value that would land in `0x80`–`0x8F` is
+two bytes even where it would fit in one. The second is the reason the first
+cannot be implemented as a size test, and "one byte if it fits" is therefore not
+a safe default applied to an edge case: it is a rule that is wrong on real
+lengths and wrong in the middle of a class of lengths, with no error at all.
+The decoder's `readUnsignedInteger` treats a head byte in the tag range that is
+neither `0x81` nor `0x82` as a tag where a number belongs, and refuses.
 
 [published] Two tables are being filled *as the stream is read*, and both are
 addressed by index, which is why a reader that mis-numbers either one
@@ -139,9 +185,12 @@ inside an `NSMutableAttributedString`, and the text is that string's field data:
                   in the   |
                   object   |
                   table    |
-                           the length is an *integer in typedstream's own
-                           variable-width encoding*: one byte if it fits,
-                           else 0x81 + u16, 0x82 + u32, 0x87 + u64
+                            the length is an *integer in typedstream's own
+                            variable-width encoding*: one byte below 128,
+                            else 0x81 + u16, or 0x82 + u32 — and never a value
+                            that would land in the tag range, so it is not
+                            "one byte if it fits" (see §1.3)
+
 ```
 
 **This is the whole answer to "why not string-search for the first printable
@@ -150,11 +199,16 @@ right for a stronger reason than tidiness.** A scan produces a *prefix* of the
 text, silently, with no error — and a truncated sentence is a sentence a person
 will act on. A length-driven parse either produces the whole string or refuses.
 
-[UNMEASURED] **Whether that length is in bytes or in characters** for non-ASCII.
-Every published sample is ASCII, where the two are the same. A message with an
-emoji or a CJK character is the case that tells them apart, and a decoder that
-guesses wrong will truncate exactly the messages a person most wants read.
-IM-01 must capture one.
+[measured — Apple's encoder, 2026-09-25] **That length is a UTF-8 *byte* count,
+not a character count.** A payload of `héllo 🌍 ok` — 10 characters, 14 bytes —
+is prefixed `0x0e`. Every published sample is ASCII, where the two are the same,
+so the published work could not have told; the case that tells them apart is
+exactly the one a person most wants read, and a decoder that guessed wrong
+truncates every message with an emoji or a CJK character in it. **The same
+attribution as §1.2: this is Apple's encoder on this Mac, not a blob Messages
+wrote.** IM-01 still captures a real non-ASCII body, and the capture is still
+worth doing — it is what turns this from a measurement of the encoder into a
+measurement of what Messages writes.
 
 [published] Three further things about the text that a decoder must know:
 
@@ -173,19 +227,30 @@ IM-01 must capture one.
 
 ### 1.5 What could not be determined offline, in one list
 
-- whether `04` / system `1000` still holds on macOS 27.0 (**the** blocking one)
+**Settled since this file was written, for Apple's encoder on this Mac** (both
+attributed as in §1.2, and both still not measurements of Messages' own bytes):
+
+- whether `04` / system `1000` still holds on macOS 27.0 — it does, per the
+  twelve root shapes tried
+- bytes vs characters for the string length — **bytes**
+
+**Still open, and still every one of them needs a real blob:**
+
+- whether **Messages** writes that same header pair, or the same byte-counted
+  length (IM-01 §3.1 — **the** blocking one)
 - the class-version bytes Messages actually writes today (`NSString` v1, etc.)
-- bytes vs characters for the string length
 - `U+FFFC` behaviour on this OS
 - the `payload_data` + `balloon_bundle_id` shape for an effect bubble
   (IM-01 experiment 11) — nothing in this note claims to know it
 - whether an edited message's body is the edited text or both texts
 - `message_summary_info`'s container, beyond the fact that its version differs
 
-**None of these is answerable without a blob.** A parser written from this file
-alone will be written from [published] inference, and must therefore be built to
-refuse rather than to succeed. That is not a caveat on the design; it *is* the
-design.
+**None of the second list is answerable without a real blob**, and the first list
+is the reason that is not fatal: the parser's *mechanics* can be pinned against
+Apple's own encoder without one. A parser written from this file alone is still
+written from [published] inference about Messages' bytes, and must therefore be
+built to refuse rather than to succeed. That is not a caveat on the design; it
+*is* the design.
 
 ---
 
@@ -217,15 +282,15 @@ against it:
   (`NSInvalidUnarchiveOperationException`, `NSInvalidArgumentException`).
 - [inferred] Swift has no `@catch`. A raised `NSException` is **not a Swift
   error** — it propagates and terminates the process. There is no way to wrap
-  this in `try`/`catch`, and there is no way to make it return `.undecodable`.
+  this in `try`/`catch`, and there is no way to make it return `.unreadable`.
 
 So the choice is not "safer system API vs. portable parser" in the abstract. It
 is:
 
 | | hand-written parser | `NSUnarchiver` |
 |---|---|---|
-| bad input | returns `.undecodable(reason:)` | raises; **terminates the app** |
-| unfamiliar version | mismatch, returns `.undecodable` | raises; terminates |
+| bad input | returns `.unreadable(reason:)` | raises; **terminates the app** |
+| unfamiliar version | mismatch, returns `.unreadable` | raises; terminates |
 | survives a macOS update | yes, by refusing | no |
 | can be tested with a fixture | yes, in-process | no — the test *can* crash too |
 | wrong answer possible? | yes, on a format it half-understands | no |
@@ -267,6 +332,31 @@ a different question, and it must not be presented as though it did. Note that
 one *at test time from Apple's own encoder* is not synthesising one, but it is a
 deviation and belongs in the commit message and in `STATUS.md`, not smuggled in.
 
+**The deprecation is the point, and the warning is deliberately left standing.**
+`NSArchiver` is deprecated in favour of `NSKeyedUnarchiver`, which cannot open a
+typedstream at all (§2.1) — so there is no supported replacement to migrate to
+and the deprecated call is not a shortcut, it is the only encoder of this format
+the system still ships. The test therefore contains **exactly one** deprecation
+warning, from the one call site in `MessagesDecoderSelfTest`'s oracle, and it is
+intentional: a reviewer silencing it would be silencing the only statement the
+codebase makes that this API is deprecated and is used anyway. It is confined to
+the test, never to the message read path, for the reason in the paragraph above —
+in a self-test a raised `NSException` costs the run; in production it costs the
+process. `--selftest-imessage-decode` is the file that carries it, and
+`--selftest-private-network`-style hygiene does not apply: nothing here opens a
+network connection.
+
+**What the oracle pins, and what it cannot.** Using it pins **this parser's
+mechanics** — the header shape, the shared-string table, the byte-counted
+length, the `0x81` escape, the class chain, the descriptor grammar, and the
+refusal of everything else. It is **not evidence about Messages' own layout**,
+and the distinction must not erode as the test grows: the case names say
+`archiver_oracle_*` for that reason, the corpus cases say nothing of the sort,
+and every claim that genuinely needs a Messages blob is a named
+`IMESSAGE_DECODE_BLOCKED:` line in the self-test rather than a passing case. A
+future agent adding a sixth oracle case is adding evidence about the parser; if
+they are trying to close a gap about Messages, the gap belongs in IM-01.
+
 ---
 
 ## 3. What IM-01 must capture
@@ -282,9 +372,12 @@ converts §1 from [published] to [measured] and makes the whole decoder
 buildable. Two parts of it matter more than the rest:
 
 1. **The header pair, verbatim** — byte 0 (the streamer version) and the
-   little-endian `u16` at offsets 14–15. That pair *is* the version gate, and
-   §5 builds the gate out of exactly these two numbers. Whether it is still
-   `04` / `1000` on macOS 27.0 is [UNMEASURED] and blocks the gate's default.
+   system version read out of the typedstream integer at offset 13 (whose bytes
+   sit at 14–15 only because that head byte is `0x81`). That pair *is* the
+   version gate, and §5 builds the gate out of exactly these two numbers.
+   Whether **Messages** still writes `04` / `1000` is [UNMEASURED] and is what
+   this capture blocks: Apple's own encoder writes it (§1.2), and Messages is a
+   different writer.
 2. **The expected output.** Not "the first printable run" — the text the person
    typed, character for character, which only the sender knows.
 
@@ -351,13 +444,41 @@ Sanitise by construction, per §3.2.
 distinction below is the difference between six green cases and six green cases
 that mean something.
 
-### 4.1 Assertable offline, once one real blob exists
+### 4.1 Assertable offline — and there are now two kinds of "offline"
 
-- **Every proper prefix of the real blob is refused.** Take the real blob, and
-  for each `n` in `0..<count` feed the first `n` bytes: every one must be
-  `.undecodable`, and `text` must be `nil` — never `""`, never `.decoded`. This
-  is truncation coverage with no fuzzer, and it is the case that catches a
-  cursor which reads past the end or desynchronises into returning a prefix.
+This list was written when the only possible fixture was a real `attributedBody`
+from IM-01. There are **two** fixture sources now, and which one an assertion
+runs against is itself the claim it makes:
+
+- the **corpus** in `Tests/Fixtures/chatdb/`, and a real blob when IM-01 lands —
+  an assertion against these is a claim about **what Messages writes**;
+- streams **Apple's own encoder** produces at test time (§2.3) — an assertion
+  against these is a claim about **this parser's mechanics** and nothing else.
+
+An item is asserted offline today if it is a mechanics claim. An item that is a
+Messages claim stays blocked, and the blocked ones are named in
+`--selftest-imessage-decode`'s `IMESSAGE_DECODE_BLOCKED:` lines and in
+`02-PHASE-1-P0-SLICE.md` §2 rather than quietly dropped from this list.
+
+- **No prefix ever decodes to a *different* string.** Take a whole stream and,
+  for each `n` in `0..<count`, feed the first `n` bytes: the answer is either
+  the *whole* expected sentence or a refusal — never a shortened one, never
+  `""`, never a different sentence. This is the failure the section is reaching
+  for: a truncated stream yielding a prefix of the text with no error, which is
+  a sentence a person will act on.
+
+  ⚠️ **An earlier version of this file said "every proper prefix of the real
+  blob is refused". That was wrong, and it is recorded here rather than deleted
+  because the wrong version is the one that looks obviously safe.** It is false
+  for a structural reason: the message text sits *early* in the stream, so a
+  prefix that already contains the whole sentence contains a body this Mac can
+  read, and refusing it would be refusing real text. A test written to the old
+  wording would have had to be weakened or deleted the first time it ran
+  against a real blob, and a test that *has* to be weakened is a test whose
+  failure would be rationalised away. `--selftest-imessage-decode` asserts the
+  property above instead, under the name
+  `a_truncated_stream_never_decodes_to_a_different_string`. **Do not restore the
+  old wording.**
 - **A declared string length that runs past the end is refused.** This is the
   classic out-of-bounds and the most likely defect in a hand-written parser.
 - **A version byte outside the supported set is refused, and the reason names
@@ -371,7 +492,7 @@ that mean something.
   prefix case.
 - **`.notText(bundleID:)` for a `payload_data` + `balloon_bundle_id` row**, and
   the bundle id survives to the value.
-- **`.absent` when both body columns are NULL**, distinct from `.undecodable`.
+- **`.absent` when both body columns are NULL**, distinct from `.unreadable`.
 - **`text` takes precedence** when a row has both columns. ⚠️ **No fixture case
   currently has a row with both columns set** — `both-paths` deliberately has one
   column each, because that is the one-variable design. This precedence is
@@ -384,14 +505,19 @@ that mean something.
 
 ### 4.2 Not assertable offline, at all
 
-- that the gate's default version is right for this macOS
+- that the gate's default version is right for **Messages** on this macOS
+  (Apple's encoder is measured — §1.2 — and Messages is not)
 - that the layout on this macOS is the layout §1 describes
-- bytes-vs-characters for non-ASCII
 - that a real decode produces the *whole* sentence (only IM-01's known-text row
   can assert this)
 - anything about `message_summary_info`, effect bubbles, or the WAL
 - that a *future* macOS still decodes — which is why the canary metric in
   `03-PHASE-2-P1-SLICE.md` exists, and why the failure is a capability
+
+Bytes-vs-characters for non-ASCII used to be on this list. It is measured now,
+for Apple's encoder (§1.4), and `--selftest-imessage-decode`'s
+`archiver_oracle_length_counts_bytes` pins it; what stays here is the Messages
+half of the same question.
 
 ---
 
@@ -414,7 +540,8 @@ enum MessageBody: Equatable {
 }
 
 enum MessageDecodeFailure: Equatable {
-    case unsupportedStreamVersion(found: UInt8, system: UInt16)
+    case unsupportedStreamVersion(found: UInt8, system: UInt16?)   // see the note below
+    case notATypedStream(offset: Int)                            // see the note below
     case truncated(offset: Int)
     case structureUnreadable(offset: Int)
     case notAString(offset: Int)
@@ -423,7 +550,7 @@ enum MessageDecodeFailure: Equatable {
 
 struct IMessageEnvelope {
     let body: MessageBody        // the only stored fact
-    let source: MessageBodySource // .textColumn | .attributedBody — which path answered
+    let source: MessageBodySource // which path answered — four cases, see below
     var text: String? { if case .text(let t) = body { t } else { nil } }
     var decodeState: MessageDecodeState { /* derived from `body`, never stored */ }
 }
@@ -443,21 +570,58 @@ states:
   convention. Every consumer must say what it does with a body it could not
   read, and the compiler asks, not the reviewer.
 
+**Three places the built decoder departs from the sketch above, each with a
+reason — the code is right and this paragraph is the record.** The reason each
+one was adopted is a *fact about the world* the sketch could not have known, not
+a preference.
+
+1. **`systemVersion` in `unsupportedStreamVersion` is `UInt16?`, not `UInt16`.**
+   The corpus's `X'0001'` refusal sentinel is **two** bytes, so the streamer
+   version is present and the system version is not — it needs the whole 13-byte
+   header before it exists. Writing `0` for bytes that are not there would put a
+   fabricated reading into a log line and a canary metric, which is the exact
+   failure §5.3's last bullet forbids. A missing measurement is `nil`.
+2. **There is a `.notATypedStream(offset:)` case.** The five cases above have
+   nowhere to put "these bytes are not this format at all", and that is a
+   different fact from "this format is at a version I do not read" — it is what
+   a bug report needs, because one means a corrupt column and the other means an
+   unfamiliar file.
+3. **`MessageBodySource` has four cases, not the two the sketch's comment
+   lists.** `.textColumn` / `.attributedBody` / **`payloadData`** / `noColumn`.
+   A `.textColumn` source attached to a body that came from `payload_data` would
+   be a lie the three-case enum could not express, and a source that lies is
+   worse than no source: every consumer downstream uses it to decide which
+   column to trust.
+
 ### 5.2 The version gate as data
 
 ```swift
-struct StreamHeader: Equatable, Hashable {
+struct MessagesSchemaVersion: Equatable, Hashable {
     var streamerVersion: UInt8     // offset 0
-    var systemVersion: UInt16      // offsets 14–15, little endian
-    static let expected: Set<StreamHeader> = [.init(streamerVersion: 0x04, systemVersion: 1000)]
+    var systemVersion: UInt16      // a typedstream integer READ FROM offset 13;
+                                   // 14–15 is only where its bytes land
+                                   // when the head byte there is 0x81
+    static let supported: Set<MessagesSchemaVersion> = [.init(streamerVersion: 0x04, systemVersion: 1000)]
 }
 ```
 
-`expected` is a `Set` on purpose. It is a lookup, not a branch, so
+`supported` is a `Set` on purpose. It is a lookup, not a branch, so
 `--selftest-imessage-decode` can state the *policy* ("only these are decoded")
 and a future macOS that needs a second entry is a one-line data change with a
 test that says which entry. The file header names the macOS it was written
 against, as `02-PHASE-1-P0-SLICE.md` requires.
+
+**Two details of the built gate that this sketch did not have, and both are
+load-bearing.** `readHeader()` checks the **streamer version before the
+signature**, and the order is the point: the corpus's `X'0001'` sentinel is two
+bytes, so the version byte is present and the signature is not, and a signature
+check first would answer "these bytes are not a typedstream" and lose the fact
+that the version is the thing that is wrong. And the streamer-version membership
+test runs against the *streamer half* only, so a good version with a bad system
+version is a version refusal rather than a signature refusal — which is what
+makes the gate a pair rather than a byte. The name is `MessagesSchemaVersion`
+rather than this section's earlier `StreamHeader`, because two other files quote
+it; the value is the same and the spelling is the one that shipped.
 
 ### 5.3 Rules the parser must hold to
 
@@ -495,7 +659,7 @@ against, as `02-PHASE-1-P0-SLICE.md` requires.
   string? (One line to grep: `.unreadable` and `""` must not meet.)
 - Is the version gate a `Set` membership test, or an `if version == 4`?
 - Is the parser's failure an `enum` case, or an `Error` nobody constructs?
-- Is the undecodable path reachable from every `switch` in the app, or does
+- Is the unreadable path reachable from every `switch` in the app, or does
   some consumer have a `default:` that drops it?
 - Does the file header name the macOS version and the header pair it was written
   against?
