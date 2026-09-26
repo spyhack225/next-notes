@@ -728,6 +728,12 @@ enum UsageLogSelfTest {
             "names": 0.1,
             "cleanup": 0.5,
             "inject": 0.12,
+            // F-01: the seconds `start()` waited for the shared `.realtimeASR` lane, so
+            // D-14's second gate condition is readable from a real hold. The meeting side
+            // records the same number (`MeetingTranscribeTally`); this call omits the
+            // argument, which is also the assertion that the parameter's default is real —
+            // P0-20c's other call sites keep compiling and read 0.
+            "laneWait": 0.0,
         ]
         for (key, expected) in expectedStages {
             guard let actual = asr.stages?[key] else {
@@ -740,6 +746,33 @@ enum UsageLogSelfTest {
         }
         if asr.stages?.count != expectedStages.count {
             problems.append("the asr row has \(asr.stages?.count ?? 0) stage(s), expected \(expectedStages.count)")
+        }
+        // F-01: a real wait is carried, not only the default above. 1.4 s is the shape the
+        // gate cares about — a hold that parked behind a meeting's transcription.
+        let queued = UsageRecord.dictationRows(
+            runID: UUID(),
+            engine: .parakeet,
+            audioSeconds: 3.0,
+            drained: 0.2,
+            transcribedAt: 1.6,
+            narrowedAt: 1.7,
+            cleanedAt: 2.1,
+            injectSeconds: 0.1,
+            transcribed: true,
+            cleanup: nil,
+            cleanupTimedOut: false,
+            laneWait: 1.4
+        )
+        if let queuedASR = queued.first(where: { $0.feature == UsageFeature.dictationASR.rawValue }) {
+            if let wait = queuedASR.stages?["laneWait"] {
+                if abs(wait - 1.4) > 0.001 {
+                    problems.append("a queued hold's stages[laneWait] was \(wait), expected 1.4")
+                }
+            } else {
+                problems.append("a queued hold's asr row has no stages[laneWait]")
+            }
+        } else {
+            problems.append("a queued hold wrote no dictation.asr row")
         }
         if cleanupRow.provider != UsageProvider.s1mini.rawValue {
             problems.append("cleanup provider was \(cleanupRow.provider), expected \(UsageProvider.s1mini.rawValue)")
@@ -798,7 +831,7 @@ enum UsageLogSelfTest {
 
     /// One real `DictationController` hold with its fake engine and its `insert:`/`record:`
     /// seams, plus a `usage:` log of its own: exactly one `dictation.asr` row joins the
-    /// `DictationRun.id` handed to `record:`, with the tail's five stages; a cleanup pass
+    /// `DictationRun.id` handed to `record:`, with the tail's six stages; a cleanup pass
     /// adds exactly one `dictation.cleanup` row on the same run id. The microphone is
     /// injected open — the TCC grant belongs to the responsible process and this flag is an
     /// ordinary INTEGRATION run (AGENTS.md), so the case must not depend on it.
@@ -864,7 +897,10 @@ enum UsageLogSelfTest {
             problems.append("the asr row's modelID was \(asrRow.modelID), "
                             + "expected \(SpeechEngineChoice.parakeet.rawValue)")
         }
-        let expectedStages: Set<String> = ["drain", "transcribe", "names", "cleanup", "inject"]
+        // The tail's six named stages. `laneWait` is F-01's: it is written by the production
+        // path here, not by a test seam, so this is the assertion that a real hold's row can
+        // answer "did this dictation wait for the speech lane?".
+        let expectedStages: Set<String> = ["drain", "transcribe", "names", "cleanup", "inject", "laneWait"]
         let actualStages = Set((asrRow.stages ?? [:]).keys)
         if actualStages != expectedStages {
             problems.append("the asr row's stages were \(actualStages.sorted()), "

@@ -34,7 +34,11 @@ extension UsageRecord {
         injectSeconds: Double,
         transcribed: Bool,
         cleanup: CleanupRecord?,
-        cleanupTimedOut: Bool
+        cleanupTimedOut: Bool,
+        /// Seconds `start()` waited for the shared `.realtimeASR` lane (F-01), 0 when it did
+        /// not wait. Defaulted so P0-20c's own call sites — and any row assembled before this
+        /// existed — keep compiling and read 0.
+        laneWait: Double = 0
     ) -> [UsageRecord] {
         let now = Date()
         var rows: [UsageRecord] = []
@@ -76,6 +80,8 @@ extension UsageRecord {
                     "names": narrowedAt - transcribedAt,
                     "cleanup": cleanedAt - narrowedAt,
                     "inject": injectSeconds,
+                    // F-01: the queueing time, same meaning as a meeting window's laneWait.
+                    "laneWait": laneWait,
                 ],
                 counts: nil,
                 turnID: nil,

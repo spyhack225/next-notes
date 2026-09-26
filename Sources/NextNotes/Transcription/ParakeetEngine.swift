@@ -35,6 +35,16 @@ actor ParakeetEngine: TranscriptionEngine {
     /// Owned by this engine so a superseded start releases *its* job, not a
     /// later hold's.
     private var schedulerJobID: UUID?
+    /// Seconds the last `start()` waited to be scheduled on the shared `.realtimeASR`
+    /// lane (F-01). The meeting side records the same number per window
+    /// (`MeetingTranscribeTally.laneWait`); without it here, the question "did a dictation
+    /// queue behind a meeting?" is unanswerable from a hold's own row, and the gate for the
+    /// per-pass-acquire change has nothing to read.
+    private var startLaneWaitSeconds: TimeInterval = 0
+
+    /// The value above, read by the tail after `finish()` for the `dictation.asr` usage row.
+    /// Actor-isolated, so the read is an `await`. 0 when the acquire did not wait.
+    var startLaneWait: TimeInterval { startLaneWaitSeconds }
     /// Bumped by `finish()` (and each new `start()`) so a start that was
     /// suspended across `acquire` / model load can tell it was cancelled and
     /// release its own lane — actors are re-entrant at `await`.
@@ -84,7 +94,12 @@ actor ParakeetEngine: TranscriptionEngine {
         // final batch pass. Store the id before the (slow) model load so a
         // timed-out start whose finish() races us still finds something to
         // release — unless finish already invalidated `generation`.
+        // How long the queueing took, measured where the queueing happens (F-01). Recorded
+        // before the generation check below, so a start that was cancelled while parked
+        // still files what it waited — that wait is exactly the contention being measured.
+        let laneBegan = Date()
         let jobID = await ComputeScheduler.shared.acquire(.realtimeASR)
+        startLaneWaitSeconds = Date().timeIntervalSince(laneBegan)
         guard recognitionGeneration == generation else {
             await ComputeScheduler.shared.release(jobID)
             continuation.finish()

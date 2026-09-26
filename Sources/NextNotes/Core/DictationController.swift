@@ -1897,6 +1897,11 @@ final class DictationController {
         // injection stage. `usage.record` only enqueues, so nothing here waits on disk,
         // and the numbers are the tail's own — the same ones the info line above prints.
         if let heldSeconds {
+            // F-01: what the start waited for the shared ASR lane, read off the engine that
+            // ran this hold rather than measured here — the wait happened inside its acquire
+            // and is gone by the time this row is assembled. A hold whose engine is gone
+            // (superseded, or compare mode) has no wait to report and files 0.
+            let laneWait = await engine?.startLaneWait ?? 0
             for row in UsageRecord.dictationRows(
                 runID: runID,
                 engine: engineChoice,
@@ -1908,7 +1913,8 @@ final class DictationController {
                 injectSeconds: injectSeconds,
                 transcribed: transcribed,
                 cleanup: cleanupRecord,
-                cleanupTimedOut: cleanupTimedOut
+                cleanupTimedOut: cleanupTimedOut,
+                laneWait: laneWait
             ) {
                 usage.record(row)
             }

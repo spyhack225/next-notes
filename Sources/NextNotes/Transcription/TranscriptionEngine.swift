@@ -43,6 +43,15 @@ protocol TranscriptionEngine: Actor {
     func finish() async
 }
 
+extension TranscriptionEngine {
+    /// Seconds the last `start()` waited to be scheduled on the shared compute lane before
+    /// it could begin, and 0 for an engine that does not queue. F-01: this is what lets a
+    /// hold's own usage row say whether it was ever blocked, which is the evidence the
+    /// per-pass-acquire change is gated on. Declared `async` because conformers are actors
+    /// and the value is read after `finish()`.
+    var startLaneWait: TimeInterval { 0 }
+}
+
 enum TranscriptionError: LocalizedError {
     case localeUnsupported(Locale)
     case modelInstallFailed(String)
