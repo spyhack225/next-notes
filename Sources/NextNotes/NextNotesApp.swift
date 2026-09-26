@@ -149,6 +149,20 @@ enum SelfTest {
     /// budget with it.
     private static var defaultTimeout: Double {
         let flat: Double = 300
+        // P1-01: a live eval case can spend its 150 s turn limit plus a cold multi-gigabyte
+        // load, and the flat budget would kill a healthy run at the second case. Sized from
+        // the cases the run will actually take: 30 full, 10 quick, or the `--only` subset.
+        if requested == "--selftest-toolloop-live" {
+            let caseCount: Int
+            if CommandLine.arguments.contains("--quick") {
+                caseCount = LiveEvalCases.quickIDs.count
+            } else if let only = value(after: "--only") {
+                caseCount = only.split(separator: ",").filter { !$0.isEmpty }.count
+            } else {
+                caseCount = LiveEvalCases.all.filter(\.scored).count
+            }
+            return max(flat, Double(caseCount) * 300 + 300)
+        }
         guard requested == "--selftest-cleanup" else { return flat }
 
         let modelBacked: Set<String> = ["apple", "apple-grammar", "s1", "chain", "app-llm"]
@@ -1691,6 +1705,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if arguments.contains("--selftest-toolloop-production") {
             Task { @MainActor in
                 SelfTest.failed = !(await RealtimeAgentToolLoopSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-toolloop-live-grader") {
+            Task { @MainActor in
+                SelfTest.failed = !LiveEvalGrader.runSelfTest()
+                writeSelfTest(SelfTest.failed
+                    ? "TOOLLOOP_LIVE_GRADER_FAILED"
+                    : "TOOLLOOP_LIVE_GRADER_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-toolloop-live") {
+            Task { @MainActor in
+                SelfTest.failed = !(await ToolLoopLiveEval.runSelfTest())
                 NSApp.terminate(nil)
             }
             return true

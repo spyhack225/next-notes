@@ -1,5 +1,52 @@
 import Foundation
 
+/// One planner pass, as the live eval's report sees it (P1-01). A rejected call and a stop
+/// are separate from a round so a report can say why a plan ended without reading prose.
+enum PlannerTraceEvent: Sendable {
+    case round(index: Int, systemCharacters: Int, userCharacters: Int, maxTokens: Int, raw: String, seconds: Double)
+    case rejectedCall(name: String, reason: String)
+    case stopped(reason: String)
+}
+
+/// Lock-protected one-shot hand-off for a trace event produced off the main actor, where
+/// `plannerTraceForTesting` cannot be called. `withBoundedWait` runs its work in a detached
+/// task, so the first pass reports through this and the main actor drains it after the await.
+private final class PlannerTraceBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var event: PlannerTraceEvent?
+
+    func set(_ value: PlannerTraceEvent) {
+        lock.lock()
+        event = value
+        lock.unlock()
+    }
+
+    func take() -> PlannerTraceEvent? {
+        lock.lock()
+        defer { lock.unlock() }
+        let value = event
+        event = nil
+        return value
+    }
+}
+
+extension Duration {
+    var secondsValue: Double {
+        let (seconds, attoseconds) = components
+        return Double(seconds) + Double(attoseconds) / 1e18
+    }
+}
+
+/// The four switches `plannableTools()` reads, overridable by a self-test so the roster in
+/// a run does not depend on the user's settings. P1-03 replaces this with
+/// `AgentCapabilityInputs`; the live eval uses whichever exists.
+struct PlannerToolGates: Sendable, Equatable {
+    var memory: Bool
+    var schedules: Bool
+    var knowledge: Bool
+    var skills: Bool
+}
+
 private enum GeneralToolStepError: Error, Sendable {
     /// A step failed. `modelUnavailable` is true when the failure was the chosen model
     /// itself — `LlamaError.modelUnopenable` or `.modelMissing` — which is the one failure
@@ -86,6 +133,8 @@ private enum AgentPlannerTestSeams {
     static var fallbackResolver: (() async -> (any LLMProvider)?)?
     static var denyUnattendedApprovals = false
     static var lastRoute: String?
+    /// The four planner switches a self-test overrides. Nil in production.
+    static var toolGates: PlannerToolGates?
 }
 
 extension RealtimeAgent {
@@ -102,6 +151,14 @@ extension RealtimeAgent {
     var denyUnattendedApprovalsForTesting: Bool {
         get { AgentPlannerTestSeams.denyUnattendedApprovals }
         set { AgentPlannerTestSeams.denyUnattendedApprovals = newValue }
+    }
+
+    /// Test-only: the four switches `plannableTools()` reads. Nil in production, and
+    /// consulted only under `SelfTest.isRunning`, so a stray assignment can never change a
+    /// real turn's roster.
+    static var toolGatesForTesting: PlannerToolGates? {
+        get { AgentPlannerTestSeams.toolGates }
+        set { AgentPlannerTestSeams.toolGates = newValue }
     }
 
     /// The route of the last model turn: `model-tools` when the plan ran tools,
@@ -515,6 +572,9 @@ extension RealtimeAgent {
                 requestedRole: .agent)
             var passReason = "stop"
             defer { recorder.finish(reason: passReason) }
+            // The first pass runs off the main actor inside `withBoundedWait`, so its trace
+            // event is produced into this box and drained on the main actor below (P1-01).
+            let firstPassTrace = PlannerTraceBox()
             let response: QuickTurnResult? = await withBoundedWait(remaining) {
                 // Hoisted out of `do` so the `catch` legs can keep what was streamed
                 // before the cut-off: a `catch` clause cannot see a `do` local.
@@ -529,6 +589,7 @@ extension RealtimeAgent {
                     let kind: AgentAnswerBudget.Kind = voice ? .voiceFirstPass : .typedAnswer
                     let visible = AgentAnswerBudget.tokens(
                         kind: kind, contextTokens: window, promptTokens: promptTokens, depth: depth)
+                    let traceUserCharacters = messages.map(\.content).joined(separator: "\n").count
                     Log.agent.info(
                         """
                         answer budget · kind=\(kind.label, privacy: .public) \
@@ -558,6 +619,11 @@ extension RealtimeAgent {
                                 await speech.receive(answer)
                             }
                         case .tools:
+                            firstPassTrace.set(.round(
+                                index: 0, systemCharacters: system.count,
+                                userCharacters: traceUserCharacters, maxTokens: visible,
+                                raw: "<use_tools/>",
+                                seconds: responseBegan.duration(to: ContinuousClock().now).secondsValue))
                             return .text("<use_tools/>")
                         case .invalid:
                             return .failed("The model returned an invalid response header.",
@@ -565,15 +631,31 @@ extension RealtimeAgent {
                         case .pending: break
                         }
                     }
+                    firstPassTrace.set(.round(
+                        index: 0, systemCharacters: system.count,
+                        userCharacters: traceUserCharacters, maxTokens: visible,
+                        raw: assembled,
+                        seconds: responseBegan.duration(to: ContinuousClock().now).secondsValue))
                     return .text(assembled)
                 } catch OpenRouterError.cutOff(let visibleText) {
                     // A cut-off is not a failure and its text is not thrown away: keep what
                     // was written, and let the result switch say a cut-off happened.
+                    firstPassTrace.set(.round(
+                        index: 0, systemCharacters: system.count,
+                        userCharacters: messages.map(\.content).joined(separator: "\n").count,
+                        maxTokens: 0, raw: assembled,
+                        seconds: responseBegan.duration(to: ContinuousClock().now).secondsValue))
                     return .cutOff(visibleText ? assembled : "")
                 } catch {
+                    firstPassTrace.set(.round(
+                        index: 0, systemCharacters: system.count,
+                        userCharacters: messages.map(\.content).joined(separator: "\n").count,
+                        maxTokens: 0, raw: error.localizedDescription,
+                        seconds: responseBegan.duration(to: ContinuousClock().now).secondsValue))
                     return .failed(error.localizedDescription, modelUnavailable: error.isModelUnavailable)
                 }
             }
+            if let event = firstPassTrace.take() { plannerTraceForTesting?(event) }
             remainingBudget -= responseBegan.duration(to: .now)
             recorder.noteModelEnd()
             await waitForVoiceInput()
@@ -845,14 +927,19 @@ extension RealtimeAgent {
     }
 
     static func plannableTools(knowledgeTools: Bool = KnowledgeToolGate.isAvailable) -> [AgentTool] {
-        let memoryEnabled = MemorySnapshotCache.shared.isEnabled
-        let schedulesEnabled = Settings.shared.agentSchedulesEnabled
+        // A self-test may pin the four switches so its roster does not depend on the
+        // person's settings; the seam is only read under the harness.
+        let gates = SelfTest.isRunning ? toolGatesForTesting : nil
+        let memoryEnabled = gates?.memory ?? MemorySnapshotCache.shared.isEnabled
+        let schedulesEnabled = gates?.schedules ?? Settings.shared.agentSchedulesEnabled
+        let knowledgeEnabled = gates?.knowledge ?? knowledgeTools
+        let skillsEnabled = gates?.skills ?? SkillToolGate.isAvailable
         let filtered = AgentToolRegistry.shared.tools(upTo: .send)
             .filter { RealtimeToolSelection.allowedIDs.contains($0.id) }
             .filter { memoryEnabled || $0.namespace != .memory }
             .filter { schedulesEnabled || $0.namespace != .schedule }
-            .filter { knowledgeTools || $0.namespace != .knowledge }
-            .filter { SkillToolGate.isAvailable || $0.namespace != .skills }
+            .filter { knowledgeEnabled || $0.namespace != .knowledge }
+            .filter { skillsEnabled || $0.namespace != .skills }
         if coreToolIDs.isSubset(of: Set(filtered.map(\.id))) { return filtered }
         let fallback = AgentToolRegistry.shared.tools(upTo: .send)
             .filter { coreToolIDs.contains($0.id) && RealtimeToolSelection.allowedIDs.contains($0.id) }
@@ -1063,6 +1150,7 @@ extension RealtimeAgent {
         // not finish, when there is one. The "Remaining steps are unfinished."
         // trailer is kept for the existing timeout assertions.
         func incomplete(_ reason: String, completed: [String], inFlight: String?) -> String {
+            plannerTraceForTesting?(.stopped(reason: reason))
             var progress = ""
             if !completed.isEmpty {
                 progress += "Did \(completed.joined(separator: ", ")) "
@@ -1086,7 +1174,10 @@ extension RealtimeAgent {
             contextSections[contextSections.count - 1] = "Current user request:\n" + currentRequest
             let groundedPrompt = contextSections.joined(separator: "\n\n")
             speech?.beginResponse()
-            guard isCurrent(owner) else { return "I stopped the tool plan." }
+            guard isCurrent(owner) else {
+                plannerTraceForTesting?(.stopped(reason: "cancelled"))
+                return "I stopped the tool plan."
+            }
             guard remainingBudget > .zero else {
                 return incomplete("I stopped the tool plan because it took too long.",
                                   completed: completedToolIDs, inFlight: currentToolID)
@@ -1110,6 +1201,7 @@ extension RealtimeAgent {
                 requestedRole: .agent)
             var roundReason = "stop"
             defer { roundRecorder.finish(reason: roundReason) }
+            let roundMaxTokens = 256
             let completion: Result<String, GeneralToolStepError>? = await withBoundedWait(remaining) {
                 // Hoisted out of `do` so the `catch` legs can keep what was streamed
                 // before the cut-off: a `catch` clause cannot see a `do` local.
@@ -1119,10 +1211,12 @@ extension RealtimeAgent {
                         if voice && !background {
                             return await LatencyCorrelation.$current.withValue(correlation) {
                                 await currentProvider.streamInteractiveConversation(
-                                    system: system, messages: [.init(role: .user, content: user)], maxTokens: 256)
+                                    system: system, messages: [.init(role: .user, content: user)],
+                                    maxTokens: roundMaxTokens)
                             }
                         } else {
-                            return await currentProvider.stream(system: system, user: user, maxTokens: 256)
+                            return await currentProvider.stream(system: system, user: user,
+                                                               maxTokens: roundMaxTokens)
                         }
                     }
                     for try await chunk in stream {
@@ -1159,6 +1253,7 @@ extension RealtimeAgent {
             await waitForVoiceInput()
             guard isCurrent(owner) else {
                 roundReason = "cancelled"
+                plannerTraceForTesting?(.stopped(reason: "cancelled"))
                 return "I stopped the tool plan."
             }
             if revision != (work?.revision ?? 0) {
@@ -1207,6 +1302,10 @@ extension RealtimeAgent {
                 return confirmed(OpenRouterError.cutOff(visibleText: false).localizedDescription)
             }
             let parsedCalls = AgentToolCallParser.calls(in: completionText)
+            plannerTraceForTesting?(.round(
+                index: rounds, systemCharacters: system.count, userCharacters: user.count,
+                maxTokens: roundMaxTokens, raw: completionText,
+                seconds: completionBegan.duration(to: clock.now).secondsValue))
             roundRecorder.proposed(parsedCalls.map {
                 AgentToolRegistry.shared.tool(named: $0.name)?.id ?? $0.name
             })
@@ -1242,7 +1341,10 @@ extension RealtimeAgent {
 
             for call in parsedCalls {
                 await waitForVoiceInput()
-                guard isCurrent(owner) else { return "I stopped the tool plan." }
+                guard isCurrent(owner) else {
+                    plannerTraceForTesting?(.stopped(reason: "cancelled"))
+                    return "I stopped the tool plan."
+                }
                 if revision != (work?.revision ?? 0) { break }
                 guard callsUsed < maxCalls else {
                     return "I couldn’t finish the tool plan within the safe limit."
@@ -1253,6 +1355,8 @@ extension RealtimeAgent {
                       RealtimeToolSelection.allowedIDs.contains(call.name)
                         || RealtimeToolSelection.allowedIDs.contains(tool.id)
                 else {
+                    plannerTraceForTesting?(.rejectedCall(
+                        name: call.name, reason: "unavailable tool"))
                     return "The tool planner requested an unavailable tool; nothing else was run."
                 }
                 // P0-07: a write may only commit while the input that planned it is
@@ -1475,7 +1579,7 @@ extension RealtimeAgent {
     private func runLocate(
         query: String, wantsFolder: Bool, speech: AgentToolSpeechTracker?
     ) async -> String? {
-        let files = LiveFileRetrieval()
+        let files: any FileRetrieving = fileRetrievalForTesting ?? LiveFileRetrieval()
         guard files.isAvailable else { return nil }
         let matches = AgentEntityResolver.resolve(spoken: query, wantsFolder: wantsFolder, files: files)
         let searched = ListFormatter.localizedString(

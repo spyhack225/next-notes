@@ -3,6 +3,12 @@ import Foundation
 /// The only place a tool actually runs. Every path — meeting review, realtime turn, task
 /// backend, MCP — comes through here so the broker cannot be skipped.
 enum AgentToolExecutor {
+    /// A self-test's stand-in for every tool, consulted after the registry lookup and before
+    /// any validation, card or executor. Ignored outside a self-test, so a stray assignment in
+    /// production can never replace a real action with a fixture.
+    typealias FakeToolRun = @MainActor @Sendable (AgentTool, [String: String]) async throws -> AgentToolResult
+    @MainActor static var fakeForTesting: FakeToolRun?
+
     @MainActor
     static func run(
         _ name: String,
@@ -18,6 +24,9 @@ enum AgentToolExecutor {
     ) async throws -> AgentToolResult {
         guard let tool = AgentToolRegistry.shared.tool(named: name) else {
             throw AgentError.unknownTool(name)
+        }
+        if SelfTest.isRunning, let fake = fakeForTesting {
+            return try await fake(tool, arguments)
         }
         // A well-formed stand-in is not an argument, and neither is an absent one. This is
         // the only place every caller passes through, so it is where "[Name]" and

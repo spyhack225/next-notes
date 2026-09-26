@@ -113,6 +113,8 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-agent-panes
 --selftest-agent-answers
 --selftest-assemble           --selftest-portrait
+--selftest-toolloop-live [--model apple|<id>] [--only C01,M05] [--quick] [--report <path>]
+--selftest-toolloop-live-grader
 ```
 
 `usage.jsonl` is the one local record of which model or engine ran each pass — Agent,
@@ -128,6 +130,22 @@ harness `UsageLog.shared` writes to `NextNotesSelfTest-<pid>` in the temporary d
 so no run can append to the owner's history, and `--selftest-store-isolation` watches the
 real `usage.jsonl` beside the other stores. It rotates at 8 MB to `usage.1.jsonl` (about
 two files, ~16 MB) and drops rows older than 90 days from the rotated file at launch.
+
+`--selftest-toolloop-live` is the one number that says whether the Agent got better at using
+tools: 30 canonical requests through the real `RealtimeAgent.handle(_, source: .text)` on
+the model the Agent role resolves to, with every `AgentToolExecutor.run` answered by a
+fixture — no mail is read, nothing is sent, no approval card appears, and the run fails if
+the owner's conversation, tasks, audit log, memory or `library.json` changed. It prints one
+`TOOLLOOP_LIVE_CASE` line per case, a class tally, `TOOLLOOP_LIVE_SCORE n/30`, a markdown
+report plus a `.jsonl` sidecar (`--report <path>`; by default
+`~/Library/Caches/NextNotesBuild/toolloop-live/`), then exactly one final marker. No model
+resolves → `TOOLLOOP_LIVE_ABSENT` (never OK). `--quick` is a fixed 10-case subset (never
+edited to make a gate pass, target ≤ 20 min, 3,300 s budget) and is the per-task gate for
+every Phase 1 and Phase 4 task; the full run is the phase gate (two consecutive runs, 9,300 s
+budget, about 2.5 h). The grader is pure and pinned without a model by
+`--selftest-toolloop-live-grader`, which fails if any single verdict branch stops matching.
+`--allow-cloud` is off by default: the eval is local, and a cloud run sends fixture text off
+the Mac.
 
 One flag in that list's shape but not its kind: `--wake-mic-record [count]` is interactive,
 so it is a modifier rather than a `--selftest-*` test — it records real-room "Hey Will"

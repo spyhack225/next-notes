@@ -161,6 +161,10 @@ final class RealtimeAgent {
     /// Only the production-route tool-loop self-test overrides the persona depth. A
     /// self-test must never write `agentResponsiveness` into the user's defaults.
     var answerDepthForTesting: AgentResponsiveness?
+    /// The file index the direct "find / open <name>" shortcut reads. Nil in production.
+    var fileRetrievalForTesting: (any FileRetrieving)?
+    /// Receives one event per planner round and per rejected call. Nil in production.
+    var plannerTraceForTesting: (@MainActor (PlannerTraceEvent) -> Void)?
 
     private init() { isVoiceWorker = false }
 

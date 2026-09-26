@@ -152,6 +152,10 @@ INTEGRATION_ENTRIES=(
   "selftest-chat-template|300"
   "selftest-llm-prefix-cache|600"
   "selftest-usage-log|600"
+  # live real-model tool-loop eval (P1-01). Acceptance passes no arguments, so this entry
+  # is the full 30-case run; `--quick` is the per-task gate and is run by hand.
+  "selftest-toolloop-live|9300"
+  "selftest-toolloop-live-grader|300"
   # model architecture guard and private networking (P0-13, P0-19)
   "selftest-model-unopenable|300"
   "selftest-private-network|300"
