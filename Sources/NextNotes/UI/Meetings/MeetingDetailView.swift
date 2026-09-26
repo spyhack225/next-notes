@@ -128,7 +128,12 @@ struct MeetingDetailView: View {
             SpeakerNamesSheet(
                 labels: speakerLabels,
                 suggestions: meeting.attendees,
-                initialNames: meeting.speakerNames
+                initialNames: meeting.speakerNames,
+                canReidentify: store.audioURL(for: meeting) != nil,
+                isReidentifying: diarization.isRunning(meeting.id),
+                onReidentify: { count in
+                    diarization.reidentify(meeting, speakers: count)
+                }
             ) { names in
                 var renamed = meeting
                 renamed.speakerNames = names

@@ -164,6 +164,9 @@ INTEGRATION_ENTRIES=(
   "selftest-notes-longform|300"
   # nearest-run and neighbour fallback for far-end labels (M-04)
   "selftest-diarize-assign|120"
+  # speaker-count hints, voice-print cluster merge and the measured threshold (M-03):
+  # model-backed half runs the diarizer over both far-end fixtures three times
+  "selftest-diarize-hints|600"
   # long-window meeting finals (M-01): reads $NEXTNOTES_FIXTURES/meetings, needs
   # Parakeet; without either it reports MEETING_FINALS_ABSENT, counted as SKIP
   "selftest-meeting-finals|900"

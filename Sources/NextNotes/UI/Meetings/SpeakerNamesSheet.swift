@@ -14,10 +14,24 @@ struct SpeakerNamesSheet: View {
     let labels: [String]
     let suggestions: [String]
     let initialNames: [String: String]
+    /// Whether "Identify again" is offered at all (M-03): the recording must still
+    /// exist, because the transcript alone has nothing to cluster. M-10's 72-hour
+    /// window is what keeps that true for days after a meeting ends.
+    var canReidentify: Bool
+    /// A pass already running on this meeting — the button waits rather than queueing
+    /// a second one.
+    var isReidentifying: Bool
+    var onReidentify: (Int) -> Void
     let onSave: ([String: String]) -> Void
+
+    /// The stepper's ceiling. Deliberately generous: the person counts the voices they
+    /// heard, and a forced count above the real one shows itself as an empty cluster
+    /// they can simply run again to correct.
+    private static let maximumSpeakerCount = 12
 
     @Environment(\.dismiss) private var dismiss
     @State private var names: [String: String] = [:]
+    @State private var reidentifyCount = 1
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.l) {
@@ -44,6 +58,28 @@ struct SpeakerNamesSheet: View {
                         .frame(width: DS.Size.settingsFieldWidth)
                     } label: {
                         SpeakerLabel(name: label, color: DS.Color.speaker(named: label))
+                    }
+                }
+                if canReidentify {
+                    LabeledContent {
+                        HStack(spacing: DS.Space.m) {
+                            Stepper(value: $reidentifyCount, in: 1...Self.maximumSpeakerCount) {
+                                Text("\(reidentifyCount)")
+                                    .monospacedDigit()
+                            }
+                            Button("Identify again") {
+                                onReidentify(reidentifyCount)
+                                dismiss()
+                            }
+                            .disabled(isReidentifying)
+                        }
+                    } label: {
+                        VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                            Text("Speakers")
+                            Text("Runs the clustering again with exactly this many.")
+                                .font(DS.Font.caption)
+                                .foregroundStyle(DS.Color.textSecondary)
+                        }
                     }
                 }
             }
@@ -74,7 +110,11 @@ struct SpeakerNamesSheet: View {
         }
         .padding(DS.Space.xl)
         .frame(width: DS.Size.sheetWidth)
-        .onAppear { names = initialNames }
+        .onAppear {
+            names = initialNames
+            // The count they would correct first is the one the pass just produced.
+            reidentifyCount = max(1, labels.count)
+        }
     }
 
     private func binding(for label: String) -> Binding<String> {

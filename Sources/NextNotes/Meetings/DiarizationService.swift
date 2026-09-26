@@ -69,6 +69,18 @@ final class DiarizationService {
         }
     }
 
+    /// Identifies speakers with an exact count the person set (M-03).
+    ///
+    /// The speaker sheet's "Identify again" stepper. A count from someone who was in the
+    /// call is not a hint the model may overrule, which is why it travels as
+    /// `numSpeakers` — an exact target — and not as a bound. Everything else is the
+    /// "Identify speakers" path untouched.
+    func reidentify(_ meeting: Meeting, speakers: Int) {
+        run(meeting, forcedSpeakers: max(1, speakers)) { [weak self] in
+            self?.store.releaseAudio(for: meeting.id)
+        }
+    }
+
     /// Stops a pass that is no longer wanted. Deleting the meeting is the case that matters.
     func cancel(_ id: UUID) {
         tasks[id]?.cancel()
@@ -79,7 +91,11 @@ final class DiarizationService {
 
     // MARK: - The work
 
-    private func run(_ meeting: Meeting, then next: @escaping @MainActor () -> Void) {
+    private func run(
+        _ meeting: Meeting,
+        forcedSpeakers: Int? = nil,
+        then next: @escaping @MainActor () -> Void
+    ) {
         let id = meeting.id
         guard tasks[id] == nil else { return }
         noteProgress(id)
@@ -114,7 +130,7 @@ final class DiarizationService {
                 self.progress[id] = nil
                 self.lastProgressAt[id] = nil
             }
-            await diarize(id)
+            await diarize(id, forcedSpeakers: forcedSpeakers)
             next()
         }
     }
@@ -129,9 +145,12 @@ final class DiarizationService {
     /// The engine id the `meeting.diarize` row reports — FluidAudio's model folder.
     private static let diarizerModelID = "speaker-diarization"
 
+    /// - Parameters:
+    ///   - forcedSpeakers: an exact count a person set from the speaker sheet (M-03).
+    ///     nil clusters with whatever hint the meeting's own shape supports.
     /// - Returns: whether any speaker label was written.
     @discardableResult
-    private func diarize(_ id: UUID) async -> Bool {
+    private func diarize(_ id: UUID, forcedSpeakers: Int? = nil) async -> Bool {
         let began = ContinuousClock.now
         var audioSeconds = 0.0
         var runsCount = 0
@@ -140,6 +159,7 @@ final class DiarizationService {
         var errorMessage: String?
         var warm: Bool?
         var loadMs: Int?
+        var hint: SpeakerCountHint?
         // P0-20b: one `meeting.diarize` row on every exit, built from whatever this pass
         // learned. `defer` rather than a call per return path, so a new `return false`
         // added later cannot quietly lose the row.
@@ -150,6 +170,7 @@ final class DiarizationService {
                 audioSeconds: audioSeconds,
                 runs: runsCount,
                 speakers: speakersCount,
+                hint: hint,
                 errorClass: errorClass,
                 errorMessage: errorMessage,
                 warm: warm,
@@ -203,7 +224,12 @@ final class DiarizationService {
                 }
             }
 
-            let runs = try await MeetingDiarizer.shared.speakerRuns(in: samples) { fraction in
+            // M-03: a person's exact count is the answer, not a bound; a hint read from
+            // the meeting's own shape is a bound the clustering may still beat. A
+            // browser, an unknown app and a meeting with no attendees get neither.
+            hint = forcedSpeakers.map { SpeakerCountHint(numSpeakers: $0) }
+                ?? SpeakerCountHint.for(meeting)
+            let runs = try await MeetingDiarizer.shared.speakerRuns(in: samples, hint: hint) { fraction in
                 Task { @MainActor [weak self] in
                     self?.noteProgress(id)
                     self?.progress[id] = fraction
@@ -227,6 +253,16 @@ final class DiarizationService {
             guard store.meeting(id: id) != nil else { return false }
             store.saveTranscript(labelled, for: id)
             revision += 1
+            // M-03: a merge or a re-identify can retire labels this transcript no longer
+            // carries. Renames hang off the generated label, so a name whose label is
+            // gone would sit in the dictionary forever, read by nothing — keep only the
+            // names whose labels survived.
+            let surviving = Set(MeetingDiarizer.labels(in: labelled))
+            if var updated = store.meeting(id: id),
+               updated.speakerNames.contains(where: { !surviving.contains($0.key) }) {
+                updated.speakerNames = updated.speakerNames.filter { surviving.contains($0.key) }
+                store.save(updated)
+            }
             // Voice prints only while the knowledge graph is on: nothing else reads them.
             if PersonResolutionService.shared.isEnabled {
                 let prints = MeetingVoicePrints.centroids(of: runs)
@@ -278,11 +314,17 @@ final class DiarizationService {
         audioSeconds: Double,
         runs: Int,
         speakers: Int,
+        hint: SpeakerCountHint?,
         errorClass: UsageErrorClass?,
         errorMessage: String?,
         warm: Bool?,
         loadMs: Int?
     ) {
+        var counts = ["speakers": speakers, "runs": runs]
+        // Counts only, per the schema — the shape of the constraint, never the meeting
+        // that produced it.
+        if let maxSpeakers = hint?.maxSpeakers { counts["maxSpeakers"] = maxSpeakers }
+        if let numSpeakers = hint?.numSpeakers { counts["numSpeakers"] = numSpeakers }
         UsageLog.shared.record(UsageRecord(
             v: 1,
             id: UUID(),
@@ -317,7 +359,7 @@ final class DiarizationService {
                 ? Double(totalMs) / 1_000 / audioSeconds
                 : nil,
             stages: nil,
-            counts: ["speakers": speakers, "runs": runs],
+            counts: counts,
             turnID: nil,
             conversationID: nil,
             workID: nil,

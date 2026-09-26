@@ -106,9 +106,17 @@ actor MeetingDiarizer {
 
     /// Clusters one mono 16 kHz track into speaker runs.
     ///
+    /// - Parameters:
+    ///   - hint: a speaker-count constraint read from the meeting (M-03). nil clusters
+    ///     blind, as every meeting before M-03 did.
+    ///   - merged: whether the post-clustering voice-print merge runs. The self-test's
+    ///     measurement mode reads the raw clusters — merged centroids would answer a
+    ///     question about the raw ones.
     /// - Parameter progress: fraction of the segmentation pass, 0…1.
     func speakerRuns(
         in samples: [Float],
+        hint: SpeakerCountHint? = nil,
+        merged: Bool = true,
         progress: (@Sendable (Double) -> Void)? = nil
     ) async throws -> [SpeakerRun] {
         guard Double(samples.count) / ChunkedTranscriber.sampleRate >= Self.minimumAudioSeconds else {
@@ -116,7 +124,9 @@ actor MeetingDiarizer {
         }
         try await prepare()
         guard let models else { throw DiarizationError.notPrepared }
-        return try await Self.speakerRuns(from: models, in: samples, progress: progress)
+        return try await Self.speakerRuns(
+            from: models, in: samples, hint: hint, merged: merged, progress: progress
+        )
     }
 
     /// Frees the models. Called when nothing is going to be diarized for a while.
@@ -133,34 +143,242 @@ actor MeetingDiarizer {
     /// method. So the manager never crosses the boundary: it is created, prepared and used
     /// entirely off the actor, and only this box — which states the guarantee — is stored.
     private final class Models: @unchecked Sendable {
-        let manager: OfflineDiarizerManager
+        /// The manager the load went through: `.default` config, already prewarmed. An
+        /// unhinted pass runs on it exactly as every meeting before M-03 did.
+        let defaultManager: OfflineDiarizerManager
+        /// The same load's models as a value, so a hinted pass can build its own manager
+        /// around them with `initialize(models:)` — which shares the prepared models and
+        /// never loads them a second time.
+        let prepared: OfflineDiarizerModels
 
-        init(manager: OfflineDiarizerManager) {
-            self.manager = manager
+        init(defaultManager: OfflineDiarizerManager, prepared: OfflineDiarizerModels) {
+            self.defaultManager = defaultManager
+            self.prepared = prepared
         }
     }
 
     private nonisolated static func loaded() async throws -> Models {
+        // One load, through a manager with the default configuration — the same call the
+        // pre-M-03 code made — so the download, the compile and FluidAudio's prewarm all
+        // happen exactly once. `prepareModels` returns nothing, so the prepared struct is
+        // re-read below from the compiled artefacts it just wrote (a re-open of what
+        // `ModelCache` keeps, not a recompile) and every hinted pass after this one
+        // builds on it instead of loading again.
         let manager = OfflineDiarizerManager(config: .default)
         try await manager.prepareModels()
-        return Models(manager: manager)
+        let prepared = try await OfflineDiarizerModels.load()
+        return Models(defaultManager: manager, prepared: prepared)
+    }
+
+    /// The config one hint becomes. FluidAudio's own words: `numSpeakers` overrides
+    /// `min`/`max`; a `maxSpeakers` binds only when the auto-detected count exceeds it.
+    /// `minSpeakers` stays unset in both cases — a one-sided recording is still one voice,
+    /// and a hint that forces a second speaker into silence is worse than no hint.
+    private nonisolated static func config(for hint: SpeakerCountHint) -> OfflineDiarizerConfig? {
+        if let exact = hint.numSpeakers, exact >= 1 {
+            return OfflineDiarizerConfig().withSpeakers(exactly: exact)
+        }
+        if let max = hint.maxSpeakers, max >= 1 {
+            return OfflineDiarizerConfig().withSpeakers(max: max)
+        }
+        return nil
     }
 
     private nonisolated static func speakerRuns(
         from models: Models,
         in samples: [Float],
+        hint: SpeakerCountHint?,
+        merged: Bool,
         progress: (@Sendable (Double) -> Void)?
     ) async throws -> [SpeakerRun] {
-        let result = try await models.manager.process(audio: samples) { done, total in
+        let manager: OfflineDiarizerManager
+        if let hint, let config = Self.config(for: hint) {
+            manager = OfflineDiarizerManager(config: config)
+            manager.initialize(models: models.prepared)
+        } else {
+            manager = models.defaultManager
+        }
+        let result = try await manager.process(audio: samples) { done, total in
             guard total > 0 else { return }
             progress?(Double(done) / Double(total))
         }
-        return result.segments.map {
+        var runs = result.segments.map {
             SpeakerRun(
                 speakerID: $0.speakerId,
                 start: TimeInterval($0.startTimeSeconds),
                 end: TimeInterval($0.endTimeSeconds),
                 embedding: $0.embedding
+            )
+        }
+        guard merged else { return runs }
+        // The person's exact count is not something the merge may second-guess: they
+        // counted the voices they heard, and `numSpeakers` is that answer, not a bound
+        // to squeeze under.
+        runs = mergeClusters(
+            runs,
+            maxSpeakers: hint?.maxSpeakers,
+            threshold: hint?.numSpeakers == nil ? Self.mergeThreshold : nil
+        )
+        return runs
+    }
+
+    // MARK: - Cluster merge (M-03)
+
+    /// Cosine similarity above which two clusters' voice-print centroids are the same
+    /// voice. Measured, not guessed: the self-test's measurement mode runs the diarizer
+    /// without hints over the two far-end fixtures — plus both concatenated, which is
+    /// where the same-speaker pairs come from (the fixtures share the B voice) — and this
+    /// sits at the midpoint between the highest different-speaker similarity and the
+    /// lowest same-speaker similarity of that table. nil (the ranges overlap) means no
+    /// similarity merge — the hint alone then does the work.
+    static let mergeThreshold: Double? = 0.9
+
+    /// Cosine similarity of two vectors of the same length. nil when either is empty or
+    /// the norms do not behave — an embedding FluidAudio left degenerate is not evidence
+    /// for or against a merge.
+    static func cosine(_ a: [Double], _ b: [Double]) -> Double? {
+        guard a.count == b.count, !a.isEmpty else { return nil }
+        var dot = 0.0
+        var normA = 0.0
+        var normB = 0.0
+        for index in a.indices {
+            dot += a[index] * b[index]
+            normA += a[index] * a[index]
+            normB += b[index] * b[index]
+        }
+        let denominator = (normA * normB).squareRoot()
+        guard denominator > 0, denominator.isFinite else { return nil }
+        return dot / denominator
+    }
+
+    /// One cluster while merging: the duration-weighted embedding sum, how much speech it
+    /// covers, and where it was first heard.
+    private struct Cluster {
+        var id: String
+        var sum: [Double]
+        var weight: Double
+        var firstStart: TimeInterval
+    }
+
+    /// Merges over-split clusters by voice print, then squeezes to `maxSpeakers`.
+    ///
+    /// Pure over `[SpeakerRun]`: the centroids are the same duration-weighted means
+    /// `MeetingVoicePrints.centroids` writes, compared pairwise by cosine similarity.
+    /// Two passes, greedy one pair at a time because merging two clusters changes both
+    /// centroids and the next verdict must be read against the result:
+    /// 1. every pair at or above `threshold` — until none is;
+    /// 2. with a `maxSpeakers`, the closest pair — until the count fits.
+    ///
+    /// A cluster with no embedding (a run FluidAudio embedded empty) has nothing to
+    /// compare and is never merged on similarity; it can still be consumed by the
+    /// `maxSpeakers` squeeze, whose pairs are ranked by similarity and fall back to
+    /// first-heard order when similarity is unknown, so the loop always terminates.
+    /// The surviving id of a merge is whichever cluster was heard first — labels are
+    /// renumbered by first-heard order downstream, so nothing else can tell.
+    static func mergeClusters(
+        _ runs: [SpeakerRun],
+        maxSpeakers: Int? = nil,
+        threshold: Double? = nil
+    ) -> [SpeakerRun] {
+        guard runs.count > 1 else { return runs }
+
+        var clusters: [String: Cluster] = [:]
+        for run in runs {
+            let weight = Double(max(0, run.end - run.start))
+            var cluster = clusters[run.speakerID]
+                ?? Cluster(id: run.speakerID, sum: [], weight: 0, firstStart: run.start)
+            cluster.firstStart = min(cluster.firstStart, run.start)
+            if weight > 0, !run.embedding.isEmpty {
+                if cluster.sum.isEmpty {
+                    cluster.sum = [Double](repeating: 0, count: run.embedding.count)
+                }
+                if cluster.sum.count == run.embedding.count {
+                    for index in cluster.sum.indices {
+                        cluster.sum[index] += Double(run.embedding[index]) * weight
+                    }
+                    cluster.weight += weight
+                }
+            }
+            clusters[run.speakerID] = cluster
+        }
+        guard clusters.count > 1 else { return runs }
+
+        func centroid(_ cluster: Cluster) -> [Double]? {
+            guard cluster.weight > 0, !cluster.sum.isEmpty else { return nil }
+            return cluster.sum.map { $0 / cluster.weight }
+        }
+        func similarity(_ a: Cluster, _ b: Cluster) -> Double? {
+            guard let first = centroid(a), let second = centroid(b) else { return nil }
+            return cosine(first, second)
+        }
+
+        var ordered = Array(clusters.values)
+        // id → the id that absorbed it. Chains resolve by following the map, because a
+        // survivor can itself be absorbed later.
+        var absorbedInto: [String: String] = [:]
+        func resolve(_ id: String) -> String {
+            var current = id
+            while let next = absorbedInto[current] { current = next }
+            return current
+        }
+        func absorb(_ survivorIndex: Int, _ goneIndex: Int) {
+            var survivor = ordered[survivorIndex]
+            let gone = ordered[goneIndex]
+            absorbedInto[gone.id] = survivor.id
+            if gone.sum.isEmpty {
+                // Nothing to combine; a zero weight cannot move a centroid.
+            } else if survivor.sum.isEmpty {
+                survivor.sum = gone.sum
+                survivor.weight = gone.weight
+            } else if survivor.sum.count == gone.sum.count {
+                for index in survivor.sum.indices { survivor.sum[index] += gone.sum[index] }
+                survivor.weight += gone.weight
+            }
+            // A dimension mismatch (FluidAudio embeds a fixed 256 wide, so this is
+            // theoretical) loses the gone cluster's evidence rather than the merge:
+            // the squeeze has to make progress to terminate.
+            survivor.firstStart = min(survivor.firstStart, gone.firstStart)
+            ordered[survivorIndex] = survivor
+            ordered.remove(at: goneIndex)
+        }
+
+        // Pair ranking: highest similarity first; unknown similarities rank last and
+        // tie-break by first-heard order, so the squeeze always makes progress.
+        func bestPair() -> (first: Int, second: Int, similarity: Double)? {
+            var best: (Int, Int, Double)?
+            for first in ordered.indices {
+                for second in (first + 1)..<ordered.count {
+                    let sim = similarity(ordered[first], ordered[second]) ?? -1
+                    if best == nil
+                        || sim > best!.2
+                        || (sim == best!.2
+                            && (ordered[first].firstStart, ordered[second].firstStart)
+                                < (ordered[best!.0].firstStart, ordered[best!.1].firstStart)) {
+                        best = (first, second, sim)
+                    }
+                }
+            }
+            return best.map { (first: $0.0, second: $0.1, similarity: $0.2) }
+        }
+
+        if let threshold {
+            while let pair = bestPair(), pair.similarity >= threshold {
+                absorb(pair.first, pair.second)
+            }
+        }
+        if let maxSpeakers {
+            while ordered.count > maxSpeakers, let pair = bestPair() {
+                absorb(pair.first, pair.second)
+            }
+        }
+        guard ordered.count < clusters.count else { return runs }
+
+        return runs.map { run in
+            SpeakerRun(
+                speakerID: resolve(run.speakerID),
+                start: run.start,
+                end: run.end,
+                embedding: run.embedding
             )
         }
     }
