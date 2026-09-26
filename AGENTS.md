@@ -388,6 +388,27 @@ With no brief, `NotesFormatter.emptySection` forces `_None._` regardless of what
 wrote — the prompt already asked for that, and the first live run had Apple's model write
 "this aligns with known concerns" about an empty block anyway.
 
+**`_None._` and "cut short" are different claims, and only one of them is the model's.**
+`LLMCompletion.finishedByLimit` is the single signal that separates them: a model that ran out
+of allowance has not decided there were no decisions, so `NotesFormatter.tidy(_:cutShort:)`
+writes `NotesPrompts.cutShortMarker` under every section the answer never reached rather than
+`NotesPrompts.emptyMarker`. Everything that shapes that sentence is deliberate. The notes
+pass retries once at double the allowance first, and only when `outputBudget` leaves the room
+(`answerWithRetry`); a second refusal is minutes nobody asked to spend. The **map step is
+never retried** — a fact list cut at the end is still facts — so `answerWithRetry` wraps the
+single pass and the reduce and nothing else. `emptySection` still wins for Related context on
+an empty brief, truncation or not, which is why it runs *after* `tidy`. The field has a
+default of `false` so a provider that cannot tell leaves it false rather than guessing, and
+each provider's rule is its own evidence: Apple's is the estimate within two tokens of the cap
+(`FoundationModelLLMProvider` reports no stop reason), llama's is `generated >= maxTokens`,
+an OpenAI-compatible server's is `finish_reason == "length"`, and **OpenRouter's belongs to
+P0-17** — its decode and its `OpenRouterError.cutOff` throw stay P0-17's, and the notes pass
+only hands the result on. A cut pass writes `finishReason: "length"` in its own usage row, so
+`--usage-report` can say a meeting's notes were cut off without opening them, and the page
+carries the rest. `--selftest-notes-truncation` is the gate; it fails if the filler comes
+back, and its reduce case exists because the single pass alone would leave half of this
+paragraph unpinned.
+
 `--notes-context-live` is the read-only diagnostic that prints the brief this machine would
 assemble, and it is deliberately **not** a `--selftest-*` flag. The self-test harness
 replaces every store with an isolated one — `KnowledgeIndexer.shared` gets a temp index with

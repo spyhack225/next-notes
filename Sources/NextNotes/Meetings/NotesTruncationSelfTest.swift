@@ -80,7 +80,47 @@ enum NotesTruncationSelfTest {
             }
         }
 
-        // c. The cap scales with the meeting: a 10-minute call keeps 1,000 tokens and a
+        // c. The reduce is an answer too: on a meeting too long for one pass, the same
+        // retry and the same "cut short" filler have to reach the document the facts
+        // become — and the map step, whose cut-off output is still facts, is not retried.
+        do {
+            let provider = TruncationNotesProvider(contextTokens: 16_384, alwaysCut: true)
+            if let result = try? await NotesGenerator(provider: provider)
+                .notes(for: meeting, segments: longTranscriptSegments(), brief: .empty) {
+                for heading in ["Decisions", "Action items", "Open questions"] {
+                    check("\(heading) is missing from the cut reduce",
+                          result.markdown
+                              .contains("## \(heading)\n\(NotesPrompts.cutShortMarker)"))
+                    check("\(heading) claims there was nothing to say after a cut reduce",
+                          !result.markdown
+                              .contains("## \(heading)\n\(NotesPrompts.emptyMarker)"))
+                }
+                let reduceCalls = provider.calls.filter { $0.system == NotesPrompts.reduceSystem }
+                check("the reduce was not retried (\(reduceCalls.count) call(s))",
+                      reduceCalls.count == 2)
+                if reduceCalls.count == 2 {
+                    check("the reduce retry repeated the first budget "
+                        + "(\(reduceCalls[0].maxTokens) then \(reduceCalls[1].maxTokens))",
+                          reduceCalls[1].maxTokens == reduceCalls[0].maxTokens * 2)
+                }
+                // One map call per announced part: a cut fact list is still facts, so the
+                // map step is never retried (the one retry M-13 does not make).
+                let mapCalls = provider.calls.filter { $0.system == NotesPrompts.mapSystem }
+                let parts = mapCalls
+                    .compactMap { LongformNotesProvider.partNumber(in: $0.user) }
+                    .sorted()
+                check("a map part was read more than once "
+                    + "(\(parts) over \(mapCalls.count) call(s))",
+                      parts == Array(1...parts.count))
+                write("NOTES_TRUNCATION reduce calls=\(provider.calls.count) "
+                    + "reduceBudget=\(reduceCalls.map { String($0.maxTokens) }.joined(separator: ",")) "
+                    + "parts=\(parts.count)")
+            } else {
+                failures.append("the cut reduce run threw")
+            }
+        }
+
+        // d. The cap scales with the meeting: a 10-minute call keeps 1,000 tokens and a
         // 60-minute one 2,000, with the ceiling above that.
         check("a 10-minute meeting did not get 1,000 tokens",
               NotesGenerator.maxNotesTokens(minutes: 10) == 1_000)
@@ -91,7 +131,7 @@ enum NotesTruncationSelfTest {
         check("a 30-second meeting got more room than a 10-minute one",
               NotesGenerator.maxNotesTokens(minutes: 1) <= 1_000)
 
-        // d. Every provider that can tell says so: the two wire legs and Apple's estimate
+        // e. Every provider that can tell says so: the two wire legs and Apple's estimate
         // rule are pure, so they are pinned here rather than needing a model.
         let cutBody = #"{"choices":[{"message":{"content":"half a section"},"finish_reason":"length"}]}"#
         let stopBody = #"{"choices":[{"message":{"content":"whole"},"finish_reason":"stop"}]}"#
@@ -124,8 +164,9 @@ enum NotesTruncationSelfTest {
                 generatedTokens: 900, maxTokens: 1_500))
         for failure in failures { write("  NOTES_TRUNCATION_WRONG: \(failure)") }
         write(failures.isEmpty
-            ? "NOTES_TRUNCATION_OK: a cut answer says so, one retry doubles the budget, "
-                + "the cap scales with the meeting, the wire finish reasons are read"
+            ? "NOTES_TRUNCATION_OK: a cut answer says so on the page, the single pass and "
+                + "the reduce each retry once at double the budget, the cap scales with the "
+                + "meeting, the wire finish reasons are read"
             : "NOTES_TRUNCATION_FAILED: \(failures.count) check(s) wrong")
         return failures.isEmpty
     }
@@ -144,7 +185,17 @@ enum NotesTruncationSelfTest {
     /// 100 segments of 6 s: 10 minutes of speech, sparse enough for the single pass on
     /// 8,192 tokens while the meeting itself is an hour long.
     nonisolated static func tenMinuteSegments() -> [TranscriptSegment] {
-        (0..<100).map { i in
+        segments(count: 100)
+    }
+
+    /// 2,000 segments: more transcript than one 16,384-token window holds, so the
+    /// generator has to read the meeting in parts and the answer is the reduce's.
+    nonisolated static func longTranscriptSegments() -> [TranscriptSegment] {
+        segments(count: 2_000)
+    }
+
+    nonisolated static func segments(count: Int) -> [TranscriptSegment] {
+        (0..<count).map { i in
             TranscriptSegment(
                 start: Double(i) * 6,
                 end: Double(i + 1) * 6,
@@ -186,6 +237,14 @@ final class TruncationNotesProvider: LLMProvider, @unchecked Sendable {
         let index = lock.withLock { () -> Int in
             recorded.append((system, user, maxTokens))
             return recorded.count - 1
+        }
+        // The map step's job is "write only what was said", and a list of facts cut at the
+        // end is still facts — so the one pass M-13 never retries is answered plainly,
+        // whatever the cut flags say.
+        if system == NotesPrompts.mapSystem || system == NotesPrompts.collapseSystem {
+            let part = LongformNotesProvider.partNumber(in: user) ?? (index + 1)
+            let text = "- Speaker 1: FACT-P\(part) — call point \(part) was agreed."
+            return LLMCompletion(text: text, generatedTokens: max(1, text.count / 4), duration: 0)
         }
         let cut = alwaysCut || (cutFirstCallOnly && index == 0)
         // What a cut-off answer looks like: the first two sections written, the third
