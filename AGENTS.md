@@ -797,7 +797,8 @@ than a day left by a make that died mid-stage.
 **`make app` also refreshes one report in the background, and an agent can read it instead of
 re-deriving it.** `Scripts/dictation-gates.sh` computes the two evidence-gated tasks of
 `roadmap/done/DICTATION-MEETINGS-LIMITS` — D-13 (presses refused while a hold is finishing) and
-D-14 (a dictation hold overlapping a meeting whose transcription waited on the speech lane) —
+D-14 (a dictation hold overlapping a meeting whose transcription waited on the speech lane), whose
+remaining work is `roadmap/todo/DICTATION-MEETINGS-RATES-AND-GATES/` —
 and writes three files atomically into
 `~/Library/Caches/NextNotesBuild/dictation-meetings/`: `gates-latest.txt` in words,
 `gates-latest.json`, and one `gates-history.jsonl` line per run with the commit it ran against.
