@@ -205,6 +205,11 @@ final class PocketSpeechBacking: AgentSpeechBacking {
                                             producedAt.timeIntervalSince(clauseSubmittedAt), firstProducedSamples)
                         Log.agent.info("\(detail, privacy: .public)")
                         if CommandLine.arguments.contains("--selftest-voice-pipeline") { SelfTest.diagnostic(detail) }
+                        // The synthesis side of the clause. Only Pocket reports a PCM mark;
+                        // the Apple and Kokoro backings have none, which is why
+                        // `--selftest-voice-latency` requires Pocket rather than inventing a
+                        // zero for the others.
+                        VoiceLatencyTimeline.shared.mark(.ttsFirstPCM)
                     }
                     guard let buffer = AVAudioPCMBuffer(pcmFormat: format,
                                                         frameCapacity: AVAudioFrameCount(frame.samples.count)),
@@ -239,7 +244,7 @@ final class PocketSpeechBacking: AgentSpeechBacking {
         task = nil
         player.stop()
         engine.stop()
-        VoicePlaybackReference.stopped()
+        MainActorSection.run("echo.stopped") { VoicePlaybackReference.stopped() }
         speaking = false
         pausedForListening = false
         pendingFrames = 0
@@ -259,6 +264,10 @@ final class PocketSpeechBacking: AgentSpeechBacking {
     }
 
     private func framePlayed(token: UInt64) {
+        MainActorSection.run("tts.played") { framePlayedBody(token: token) }
+    }
+
+    private func framePlayedBody(token: UInt64) {
         guard generation == token, speaking, pendingFrames > 0 else { return }
         if !firstFramePlayed {
             firstFramePlayed = true
@@ -285,7 +294,7 @@ final class PocketSpeechBacking: AgentSpeechBacking {
         task = nil
         player.stop()
         engine.stop()
-        VoicePlaybackReference.stopped()
+        MainActorSection.run("echo.stopped") { VoicePlaybackReference.stopped() }
         onUtteranceFinished?(token)
     }
 }

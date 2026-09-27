@@ -114,6 +114,8 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-meeting-finals [<dir>]
 --selftest-meeting-resume --selftest-meeting-backlog --selftest-audio-retention
 --selftest-meeting-tap-retry
+--selftest-meeting-scratchpad --selftest-meeting-tidier
+--selftest-meeting-recall --selftest-meeting-console
 --selftest-tts-stream
 --selftest-tts-pocket
 --selftest-tts-kokoro
@@ -449,7 +451,7 @@ prompt, check which engines can actually receive it.
 **The Agent's name is never in a prompt — the user names it.** The name in
 `agent-identity.json` reaches every speaking path through `AgentGrounding` ("You are
 <name>."), so the persona preset and the fixed rules describe a role and never the app:
-"You are a warm, personal assistant on this Mac", "You are the meeting assistant", "You are
+"You are a warm, personal agent on this Mac", "You are the meeting assistant", "You are
 a conversational assistant". A hardcoded "You are Next Notes" would fight the name chosen in
 onboarding and, on a fresh install, would be said twice. The same goes for the voice: the
 first paragraph of `Resources/agent-persona-base.md` — duplicated in
@@ -1135,6 +1137,67 @@ to three segments and comes back labelled "Speaker 1" throughout, with the log s
 model found two. Splitting on sentences takes the same recording to twenty segments and two
 speakers. Lowering the pause threshold instead is the wrong repair: at 0.4 s it cuts
 mid-clause, because that is where the gaps actually are.
+
+**The meeting console is four windows onto four things that already exist, and three of them
+had no new data layer on purpose.** `MeetingConsoleSheet` is a sheet on `MeetingLiveView`
+(⌘⇧M, the "Meeting panel" button) with a rail of four sections over one column of content.
+**Notes** is the only one with anything new behind it, **Actions** draws the reconciler
+`MeetingActionsView` already draws, **History** asks a query that did not exist, and **Ask**
+has no service at all. That last one is the load-bearing decision: the agent already owns
+`meeting.current`, `meeting.transcript`, `meeting.recent_context`, `meeting.decisions`,
+`meeting.action_items` and `meeting.search`, and `AgentUtteranceSource.meeting` is already a
+case — so the question goes out as the person typed it and the model reads the meeting through
+the manifest. **A transcript dump prefixed onto the utterance would be the second path around
+`AgentCapabilityManifest` that this file forbids**, and `RealtimeAgent` records the utterance
+verbatim, so the dump would land in the permanent conversation and in every later turn's
+context. If you want more in the turn, add a tool.
+
+**A hand-written note is the person's, and `notes.md` is the model's.** They are different
+files because the model's pass overwrites `notes.md` and must never overwrite a line someone
+typed at minute twelve. `scratchpad.json` sits beside it in the meeting's own folder and is
+written through `MeetingStore` like every other meeting artefact — there is no second store
+and no second root — and it reaches `notes.md` once, at the end, through
+`ScratchNotesMerger.merged(manual:generated:)`, which is pure and idempotent so a second pass
+cannot produce two "Your notes" sections. `MeetingScratchNote.singleLine` exists because a
+recall row needs one line and a note may hold a paragraph.
+
+**A filter that cannot answer says so; it does not answer a different question.** `MeetingRecall`
+has four filters and three sources, and the split is the feature: `.recent` and `.samePeople`
+are a pass over the user's own meeting folders and answer on a Mac with every switch off, while
+`.sameTopic` needs the search index and `.related` needs the map. `Availability` is a separate
+answer from `hits` precisely so the panel can render *"off"* instead of an empty list, and
+`reasonUnavailable` is the one sentence for that. **`samePeople` standing in for `related` would
+put a confidently-labelled row in front of somebody who asked about a project.** Every hit
+carries a non-empty `why`, because a row of meetings with nothing to explain them reads exactly
+like a confident answer. There is deliberately no similarity percentage and no matched snippet:
+neither is something the query can back up.
+
+**`MeetingScratchpadTidier` is not a second notes pipeline, and it does not write `notes.md`.**
+`NotesService` reads the transcript and runs after the meeting; the tidier turns the fragments
+*this person typed while the meeting was still running* into a document they can read and keep,
+and it writes nothing until they press "Keep this". A pass cut off by its allowance returns
+`.cutShort` rather than a shorter document presented as complete, and no provider resolving is
+`.noModel` with a plain sentence — never a structure invented from nothing. Its own
+`promptBlock` and `parse` are pure so `--selftest-meeting-tidier` can pin them without a model,
+which is the only verification available on a machine with none installed.
+
+**The panel must not present under a self-test**, and that is `MeetingConsolePolicy`'s whole
+job, for the reason `OnboardingPolicy.shouldPresent` carries: a sheet keeps `NSApp.terminate`
+from ever completing, so the run would print its result and hang, and the watchdog would report
+a timeout for a run that had already finished. **One animating orb per screen is a property of
+`MeetingConsoleSheet`, not a thing four sections each remember**: a section returns a
+`MeetingConsoleActivity` and the sheet draws the orb, `.idle` draws none, and the Notes pill's
+badge-size orb is `isAnimated: false` precisely so the two shapes cannot both be live for one
+job. `--selftest-meeting-console` pins that table, the rail order, the gate, and scans all five
+files for a literal value that is not a token.
+
+**The panel has never been seen by an eye, and there is no grant-free way to see it.** That is
+the honest state of the whole feature and it is recorded in
+`roadmap/done/MEETING-CONSOLE-2026-09-26/` — `00-README.md` for what it is and the five rules it
+lives by, `01-PANEL.md` for the five pieces and what must not be undone, `02-VERIFICATION.md` for
+every gate and the two defects that running them found. `--settings-sheet` renders panes with
+`cacheDisplay`, which needs a hosted window, so there is no equivalent trick for a sheet. Open a
+meeting and press ⌘⇧M; that check has not happened yet.
 
 **`gws` prints to stderr when it succeeds, so stderr is not an error channel.** Every run
 begins `Using keyring backend: keyring` before it does anything. `GoogleWorkspaceCLI` used to

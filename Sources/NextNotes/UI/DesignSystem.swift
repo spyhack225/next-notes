@@ -194,6 +194,11 @@ enum DS {
         static let card: CGFloat = 10
         static let sheet: CGFloat = 14
         static let hud: CGFloat = 22
+        /// The meeting panel's floating action. Its own token rather than `hud` above:
+        /// that radius belongs to a capsule that sits over the whole screen with a level
+        /// bar in it, and sharing the number would couple two surfaces that will move
+        /// apart the first time either of them is retuned.
+        static let consolePill: CGFloat = 20
         /// The island's bottom corners, matching the curve the notch itself ends on so the
         /// two read as one shape. Its top corners are the screen edge and have no radius.
         static let island: CGFloat = 14
@@ -240,6 +245,8 @@ enum DS {
         static let speakerDot: CGFloat = 8
         static let statusDot: CGFloat = 8
 
+        // MARK: Meetings
+
         /// The meeting list inside the Meetings section. Narrower than the window's own
         /// sidebar: it is a second list in the same window, and two columns of equal
         /// weight read as a split rather than as a list with a detail beside it.
@@ -248,6 +255,36 @@ enum DS {
         static let meetingDetailMin: CGFloat = 360
         /// Keeps the "You" and "Others" labels above the two live meters aligned.
         static let trackLabelWidth: CGFloat = 56
+
+        /// The meeting panel: the modal a person opens over a meeting that is still
+        /// running, to take notes, work through what came out of it, look back, and ask.
+        ///
+        /// Wide enough for a hand-typed line and a rail beside it, and a fixed width
+        /// rather than a minimum. The Meetings detail column is `meetingDetailMin`, and a
+        /// `minWidth` demand the host cannot meet is not honoured by SwiftUI — it is drawn
+        /// past the edge and clipped, which is the whole of the `SettingsWindowFrame`
+        /// story. A sheet is its own window, so it is given the width it wants and its
+        /// content scrolls instead of growing.
+        static let meetingConsoleWidth: CGFloat = 520
+        /// Floor for that window. There is no maximum: a long transcript scrolls.
+        static let meetingConsoleMinHeight: CGFloat = 520
+        /// The section rail down the left side — four destinations, each a symbol and a
+        /// word, so it reads as a list rather than as a toolbar.
+        static let meetingConsoleRailWidth: CGFloat = 168
+        /// One rail row. A macOS list row is 20-something points, which is a badge's worth
+        /// of a target; this is the 44 a pointer expects from anything it can miss.
+        static let meetingConsoleRowHeight: CGFloat = 44
+        /// The floating primary action, pinned to the bottom of the content column. Half
+        /// of `DS.Radius.consolePill`, which is what makes the corner a capsule.
+        static let meetingConsolePillHeight: CGFloat = 40
+        /// The hand-typed notes field. Tall enough to write a line and a half of a thought
+        /// without the keyboard covering the next one, short enough that the transcript
+        /// above it still has somewhere to be.
+        static let meetingConsoleNoteEditorHeight: CGFloat = 132
+        /// One past meeting in the look-back list, with its preview under it.
+        static let meetingConsoleHistoryRowHeight: CGFloat = 56
+        /// How many lines of that meeting a row shows before the rest is one press away.
+        static let meetingConsoleHistoryPreviewLines = 3
 
         /// The full text of a message an agent proposal would send, before it scrolls. Tall
         /// enough to read an email without leaving the card, short enough that two proposals
@@ -843,6 +880,11 @@ enum DS {
         /// Content arriving over a backdrop. Slower than `standard` and without a spring:
         /// something appearing in front of a slowly moving field should not also bounce.
         static let reveal = Animation.smooth(duration: 0.35)
+        /// The meeting panel changing what it is about. One curve, quick, and its own
+        /// value: the rail's selection moves and the content crossfades, and if those two
+        /// ran on different curves they would arrive at the same time as two animations
+        /// fighting over the same pixels.
+        static let consoleSectionChange = Animation.smooth(duration: 0.22)
         /// A backdrop or a field crossfading as a screen changes what it is about.
         static let ambient = Animation.easeInOut(duration: 1.2)
 

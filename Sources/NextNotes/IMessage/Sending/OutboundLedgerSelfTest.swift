@@ -245,8 +245,9 @@ enum MessagesLedgerSelfTest {
                 return nil
             }
 
-            // 5. And the other side, twice: **as a state** (the sweep expired it) and **as a
-            //    date** (the window refused it while it was still pending).
+            // 5. And the other side, three ways: **as a date** (the window refused it while it
+            //    was still pending), **as a state** (the sweep expired it, and an expired row can
+            //    never match), and **as a refusal** (a local act abandoned the send).
             try await check("a_row_outside_the_window_does_not_match") {
                 let store = IMessageOutboundStore.isolated()
                 defer { try? FileManager.default.removeItem(at: store.root) }
@@ -282,6 +283,28 @@ enum MessagesLedgerSelfTest {
                 let rows = try store.allRows()
                 guard rows.count == 1, rows[0].state == .expired else {
                     return "the sweep left \(rows.map(\.state.rawValue))"
+                }
+                guard try store.claimableRows().isEmpty else {
+                    return "an expired row is still offered to the match"
+                }
+
+                // (c) As a third state: a local act that gave up. **`abandoned` is reachable and
+                //     is a refusal** — a send this app will not make must not later claim a row in
+                //     somebody's conversation, and this is the case that says so. It is also the
+                //     only writer of that state, so without this half the four-case enum would
+                //     have an unreachable case: a finished feature with no call site.
+                let abandoned = IMessageOutboundStore.isolated()
+                defer { try? FileManager.default.removeItem(at: abandoned.root) }
+                let kept = OutboundMessageLedger(store: abandoned, nowNanos: { dispatchInstant })
+                _ = try await kept.recordDispatch(chatGUID: pairedChatGUID,
+                                                  conversationID: "conv-1", textDigest: digest)
+                guard try await kept.abandon(chatGUID: pairedChatGUID, textDigest: digest) == 1 else {
+                    return "abandoning a live send did not mark it"
+                }
+                guard try await kept.verdict(for: candidate(
+                    rowID: 900_022, guid: "after-abandon", digest: digest,
+                    date: dispatchInstant + 2_000_000_000)) == .notOurEcho else {
+                    return "an abandoned send still claimed a row"
                 }
                 return nil
             }
@@ -319,6 +342,7 @@ enum MessagesLedgerSelfTest {
                 guard try store.claimableRows().isEmpty else {
                     return "an expired row is still offered to the match"
                 }
+
                 return nil
             }
 
@@ -361,15 +385,17 @@ enum MessagesLedgerSelfTest {
                 let digest = OutboundDigest.text("remind me to buy milk")
 
                 // "Before the process went away": the send is recorded and nothing is matched.
-                let first = OutboundMessageLedger(store: IMessageOutboundStore(root: root),
-                                                  nowNanos: { dispatchInstant })
+                let firstStore = IMessageOutboundStore(root: root)
+                let first = OutboundMessageLedger(store: firstStore, nowNanos: { dispatchInstant })
                 _ = try await first.recordDispatch(chatGUID: pairedChatGUID,
                                                    conversationID: "conv-1", textDigest: digest)
                 _ = try await first.rows()
 
-                // The crash: the connection is dropped and both objects are released. Nothing is
-                // handed to the second half except the path.
-                await first.flush()
+                // The crash. The connection is closed and the first pair of objects goes out of
+                // scope, and the second half is handed **the path and nothing else** — no row, no
+                // value, no closure. A second `IMessageOutboundStore` opens its own connection, so
+                // nothing that survives did so because it was in the first one's memory.
+                firstStore.close()
 
                 // "After the relaunch": fresh store, fresh ledger, same file.
                 let second = OutboundMessageLedger(store: IMessageOutboundStore(root: root),

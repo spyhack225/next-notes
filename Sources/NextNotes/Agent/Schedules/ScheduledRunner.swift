@@ -446,7 +446,7 @@ final class ScheduledRunner: ScheduledRunning {
         formatter.timeZone = zone
         formatter.dateFormat = "EEEE yyyy-MM-dd HH:mm"
         let rules = """
-            You are a personal assistant running a routine the user set up earlier. Nobody is
+            You are a personal agent running a routine the user set up earlier. Nobody is
             present: there is no conversation, and you cannot ask questions. Do what the
             routine's instructions say using only the tools listed below. For a tool step, emit
             exactly one Hermes call as

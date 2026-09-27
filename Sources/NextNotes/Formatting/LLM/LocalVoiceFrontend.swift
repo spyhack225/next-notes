@@ -304,10 +304,17 @@ actor LocalVoiceFrontend {
             Self.emitTiming(speculation.timing,
                 String(format: "speculation_hit headstart_date_s=%.3f", lead))
             traceSpeculation(String(format: "hit revision=%llu headstart=%.3fs", speculation.epoch, lead))
+            VoiceLatencyTimeline.shared.note("speculation",
+                String(format: "hit headstart=%.3f", lead))
             return await speculation.buffer.stream(cancelProducer: speculation.producer)
         }
-        if speculation != nil { traceSpeculation("miss exact-request mismatch") }
-        else { traceSpeculation("miss no-slot") }
+        if speculation != nil {
+            traceSpeculation("miss exact-request mismatch")
+            VoiceLatencyTimeline.shared.note("speculation", "miss reason=mismatch")
+        } else {
+            traceSpeculation("miss no-slot")
+            VoiceLatencyTimeline.shared.note("speculation", "miss reason=no-slot")
+        }
         cancelSpeculation()
         let prior = serialBarrier()
         nextGenerationTimingID &+= 1
@@ -402,6 +409,10 @@ actor LocalVoiceFrontend {
                         throw CancellationError()
                     }
                     Self.emitTiming(timing, "scheduler_acquire_done", durationFrom: schedulerStarted)
+                    // P2-01: the compute lane is held, so the request→lane wait is over.
+                    // A speculative generation stamps it too, and the timeline's first-wins
+                    // rule plus its negative-duration rule keep that honest.
+                    VoiceLatencyTimeline.shared.mark(.schedulerAcquired)
                     acquiredObserver?()
                     do {
                         try Task.checkCancellation()
@@ -546,6 +557,7 @@ actor LocalVoiceFrontend {
         let routeCollectStarted = ContinuousClock.now
         let routeResponse = try await routeStream.collect()
         Self.emitTiming(timing, "typed_route_collect_done", durationFrom: routeCollectStarted)
+        VoiceLatencyTimeline.shared.mark(.routeDone)
         try Task.checkCancellation()
         let route = routeResponse.content
         // Log the decision boundary, not private conversation content. A live

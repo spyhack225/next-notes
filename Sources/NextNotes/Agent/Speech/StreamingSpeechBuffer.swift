@@ -89,6 +89,11 @@ final class StreamingSpeechBuffer {
         guard !newOnes.isEmpty else { return }
         flushedCount = ready.count
         for clause in newOnes {
+            // The first clause of a reply is the boundary between the model's first token
+            // and the synthesizer, so it is stamped once per reply, here, before the enqueue.
+            if !didEnqueue {
+                VoiceLatencyTimeline.shared.mark(.firstClauseEnqueued)
+            }
             synthesizer.enqueueClause(clause)
             didEnqueue = true
         }

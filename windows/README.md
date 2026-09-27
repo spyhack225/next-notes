@@ -3,9 +3,13 @@
 The Windows port of Next Notes — push-to-talk dictation, on-device.
 
 > **Status: feature-complete, never run on real hardware.** Every layer exists and CI
-> builds, tests and publishes a working single-file executable that starts and passes its
+> builds, tests and publishes a single-file executable that starts and passes its
 > own self-test on Windows. What has *not* happened is a human holding the key and speaking
 > into a real microphone — see [Honesty](#honesty).
+
+The macOS app in the repository root is the product; this is the one platform it is not on.
+Everything from the system-audio process tap onwards — meetings, the agent, computer and
+browser use, the knowledge index, the island — is macOS-only and is not in scope here.
 
 ---
 
@@ -22,8 +26,30 @@ The same bar as the macOS app; the full statement is in
   download in [`docs/PARAKEET-WINDOWS.md`](../docs/PARAKEET-WINDOWS.md) is the one place that is
   not true yet — it is a known gap to be closed by downloading the model inside the app, not a
   pattern to extend.
-- **No speculative architecture.** The four platform interfaces and the platform-neutral projects
+- **No speculative architecture.** The platform interfaces and the platform-neutral projects
   below are the whole abstraction budget. A fifth needs a measured reason, not a plan for one.
+- **Dictation only, and that is a decision rather than a gap.** The macOS app has grown into
+  meetings, an agent, computer use and a knowledge index; none of it is in scope here and none
+  of it should be ported by transliteration. What Windows owes the project is one thing done
+  properly: hold a key, talk, and have the text land where you were.
+
+---
+
+## Where this stands
+
+**Nothing in `windows/src/` has changed since 2026-09-09.** The tree builds, tests and
+publishes; the work since then has been entirely on macOS. Two consequences worth stating
+plainly rather than leaving to be discovered:
+
+- The 63 tests below are the whole verification story, and they are a real one — they run on
+  your own machine in half a second, which is why Avalonia was chosen.
+- The macOS app's own AGENTS.md records that **the Windows app has never been exercised with
+  a real microphone, a physical hotkey, or foreground text injection.** Do not describe it as
+  working until it has been, whatever any document in this repository says.
+
+The macOS roadmap holds an unfinished plan for adding an optional S1-mini cleanup engine
+here. Plans and roadmaps are deliberately **not** committed to this repository — everything
+under `docs/` is published — so there is nothing to link to.
 
 ---
 
@@ -46,8 +72,13 @@ engine, and the app cannot transcribe until the model is downloaded —
 see [`docs/PARAKEET-WINDOWS.md`](../docs/PARAKEET-WINDOWS.md).
 
 What *is* genuinely shared is the dictionary's behaviour, and it is shared as a contract
-rather than as code: [`shared/dictionary-test-vectors.json`](../shared/dictionary-test-vectors.json).
-Both implementations run those vectors in CI. Changing correction semantics starts there.
+rather than as code: [`shared/dictionary-test-vectors.json`](../shared/dictionary-test-vectors.json)
+— 19 cases, run by both implementations in CI. Changing correction semantics starts there.
+The macOS side also keeps a second shared contract,
+[`shared/spoken-forms-test-vectors.json`](../shared/spoken-forms-test-vectors.json), covering
+how a spoken form is scored. **This app does not implement it yet**; CI on this repository
+only checks that the two copies of that file have not drifted, so it is a specification
+waiting for an implementation rather than a passing test.
 
 ---
 
@@ -94,19 +125,32 @@ windows/
 ├─ Directory.Build.props          strict analysis, applied to every project
 ├─ Directory.Packages.props       central version pinning
 ├─ global.json                    SDK pin
+├─ NextNotes.sln                  everything, including the platform layer (Windows only)
+├─ NextNotes.CrossPlatform.slnf  the same solution minus the -windows project
 ├─ src/
 │  ├─ NextNotes.Dictionary/          corrections + biasing          net10.0
-│  ├─ NextNotes.Abstractions/        the four platform interfaces   net10.0
+│  ├─ NextNotes.Abstractions/        the platform interfaces       net10.0
 │  ├─ NextNotes.Core/                engine, segmenter, storage     net10.0
 │  ├─ NextNotes.Speech/              Parakeet via sherpa-onnx       net10.0
 │  ├─ NextNotes.Testing/             fakes for the interfaces       net10.0
 │  ├─ NextNotes.App/                 Avalonia UI                    net10.0
+│  │  ├─ Views/                      windows, panels, settings
+│  │  ├─ Controls/ Controls/Design/  the level meter, the tokens
+│  │  ├─ Composition.cs              where the parts are wired
+│  │  ├─ PlatformFactory.cs          reflection load of the platform layer
+│  │  └─ SelfTest.cs                 what CI runs inside the published exe
 │  └─ NextNotes.Platform.Windows/    the ONLY Win32 code            net10.0-windows
 └─ tests/
    ├─ NextNotes.Dictionary.Tests/    the shared vectors             24 tests
    ├─ NextNotes.Core.Tests/          engine, chunking, storage      26 tests
    └─ NextNotes.App.Tests/           headless Avalonia UI           13 tests
 ```
+
+**Five interfaces, and only four of them are platform seams.** `IAudioCapture`,
+`IHotkeySource`, `ITextInjector` and `ITranscriber` are what a platform has to supply.
+`IClock` is the fifth and is not a platform seam at all — it exists because a test that
+depends on the real clock is a test that fails on a slow CI runner. `NetArchTest` holds the
+line: the neutral projects cannot acquire a Windows-only dependency by accident.
 
 **Only one project targets `-windows`.** Everything else is platform-neutral, so `CA1416`
 turns an accidental Win32 call into a build error — and, more usefully, the whole app
@@ -150,15 +194,23 @@ incremental build, so `-warnaserror` would pass on cached results and prove noth
 
 ## <a id="honesty"></a>Honesty about what is verified
 
-**Verified, on Windows, every push:** 63 tests pass — 24 dictionary (the shared vectors),
-26 core (dictation state machine, audio chunking, all three storage formats), 13 headless
-Avalonia UI. CI then publishes a self-contained ~116 MB executable, **runs it**, and the
-binary reports back that the dictionary works, the source-generated JSON round-trips, and
-the Windows platform layer loads and constructs out of the bundle.
+**Verified, on Windows, every push:** 63 tests pass — 24 dictionary (the 19 shared vectors
+plus 5 properties of the file itself), 26 core (dictation state machine, audio chunking, all
+three storage formats, and a `NetArchTest` rule holding the neutral projects neutral), 13
+headless Avalonia UI. CI then publishes a self-contained executable, **runs it**, and the
+binary reports back that the dictionary works, the source-generated JSON round-trips, and the
+Windows platform layer loads and constructs out of the bundle. The workflow also prints the
+published size rather than asserting one, so a size regression shows up in the log instead of
+being quietly absorbed into a number in this file.
 
 **Verified on macOS, in ~0.5s:** the same 63 tests. The UI genuinely runs headless here,
 which is why bugs like a `Render` method mutating a property get caught while writing them
 rather than three CI round-trips later.
+
+**The dictionary is the only thing both implementations share, and CI proves it rather than
+trusting it:** the workflow diffs the Swift copy of `shared/dictionary-test-vectors.json`
+against `shared/` and fails on drift, so this contract cannot quietly become a test copy that
+only one side runs.
 
 **Known divergences between the two regex engines**, measured across 30 cases — 9 differed.
 The two that affect this code are both handled: culture-sensitive case-insensitive matching
@@ -174,6 +226,11 @@ that are *not* fixable are simply avoided: ICU folds `ß` to `ss` and .NET does 
   mid-capture.
 - The low-level keyboard hook actually firing on a physical keypress.
 - Parakeet transcribing real speech, and whether the ~2 GB working set is tolerable.
+- The model download itself, which is still a page a person follows by hand
+  ([`docs/PARAKEET-WINDOWS.md`](../docs/PARAKEET-WINDOWS.md)) rather than something the app does.
 
 Everything those depend on is behind an interface and exercised with fakes, so the logic
-around them is tested. The bindings themselves are not.
+around them is tested. The bindings themselves are not — and neither has any of the five ever
+been run. That is the honest state of this app: **feature-complete, never run on real
+hardware.**
+

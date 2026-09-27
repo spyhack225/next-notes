@@ -1306,6 +1306,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runAudioRetentionSelfTest()
             return true
         }
+        if arguments.contains("--selftest-meeting-scratchpad") {
+            Task { @MainActor in
+                SelfTest.failed = !MeetingScratchpadSelfTest.run()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-tidier") {
+            Task { @MainActor in
+                SelfTest.failed = !MeetingScratchpadTidierSelfTest.run()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-recall") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MeetingRecallSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-console") {
+            Task { @MainActor in
+                SelfTest.failed = !MeetingConsoleSelfTest.run()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-diarize-assign") {
             let failures = DiarizeAssignSelfTest.run { writeSelfTest($0) }
             for failure in failures { writeSelfTest("DIARIZE_ASSIGN_WRONG: \(failure)") }
@@ -1625,6 +1653,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 for failure in failures { writeSelfTest("VOICE_PIPELINE_WRONG: \(failure)") }
                 SelfTest.failed = SelfTest.failed || !failures.isEmpty
                 writeSelfTest(SelfTest.failed ? "VOICE_PIPELINE_FAILED" : "VOICE_PIPELINE_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-latency") {
+            Task { @MainActor in
+                // P2-01. The marker is the run's own verdict, including the ABSENT form, so
+                // the acceptance runner can classify a missing precondition as a skip
+                // without reading anything else.
+                let result = await VoiceLatencySelfTest.run()
+                SelfTest.failed = SelfTest.failed || !result.ok
+                writeSelfTest(result.marker)
                 NSApp.terminate(nil)
             }
             return true
@@ -1956,6 +1996,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if arguments.contains("--selftest-imessage-decode") {
             Task { @MainActor in
                 writeSelfTest(await MessagesDecoderSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+
+        // NextNotes-iMessage IM-08a: the classification, as a pure function. No grant, no
+        // pairing, no model and no store — it decides what a turn *is*, which is the one
+        // decision the whole remote path rests on and the one worth pinning on its own.
+        if arguments.contains("--selftest-imessage-class") {
+            Task { @MainActor in
+                writeSelfTest(await MessagesClassSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+
+        // NextNotes-iMessage IM-08b: the outbound ledger, and the breaker that stops a
+        // message Next Notes itself sent from coming back as a command. CORE, because
+        // replying to yourself is the failure the whole ledger exists to prevent.
+        if arguments.contains("--selftest-imessage-loop") {
+            Task { @MainActor in
+                writeSelfTest(await MessagesLedgerSelfTest.run())
                 NSApp.terminate(nil)
             }
             return true

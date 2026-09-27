@@ -397,11 +397,17 @@ final class IslandState {
     }
 
     func showAgentListening(transcript: String, level: Float = 0) {
+        if Self.suppressUpdatesForTesting { return }
         // Live, not a notice: the next buffer replaces this card.
         notice = nil
         kind = .agentListening(transcript: transcript, level: level)
         cardIdentity = kind.identity
     }
+
+    /// P2-01's stall-attribution switch: a self-test may make the island ignore updates so
+    /// a run with it off says whether the island's rendering was the main-actor stall.
+    /// Honoured only under the harness — production island state is never suppressed.
+    @MainActor static var suppressUpdatesForTesting = false
 
     func showAgentWork(title: String) {
         // Live, not a notice: Thinking used to expire after islandNotice (8 s) while

@@ -114,7 +114,14 @@ final class NotesService {
             // would re-create the directory that `delete` just removed — a meeting the user
             // deleted minutes ago reappearing with notes and no audio.
             guard store.meeting(id: id) != nil else { return nil }
-            store.saveNotes(result.markdown, for: id)
+            // The lines the person typed themselves go in above the model's, under their
+            // own heading, and the merge is idempotent — so a second pass over a document
+            // that already carries the block cannot leave two of them behind.
+            let manual = ScratchNotesMerger.markdown(store.scratchpad(for: id))
+            store.saveNotes(
+                ScratchNotesMerger.merged(manual: manual, generated: result.markdown),
+                for: id
+            )
             revision += 1
             LatencyTrace.record(
                 .meetingNotes,

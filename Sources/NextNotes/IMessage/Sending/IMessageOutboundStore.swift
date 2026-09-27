@@ -287,8 +287,8 @@ final class IMessageOutboundStore: @unchecked Sendable {
             return try connectLocked()
         } catch {
             // The file is a matching table, so a database this cannot read is deleted and built
-            // again rather than repaired in place. A rebuild costs at worst a rejected echo, and
-            // every send in it was identified long ago.
+            // again rather than repaired in place. What a rebuild costs is the pending set — the
+            // sends whose echo had not arrived — and the breaker is what covers those.
             Log.app.error("imessage outbound store unreadable, rebuilding: \(error.localizedDescription, privacy: .public)")
             removeFilesLocked()
             return try connectLocked()

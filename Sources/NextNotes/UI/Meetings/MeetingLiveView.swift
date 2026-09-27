@@ -12,8 +12,23 @@ struct MeetingLiveView: View {
     @State private var controller = MeetingController.shared
     @State private var store = MeetingStore.shared
     @State private var isRenamingMeeting = false
+    @State private var isShowingConsole = false
 
     var body: some View {
+        // The panel's sheet is attached only when a sheet may be raised, so the rule is
+        // one call rather than a comment — see `MeetingConsolePolicy`. Everything else
+        // about this view is the rename sheet and the transcript, unchanged.
+        if showsConsole {
+            base
+                .sheet(isPresented: $isShowingConsole) {
+                    MeetingConsoleSheet(session: session)
+                }
+        } else {
+            base
+        }
+    }
+
+    private var base: some View {
         VStack(spacing: 0) {
             header
             Divider()
@@ -24,6 +39,12 @@ struct MeetingLiveView: View {
                 store.rename(session.meeting, to: title)
             }
         }
+    }
+
+    /// The one gate, read in both places it applies: the sheet, and the button that would
+    /// raise it. A self-test must not end up with a button that does nothing.
+    private var showsConsole: Bool {
+        MeetingConsolePolicy.shouldPresent(isSelfTest: SelfTest.isRunning)
     }
 
     // MARK: - Header
@@ -45,13 +66,22 @@ struct MeetingLiveView: View {
                     RecordingIndicator(elapsed: session.elapsed)
                 }
                 Spacer()
-                Button {
-                    Task { await controller.stop() }
-                } label: {
-                    Label("Stop", systemImage: "stop.fill")
+                // Grouped rather than left in the row's own spacing: the two controls at
+                // the end answer the same question — what happens to this recording next
+                // — and a loose gap between them reads as two unrelated things.
+                HStack(spacing: DS.Space.s) {
+                    // Gated with the sheet, not only the sheet. A self-test that drew the
+                    // button without the panel behind it would carry a control that does
+                    // nothing, which is the one state this whole gate exists to prevent.
+                    if showsConsole { consoleButton }
+                    Button {
+                        Task { await controller.stop() }
+                    } label: {
+                        Label("Stop", systemImage: "stop.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(DS.Color.record)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(DS.Color.record)
             }
 
             VStack(spacing: DS.Space.s) {
@@ -109,6 +139,28 @@ struct MeetingLiveView: View {
                 .frame(width: DS.Size.trackLabelWidth, alignment: .leading)
             LevelBar(level: level, isActive: isActive)
         }
+    }
+
+    // MARK: - The meeting panel
+
+    /// Opens the panel over the meeting that is still running.
+    ///
+    /// Bordered, not prominent, and never red: the one prominent control in this header is
+    /// Stop, and a second prominent button would make stopping a choice rather than the
+    /// obvious one. The panel is the thing you *may* open, not the thing that is happening.
+    private var consoleButton: some View {
+        Button {
+            isShowingConsole = true
+        } label: {
+            Label("Meeting panel", systemImage: "sidebar.trailing")
+        }
+        .buttonStyle(.bordered)
+        // ⌘⇧M, checked free: the app's own shortcuts are ⌘⇧R (record or stop a meeting),
+        // ⌘O, ⌘, and ⌘Q in `NextNotesApp`, and ⌘N in the dictionary panel. Nothing else
+        // in the tree takes a ⇧-modified letter, and there is no menu item behind it —
+        // like ⌘⇧R, it only fires while Next Notes is frontmost, which is where you are.
+        .keyboardShortcut("m", modifiers: [.command, .shift])
+        .help("Notes, actions, earlier meetings and your assistant, over the meeting")
     }
 
     // MARK: - Transcript

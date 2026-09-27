@@ -118,6 +118,9 @@ CORE_ENTRIES=(
   # the WAL watcher (IM-06): the one flag that proves the watcher is event-driven
   # and not a poll. Fixture copies only — no live database and no Messages grant
   "selftest-imessage-watch|300"
+  # the outbound ledger and the loop breaker (IM-08b). CORE: replying to a message
+  # Next Notes itself sent is the failure the ledger exists to prevent
+  "selftest-imessage-loop|300"
   # ACP and MCP fixtures
   "selftest-acp|300"
   "selftest-mcp|300"
@@ -201,10 +204,26 @@ INTEGRATION_ENTRIES=(
   # corpus holds no real typedstream, so its decode-identically case reports
   # blocked on IM-01 instead of passing quietly
   "selftest-imessage-decode|300"
+  # the classification function (IM-08a): what a remote turn *is*. INTEGRATION —
+  # it is pure, so it needs no grant, no pairing, no model and no store
+  "selftest-imessage-class|300"
   # runs.jsonl appends in memory and retention is opt-in (D-15a), and the
   # clipboard restore never overwrites a copy the user just made (D-15b):
   # a temp directory and a private pasteboard, no grant and no model
   "selftest-dictation-hygiene|300"
+  # the in-meeting panel's data halves. scratchpad: a hand-written note round
+  # trips through a real scratchpad.json in an isolated store and merges once
+  # into notes.md. recall: which earlier meetings, and the sentence that says
+  # why — including that a filter whose switch is off answers nothing rather
+  # than answering a different question. tidier: the prompt and the reply parse,
+  # pure, so it holds on a Mac with no model installed. No grant, no fixtures,
+  # no network, and the recall half never writes a usage row.
+  "selftest-meeting-scratchpad|300"
+  "selftest-meeting-recall|300"
+  "selftest-meeting-tidier|300"
+  # the panel's chrome: one activity table, four rail rows, the self-test gate,
+  # and a scan of all five files for a literal that is not a design token
+  "selftest-meeting-console|300"
 )
 
 EXPERIMENTAL_ENTRIES=(

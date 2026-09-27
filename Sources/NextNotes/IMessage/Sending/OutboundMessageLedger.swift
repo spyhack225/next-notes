@@ -602,5 +602,4 @@ actor OutboundMessageLedger {
     // MARK: Reading, for tests and for `--imessage-report`
 
     func rows() throws -> [PendingOutboundMessage] { try store.allRows() }
-    func flush() { store.flush() }
 }

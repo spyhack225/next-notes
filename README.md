@@ -1,6 +1,6 @@
 # Next Notes
 
-Your Mac is your best personal assistant. Hold a key, talk, release — cleaned-up text lands in the app you were
+Your Mac is your best personal agent. Hold a key, talk, release — cleaned-up text lands in the app you were
 already in. Meetings record themselves. ⇧⌘ Space asks the same machine to click, search
 or follow through. A Wispr Flow-shaped native app with on-device defaults and optional cloud models.
 
@@ -18,13 +18,23 @@ microphone and the system's own output are captured as two separate tracks and t
 separately, which is where the "You" and "Others" attribution in a meeting transcript comes
 from. A finished recording then walks itself the rest of the way — tell the speakers on the
 system track apart, write Granola-style notes with a chosen local or OpenRouter model, and offer follow-up actions
-in Gmail, Calendar, Drive and Docs that only happen if you approve them. Separately, ⇧⌘ Space
+in Gmail, Calendar, Drive and Docs that only happen if you approve them. A meeting that was
+interrupted is resumed rather than written off, and a recording kept only for a pipeline
+stage is released 72 hours later rather than immediately. **Meeting panel** (⌘⇧M) opens over
+a meeting that is still running: your own notes, what the app heard you agree to, earlier
+meetings worth looking at, and a way to ask about this one. Separately, ⇧⌘ Space
 or “Hey Next” opens a conversation with the same Mac: silence ends a turn, Done leaves the
 session, and it can inspect the frontmost window, click and type after you approve, search
 files, run a shell command (never sudo), or hand longer work to a coding CLI you already
-have installed. Optional MCP servers and Composio sit behind the same permission broker;
+have installed. The agent answers on a local model that is verified to produce a token
+before anything is switched to it, chooses tools by what you asked for rather than by word
+overlap, and reads your own meetings, notes and conversations through an index that is on by
+default. Optional MCP servers and Composio sit behind the same permission broker;
 native Workspace tools stay on `gws`. OpenRouter is opt-in: when chosen for Agent or notes,
 the relevant prompts and transcripts are sent to its cloud API and may incur charges.
+A read-only path into your own Messages database is in place behind Full Disk Access, with a
+Settings row that reports what it can actually read; **the iMessage command channel itself is
+not built** — see [Not built yet](#not-built-yet).
 The Windows app is dictation only: it builds and is
 exercised in CI, but has not yet been used for a real microphone/key/injection session on
 Windows hardware.
@@ -69,7 +79,21 @@ the meeting to a pipeline that runs on its own: optionally identify the speakers
 system track, then write the notes, then — if the Workspace agent is enabled — read the
 notes and propose what to do about them. Each stage has its own status in the meeting list
 (*Identifying speakers*, *Writing notes*), so the Record button comes back long before the
-Notes tab fills in.
+Notes tab fills in. A meeting interrupted by a quit or a crash is repaired and resumed at the
+stage it reached, and both model stages carry a stall watchdog, so a pass that stops making
+progress is cancelled into a plain problem and **keeps its recording** so the retry has
+something to read.
+
+**You can open a panel over a meeting that is still running.** **Meeting panel** (⌘⇧M, or
+the button beside Stop) is a rail of four sections over the live meeting: **Notes** is what
+you type yourself, tidied into a document when you press Keep and never written over the
+model's `notes.md`; **Actions** is what the app heard you agree to, with the quoted
+evidence; **History** is earlier meetings by the same people or the same subject, each row
+carrying the reason it is there and saying plainly when the switch that answers it is off;
+**Ask** is the same agent, reading the meeting through its own tools. One floating primary
+action and one status row sit over the content. The panel has been built and pinned by
+self-test but **has never been seen by an eye** — see
+[Written but never exercised](#written-but-never-exercised-end-to-end).
 
 **The island.** On a MacBook with a notch, the Next Notes status lives in a small card
 hugging it — what is being dictated, a meeting about to start with **Record now** /
@@ -125,12 +149,16 @@ Then grant these permissions — none is optional, and none can be requested sil
 | **Audio Recording** | System Settings ▸ Privacy & Security ▸ Audio Recording, after the first meeting | The process tap that records what the other people in a meeting say |
 | **Calendar** | Prompted from Settings ▸ Calendar, or the onboarding checklist | Reading which meetings are coming up, so they can record themselves |
 | **Notifications** | Prompted at first launch | The armed-meeting alert, "notes are ready", and agent proposals |
+| **Full Disk Access** | Optional, from Settings ▸ Agent ▸ Messages | Reading your own Messages database. Nothing works without it today — the row exists so the read path has a switch rather than appearing from nowhere later |
 
 Audio Recording is the odd one out: there is no API to ask whether it was granted, and a
 tap without it succeeds and returns pure silence rather than an error. So the Permissions
 checklist shows that row as unanswerable, and a flat "Others" meter during a meeting is the
 only symptom you will get. `--selftest-systemaudio` reports `SYSTEM_AUDIO_SILENT` for the
 same reason, and `tccutil reset AudioCapture ai.pivotstudio.nextnotes` resets that one row.
+Full Disk Access is the second odd one: it has no prompt and no query API either, so the
+Settings row answers by **reading one row out of the real database** — a checkmark that can
+only come out of a real read, and that a self-test can therefore hold to a standard.
 
 Restart Next Notes after granting Accessibility. Then hold **Right ⌥** and talk.
 
@@ -197,8 +225,10 @@ list and will otherwise show the row you just deleted.
 > on this machine; the sync engine can materialize/dematerialize files inside an `.app` and
 > corrupt its signature. `make install` puts the running copy in `/Applications`.
 
-Other targets: `make app` (bundle only), `make run` (run in place), `make dmg`
-(release build + drag-to-Applications disk image), `make clean`.
+Other targets: `make app` (bundle only), `make run` (run in place), `make test` (the shared
+vectors and nothing else), `make selftest SELFTEST_ARGS='…'`, `make acceptance [TIER=core]`,
+`make gates` (the evidence-gate report in the foreground), `make icon`, `make dmg`
+(release build + drag-to-Applications disk image), `make signing-cert`, `make clean`.
 
 A `v*` tag on `main` runs `.github/workflows/release.yml`, which builds that same
 DMG on `macos-26` and attaches `NextNotes-$VERSION.dmg` and a stable `NextNotes.dmg`
@@ -221,6 +251,11 @@ Do not commit the DMG; it lives on the Release, not in `docs/`.
                 (AudioChunk) ──ordered──► AppleSpeechEngine
                                             │
                                        (transcript)
+                              ┌─────────────┴─────────────┐
+                              ▼                           ▼
+                     IncrementalCleanup          CleanupRouter
+                     (while the key is down)      (SpokenStructure, guard, budget)
+                              └─────────────┬─────────────┘
                                             ▼
                                       TextFormatter
                                             ▼
@@ -247,17 +282,42 @@ Do not commit the DMG; it lives on the Release, not in `docs/`.
                   DiarizationService    NotesService        AgentService
                   (speaker labels)      (local LLM)      (proposals, approved
                                                           one at a time)
+                          │                   │
+                          └─────────┬─────────┘
+                                    ▼
+                        MeetingFinalPass (long windows, after Stop)
+                        MeetingResumer   (a quit mid-meeting resumes)
+                        MeetingConsole   (⌘⇧M over the live meeting)
 
  ⇧⌘ Space / “Hey Next” ─► ActivationController ─► AgentCaptureController
                                                       │
                                                       ▼
                                                 RealtimeAgent
                                                       │
+                                           AgentCapabilityManifest
+                                           (what this turn may do)
+                                                      │
               ┌──────────────┬────────────────────────┼──────────────┬─────────────┐
               ▼              ▼                        ▼              ▼             ▼
         Computer         Files / shell         WorkspaceToolRunner  ACP         MCP
         (AX ids)         (no sudo)             (gws, approved)     (optional)  (optional)
 ```
+
+Four rules hold that diagram together, and each of them is a place the obvious design fails
+silently:
+
+- **One answer to what a turn may do.** `AgentCapabilityManifest` is built once per planner
+  turn and answers for the schema, the rules, the grounding sentence, the execution check,
+  "what can you do" and the voice gates at once. Four of those used to be separate answers
+  that disagreed.
+- **One thing starts audio.** Only `OutputScheduler` may, enforced by a token whose
+  initializer is private to its file — so "no backend independently decides to speak" is a
+  compile error rather than a convention.
+- **One task ledger, one tool catalogue, one usage log.** A second copy of any of them fails
+  silently rather than loudly, which is the expensive kind of bug.
+- **Nothing reaches the network through a shared cache.** Every provider carrying model or
+  account data uses an ephemeral session; the shared one wrote a full model stream to disk,
+  where it outlived the turn.
 
 The [September 14 voice analysis](Tests/Reports/voice-conversation-analysis-2026-09-14.md)
 traces the latest conversation through the local model, work lifecycle, and playback.
@@ -302,9 +362,12 @@ Sources/NextNotes/
 │   ├── DictationController.swift   state machine, wires everything
 │   ├── HotkeyMonitor.swift         CGEventTap on .flagsChanged
 │   ├── AudioCapture.swift          AVAudioEngine tap on the microphone
+│   ├── AudioCaptureHub.swift       one mic engine serves dictation, wake and meetings
 │   ├── SystemAudioCapture.swift    Core Audio process tap on everything the Mac plays
 │   ├── AudioConversion.swift       format conversion + RMS, shared by both captures
-│   └── TextInjector.swift          AX selection capture/insert, pasteboard+⌘V fallback
+│   ├── TextInjector.swift          AX selection capture/insert, pasteboard+⌘V fallback
+│   └── Compute/                    ComputeJob + ComputeScheduler: one on-device lane,
+│                                   resumable, and the residency policy above it
 ├── Transcription/
 │   ├── TranscriptionEngine.swift   protocol + AudioChunk
 │   ├── AppleSpeechEngine.swift     SpeechAnalyzer / SpeechTranscriber
@@ -330,6 +393,15 @@ Sources/NextNotes/
 │   ├── SentenceChunker.swift       long holds split into sentence groups, whole-pass budget
 │   ├── CleanupTrace.swift          what actually happened to one dictation: engine, route,
 │   │                               guard verdict, fallback reason — filed on the run
+│   ├── IncrementalCleanup.swift    the sentences that stopped changing are tidied while the
+│   │                               key is still down; the key-up pass only cleans the tail
+│   ├── CleanupRouter.swift         the deterministic SpokenStructure stage, the whole-pass
+│   │                               budget, and the pre-clean head the router accepts
+│   ├── ChatTemplate.swift          per-family templates; MiniCPM5's tool delimiters are
+│   │                               control tokens and are rendered here, not by the runtime
+│   ├── PrefixReuse.swift           keep the KV cache across calls; decode only the tail
+│   ├── LlamaArchitectures.swift    the supported-architecture table, generated from the
+│   │                               pinned llama.cpp tag; a valid GGUF can still be unopenable
 │   ├── Targets/                    OutputProfile (+PathReferenceStyle), OutputProfileStore,
 │   │                               OutputFormatInstructions, InstalledApps
 │   └── LLM/
@@ -342,7 +414,11 @@ Sources/NextNotes/
 │       ├── FoundationModelLLMProvider.swift   Apple's on-device model behind it
 │       ├── OpenAICompatibleLLMProvider.swift  Ollama / LM Studio / any loopback server,
 │       │                               including the structured-tool-call bridge
-│       └── OpenRouterLLMProvider.swift   optional cloud model, Keychain and catalog
+│       ├── OpenRouterLLMProvider.swift   optional cloud model, Keychain and catalog
+│       ├── OpenRouterReasoning.swift     a reasoning model spends its allowance on
+│       │                               thinking; the visible budget is what is left
+│       └── LocalVoiceFrontend.swift  the on-device conversational model, its own context
+│                                   and its own priority lane
 ├── Calendar/
 │   ├── CalendarProvider.swift      MeetingEvent + the protocol both accounts implement
 │   ├── CalendarService.swift       every enabled calendar merged, polled, deduped
@@ -358,12 +434,20 @@ Sources/NextNotes/
 │   ├── MeetingAudioWriter.swift    stereo CAF, left = you, right = everyone else
 │   ├── MeetingSession.swift        one recording: both captures, both transcribers
 │   ├── MeetingScheduler.swift      arms, starts and stops calendar meetings on a 30 s tick
+│   ├── MeetingResumer.swift        one interrupted meeting at a time, at the stage it reached
+│   ├── MeetingFinalPass.swift      after Stop, each track re-read in long windows; the
+│   │                               live transcript is kept beside it
+│   ├── StageWatchdog.swift         diarization and notes each get a stall watchdog that
+│   │                               cancels into a plain problem and keeps the audio
 │   ├── CallPolicy.swift            the pure rules: both flags, self, denylist, debounce
 │   ├── CallDetector.swift          watches Core Audio's process list for a live call
 │   ├── MeetingController.swift     the single place a meeting starts or stops
 │   ├── MeetingPipeline.swift       what happens after the last window: diarize, then notes
 │   ├── MeetingDiarizer.swift       FluidAudio clustering over the system track
 │   ├── DiarizationService.swift    owns the .diarizing → next transition, per meeting
+│   ├── DiarizationOffer.swift      the pure rule for offering speaker identification once
+│   ├── SpeakerCountHint.swift, SpeakerVoicePrints.swift  the meeting's shape, from the
+│   │                               conferencing app and the invite
 │   ├── NotesPrompts.swift          every prompt and the six headings
 │   ├── NotesGenerator.swift        single pass, or map/reduce when the transcript is long
 │   ├── NotesService.swift          owns the .summarizing → .done transition
@@ -373,10 +457,18 @@ Sources/NextNotes/
 │   │                               --notes-context-live against this machine's own stores
 │   ├── MeetingContext.swift        structured state: decisions, actions, candidates
 │   ├── MeetingContextExtractor.swift  transcript chunks → MeetingContext
-│   └── MeetingContextStore.swift   live context.json beside the meeting
+│   ├── MeetingContextStore.swift   live context.json beside the meeting
+│   ├── MeetingRecall.swift         which earlier meetings are worth looking at and why —
+│   │                               by date, by the same people, by the same subject, or by
+│   │                               what the map already connects; a filter that cannot
+│   │                               answer says so instead of answering a different question
+│   ├── MeetingScratchpad.swift     what you type yourself, in scratchpad.json beside the
+│   │                               meeting, and the pure merge into notes.md at the end
+│   └── MeetingScratchpadTidier.swift  your own lines → a tidied document, while the meeting
+│                                       is still running; never writes notes.md
 ├── Agent/
 │   ├── GoogleWorkspaceCLI.swift    locates `gws`, reads its auth state, runs it
-│   ├── WorkspaceTools.swift        the eleven-tool catalogue and its risk classes
+│   ├── WorkspaceTools.swift        the twelve-tool catalogue and its risk classes
 │   ├── WorkspaceToolRunner.swift   the only place a `gws` write is performed
 │   ├── AgentModels.swift           AgentRisk, AgentProposal, AgentActionRecord
 │   ├── AgentPrompts.swift, AgentToolCall.swift, LLMProviderTools.swift
@@ -386,6 +478,13 @@ Sources/NextNotes/
 │   ├── AgentService.swift          files, announces, and executes approved proposals
 │   ├── WorkspaceInstaller.swift    writes the .command scripts Terminal opens
 │   ├── RealtimeAgent.swift         routed tools, model answers and durable conversation
+│   ├── AgentCapabilityManifest.swift  the ONE per-turn answer to what a turn may do: the
+│   │                               planner's schema, the rule lines, the execution check,
+│   │                               "what can you do" and the voice gates all read it
+│   ├── AgentTurnIntent.swift       ordinary turns use the selected Agent model
+│   ├── VoiceConversationCoordinator.swift  live voice has a different model owner from
+│   │                               tool work; provisional speech pauses, a committed turn
+│   │                               does not cancel
 │   ├── VoiceConversationWork.swift  original objective + revisions survive speech turns
 │   ├── VoiceAnnouncementQueue.swift  background results wait/retry between turns
 │   ├── VoicePlaybackDelivery.swift   acknowledged speech separate from generated results
@@ -393,7 +492,14 @@ Sources/NextNotes/
 │   ├── VoiceConversationSelfTest.swift  production interruption tests + local model benchmark
 │   ├── RealtimeAgentLocalModelSelfTest.swift  streamed answer and interruption probe
 │   ├── RealtimeAgentToolLoopSelfTest.swift  model-selected tools and streamed speech probe
-│   ├── AgentTurnIntent.swift       ordinary turns use the selected Agent model
+│   ├── Planner/                   four constrained-decoding backends chosen from the
+│   │                               provider the turn already resolved — a GBNF grammar, an
+│   │                               Apple `Tool`, an OpenAI `tools` array, or today's prose
+│   │                               catalogue — and ToolStepRunner, the only caller of the
+│   │                               executor inside the planner
+│   ├── LiveEval/                  --selftest-toolloop-live: 30 canonical requests through the
+│   │                               real turn, every tool answered by a fixture, plus the pure
+│   │                               model-free grader
 │   ├── Identity/                    the assistant's name and face: AgentIdentityStore,
 │   │                               NotionAvatarConfig + Renderer (four animation layers),
 │   │                               AgentAvatarState + Choreography (the ten states),
@@ -404,8 +510,8 @@ Sources/NextNotes/
 │   │                               + Inspector + Context + Builder + Store + Validation —
 │   │                               the approval card is built from the tool's schema, so a
 │   │                               missing argument is a question rather than nothing
-│   ├── FunctionCalling/            Needle 3 (a resident `--serve` child) and a local-model fallback
-│   │                               propose actions from live speech; every value is
+│   ├── FunctionCalling/            Needle 3 (one resident `--serve` child) and a local-model
+│   │                               fallback propose actions from live speech; every value is
 │   │                               grounded against what was actually said before the card
 │   ├── Skills/                     SKILL.md folders already on this Mac, plus search and
 │   │                               install from skills.sh over plain HTTPS
@@ -425,9 +531,16 @@ Sources/NextNotes/
 │   │                               back into the loop
 │   └── Activity/                   island activity + inspectable audit log; the step list
 │                                   the island's n/m counter and the working card read
+├── IMessage/
+│   ├── Database/                  a read-only chat.db reader — `PRAGMA query_only` is set by
+│   │                               the code and read back by a second connection — plus the
+│   │                               capability probes and a hand-written typedstream decoder
+│   │                               whose result type has no empty-string case
+│   └── Watcher/                   the WAL watcher: a landed row becomes one envelope, in
+│                                   order, once, with a per-message settling deadline
 ├── Knowledge/
 │   ├── KnowledgeStore.swift        chunks, embeddings and FTS5 in knowledge.sqlite
-│   ├── KnowledgeIndexer.swift, HybridSearch.swift, KnowledgeAsk.swift
+│   ├── KnowledgeIndexer.swift, HybridSearch.swift, KnowledgeAsk.swift, KnowledgeTools.swift
 │   ├── Extractor.swift, LifeExtractor.swift, Ontology.swift, GraphStore.swift
 │   ├── EntityResolver.swift, PersonResolutionService/Store.swift
 │   ├── Embedding*.swift, StaticEmbedder.swift, Chunker.swift
@@ -449,11 +562,13 @@ Sources/NextNotes/
 │   ├── MemoryCloudGate.swift       one rate-limit/backoff state shared by every producer;
 │   │                               a review is not enqueued while the gate is down
 │   ├── MemoryReviewer.swift, MemoryTools.swift, RoutineSuggestions.swift
+│   ├── MemoryReviewLedger.swift, MemorySources.swift, MemoryBackfill.swift
 │   └── Portability/                export the assistant's memory as a folder; import from
 │                                   a file or from another assistant, reviewed before saving
 ├── Persona/
 │   ├── PersonaStore.swift          the editable persona, seeded from a bundled preset
 │   ├── AgentIdentityProse.swift    the free-text identity file, with the same guards
+│   ├── AgentGrounding.swift        the one seam that puts the chosen name into every prompt
 │   ├── PersonaCareEval.swift       the care-context prompts, judged inside --selftest-persona
 │   └── AgentPromptContext.swift    every section of the agent's system prompt, in order
 ├── Activation/
@@ -508,7 +623,9 @@ Sources/NextNotes/
 │   ├── Meetings/                   MeetingsView, MeetingLiveView, MeetingDetailView,
 │   │                               TranscriptView, MeetingActionsView,
 │   │                               ProposalArgumentsSheet, SpeakerNamesSheet,
-│   │                               RenameMeetingSheet
+│   │                               RenameMeetingSheet, MeetingConsoleSheet — the four-
+│   │                               section panel that opens over a live meeting, and its
+│   │                               Notes / Actions / History / Ask sections
 │   ├── Agent/                      AgentView — conversation, activity history, audit trail;
 │   │                               ActivityView — cross-session history, approvals ledger,
 │   │                               heartbeat; IdeasView — the static gallery; GoalsView;
@@ -521,15 +638,17 @@ Sources/NextNotes/
 │   │                               missing, and where every value came from;
 │   │                               PortraitView — insight drafts and the six life-corner
 │   │                               cards, kept and crossed out one at a time
-│   ├── Knowledge/                  KnowledgeSearchView; KnowledgeGraphPane, which now
-│   │                               lives under Agent rather than under Search
+│   ├── Knowledge/                  KnowledgeSearchView, AskView, the graph panes
+│   │                               (KnowledgeGraphPane and its local/global variants),
+│   │                               PersonTimelineView, MergePeopleSheet
 │   ├── Onboarding/                 PermissionsChecklist, plus the first-run flow:
 │   │                               OnboardingFlow (a pure state machine — which screens
 │   │                               may be skipped is a question a test can answer),
 │   │                               Steps, Chrome, Window, Outcome, ModelResume, SelfTest
-│   └── Settings/                   SettingsWindow + one Form per tab, ten panes:
-│                                   General, Dictation, Formatting, Meetings, Calendar,
-│                                   Workspace, Agent, Integrations, Models, Permissions.
+│   └── Settings/                   SettingsWindow (the SettingsTab enum) + one Form per
+│                                   tab, twelve panes: General, Dictation, Comparison,
+│                                   Formatting, Meetings, Calendar, Workspace, Agent,
+│                                   Computer & browser, Integrations, Models, Permissions.
 │                                   `--selftest-settings` fails if any drop out of
 │                                   `SettingsTab.allCases`, and if a pane asks for more
 │                                   width than the narrowest host that can show it has;
@@ -538,26 +657,34 @@ Sources/NextNotes/
 │                                   the standalone window (pinned to 800pt) and the main
 │                                   window's detail column (down to `detailMin`) — so the
 │                                   minimum is passed in as `hostMinimumWidth` and the
-│                                   embedded copy states none. Sections added here:
-│                                   ModelRoleSection (which model does which job),
-│                                   ModelLibrary/ (browse and download from Hugging Face,
-│                                   with a plain-language "will it run on this Mac"),
-│                                   FastListeningSection, MemoryDataControls +
-│                                   MemoryImportSheet, ComputerBrowserReadiness (the
+│                                   embedded copy states none. Sections: PersonaSection,
+│                                   ModelRoleSection, ModelLibrary/ (browse and download
+│                                   from Hugging Face, with a plain-language "will it run
+│                                   on this Mac"), FastListeningSection, KnowledgeSection,
+│                                   MemoriesSection, RemindersSection,
+│                                   MessagesAccessSection, UsageSection, MemoryDataControls
+│                                   + MemoryImportSheet, ComputerBrowserReadiness (the
 │                                   ocu-doctor row: grants, frontmost browser, CDP port —
-│                                   each grey with the sentence for what to do).
+│                                   each grey with the sentence for what to do)
 └── Support/
     ├── Settings.swift, LocalModelStore.swift, Permissions.swift, Log.swift
     ├── ModelDownloader.swift       one ModelSpec download path with progress + SHA-256
+    ├── PrivateNetworking.swift     every provider carrying model or account data goes
+    │                               through an ephemeral session; nothing is cached to disk
+    ├── SelfTestStoreGuard.swift, StoreIsolationSelfTest.swift
     ├── Notifications.swift         armed meetings, notes ready, agent proposals, and
     │                               the action buttons on each
-    ├── NavigationState.swift       which section is showing
+    ├── NavigationState.swift       which section is showing, and which Settings pane
     ├── ModelLibrary/               what this Mac is (HardwareProfile), what it can run
     │                               (ModelFitEstimator), the Hub client, Keychain-backed
     │                               access, and the installed-model list
-    └── ModelRoles/                 three jobs — everyday assistant, controlling the Mac,
-                                    writing code — resolved against what is actually
-                                    present, plus Ollama / LM Studio discovery
+    ├── ModelRoles/                 three jobs — everyday assistant, controlling the Mac,
+    │                               writing code — resolved against what is actually
+    │                               present, plus Ollama / LM Studio discovery
+    └── Usage/                      usage.jsonl: the one local record of which model or
+                                    engine ran each pass, with its provider, locality,
+                                    timing, counts and outcome. It never leaves this Mac
+                                    and holds no prompt, reply, transcript or file name
 ```
 
 ### Self-tests
@@ -593,9 +720,11 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-transcribe <wav>        # WAV → ChunkedTranscriber → segments JSON + RTF
 "$S" --selftest-calendar                # provider states, deduped events, auto-record rules
 "$S" --selftest-notes <wav> [--diarize] # transcribe → notes; prints tok/s and peak RSS
-"$S" --selftest-llm-metal               # a Metal runtime and a CPU runtime in one process
+"$S" --selftest-llm-metal               # a Metal runtime, a CPU runtime, and the agent
+#                                         role's own model decoding a token, in one process
+"$S" --selftest-model-unopenable        # a valid GGUF that llama.cpp cannot open is refused
+#                                         before a download, and a role never adopts it
 "$S" --selftest-calls                   # who holds mic + speakers now, and every CallPolicy rule
-#                                         including arming: correlation, the grant guard, ask-first
 "$S" --selftest-island                  # island geometry per display, panel invariants, states
 "$S" --selftest-orb                     # the nine ThinkingOrb states at both sizes
 "$S" --selftest-avatar                  # the character: generated faces round-trip, four layers
@@ -606,14 +735,31 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-agent <meeting-dir>     # proposals as JSON; executes nothing
 "$S" --selftest-cleanup [engine]        # rules / apple / s1 / app-llm / chain / all against the eval corpus
 "$S" --selftest-dictation               # every way a hold can go wrong still ends at idle
+"$S" --selftest-dictation-hygiene       # history appends in memory, retention is opt-in, the
+#                                         clipboard survives a copy made during the restore
 "$S" --selftest-learn                   # CorrectionLearner acceptances and the rejections
 "$S" --selftest-axreadback              # which frontmost apps expose readable AX text
 "$S" --selftest-context [bundle-id]     # harvest an editor's window: names, paths, ms,
 #                                         the grounding block, and what stopped the walk
 "$S" --selftest-tools                   # registry, native-first router, permission broker
+"$S" --selftest-capability-manifest     # the one per-turn answer to what a turn may do, and
+#                                         every switch, consent and readiness case
+"$S" --selftest-native-tools            # the grammar, Apple's Tool build and the OpenAI
+#                                         tools array all name the same tool set
+"$S" --selftest-toolloop-live           # 30 real requests through the real turn, every tool
+#                                         answered by a fixture; --quick is the 10-case gate
+"$S" --selftest-toolloop-live-grader    # the grader alone, with no model at all
 "$S" --selftest-wake                    # phrase spotting, authority split; loads the sherpa KWS model
 "$S" --selftest-tasks                   # submit / run / cancel without a model
 "$S" --selftest-persona                 # every Agent prompt path: persona + memory chars against budget
+"$S" --selftest-usage-log               # usage.jsonl stays on this Mac and writes nothing under
+#                                         the harness; --usage-report reads the real file
+"$S" --selftest-store-isolation         # a harness run leaves the owner's files and defaults alone
+"$S" --selftest-private-network         # no provider carrying model or account data uses the
+#                                         shared URLSession again
+"$S" --selftest-chat-template           # per-family chat templates, and MiniCPM5's tool
+#                                         delimiters surviving the planner's decode
+"$S" --selftest-llm-prefix-cache        # the KV cache is kept and only the tail is decoded
 "$S" --selftest-memory                  # core memory: save, supersede, overflow, forget, injection and tool-output blocks; sessions and compaction
 "$S" --selftest-memory-review           # review on Tests/Fixtures/memory-review.json (precision >= 0.9, scripted model), never while recording, routine suggestions
 "$S" --selftest-schedule                # reminders: DST, month-end, grace, catch-up, Missed, backoff, endsAt, macOS hand-off, confirmation card; routines: silence, skip retry, quiet hours, disable at 10, test run on creation; triggers: notes ready / meeting starting (lead time) / call started fire once per event from synthetic events, filter, retry window, publishers
@@ -625,13 +771,24 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-extract [notes.json]     # knowledge graph (Phase C) on fixture meetings with a scripted model: GBNF grammars parse and match, ontology YAML vs compiled-in copy, violations dropped, .extracting persisted and repaired; zero schema violations, notes.json generation, source_chunk on every edge, a reversed decision closed by valid_to + supersedes; re-extraction and rm knowledge.sqlite idempotent without a model; hostile and non-JSON output; reminder suggestions offered, never created; a path validates that notes.json read-only
 "$S" --selftest-resolve [knowledge.sqlite]  # entity resolution (Phase D) with no model: names, initials, addresses and the hard rules; pairwise precision > 0.95 on a hand-labelled synthetic person set (no tiebreaker, a correct one, an always-"same" one and one wrong a fifth of the time), blocking, tiebreak only in the ambiguous band, an always-"same" tiebreaker never joins a hard-apart pair; voice prints per diarized label and linking an unnamed speaker by voice; merged_into never deletes, Split is one row and sticks, user merges chain, rm knowledge.sqlite resolves the same from the decisions file, timeline follows a merge; model answers cached in the store so a second run asks nothing again; a merge an "apart" would revert is refused and Undo restores a withdrawn "apart"; a relaunch loads people for memory; switching the graph off removes voice prints; resolved people replace memory attendee items and reach a cloud reader only with the graph's cloud consent; a path prints decisions with scores on a temporary copy
 "$S" --selftest-meeting-context         # extract decisions and candidate actions
+"$S" --selftest-meeting-resume          # an interrupted meeting resumes at the stage it reached
+"$S" --selftest-meeting-finals [<dir>]  # the long-window pass after Stop, against real fixtures
+"$S" --selftest-meeting-recall          # the four recall filters, and what each says when off
+"$S" --selftest-meeting-console         # the four-section panel: rail order, one orb, no
+#                                         sheet under the harness
+"$S" --selftest-meeting-tidier          # your own lines tidied, a cut pass says so, no model says so
+"$S" --selftest-audio-retention         # a temporary recording is kept 72 h, with the disk guards
 "$S" --selftest-realtime                # question/follow-up routing, tool speech, harness, duplex VAD
 "$S" --selftest-computer                # inspect/click/type on an owned window; stub trees stay empty
+"$S" --selftest-computer-actions        # scroll both ways, double click, wait_for, and what could
+#                                         not be verified admitted rather than claimed
+"$S" --selftest-click-coordinate        # the pixel-fallback contract, and no foreground needed
 "$S" --selftest-mcp                     # initialize + session + list + call against a local fixture
 "$S" --selftest-acp                     # ACP stdio session, subscribe, permission relay
 "$S" --selftest-activity                # tool runs project Inspecting… / Clicking… (no CoT)
 "$S" --selftest-fs                      # write/search/read a temp file; sudo is refused
 "$S" --selftest-browser                 # non-browser snapshot invents no elements
+"$S" --selftest-cdp                     # headless Chrome against a fixture file; no grant needed
 "$S" --selftest-settings                # every Settings pane is listed; headings keep U+0020;
 #                                         no pane asks for more width than its narrowest host
 "$S" --settings-sheet [dir] [--width n]  # diagnostic: renders every Settings pane at the
@@ -640,6 +797,13 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-cleanup-router          # short + clean stays off the model seam
 "$S" --selftest-meeting-live            # cadence, cards, and the authority split
 "$S" --selftest-meeting-live-tools      # model tool proposals require exact live transcript evidence
+"$S" --selftest-imessage-db             # read-only chat.db on generated fixtures; the query_only
+#                                         pragma set by the code and read back by a second
+#                                         connection, and a failure that cannot show a ✓
+"$S" --selftest-imessage-decode         # the hand-written typedstream decoder, refusing rather
+#                                         than answering empty
+"$S" --selftest-imessage-watch          # the WAL watcher is event-driven, ordered, once, with a
+#                                         per-message settling deadline
 "$S" --selftest-tts                     # speech policy plus synthesizer interrupt
 "$S" --selftest-tts-stream              # clause-stream policy plus synthesizer stream queue
 "$S" --selftest-tts-pocket              # download/load neural voice, synthesize WAV, play/interrupt
@@ -702,16 +866,28 @@ open -n -a "Next Notes" --args --selftest-microphone --selftest-out /tmp/nextnot
 ```
 
 Each prints a single `<NAME>_OK` or `<NAME>_FAILED` line last, so they can be read by a
-script. `make acceptance` runs the whole catalogue that way, in tiers — `CORE` for release
-blockers, `INTEGRATION` for the knowledge, memory, routine and agent seams, `EXPERIMENTAL`
-for the rest — and prints one line per tier plus a reason for every failure or skip. A final
-`*_OK` is a pass, an absent-precondition diagnostic (`*_ABSENT`, `SYSTEM_AUDIO_SILENT`,
-`WAKE_*_MISSING`) is a skip that never counts as a pass, and anything else without an `*_OK`
-is a failure. `make acceptance TIER=core` is the release gate (a CORE failure exits
-non-zero); `make acceptance --dry-run` prints the manifest without running anything. See
-`Scripts/acceptance.sh` for the membership and the accounting rules.
+script. **The list above is a selection, not the catalogue** — there are 167 registered
+`--selftest-*` flags and [AGENTS.md](AGENTS.md) holds the complete one, because a second
+list is a second thing to forget. `make acceptance` runs the whole catalogue that way, in
+tiers — `CORE` (16 entries) for release blockers, `INTEGRATION` (46) for the knowledge,
+memory, routine and agent seams, `EXPERIMENTAL` (85) for the rest — and prints one line per
+tier plus a reason for every failure or skip. A final `*_OK` is a pass, an absent-precondition
+diagnostic (`*_ABSENT`, `SYSTEM_AUDIO_SILENT`, `WAKE_*_MISSING`) is a skip that never counts
+as a pass, and anything else without an `*_OK` is a failure. `make acceptance TIER=core` is
+the release gate (a CORE failure exits non-zero); `make acceptance --dry-run` prints the
+manifest without running anything. See `Scripts/acceptance.sh` for the membership and the
+accounting rules. The last full CORE run on this tree was **15/16**, the single failure
+being the known-red wake word described below.
 
-Two are worth knowing about in detail:
+Two flags are diagnostics rather than self-tests, and are deliberately not in that list
+because the harness would swap the very thing they read: `--usage-report [--usage-days N]`
+prints one line per model or engine that ran, from this machine's own `usage.jsonl`;
+`--notes-context-live` prints the related-context brief this Mac would assemble;
+`--meeting-quality-report` and `--imessage-self-flow` do the same for meetings and Messages.
+`--fake-calendar` and `--wake-mic-record` are modifiers rather than tests — one invents a
+meeting, the other records real wake-word audio.
+
+Three are worth knowing about in detail:
 
 `--selftest-dictation` is the one that guards the tail. It drives `DictationController`
 with a real microphone but a fake engine: an engine whose `finish()` never returns, one that
@@ -752,27 +928,51 @@ app be quit in the middle of one and repair it at the next launch.
 
 **Two tracks, never a mixdown.** The microphone and a Core Audio process tap on everything
 the Mac plays are captured, transcribed and stored separately, and that is where "You" and
-"Others" come from. `ChunkedTranscriber` cuts each track into windows — the first pause
-after 30 seconds, hard cut at 60 — and one `TranscriptionQueue` serialises Parakeet across
-both. The known cost of using the built-in microphone with laptop speakers is that remote
+"Others" come from. The live tier cuts 2–5 second windows so text appears while people are
+still talking, and after Stop `MeetingFinalPass` re-reads each track in long windows cut at
+pauses and **replaces the finals** — short windows flip French into English-sounding text,
+and the live transcript is kept beside it as `transcript.live.json`. One
+`TranscriptionQueue` serialises Parakeet across both tracks, bounded by audio seconds rather
+than a window count: queued speech is waited out and merged, never dropped, and past the
+bound the oldest window is shed with a record, because the final pass re-reads the audio
+anyway. The known cost of using the built-in microphone with laptop speakers is that remote
 voices bleed onto the mic track.
 
-**Speakers.** With *Tell the other speakers apart* on (Settings ▸ Meetings), FluidAudio's
-offline diarizer clusters the system track after the recording and the clusters are mapped
-onto transcript segments by overlap, giving *Speaker 1…n* — renamable, with the invite's
-attendees offered as suggestions. Labels land per sentence: a transcription window is split
+**Speakers.** With *Tell the other speakers apart* on, FluidAudio's offline diarizer clusters
+the system track after the recording and the clusters are mapped onto transcript segments by
+overlap, giving *Speaker 1…n* — renamable, with the invite's attendees offered as suggestions.
+The switch is **on by default once the speaker models are on disk**, and a person only has to
+touch it to disagree: "off because they said no" and "off because the models are not here
+yet" are stored differently, and nothing is downloaded without a press. The first finished
+meeting where somebody else spoke is *offered* the models once. Labels land per sentence: a
+transcription window is split
 on pauses and sentence endings before it is stored, so each turn carries its own speaker
 rather than the whole window taking whoever held most of it.
 
-**Notes.** `NotesGenerator` writes markdown under five fixed headings — Summary, Key
-points, Decisions, Action items, Open questions — in one pass when the transcript fits the
-model's context, and otherwise by mapping chunks to attributed facts and reducing them.
-Two providers are interchangeable and either can be picked per meeting from **Regenerate**:
+**Notes.** `NotesGenerator` writes markdown under six fixed headings — Summary, Key
+points, Decisions, Action items, Open questions, Related context — in one pass when the
+transcript fits the model's context, and otherwise by mapping chunks to attributed facts and
+reducing them. Two providers are interchangeable and either can be picked per meeting from
+**Regenerate**:
 
 | Provider | Where it runs | Context | Notes |
 |---|---|---|---|
-| **Gemma 4 E4B Q4_K_M** (default) | bundled llama.cpp, Metal | up to 32K here | 4.98 GB download from Settings ▸ Models; frees itself ten minutes after the last generation |
-| **Apple Foundation Models** | the OS | 4096 tokens | no download; long transcripts always take the map/reduce path |
+| **Gemma 4 E4B Q4_K_M** (the default choice) | bundled llama.cpp, Metal | up to 32K here | 4.98 GB download from Settings ▸ Models; frees itself ten minutes after the last generation |
+| **Apple Foundation Models** | the OS | 4096 tokens floor, 8192 measured here | no download; long transcripts always take the map/reduce path |
+
+A section with nothing in it says so rather than disappearing, and a pass that ran out of
+allowance says **"cut short"** under every section it never reached — those are different
+claims, and only the model knows which one it is making. A missing *Related context* block
+is always reported empty, because that one is assembled by the app rather than written by
+the model.
+
+**Your own notes are yours; `notes.md` is the model's.** They are different files, because
+the model's pass overwrites `notes.md` and must never overwrite a line you typed at minute
+twelve. What you type goes to `scratchpad.json` in the meeting's own folder, and reaches
+`notes.md` once, at the end, through a merge that is pure and idempotent — so a second pass
+cannot produce two "Your notes" sections. **Meeting panel** ▸ Notes tidies those fragments
+into a readable document *while the meeting is still running*, and writes nothing until you
+press Keep.
 
 Notes are written automatically when a recording finishes (*Write notes when a meeting
 ends*), and **Regenerate** rewrites them with either provider afterwards.
@@ -780,6 +980,32 @@ ends*), and **Regenerate** rewrites them with either provider afterwards.
 ---
 
 ## The agent
+
+**It answers.** The agent role resolves to a model that is verified to produce a token
+before anything is switched to or deleted for it: a download opens the exact file in the
+background, decodes a fixed prompt and samples, and only a generated token counts as
+"answers" — a file that opens but cannot decode is refused rather than adopted, which is
+what catches a draft head or an architecture llama.cpp cannot load. A valid GGUF is not
+enough; `LlamaArchitectures` is the table, generated from the pinned llama.cpp tag, and the
+guard reads the GGUF header and opens only the vocabulary.
+
+**It picks tools by what you asked for, not by word overlap.** A request is reduced to a set
+of intent classes by a word-bounded lexicon, and if any tool of a class is selected, every
+allowed tool of that class is. That is what makes "what's on my to-do list" and "what did we
+decide" reach anything at all. `AgentCapabilityManifest` is the **one** per-turn answer to
+what a turn may do: the planner's schema, the rule lines, the grounding sentence, the
+execution check, "what can you do", and the voice gates all read it, so they cannot disagree.
+Where the model supports it, tool calls are constrained by a grammar over that same set —
+read back out of the *rendered* grammar, not the code that built it, so a grammar over a
+different set than the prompt fails a test instead of steering the sampler. Native tool
+calling is **off by default**: it stays off until three full 30-case evaluations score at
+least as well on both models.
+
+`--selftest-toolloop-live` is the number that says whether any of this worked: 30 canonical
+requests through the real turn, every tool answered by a fixture, no mail read, nothing sent,
+and the run fails if your own conversation, tasks, memory or history changed. **It currently
+scores 5/10 on the 10-case gate.** That is the honest measurement, and the remaining failures
+are named in the local roadmap rather than rounded up.
 
 Push-to-talk stays dictation. ⇧⌘ Space (Settings ▸ Agent; configurable) or the wake
 phrase — default “Hey Next”, after the keyword model is downloaded — opens a conversation.
@@ -802,12 +1028,28 @@ completed read remains available if a later model wording pass times out.
 Reads run through the permission policy; clicks, writes and sends require the app's
 review card and are checked against the resulting state. A longer job is handed to a background task. A task that is still
 queued or running when Next Notes quits is marked failed — the list survives as history,
-the work does not resume. Settings ▸ Agent picks the default harness (local tools, or an
+the work does not resume. (Durable jobs, where it comes back and finishes, are designed in
+the local roadmap and **not built**.) Settings ▸ Agent picks the default harness (local tools, or an
 ACP coding CLI: Claude Code, Codex, Qwen Code, OpenCode). Naming one in the utterance
 wins for that turn. A remembered keyword no longer switches to a coding harness.
 Calendar, mail, Drive, Docs, click and type stay on this Mac unless you choose an ACP
 backend. A live CLI has to be on `PATH`; `--selftest-acp` speaks the
 session protocol to a local fixture.
+
+**Which model does which job** is a Settings row, not a guess: everyday conversation, notes
+and cleanup resolve to the model that came with the app (or one you install); driving the Mac
+goes to Codex and writing code to Claude Code, each falling back when that app is not
+installed. The Agent pane names the model that actually answered the last turn, and says so
+plainly when the one you chose cannot run here.
+
+**What has been running is on the record.** Settings ▸ Models ▸ Usage shows the last seven
+days grouped into what you would call things — the assistant, meetings, dictation, other —
+with a clear button behind a confirmation. It reads `usage.jsonl`, which records the
+provider, model, whether it ran locally, timings, token counts, tool count and outcome, and
+**nothing else**: no prompt, reply, reasoning, transcript, dictated text, tool argument, file
+name, address, subject or URL, with quoted content, addresses, URLs, paths and long digit
+runs stripped out of any error message before it is written. It never leaves this Mac, it
+rotates at 8 MB, and `--usage-report` prints the same thing from a terminal.
 
 **Computer, files, shell.** `inspect_ui` reads the frontmost window over Accessibility and
 returns ids. `click`, `type` and `set_text` reuse those ids — no screenshots. Inspecting is
@@ -874,7 +1116,7 @@ button:
 
 | Class | Tools | Behaviour |
 |---|---|---|
-| **read** | `search_email`, `get_agenda`, `find_drive_files`, `read_doc` | Run by the agent itself while it plans, if *Let it look things up* is on |
+| **read** | `search_email`, `read_email`, `get_agenda`, `find_drive_files`, `read_doc` | Run by the agent itself while it plans, if *Let it look things up* is on |
 | **write** | `create_doc`, `append_doc`, `upload_to_drive`, `create_event`, `draft_email` | One approval each |
 | **send** | `send_email`, `reply_email` | One approval each, with the full message shown first, and only from the Actions tab |
 
@@ -915,9 +1157,21 @@ Both engines feed the same cleanup, dictionary, history, and injection pipeline.
   462 MiB Q4 model once, verifies its SHA-256 digest, and runs it through the bundled
   llama.cpp runtime with no network request during formatting. Both fall back to the
   deterministic pass when unavailable or unsuccessful.
-- **Cleanup controls** expose five user-facing tone positions, list formatting, and a
-  general/email context. S1-mini natively has four controls, so Balanced maps to its
-  semi-formal control; the Apple formatter receives all five directly.
+ - **Cleanup controls** expose five user-facing tone positions, list formatting, and a
+   general/email context. S1-mini natively has four controls, so Balanced maps to its
+   semi-formal control; the Apple formatter receives all five directly.
+ - **Spoken structure is rendered in code, not asked for in a prompt.** A spoken list, quote,
+   code block or table is turned into the right shape *before* the model sees the text, and
+   checked again *after*, because a model handed `quote … end quote` markers will happily eat
+   them. That is also why a rule only counts if the engine can receive it: S1-mini is a 0.6B
+   punctuation normaliser that takes no instructions at all, so with that engine selected the
+   whole instruction block was addressed to something that never saw it.
+ - **Sentences are tidied while you are still talking.** Once a sentence has stopped changing
+   — fifteen words of finished speech — it goes to the model during the hold, and the key-up
+   pass only has to clean the tail. Nothing is typed before key-up, so a pre-clean can only
+   ever be wasted work and never wrong text; if a later partial revises an earlier sentence,
+   the whole transcript is cleaned the way it always was.
+
 - **Personal dictionary** entries are supplied to Apple Speech as short
   `AnalysisContext.contextualStrings` before audio arrives. Correction pairs then run
   deterministically after cleanup on both macOS and Windows. This implements names and short
@@ -1057,16 +1311,37 @@ this repository instead. If a release ever ships, the call to action is the thin
 
 ## Not built yet
 
-1. **Claude cleanup/command provider.** The formatter and command processor have seams for a
+1. **The iMessage command channel.** The read side is done and honest: a read-only
+   `chat.db` reader, a hand-written typedstream decoder, and a WAL watcher that turns a
+   landed row into one ordered envelope — with a Settings row that answers Full Disk Access
+   by making a real read. **Nothing consumes it yet.** Pairing a self-conversation,
+   classifying which side of it you are on, sending a reply through Messages and approving an
+   action from your phone are all designed and none are written, and three spikes that need a
+   human, an iPhone and System Settings have not been run. The measured finding that shapes
+   them: an iMessage you send yourself from your phone lands as **two rows with opposite
+   flags**, so the pairing has to be by chat and never by row.
+2. **Durable background jobs.** Quit mid-task and the list survives as history; the work does
+   not resume. Heartbeats, retry, crash recovery and a job journal are designed in the local
+   roadmap against the existing task ledger, not built.
+3. **Proactivity.** There are no routines and no agent-initiated turns. The morning digest,
+   the podcast routine and the pre-meeting brief have self-tests over fixtures and injected
+   models, and nothing has ever fired on a schedule against your real data.
+4. **Claude cleanup/command provider.** The formatter and command processor have seams for a
    server-backed higher-quality tier, but no credential storage, consent UI, or network path
    is present.
-2. **Windows local cleanup.** S1-mini by Superwhisper is a strong candidate; the integration
-   design and constraints are in the local plan `roadmap/todo/S1-MINI-WINDOWS.md`.
-3. **Notarization and Windows distribution signing.** Local macOS builds use a stable
-   Developer ID when available, but neither platform has a complete distribution pipeline.
-4. **Meetings and the agent on Windows.** Everything from the process tap onwards is
+5. **Windows local cleanup.** S1-mini by Superwhisper is a strong candidate; the integration
+   design and constraints are written up in the local (git-ignored) plan folder, so there is
+   no link to follow here.
+6. **Notarization, a paid release, and Windows distribution signing.** Local macOS builds use
+   a stable Developer ID when available, but neither platform has a complete distribution
+   pipeline, and nothing has been sold or signed for distribution.
+7. **Meetings and the agent on Windows.** Everything from the process tap onwards is
    macOS-only; the Windows app is still dictation. No island, no wake phrase, no
-   computer tools, no `gws`.
+   computer tools, no `gws`. Nothing in `windows/src/` has changed since 2026-09-09.
+8. **Placing phone calls.** Designed, not built — and the design says plainly that a call
+   the app places *is* a call by that definition, so it would arm a meeting recorder unless
+   the policy is changed in code. One gate in that plan needs a Developer ID and a
+   notarized build, which is item 6.
 
 ### Written but never exercised end to end
 
@@ -1074,7 +1349,35 @@ Every one of these compiles, has a self-test where a self-test is possible, and 
 had the one real thing it needs:
 
 - **The system-audio tap with its grant.** `--selftest-systemaudio` has only ever reported
-  `SYSTEM_AUDIO_SILENT` here, and no recording has yet contained an "Others" track.
+  `SYSTEM_AUDIO_SILENT` here, and no recording has yet contained an "Others" track. Every
+  call succeeds without the grant and every sample is zero, which is why the Permissions
+  checklist shows that row as unanswerable rather than guessing.
+- **The meeting panel.** Built, self-tested (rail order, one orb per screen, no sheet under
+  the harness) and in the app — and **never seen by an eye.** There is no grant-free way to
+  render a sheet here; every visual claim about it is argued from the design tokens and the
+  source. Open a meeting and press ⌘⇧M; that is the first real check and it has not happened.
+- **The wake word in a real room.** `--selftest-wake-live` is red at the shipped
+  sensitivity: 17 of 24 synthetic clips hit, 3 of 32 near-misses are false accepts, and the
+  tuning pass took the measured maximum of the trade surface rather than lowering the bar.
+  The fixtures are synthetic voices; the missing evidence is real-room recordings, which
+  `--wake-mic-record` produces and **has never been run with a live microphone**.
+- **Gemma 4 E4B.** Never downloaded — it needs about 9 GB of free disk, which this machine
+  did not have — so meeting notes fall back to Apple's model and the expected SHA-256 is
+  still unpinned. The agent role is a different, installed model and has been measured
+  answering.
+- **Both real calendars.** EventKit reports *not determined* here; macOS prompts exactly
+  once, so a dismissed prompt is permanent until
+  `tccutil reset Calendar ai.pivotstudio.nextnotes` puts it back to undecided. Google
+  Calendar has never had an account connected, and needs your own Desktop-type OAuth client
+  (id *and* secret — Google's installed-app client type requires the secret at the token
+  endpoint even with PKCE).
+- **Every Workspace write.** `gws` **is** signed in on this machine, with a refresh token
+  and 21 scopes, so the agent's own reads reach the account. No write proposal has ever been
+  approved, so nothing has ever created a Doc, an event or an email; each tool's flags were
+  checked against `gws <service> <helper> --help` rather than against a live call.
+- **The iPhone path.** The Messages read path has been run against a real `chat.db` on a
+  real account. Everything after it — pairing, classification, sending, remote approval —
+  has not been built at all.
 - **Returning the text to the app it came from.** `TextInjector.Origin` and the switch-away
   setting are written and the state machine is covered by `--selftest-dictation`, but that
   harness stubs the insert seam. The activation path — `NSRunningApplication.activate()`, the
@@ -1084,25 +1387,25 @@ had the one real thing it needs:
 - **Per-app output profiles reaching the model.** Wired from `captureTarget()` through to the
   cleanup prompt and verified by reading each link, but never observed end to end for the same
   reason. `output target: <app>` in the log at key-down is the proof when it runs.
-- **Apple Calendar (EventKit).** `--selftest-calendar` reports `eventKit: Not connected`.
-  macOS prompts exactly once, so a dismissed prompt is permanent until
-  `tccutil reset Calendar ai.pivotstudio.nextnotes` puts it back to undecided.
-
-- **Workspace writes.** `gws` reports no credentials on this machine, so no proposal has
-  ever been approved and no Doc, event or email has been created by the agent.
 - **Composio.** Settings ▸ Integrations accepts a key; none has been entered, so the
   gateway has never listed a live tool.
 - **A live coding CLI over ACP.** `--selftest-acp` talks to a local fixture. Claude Code,
   Codex, Qwen Code or OpenCode still have to be installed by the user before a real
   hand-off.
+- **The redesigned UI by eye.** Screenshots need Screen Recording and driving the UI needs
+  Accessibility; neither can be granted non-interactively. The self-tests prove geometry and
+  behaviour, not appearance.
+- **Command Mode app compatibility.** AX selection reading is only available in editable
+  accessibility text elements, and Electron and browser editors vary in how faithfully they
+  implement it. The implementation refuses to replace text when the captured selection cannot
+  be revalidated, which is the safe answer and not the same as a compatibility pass.
 
 ---
 
 ## Verified
 
-Driven with a synthetic Right ⌥ hold (`scratchpad/ptt/ptt2.swift` posts `flagsChanged`
-events) and confirmed via `/usr/bin/log show --predicate 'subsystem ==
-"ai.pivotstudio.nextnotes"'`:
+**Verified on this machine, in daily use.** These are the things that have actually run here,
+as opposed to the list above of what has not:
 
 - Builds clean under Swift 6 strict concurrency.
 - Signs with Developer ID when one is installed, and otherwise with the stable self-signed
@@ -1110,12 +1413,6 @@ events) and confirmed via `/usr/bin/log show --predicate 'subsystem ==
   the whole reason grants stick: two consecutive builds produce an identical designated
   requirement, so macOS does not treat the rebuilt app as a different one. Genuinely ad-hoc
   builds — no certificate at all — do require a fresh Accessibility grant every rebuild.
-- Gemma 4 E4B downloaded and running on Metal with real weights alongside
-  S1-mini on the CPU in one process (SHA-256 still to pin from the first verified download).
-- Google Calendar connected through the OAuth loopback flow, with the refresh token in the
-  Keychain: `--selftest-calendar` reports `google: Connected` and returns real events.
-- The system-audio tap runs with its grant — `system audio started — tap 48000Hz → engine
-  16000Hz`. A recording containing an actual "Others" track is still unconfirmed.
 - Launches as a regular macOS app with its main window and menu bar item present.
 - Event tap arms on grant without a restart (the poller catches it).
 - Full state machine: `starting → listening → finishing → idle`, no errors.
@@ -1124,9 +1421,16 @@ events) and confirmed via `/usr/bin/log show --predicate 'subsystem ==
 - HUD renders bottom-center, at the size `DS.Size.hud` names, without taking focus.
 - Silence produces an empty transcript and injects nothing.
 - A WAV goes through `ChunkedTranscriber` to segments, and those segments to notes with all
-  five headings (`--selftest-notes`).
-- A Metal-offloaded llama.cpp runtime and a CPU one are alive and correct in one process
-  (`--selftest-llm-metal`) — the gate on sharing one backend between the two local models.
+  six headings (`--selftest-notes`).
+- A Metal-offloaded llama.cpp runtime and a CPU one are alive and correct in one process, and
+  the agent role's own installed model decodes a token in that same process
+  (`--selftest-llm-metal`).
+- An installed GGUF that llama.cpp cannot open is refused before a download and before a role
+  adopts it, and opening the vocabulary is all the guard ever loads (`--selftest-model-unopenable`).
+- The llama KV cache is kept across calls and only the tail decoded — 646 of 666 tokens
+  reused, prefill 2.10 s → 0.33 s (`--selftest-llm-prefix-cache`).
+- The agent answers three of three real questions on its installed model, the third returning
+  the real calendar (`--selftest-agent-answers`).
 - The island panel appears at the right frame on each attached display, never becomes key,
   and passes clicks through outside its own rectangle (`--selftest-island`).
 - The auto-record rules over invented events, and the agent's tool catalogue, parser and
@@ -1138,15 +1442,24 @@ events) and confirmed via `/usr/bin/log show --predicate 'subsystem ==
   against a local `/json/list` fixture
   (`--selftest-realtime`, `--selftest-wake`, `--selftest-computer`, `--selftest-fs`,
   `--selftest-mcp`, `--selftest-acp`, `--selftest-browser`, `--selftest-settings`).
+- The knowledge index over the owner's own meetings and conversations: chunks, FTS5 mirror,
+  cascade deletes, and BM25 + cosine + RRF hybrid search with recall@10 and MRR against a
+  hand-labelled gold set (`--selftest-index`, `--selftest-search`, `--selftest-ask`).
+- A read-only `chat.db` with `PRAGMA query_only` set by the code and read back by a second
+  connection, and a typedstream decoder that refuses rather than answering empty — both
+  against fixtures generated at run time, so no `.sqlite` is committed
+  (`--selftest-imessage-db`, `--selftest-imessage-decode`).
+- `make acceptance TIER=core` on this tree: **15/16**, the one failure the known-red wake word.
+- `cd windows && dotnet test NextNotes.CrossPlatform.slnf`: 63 tests in about half a second,
+  and the published single-file executable starting and reporting its own self-test on
+  Windows.
 
-**Nobody has looked at the redesigned UI or the island on screen.** The self-tests prove
-geometry and behaviour, not appearance: hover-to-expand, the growth out of the notch, the
-sidebar in light and dark, and the onboarding sheet are all unverified by eye.
-
-**Command Mode still needs a manual app-compatibility pass.** AX selection reading is only
-available in editable accessibility text elements, and Electron/browser editors vary in how
-faithfully they implement it. The implementation refuses to replace text when the captured
-selection cannot be revalidated.
+**Two claims this file used to make and no longer can.** It previously said Gemma 4 E4B was
+downloaded and running, that Google Calendar was connected through the OAuth loopback flow,
+and that the system-audio tap ran with its grant. **None of those is true of this machine
+any more** — the built-in notes model was never downloaded, Google has never had an account
+connected, and the tap has never held its grant. They are listed above as unproven rather
+than quietly kept, because a "Verified" list that outruns the evidence is worse than no list.
 
 > `log` is shadowed in this shell — use `/usr/bin/log` explicitly or it returns nothing.
 

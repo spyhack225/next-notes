@@ -11,6 +11,8 @@ import Observation
 /// transcript.live.json  the live 2–5 s tier, kept once the M-01 final pass
 ///                  replaces transcript.json with long-window finals (evidence)
 /// notes.md         markdown, written by Phase 4
+/// scratchpad.json  the lines the person typed themselves during the meeting; folded into
+///                  notes.md after every generation pass, and never rewritten by one
 /// notes.json       decisions, actions and questions extracted from notes.md (graph on only)
 /// proposals.json   what the agent has offered to do and nobody has answered yet
 /// audio.caf        two channels — L mic, R system — when keep-audio is on, or when
@@ -57,6 +59,12 @@ final class MeetingStore {
     /// Bumped when a batch of search text lands, so a list drawn while the index was still
     /// being built re-evaluates against the full text rather than titles alone.
     private(set) var searchRevision = 0
+
+    /// Bumped when `scratchpad.json` is written, so a pane watching somebody type knows to
+    /// re-read the file. It is the observed signal for the same reason `searchRevision` is:
+    /// `scratchpad(for:)` opens the file on every call, so there is no cache to observe and
+    /// something has to say when the answer changed.
+    private(set) var scratchpadRevision = 0
 
     static var root: URL {
         let directory = AppIdentity.applicationSupportDirectory
@@ -354,6 +362,55 @@ final class MeetingStore {
         KnowledgeIndexer.shared.meetingChanged(id)
     }
 
+    // MARK: - Hand-written notes
+
+    /// The lines the person typed themselves during this meeting, oldest first.
+    ///
+    /// Uncached exactly like `notes(for:)`: a line is added while the meeting is still
+    /// running and read back at once, so a cache would be a second answer to a question
+    /// whose file is one read away. The file is the record, and `saveScratchpad` is the
+    /// only thing that writes it.
+    func scratchpad(for id: UUID) -> [MeetingScratchNote] {
+        let url = directory(for: id).appendingPathComponent(Self.scratchpadFile)
+        guard let data = try? Data(contentsOf: url),
+              let notes = try? Self.decoder.decode([MeetingScratchNote].self, from: data)
+        else { return [] }
+        return Self.ordered(notes)
+    }
+
+    /// Writes the hand-written lines, keeping the most recent `maxStored`.
+    ///
+    /// Atomic for the reason `meeting.json` is: this is written while a meeting is running
+    /// and a half-written file would lose notes the person cannot type again. Search and
+    /// the knowledge index are invalidated the way `saveNotes` invalidates them, because a
+    /// typed line is the meeting's own text and belongs in the same haystack as its
+    /// transcript — `NotesService` folds the same lines into `notes.md` when the notes are
+    /// written, which is where they are chunked.
+    func saveScratchpad(_ notes: [MeetingScratchNote], for id: UUID) {
+        let directory = directory(for: id)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let kept = Array(Self.ordered(notes).suffix(MeetingScratchNote.maxStored))
+        write(kept, to: directory.appendingPathComponent(Self.scratchpadFile))
+        scratchpadRevision += 1
+        searchCache[id] = nil
+        searchInvalidated.insert(id)
+        KnowledgeIndexer.shared.meetingChanged(id)
+    }
+
+    /// By when each line was typed, ties keeping the order they arrived in.
+    ///
+    /// Swift's sort is not stable, and two lines typed inside the same millisecond would
+    /// otherwise swap places on every read — which reads as the list shuffling itself
+    /// under the person typing. The tie-break is the file's own order, which is the order
+    /// the list was last saved in.
+    private nonisolated static func ordered(_ notes: [MeetingScratchNote]) -> [MeetingScratchNote] {
+        notes.enumerated().sorted { earlier, later in
+            earlier.element.at == later.element.at
+                ? earlier.offset < later.offset
+                : earlier.element.at < later.element.at
+        }.map(\.element)
+    }
+
     /// What the agent has offered to do about this meeting and nobody has answered.
     ///
     /// On disk rather than in memory because a proposal outlives the process: notes land
@@ -608,6 +665,10 @@ final class MeetingStore {
     nonisolated static let transcriptFile = "transcript.json"
     nonisolated static let liveTranscriptFile = "transcript.live.json"
     nonisolated static let notesFile = "notes.md"
+    /// The lines the person typed themselves during the meeting. Its own file beside
+    /// `notes.md` rather than inside it, because the notes are rewritten by every
+    /// generation pass and a hand-written line has to survive all of them.
+    nonisolated static let scratchpadFile = "scratchpad.json"
     /// Decisions, action items and open questions extracted from `notes.md`, stamped with the
     /// same generation as its chunks in the knowledge index (Part 4, Phase C).
     nonisolated static let notesJSONFile = "notes.json"

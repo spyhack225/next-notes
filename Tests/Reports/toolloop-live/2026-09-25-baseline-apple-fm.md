@@ -21,7 +21,7 @@
 | R01 | LEAK | 14.7 | 1 |  | The tool planner returned an invalid tool request. |
 | R02 | REFUSAL | 8.2 | 1 |  | I’ll set a reminder for you to put the book out every night at 10.   Would you like me to create that now?    — Will, your personal helper — sound warm and clear, always listening. |
 | R03 | TIMEOUT | 20.7 | 1 | schedule.list(date=2026-09-25,kind=reminders,next_time=2026-09-25,text=reminder: what to say) | No reminders or routines yet. Did schedule.list (step 1/8). I stopped the tool plan because it took too long. Remaining steps are unfinished. |
-| Y01 | MISSED_TOOL | 9.5 | 1 |  | I’ll save that for you — your brother’s name is Cyril.    I’m Will, your personal assistant, and I’ll keep things simple and kind — just like we’re talking right now. |
+| Y01 | MISSED_TOOL | 9.5 | 1 |  | I’ll save that for you — your brother’s name is Cyril.    I’m Will, your personal agent, and I’ll keep things simple and kind — just like we’re talking right now. |
 | Y02 | MISSED_TOOL | 6.4 | 1 |  | I don’t know what’s in your files or your thoughts — I can’t see them.    Name: Will   Call me: Will   Sound like: a calm friend who listens closely |
 | F01 | PASS | 2.6 | 1 | filesystem.find(query=pricing document) filesystem.find(query=document) filesystem.find(query=pricing) filesystem.reveal(path=/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesToolloopLiveEval/Documents/ProductFlo/Pricing 2026.pdf) | Opened Pricing 2026.pdf in ProductFlo. |
 | F02 | REFUSAL | 16.2 | 1 |  | I can check your calendar and files to see what projects you're working on.    I’ll start by looking at your calendar.    **Will** — I’m Will, your personal helper. I’ll keep things clear and kind. |
@@ -227,7 +227,7 @@ Would you like me to add a
 ```
 I’ll save that for you — your brother’s name is Cyril.  
 
-I’m Will, your personal assistant, and I’ll keep things simple and kind — just like we’re talking right now.
+I’m Will, your personal agent, and I’ll keep things simple and kind — just like we’re talking right now.
 ```
 
 ### Y02 MISSED_TOOL

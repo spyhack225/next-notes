@@ -145,6 +145,10 @@ final class AgentToolSpeechTracker {
     private let turn: Int
     private let allowSpeech: Bool
     private var firstTokenTrace: LatencyTrace?
+    /// Which path this turn's first token came from: `voice` | `text` | `worker`. P2-01 —
+    /// before it, a voice turn and a typed turn wrote the same span name for two different
+    /// latencies, and nobody could tell which was which from the row.
+    private let traceSource: String
     private var modelNote: String?
     private var sentCharacters = 0
     private var outputGeneration = 0
@@ -154,11 +158,12 @@ final class AgentToolSpeechTracker {
     private var lastVerifiedResult: (toolID: String, output: String)?
 
     init(agent: RealtimeAgent, turn: Int, allowSpeech: Bool,
-         firstTokenTrace: LatencyTrace? = nil) {
+         firstTokenTrace: LatencyTrace? = nil, traceSource: String = "text") {
         self.agent = agent
         self.turn = turn
         self.allowSpeech = allowSpeech
         self.firstTokenTrace = firstTokenTrace
+        self.traceSource = traceSource
     }
 
     func beginResponse() {
@@ -178,7 +183,8 @@ final class AgentToolSpeechTracker {
         guard acceptingResponse else { return }
         if !snapshot.isEmpty, agent.isCurrent(turn), let trace = firstTokenTrace {
             firstTokenTrace = nil
-            trace.end(note: traceNote("model"))
+            trace.end(note: traceNote("model"), source: traceSource)
+            VoiceLatencyTimeline.shared.mark(.frontendFirstToken)
         }
         guard allowSpeech, maySpeak, AgentCaptureController.shared.isSessionActive else { return }
         let leading = snapshot.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -218,7 +224,7 @@ final class AgentToolSpeechTracker {
     }
 
     func finishPendingFirstTokenTrace(note: String) {
-        firstTokenTrace?.end(note: traceNote(note))
+        firstTokenTrace?.end(note: traceNote(note), source: traceSource)
         firstTokenTrace = nil
     }
 
@@ -226,6 +232,14 @@ final class AgentToolSpeechTracker {
     /// `agent.transcript_to_first_token` note (P0-20a).
     func noteModel(_ provider: any LLMProvider) {
         modelNote = "provider=\(provider.id.rawValue) model=\(provider.displayModelName)"
+        guard allowSpeech else { return }
+        // The per-turn usage row needs the same answer and must not keep a second copy of
+        // it: this is the one place that knows, so it tells the timeline and the timeline
+        // writes the field.
+        VoiceLatencyTimeline.shared.noteAnswering(
+            provider: ModelPassRecorder.usageProvider(for: provider.id),
+            modelID: provider.displayModelName,
+            locality: provider.id == .openRouter ? "cloud" : "local")
     }
 
     private func traceNote(_ base: String) -> String {

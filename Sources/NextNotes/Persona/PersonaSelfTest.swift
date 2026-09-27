@@ -41,7 +41,7 @@ enum PersonaSelfTest {
         check("the base preset names the Agent",
               !baseCardProse.contains("Next Notes") && !PersonaStore.baseText.contains("Next Notes"))
         check("the base preset's short card is not its first paragraph",
-              baseCardProse.hasPrefix("You are a warm, personal assistant")
+              baseCardProse.hasPrefix("You are a warm, personal agent")
                 && baseCardProse.hasSuffix("instead of guessing.") && !baseCard.isTruncated)
         check("the base preset's short card lost the care sentence",
               baseCardProse.contains("lead with kindness"))

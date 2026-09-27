@@ -53,7 +53,15 @@ final class RealtimeAudioSession {
     private(set) var isActive = false
     /// True between first spoken clause and the next `stop` / barge-in / natural
     /// end of the last clause.
-    private(set) var isSpeaking = false
+    ///
+    /// The timeline mirrors this because it is stamped from the capture lane and from
+    /// FluidAudio's callback thread, and neither may read main-actor state (P2-01).
+    private(set) var isSpeaking = false {
+        didSet {
+            guard isSpeaking != oldValue else { return }
+            VoiceLatencyTimeline.shared.setOutputActive(isSpeaking)
+        }
+    }
     /// When false, speak uses full volume (tests / Settings later).
     var duckingEnabled = true
 
@@ -221,6 +229,20 @@ final class RealtimeAudioSession {
         recognition: inout EchoRecognitionState,
         provisional: Bool = false,
         now: Date = Date()
+    ) -> EchoRecognitionResult {
+        MainActorSection.run("echo.mask") {
+            self.maskedSpeech(text, recognition: &recognition, provisional: provisional, now: now)
+        }
+    }
+
+    /// The body of `userSpeechExcludingPlayback(_:recognition:provisional:now:)`, so the
+    /// labelled wrapper above and the plain call in `isLikelyPlaybackEcho` share one
+    /// implementation.
+    private func maskedSpeech(
+        _ text: String,
+        recognition: inout EchoRecognitionState,
+        provisional: Bool,
+        now: Date
     ) -> EchoRecognitionResult {
         let heard = Self.words(in: text)
         let currentWords = heard.map(\.value)
@@ -441,6 +463,7 @@ final class RealtimeAudioSession {
         listeningHold = ListeningHold(captureID: captureID,
             outputGeneration: synth.outputGeneration, beganAt: now, lastNearAt: now)
         lastListeningPauseAt = Date()
+        VoiceLatencyTimeline.shared.mark(.bargePause)
         return true
     }
 
@@ -478,6 +501,7 @@ final class RealtimeAudioSession {
         let started = ContinuousClock.now
         stopOutput()
         if wasSpeaking {
+            VoiceLatencyTimeline.shared.mark(.bargeStop)
             let elapsed = started.duration(to: .now)
             lastBargeInStopSeconds = Double(elapsed.components.seconds)
                 + Double(elapsed.components.attoseconds) / 1e18

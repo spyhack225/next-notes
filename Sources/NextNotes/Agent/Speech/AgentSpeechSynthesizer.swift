@@ -52,6 +52,10 @@ final class AgentSpeechSynthesizer {
     private(set) var isPausedForListening = false
     /// Applied to each utterance. Duplex ducking lowers this while speaking.
     var utteranceVolume: Float = 1.0
+    /// Forces the output backend for one run without writing the user's preference
+    /// (`Settings.agentVoiceEngine`). Honoured only under the self-test harness, because
+    /// changing `Settings` from a self-test writes the owner's defaults.
+    var engineOverrideForTesting: String?
     /// Called on the backing's first output acknowledgement. Pocket reports
     /// the first completed player buffer; Apple reports its delegate start;
     /// Kokoro reports a successful `play()`. These are different strengths of
@@ -171,7 +175,7 @@ final class AgentSpeechSynthesizer {
                     "voice playback route selected=persistent \(self.persistentPlaybackUsesPocketSource ? "pocket-source" : "fixed-wav")"
                 )
             } else {
-                switch Settings.shared.agentVoiceEngine {
+                switch Self.selectedEngine {
                 case "pocket":
                     backing = pocketBacking
                 case "kokoro" where KokoroAgentVoice.isSupportedOS:
@@ -184,6 +188,15 @@ final class AgentSpeechSynthesizer {
                 )
             }
         }
+    }
+
+    /// What `prepareForStream` picks. A self-test may name the engine instead of the
+    /// person; nothing else may.
+    private static var selectedEngine: String {
+        if SelfTest.isRunning, let override = AgentSpeechSynthesizer.shared.engineOverrideForTesting {
+            return override
+        }
+        return Settings.shared.agentVoiceEngine
     }
 
     /// Append one already-split clause. Starts playback when idle; otherwise
@@ -319,6 +332,10 @@ final class AgentSpeechSynthesizer {
         if let currentClause, !currentClauseRendered {
             currentClauseRendered = true
             onPlaybackEvent?(.startAcknowledged(currentClause))
+            // Backend-agnostic, and the last mark of a voice turn: the output backend has
+            // acknowledged its first sample. It is not proof that anybody heard it, and it
+            // closes the turn rather than the P2-05 ducking measure.
+            VoiceLatencyTimeline.shared.mark(.firstAudible)
         }
         let callback = onFirstAudio
         onFirstAudio = nil
@@ -366,7 +383,9 @@ final class AgentSpeechSynthesizer {
                             String(describing: type(of: self.backing)), clause.count)
         Log.agent.info("\(detail, privacy: .public)")
         if CommandLine.arguments.contains("--selftest-voice-pipeline") { SelfTest.diagnostic(detail) }
-        backing.speak(clause, volume: utteranceVolume, token: currentPlaybackToken)
+        MainActorSection.run("tts.clause") {
+            backing.speak(clause, volume: utteranceVolume, token: currentPlaybackToken)
+        }
     }
 
     private func fallbackCurrentClause(text: String, token: UInt64) {

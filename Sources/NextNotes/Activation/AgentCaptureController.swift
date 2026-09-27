@@ -239,6 +239,10 @@ final class AgentCaptureController {
         if isSessionActive { return }
         let captureID = UUID()
         captureSessionID = captureID
+        // P2-01: a voice session is the only window in which a main-actor stall delays
+        // anything a person is waiting on, so the probe lives exactly here.
+        MainActorStallProbe.shared.start()
+        VoiceLatencyTimeline.shared.beginSession(captureID)
         turnGeneration &+= 1
         activeTurnTask?.cancel()
         activeTurnTask = nil
@@ -313,11 +317,24 @@ final class AgentCaptureController {
         }
     }
 
+    /// What a file-fed session has reached, for `--selftest-voice-latency` (P2-01), which
+    /// drives this same pipeline from outside the file. Read-only: the latency self-test
+    /// watches the turn, it does not steer it.
+    var fileSessionProgress: (
+        committedTurns: Int, feedFailure: String?, feed: Task<Void, Never>?,
+        heardWords: Bool
+    ) {
+        (fileCommittedTurns, fileFeedFailure, fileFeedTask, !lastEmittedRequest.isEmpty)
+    }
+
     /// Self-test source: no microphone grant or hub subscription. The decoder
     /// and all subsequent turn handling are the production instances.
     func beginFileSession(wav: URL, deferFeed: Bool = false,
-        appleFastResults: Bool = true, prepareResources: Bool = true) async throws {
-        await beginSession(captureAudio: false)
+        appleFastResults: Bool = true, prepareResources: Bool = true) async throws {        await beginSession(captureAudio: false)
+        // The file feeder owns the voice marks, so `voice.speech_end_to_endpoint` means the
+        // same thing here as it does for a live microphone: the source level, not the
+        // cleaned one, and stamped where the feeder already keeps its own dates.
+        VoiceLatencyTimeline.shared.fileFedOwnsVoiceMarks = true
         guard let captureID = captureSessionID else { throw TranscriptionError.notRunning }
         let eouFirst = SelfTest.isRunning && prepareResources
             && CommandLine.arguments.contains("--voice-eou-first")
@@ -385,6 +402,8 @@ final class AgentCaptureController {
         RealtimeAudioSession.shared.end()
         VoiceAnnouncementQueue.shared.clear()
         stopVAD()
+        VoiceLatencyTimeline.shared.endSession()
+        MainActorStallProbe.shared.stop()
         await stopEngine()
         // Done closes the session. The VAD endpoint is the only path that
         // submits speech; a cumulative ASR tail after Done is often playback
@@ -477,6 +496,52 @@ final class AgentCaptureController {
         await tick(force: true)
     }
 
+    /// One SpeechAnalyzer snapshot, as the main-actor consumer loop handles it. Split out of
+    /// the loop so the loop body can be one labelled main-actor section (P2-01) without a
+    /// closure capture per chunk.
+    private func consumeAppleChunk(_ chunk: TranscriptionChunk, captureID: UUID) {
+        let full = chunk.text
+        if fileFeedTask != nil {
+            fileASRChunkCount += 1
+            fileLastASRText = full
+            if fileFirstAppleASRAt == nil, !full.isEmpty {
+                fileFirstAppleASRAt = Date()
+                let fromVoice = fileFirstVoiceAt.map {
+                    String(format: "%.3f", Date().timeIntervalSince($0))
+                } ?? "none"
+                SelfTest.diagnostic("VOICE_APPLE_FIRST_RESULT=voice+\(fromVoice)s text=\(full)")
+            }
+        }
+        if full != latestFullTranscript {
+            lastTranscriptChangeAt = Date()
+        }
+        latestFullTranscript = full
+        let turn = Self.pending(full: full, committed: committedPrefix)
+        rawTranscript = turn
+        let userTurn = filterAppleRecognition(turn, provisional: !chunk.isFinal)
+        echoProbeDiagnostic("apple raw=\(turn) filtered=\(userTurn)")
+        if fileFeedTask != nil { fileLastFilteredASRText = userTurn }
+        // Apple remains the raw/cumulative fallback. Once the
+        // local decoder owns this turn, late Apple revisions are
+        // diagnostics only and cannot replace its shorter or
+        // corrected visible/preparation candidate.
+        if !localOwnsPartial {
+            transcript = userTurn
+            considerSpeechInterruption(userTurn, source: .apple)
+        }
+        if !userTurn.isEmpty {
+            VoiceLatencyTimeline.shared.mark(.asrFirstPartial)
+        }
+        if RealtimeAgent.shared.voiceInputActive
+            || (!RealtimeAgent.shared.isThinking && !RealtimeAudioSession.shared.isSpeaking) {
+            IslandState.shared.showAgentListening(transcript: transcript, level: level)
+        }
+        if chunk.isFinal, userTurn.count >= Limits.minCharacters {
+            heardSpeech = true
+            lastSpeechAt = Date().addingTimeInterval(-Limits.endpointSilence)
+        }
+    }
+
     private func startEngine(for captureID: UUID, fileURL: URL? = nil,
         deferFileFeed: Bool = false, appleFastResults: Bool = true,
         prepareFrontendAfterEOU: Bool = false) async throws {
@@ -502,43 +567,9 @@ final class AgentCaptureController {
         consumeTask = Task { @MainActor [weak self] in
             do {
                 for try await chunk in stream {
-                    guard let self, self.captureSessionID == captureID else { return }
-                    let full = chunk.text
-                    if self.fileFeedTask != nil {
-                        self.fileASRChunkCount += 1
-                        self.fileLastASRText = full
-                        if self.fileFirstAppleASRAt == nil, !full.isEmpty {
-                            self.fileFirstAppleASRAt = Date()
-                            let fromVoice = self.fileFirstVoiceAt.map {
-                                String(format: "%.3f", Date().timeIntervalSince($0))
-                            } ?? "none"
-                            SelfTest.diagnostic("VOICE_APPLE_FIRST_RESULT=voice+\(fromVoice)s text=\(full)")
-                        }
-                    }
-                    if full != self.latestFullTranscript {
-                        self.lastTranscriptChangeAt = Date()
-                    }
-                    self.latestFullTranscript = full
-                    let turn = Self.pending(full: full, committed: self.committedPrefix)
-                    self.rawTranscript = turn
-                    let userTurn = self.filterAppleRecognition(turn, provisional: !chunk.isFinal)
-                    self.echoProbeDiagnostic("apple raw=\(turn) filtered=\(userTurn)")
-                    if self.fileFeedTask != nil { self.fileLastFilteredASRText = userTurn }
-                    // Apple remains the raw/cumulative fallback. Once the
-                    // local decoder owns this turn, late Apple revisions are
-                    // diagnostics only and cannot replace its shorter or
-                    // corrected visible/preparation candidate.
-                    if !self.localOwnsPartial {
-                        self.transcript = userTurn
-                        self.considerSpeechInterruption(userTurn, source: .apple)
-                    }
-                    if RealtimeAgent.shared.voiceInputActive
-                        || (!RealtimeAgent.shared.isThinking && !RealtimeAudioSession.shared.isSpeaking) {
-                        IslandState.shared.showAgentListening(transcript: self.transcript, level: self.level)
-                    }
-                    if chunk.isFinal, userTurn.count >= Limits.minCharacters {
-                        self.heardSpeech = true
-                        self.lastSpeechAt = Date().addingTimeInterval(-Limits.endpointSilence)
+                    MainActorSection.run("asr.apple") {
+                        guard let self, self.captureSessionID == captureID else { return }
+                        self.consumeAppleChunk(chunk, captureID: captureID)
                     }
                 }
             } catch {
@@ -572,8 +603,14 @@ final class AgentCaptureController {
                         AgentCaptureController.shared.prepareResponseForRecognizedSpeech(
                             AgentCaptureController.shared.transcript)
                     }
+                    // P2-01: the EOU model is resident. Written for every session, not only
+                    // the file-fed ones that print it, and read with `--usage-report
+                    // --usage-feature voice`.
+                    let prepared = Date().timeIntervalSince(prepareStarted)
+                    LatencyTrace.record(.voiceEOUPrepare, seconds: prepared,
+                        note: "session", source: "voice")
                     if fileURL != nil {
-                        SelfTest.diagnostic("VOICE_EOU_PREPARE=\(Date().timeIntervalSince(prepareStarted))s")
+                        SelfTest.diagnostic("VOICE_EOU_PREPARE=\(prepared)s")
                     }
                 }
                 var hadDiscontinuity = false
@@ -741,6 +778,16 @@ final class AgentCaptureController {
                 }
             }
             let cleanedLevel = Self.cleanedMicLevel(cleaned.buffer)
+            // P2-01: the onset is the turn's own clock start and `lastVoice` is its speech
+            // end. The capture buffer's host time is used when it has one, so the boundary
+            // is the instant the audio was captured rather than the instant this closure ran.
+            if !VoiceLatencyTimeline.shared.fileFedOwnsVoiceMarks,
+               cleanedLevel >= Limits.speechLevel {
+                let at = chunk.captureHostTime.map(VoiceLatencyTimeline.nanos(hostTime:))
+                    ?? VoiceLatencyTimeline.nowNanos()
+                VoiceLatencyTimeline.shared.mark(.voiceOnset, at: at)
+                VoiceLatencyTimeline.shared.mark(.lastVoice, at: at, overwrite: true)
+            }
             Task { @MainActor in
                 let capture = AgentCaptureController.shared
                 guard capture.captureSessionID == captureID else { return }
@@ -835,8 +882,15 @@ final class AgentCaptureController {
             }
             if fileInputStartedAt == nil { fileInputStartedAt = now }
             if AudioConversion.level(of: source) >= Limits.speechLevel {
-                if fileFirstVoiceAt == nil { fileFirstVoiceAt = now }
+                if fileFirstVoiceAt == nil {
+                    fileFirstVoiceAt = now
+                    // P2-01: same instants as the dates above, so a file-fed run's
+                    // `voice.speech_end_to_endpoint` is the same measurement a live
+                    // microphone makes rather than a second number beside it.
+                    VoiceLatencyTimeline.shared.mark(.voiceOnset)
+                }
                 fileLastVoiceAt = now
+                VoiceLatencyTimeline.shared.mark(.lastVoice, overwrite: true)
             }
             deliver(AudioChunk(buffer: delivered))
             maximumPacingLag = max(maximumPacingLag, nextFeed.duration(to: pacingClock.now))
@@ -955,7 +1009,9 @@ final class AgentCaptureController {
         if RealtimeAgent.shared.voiceInputActive
             || (!RealtimeAgent.shared.isThinking && !RealtimeAudioSession.shared.isSpeaking) {
             self.level = level
-            IslandState.shared.showAgentListening(transcript: transcript, level: level)
+            MainActorSection.run("island.listening") {
+                IslandState.shared.showAgentListening(transcript: transcript, level: level)
+            }
         }
     }
 
@@ -1054,6 +1110,7 @@ final class AgentCaptureController {
         if lastSpeechAt == nil { lastSpeechAt = Date() }
         modelFinalText = modelText.trimmingCharacters(in: .whitespacesAndNewlines)
         modelEOUAt = Date()
+        VoiceLatencyTimeline.shared.mark(.eouConfirmed)
         // A confirmed local endpoint owns its own wording, including a shorter
         // correction. Text length is not a measure of decoder progress.
         localOwnsPartial = true
@@ -1084,6 +1141,7 @@ final class AgentCaptureController {
         echoProbeDiagnostic("local partial=\(candidate) caughtUp=\(localDecoderCaughtUp)")
         wordlessModelEOU = false
         modelPartialText = candidate
+        VoiceLatencyTimeline.shared.mark(.asrFirstPartial)
         if fileFeedTask != nil {
             fileModelPartialCount += 1
             fileLastModelPartialText = candidate
@@ -1123,11 +1181,15 @@ final class AgentCaptureController {
 
     private func makeEOUCallback(captureID: UUID, epoch: Int) -> @Sendable (String) -> Void {
         { modelText in
+            // P2-01: stamped on FluidAudio's own thread, before the hop to the main actor,
+            // because that hop is `voice.eou_hop` — the part nobody could see before.
+            VoiceLatencyTimeline.shared.mark(.eouRaw)
+            VoiceLatencyTimeline.shared.mark(.eouCallback)
             Task { @MainActor in
                 let capture = AgentCaptureController.shared
                 guard capture.captureSessionID == captureID,
                       capture.turnEpoch == epoch else { return }
-                capture.noteModelEOU(modelText)
+                MainActorSection.run("asr.local") { capture.noteModelEOU(modelText) }
             }
         }
     }
@@ -1138,7 +1200,7 @@ final class AgentCaptureController {
                 let capture = AgentCaptureController.shared
                 guard capture.captureSessionID == captureID,
                       capture.turnEpoch == epoch else { return }
-                capture.noteModelPartial(modelText)
+                MainActorSection.run("asr.local") { capture.noteModelPartial(modelText) }
             }
         }
     }
@@ -1252,6 +1314,10 @@ final class AgentCaptureController {
                 resumeListeningAfterDiscard()
                 RealtimeAgent.shared.discardVoiceInput()
                 await LocalVoiceFrontend.shared.clearStagedTurn()
+                // P2-01: a discarded utterance has no endpoint and no request, so none of
+                // its intervals are a measurement. Forget them rather than writing spans
+                // between two moments that were never part of a turn.
+                VoiceLatencyTimeline.shared.discardTurn("no-usable-words")
                 resetTurn()
                 return true
             }
@@ -1263,6 +1329,7 @@ final class AgentCaptureController {
                     resumeListeningAfterDiscard()
                     RealtimeAgent.shared.discardVoiceInput()
                     await LocalVoiceFrontend.shared.clearStagedTurn()
+                    VoiceLatencyTimeline.shared.discardTurn("backchannel")
                     resetTurn()
                     return true
                 }
@@ -1283,6 +1350,7 @@ final class AgentCaptureController {
                     resumeListeningAfterDiscard()
                     RealtimeAgent.shared.discardVoiceInput()
                     await LocalVoiceFrontend.shared.clearStagedTurn()
+                    VoiceLatencyTimeline.shared.discardTurn("in-flight-repeat")
                     resetTurn()
                     return true
                 }
@@ -1292,6 +1360,7 @@ final class AgentCaptureController {
                     resumeListeningAfterDiscard()
                     RealtimeAgent.shared.discardVoiceInput()
                     await LocalVoiceFrontend.shared.clearStagedTurn()
+                    VoiceLatencyTimeline.shared.discardTurn("playback-echo")
                     resetTurn()
                     return true
                 }
@@ -1301,6 +1370,7 @@ final class AgentCaptureController {
                     resumeListeningAfterDiscard()
                     RealtimeAgent.shared.discardVoiceInput()
                     await LocalVoiceFrontend.shared.clearStagedTurn()
+                    VoiceLatencyTimeline.shared.discardTurn("committed-revision")
                     resetTurn()
                     return true
                 }
@@ -1343,6 +1413,10 @@ final class AgentCaptureController {
         source: EndpointSource,
         continueSession: Bool
     ) async {
+        // P2-01: the turn's endpoint. The source is part of the measurement, because a VAD
+        // fallback and a confirmed model EOU are two different latencies wearing one name.
+        VoiceLatencyTimeline.shared.mark(.endpoint)
+        VoiceLatencyTimeline.shared.note("endpoint_source", source.rawValue)
         lastEndpoint = source
         if fileFeedTask != nil {
             fileCommittedTurns += 1

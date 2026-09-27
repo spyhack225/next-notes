@@ -1,0 +1,489 @@
+import SwiftUI
+
+/// The meeting panel's Ask section: the assistant, asked something while the meeting runs.
+///
+/// **No service, no prompt prefix, and no second conversation.** The question goes out as it
+/// was typed, with `source: .meeting`, and the assistant reads the meeting through the seven
+/// tools `Agent/Tools/MeetingTools.swift` already registers — the same tools every other turn
+/// gets, chosen for it by `AgentCapabilityManifest`. Nothing here prepends a transcript:
+/// `RealtimeAgent` records the utterance verbatim into the permanent conversation, so a
+/// prefix would be a few hundred characters of raw speech sitting in the transcript and in
+/// every later turn's context forever, and a hand-rolled context path around the manifest is
+/// the regression `AGENTS.md` names. If a question needs something the assistant cannot look
+/// at, the answer is a tool — never a prefix.
+///
+/// What this view *is* is the four things the reference chat panel is: a way in without
+/// typing a sentence, the thread, a progress row that says what is happening, and a
+/// composer. The status orb, the section chrome and the floating action belong to
+/// `MeetingConsoleSheet`; this file draws none of them, and it draws no orb of its own.
+struct MeetingConsoleAskSection: View {
+    let session: MeetingSession
+
+    @State private var navigation = NavigationState.shared
+    /// The one conversation. Held as state so the panel redraws when a row lands, and named
+    /// for what it is rather than for the type.
+    @State private var conversation = AgentSession.shared
+    @State private var agent = RealtimeAgent.shared
+    @State private var activityStore = AgentActivityStore.shared
+    @State private var identity = AgentIdentityStore.shared
+    @State private var workspace = AgentService.shared
+    @State private var settings = Settings.shared
+    @State private var loadNotice = ModelLoadNotice.shared
+
+    @State private var draft = ""
+    @State private var showsSuggestions = true
+    @FocusState private var isComposerFocused: Bool
+
+    /// Persisted rather than held, for `AgentView`'s reason: this is a preference about how
+    /// the panel behaves, not a piece of state the turn is in, and a person who widened the
+    /// scope once should not have to do it again in the next meeting.
+    @AppStorage("meetingConsole.ask.scope") private var storedScope = MeetingAskScope.thisMeeting.rawValue
+
+    /// `.thinking` while a turn is in flight, and `.idle` the rest of the time — including
+    /// while the meeting itself is recording, because the recording is the *meeting's* work
+    /// and the Meetings screen already says so. This case means one thing: a turn this
+    /// section started is running right now.
+    var activity: MeetingConsoleActivity { agent.isThinking ? .thinking : .idle }
+
+    /// `nil`: the composer is at the bottom of the body, where the reference puts it. The
+    /// sheet's pill slot belongs to whichever section has one primary action to offer, and
+    /// asking a question is a field a person is already typing in.
+    var floatingAction: AnyView? { nil }
+
+    // MARK: - Body
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.Space.l) {
+            MeetingConsoleSectionHeader(
+                section: .ask,
+                subtitle: "\(identity.name) reads this meeting to answer."
+            )
+            suggestions
+            thread
+            if agent.isThinking { thinkingRow }
+            if let reason = widerReason { notice(reason, symbol: "link.badge.plus") }
+            // A model that failed is said here as well as in Settings, for `AgentView`'s
+            // reason: this panel answers questions, so it is the surface where a silent
+            // fallback has to be visible and the one move that changes it has to be a click
+            // away.
+            if let problem = loadNotice.message {
+                notice(problem, symbol: "exclamationmark.triangle")
+            }
+            composer
+            // The reference's own footer line, and the same sentence `AgentView` and the
+            // island carry: a written answer read while a meeting is running is still an
+            // answer, and the caveat belongs under every one of them.
+            Text("Next Notes is AI and can make mistakes.")
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+
+    // MARK: - The way in
+
+    /// Ready-made questions, in the reference's inset bubble and collapsible.
+    ///
+    /// Generic on purpose: this card is the same on every meeting, so a question that names a
+    /// person, a project or a deadline would be wrong in the meeting it is shown in. Tapping
+    /// one fills the field rather than sending it — a person in a call should see what they
+    /// are about to ask before it is asked.
+    private var suggestions: some View {
+        GlassCard(cornerRadius: DS.Radius.glass, padding: DS.Space.card) {
+            DisclosureGroup(isExpanded: $showsSuggestions) {
+                VStack(alignment: .leading, spacing: DS.Space.s) {
+                    ForEach(Self.suggestions, id: \.self) { question in
+                        Button {
+                            draft = question
+                            isComposerFocused = true
+                        } label: {
+                            HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
+                                Text(question)
+                                    .font(DS.Font.callout)
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 0)
+                                Image(systemName: "arrow.up.left")
+                                    .foregroundStyle(DS.Color.textTertiary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("Put this in the box so you can change it first")
+                    }
+                }
+                .padding(.top, DS.Space.s)
+            } label: {
+                Text("Try asking")
+                    .font(DS.Font.sectionLabel)
+            }
+        }
+    }
+
+    private static let suggestions = [
+        "What have we decided so far?",
+        "What is still open?",
+        "Who do I need to follow up with?",
+        "What did we agree about the deadline?",
+    ]
+
+    // MARK: - The thread
+
+    /// A window onto the one conversation, not a second one.
+    ///
+    /// A filter rather than an assembly, and the filter has to carry the *answers* as well
+    /// as the questions. `AgentSession.recordUser` stamps `source` on the question
+    /// (`RealtimeAgent.swift:1133`), but `recordAssistant` is called with
+    /// `source: currentTurnSource == .voice ? .voice : nil`
+    /// (`RealtimeAgent.swift:748`) — so an answer given to a question asked from a meeting is
+    /// an ordinary row with no source at all, and filtering on `source == "meeting"` alone
+    /// would show every question this panel has ever asked and not one reply. A question
+    /// therefore carries the rows that follow it up to the next question of any kind, which
+    /// drops an answer that a spoken turn overtook rather than showing it under the wrong
+    /// question.
+    private var threadMessages: [AgentSession.Message] {
+        var out: [AgentSession.Message] = []
+        var carriesAnswer = false
+        for message in conversation.messages {
+            // A question re-decides whether the rows after it belong to this panel; every
+            // other row belongs to whichever question is open, and to none once a question
+            // from somewhere else has taken over.
+            if message.role == "user" {
+                carriesAnswer = message.source == MeetingConsoleAskSection.meetingSource
+            }
+            if carriesAnswer { out.append(message) }
+        }
+        return out
+    }
+
+    /// `AgentUtteranceSource.meeting.rawValue`, read from the case rather than typed out.
+    private static let meetingSource = AgentUtteranceSource.meeting.rawValue
+
+    /// The rows this panel draws. `AgentSession` keeps 120 of them and a panel over a long
+    /// meeting is not the place to render all of them; the count of what is left is said
+    /// below, with the way to reach it.
+    private var visibleMessages: [AgentSession.Message] {
+        Array(threadMessages.suffix(Self.maxThreadRows))
+    }
+
+    private static let maxThreadRows = 8
+
+    @ViewBuilder
+    private var thread: some View {
+        if visibleMessages.isEmpty, !agent.isThinking {
+            OrbUnavailableView(
+                .breathing,
+                title: "Nothing asked yet",
+                message: session.isRecording
+                    ? "This meeting is still running. Ask about what has been said so far."
+                    : "Ask about anything that was said in this meeting.",
+                // The panel already carries a field behind the whole content column; a second
+                // one inside the empty state is the same texture drawn twice. And while a turn
+                // is in flight this is not drawn at all: an empty state says the screen is at
+                // rest, and the sheet's status row would then be running its own orb beside
+                // this one's.
+                hasField: false
+            )
+        } else if !visibleMessages.isEmpty {
+            VStack(alignment: .leading, spacing: DS.Space.l) {
+                ForEach(visibleMessages) { message in
+                    messageRow(message)
+                }
+                threadFooter
+            }
+        }
+    }
+
+    /// `AgentView.messageRow`, unchanged where it can be: the same bubble geometry, the same
+    /// weights, the same still portrait. The one difference is the source chip, which is
+    /// dropped — `AgentView` labels a row by how it arrived, and every row here arrived the
+    /// same way, so a chip would say the same thing once per question.
+    private func messageRow(_ message: AgentSession.Message) -> some View {
+        let isUser = message.role == "user"
+        return HStack(alignment: .bottom, spacing: DS.Space.s) {
+            if isUser { Spacer(minLength: DS.Space.xl) }
+            if !isUser {
+                NotionAvatarView(config: identity.avatar, size: DS.Size.agentAvatar)
+            }
+            VStack(alignment: isUser ? .trailing : .leading, spacing: DS.Space.xs) {
+                HStack(spacing: DS.Space.xs) {
+                    Text(isUser ? "You" : identity.name).font(DS.Font.chip)
+                    Text(message.at, format: .dateTime.hour().minute())
+                }
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+                Text(message.text)
+                    .font(DS.Font.body)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(DS.Space.m)
+                    .background(
+                        isUser ? DS.Color.accent.opacity(DS.Opacity.chipFill) : DS.Color.content,
+                        in: RoundedRectangle(cornerRadius: DS.Radius.card)
+                    )
+            }
+            // The Agent pane's own bubble cap, which the 312pt content column is far narrower
+            // than — `maxWidth` clamps, so the bubble simply takes the column.
+            .frame(maxWidth: DS.Size.agentBubbleMaxWidth, alignment: isUser ? .trailing : .leading)
+            if !isUser { Spacer(minLength: DS.Space.xl) }
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// What this panel is not, and the one press that reaches it.
+    private var threadFooter: some View {
+        VStack(alignment: .leading, spacing: DS.Space.xs) {
+            Text(footerSentence)
+                .font(DS.Font.footnote)
+                .foregroundStyle(DS.Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button("Open the full conversation") { navigation.showConversation() }
+                .buttonStyle(.link)
+                .font(DS.Font.callout)
+        }
+    }
+
+    private var footerSentence: String {
+        let all = threadMessages.count
+        guard all > visibleMessages.count else {
+            return "These are only the turns asked from inside meetings. The rest of the "
+                + "conversation is one press away."
+        }
+        return "Showing the last \(visibleMessages.count) of \(all) lines asked in meetings. "
+            + "The rest of the conversation is one press away."
+    }
+
+    // MARK: - The turn in flight
+
+    /// `AgentView.thinkingRow`'s shape, with the step list under it.
+    ///
+    /// The panel's own orb is the sheet's `searching` case, so what this row has to add is
+    /// the *words*: a turn that reads a meeting and calls four things can take a minute, and
+    /// a minute of one sentence that does not change is a screen that looks frozen. The step
+    /// titles are the tool layer's own — `AgentActivityProjector` has already rewritten them
+    /// into the person's words, so they are shown as they are and no state is inferred from
+    /// them; the ✓ and ◐ come from the position in the list, which is data rather than a
+    /// reading of the text.
+    private var thinkingRow: some View {
+        let feed = activityStore.liveSteps
+        return HStack(alignment: .top, spacing: DS.Space.s) {
+            // The still portrait, never `AgentAvatarView`: the sheet's `searching` orb is
+            // the one animating shape on this screen, and a second live avatar beside a
+            // meeting is the battery bug the avatar rules are written against. The fallback
+            // is the same state the row is in — reading things this app did not write.
+            NotionAvatarView(
+                config: identity.avatar,
+                size: DS.Size.agentAvatar,
+                fallbackOrb: .searching
+            )
+            VStack(alignment: .leading, spacing: DS.Space.xs) {
+                Text(agent.progressTitle.isEmpty
+                     ? "\(identity.name) is thinking…"
+                     : agent.progressTitle)
+                    .font(DS.Font.callout)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !feed.titles.isEmpty {
+                    ForEach(Array(feed.titles.enumerated()), id: \.offset) { index, title in
+                        stepRow(title, isCurrent: index + 1 == feed.current)
+                    }
+                    Text("Step \(feed.current) of \(feed.total)")
+                        .font(DS.Font.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(DS.Color.textTertiary)
+                        .contentTransition(.numericText())
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func stepRow(_ title: String, isCurrent: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
+            Image(systemName: isCurrent ? "circle.bottomhalf.filled" : "checkmark.circle")
+                .font(DS.Font.footnote)
+                .foregroundStyle(isCurrent ? DS.Color.accent : DS.Color.success)
+                .frame(width: DS.Size.orbBadge)
+            Text(title)
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+                .lineLimit(2)
+        }
+    }
+
+    // MARK: - The two honest states about reach
+
+    /// The scope the composer is in, clamped to what is actually on offer.
+    ///
+    /// A stored choice of *Everything else* on a Mac that has since been signed out falls
+    /// back to the meeting rather than being honoured: the wide scope is not offered without
+    /// an account, and a scope the composer cannot keep is a scope the person did not choose.
+    private var scope: MeetingAskScope {
+        let chosen = MeetingAskScope(rawValue: storedScope) ?? .thisMeeting
+        return availableScopes.contains(chosen) ? chosen : .thisMeeting
+    }
+
+    private var canReachEverythingElse: Bool {
+        settings.agentEnabled && workspace.authState.isSignedIn
+    }
+
+    private var availableScopes: [MeetingAskScope] {
+        canReachEverythingElse ? MeetingAskScope.allCases : [.thisMeeting]
+    }
+
+    /// Why the wider scope is not on offer, in one sentence, or nil when it is.
+    ///
+    /// Two reasons that need two sentences, and neither of them is a failure: a switch the
+    /// person turned off, and an account that was never connected. The meeting scope is
+    /// unaffected by both — the meeting tools are native and read a live meeting with nothing
+    /// connected at all — so this is a notice about one scope, never a reason to refuse the
+    /// panel.
+    private var widerReason: String? {
+        if canReachEverythingElse { return nil }
+        if !settings.agentEnabled {
+            return "Follow-up actions are turned off, so this answers from the meeting only. "
+                + "Turn them on in Settings to ask about your mail, calendar and files as well."
+        }
+        return "Your Google account is not connected, so this answers from the meeting only. "
+            + "Connect it in Settings to ask about your mail, calendar and files as well."
+    }
+
+    /// A quiet inline notice, with the one move that changes it.
+    ///
+    /// One shape for the two things that can be said here — the account is not there, or the
+    /// model that answers has failed — because a person reading either of them mid-meeting
+    /// needs the same two things, and a second layout for a second sentence would be the
+    /// third piece of chrome this section is not allowed to own.
+    private func notice(_ message: String, symbol: String) -> some View {
+        HStack(alignment: .top, spacing: DS.Space.s) {
+            Image(systemName: symbol)
+                .foregroundStyle(DS.Color.warning)
+            VStack(alignment: .leading, spacing: DS.Space.xs) {
+                Text(message)
+                    .font(DS.Font.footnote)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                SettingsLink { Text("Open Settings…") }
+                    .buttonStyle(.link)
+                    .font(DS.Font.callout)
+            }
+        }
+        .padding(DS.Space.cardTight)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DS.Color.groupedFill, in: RoundedRectangle(cornerRadius: DS.Radius.card))
+    }
+
+    // MARK: - The composer
+
+    /// The reference's `+ / field / affordance` bar, as one rounded field with a leading menu.
+    ///
+    /// The scope is written rather than drawn as a glyph: it is a statement about what the
+    /// assistant will read on the person's behalf, and a symbol that can be clicked and never
+    /// read is not one. That costs about eighty points of a 312pt column, which is why the
+    /// field's line cap is one lower than `AgentView`'s.
+    private var composer: some View {
+        HStack(alignment: .bottom, spacing: DS.Space.s) {
+            Menu {
+                ForEach(availableScopes) { candidate in
+                    Button {
+                        storedScope = candidate.rawValue
+                    } label: {
+                        if candidate == scope {
+                            Label(candidate.title, systemImage: "checkmark")
+                        } else {
+                            Text(candidate.title)
+                        }
+                    }
+                    .help(candidate.help)
+                }
+            } label: {
+                Text(scope.title)
+                    .font(DS.Font.chip)
+                    .lineLimit(1)
+                    .fixedSize()
+            }
+            .menuStyle(.borderlessButton)
+            .controlSize(.small)
+            .help(scope.help)
+            .accessibilityLabel("Ask about: \(scope.title)")
+
+            TextField("Ask about this meeting…", text: $draft, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(1...4)
+                .focused($isComposerFocused)
+                .onSubmit { send() }
+                .onKeyPress(phases: .down) { press in
+                    // Plain Return sends; Shift/Option/Control+Return inserts a newline.
+                    // Copied from `AgentView.composer` rather than reinvented, because two
+                    // composers that disagree about Shift-Return is the kind of thing a
+                    // person only discovers by pressing it.
+                    guard press.key == .return else { return .ignored }
+                    if press.modifiers.contains(.shift)
+                        || press.modifiers.contains(.option)
+                        || press.modifiers.contains(.control) {
+                        return .ignored
+                    }
+                    send()
+                    return .handled
+                }
+
+            if agent.isThinking {
+                Button("Stop") {
+                    // The gate first, as in `AgentView`: this panel cannot draw the card a
+                    // parked confirmation waits on, so a turn that would have stopped for
+                    // approval has to be told no rather than left asking in silence.
+                    ACPConfirmationGate.shared.cancel()
+                    RealtimeAgent.shared.cancel()
+                }
+                .controlSize(.small)
+            }
+            Button("Send", action: send)
+                .controlSize(.small)
+                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+    }
+
+    private func send() {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        draft = ""
+        // A second question while the first is still running supersedes it, which is what
+        // `AgentView.send` does: `interrupt` keeps the transcript and drops the work, and
+        // `cancel` would write a "Stopped." line into the meeting's own thread.
+        if agent.isThinking { RealtimeAgent.shared.interrupt() }
+        Task { await RealtimeAgent.shared.handleLive(text, source: .meeting) }
+    }
+}
+
+/// What the assistant is allowed to look at for a turn asked from this panel.
+///
+/// Two, and the difference between them is the account rather than anything in this view.
+/// The meeting tools are native and need nothing connected, so a question about the meeting
+/// in front of you is answerable on a Mac that has never signed in to anything. Everything
+/// else means reading the account, which is the Workspace switch and `AgentService`'s auth
+/// state — so it is offered only when both are there, and what it costs is said in the panel
+/// rather than discovered in an answer that quietly came from somewhere else.
+enum MeetingAskScope: String, CaseIterable, Identifiable {
+    case thisMeeting
+    case everythingElse
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .thisMeeting: "This meeting"
+        case .everythingElse: "Everything else I know"
+        }
+    }
+
+    /// One line, in the person's words, read before the choice rather than after it.
+    var help: String {
+        switch self {
+        case .thisMeeting:
+            "Answers from what has been said in this meeting."
+        case .everythingElse:
+            "Also looks in your mail, calendar and files, which can take a moment."
+        }
+    }
+}

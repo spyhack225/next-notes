@@ -498,9 +498,20 @@ final class VoiceConversationCoordinator {
         }
         let indexed = request.indexed
         let messages = request.messages
+        // P2-01: the request is built, so the endpoint→request hop is over. The turn's ids
+        // ride along here because this is the one place that already owns both; the
+        // timeline joins its row to `usage.jsonl` with them and invents neither.
+        VoiceLatencyTimeline.shared.mark(.frontendRequest)
+        VoiceLatencyTimeline.shared.attachTurnIDs(
+            turnID: usageTurnID, conversationID: AgentSession.shared.sessionID)
         let tracker = AgentToolSpeechTracker(agent: agent, turn: turn, allowSpeech: true,
-            firstTokenTrace: LatencyTrace.start(.agentTranscriptToFirstToken))
+            firstTokenTrace: LatencyTrace.start(.agentTranscriptToFirstToken),
+            traceSource: "voice")
         tracker.beginResponse()
+        // The voice frontend *is* Apple's system model, and the planner's own
+        // `noteModel` covers the worker path. Saying so here is what lets the per-turn
+        // usage row name the answering model without a second field of its own.
+        tracker.noteModel(FoundationModelLLMProvider())
         var assembled = ""
         do {
             let stream = await ModelPassRecorder.$correlation.withValue(
@@ -697,11 +708,31 @@ final class VoiceConversationCoordinator {
         return RealtimeAgent.shared.finishVoiceFrontend(reply, turn: turn, streamed: false)
     }
 
+    /// P2-01: `frontend_unavailable` used to fold three different failures into one word —
+    /// a barrier that did not drain, a system model that is not available, and a prompt
+    /// whose latest user turn the planner could not find. One word is one repair, and two
+    /// of those three are not a repair at all. The sub-reason rides in the code (so every
+    /// consumer of the prefix still matches) and in a zero-duration span, so the turn is on
+    /// the record.
+    nonisolated private static func unavailableCode(_ description: String) -> String {
+        let reason: String
+        if description.contains("did not stop") {
+            reason = "barrier_timeout"
+        } else if description.contains("missing_latest_user") {
+            reason = "missing_latest_user"
+        } else {
+            reason = "apple_unavailable"
+        }
+        LatencyTrace.record(.voiceFrontendUnavailable, seconds: 0,
+            note: reason, source: "voice")
+        return "frontend_unavailable:" + reason
+    }
+
     nonisolated private static func errorCode(for error: Error) -> String {
         if error is CancellationError { return "cancelled" }
         if let error = error as? LocalVoiceFrontend.FrontendError {
             switch error {
-            case .unavailable: return "frontend_unavailable"
+            case .unavailable: return unavailableCode(String(describing: error))
             case .revisedSnapshot: return "revised_snapshot"
             case .emptyResponse: return "empty_response"
             case .typedDecisionIncomplete: return "typed_decision_incomplete"

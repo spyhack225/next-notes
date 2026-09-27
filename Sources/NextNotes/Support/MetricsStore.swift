@@ -26,6 +26,11 @@ final class MetricsStore: @unchecked Sendable {
     private let lock = NSLock()
     private var ring: [LatencySpan] = []
     private var linesOnDisk = 0
+    /// The single append lane. `record` still exists and is still synchronous: this
+    /// is what `init` and the self-test use when they must read a row back.
+    private let writer = DispatchQueue(
+        label: "ai.pivotstudio.nextnotes.metrics", qos: .utility
+    )
 
     init(
         directory: URL = AppIdentity.applicationSupportDirectory,
@@ -56,6 +61,26 @@ final class MetricsStore: @unchecked Sendable {
             rewriteLockedContents()
             linesOnDisk = ring.count
         }
+    }
+
+    /// Enqueues a span and returns at once. Closing a voice span happens on the main
+    /// actor, and the file append is a seek, a write and a close — nobody's idea of
+    /// a turn-ending cost.
+    func recordAsync(_ span: LatencySpan) {
+        writer.async { [weak self] in self?.record(span) }
+    }
+
+    /// Enqueues a span that has not been built yet, so the process snapshot is
+    /// sampled on the writer rather than by the actor that ended the stage.
+    func recordAsync(_ makeSpan: @escaping @Sendable () -> LatencySpan) {
+        writer.async { [weak self] in self?.record(makeSpan()) }
+    }
+
+    /// Waits for every queued write. Self-tests and shutdown only; the hot path
+    /// never blocks on it. A reader that skipped this saw a store mid-flight, which
+    /// is a green answer to a question nobody asked.
+    func flushForTesting() {
+        writer.sync {}
     }
 
     /// Chronological, oldest first — the order the file is written.

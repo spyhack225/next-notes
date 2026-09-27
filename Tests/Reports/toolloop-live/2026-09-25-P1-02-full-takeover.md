@@ -22,7 +22,7 @@
 | R02 | LEAK | 10.6 | 1 |  | {"name":"schedule.create","arguments":{"title":"Put book out","text":"Remember to put the book out.","kind":"reminder","on":"every night at 10","days":"all","repeat":"daily"},"rationale":"The user wants a nightly reminder to put the book out, so I'm creating a daily reminder set for 10 PM every nigh |
 | R03 | MISSED_TOOL | 8.4 | 1 |  | Here’s what’s on your to-do list for today:  - Review ProductFlo project updates by 3 PM   - Schedule a call with the design team at 4 PM   - Follow up on client feedback email from yesterday    Let me know if you’d like any of these changed or added. |
 | Y01 | MISSED_TOOL | 6.1 | 1 |  | Got it. I’ll remember that your brother’s name is Cyril.    **Memory update:** "The user’s brother’s name is Cyril." |
-| Y02 | MISSED_TOOL | 8.3 | 1 |  | I remember you're Serge Kadjo, and you're using this Mac as your personal assistant. I know you’ve been working on a project involving team meetings and planning, and that you often check your calendar and emails to stay on top of things. Let me know if there’s something specific you’d like to build |
+| Y02 | MISSED_TOOL | 8.3 | 1 |  | I remember you're Serge Kadjo, and you're using this Mac as your personal agent. I know you’ve been working on a project involving team meetings and planning, and that you often check your calendar and emails to stay on top of things. Let me know if there’s something specific you’d like to build |
 | F01 | PASS | 0.3 | 1 | filesystem.find(query=pricing document) filesystem.find(query=document) filesystem.find(query=pricing) filesystem.reveal(path=/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesToolloopLiveEval/Documents/ProductFlo/Pricing 2026.pdf) | Opened Pricing 2026.pdf in ProductFlo. |
 | F02 | WRONG_TOOL | 10.1 | 1 | assemble(topic=projects) | I don’t have any project information right now. Let me check your documents or calendar to find what you're working on. |
 | F03 | MISSED_TOOL | 0.2 | 1 | filesystem.find(query=pricing document email marcus) filesystem.find(query=document) filesystem.find(query=pricing) filesystem.find(query=marcus) filesystem.find(query=email) | I searched Documents, Desktop, and Downloads for “pricing document email marcus” and found nothing with that name. What is it near, or what is it called on screen? |
@@ -159,7 +159,7 @@ Got it. I’ll remember that your brother’s name is Cyril.
 - rounds: 1; last prompt: system=7439 user=48 maxTokens=1024
 - last completion:
 ```
-I remember you're Serge Kadjo, and you're using this Mac as your personal assistant. I know you’ve been working on a project involving team meetings and planning, and that you often check your calendar and emails to stay on top of things. Let me know if there’s something specific you’d like to build on from that.
+I remember you're Serge Kadjo, and you're using this Mac as your personal agent. I know you’ve been working on a project involving team meetings and planning, and that you often check your calendar and emails to stay on top of things. Let me know if there’s something specific you’d like to build on from that.
 ```
 
 ### F02 WRONG_TOOL

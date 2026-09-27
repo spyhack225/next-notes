@@ -429,7 +429,7 @@ final class RealtimeAgent {
             beginWork(title: "Thinking…")
             let speech = AgentToolSpeechTracker(
                 agent: self, turn: mine, allowSpeech: source == .voice,
-                firstTokenTrace: replyTrace
+                firstTokenTrace: replyTrace, traceSource: isVoiceWorker ? "worker" : "text"
             )
             let work = source == .voice ? VoiceConversationWork(text) : nil
             voiceWork = work
@@ -713,7 +713,8 @@ final class RealtimeAgent {
         }
         let voice = source == .voice
         let speech = AgentToolSpeechTracker(
-            agent: self, turn: mine, allowSpeech: voice, firstTokenTrace: replyTrace)
+            agent: self, turn: mine, allowSpeech: voice, firstTokenTrace: replyTrace,
+            traceSource: isVoiceWorker ? "worker" : "text")
         let planned = await runPlannedTurn(
             prompt, speech: speech, voice: voice, provider: provider,
             allowFallback: false, maxRisk: .read)
@@ -1169,8 +1170,14 @@ final class AgentSession {
               messages[index].speechDelivery != delivery else { return }
         messages[index].speechDelivery = delivery
         guard let fileURL else { return }
-        do { try Self.save(messages, to: fileURL) }
-        catch { Log.agent.error("Could not save speech delivery: \(error.localizedDescription, privacy: .public)") }
+        // P2-01: re-encoding and atomically writing the whole conversation on the main actor
+        // is one of the named candidates for a turn's stall, so it is labelled rather than
+        // guessed at. Whether it *is* the stall is the probe's answer, not this comment's.
+        do {
+            try MainActorSection.run("session.save") { try Self.save(messages, to: fileURL) }
+        } catch {
+            Log.agent.error("Could not save speech delivery: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     /// SpeechAnalyzer sometimes revises a cumulative snapshot after an endpoint.
@@ -1239,8 +1246,9 @@ final class AgentSession {
         }
         compactIfNeeded()
         guard let fileURL else { return }
+        // P2-01: labelled, not blamed. See `updateSpeech`.
         do {
-            try Self.save(messages, to: fileURL)
+            try MainActorSection.run("session.save") { try Self.save(messages, to: fileURL) }
         } catch {
             Log.agent.error("Could not save Agent conversation: \(error.localizedDescription, privacy: .public)")
         }

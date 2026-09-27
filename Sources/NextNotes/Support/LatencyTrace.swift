@@ -58,6 +58,35 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
     case wakeMiss = "wake.miss"
     case wakeFalse = "wake.false"
 
+    // Agent voice, stage by stage (P2-01). One row per stage boundary of a voice
+    // turn, computed from `VoiceLatencyTimeline`'s marks rather than timed again
+    // here: a second stopwatch on the same two instants is a second number for one
+    // fact. `source` is `voice` on every one of them.
+    case voiceSpeechEndToEOU = "voice.speech_end_to_eou"
+    case voiceEOUHop = "voice.eou_hop"
+    case voiceEOUToEndpoint = "voice.eou_to_endpoint"
+    case voiceSpeechEndToEndpoint = "voice.speech_end_to_endpoint"
+    case voiceEndpointToRequest = "voice.endpoint_to_request"
+    case voiceRequestToLane = "voice.request_to_lane"
+    case voiceRoute = "voice.route"
+    case voiceRouteToFirstToken = "voice.route_to_first_token"
+    case voiceTranscriptToFirstToken = "voice.transcript_to_first_token"
+    case voiceFirstTokenToClause = "voice.first_token_to_clause"
+    case voiceClauseToFirstPCM = "voice.clause_to_first_pcm"
+    case voiceFirstPCMToAudible = "voice.first_pcm_to_audible"
+    /// The headline: end of the person's speech → the first audible sample.
+    case voiceSpeechEndToFirstAudio = "voice.speech_end_to_first_audio"
+    case voiceOnsetToDuck = "voice.onset_to_duck"
+    case voiceOnsetToPause = "voice.onset_to_pause"
+    case voiceOnsetToStop = "voice.onset_to_stop"
+    case voiceInterClauseGap = "voice.inter_clause_gap"
+    /// Zero-duration markers. The reason rides in `note`.
+    case voiceSpeculation = "voice.speculation"
+    case voiceMainActorStall = "voice.main_actor_stall"
+    case voiceFrontendUnavailable = "voice.frontend_unavailable"
+    /// Once per voice session; P2-07 is what drives it to zero.
+    case voiceEOUPrepare = "voice.eou_prepare"
+
     // Milestone 1 also asked for model-load timing. One span, the model name in `note`.
     case modelLoad = "model.load"
     case modelQueue = "model.queue"
@@ -90,7 +119,14 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
         case .agentWakeToListeningUI, .agentSpeechEndToTranscript,
              .agentTranscriptToFirstToken, .agentFirstTokenToFirstTTS,
              .agentToolCallToResult, .agentBargeInToTTSStopped,
-             .wakeMiss, .wakeFalse:
+             .wakeMiss, .wakeFalse,
+             .voiceSpeechEndToEOU, .voiceEOUHop, .voiceEOUToEndpoint,
+             .voiceSpeechEndToEndpoint, .voiceEndpointToRequest, .voiceRequestToLane,
+             .voiceRoute, .voiceRouteToFirstToken, .voiceTranscriptToFirstToken,
+             .voiceFirstTokenToClause, .voiceClauseToFirstPCM, .voiceFirstPCMToAudible,
+             .voiceSpeechEndToFirstAudio, .voiceOnsetToDuck, .voiceOnsetToPause,
+             .voiceOnsetToStop, .voiceInterClauseGap, .voiceSpeculation,
+             .voiceMainActorStall, .voiceFrontendUnavailable, .voiceEOUPrepare:
             return .agent
         case .modelLoad, .modelQueue, .modelContext, .modelPrefill, .modelFirstToken:
             return .model
@@ -250,6 +286,12 @@ struct LatencySpan: Codable, Sendable, Identifiable, Equatable {
     var process: ProcessSnapshot
     var note: String?
     var correlation: LatencyCorrelation?
+    /// Which path produced this row: `voice` | `text` | `worker` (P2-01). Optional
+    /// because `agent.transcript_to_first_token` predates it, and because a decoded
+    /// synthesized `Codable` uses `decodeIfPresent` for an optional key — an old row
+    /// without one still reads. **Not** a model or provider field: the model is on the
+    /// usage row, and a second "which model" field on a span is the second answer.
+    var source: String?
 
     init(
         id: UUID = UUID(),
@@ -257,9 +299,10 @@ struct LatencySpan: Codable, Sendable, Identifiable, Equatable {
         startedAt: Date,
         endedAt: Date,
         durationSeconds: Double,
-        process: ProcessSnapshot = .current(),
+        process: ProcessSnapshot? = nil,
         note: String? = nil,
-        correlation: LatencyCorrelation? = LatencyCorrelation.current
+        correlation: LatencyCorrelation? = LatencyCorrelation.current,
+        source: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -267,9 +310,10 @@ struct LatencySpan: Codable, Sendable, Identifiable, Equatable {
         self.startedAt = startedAt
         self.endedAt = endedAt
         self.durationSeconds = durationSeconds
-        self.process = process
+        self.process = process ?? .current()
         self.note = note
         self.correlation = correlation
+        self.source = source
     }
 }
 
@@ -293,7 +337,8 @@ struct LatencyTrace: Sendable {
 
     /// Closes the span from the monotonic clock and persists it.
     @discardableResult
-    func end(note: String? = nil, store: MetricsStore = .shared) -> LatencySpan {
+    func end(note: String? = nil, source: String? = nil,
+        store: MetricsStore = .shared) -> LatencySpan {
         let endedNanos = monotonicNanos()
         let endedAt = Date()
         let seconds = Double(endedNanos &- startedNanos) / 1_000_000_000
@@ -303,7 +348,8 @@ struct LatencyTrace: Sendable {
                 startedAt: startedAt,
                 endedAt: endedAt,
                 durationSeconds: seconds,
-                note: note
+                note: note,
+                source: source
             ),
             to: store
         )
@@ -319,6 +365,7 @@ struct LatencyTrace: Sendable {
         seconds: Double,
         endedAt: Date = Date(),
         note: String? = nil,
+        source: String? = nil,
         store: MetricsStore = .shared
     ) -> LatencySpan {
         persist(
@@ -327,7 +374,8 @@ struct LatencyTrace: Sendable {
                 startedAt: endedAt.addingTimeInterval(-seconds),
                 endedAt: endedAt,
                 durationSeconds: seconds,
-                note: note
+                note: note,
+                source: source
             ),
             to: store
         )
@@ -335,11 +383,15 @@ struct LatencyTrace: Sendable {
 
     @discardableResult
     static func persist(_ span: LatencySpan, to store: MetricsStore = .shared) -> LatencySpan {
-        store.record(span)
-        if SelfTest.requested == "--selftest-voice-pipeline" {
-            Task { @MainActor in
-                SelfTest.diagnostic("VOICE_PIPELINE_SPAN=\(span.name.rawValue) \(String(format: "%.3f", span.durationSeconds))s \(span.note ?? "")")
-            }
+        // Off the caller's actor: encoding the row, opening the file and sampling
+        // the process are a writer's work, and the actor that ended a voice span is
+        // usually the main actor.
+        store.recordAsync(span)
+        if SelfTest.requested == "--selftest-voice-pipeline"
+            || SelfTest.requested == "--selftest-voice-latency" {
+            let summary = "VOICE_PIPELINE_SPAN=\(span.name.rawValue) "
+                + "\(String(format: "%.3f", span.durationSeconds))s \(span.note ?? "")"
+            Task { @MainActor in SelfTest.diagnostic(summary) }
         }
         Log.metrics.info(
             "span · \(span.name.rawValue, privacy: .public) · \(span.durationSeconds, format: .fixed(precision: 3))s"
@@ -383,10 +435,13 @@ struct LatencyTrace: Sendable {
             sessionID: UUID(), workID: UUID(), revision: 2
         )
         let span = LatencyCorrelation.$current.withValue(correlation) {
-            LatencyTrace.start(.dictationDrain).end(note: marker, store: store)
+            LatencyTrace.start(.dictationDrain).end(note: marker, source: "voice", store: store)
         }
         if span.correlation != correlation {
             failures.append("TaskLocal correlation did not reach the persisted span")
+        }
+        if span.source != "voice" {
+            failures.append("source did not reach the span it was given")
         }
 
         if span.process.residentMemoryBytes == nil || span.process.residentMemoryBytes == 0 {
@@ -403,6 +458,9 @@ struct LatencyTrace: Sendable {
             failures.append("fake span note \(marker) missing from the in-memory ring")
         }
 
+        // The writer is a queue, so a reader must wait for it. Without this the
+        // file is read before the row lands and a healthy store looks empty.
+        store.flushForTesting()
         let fileURL = store.fileURL
         guard let data = try? Data(contentsOf: fileURL), !data.isEmpty else {
             failures.append("metrics.jsonl was not written")
@@ -425,13 +483,20 @@ struct LatencyTrace: Sendable {
         if fromDisk.first(where: { $0.id == span.id })?.correlation != correlation {
             failures.append("correlation missing from metrics.jsonl")
         }
+        if fromDisk.first(where: { $0.id == span.id })?.source != "voice" {
+            failures.append("source missing from metrics.jsonl")
+        }
         if let encoded = try? JSONEncoder().encode(span),
            var legacy = (try? JSONSerialization.jsonObject(with: encoded)) as? [String: Any] {
             legacy.removeValue(forKey: "correlation")
+            legacy.removeValue(forKey: "source")
             if let legacyData = try? JSONSerialization.data(withJSONObject: legacy),
                let decoded = try? JSONDecoder().decode(LatencySpan.self, from: legacyData) {
                 if decoded.correlation != nil {
                     failures.append("legacy span unexpectedly acquired correlation")
+                }
+                if decoded.source != nil {
+                    failures.append("legacy span unexpectedly acquired source")
                 }
             } else {
                 failures.append("legacy span without correlation did not decode")
@@ -450,6 +515,9 @@ struct LatencyTrace: Sendable {
         // a row the meeting report can never find. M-16c added the sixth
         // (`meeting.transcript_write`) for the same reason: the debounced
         // transcript write is the number that says how much a meeting wrote.
+        // P2-01 added the voice stages: every one of them must be reachable by
+        // name, in the agent pipeline, or the voice self-test cannot fail on a
+        // stage that never happened.
         for id in [
             LatencySpanID.meetingDrain, .meetingFinalPass, .meetingDiarize,
             .meetingNotes, .meetingWindowsDropped, .meetingTranscriptWrite,
@@ -457,6 +525,20 @@ struct LatencyTrace: Sendable {
             let staged = LatencyTrace.record(id, seconds: 0.01, note: "m16a", store: store)
             if staged.pipeline != .meeting {
                 failures.append("\(id.rawValue) is not in the meeting pipeline")
+            }
+            if store.spans(named: id).isEmpty {
+                failures.append("\(id.rawValue) missing from the isolated store")
+            }
+        }
+
+        for id in VoiceStageSpan.all.map(\.span) {
+            let staged = LatencyTrace.record(id, seconds: 0.01, note: "p201",
+                source: "voice", store: store)
+            if staged.pipeline != .agent {
+                failures.append("\(id.rawValue) is not in the agent pipeline")
+            }
+            if staged.source != "voice" {
+                failures.append("\(id.rawValue) did not carry source=voice")
             }
             if store.spans(named: id).isEmpty {
                 failures.append("\(id.rawValue) missing from the isolated store")
