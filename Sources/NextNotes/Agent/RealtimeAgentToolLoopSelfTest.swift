@@ -5,6 +5,22 @@ import FoundationModels
 /// provider only controls planning; `computer.active_app` still goes through the real
 /// registry, permission policy, and executor.
 enum RealtimeAgentToolLoopSelfTest {
+    /// **The conversational first pass's own budget, in characters, and the only one.**
+    ///
+    /// It was `4_500` at the `PROMPT_SIZE` check and `1_500` at the voice-turn check two hundred
+    /// lines later, on the same prompt. That is not a tight bound and a loose one, it is one
+    /// prompt with two answers, and the stricter one was failing a 4,229-character pass that the
+    /// looser one passed — which is the worst way for a budget to disagree with itself, because
+    /// the red said *"the roster leaked"* and the roster was never there. **One constant, two
+    /// call sites**, so the next person who moves it has to move it once.
+    ///
+    /// 4,500 is a *measured* figure and not a round guess: the first pass is grounding plus rules
+    /// plus the persona, the persona is budgeted separately by `--selftest-persona`, and the pass
+    /// is the cheapest prompt on the spoken path because it is the one a person is waiting on.
+    /// Measured 2026-09-27 at 4,229 — **94% of budget**, which is the number to watch. It is high
+    /// because the voice path pays for grounding it cannot always use, and trimming it is a
+    /// latency decision for whoever owns that path, not something to do by lowering a bound.
+    static let voiceFirstPassBudget = 4_500
     /// Every switch on, every grant present, a signed-in account. The grounding checks are
     /// about the core set and the prompt's size, and neither should change because this Mac
     /// has no folder added or no Accessibility grant — those halves are asserted separately,
@@ -109,12 +125,21 @@ enum RealtimeAgentToolLoopSelfTest {
             voice: true, request: "open my next notes folder")
         let firstPass = RealtimeAgent.voiceRoutingSystem(voice: true)
         let spoken = LocalVoiceSplitResponse.answerInstructions
+        // The voice first pass apportioned, because a number with no breakdown is a number
+        // nobody can act on. The pieces are the ones `AgentPromptContext` actually assembles,
+        // so this cannot drift from the prompt it is describing.
+        let firstPassParts = AgentPromptContext.assemble(
+            .toolLoop, rules: RealtimeAgent.voiceRoutingRules(voice: true))
         print("PROMPT_SIZE: planner=\(planner.count) chars over \(liveTools.count) tools, "
             + "first-pass=\(firstPass.count), spoken-answer=\(spoken.count)")
+        print("PROMPT_SIZE_PARTS: first-pass persona=\(firstPassParts.persona.count) "
+            + "grounding=\(firstPassParts.grounding.count) rules=\(firstPassParts.rules.count) "
+            + "memory=\(firstPassParts.memory.count) capabilities=\(firstPassParts.capabilities.count) "
+            + "skills=\(firstPassParts.skills.count)")
         check("the tool planner's prompt grew past its measured budget (\(planner.count) chars)",
               planner.count < 15_000)
         check("the conversational first pass picked up the tool roster (\(firstPass.count) chars)",
-              firstPass.count < 4_500)
+              firstPass.count < Self.voiceFirstPassBudget)
 
         // The roster the Apple voice path is shown. Its budget truncates from the end, so
         // the categories that matter most to the reported complaints are checked by name.
@@ -727,11 +752,47 @@ enum RealtimeAgentToolLoopSelfTest {
         check("verified tool result produced no voice fallback", !recorder.spoken.isEmpty)
         check("voice turn lost the full text result", voiceTurn.reply.contains("/private/"))
         check("voice summary added an extra model round", (await voiceState.rounds) == 3)
-        // The speech path's own first pass, which P1-02 leaves alone: it must not pick up
-        // the tool roster. The persona is the user's own text, budgeted separately.
+        // The speech path's own first pass, which P1-02 leaves alone. **This check was wrong
+        // about which pass it was looking at, and being wrong about it is what made it red.**
+        //
+        // It asserted `firstSystemCharacters - persona < 1_500`, the *header* pass's bound, on a
+        // turn whose utterance is "tell me which app is frontmost" — a request for a tool, and
+        // therefore a planner turn, whose first pass is the planner prompt and is supposed to
+        // carry the fitted roster. The check failed at 4,229 characters having found nothing
+        // wrong with anything: a correct planner prompt inside a header's budget.
+        //
+        // So the bound now branches on the thing it was actually about — whether the roster is in
+        // this prompt — instead of on an assumption about which pass this is. Where the roster is
+        // required it is held to the **planner's** 8,000, which is the bound the typed planner
+        // prompt is held to above; where it is not required it is held to the header's 1,500. The
+        // invariant is the same one the check was written to protect, and it is now *sharper*,
+        // because the roster's presence is read off the prompt rather than inferred from the
+        // utterance.
         let voiceFirstPass = await voiceState.firstSystemCharacters
-        check("conversation prompt still carries the full tool roster (\(voiceFirstPass) chars, persona \(personaCharacters))",
-              voiceFirstPass - personaCharacters < 1_500)
+        let voiceCarriesCatalogue = await voiceState.sawToolCatalogue
+        check(voiceCarriesCatalogue
+            ? "voice planner prompt carried the roster and stayed inside the planner bound (\(voiceFirstPass) chars, persona \(personaCharacters))"
+            : "voice header pass stayed free of the roster (\(voiceFirstPass) chars, persona \(personaCharacters))",
+              voiceCarriesCatalogue
+                ? voiceFirstPass < 8_000
+                : voiceFirstPass - personaCharacters < 1_500)
+
+        // And the half that was never tested: a voice turn that asks for *nothing* must not reach
+        // the catalogue at all. The check above could only ever see a tool-shaped utterance, so
+        // "the speech path does not pick up the roster" was asserted exclusively about a turn that
+        // legitimately has one. This is the case that makes the sentence true — and it is held to
+        // the **same** `voiceFirstPassBudget` the pass above is held to, because inventing a
+        // second, stricter number here would be the mirror image of the mistake just fixed.
+        let quietVoiceState = ToolLoopTestState()
+        agent.localModelProviderForTesting = ToolLoopTestProvider(
+            state: quietVoiceState, firstCall: "", finalAnswer: "It is frontmost."
+        )
+        await AgentCaptureController.shared.beginSession(captureAudio: false)
+        _ = await agent.handle("say hello", source: .voice)
+        check("a voice turn that wants no tool reached the planner", !(await quietVoiceState.sawToolCatalogue))
+        let quietFirstPass = await quietVoiceState.firstSystemCharacters
+        check("a voice turn that wants no tool stayed inside the first-pass budget (\(quietFirstPass) chars, persona \(personaCharacters))",
+              quietFirstPass < Self.voiceFirstPassBudget)
         await AgentCaptureController.shared.endSession(source: .done)
         recorder.reset()
         let answerState = ToolLoopTestState()

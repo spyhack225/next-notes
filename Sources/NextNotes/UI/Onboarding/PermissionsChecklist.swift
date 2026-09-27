@@ -95,8 +95,17 @@ struct PermissionsChecklist: View {
                 title: "Messages",
                 // Purpose first, then the one action this pane needs. Concatenated rather than
                 // swapped so the sentence about *why* never disappears once the user knows how.
-                detail: MessagesAccessVerdict.purpose
-                    + " " + MessagesAccessVerdict.advice(hasPressed: askedForMessages),
+                //
+                // **And nothing is appended once the row is already green.** This used to append
+                // the advice unconditionally, which put a ✓ and *"Next Notes isn't in that list
+                // yet"* in the same card — the row contradicting itself on the one screen a
+                // person opens to find out whether they are finished. The advice describes how to
+                // change a state; once the state is right there is nothing to change.
+                detail: hasMessagesAccess == true
+                    ? MessagesAccessVerdict.purpose
+                    : MessagesAccessVerdict.purpose
+                        + " " + MessagesAccessVerdict.advice(hasPressed: askedForMessages,
+                                                             isGranted: false),
                 systemImage: "message.fill",
                 // A real answer, unlike the row above: the probe opens the database and
                 // reads a row, so `true` is evidence rather than a bit somebody guessed.

@@ -395,11 +395,20 @@ enum MessagesDatabaseSelfTest {
             // a press the remaining explanation is a stale entry, which has a different fix.
             // One string for both would leave somebody stuck with no idea which they have.
             await check("messages_advice_changes_after_a_press") {
-                let first = MessagesAccessVerdict.advice(hasPressed: false)
-                let later = MessagesAccessVerdict.advice(hasPressed: true)
+                let first = MessagesAccessVerdict.advice(hasPressed: false, isGranted: false)
+                let later = MessagesAccessVerdict.advice(hasPressed: true, isGranted: false)
                 if first == later { return "both states say \"\(first)\"" }
                 if first != Permissions.fdaAddAdvice { return "before a press it is not the add advice" }
                 if later != Permissions.fdaRepairAdvice { return "after a press it is not the repair advice" }
+                // 2026-09-27: and once the row is already green there is nothing to advise.
+                // This case exists because the advice keyed only on `hasPressed`, so the
+                // Permissions checklist drew a ✓ directly above "Next Notes isn't in that list
+                // yet" — a card that contradicts itself on the one screen a person opens to
+                // find out whether they are finished. Found by reading the screen, not a test.
+                let granted = MessagesAccessVerdict.advice(hasPressed: false, isGranted: true)
+                if !granted.isEmpty {
+                    return "a granted row still says \"\(granted)\""
+                }
                 return nil
             }
 

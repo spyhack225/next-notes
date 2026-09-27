@@ -52,7 +52,7 @@ struct MessagesAccessSection: View {
                     // the remaining explanation. Same strings as the Permissions checklist —
                     // one sentence, two places, no drift.
                     if !verdict.isGranted {
-                        Text(MessagesAccessVerdict.advice(hasPressed: hasOpenedPane))
+                        Text(MessagesAccessVerdict.advice(hasPressed: hasOpenedPane, isGranted: verdict.isGranted))
                             .font(DS.Font.caption)
                             .foregroundStyle(DS.Color.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -161,11 +161,18 @@ enum MessagesAccessVerdict: Equatable, Sendable {
       /// "you added an older copy", and they are indistinguishable from inside the app, so the
       /// line moves to the repair advice that fixes both: remove it, add it again.
       ///
+      /// **And when the answer is already yes, the line says nothing.** This function used to key
+      /// only on `hasPressed`, which produced a green "Granted" sitting directly above
+      /// *"Next Notes isn't in that list yet"* — the row contradicting itself in the same card,
+      /// and doing it on the screen a person opens precisely to check whether they are done. The
+      /// advice exists to change a state that is not the state, so the state wins.
+      ///
       /// It is here, on the pure type, rather than in either view, because the Settings section
       /// and the Permissions checklist both say it and `AGENTS.md`'s rule is that a sentence a
       /// person reads in two places must be one string, not two spellings.
-      static func advice(hasPressed: Bool) -> String {
-          hasPressed ? Permissions.fdaRepairAdvice : Permissions.fdaAddAdvice
+      static func advice(hasPressed: Bool, isGranted: Bool) -> String {
+          if isGranted { return "" }
+          return hasPressed ? Permissions.fdaRepairAdvice : Permissions.fdaAddAdvice
       }
 
 

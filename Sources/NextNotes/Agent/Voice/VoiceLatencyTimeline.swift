@@ -251,6 +251,10 @@ final class VoiceLatencyTimeline: @unchecked Sendable {
         var toClose: OpenTurn?
         var bargeTarget: VoiceClosedTurn?
         lock.lock()
+        // One unlock, whatever happens: this lock is also taken by the capture lane and by
+        // FluidAudio's callback thread, so a path that returned holding it would hang a
+        // voice turn and every later mark with it.
+        defer { lock.unlock() }
         switch mark {
         case .voiceOnset:
             if open != nil, open?.marks[.endpoint] != nil {
@@ -285,15 +289,15 @@ final class VoiceLatencyTimeline: @unchecked Sendable {
                 setLocked(mark, instant, overwrite: false)
                 toClose = open
                 open = nil
-            } else if orphan(mark) {
-                return
             }
         default:
-            if !setLocked(mark, instant, overwrite: overwrite) { _ = orphan(mark) }
+            if !setLocked(mark, instant, overwrite: overwrite) { noteOrphan(mark) }
         }
+        let closing = toClose
+        let barge = bargeTarget
         lock.unlock()
-        if let toClose { close(toClose, reason: mark == .firstAudible ? "first_audio" : "interrupted") }
-        if let bargeTarget, mark == .bargeStop { emitBarge(on: bargeTarget, mark: mark, at: instant) }
+        if let closing { close(closing, reason: mark == .firstAudible ? "first_audio" : "interrupted") }
+        if let barge, mark == .bargeStop { emitBarge(on: barge, mark: mark, at: instant) }
     }
 
     /// A named value for the turn: a reason, a source, a head start. Not text and never a
@@ -602,12 +606,13 @@ final class VoiceLatencyTimeline: @unchecked Sendable {
         return true
     }
 
-    /// Caller holds the lock. Returns true when the caller should stop touching the turn.
-    private func orphan(_ mark: VoiceMark) -> Bool {
-        guard orphans.count < 12 else { return true }
-        if mark == .firstAudible { return true }
+    /// Caller holds the lock. A mark with no turn open is a fact about the turn lifecycle,
+    /// not a number, so it is recorded and read by the self-test rather than dropped
+    /// without a trace. `firstAudible` is not one of them: an acknowledgement after the
+    /// turn closed is ordinary (a second clause of the same reply acknowledges too).
+    private func noteOrphan(_ mark: VoiceMark) {
+        guard mark != .firstAudible, orphans.count < 12 else { return }
         orphans.append(mark.rawValue)
-        return false
     }
 
     /// The marks that arrived with no turn open, in order.

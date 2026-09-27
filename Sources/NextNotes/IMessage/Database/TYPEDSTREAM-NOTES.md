@@ -798,8 +798,12 @@ Two consequences, both load-bearing:
 2. **The length field is per-object, and the object holding the message is not the whole file.**
    So "bytes or characters" cannot be answered by comparing the file size to the sentence; it has
    to be answered by reading the string object the decoder actually uses, against a known text.
-   The text here is 25 characters with three multi-byte characters in it, so the case is already
-   in hand — and the decode has to run before the question can be closed.
+   The text here is 25 characters with **two** multi-byte characters in it, so the case is already
+   in hand — and the decode has to run before the question can be closed. (Corrected 2026-09-27
+   from "three": the owner's sentence was attested against the shipped decoder and measures 25
+   characters / 27 UTF-8 bytes, both multi-byte characters being `é`. Three two-byte characters
+   would be 28 bytes and a three-byte character 29, so the earlier wording could not be reconciled
+   with the `0x1b` = 27 this body declares.)
 
 **Not committed, deliberately:** the real body carries a live promo URL and a third party's offer,
 so the blob stays a local artefact at

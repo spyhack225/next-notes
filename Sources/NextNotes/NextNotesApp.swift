@@ -241,6 +241,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // NextNotes-iMessage IM-02 / gate G2: the same shape and the same two reasons — it needs
+        // an Automation grant no agent can obtain, and its answer is a read of the *real* Messages
+        // scripting interface rather than anything the harness stands in for. Read-only: it sends
+        // nothing, and the grant it provokes is the one IM-09's `send` would need.
+        if CommandLine.arguments.contains(MessagesSendPathProbe.flag) {
+            runIMessageSendPath()
+            return
+        }
+
         // NextNotes-iMessage IM-04a: the same shape, for the same reason. It needs a real
         // grant and a real Messages database, so it can never be a `--selftest-*` flag, and
         // it reads the owner's own history rather than a temp store, so it must run before
@@ -3238,6 +3247,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func runNotesContextLiveProbe() {
         Task { @MainActor in
             _ = await MeetingNotesContextLiveProbe.run { writeSelfTest($0) }
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// `--imessage-send-path`: gate G2, task IM-02. **Read-only, and it sends nothing.**
+    ///
+    /// Asks the one question that decides whether the remote feature is possible at all: can
+    /// Next Notes address a conversation in Messages.app, and can the conversation with yourself
+    /// be addressed? The read is what provokes the Automation prompt, so this must be launched
+    /// through LaunchServices (`--via-open`) or TCC blames Terminal and the refusal means nothing.
+    private func runIMessageSendPath() {
+        Task { @MainActor in
+            for line in await MessagesSendPathProbe.run() { writeSelfTest(line) }
             NSApp.terminate(nil)
         }
     }
