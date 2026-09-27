@@ -35,6 +35,15 @@ enum SelfTestStoreGuard {
         "persona.md",
         "agent-identity.json",
         "portrait-insights.json",
+        // IM-08b's outbound ledger, and **its two journal siblings**. The design named the one
+        // file, and one file is not the store: `IMessageOutboundStore` runs in WAL mode, so a row
+        // a harness run wrongly wrote can be sitting in `imessage-outbound.sqlite-wal` with the
+        // main file's size, mtime and sha256 all unchanged. `describe` reads size/mtime/hash, and
+        // none of the three moves when the WAL grows — so a one-line list would have made this
+        // guard a lie about the one store whose whole subject is a digest of somebody's message.
+        "imessage-outbound.sqlite",
+        "imessage-outbound.sqlite-wal",
+        "imessage-outbound.sqlite-shm",
     ]
 
     /// The preference namespaces a self-test must leave alone.
