@@ -139,8 +139,15 @@ enum MessagesSelfFlowReport {
     }
 
     /// The shape of the newest rows, in the order IM-01's Q2 asks for it: was `text` there,
-    /// was `attributedBody` there, what did its first bytes look like, how long was it, and
-    /// were `payload_data` / `balloon_bundle_id` involved.
+    /// was `attributedBody` there, what did its first bytes look like, how long was it, were
+    /// `payload_data` / `balloon_bundle_id` involved, and — **since 2026-09-26, IM-05e** — what
+    /// `is_audio_message` says.
+    ///
+    /// **The audio column is here for the same reason the other four are, and it is the one
+    /// column whose absence was a gap rather than a fact.** Every question IM-01 asked arrived
+    /// with this column missing from the capture, so a voice note's row shape could not be
+    /// answered from the capture and the self-test had to name the omission as a blocked line.
+    /// A column this app classifies a row by belongs in what a capture says about a row.
     private static func messageLines(_ rows: [MessageRow]) -> [String] {
         guard !rows.isEmpty else {
             return ["IMESSAGE_SELF_FLOW_MESSAGES: this database holds no messages yet, so there "
@@ -152,7 +159,8 @@ enum MessagesSelfFlowReport {
                 + "fromMe=\(row.isFromMe) text=\(textShape(row.text)) "
                 + "attributedBody=\(blobShape(row.attributedBody)) "
                 + "payload_data=\(blobShape(row.payloadData)) "
-                + "balloon_bundle_id=\(row.balloonBundleID ?? "absent")")
+                + "balloon_bundle_id=\(row.balloonBundleID ?? "absent") "
+                + "is_audio_message=\(flagText(row.isAudioMessage))")
         }
         if let last = rows.last {
             lines.append("IMESSAGE_SELF_FLOW_NEWEST: row \(last.rowID) landed \(ageText(last.date))")
@@ -175,6 +183,23 @@ enum MessagesSelfFlowReport {
     private static func textShape(_ text: String?) -> String {
         guard let text, !text.isEmpty else { return "NULL" }
         return "\(text.count) characters"
+    }
+
+    /// `1`, `0`, or `absent` — and the three are three different facts about the column.
+    ///
+    /// **`absent` is not `0`, and the distinction is the whole reason this is a function rather
+    /// than a `Bool?` printed with `??`.** A row whose `is_audio_message` is NULL, a row whose
+    /// is `0`, and a row read from a database without the column at all look identical in a
+    /// reader that maps both to "no" — and the one thing IM-05e was asked to find out is whether
+    /// Messages sets this column on a voice note at all. A capture that answered `0` for a
+    /// column that is really NULL would send the next reader looking for a version of iMessage
+    /// that turns audio off, which is a fact nobody would then be able to check.
+    private static func flagText(_ flag: Bool?) -> String {
+        switch flag {
+        case .some(true): "1"
+        case .some(false): "0"
+        case nil: "absent"
+        }
     }
 
     /// Apple's epoch, not Unix: `message.date` is nanoseconds since 2001-01-01, which is
@@ -286,6 +311,15 @@ enum MessagesSelfFlowReport {
             }
             if let balloon = row.balloonBundleID {
                 fields.append("        balloon_bundle_id=\(balloon)")
+            }
+            // **`is_audio_message` is written whenever the column had a value, `0` included.**
+            // The generator's own default for an unwritten column is `0`, so writing only the
+            // truthy case would write a block in which "the column said no" and "nobody asked"
+            // are the same line — and the row shape this block exists to record is exactly the
+            // question of what that column says on a voice note. `flagText` is the same function
+            // the `MESSAGE` line uses, so the two can never disagree about one row.
+            if let audio = row.isAudioMessage {
+                fields.append("        is_audio_message=\(flagText(audio))")
             }
             out.append("    msg ROWID=\(rowID) guid=FIXTURE-MSG-\(String(format: "%04d", rowID)) \\")
             out.append(fields.joined(separator: " \\\n"))

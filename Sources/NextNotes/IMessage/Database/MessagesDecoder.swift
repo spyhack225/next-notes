@@ -256,6 +256,14 @@ extension MessagesDecoder {
     ///    note is a balloon with no words in it, so it is `.notText`; and it is a column rather
     ///    than a guess, which is what makes the answer possible on a row whose `attributedBody`
     ///    refuses. It cannot outrank a sentence, because a caption is the sender's words.
+    ///
+    ///    **Measured 2026-09-26 (IM-05e), and the rule survived while its premise did not.** A
+    ///    real 466-byte voice note reads `.notText` with `source == .attributedBody` — the walk
+    ///    classified it from its three `U+FFFC` bytes — and `is_audio_message` is **`0`** on that
+    ///    row and on every row the capture described. So this branch is a **legacy fallback for the two
+    ///    shapes the walk cannot reach** (a body it refuses, and a row with no body at all), not
+    ///    the voice-note signal; see "A voice note is not an unreadable message" for the whole
+    ///    measurement and for why deleting it would make things worse rather than simpler.
     /// 5. **Neither body column** is `.absent`, which is an ordinary row — an SMS whose
     ///    `attributedBody` is genuinely NULL — and not an error.
     ///
@@ -457,46 +465,88 @@ extension MessagesDecoder {
 // and classified the row as a refusal. That is the *only* half of the question that could be
 // answered without the owner's phone, and the column answers it.
 //
-// ## The half that is not, and is named rather than guessed
+// ## The half that is not, and is now measured (IM-05e, 2026-09-26)
 //
-// **A real voice note's `attributedBody` has not been captured.** Every attachment measured on
-// this Mac so far — four effect rows — is a text balloon whose whole string is `U+FFFC`, and
-// **if a voice note is one of those the walk classifies it and the column is redundant for that
-// row.** That is a prediction, not a measurement, and the roadmap's rule about oracle cases
-// applies with full force: closing the blocked line by asking `NSArchiver` to write a plausible
-// body would assert a fact about Messages that nothing here has read. The assertion stays
-// blocked on the capture and says so by name.
+// **The owner's voice memo arrived, and the answer is the one IM-05d predicted — with a
+// correction to the premise under it.** A real 466-byte voice note, sent from their phone to
+// their own conversation:
 //
-// **So the code answers both, and they are complementary by construction rather than by
-// accident.** The walk goes first, so a caption is the sender's words and the column never
-// overrules a sentence; the column goes last, so it only ever answers on a body the walk had
-// nothing to say about. Whichever of the two a real row carries, the row is `.notText` — and
-// if a future macOS carries neither, the row is a refusal, which is the honest answer and the
-// one the blocked line is waiting to be able to rule out.
+// | candidate | what the real row says |
+// |---|---|
+// | **the walk** | the chain is `NSAttributedString` → `NSObject` — **byte for byte the chain a 25-character sentence and a 314-byte effect carry** — and the balloon's one string is `U+FFFC`, three bytes and nothing else. `.notText`, 389 of 466 bytes passed over, `source == .attributedBody`. |
+// | **`is_audio_message`** | **`0`.** And `0` on every row the capture described — a text row, a link-preview row, a detected-entity row, the voice note, and the two-row self-message's other half. **This Messages does not write that column for audio.** |
+//
+// **So the chain is not the signal — the three bytes the walk read are — exactly as the effect
+// case found, one row over.** Nothing in `NSAttributedString` → `NSObject` says "audio"; the
+// equality `U+FFFC == U+FFFC` does. That is why `attachmentMarker` is a `String` compared for
+// equality and not a rule about classes, and why a chain-based classifier would have classified
+// a voice note *and every sentence* identically.
+//
+// ## What the column is, then, and what was done about it
+//
+// **`is_audio_message` is a legacy fallback, not the voice-note signal.** It was the signal the
+// roadmap named, on the strength of a fixture that has carried `is_audio_message=1` since IM-04
+// built it — a fixture, not a measurement of Messages. The route it drives is therefore kept for
+// the two shapes the walk genuinely cannot reach, and **not** extended:
+//
+// | the walk could not | the column is the only signal there is |
+// |---|---|
+// | a body it refuses — a format change, a truncated blob, the corpus's two-byte sentinel | `is_audio_message = 1` |
+// | no `attributedBody` at all | `is_audio_message = 1` |
+// | a body it read, whose one string is `U+FFFC` | **nothing — it is already `.notText`** |
+//
+// **So the code is unchanged, deliberately, and the reason is the asymmetry rather than inertia.**
+// Deleting the column route would not be a simplification: it would turn the corpus `voice-note`
+// row — a body this Mac cannot read — from `.notText` into `.unreadable`, which is crying wolf
+// once per audio message and destroys the one thing `.notText` exists to protect. What *is*
+// redundant is the column's role as documentation, and that is what changed: `MessageBodySource`'s
+// `isAudioMessage` comment, this section, and `TYPEDSTREAM-NOTES.md` §9.1 now say what the column
+// is measured to be, and `--selftest-imessage-decode` asserts on real bytes that forcing it to 1
+// changes nothing at all about the answer (`voice_note_row_*_is_classified_by_the_walk_and_not_by_the_column`,
+// with the forced row as its own counterfactual). A claim that a real row contradicts is worth
+// more deleted than kept, and the walk-first order is now pinned by a capture rather than argued.
+//
+// ## A voice note's transcript is in the region the walk does not read
+//
+// **120 of the 389 unread bytes are Messages' own on-device transcription of what the owner
+// said** — the sender's words, sitting behind the attachment marker in the attribute graph, under
+// a `__kIMAudioTranscription…` attribute name. The walk does not read it and neither does anything
+// downstream of it, and that is the design rather than an oversight: the positive rule stops at
+// the balloon's first string, and a walk that went into the attribute graph looking for a
+// transcript would be modelling the grammar `TYPEDSTREAM-NOTES.md` §1.4 and this file's header
+// both refuse to model. **So the app cannot show a person what they said into a voice note**, and
+// `discardedBytes` is the number that says the walk stopped rather than wandered.
 //
 // ## Why not the other two states
 //
 // - **Not text**, for the same reason an effect is not: an audio attachment has no words in it,
 //   and `.text` of a caption-free marker is a character the sender never typed.
-// - **Not `.unreadable`**, on the same grounds the effect case set out, and this row is the
-//   *stronger* example of it: the body here is not a body at all in any sense this Mac can
-//   read, so crying "I could not read that" once per voice note is crying wolf on ordinary use.
-//   A person who is told that every time they send a recording stops believing the sentence
-//   that matters.
+// - **Not `.unreadable`** — and on the real row this is now a measurement rather than an
+//   argument, because the body *is* one this Mac reads: the header is in the supported set, the
+//   chain parses, and the one string is read by its declared length. Nothing failed. Calling a
+//   body this Mac can read a refusal is crying wolf on ordinary use, and a person told "I
+//   couldn't read that" every time they send a recording stops believing the sentence that
+//   matters. The stronger version of the argument — the corpus row, whose body is two bytes and
+//   genuinely unreadable — is what the *column* route exists for, and on that row the answer is
+//   `.notText` because the column said so, not because the walk guessed.
 // - **`.notText` with no id**, and the type is what makes that expressible. `bundleID` is
 //   `String?` because a measured effect row had nothing to name it, and a voice note is the
 //   same answer to a second question: `balloon_bundle_id` is NULL on a voice note the same way
 //   it is on an effect, and the classification is not required to invent an app to exist.
 //
-// ## What the walk is not asked to do
+// ## What the walk is not asked to do, and what the count means on each route
 //
-// **The audio route reads no byte of the body.** That is why `discardedBytes` there is the
+// **The column route reads no byte of the body.** That is why `discardedBytes` there is the
 // *whole* body rather than a part of it: the count means "no caller can see any of this body as
 // the sender's words", and when nothing was read that is every byte of it. A count of 0 would be
 // the one value that says the walk had read a body with nothing in it, which is the same
-// mistake IM-05c found on the effect rows and the reason that case asserts `> blob.count / 2`.
+// mistake IM-05c found on the effect rows and the reason those cases assert `> blob.count / 2`.
 // A body with **no** body column at all is the one place the count is honestly 0, because there
 // is nothing there to have passed over — and it is the only place.
+//
+// **On the real voice note the count is 389, and it is the same kind of number**: the walk read
+// 77 bytes and stopped, so 389 is what no caller can see as the sender's words. The two routes
+// differ in *why* they stopped, not in what the number claims.
 
 // MARK: - The version gate
 
@@ -675,30 +725,35 @@ enum MessageDecodeState: Equatable, Sendable {
 /// Which column produced the body. `.noColumn` is the honest answer for a row that had
 /// nothing to read; a source that lied would be worse than no source at all.
 ///
-/// **A `.notText` body can come from any of three columns**, and this is what says which:
-/// `.payloadData` is the tapback route (`payload_data` + `balloon_bundle_id`, no stream to
-/// read), `.attributedBody` is the effect route (a stream the walk read, which declared
-/// itself to hold no words) and `.isAudioMessage` is the voice-note route (a stream the walk
-/// could not read, or none, on a row the database says is audio). One state, three columns,
-/// and the accessor that tells them apart is data rather than a second case.
-///
-/// **The fifth case is why this field exists at all.** An earlier version answered
-/// `.attributedBody` for a voice note, which was a lie in the direction that matters: the
-/// stream said nothing whatever about that row, and `envelope(for:)`'s audio rule is the only
-/// thing that classified it. A caller asking "did the walk classify this or did a column?"
-/// was getting a wrong answer, and the wrong answer was the reassuring one.
+    /// **A `.notText` body can come from any of three columns**, and this is what says which:
+    /// `.payloadData` is the tapback route (`payload_data` + `balloon_bundle_id`, no stream to
+    /// read), `.attributedBody` is the attachment route (a stream the walk read, which declared
+    /// itself to hold no words — an effect, and **since IM-05e a voice note**) and
+    /// `.isAudioMessage` is the legacy route (a stream the walk could not read, or none, on a row
+    /// that says it is audio — **and no real row on this Mac has said that since it was
+    /// measured**). One state, three columns, and the accessor that tells them apart is data
+    /// rather than a second case.
+    ///
+    /// **The fifth case is why this field exists at all.** An earlier version answered
+    /// `.attributedBody` for a voice note, which was a lie in the direction that matters: the
+    /// stream said nothing whatever about that row, and `envelope(for:)`'s audio rule is the only
+    /// thing that classified it. A caller asking "did the walk classify this or did a column?"
+    /// was getting a wrong answer, and the wrong answer was the reassuring one.
 enum MessageBodySource: Equatable, Sendable {
     /// `message.text`.
     case textColumn
     /// `message.attributedBody`, decoded — or read far enough to say it holds no words.
     case attributedBody
-    /// `message.payload_data` + `balloon_bundle_id` — a non-text balloon named by its column.
+    /// `message.payload_data` + `message.balloon_bundle_id` — a non-text balloon named by its column.
     case payloadData
-    /// `message.is_audio_message` on a row the walk had nothing to say about.
+    /// `message.is_audio_message` on a row the walk had nothing to say about. **A legacy column
+    /// as of 2026-09-26**: it reads `0` on every real row measured on this Mac, voice notes
+    /// included, and this case is the fallback for a body the walk cannot read.
     case isAudioMessage
     /// Nothing answered.
     case noColumn
 }
+
 
 // MARK: - The reader
 

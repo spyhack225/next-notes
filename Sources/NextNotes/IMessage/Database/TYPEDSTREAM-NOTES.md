@@ -258,21 +258,17 @@ that has not been made:
   §1.3's claim that the first printable run in a real body is `streamtyped` was
   confirmed — a scan would have returned the format's own name on all nine. The
   **effect** rows did carry it (four rows whose whole string is `U+FFFC`, §IM-05c);
-  a *photo* and a *voice note* are still unmeasured.
+  a *voice note* does too, measured 2026-09-26 at 466 bytes (§9.2); a *photo* is
+  still unmeasured.
 - **whether a voice note's body is a marker-only text balloon, a real sentence, or
-  something the walk refuses** — added 2026-09-26 by IM-05d. It is the one open
-  format question that decides *which* of two signals classifies a voice note, and
-  the two candidates are on opposite sides of the walk: a marker-only balloon is
-  classified by the bytes (`U+FFFC` and nothing else, exactly as an effect is), and
-  a body the walk cannot read is classified by `message.is_audio_message`. Every
-  attachment measured on this Mac so far is the first shape. **The decoder answers
-  either** — the walk first, the column last, so a caption stays the sender's words
-  and a refusal is a classification rather than a shrug — and
-  `--selftest-imessage-decode` prints the rest as
-  `IMESSAGE_DECODE_BLOCKED: voice-note-row-shape-from-a-real-message`. **It must not
-  be closed with an `NSArchiver` case**: that would be a claim about the parser's
-  mechanics standing in for a claim about Messages' bytes, which is the one thing the
-  oracle has never been allowed to do here.
+  something the walk refuses** — added 2026-09-26 by IM-05d, **answered the same day by
+  IM-05e**. It is the first shape: the owner's own voice memo is a 466-byte marker-only
+  text balloon whose chain is `NSAttributedString → `NSObject`, the same chain a
+  sentence and an effect carry, and `is_audio_message` reads **`0`**. So the bytes
+  classify a voice note and the column does not mark one — see **§9.1** for the
+  measurement, **§9.2** for the 77 read / 389 unread layout, and `MessagesDecoder.swift`'s
+  "A voice note is not an unreadable message" for why the column route is kept anyway
+  (it is the only signal on a body the walk cannot read) rather than deleted.
 - the `payload_data` + `balloon_bundle_id` shape for an effect bubble
   (IM-01 experiment 11) — nothing in this note claims to know it, and the
   2026-09-26 rows all had `payload_data=absent`
@@ -1161,10 +1157,10 @@ precisely what IM-05 recorded when it classified the row as a refusal and printe
 A column is the only signal here, and that is *not* an argument against the walk: it is an argument
 for a decoder that has both.
 
-### The candidate the corpus cannot answer [open]
+### The candidate the corpus could not answer [closed 2026-09-26 by IM-05e]
 
-A **real** voice note's body is unmeasured, and the two candidates are on opposite sides of the
-walk:
+A **real** voice note's body was unmeasured when this section was written, and the two candidates
+are on opposite sides of the walk:
 
 | shape | classified by | what the column adds |
 |---|---|---|
@@ -1173,11 +1169,76 @@ walk:
 | a marker with a caption beside it | **neither** — it is text, and the caption is the sender's | nothing, by design |
 
 **The shipped rule answers all three, and the order is the argument:** the walk first, so a caption
-is text; the column last, so it only ever answers on a body the walk had nothing to say about. The
-column is therefore never redundant — it is the only one of the two that works on a refusal — and
-the walk is never redundant, because it is the only one that can see a sentence. What is *not*
-claimed is which of the two a real voice note needs, and that is the one line still blocked
-(`voice-note-row-shape-from-a-real-message`), waiting on a capture.
+is text; the column last, so it only ever answers on a body the walk had nothing to say about.
+
+**The line stayed blocked on `voice-note-row-shape-from-a-real-message` until the owner's own voice
+memo arrived. What it says is in the next section — and the answer corrected the row above.**
+
+## 2026-09-26 — IM-05e: a real voice note, and the column is not what marks one
+
+**The trigger.** The owner sent a voice memo from their phone to their own conversation. It landed
+as a **466-byte** `attributedBody` with `text` NULL, `payload_data` absent and
+`balloon_bundle_id` absent — IM-01's two-row self-message shape, one row of it — and
+`MessagesSelfFlowReport` now writes `is_audio_message` on every row it describes, which is what
+made the question answerable from a capture at all. The bytes stay a local artefact for the reason
+every other capture's do.
+
+### 9.1 The column reads 0 [measured, from the capture]
+
+```text
+is_audio_message = 0     on the 466-byte voice note, and on every one of the eight rows the
+                         capture described (the report asks for the ten newest; two of those
+                         ROWIDs are not rows at all, which is worth knowing about a capture)
+payload_data     = absent
+balloon_bundle_id= absent
+attributedBody   = 466 bytes, first 16: 04 0B 73 74 72 65 61 6D 74 79 70 65 64 81 E8 03
+```
+
+**This Messages does not write `is_audio_message` for audio.** So the roadmap's named signal was
+never a signal on a real row, and `Tests/Fixtures/chatdb`'s `voice-note` case — which has carried
+`is_audio_message=1` since IM-04 built it — is a **shape**, not a measurement of Messages. The
+column route in `MessagesDecoder.envelope(for:)` is kept as the fallback for the two row shapes the
+walk genuinely cannot reach, and its documentation said so instead of calling itself the voice-note
+route.
+
+### 9.2 The walk classifies it, and the class chain is not what says so
+
+```text
+  04 0b "streamtyped" 1000            header, streamer 4 / system 1000
+  84 01 40                            the `@` root type
+  84 84 84 12 "NSAttributedString" 00 NSAttributedString → NSObject — the chain a 25-character
+  84 84 08 "NSObject" 00              sentence carries, and the chain a 314-byte effect carries
+  92                                   the balloon's first field
+  84 84 84 08 "NSString" 01 94        NSString, then the `+` type tag
+  84 01 2b 03 ef bf bc                U+FFFC — and it is the entire string
+  86                                   the walk stops here: 77 bytes read
+  …  389 bytes unread                  a file-transfer GUID, a base writing direction, a message
+                                       part, and 120 bytes of **Messages' own transcript of the
+                                       audio the owner spoke**
+```
+
+**The chain is `NSAttributedString` → `NSObject`, byte for byte the chain a sentence carries.** So
+the chain says nothing about audio, and the signal is the equality `U+FFFC == U+FFFC` — IM-05c's
+effect finding, one row over. A chain-based classifier would have called a voice note and a
+sentence the same thing, which is the concrete reason `textBalloons` is a *recognition of what a
+body is* and `attachmentMarker` is a `String` compared for equality.
+
+**Classification: `.notText(bundleID: nil)`, `source == .attributedBody`, `discardedBytes == 389`,
+and the source stays `.attributedBody` with `is_audio_message` forced to `1`** — asserted as its
+own counterfactual on the real bytes, which is what pins the walk-first order against a capture
+rather than against an argument.
+
+### 9.3 Two things this file should carry forward
+
+1. **A voice note's transcript is in the region the walk does not read, and that is the design.**
+   120 of the 389 unread bytes are the sender's own words, transcribed on device, behind the marker
+   in the attribute graph. The positive rule stops at the balloon's first string, so the app cannot
+   show a person what they said into a voice note. Reading it would mean modelling the grammar
+   §1.4 refuses to model, and the count is what says the walk stopped rather than wandered.
+2. **The candidate count is quadratic in the unread run's length, and this is the first body where
+   that is visible.** A body whose unread region is prose yields thousands of sub-runs where a
+   payload of class names yields dozens: 8758 candidates on this 466-byte row. The check is still
+   milliseconds, and the numbers are worth knowing before a body ten times this size arrives.
 
 ### What the count is on a row the walk never entered
 
