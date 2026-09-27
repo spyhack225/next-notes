@@ -166,6 +166,9 @@ INTEGRATION_ENTRIES=(
   "selftest-toolloop-live-grader|300"
   # one per-turn source of truth for the tools a turn may use (P1-03)
   "selftest-capability-manifest|300"
+  # the cached "Right now" block: the clock, the next events and what is running, in every
+  # prompt that should carry them and none of the two that should not (P4-01)
+  "selftest-now-block|300"
   # constrained tool calling: the grammar over the manifest, the Apple FM tool build, and
   # the OpenAI-style `tools` body must all describe the same tool set (P1-05)
   "selftest-native-tools|600"

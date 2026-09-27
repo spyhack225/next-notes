@@ -441,10 +441,6 @@ final class ScheduledRunner: ScheduledRunning {
                 + (arguments.isEmpty ? "" : "; " + arguments)
         }.joined(separator: "\n")
         let zone = zone()
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = zone
-        formatter.dateFormat = "EEEE yyyy-MM-dd HH:mm"
         let rules = """
             You are a personal agent running a routine the user set up earlier. Nobody is
             present: there is no conversation, and you cannot ask questions. Do what the
@@ -459,13 +455,19 @@ final class ScheduledRunner: ScheduledRunning {
             and nothing else.
             """
         let capabilities = """
-            Now: \(formatter.string(from: now)) (\(zone.identifier)).
-
             Available tools:
             \(catalogue.isEmpty ? "(none)" : catalogue)
             """
+        // P4-01: the runner's own `Now: <date> (<zone>)` line is gone and the shared block
+        // replaces it. The injected `now` and `zone` still win — the runner's self-tests pin
+        // them, and a routine that thinks it ran yesterday is its own bug — so this renders
+        // from the cache rather than from `AgentNow.current`, which reads the wall clock.
         return AgentPromptContext.assemble(
             .scheduledRun, rules: rules, capabilities: capabilities,
+            now: AgentNow.render(
+                AgentNowCache.shared.snapshot(), shape: .unattended, now: now, zone: zone,
+                cloud: KnowledgeGraphScope.reader == .openRouter,
+                cloudConsent: UserDefaults.standard.bool(forKey: "agentCloudConsent")),
             personaStore: personaStore, memorySnapshot: memorySnapshot).system
     }
 }

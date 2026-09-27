@@ -1031,9 +1031,6 @@ extension RealtimeAgent {
         manifest: AgentCapabilityManifest, voice: Bool, request: String = "",
         catalogue: Bool = true
     ) -> String {
-        let localDate = AgentToolLoop.groundedArguments(
-            for: "get_agenda", proposed: [:], request: "today"
-        )["date"] ?? "unknown"
         let skills = catalogue && manifest.selectedIntents.contains(.skills)
             ? SkillPromptSection.current(for: request) : ""
         // P1-14: the model answering is itself a device fact, and it was the one the turn
@@ -1051,9 +1048,12 @@ extension RealtimeAgent {
         // so the fact and the rule that reads it are behind one predicate
         // (`Self.asksAboutTheModel`) and neither can appear on a turn that did not ask.
         let answering = Self.asksAboutTheModel(request) ? manifest.reader.displayName : ""
+        // P4-01: the date moved out of this line and into the shared "Right now" block
+        // (`AgentNow`, section 7). It was here and nowhere else on the spoken path, which is
+        // why "today" was whatever the model said it was, and it is there now for every path
+        // with a clock — together with the next two events, so "what's next?" needs no round.
         let capabilities = catalogue ? """
-            Today is \(localDate) in the user's local time zone (\(TimeZone.current.identifier))\(answering.isEmpty ? "" : ", answered by \(answering)").
-            Available tools:
+            \(answering.isEmpty ? "Available tools:" : "Answered by \(answering). Available tools:")
             \(manifest.plannerCatalogue(compact: manifest.compactCatalogue))
             """ : ""
         return AgentPromptContext.assemble(
@@ -2032,6 +2032,11 @@ extension RealtimeAgent {
             folders: folders,
             indexedItems: stats.files + stats.folders,
             manifest: manifest)
+        // P4-01: the same call publishes the clock. This runs before every typed turn, every
+        // planner run and every voice turn, which is why the block is right rather than
+        // approximately right — the alternative was a second publish list to keep in step
+        // with this one.
+        AgentNowPublisher.refresh()
     }
 
     /// Run a parsed direct intent, or return nil to fall through to the planner.

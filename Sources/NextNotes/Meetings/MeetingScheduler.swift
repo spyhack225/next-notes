@@ -137,6 +137,10 @@ final class MeetingScheduler {
         AgentTriggerEvents.shared.meetingsUpcoming(calendar.upcoming, now: now)
         await stopFinishedMeeting(now: now)
         sweepAudioRetention(now: now)
+        // P4-01: the tick that already runs every thirty seconds is what keeps the block's
+        // countdowns and the recording line honest without a timer of its own. After the
+        // stops above, so a meeting that just ended is not still named as recording.
+        AgentNowPublisher.refresh(now: now)
     }
 
     // MARK: - Queries the UI asks

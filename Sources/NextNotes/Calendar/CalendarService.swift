@@ -182,6 +182,9 @@ final class CalendarService {
             calendar refresh: \(self.upcoming.count, privacy: .public) upcoming event(s) \
             from \(states.values.filter(\.isAuthorized).count, privacy: .public) provider(s)
             """)
+        // P4-01: the block every prompt carries, refreshed where the events change. A prompt
+        // built between a calendar pass and this line would name yesterday's next meeting.
+        AgentNowPublisher.refresh()
     }
 
     // MARK: - Authorization

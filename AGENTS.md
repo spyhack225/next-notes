@@ -169,6 +169,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-toolloop-live-grader
 --selftest-capability-manifest
 --selftest-native-tools
+--selftest-now-block
 ```
 
 `usage.jsonl` is the one local record of which model or engine ran each pass — Agent,
@@ -722,6 +723,25 @@ path that changes what the context holds and the reset comes with it, or the nex
 answers from a stale prefix. `voiceRoutingSystem`'s "identical across the turns of a session
 so the llama.cpp prefix cache holds" is only worth anything because of this. Measured:
 reused 646/666 tokens, prefill 2.10 s → 0.33 s; `--selftest-llm-prefix-cache` is the guard.
+
+**"Right now" is section 7 of every prompt, after the cacheable prefix, and it is the reason a
+date was ever wrong.** A voice request for today's calendar returned an agenda for 2023-10-27 and
+the Agent told side talk the clock read 1:45 AM, three and a half hours out — not hallucinations
+in the usual sense: the typed first pass, the voice answer lane and the voice route carried **no
+date at all**, so any date in an answer came from the model. `AgentNow` (P4-01) is one renderer
+over one cache that every path with a clock reads. Four rules it lives by. **It is section 7, after
+`skills`**, because it is the only section whose text changes within a session; put it earlier and
+the prefix cache is thrown away every turn. **It is data, not instructions** — its header says so,
+and nothing in it can widen what a path may do. **It never names an id**: no task id, proposal id,
+event id or file path, because a model that can read one will put it in an answer. **Unknown and
+empty are different sentences**: `- Calendar: not connected` is never rendered as
+`- Next: nothing in the next 24 hours`, because the second one teaches a model to invent a
+confident answer. Shapes are budgets, not preferences — `.full` 600 chars, `.compact` 320,
+`.unattended` 400, `.dateOnly` 90, `.none` 0 — and when a block is over its cap the lines drop from
+the bottom up and `Time` is never the one that goes. A cloud reader gets the clock and nothing
+else unless `agentCloudConsent` is on (P4-09 owns that setting; the key is read as absent = false
+until it lands). `--selftest-now-block` is the guard. The planner's own `Today is …` line and the
+routine runner's `Now:` line are **gone** — two date sources replaced by one.
 
 **Model calls use `PrivateURLSession`, not `URLSession.shared`.** `URLSession.shared` is
 backed by the process-wide `URLCache`, and it wrote a full OpenRouter SSE stream — the

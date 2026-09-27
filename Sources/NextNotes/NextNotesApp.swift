@@ -446,6 +446,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // meeting scheduler: its notification observer must exist before a Snooze pressed
         // while the app was closed is delivered.
         AgentScheduler.shared.start()
+        // P4-01: the front app is one of the block's facts, and nothing else in the app
+        // observes `didActivateApplication` for it. Started after the agent because it reads
+        // the agent's own frontmost check, and publishing once here means the first prompt of
+        // the session already carries a correct block.
+        AgentNowPublisher.startObserving()
         // Sessions end and are reviewed for memories in the background, never while recording.
         MemoryReviewScheduler.shared.start()
         // After the review scheduler: both hook the conversation, and the indexer only reads
@@ -925,6 +930,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if arguments.contains("--selftest-persona") {
             Task { @MainActor in
                 SelfTest.failed = !PersonaSelfTest.run()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-now-block") {
+            Task { @MainActor in
+                SelfTest.failed = !AgentNowSelfTest.runSelfTest()
                 NSApp.terminate(nil)
             }
             return true

@@ -205,7 +205,11 @@ enum PersonaSelfTest {
     private static func inOrder(_ context: AgentPromptContext) -> Bool {
         let system = context.system
         var cursor = system.startIndex
-        for section in [context.persona, context.rules, context.memory, context.capabilities] where !section.isEmpty {
+        // `now` last, and last by design: P4-01 put it after the cacheable prefix, so a
+        // check that accepted it anywhere would be accepting a block that throws the prefix
+        // cache away on every turn.
+        for section in [context.persona, context.rules, context.memory, context.capabilities,
+                        context.skills, context.now] where !section.isEmpty {
             guard let range = system.range(of: section, range: cursor..<system.endIndex) else { return false }
             cursor = range.upperBound
         }
