@@ -35,6 +35,28 @@ struct PendingAction: Equatable, Sendable {
     /// the planner and *not* the direct-intent shortcut, which reads one sentence.
     static let confirmedPrefix = "Earlier request from the user:"
 
+    /// P1-24: an offer the app makes itself, because it did not read what the person asked
+    /// about. **Not** produced by `detect`, which requires the reply to end in a question —
+    /// this one's whole point is that it is a *statement* ("I haven't looked at your email
+    /// yet."), so a person's "yes" means "go and look" rather than answering a question the
+    /// Agent never asked. `detect` is left alone: its question rule is what stops a model that
+    /// ends every answer with "Anything else?" from arming a slot on every turn, and widening
+    /// it would undo that.
+    ///
+    /// `requestText` is the person's own request, not a sentence built here, so a confirmation
+    /// re-runs the thing they actually asked for.
+    static func unreadOffer(
+        request: String, toolID: String?, sessionID: UUID?, now: Date = Date()
+    ) -> PendingAction {
+        PendingAction(
+            requestText: request,
+            question: "Would you like me to read it?",
+            capabilityID: toolID,
+            origin: .typedOffer,
+            sessionID: sessionID,
+            at: now)
+    }
+
     /// The planner prompt for a confirmed action. States the confirmation so the model does
     /// not ask again, and keeps the user's own words as the instruction.
     func confirmedPrompt(acknowledgment: String) -> String {
@@ -49,7 +71,10 @@ struct PendingAction: Equatable, Sendable {
     /// The questions that are an offer or a confirmation rather than a question about
     /// something new. "Anything else?" is deliberately not here: it is not an action.
     static let offerPhrases = ["would you like me to", "do you want me to", "shall i", "should i",
-                              "want me to", "is that right", "is that okay", "is that ok", "okay?", "ok?"]
+                              "want me to", "want to see", "want to hear", "want to look",
+                              "would you like to see", "would you like to hear",
+                              "should i show you", "shall i read", "is that right", "is that okay",
+                              "is that ok", "okay?", "ok?"]
 
     // MARK: - Detect
 

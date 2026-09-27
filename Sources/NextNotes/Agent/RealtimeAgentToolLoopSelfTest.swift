@@ -1040,10 +1040,183 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runClaimGuardCases(agent: agent, check: check))
         failures.append(contentsOf: runDirectIntentCases(check: check))
         failures.append(contentsOf: await runOnDeviceBoundaryCases(agent: agent, check: check))
+        failures.append(contentsOf: runAccountReadCases(check: check))
 
         for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
         return failures.isEmpty
+    }
+
+    /// P1-24's table. Pure: no model, no provider, no store, no executor.
+    ///
+    /// The guard is pure and so is every one of these, which is deliberate and is the reason the
+    /// three results P1-14 measured can be *stated* rather than hoped for. G4, G5 and G6 are the
+    /// regressions that must not move, and they are the reason this is a table of eight and not
+    /// a table of three: P1-14's version detected every bad turn and replaced two correct
+    /// answers, so a test that only proved the good cases would have shipped that again.
+    ///
+    /// Red on the unmodified guard: G1, G1d, G1e, G3 and G7.
+    @MainActor
+    static func runAccountReadCases(check: (String, Bool) -> Void) -> [String] {
+        var failures: [String] = []
+        func fail(_ name: String) { failures.append(name); check(name, false) }
+
+        let manifest = AgentCapabilityManifestBuilder.build(
+            AgentCapabilityInputs.allEnabled(
+                tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend),
+            request: "summarise my emails")
+        func toolID(_ intent: AgentIntentClass) -> String? {
+            AccountReadTools.toolID(for: intent, manifest: manifest)
+        }
+        func pending(
+            _ reply: String, _ intents: Set<AgentIntentClass>, request: String = "summarise my emails",
+            turn: [String] = [], session: Set<String> = []
+        ) -> (intent: AgentIntentClass, toolID: String, arguments: [String: String])? {
+            AgentAccountRead.pendingRead(
+                reply: reply, selectedIntents: intents, completedThisTurn: turn,
+                completedThisSession: session, toolIDFor: toolID, request: request)
+        }
+
+        // G1 — the owner's own failure: three emails, senders and subjects, no read at all.
+        // Red before the guard: nothing proposed a read, so the invented list stood.
+        let invented = """
+            You have new mail:
+            - Marcus Lee <marcus@productflo.example> — Pricing sheet v3
+            - Ana Ruiz <ana@example.com> — Deck for Friday
+            - Cyril <cyril@example.com> — Dinner tomorrow?
+            """
+        if pending(invented, [.mail])?.toolID != "search_email" {
+            fail("G1: a fabricated mailbox with no read did not ask for one")
+        }
+        // G1b — the same in words rather than as a list, which is what O04 produced.
+        if pending("Here are the six emails sitting in your inbox right now.", [.mail])?.toolID
+            != "search_email" {
+            fail("G1b: a reply naming the inbox did not ask for a read")
+        }
+        // G1c — a question naming the inbox is an offer, and an offer is not a claim.
+        if pending("Want to see the latest messages in your inbox?", [.mail]) != nil {
+            fail("G1c: an offer was treated as a fabricated answer")
+        }
+        // G1d — a promise to read, which is O02's own reply and the shape that made the first
+        // version of the matcher miss it: the account is named with a modifier in between
+        // ("your **latest** emails") and no content was produced. Running the read is strictly
+        // better than the promise, and there is no correct answer here to replace.
+        if pending("Got it. Checking your latest emails right away.", [.mail])?.toolID
+            != "search_email" {
+            fail("G1d: a promise to read the inbox was left as a promise")
+        }
+        // G1e — the same promise with no modifier at all, which is O04's own reply and the
+        // second real sentence the modifier rule missed. Both are in the case set because both
+        // were measured, and one of them is why the promise rule is a verb stem and not a word
+        // from a list.
+        if pending("Of course. I\u{2019}ll check your inbox right away.", [.mail])?.toolID
+            != "search_email" {
+            fail("G1e: \"I'll check your inbox right away\" was left as a promise")
+        }
+
+        // G2 — the honest sentence, and a pending action so "go for it" can run the read.
+        //
+        // **What is *not* here, deliberately.** The first draft of this case asserted that the
+        // guard fires on "I haven't looked at your email yet." — which is the loop's *output*,
+        // not an input it should react to. A guard that re-reads in response to the honest
+        // sentence is P1-14's result 2 exactly: it would replace a correct answer with a
+        // different correct sentence, forever. What the two loop paths actually do — run the
+        // read where reads auto-run, say the sentence and arm the offer where they do not — is
+        // decided by `agentAutoRunReadTools` inside the loop and is **not covered by a pure
+        // test**; it is stated here rather than claimed.
+        if pending("I haven't looked at your email yet.", [.mail]) != nil {
+            fail("G2: the honest \"not looked yet\" sentence was treated as a fabricated answer")
+        }
+        let offer = PendingAction.unreadOffer(
+            request: "check my emails", toolID: "search_email", sessionID: nil)
+        if offer.capabilityID != "search_email" || offer.requestText != "check my emails" {
+            fail("G2b: the unread offer does not carry the person's own request")
+        }
+        if AgentReplyRenderer.render(.answer(AgentAccountRead.notReadYet), voice: false)
+            .contains("search_email") {
+            fail("G2c: the honest sentence names a tool")
+        }
+
+        // G3 — the provenance question. "is this from" / "did you actually" / "where did you
+        // get", and nothing that is merely a question about mail.
+        for signature in ["Is this coming from my emails?", "Did you actually read those?",
+                          "Where did you get that?"] {
+            if AgentAccountRead.asksProvenance(signature) == false {
+                fail("G3: \"\(signature)\" was not read as a provenance question")
+            }
+        }
+        if AgentAccountRead.asksProvenance("What's in my email?") {
+            fail("G3b: an ordinary question about email was read as a provenance question")
+        }
+
+        // G4 — K01 regression. After `meeting.decisions` ran, a reply about decisions is not a
+        // fabricated mailbox, and the class is `.meetings` anyway, which this guard never fires
+        // on. Both halves matter: P1-14's check replaced this answer.
+        if pending("The decision was to move the launch to October 14.", [.meetings],
+                   turn: ["meeting.decisions"]) != nil {
+            fail("G4: a grounded meetings answer was re-planned for saying so")
+        }
+        // G5 — A04 regression. Same shape, the Mac's own state.
+        if pending("Safari is frontmost; its window is YouTube.", [.screen],
+                   turn: ["computer.active_app"]) != nil {
+            fail("G5: a grounded screen answer was re-planned for saying so")
+        }
+        // G6 — M04 regression. A round that parsed `draft_email` never reaches the final-answer
+        // site, and the guard is not consulted from anywhere else. Proved here by the shape of
+        // the question: a draft is not a list of two entries, and `.mail` does not reach
+        // `draft_email`'s arguments.
+        let draft = "I've drafted it to ana@example.com saying you'll send the deck on Friday."
+        if pending(draft, [.mail]) != nil {
+            fail("G6: a proposed draft was treated as a fabricated mailbox")
+        }
+        // G8 — advice, not content. "your calendar is a good place to keep that" names the
+        // account and asserts nothing about it.
+        if pending("Your calendar is a good place to keep that — somewhere nobody would move it.",
+                   [.calendar]) != nil {
+            fail("G8: advice mentioning the calendar was treated as a fabricated agenda")
+        }
+
+        // The second condition, which is the one that costs a re-read: a class already read in
+        // this turn, or earlier in this conversation, is not read again.
+        if pending(invented, [.mail], turn: ["search_email"]) != nil {
+            fail("the guard proposed a second mail read in a turn that already read mail")
+        }
+        if pending(invented, [.mail], session: ["search_email"]) != nil {
+            fail("the guard re-read an account the conversation had already read")
+        }
+        // A class the manifest did not select this turn has no readable tool, so there is
+        // nothing to run and nothing to promise.
+        let empty = AgentCapabilityManifestBuilder.build(
+            AgentCapabilityInputs.allEnabled(tools: [], reader: .voiceFrontend),
+            request: "summarise my emails")
+        if AccountReadTools.toolID(for: .mail, manifest: empty) != nil {
+            fail("the guard found a mail tool in a manifest that selected none")
+        }
+
+        // Every class renders its own honest sentence, and none of them is a question — the
+        // pending action is armed by `unreadOffer`, not by `detect`, precisely because a
+        // question-shaped one would be a different thing.
+        for (intent, expected) in [(AgentIntentClass.mail, "email"),
+                                   (.calendar, "calendar"), (.drive, "Drive")] {
+            let sentence = AgentAccountRead.notReadYet(intent)
+            if sentence.contains(expected) == false {
+                fail("the honest sentence for \(intent.rawValue) does not name what was not read")
+            }
+            if sentence.hasSuffix("?") {
+                fail("the honest sentence for \(intent.rawValue) is a question")
+            }
+        }
+        // A short offer is an offer: the three forms the 27 September log printed.
+        for phrase in ["want to see the latest messages", "would you like to see them",
+                       "should i show you what came in"] {
+            if PendingAction.offerPhrases.contains(where: {
+                phrase.lowercased().contains($0)
+            }) == false {
+                fail("\"\(phrase)\" is not read as an offer")
+            }
+        }
+        print("  TOOLLOOP_PRODUCTION_ACCOUNT_READ: 10 cases, guard is pure")
+        return failures
     }
 
     /// P1-08's table. Pure: no model, no provider, no store.

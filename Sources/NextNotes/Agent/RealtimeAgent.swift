@@ -73,6 +73,11 @@ final class RealtimeAgent {
     /// session id is part of the action, so a cleared or rotated conversation drops it with
     /// no extra hook — `AgentSession.endSession` assigns a new `sessionID`.
     private(set) var typedPending: PendingAction?
+    /// P1-24: the one place outside `handle` that may arm the typed slot, and it is a named
+    /// method rather than a widened setter — a caller that has just run a read the person did
+    /// not get is saying something specific about *this* conversation, and a general
+    /// `setTypedPending` would be an invitation to arm it from anywhere.
+    func armTypedPending(_ action: PendingAction?) { typedPending = action }
     private(set) var voiceInputActive = false
     /// Output has its own lifetime: yielding speech must not invalidate work.
     private(set) var speechGeneration = 0
@@ -831,6 +836,18 @@ final class AgentSession {
     )
 
     static let fileName = "agent-conversation.json"
+
+    /// Tools that have completed since this conversation began, for `AgentAccountRead`'s second
+    /// condition. **In memory and conversation-scoped on purpose**, and it lives here because
+    /// this is the conversation: the audit log is the whole process and carries no session id,
+    /// so it cannot answer "has this conversation read my mail", and building a second log to
+    /// answer it is the one thing AGENTS.md forbids. A read is a fact about the conversation
+    /// that asked for it. P1-29 is the task that makes these ids joinable *across* the logs on
+    /// disk; this set is the same idea held for one conversation.
+    private(set) var completedToolIDs: Set<String> = []
+
+    /// One call site, from the tool loop, so a tool cannot be planned and missed by the guard.
+    func noteToolCompleted(_ toolID: String) { completedToolIDs.insert(toolID) }
     /// A background task's announcement, recorded as a tool-backed row.
     static let backgroundTaskContextKind = "backgroundTask"
     /// The one routine offer a session gets. Not an answer: voice bookkeeping skips it.
@@ -997,6 +1014,10 @@ final class AgentSession {
         compactedTailStartID = nil
         userTurnsSinceReview = 0
         routineOfferChecked = false
+        // P1-24: the conversation's reads belong to the conversation. Without this a two-turn
+        // exchange ("summarise my emails" → "is this from my emails?") would have turn 2 re-read
+        // an account turn 1 had already read, which is the cost of the guard this set feeds.
+        completedToolIDs = []
         // A new session: the core-memory snapshot is read again, picking up the last one's saves.
         beginMemorySession()
     }
@@ -1215,6 +1236,7 @@ final class AgentSession {
         endSession(.cleared)
         messages.removeAll()
         lastSuppressedVoice = nil
+        completedToolIDs = []
         if let fileURL { try? FileManager.default.removeItem(at: fileURL) }
         onConversationCleared?()
     }

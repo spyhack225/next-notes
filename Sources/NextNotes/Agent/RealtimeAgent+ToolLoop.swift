@@ -1431,7 +1431,14 @@ extension RealtimeAgent {
         }
         // P1-06 step 9 (H1 #18, #19). Why a plan ended without an answer of its own, so the
         // log line and the fallback can name it.
-        enum FinalRoundReason: String { case roundsExhausted, callsExhausted, repeatedCall }
+        enum FinalRoundReason: String {
+            case roundsExhausted, callsExhausted, repeatedCall
+            /// P1-24: the plan was about to answer without having read the account the person
+            /// asked about, so the app ran the read and this round answers from it. Logged like
+            /// the other three because "why did that take two rounds" is a question the log has
+            /// to be able to answer.
+            case accountRead
+        }
         // The last prompt this plan sent, so the final round answers the request as it stands
         // and not as it stood before a correction.
         var lastGroundedPrompt = contextSections.joined(separator: "\n\n")
@@ -1956,6 +1963,66 @@ extension RealtimeAgent {
                     claimCorrected = true
                     results.append(ToolClaimGuard.replanNote)
                     continue
+                }
+                // P1-24. This is the only place in the plan that can be a *final* reply carrying
+                // no call, so it is the only place a missing read can be repaired at all.
+                //
+                // The app runs the read; the model is not asked to. That is the whole difference
+                // from the re-plan note P1-14 measured and deleted, and the comment above says
+                // why that one lost: "the model answers prose after a re-plan whatever the note
+                // says". A read is not a note. It runs through `ToolStepRunner`, so it is the
+                // same executor, the same risk classes and the same approval policy as any other
+                // call — and it is a read, so it runs by itself exactly where reads run by
+                // themselves today.
+                if let pending = AgentAccountRead.pendingRead(
+                    reply: reply, selectedIntents: manifest.selectedIntents,
+                    completedThisTurn: runner.completedToolIDs,
+                    completedThisSession: AgentSession.shared.completedToolIDs,
+                    toolIDFor: { intent in
+                        AccountReadTools.toolID(for: intent, manifest: manifest)
+                    },
+                    request: currentRequest, now: Date()) {
+                    speech?.cancel()
+                    let call = AgentToolCall(name: pending.toolID,
+                                             arguments: pending.arguments,
+                                             rationale: "read before answering", evidence: nil)
+                    let step = await runner.execute(call)
+                    if case .completed = step.disposition, let output = step.output {
+                        AgentSession.shared.noteToolCompleted(pending.toolID)
+                        results.append(carried(pending.toolID, output))
+                        beginWork(title: Self.composingTitle)
+                        return planned(await finalAnswerRound(reason: .accountRead))
+                    }
+                    // The read did not complete. The honest sentence is the answer, and it is a
+                    // *statement* so the pending action can carry it and "yes" can run the read.
+                    AgentAuditLog.shared.record(
+                        kind: .reply, title: "The read behind an answer did not complete",
+                        detail: pending.toolID)
+                    let sentence = AgentAccountRead.notReadYet(pending.intent)
+                    armTypedPending(PendingAction.unreadOffer(
+                        request: currentRequest, toolID: pending.toolID,
+                        sessionID: AgentSession.shared.sessionID))
+                    return planned(confirmed(sentence))
+                }
+                // P1-24 rule 3: "is this coming from my emails?" asked after an answer nothing
+                // was read for. Answered from the record — one line — and then the read runs, so
+                // the sentence and the evidence arrive together rather than one promising the
+                // other. Exact signatures, because this is a gate that removes a model answer.
+                if AgentAccountRead.asksProvenance(reply),
+                   AgentSession.shared.completedToolIDs.isEmpty,
+                   let intent = manifest.selectedIntents
+                       .intersection(AgentAccountRead.classes).first,
+                   let read = AgentAccountRead.defaultRead(for: intent, request: currentRequest) {
+                    speech?.cancel()
+                    let call = AgentToolCall(name: read.toolID, arguments: read.arguments,
+                                             rationale: "provenance question", evidence: nil)
+                    let step = await runner.execute(call)
+                    if case .completed = step.disposition, let output = step.output {
+                        AgentSession.shared.noteToolCompleted(read.toolID)
+                        results.append(carried(read.toolID, output))
+                        beginWork(title: Self.composingTitle)
+                        return planned(await finalAnswerRound(reason: .accountRead))
+                    }
                 }
                 return planned(reply.isEmpty ? "The tool plan did not produce an answer." : confirmed(reply))
             }
