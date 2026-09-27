@@ -280,6 +280,38 @@ enum LiveEvalGrader {
                 .filter { $0.count >= 3 }
             if tokens.isEmpty { return true }
             return tokens.contains { lowered.contains($0) }
+        case .todayDate:
+            // O07 asks whether the reply names *today*, so the spellings are the ones a
+            // person or a model actually writes. A case decided on the ISO form alone would
+            // be a claim about typography — the same defect N01's apostrophe has, recorded
+            // rather than fixed, and not worth repeating in new data. Read at grade time, so
+            // a run that crosses local midnight is not judged against yesterday.
+            let spellings = todaySpellings().map { $0.lowercased() }
+            guard spellings.isEmpty == false else { return true }
+            return spellings.contains { lowered.contains($0) }
+        }
+    }
+
+    private static func todaySpellings(now: Date = Date()) -> [String] {
+        // No bare day-of-month. "27" is inside any date the 27th of a month appears in, so
+        // it would turn a wrong answer into a pass once a month — and a mention that weak is
+        // not what "names today" means anyway. Every form here carries the month or the
+        // weekday with it.
+        let formats = [
+            "yyyy-MM-dd",        // 2026-09-27
+            "EEEE d MMMM yyyy",  // Sunday 27 September 2026
+            "d MMMM yyyy",       // 27 September 2026
+            "MMMM d, yyyy",      // September 27, 2026
+            "EEE d MMM",         // Sun 27 Sep
+            "EEEE",              // Sunday
+        ]
+        return formats.map { format in
+            let formatter = DateFormatter()
+            formatter.calendar = .current
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = .current
+            formatter.dateFormat = format
+            return formatter.string(from: now)
         }
     }
 
@@ -310,6 +342,8 @@ enum LiveEvalGrader {
                 $0.toolID == "browser.navigate"
                     && ($0.arguments["url"] ?? "").lowercased().contains(needle)
             }
+        case .noToolFromSecondTurn:
+            return calls.contains { $0.turn >= 1 } == false
         }
     }
 
@@ -521,6 +555,89 @@ enum LiveEvalGrader {
         expect(.ungrounded, "N02", replies: ["I don't run on a specific model."])
         // PASS — the reply names it.
         expect(.pass, "N02", replies: ["I'm running on Qwen3-4B-Instruct-2507 here."])
+
+        // MARK: The owner-log set (P1-27)
+        //
+        // These ten are `scored: false`, so nothing in the 30-case score moves because of
+        // them — and a case that cannot fail is a green the gate cannot trust. Each pair below
+        // is the same case reached two ways, so the Phase 1 gate's "O01–O09 PASS" is a
+        // statement about the Agent rather than about a lenient expectation.
+
+        // O01, the shape the owner saw: three emails with senders and subjects that no read
+        // produced, then a question about where they came from. Not FABRICATED — "I pulled"
+        // is not on the claim list, and a list that makes no claim is invisible to any claim
+        // grammar, which is the finding P1-24 records. MISSED_TOOL is the honest reading.
+        expect(.missedTool, "O01", replies: [
+            "You have new mail:\n- Marcus Lee — Pricing sheet v3\n- Ana Ruiz — Deck for Friday"
+                + "\n- Cyril — Dinner tomorrow?",
+            "Yes, I pulled those straight from your inbox.",
+        ])
+        // O01 green: the read ran, and the final reply names what the fixture's mailbox holds.
+        expect(.pass, "O01", replies: [
+            "I have nothing to summarise yet.",
+            "No — I hadn't read your email. Here's what's actually there: Marcus Lee sent "
+                + "Pricing sheet v3 at 08:12.",
+        ], calls: [
+            call("search_email", ["query": "in:inbox"], turn: 1),
+        ])
+
+        // O04 — the sentence the owner read five times.
+        expect(.refusal, "O04", replies: ["I don't have access to your email."])
+        // O04 green: a read, and a reply from it.
+        expect(.pass, "O04", replies: [
+            "Six messages, two unread. Marcus sent the pricing sheet and Ana asked for the deck.",
+        ], calls: [
+            call("search_email", ["query": "in:inbox"]),
+        ])
+
+        // O05 — the shape that turned out to be right: the app the person named, *and* the
+        // page. Opening Google Chrome is not a wrong tool for "Open my Gmail in Chrome".
+        expect(.pass, "O05", replies: ["Opened mail.google.com in Google Chrome."], calls: [
+            call("computer.open_app", ["name": "Google Chrome"]),
+            call("browser.navigate", ["url": "https://mail.google.com/mail/u/0/"]),
+        ])
+        // O05 red: the right tools, the wrong page. This is the check's whole job — the first
+        // baseline had no way to say it.
+        expect(.wrongTool, "O05", replies: ["Opened google.com in Google Chrome."], calls: [
+            call("computer.open_app", ["name": "Google Chrome"]),
+            call("browser.navigate", ["url": "https://www.google.com/"]),
+        ])
+
+        // O06 — a greeting is not a request to re-summarise. The turn-0 claim is backed by
+        // the turn-0 find, so this row is the one that keeps the case a measure of the
+        // greeting rather than of fabrication.
+        expect(.pass, "O06", replies: [
+            "I found Pricing 2026.pdf in your Documents folder.",
+            "Hi! What can I do for you?",
+        ], calls: [
+            call("filesystem.find", ["query": "pricing document"]),
+        ])
+        // O06 red: the greeting re-offers the previous result. No claim phrase, so this is
+        // UNGROUNDED and not FABRICATED.
+        expect(.ungrounded, "O06", replies: [
+            "I found Pricing 2026.pdf in your Documents folder.",
+            "Hi! Pricing 2026.pdf is still there if you need it.",
+        ], calls: [
+            call("filesystem.find", ["query": "pricing document"]),
+        ])
+        // O06 red the other way: a greeting that re-runs the search. `answerOnly` permits the
+        // find because the first turn ran it, so only this rule can see the second turn.
+        expect(.ungrounded, "O06", replies: [
+            "I found Pricing 2026.pdf in your Documents folder.",
+            "Hi! Let me look again.",
+        ], calls: [
+            call("filesystem.find", ["query": "pricing document"]),
+            call("filesystem.find", ["query": "pricing document"], turn: 1),
+        ])
+
+        // O07 green, in the shape a person writes rather than the shape a formatter emits —
+        // the reason the mention is a list of spellings and not one string.
+        let spoken = todaySpellings().first { $0.contains(" ") } ?? today
+        expect(.pass, "O07", replies: ["It's \(spoken)."])
+        // O07 red: the clock J L13 recorded, three and a half hours and four days out. The
+        // date is a literal rather than an offset so the row cannot drift into a pass on the
+        // 27th of a month.
+        expect(.ungrounded, "O07", replies: ["The clock reads 1:45 AM on 2023-10-27."])
 
         // MARK: The mailbox the mail cases are answered from
         //

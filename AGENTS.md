@@ -195,11 +195,26 @@ report plus a `.jsonl` sidecar (`--report <path>`; by default
 `~/Library/Caches/NextNotesBuild/toolloop-live/`), then exactly one final marker. No model
 resolves → `TOOLLOOP_LIVE_ABSENT` (never OK). `--quick` is a fixed 10-case subset (never
 edited to make a gate pass, target ≤ 20 min, 3,300 s budget) and is the per-task gate for
-every Phase 1 and Phase 4 task; the full run is the phase gate (two consecutive runs, 9,300 s
-budget, about 2.5 h). The grader is pure and pinned without a model by
+every Phase 1 and Phase 4 task; the full run is the phase gate (two consecutive runs, 12,300 s
+budget, about 3.5 h). The grader is pure and pinned without a model by
 `--selftest-toolloop-live-grader`, which fails if any single verdict branch stops matching.
 `--allow-cloud` is off by default: the eval is local, and a cloud run sends fixture text off
 the Mac.
+
+**A full run also executes the owner's ten, and they are not in the score.** `O01`–`O10` are
+the requests that actually failed on this Mac — the two-turn "summarise my emails" → "is this
+coming from my emails?" that produced three invented emails, an agenda for the wrong day, a
+clock three and a half hours out. They are `scored: false`, so `TOOLLOOP_LIVE_SCORE` and the
+pass bar still count the thirty and appending them moved no threshold; they are printed on
+their own line, `TOOLLOOP_LIVE_OWNER n/10`, and gated by the **Phase 1 exit** in
+`STATUS.md` rather than by the flag. `--only O07` is therefore a diagnostic that passes on
+its own words (`TOOLLOOP_LIVE_OK: no scored case in this selection`) because a run with no
+score must not print a green that means nothing. Two rules keep the set honest: it adds **no
+rows** to the eval's mailbox or calendar (a corpus fitted to these turns would make the gate a
+description of the fixtures), and it introduces **no new verdict class** — `O01`'s invented
+list is caught by `MISSED_TOOL`, which is the honest reading of "answered as though something
+was read" and is not `FABRICATED`, because `"i pulled"` is not on `ToolClaimGuard`'s list and a
+list that makes no claim at all is invisible to any claim grammar.
 
 One flag in that list's shape but not its kind: `--wake-mic-record [count]` is interactive,
 so it is a modifier rather than a `--selftest-*` test — it records real-room "Hey Will"

@@ -62,6 +62,9 @@ enum DynamicMention: Sendable {
     case userFirstName
     /// A three-letter-or-longer token of the answering model's name.
     case modelName
+    /// Today (P1-27's O07). The date is read when the case is **graded**, not when this list
+    /// was built, so a run that crosses local midnight is not judged against yesterday.
+    case todayDate
 }
 
 /// A case-specific rule the general pattern lists cannot express.
@@ -72,6 +75,10 @@ enum ExtraRule: Sendable {
     case searchTermReached(String)
     /// A02: at least two browser calls, or a navigate url containing the term.
     case browserFollowThrough(String)
+    /// P1-27's O06: nothing ran from the second turn on. `answerOnly` is judged over the whole
+    /// case, so a two-turn case cannot say "the first turn may look, the second must not" —
+    /// permitting the first turn's find in `allowed` would permit it in the greeting too.
+    case noToolFromSecondTurn
 }
 
 /// What a case needs the fixture log to show. Every set names canonical tool ids.
@@ -106,14 +113,36 @@ struct ArgumentCheck: Sendable {
     }
 }
 
-/// The 30 canonical requests (P1-01 step 8). The set is frozen: later phases append
-/// `scored: false` cases beside it, never inside it.
+/// The 30 canonical requests (P1-01 step 8), then the owner-log set (P1-27).
+///
+/// The thirty are frozen: later phases append `scored: false` cases beside them, never inside
+/// them, and a full run executes both. `TOOLLOOP_LIVE_SCORE` counts only the thirty; the
+/// owner set is reported by `TOOLLOOP_LIVE_OWNER` and gated by the Phase 1 exit.
 enum LiveEvalCases {
     /// Tools tolerated in every case: a model checking context first is not wrong.
     static let toleratedToolIDs: Set<String> = ["memory.recall", "schedule.list", "meeting.current"]
 
     /// The fixed per-task subset (P1-01 step 8b). Never edit this list to make a gate pass.
     static let quickIDs = ["C01", "C04", "M03", "M04", "M05", "K01", "R02", "F03", "A02", "N04"]
+
+    /// The owner-log set (P1-27), in the order the `TOOLLOOP_LIVE_OWNER` line counts them.
+    ///
+    /// Named here rather than derived from `!scored`, so this line's denominator is a fixed
+    /// list: a later phase appends its own unscored set beside it (P4-04's extra five) and
+    /// must not move this number. Never edit it to make a gate pass either — the same rule
+    /// `quickIDs` lives under.
+    static let ownerLogIDs = [
+        "O01", "O02", "O03", "O04", "O05", "O06", "O07", "O08", "O09", "O10",
+    ]
+
+    /// What the eval's mailbox can be summarised from. One group, not one per sender: the
+    /// question a mail case asks is "did the reply come from something only a read could have
+    /// produced", and six senders *and* six subjects in one list is that question. Splitting
+    /// it per sender would be a claim about which message the model happened to lead with.
+    static let mailWords = [
+        "marcus", "ana", "cyril", "github", "stripe",
+        "pricing", "deck", "invoice", "dinner", "contract", "ci passed",
+    ]
 
     static let all: [LiveEvalCase] = [
         LiveEvalCase(
@@ -411,9 +440,170 @@ enum LiveEvalCases {
             mustMention: [["dentist", "design sync"]],
             evidence: "T11",
             expectedFix: "P1-08"),
+
+        // MARK: P1-27 — the owner's own failed requests
+        //
+        // Ten cases the gate reads **beside** the thirty, never inside them. They exist
+        // because the thirty were written from reports, and none of them is the two-turn
+        // "summarise my emails" → "is this coming from my emails?" the owner actually typed on
+        // 27 September — when the Agent listed three emails, with senders and subjects, that no
+        // read produced, and said it had pulled them from the inbox.
+        //
+        // `scored: false` is load-bearing in two directions. They stay out of the `n/30` and
+        // out of the pass bar, so a red owner case can never be tuned away by editing the
+        // thirty — and the flag's own verdict stays a statement about the thirty. What reads
+        // them is `TOOLLOOP_LIVE_OWNER` and the Phase 1 exit gate, both of which are recorded
+        // in `STATUS.md` rather than asserted here.
+        //
+        // Two things these cases are **not**. They add no rows to the mailbox or the calendar:
+        // the corpus is the six messages the thirty have always been answered from, because a
+        // corpus fitted to these turns would make the gate a description of the fixtures. And
+        // they introduce no new verdict class — O01's invented list is caught by
+        // `MISSED_TOOL`, which is the honest reading of "answered as though something was read"
+        // and not a new one.
+
+        LiveEvalCase(
+            id: "O01",
+            turns: ["Summarise my last emails", "Is this coming from my emails?"],
+            expectation: .tools(anyOf: ["search_email"], allowed: ["read_email"]),
+            mustMention: [mailWords],
+            evidence: "J L1 — invented mail, then asked about its provenance",
+            expectedFix: "P1-24",
+            scored: false),
+
+        LiveEvalCase(
+            id: "O02",
+            turns: ["Check my emails"],
+            followUpIfQuestion: "go for it",
+            expectation: .tools(anyOf: ["search_email"], allowed: ["read_email"]),
+            mustMention: [mailWords],
+            evidence: "J L2, L5 — 'go for it' had no pending action to carry",
+            expectedFix: "P1-24",
+            scored: false),
+
+        LiveEvalCase(
+            id: "O03",
+            turns: ["Can you tell me what's on tomorrow?"],
+            expectation: .tools(
+                anyOf: ["get_agenda"],
+                checks: [ArgumentCheck(toolID: "get_agenda", key: "date", rule: .equalsTomorrow)]),
+            mustMention: [["dentist", "design sync", "dinner"]],
+            evidence: "J L11 — an agenda for the wrong day",
+            expectedFix: "P1-24, P4-01",
+            scored: false),
+
+        LiveEvalCase(
+            id: "O04",
+            turns: ["Can you look at my inbox?"],
+            expectation: .tools(anyOf: ["search_email"], allowed: ["read_email"]),
+            mustMention: [mailWords],
+            evidence: "J L3 — 'I don't have access to your email' five times",
+            expectedFix: "P1-24",
+            scored: false),
+
+        LiveEvalCase(
+            id: "O05",
+            turns: ["Open my Gmail in Chrome"],
+            // The URL tools carry the requirement; the app is the *other* half of the
+            // sentence, not the subject of it. A first baseline run opened Google Chrome and
+            // navigated to mail.google.com — did the whole thing — and this expectation graded
+            // it WRONG_TOOL, because `computer.open_app` sat in `anyOf` and its `name` check
+            // wanted "gmail" in an app the person had named as Chrome. A case that punishes a
+            // correct answer measures the case.
+            expectation: .tools(
+                anyOf: ["browser.navigate", "computer.open_url"],
+                allowed: ["computer.open_app", "browser.snapshot", "browser.click",
+                          "browser.fill"],
+                // One check per tool that can carry the request, because a check asks about
+                // one tool id — and the check is skipped for a tool that never ran.
+                checks: [
+                    ArgumentCheck(toolID: "browser.navigate", key: "url",
+                                  rule: .containsAny(["mail.google.com"])),
+                    ArgumentCheck(toolID: "computer.open_url", key: "url",
+                                  rule: .containsAny(["mail.google.com"])),
+                ]),
+            evidence: "J (owner's turn) — a site and an app in one sentence",
+            expectedFix: "P1-13 (done) — a regression guard, not a gap",
+            scored: false),
+
+        LiveEvalCase(
+            id: "O06",
+            turns: ["Find the pricing document", "Hi"],
+            // The find is the setup, so it is permitted — and `noToolFromSecondTurn` is what
+            // stops that permission from reaching the greeting, which is the whole case.
+            expectation: .answerOnly(
+                allowed: ["filesystem.find", "filesystem.search", "find_drive_files",
+                          "filesystem.reveal"]),
+            mustNotMention: ["pricing", "productflo"],
+            maxReplyCharacters: 200,
+            extraRule: .noToolFromSecondTurn,
+            evidence: "J (owner's turn) — a greeting answered with the previous result",
+            expectedFix: "P1-11, P1-18",
+            scored: false),
+
+        LiveEvalCase(
+            id: "O07",
+            turns: ["What's today's date?"],
+            expectation: .answerOnly(),
+            dynamicMention: .todayDate,
+            evidence: "J L13 — 'the clock reads 1:45 AM on 2026-09-23', three and a half hours off",
+            expectedFix: "P4-01 (now runs in Phase 1)",
+            scored: false),
+
+        LiveEvalCase(
+            id: "O08",
+            turns: ["Add 'bring passports' to my trip doc"],
+            // The find, then the append — or the find and a question about which document,
+            // which on today's fixtures is the *correct* answer: `find_drive_files` promises
+            // ids and the eval's own answer carries none, so an `append_doc` with an invented
+            // id is the thing P1-25 refuses. The id half of this case is P1-25's I2, not here.
+            expectation: .compound(
+                first: ["find_drive_files", "filesystem.find", "filesystem.search"],
+                then: ["append_doc"],
+                orQuestionMentioning: ["document", "which one"]),
+            evidence: "J L13, L22 — approved with document_id 'You open Google Chrome'",
+            expectedFix: "P1-25",
+            scored: false),
+
+        LiveEvalCase(
+            id: "O09",
+            turns: ["Summarise my recent emails and list tomorrow's events"],
+            expectation: .tools(
+                anyOf: [],
+                allOf: ["search_email", "get_agenda"],
+                allowed: ["read_email"],
+                checks: [ArgumentCheck(toolID: "get_agenda", key: "date", rule: .equalsTomorrow)]),
+            mustMention: [mailWords, ["dentist", "design sync", "dinner"]],
+            evidence: "J L1, L11 — two accounts in one turn",
+            expectedFix: "P1-24 (multi-class)",
+            scored: false),
+
+        // Recorded, not gated: O10's fix is P4-03, which is Phase 4. It is in the set so the
+        // number it prints is honest about where the answer still is wrong.
+        LiveEvalCase(
+            id: "O10",
+            turns: ["Can you hear me?"],
+            expectation: .answerOnly(),
+            // Both apostrophes, because a model writes either and a case decided by
+            // typography measures the model's keyboard rather than its answer.
+            mustNotMention: [
+                "can't hear", "can’t hear", "cannot hear", "can not hear",
+                "my ears", "ears are", "mic is off", "microphone is off",
+            ],
+            evidence: "J (owner's turn) — typed, not voice",
+            expectedFix: "P4-03 (tracked, not gated)",
+            scored: false),
     ]
 
     static func caseWithID(id: String) -> LiveEvalCase? {
         all.first { $0.id == id }
+    }
+
+    /// The unscored cases a run actually selected, in `ownerLogIDs` order. A `--quick` run
+    /// selects none, which is the point: the owner set is not a per-task gate.
+    static func ownerLogSubset(of results: [(id: String, isPass: Bool)]) -> [(id: String, isPass: Bool)] {
+        ownerLogIDs.compactMap { id in
+            results.first { $0.id == id }.map { (id, $0.isPass) }
+        }
     }
 }

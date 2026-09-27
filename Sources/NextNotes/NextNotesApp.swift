@@ -151,7 +151,9 @@ enum SelfTest {
         let flat: Double = 300
         // P1-01: a live eval case can spend its 150 s turn limit plus a cold multi-gigabyte
         // load, and the flat budget would kill a healthy run at the second case. Sized from
-        // the cases the run will actually take: 30 full, 10 quick, or the `--only` subset.
+        // the cases the run will actually take: the whole list for a full run (P1-27 appended
+        // the owner's ten to the thirty, and a full run executes both), 10 quick, or the
+        // `--only` subset.
         if requested == "--selftest-toolloop-live" {
             let caseCount: Int
             if CommandLine.arguments.contains("--quick") {
@@ -159,7 +161,7 @@ enum SelfTest {
             } else if let only = value(after: "--only") {
                 caseCount = only.split(separator: ",").filter { !$0.isEmpty }.count
             } else {
-                caseCount = LiveEvalCases.all.filter(\.scored).count
+                caseCount = LiveEvalCases.all.count
             }
             return max(flat, Double(caseCount) * 300 + 300)
         }

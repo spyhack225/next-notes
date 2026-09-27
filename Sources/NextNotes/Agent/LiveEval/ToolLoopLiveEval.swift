@@ -94,16 +94,34 @@ enum ToolLoopLiveEval {
             selected, options: options, fixtures: LiveEvalFixtures(), provider: resolved.provider)
         let elapsed = began.duration(to: .now).secondsValue
 
+        // P1-27: the score counts the thirty and only the thirty. The owner-log set is
+        // reported beside it, and the gate that reads it is the Phase 1 exit — so a red owner
+        // case is a fact this run records rather than a verdict it withholds.
         let scored = results.filter { $0.evalCase.scored }
         let passed = scored.filter { $0.verdict.isPass }.count
+        let owner = LiveEvalCases.ownerLogSubset(of: results.map {
+            ($0.evalCase.id, $0.verdict.isPass)
+        })
         let baseBar = options.passAt ?? 25
-        let bar = options.quick || options.only != nil
-            ? Int(ceil(Double(baseBar) * Double(selected.count) / 30.0))
-            : baseBar
+        // The bar scales with the *scored* cases, not the selected ones: appending the owner
+        // set to a full run must not move a threshold, and a run that selected owner cases
+        // only has no score to gate on at all.
+        let bar: Int
+        if scored.isEmpty {
+            bar = 0
+        } else if options.quick || options.only != nil {
+            bar = Int(ceil(Double(baseBar) * Double(scored.count) / 30.0))
+        } else {
+            bar = baseBar
+        }
         let tag = options.quick ? " (quick)" : ""
 
         printClassTally(results)
         SelfTest.diagnostic("TOOLLOOP_LIVE_SCORE \(passed)/\(scored.count)\(tag)")
+        if owner.isEmpty == false {
+            let ownerPassed = owner.filter(\.isPass).count
+            SelfTest.diagnostic("TOOLLOOP_LIVE_OWNER \(ownerPassed)/\(owner.count)")
+        }
         let reportPath = writeReport(
             results: results, model: resolved, bar: bar, options: options, elapsed: elapsed)
         SelfTest.diagnostic("TOOLLOOP_LIVE_REPORT \(reportPath)")
@@ -112,6 +130,14 @@ enum ToolLoopLiveEval {
         if let change = StoreSnapshot.firstDifference(before, StoreSnapshot.capture()) {
             SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: the run changed \(change)")
             return false
+        }
+        guard scored.isEmpty == false else {
+            // `--only O07` is a diagnostic, not a gate. Saying so in words beats printing
+            // `TOOLLOOP_LIVE_OK: 0/0`, which reads like a score of nothing against everything.
+            SelfTest.diagnostic(
+                "TOOLLOOP_LIVE_OK: no scored case in this selection — the "
+                    + "TOOLLOOP_LIVE_OWNER line above is the result")
+            return true
         }
         if passed >= bar {
             SelfTest.diagnostic(
@@ -151,7 +177,10 @@ enum ToolLoopLiveEval {
         if let only = options.only {
             return only.compactMap { LiveEvalCases.caseWithID(id: $0) }
         }
-        return LiveEvalCases.all.filter(\.scored)
+        // Everything, P1-27: the thirty that are scored and the owner's ten that are only
+        // reported. `--quick` is still the fixed scored subset, so the per-task gate costs
+        // what it cost before the owner set existed.
+        return LiveEvalCases.all
     }
 
     // MARK: - Model resolution
@@ -468,6 +497,11 @@ enum ToolLoopLiveEval {
             + (model.isFallback ? " FALLBACK" : ""))
         lines.append("- Mode: \(tag); pass bar \(bar)/\(scored); elapsed "
             + "\(String(format: "%.1f", elapsed))s")
+        let ownerRows = rows.filter { LiveEvalCases.ownerLogIDs.contains($0.id) }
+        if ownerRows.isEmpty == false {
+            let ownerPassed = ownerRows.filter { $0.verdict == LiveEvalVerdict.pass.rawValue }.count
+            lines.append("- Owner log (P1-27, not scored): \(ownerPassed)/\(ownerRows.count) pass")
+        }
         lines.append("- Classes: " + LiveEvalVerdict.allCases.map { verdict in
             "\(verdict.rawValue.lowercased())=\(results.filter { $0.verdict == verdict }.count)"
         }.joined(separator: " "))
@@ -505,6 +539,29 @@ enum ToolLoopLiveEval {
                 : row.usagePasses.joined(separator: " · ")))
         }
         lines.append("")
+
+        // P1-27: the owner's own failed requests, in their own section so a reader of the
+        // report does not have to pick ten rows out of forty to see which of them the gate
+        // reads. `expectedFix` is the column that matters — it names the task that turns each
+        // one green, which is why it is here and not only in the table above.
+        if ownerRows.isEmpty == false {
+            lines.append("## Owner log (P1-27)")
+            lines.append("")
+            lines.append("Not scored, and never inside the thirty. `TOOLLOOP_LIVE_OWNER` counts "
+                + "them; the Phase 1 exit gate reads them.")
+            lines.append("")
+            lines.append("| Case | Verdict | Tools | Expected fix | Reply |")
+            lines.append("|---|---|---|---|---|")
+            for row in ownerRows {
+                let tools = row.tools.joined(separator: " ")
+                    .replacingOccurrences(of: "|", with: "\\|")
+                let reply = row.reply.replacingOccurrences(of: "\n", with: " ")
+                    .replacingOccurrences(of: "|", with: "\\|")
+                lines.append("| \(row.id) | \(row.verdict) | \(tools) | \(row.expectedFix) "
+                    + "| \(reply) |")
+            }
+            lines.append("")
+        }
 
         let markdown = lines.joined(separator: "\n")
         try? markdown.write(to: fileURL, atomically: true, encoding: .utf8)

@@ -159,8 +159,10 @@ INTEGRATION_ENTRIES=(
   "selftest-llm-prefix-cache|600"
   "selftest-usage-log|600"
   # live real-model tool-loop eval (P1-01). Acceptance passes no arguments, so this entry
-  # is the full 30-case run; `--quick` is the per-task gate and is run by hand.
-  "selftest-toolloop-live|9300"
+  # is the full run — the 30 scored cases plus the owner's 10 (P1-27), which a full run
+  # executes and reports on the `TOOLLOOP_LIVE_OWNER` line; `--quick` is the per-task gate
+  # and is run by hand.
+  "selftest-toolloop-live|12300"
   "selftest-toolloop-live-grader|300"
   # one per-turn source of truth for the tools a turn may use (P1-03)
   "selftest-capability-manifest|300"
