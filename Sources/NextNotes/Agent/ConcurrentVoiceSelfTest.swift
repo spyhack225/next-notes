@@ -12,7 +12,7 @@ enum ConcurrentVoiceSelfTest {
         var failures: [String] = []
         func check(_ value: Bool, _ message: String) { if !value { failures.append(message) } }
         await capture.beginSession(captureAudio: false)
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         conversation.resetForTesting()
         synth.useTestingBacking(recorder)
         conversation.streamForTesting = { _, messages in

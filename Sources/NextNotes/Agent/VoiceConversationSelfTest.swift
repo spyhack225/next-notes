@@ -39,7 +39,7 @@ enum VoiceConversationSelfTest {
         // Both scenarios use capture -> RealtimeAgent -> real planner/executor.
         // The provider delays at a known boundary, not the microphone or tools.
         for afterRead in [false, true] {
-            AgentSession.shared.clear() // SelfTest disables disk writes.
+            AgentSession.shared.forgetAllConversations() // SelfTest disables disk writes.
             await capture.beginSession(captureAudio: false)
             recorder.reset()
             let state = VoiceConversationProbeState(afterRead: afterRead)

@@ -64,7 +64,7 @@ enum VoiceCapabilityConversationSelfTest {
         let harnessFailureBefore = SelfTest.failed
         let coordinator = VoiceConversationCoordinator.shared
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         let plannerIDs = Set(RealtimeAgent.plannableTools().map(\.id))
         let requiredIDs = [
             "get_agenda", "search_email", "computer.inspect_ui", "filesystem.search",
@@ -386,7 +386,7 @@ enum VoiceCapabilityConversationSelfTest {
         let harnessFailureBefore = SelfTest.failed
         let coordinator = VoiceConversationCoordinator.shared
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         let pollutedHistory = CommandLine.arguments.contains("--voice-polluted-history")
         if pollutedHistory {
             // In-memory constants reproduce the saved history before the 18:48
@@ -717,7 +717,7 @@ enum VoiceCapabilityConversationSelfTest {
 
         // MARK: P0-3 — eight real garbled utterances; none reaches frontend inference.
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         let garbleProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
             await garbleProbe.stream(system: system, messages: messages)
@@ -760,7 +760,7 @@ enum VoiceCapabilityConversationSelfTest {
         // here — every ordinary utterance must reach the model — and suppression is
         // single-shot per session, so repeating noise escalates instead of looping.
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         let corpusProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
             await corpusProbe.stream(system: system, messages: messages)
@@ -807,7 +807,7 @@ enum VoiceCapabilityConversationSelfTest {
         // producer contract: the utterance is in the final message, never a history
         // duplicate, and a repair turn is not carried into the next prompt.
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         AgentSession.shared.recordUser("said, can you hear me?", source: .voice)
         _ = AgentSession.shared.recordAssistant(
             "I didn't quite catch that. Could you repeat your question?", source: .voice)
@@ -887,7 +887,7 @@ enum VoiceCapabilityConversationSelfTest {
         // generic dead end for a state the person can see and fix. The reason must
         // reach the reply, and it must not be recorded as a model failure.
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         coordinator.frontendUnavailableReasonForTesting =
             "Apple Intelligence is turned off in System Settings."
         let unavailableTurn = await coordinator.handle("What is a haiku?")
@@ -906,7 +906,7 @@ enum VoiceCapabilityConversationSelfTest {
 
         // A session that already ended must not record a spoken stop line.
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         await AgentCaptureController.shared.beginSession(captureAudio: false)
         _ = RealtimeAgent.shared.beginVoiceFrontend()
         await AgentCaptureController.shared.endSession(source: .done)
@@ -918,7 +918,7 @@ enum VoiceCapabilityConversationSelfTest {
 
         // MARK: P0-4 — the 20:45:00Z browser command through the live coordinator path.
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         let browserProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
             await browserProbe.stream(system: system, messages: messages)
@@ -957,7 +957,7 @@ enum VoiceCapabilityConversationSelfTest {
         // pending. T4 resolves it. T5 confirms with nothing pending, which the shared
         // acknowledgment vocabulary must NOT swallow.
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         let loopProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
             await loopProbe.stream(system: system, messages: messages)
@@ -1033,7 +1033,7 @@ enum VoiceCapabilityConversationSelfTest {
         // because the subject of this case is the routing rule and not whatever this Mac
         // happens to have connected.
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         AgentCapabilityManifestBuilder.inputsOverrideForTesting = AgentCapabilityInputs.allEnabled(
             tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
         let routeProbe = TurnRoutingProbe()
@@ -1101,7 +1101,7 @@ enum VoiceCapabilityConversationSelfTest {
         // and the denials it gives back are then *true*, which is the point: the gate is
         // not a denial machine.
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         AgentCapabilityManifestBuilder.inputsOverrideForTesting = AgentCapabilityInputs(
             tools: [], switches: .init(memory: false, schedules: false, knowledgeTools: false, skills: false),
             consent: .init(knowledgeGraphCloud: false, filesCloud: false),
@@ -1164,7 +1164,7 @@ enum VoiceCapabilityConversationSelfTest {
         // this is where it lands.
         for phrase in ["okay", "yes please", "yeah sure", "go for it", "sure go ahead", "yes do it"] {
             coordinator.resetForTesting()
-            AgentSession.shared.clear()
+            AgentSession.shared.forgetAllConversations()
             let workerProbe = TurnRoutingProbe()
             coordinator.streamForTesting = { system, messages in
                 await workerProbe.stream(system: system, messages: messages)
@@ -1202,7 +1202,7 @@ enum VoiceCapabilityConversationSelfTest {
         // With nothing pending, "okay" is still the exact known-noise fragment it always
         // was: the clarifier once, and the model on the repeat.
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         let noiseProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
             await noiseProbe.stream(system: system, messages: messages)
@@ -1228,7 +1228,7 @@ enum VoiceCapabilityConversationSelfTest {
         // answer; a correction would be a lie told to fix a policy. The trailing question
         // is what keeps the offer pending, which is the same rule a real answer follows.
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         let honestProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
             await honestProbe.stream(system: system, messages: messages)
@@ -1317,7 +1317,7 @@ enum VoiceCapabilityConversationSelfTest {
         }
         // A coordinator failure reply passes through the same renderer.
         coordinator.resetForTesting()
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         let failureProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
             await failureProbe.stream(system: system, messages: messages)

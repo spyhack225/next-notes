@@ -315,7 +315,7 @@ enum ToolLoopLiveEval {
 
         var results: [CaseResult] = []
         for evalCase in cases {
-            AgentSession.shared.clear()
+            AgentSession.shared.forgetAllConversations()
             fixtures.beginCase()
             var replies: [String] = []
             var trace: [PlannerTraceEvent] = []

@@ -916,8 +916,10 @@ final class AgentSession {
     enum ReviewReason: String, Sendable {
         /// `agentSessionIdleMinutes` of silence.
         case idle
-        /// *Clear conversation*.
+        /// The person's deleting action: "Forget all conversations".
         case cleared
+        /// "New conversation" — a session boundary with nothing deleted behind it.
+        case newConversation
         /// Every `AgentSessionBoundary.reviewEveryUserTurns` user turns inside a long session.
         case turnInterval
         /// A session that ended while the app was not running.
@@ -1037,7 +1039,10 @@ final class AgentSession {
         if !session.isEmpty {
             let request = ReviewRequest(sessionID: sessionID, reason: reason, messages: session)
             onReviewRequest?(request)
-            // A cleared conversation is deleted, not indexed.
+            // Only a *deleted* conversation is not indexed. "New conversation" is an ordinary
+            // boundary and is treated as one, which is the whole of P1-26: the previous code
+            // deleted the index because the only boundary a person could cause was also the only
+            // one that erased history.
             if reason != .cleared { onSessionEnded?(request) }
         }
         sessionID = UUID()
@@ -1261,9 +1266,30 @@ final class AgentSession {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// *Clear conversation*: the session ends (and is handed to the review first), then
-    /// every row goes.
-    func clear() {
+    /// **Start a new conversation.** The session ends the way an idle one does — so it *is*
+    /// indexed and reviewed — and the pane shows an empty chat. Nothing is deleted.
+    ///
+    /// This was `clear()`, and the button that called it was labelled "Clear conversation" with
+    /// a trash can: the same method reached through a hook that removed **every** conversation
+    /// ever indexed, not the current one. The design comment said so and `--selftest-index`
+    /// pinned it as correct, so nothing failed and nothing logged — but a person reads a trash
+    /// icon labelled "Clear conversation" as "tidy this chat", and on 27 September the audit
+    /// found deleted chunks for about 21 sessions still in `knowledge.sqlite-wal`'s free pages.
+    /// P1-26 splits the two meanings: this starts a conversation, and `forgetAllConversations()`
+    /// is the one that deletes, behind a confirmation that says what it removes.
+    func startNewConversation() {
+        endSession(.newConversation)
+        messages.removeAll()
+        lastSuppressedVoice = nil
+        completedToolIDs = []
+        toolOutputLines = []
+        if let fileURL { try? Self.emptyPayload.write(to: fileURL) }
+    }
+
+    /// *Forget all conversations*: the person's own deleting action, and the only path that
+    /// removes anything from the index. The session is ended and handed to the review first, so
+    /// the memory side keeps what it needs, and then every row goes.
+    func forgetAllConversations() {
         endSession(.cleared)
         messages.removeAll()
         lastSuppressedVoice = nil
@@ -1272,6 +1298,12 @@ final class AgentSession {
         if let fileURL { try? FileManager.default.removeItem(at: fileURL) }
         onConversationCleared?()
     }
+
+    /// What an empty `agent-conversation.json` holds. Written by `startNewConversation` rather
+    /// than removing the file, so the next session loads an empty store from a file that exists
+    /// — a missing file is what the old path produced, and "absent" and "empty" are different
+    /// states to anything reading it.
+    private static let emptyPayload = Data("{\"sessions\":[]}".utf8)
 
     /// What the user said recently, for memory provenance. Meeting-sourced rows are left
     /// out: a meeting transcript line is evidence, not the user talking to the Agent.

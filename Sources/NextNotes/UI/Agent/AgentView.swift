@@ -149,7 +149,7 @@ struct AgentView: View {
     @ViewBuilder
     private func paneBarAccessory(offersInspector: Bool) -> some View {
         if navigation.agentPane == .conversation, !session.messages.isEmpty {
-            clearConversationButton
+            newConversationButton
         }
         if offersInspector {
             Button {
@@ -170,12 +170,20 @@ struct AgentView: View {
     /// It was the first row of the history, which meant a conversation long enough to need
     /// clearing was also long enough to have buried the button that clears it. The bar does
     /// not scroll, so the way out is always in the same place.
-    private var clearConversationButton: some View {
-        Button("Clear conversation", systemImage: "trash") {
-            session.clear()
+    ///
+    /// P1-26 changed what it does and what it says. It was "Clear conversation" with a trash
+    /// can, and it deleted **every** conversation ever indexed through `onConversationCleared`
+    /// — a person reads that button as "tidy this chat". It now starts a new conversation, and
+    /// says so in a verb rather than an adjective: "New conversation", a plus rather than a
+    /// bin. Deleting still exists, and lives with the knowledge settings' own "Forget
+    /// everything" (`KnowledgeSettingsView`), where the one confirmation says what it removes.
+    private var newConversationButton: some View {
+        Button("New conversation", systemImage: "plus") {
+            session.startNewConversation()
         }
         .buttonStyle(.borderless)
         .controlSize(.small)
+        .help("Start a new conversation. Past conversations stay in search.")
     }
 
     private var conversation: some View {

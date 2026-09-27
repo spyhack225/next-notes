@@ -1003,7 +1003,7 @@ enum RealtimeAgentToolLoopSelfTest {
         _ = await agent.handle("Read my latest email", source: .text)
         check("the second offer kept no pending action (\(agent.typedPending == nil))",
               agent.typedPending != nil)
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         let orphan = await agent.handle("yes", source: .text)
         let orphanUser = orphanLog.calls.last?.user ?? ""
         check("a cleared conversation carried the confirmation into the new request: "
@@ -1619,7 +1619,7 @@ enum RealtimeAgentToolLoopSelfTest {
                 perRound: .seconds(5), perReadCall: .seconds(5),
                 ceiling: .seconds(60), coldLoadAllowance: .zero)
             agent.setTypedPendingForTesting(nil)
-            AgentSession.shared.clear()
+            AgentSession.shared.forgetAllConversations()
             let turn = await agent.handle("summarize my last four emails", source: .text)
             AgentToolExecutor.fakeForTesting = nil
             agent.localModelProviderForTesting = nil
@@ -1768,7 +1768,7 @@ enum RealtimeAgentToolLoopSelfTest {
         agent.setTypedPendingForTesting(nil)
         // Cleared *after* the provider is built and before the turn, so the search's result is
         // the only thing in the conversation when `read_doc` is planned.
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         let ran = ScriptedToolLog()
         AgentToolExecutor.fakeForTesting = { tool, _ in
             ran.record(tool.id)
@@ -1867,7 +1867,7 @@ enum RealtimeAgentToolLoopSelfTest {
             agent.maxCallsForTesting = maxCalls
             agent.answerDepthForTesting = depth
             agent.setTypedPendingForTesting(nil)
-            AgentSession.shared.clear()
+            AgentSession.shared.forgetAllConversations()
             let turn = await agent.handle(request, source: .text)
             AgentToolExecutor.fakeForTesting = nil
             agent.budgetForTesting = nil
@@ -2105,7 +2105,7 @@ enum RealtimeAgentToolLoopSelfTest {
             agent.setTypedPendingForTesting(nil)
             agent.budgetForTesting = nil
             agent.setTypedPendingForTesting(nil)
-            AgentSession.shared.clear()
+            AgentSession.shared.forgetAllConversations()
             let turn = await agent.handle(request, source: .text)
             AgentToolExecutor.fakeForTesting = nil
             return Outcome(reply: turn.reply, tools: ran.toolIDs, rounds: log.calls.count)
@@ -2188,7 +2188,7 @@ enum RealtimeAgentToolLoopSelfTest {
                 id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
             agent.setTypedPendingForTesting(nil)
             agent.budgetForTesting = nil
-            AgentSession.shared.clear()
+            AgentSession.shared.forgetAllConversations()
             // Seeded after the clear, because that is the state a stale claim would arrive in.
             for turn in seeding {
                 AgentSession.shared.recordUser(turn.user, source: .text)
@@ -2392,7 +2392,7 @@ enum RealtimeAgentToolLoopSelfTest {
                 id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
             agent.setTypedPendingForTesting(nil)
             agent.budgetForTesting = nil
-            AgentSession.shared.clear()
+            AgentSession.shared.forgetAllConversations()
             let turn = await agent.handle(request, source: .text)
             AgentToolExecutor.fakeForTesting = nil
             return Case(reply: turn.reply, tools: ran.toolIDs, users: log.calls.map(\.user))

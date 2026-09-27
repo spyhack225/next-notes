@@ -26,7 +26,7 @@ enum VoiceWorkLifecycleSelfTest {
             Task { @MainActor in await capture.endSession(source: .done) }
         }
 
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         await capture.endSession(source: .done)
         await capture.beginSession(captureAudio: false)
         await state.parkNext(answer: "The objective remains active.")
@@ -49,7 +49,7 @@ enum VoiceWorkLifecycleSelfTest {
         }
         await capture.endSession(source: .done)
 
-        AgentSession.shared.clear()
+        AgentSession.shared.forgetAllConversations()
         agent.budgetForTesting = .init(
             perRound: .seconds(1), perReadCall: .seconds(1),
             ceiling: .seconds(1), coldLoadAllowance: .zero)

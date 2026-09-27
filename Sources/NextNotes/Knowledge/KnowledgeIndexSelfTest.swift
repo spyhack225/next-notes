@@ -190,10 +190,26 @@ enum KnowledgeIndexSelfTest {
             _ = await indexer.drain()
             check("an ended session was not indexed", try store.chunkCount(kind: .conversation) == 2)
 
+            // P1-26 **inverted** this pair, and the inversion is the whole task. It asserted
+            // that "Clear conversation" removed every conversation chunk — true, and the reason
+            // the button was safe to leave there: a green test over a feature that deleted 21
+            // sessions of search history on this Mac. The button is "New conversation" now and it
+            // keeps them; the deleting path is `forgetAllConversations`, pinned below.
+            let keptChunks = try store.chunkCount(kind: .conversation)
             session.recordUser("And the podcast launch?", source: .text)
-            session.clear()
-            check("Clear conversation left conversation chunks", try store.chunkCount(kind: .conversation) == 0)
-            check("Clear conversation indexed the cleared session", indexer.pending.isEmpty)
+            session.startNewConversation()
+            check("New conversation dropped the past sessions' passages",
+                  try store.chunkCount(kind: .conversation) == keptChunks)
+            check("New conversation left the session it ended unindexed", indexer.pending.isEmpty == false)
+            _ = await indexer.drain()
+            check("New conversation did not index the session it ended",
+                  try store.chunkCount(kind: .conversation) > keptChunks)
+
+            session.forgetAllConversations()
+            check("Forget all conversations left conversation passages",
+                  try store.chunkCount(kind: .conversation) == 0)
+            check("Forget all conversations left the indexer with pending work",
+                  indexer.pending.isEmpty)
 
             session.recordUser("Remember the newsletter goes out on Tuesdays", source: .text)
             clock.advance(31 * 60)

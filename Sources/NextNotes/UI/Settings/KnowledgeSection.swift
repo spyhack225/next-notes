@@ -11,6 +11,7 @@ struct KnowledgeSection: View {
     @State private var settings = Settings.shared
     @State private var indexer = KnowledgeIndexer.shared
     @State private var confirmingRebuild = false
+    @State private var confirmingForgetConversations = false
 
     var body: some View {
         Group {
@@ -51,6 +52,22 @@ struct KnowledgeSection: View {
             }
             HStack {
                 Spacer()
+                // P1-26. "Clear conversation" used to delete every conversation ever indexed
+                // and asked for nothing; that button is now "New conversation" and it keeps
+                // them. This is the deleting path, next to the index it removes from and behind
+                // the one confirmation AGENTS.md allows — irreversible, so it says what it
+                // removes, and it says it cannot be undone.
+                Button("Forget all conversations…", role: .destructive) {
+                    confirmingForgetConversations = true
+                }
+                .disabled(!settings.knowledgeIndexEnabled)
+                .confirmationDialog(
+                    "This removes every past conversation from search. It can't be undone.",
+                    isPresented: $confirmingForgetConversations) {
+                        Button("Forget all conversations", role: .destructive) {
+                            AgentSession.shared.forgetAllConversations()
+                        }
+                    }
                 Button("Rebuild index…") { confirmingRebuild = true }
                     .disabled(!settings.knowledgeIndexEnabled || indexer.isIndexing)
                     .confirmationDialog("Delete the knowledge index and build it again?",
@@ -67,7 +84,7 @@ struct KnowledgeSection: View {
                 text: "Finished meetings, their notes and ended Agent conversations are split into "
                     + "passages in knowledge.sqlite on this Mac, for Search and for the Agent's recall. "
                     + "Indexing waits while anything is recording. Deleting a meeting, clearing the "
-                    + "conversation or forgetting everything removes its passages. Rebuilding reads every "
+                    + "forgetting all conversations removes their passages. Rebuilding reads every "
                     + "meeting again; conversations older than the Agent's saved history cannot be re-read. "
                     + "Letting the Agent use the index adds search_knowledge to what it can look up without "
                     + "asking (when looking things up is allowed), to routines, and to Ask, whose answers cite "

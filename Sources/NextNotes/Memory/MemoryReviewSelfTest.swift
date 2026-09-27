@@ -507,7 +507,7 @@ enum MemoryReviewSelfTest {
                 && scheduler.pending.first?.turns.filter { $0.role == "user" }.count == 10)
         // A meeting line does not count as a turn, and a later capture replaces the earlier one.
         session.recordUser("A line from the meeting.", source: .meeting)
-        session.clear()
+        session.forgetAllConversations()
         check(&failures, "Clear conversation did not replace the queued review with the whole session",
               scheduler.pending.count == 1 && scheduler.pending.first?.reason == .cleared
                 && scheduler.pending.first?.turns.contains { $0.text.contains("A line from the meeting") } == false)

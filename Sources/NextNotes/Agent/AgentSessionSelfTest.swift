@@ -68,7 +68,7 @@ enum AgentSessionSelfTest {
         session.recordUser("Something to clear.", source: .text)
         let beforeClear = refreshes
         let cleared = session.sessionID
-        session.clear()
+        session.forgetAllConversations()
         check("Clear conversation did not start a session", session.sessionID != cleared && refreshes == beforeClear + 1)
         check("Clear conversation did not hand the session to the review first",
               requests.last?.reason == .cleared && requests.last?.messages.first?.text == "Something to clear.")
@@ -144,7 +144,7 @@ enum AgentSessionSelfTest {
               && reopened.messages.first?.text.hasPrefix("Request 1:") == true)
         let voiceContext = long.contextForCurrentTurn(maxCharacters: 2_500)
         check("a small prompt budget was exceeded", voiceContext.count <= 2_500)
-        long.clear()
+        long.forgetAllConversations()
         return failures
     }
 }
