@@ -1459,6 +1459,25 @@ enum RealtimeAgentToolLoopSelfTest {
         let mail = hermes(#"{"name":"search_email","arguments":{"query":"in:inbox"}}"#)
         let decisions = hermes(#"{"name":"meeting.decisions","arguments":{}}"#)
         let fixture = "Design sync, Dentist"
+        /// P1-14. These three cases used to manufacture *distinct* reads as
+        /// `search_email(query: "q0")` … `"q3"`, and stopped being distinct the moment a mail
+        /// filter the user never said was grounded away (`AgentToolLoop.groundMailFilter`):
+        /// four calls with four invented filters became one call with no filter, the plan saw
+        /// one repeated signature, and it ended after a single read. The fixture now varies the
+        /// **tool**, which is what these cases are about — the call cap, the round backstop and
+        /// the answer-only round — and not about mail filtering. Every assertion below is
+        /// unchanged, and the mail filter has its own cases further down.
+        // `filesystem.search` and not `find`/`tree`: the latter two read the *indexed* folders
+        // and are not ready on a machine with no folder added, so a call to either ends the
+        // plan on a setup sentence instead of running. Six reads that need nothing.
+        let distinctReads = [
+            agenda,
+            mail,
+            decisions,
+            hermes(#"{"name":"filesystem.search","arguments":{"query":"x"}}"#),
+            hermes(#"{"name":"computer.active_app","arguments":{}}"#),
+            hermes(#"{"name":"meeting.recent_context","arguments":{}}"#),
+        ]
 
         /// One scripted plan: the provider's script, the delay each round spends, the calls
         /// the model made, and the reads the executor answered.
@@ -1572,9 +1591,7 @@ enum RealtimeAgentToolLoopSelfTest {
             kind: .finalAnswer, contextTokens: 4_096, promptTokens: 2_000, depth: .fast)
         do {
             let result = await run(
-                script: (0..<4).map { index in
-                    hermes(#"{"name":"search_email","arguments":{"query":"q\#(index)"}}"#)
-                } + ["Here is what I found: result-4."],
+                script: Array(distinctReads.prefix(4)) + ["Here is what I found: result-4."],
                 budget: .init(perRound: .seconds(5), perReadCall: .seconds(5),
                               ceiling: .seconds(60), coldLoadAllowance: .zero),
                 depth: .fast)
@@ -1601,9 +1618,7 @@ enum RealtimeAgentToolLoopSelfTest {
         // rounds, then exactly one answer-only round: seven provider calls.
         do {
             let result = await run(
-                script: (0..<6).map { index in
-                    hermes(#"{"name":"search_email","arguments":{"query":"q\#(index)"}}"#)
-                } + ["Here is what I found: result-6."],
+                script: Array(distinctReads.prefix(6)) + ["Here is what I found: result-6."],
                 budget: .init(perRound: .seconds(5), perReadCall: .seconds(5),
                               ceiling: .seconds(60), coldLoadAllowance: .zero),
                 depth: .fast, maxCalls: 20)
@@ -1620,9 +1635,8 @@ enum RealtimeAgentToolLoopSelfTest {
         // reply is still the last thing the plan verified.
         do {
             let result = await run(
-                script: (0..<4).map { index in
-                    hermes(#"{"name":"search_email","arguments":{"query":"q\#(index)"}}"#)
-                } + [hermes(#"{"name":"search_email","arguments":{"query":"q4"}}"#)],
+                script: Array(distinctReads.prefix(4))
+                    + [hermes(#"{"name":"meeting.action_items","arguments":{}}"#)],
                 budget: .init(perRound: .seconds(5), perReadCall: .seconds(5),
                               ceiling: .seconds(60), coldLoadAllowance: .zero),
                 depth: .fast)
@@ -2262,6 +2276,75 @@ enum RealtimeAgentToolLoopSelfTest {
             request: "today and tomorrow", now: knownDay, calendar: utc)
         check("a request naming two relative days was grounded anyway (\(twoDays["date"] ?? "-"))",
               twoDays["date"] == "2023-10-27")
+
+        // 12b. P1-14: a mail filter is searched for only when the user said it. Every row is
+        //      one of the four queries the 2026-09-26 gate run actually sent, or the request
+        //      that produced it, so this pins the measurement rather than a fitted example.
+        let mail = { (query: String, request: String) in
+            AgentToolLoop.groundedArguments(
+                for: "search_email", proposed: ["query": query], request: request)
+        }
+        for invented in ["recent", "subject:.*", "subject:'ProductFlo'", "subject:'summary' OR 'follow up'"] {
+            let grounded = mail(invented, "Summarize my last 5 emails")
+            check("a filter the user never said survived grounding: \(invented) -> "
+                  + "\(grounded["query"] ?? "(dropped)")", grounded["query"] == nil)
+        }
+        // The two the user *did* say, and the one the case M02 is graded on.
+        check("a sender the user named was dropped (\(mail("from:Marcus", "Any new emails from Marcus?")["query"] ?? "-"))",
+              mail("from:Marcus", "Any new emails from Marcus?")["query"] == "from:Marcus")
+        check("a subject the user described in their own words was dropped "
+              + "(\(mail("subject:dentist", "find my email about the dentist")["query"] ?? "-"))",
+              mail("subject:dentist", "find my email about the dentist")["query"] == "subject:dentist")
+        check("an unread flag the user asked for was dropped (\(mail("is:unread", "any unread emails?")["query"] ?? "-"))",
+              mail("is:unread", "any unread emails?")["query"] == "is:unread")
+        // Partly asked for: the clause that was not said goes, the clause that was stays.
+        let narrowed = mail("from:priya OR from:ana", "anything from Priya?")["query"] ?? "-"
+        check("a partly-asked-for filter was not narrowed to the part that was asked for (\(narrowed))",
+              narrowed == "from:priya")
+        // A time span the user named keeps its operator; one they did not does not.
+        check("a date filter the user asked for was dropped (\(mail("newer_than:2d", "anything from the last two days")["query"] ?? "-"))",
+              mail("newer_than:2d", "anything from the last two days")["query"] == "newer_than:2d")
+        check("a date filter the user never mentioned was kept (\(mail("newer_than:2d", "summarize my mail")["query"] ?? "-"))",
+              mail("newer_than:2d", "summarize my mail")["query"] == nil)
+        // Already empty, and another tool entirely, are both left exactly as they were.
+        check("an empty query was rewritten",
+              AgentToolLoop.groundedArguments(
+                for: "search_email", proposed: ["maxResults": "5"], request: "summarize my mail")
+                == ["maxResults": "5"])
+        check("another tool's arguments were touched",
+              AgentToolLoop.groundedArguments(
+                for: "draft_email", proposed: ["to": "recent@example.com"],
+                request: "draft an email to recent@example.com")
+                == ["to": "recent@example.com"])
+
+        // 12c. P1-14: the documented miss of a read is recoverable, and only once.
+        let miss = ReadMissRecovery.repair(
+            toolID: "search_email", arguments: ["query": "recent"],
+            result: "No message matches recent.")
+        check("a mail miss was not repaired (\(miss?.kind.rawValue ?? "-"))",
+              miss?.kind == .badQuery)
+        check("the miss repair did not say which query to use instead",
+              miss?.message.contains("latest mail") == true)
+        check("the miss repair does not tell a specific search to broaden",
+              miss?.message.contains("Only if the user really asked about one specific sender") == true)
+        check("a search that already had no filter was told to try itself",
+              ReadMissRecovery.repair(
+                toolID: "search_email", arguments: ["maxResults": "5"],
+                result: "No message matches in:inbox.") == nil)
+        check("a miss on another tool was repaired as mail",
+              ReadMissRecovery.repair(
+                toolID: "get_agenda", arguments: [:],
+                result: "No message matches nothing.") == nil)
+        check("a mail answer that is not a miss was repaired",
+              ReadMissRecovery.repair(
+                toolID: "search_email", arguments: ["query": "from:marcus"],
+                result: "1) 2026-09-26 · Marcus Lee · Pricing sheet v3") == nil)
+        // P1-11's repair text, unchanged: a variant that opened by naming its authority was
+        // measured and removed (see `ToolRepair.modelText`), and this pins that the plain
+        // sentence is the one that ships.
+        check("a repair no longer opens with an authority clause",
+              ToolRepair(kind: .badQuery, message: "x").modelText == "ERROR bad_query: x "
+                + "Correct the call and try again, or answer the user with what you already have.")
 
         // 13. A repeated call is a question, not a loop: the note points at the result the
         //     model already has and the turn goes on to answer.

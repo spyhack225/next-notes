@@ -97,6 +97,10 @@ final class ToolStepRunner: ToolStepExecuting {
     /// have supplied it.
     var readToolOutput = false
     private(set) var terminalOutcome: ToolStepOutcome?
+    /// P1-14: a turn gets **one** read-miss repair, because a mailbox with nothing in it is a
+    /// real answer and re-asking is how a plan spends a person's time. After it, a miss is
+    /// carried as the result it is.
+    private var missRepaired = false
 
     /// No calls and no repairs left means the plan cannot do anything this round, so it does
     /// not spend one asking. The loop asks this before sending a round (P1-06 step 9).
@@ -339,6 +343,21 @@ final class ToolStepRunner: ToolStepExecuting {
             // A mutation completes one step, not the person's whole objective. Keep its
             // verified result and let the loop plan the remaining work.
             lastVerifiedResult = output
+            // P1-14: a read that matched nothing, where the tool's own description documents
+            // the call that would have answered it, is carried as a repair rather than as the
+            // turn's answer — once per turn. The call is still recorded above: it ran, so a
+            // sentence saying it ran is backed, and the honest miss is still what the person
+            // is told if the model declines to search again.
+            if !missRepaired,
+               let repair = ReadMissRecovery.repair(
+                toolID: canonicalID, arguments: arguments, result: output) {
+                missRepaired = true
+                return ToolStepResult(
+                    canonicalID: canonicalID, disposition: .repaired(
+                        toolID: canonicalID, note: repair.modelText),
+                    usage: UsageToolRun(id: tool.id, ok: true, ms: executionMS, errorClass: nil),
+                    output: output, readToolOutput: readToolOutput)
+            }
             return ToolStepResult(
                 canonicalID: canonicalID, disposition: .completed(output: output),
                 usage: UsageToolRun(id: tool.id, ok: true, ms: executionMS, errorClass: nil),

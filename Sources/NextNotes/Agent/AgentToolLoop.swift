@@ -89,12 +89,53 @@ enum AgentToolLoop {
     /// for calling the right tool on the wrong day. Exactly one relative day is grounded —
     /// "today and tomorrow" is two, and guessing which one the person meant is worse than
     /// leaving the model's own answer to be corrected by the card.
+    ///
+    /// A mail filter is grounded here for the same reason and by the same rule: **a search
+    /// term the user did not say is not searched for.** P1-14, measured on 2026-09-26 — the
+    /// mail class is the one class with no rule line, and a 4B planner invented a filter for
+    /// every mail request that did not name one:
+    ///
+    /// | Request | Filter the model wrote | What it matched |
+    /// |---|---|---|
+    /// | "Summarize my last 5 emails" (M01) | `recent`, `subject:.*`, `subject:'summary' OR …` | nothing |
+    /// | "Check my email … then do a summary" (M03) | `recent` | nothing |
+    /// | "Summarize my last emails" (M05) | `recent` | nothing |
+    /// | "Summarize my last emails and list my events for tomorrow" (C04) | `subject:'ProductFlo'` | nothing |
+    ///
+    /// `subject:'ProductFlo'` is the one that matters: the company name came from a *memory
+    /// fact* in the prompt, and the turn reported "No emails related to ProductFlo were
+    /// found" about a mailbox holding six messages. A filter nobody asked for does not
+    /// produce a wrong answer here — it produces an **invented** one, and it is the one place
+    /// the app was letting a model search by something the user never said.
+    ///
+    /// The rule is provenance, not a keyword list: a clause survives when its content words
+    /// are words the user said, so `from:Marcus` survives "Any new emails from Marcus?" and
+    /// `subject:dentist` survives "find my email about the dentist", while `recent` and
+    /// `subject:'ProductFlo'` do not survive anything. A clause that is dropped takes only
+    /// itself, so a query the user did partly ask for is narrowed rather than discarded. When
+    /// nothing survives the query is empty, which `search_email` documents as the latest mail
+    /// — the answer to "my last emails", and the only answer that is not a filter the user
+    /// did not ask for.
+    /// One function, one row per tool, both reachable — a chain of guards would have made
+    /// the second rule unreachable the day someone added a third.
     static func groundedArguments(
         for tool: String, proposed: [String: String], request: String,
         now: Date = Date(), calendar: Calendar = .current
     ) -> [String: String] {
-        guard tool == "get_agenda",
-              request.range(of: #"\b\d{4}-\d{2}-\d{2}\b"#, options: .regularExpression) == nil,
+        switch tool {
+        case "get_agenda": groundCalendarDay(proposed, request: request, now: now, calendar: calendar)
+        case "search_email": groundMailFilter(proposed, request)
+        default: proposed
+        }
+    }
+
+    /// The relative day, on its own, so the calendar rule and the mail rule read as two rows
+    /// of one table rather than as a chain of guards.
+    private static func groundCalendarDay(
+        _ proposed: [String: String], request: String, now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [String: String] {
+        guard request.range(of: #"\b\d{4}-\d{2}-\d{2}\b"#, options: .regularExpression) == nil,
               let day = relativeDay(in: request, now: now, calendar: calendar)
         else { return proposed }
         var grounded = proposed
@@ -105,6 +146,83 @@ enum AgentToolLoop {
         grounded["date"] = String(format: "%04d-%02d-%02d", year, month, dayNumber)
         return grounded
     }
+
+    /// Gmail's own field names, the ones the tool's parameter description advertises plus the
+    /// rest of the common set. A field word is *not* content: the model writes `subject:` for
+    /// something the user described in their own words, and that is the field doing its job.
+    private static let mailFields: Set<String> = [
+        "from", "to", "cc", "bcc", "subject", "in", "is", "has", "label", "list", "filename",
+        "newer_than", "older_than", "after", "before", "larger", "smaller", "deliveredto",
+        "category", "rfc822msgid", "category", "size",
+    ]
+    /// The fields whose value is a span of time rather than a word, so their value is checked
+    /// against what the user said about time instead of token by token.
+    private static let mailAgeFields: Set<String> = ["newer_than", "older_than", "after", "before"]
+    /// What a person says when they mean a span of time. Deliberately generous: a false
+    /// negative here drops a date filter the user did ask for.
+    private static let timeWords: [String] = [
+        "today", "yesterday", "week", "month", "year", "day", "days", "recent", "latest",
+        "last", "past", "since", "before", "after", "earlier", "ago", "tonight", "morning",
+        "tonight", "friday", "saturday", "sunday", "monday", "tuesday", "wednesday",
+        "thursday", "hour", "hours", "minute", "minutes",
+    ]
+
+    private static func groundMailFilter(
+        _ proposed: [String: String], _ request: String
+    ) -> [String: String] {
+        guard let written = proposed["query"] else { return proposed }
+        let trimmed = written.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return proposed }
+        let said = request.lowercased()
+        let kept = mailClauses(of: trimmed).filter { saidClause($0, in: said) }
+        var grounded = proposed
+        let keptText = kept.joined(separator: " OR ")
+        if keptText.isEmpty {
+            grounded.removeValue(forKey: "query")
+        } else if keptText != trimmed {
+            grounded["query"] = keptText
+        }
+        if grounded["query"] != written {
+            Log.agent.info(
+                "grounded search_email query “\(String(written.prefix(60)), privacy: .public)” to “\(String(keptText.prefix(60)), privacy: .public)”")
+        }
+
+        return grounded
+    }
+
+    /// One `OR`-separated clause. Gmail's `OR` is uppercase by convention, so a lowercase
+    /// "or" is free text and is left inside the clause.
+    private static func mailClauses(of query: String) -> [String] {
+        query
+            .replacingOccurrences(of: "\n", with: " OR ")
+            .components(separatedBy: " OR ")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    /// Whether every content word of one clause is a word the user said, and whether a
+    /// field the user did not name is being used only as a field.
+    private static func saidClause(_ clause: String, in request: String) -> Bool {
+        let parts = clause.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        let fieldName = parts.count == 2
+            ? String(parts[0]).trimmingCharacters(in: .whitespacesAndNewlines).lowercased() : ""
+        // A colon that is not a field we know is part of the words — "Re: contract" is a
+        // subject, not a field called "re".
+        let isField = parts.count == 2 && mailFields.contains(fieldName)
+        if mailAgeFields.contains(fieldName) {
+            return timeWords.contains { request.contains($0) }
+        }
+        let content = isField ? String(parts[1]) : clause
+        let words = content
+            .lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { $0.count >= 3 }
+        // A clause of nothing but wildcards and punctuation is a filter that matches
+        // everything, which is the same as no filter — `subject:.*` is one.
+        guard !words.isEmpty else { return false }
+        return words.allSatisfy { request.contains($0) }
+    }
+
 
     /// The one relative day a request names, or nil. Today, tomorrow, yesterday, or
     /// `on <weekday>` meaning the next such day — today when today is that day.

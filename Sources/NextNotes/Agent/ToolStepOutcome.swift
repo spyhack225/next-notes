@@ -25,6 +25,19 @@ struct ToolRepair: Sendable, Equatable {
     /// Valid tool ids, or near names for a name that resolved to nothing.
     let options: [String]
 
+    /// P1-11's text, unchanged.
+    ///
+    /// A fourth variant was written and measured on 2026-09-26: every repair opened by naming
+    /// its authority — "From the application, about the result you just got — a fact about this
+    /// Mac, not something the user said" — on the theory that a repair delivered inside a tool
+    /// result is read as untrusted output and ignored without it. It was ignored with the label
+    /// too (all four mail cases then proposed no call at all), and the label was not free: on
+    /// this model it made the same sentences read as commentary about the turn rather than as
+    /// an error to correct, and three cases that answer by denying moved from their own
+    /// verdicts into `REFUSAL`, a safety class that has to stay at zero. So the plain sentence
+    /// P1-11 measured is the one that ships, and `AgentRefusalGuard.rebuttal` — the one note
+    /// the app has production evidence a model acts on — keeps its own opening clause because
+    /// it is not a repair and never was one.
     var modelText: String {
         "ERROR \(kind.rawValue): \(message)"
             + (options.isEmpty ? "" : " Valid options: " + options.joined(separator: ", ") + ".")
@@ -50,6 +63,90 @@ enum ToolStepOutcome: Sendable {
     case denied(userSentence: String)
     /// Not signed in, not installed, timed out, backend down. What to do goes in the sentence.
     case infrastructure(userSentence: String)
+}
+
+/// A read that ran, succeeded, and matched nothing — where the tool's **own description**
+/// documents a different call that would have answered the request. P1-14.
+///
+/// This is not the same failure as an unreadable query, and the difference is the whole
+/// point. An unknown operator throws `invalidRequest` and the classifier above turns it into
+/// `.recoverable(.invalidArgument)`: the query was not runnable. A query that runs and matches
+/// nothing is a **true answer**, and the honest thing to do with it is usually to say so.
+/// The live eval measured what the app did instead on 2026-09-26, four cases in a row:
+///
+/// - "Summarize my last 5 emails" → `search_email(query: "recent")` → "No message matches
+///   recent." → *"I don't have any emails that match your request"* (M01, 53 s, three
+///   narrowing queries in one round and a miss each time).
+/// - "Check my email, check the last email and then do a summary" → the same `recent`
+///   (M03). "Summarize my last emails" → the same `recent` (M05). "Summarize my last emails
+///   and list me my events for tomorrow" → `subject:'ProductFlo'`, a filter invented from a
+///   memory fact (C04).
+///
+/// `search_email`'s summary has said "Leave the query empty for the latest mail" and its
+/// `query` parameter has said "Empty = latest mail" all along. `WorkspaceToolRunner` reads an
+/// empty query as `in:inbox`. So the app had the answer in its own tool description, the model
+/// guessed a filter instead, and the guess matched nothing — and nothing in the turn ever
+/// mentioned the documented fallback, because a miss is a perfectly good result string.
+///
+/// So the tool's answer sentence is the signal, not a new field on the result: the sentence is
+/// a contract between the tool and the model, the live eval's mailbox fixture answers the
+/// identical string, and `--selftest-toolloop-live-grader` already pins that the two agree
+/// (which is what lets one detector read both). A new field would have had to be set by the
+/// fixture too, and the fixture is a measurement.
+///
+/// **It corrects the query, never the truth.** The note says out loud that nothing matched,
+/// and that for a search about something specific that *is* the answer to give. One repair per
+/// turn (`ToolStepRunner` owns the single flag), so a mailbox that is genuinely empty produces
+/// one extra round and then the honest sentence rather than a loop.
+///
+/// **It is the second line, not the mechanism.** P1-14's real fix is upstream of it: a search
+/// term the user never said is not searched for (`AgentToolLoop.groundMailFilter`), so the
+/// misses this repair exists for are rare by the time it is reached. It was measured firing on
+/// all four mail cases and fixing none of them — the model answers prose after a repair
+/// whatever the note says — and it is kept because it is the correct handling of a valid query
+/// that matches nothing, not because it carried a case.
+enum ReadMissRecovery {
+    /// The sentence a mail search answers when its query matched nothing.
+    /// `WorkspaceToolRunner.searchEmail` and `LiveEvalFixtures.mailSearch` both return
+    /// exactly this, and the grader's own self-test fails if either stops.
+    static let mailMissPrefix = "No message matches"
+
+    /// The documented query that means "the latest mail, unfiltered". Empty, because that is
+    /// what `search_email` documents; `GmailQuery.inbox` is what it runs. Named here so a
+    /// prompt and a detector cannot state it two ways.
+    static let mailFallback = "the query left out entirely"
+
+    /// The repair for one read's miss, or nil when this was not one.
+    ///
+    /// - Parameters:
+    ///   - toolID: the canonical id the step ran under.
+    ///   - arguments: what the model wrote, so a query that was *already* the documented
+    ///     fallback is never told to try itself.
+    ///   - result: the tool's own answer.
+    static func repair(
+        toolID: String, arguments: [String: String], result: String
+    ) -> ToolRepair? {
+        guard toolID == "search_email" else { return nil }
+        guard result.hasPrefix(mailMissPrefix) else { return nil }
+        let written = (arguments["query"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        // Already the documented fallback, or the fallback the runner substitutes for it:
+        // there is nothing to correct, and a second identical call is a repeat, not a repair.
+        guard !written.isEmpty, written.caseInsensitiveCompare(WorkspaceToolRunner.GmailQuery.inbox) != .orderedSame
+        else { return nil }
+        // One action, then the honest alternative, in that order: the version that offered
+        // both as equals was taken the first way every time.
+        return ToolRepair(
+            kind: .badQuery, toolID: toolID,
+            message: """
+                Nothing matched “\(written)”. A mailbox search takes a sender (from:), a \
+                subject (subject:), a date (newer_than:2d) or a flag (is:unread); a plain word \
+                like “\(written)” is not a filter and matches no mail. Call it again with \
+                \(mailFallback) and it returns the user's latest mail, which is what a request \
+                for their email almost always means. Only if the user really asked about one \
+                specific sender or subject, and there is none, is "there is none" the whole \
+                answer.
+                """)
+    }
 }
 
 /// One table, read in one place, so "a failed tool ends the turn" is no longer decided by

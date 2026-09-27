@@ -272,6 +272,29 @@ struct AgentCapabilityManifest: Sendable, Equatable {
         if selectedIntents.contains(.files) {
             lines.append(FileIndexer.shared.promptSummary ?? "")
         }
+        if selectedIntents.contains(.mail) {
+            lines.append("""
+                Email: search_email takes a sender (from:), a subject (subject:), a date \
+                (newer_than:2d) or a flag (is:unread) — or nothing. Put a filter in only when \
+                the user named a sender, a subject or a date; a filter that would match every \
+                message is the same as no filter, so leave it out. "my email", "my last \
+                emails", "check my mail" and anything like them mean no filter at all, which \
+                returns the latest mail. Leave maxResults out unless the user asked for a \
+                number, because a summary needs the recent mail rather than one message. A \
+                plain word such as "recent" is not a filter: it matches no mail, so the turn \
+                ends as a search that found nothing.
+                When a request has two parts, do them in order. A second part that needs an \
+                address or a choice is a question to ask, never a promise to send.
+                """)
+        }
+        if selectedIntents.contains(.screen) {
+            lines.append("""
+                The Mac: which app is frontmost, what its window says and what is on the screen \
+                come from computer.active_app, computer.windows and computer.inspect_ui. If the \
+                user asks and you have not called one, you do not know: never fill the answer in \
+                with a placeholder such as an app name in brackets.
+                """)
+        }
         return lines.filter { !$0.isEmpty }.joined(separator: "\n")
     }
 
