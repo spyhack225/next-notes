@@ -93,6 +93,13 @@ enum FunctionCallCatalogue {
         switch parameter.kind {
         case .date: return .dateTime
         case .multiline: return .longText
+        // P1-25: the mark on the parameter is authoritative and the name heuristic above is
+        // not. The heuristic has to encode "id", "_id" and "_ids" and is wrong about `message`
+        // (a search number, not an id) and about any tool that calls something a `reference`;
+        // the mark is on the parameter, next to its description, where the person writing the
+        // tool says what it is. The name test is left because it is a *display* concern here
+        // and was not introduced by this task.
+        case .identifier: return .identifier
         case .list, .text: return .text
         }
     }

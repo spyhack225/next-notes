@@ -1989,6 +1989,7 @@ extension RealtimeAgent {
                     let step = await runner.execute(call)
                     if case .completed = step.disposition, let output = step.output {
                         AgentSession.shared.noteToolCompleted(pending.toolID)
+                        AgentSession.shared.noteToolOutput(output)
                         results.append(carried(pending.toolID, output))
                         beginWork(title: Self.composingTitle)
                         return planned(await finalAnswerRound(reason: .accountRead))
@@ -2047,6 +2048,11 @@ extension RealtimeAgent {
                 if let usage = step.usage { roundRecorder.executed(usage) }
                 if let output = step.output {
                     results.append(carried(step.canonicalID, output))
+                    // P1-25: the raw result, not the capped one that goes to the model. The
+                    // point of the store is "the person was shown this", and the cap is applied
+                    // for the reader's window -- a document id near the end of a long listing
+                    // would be cut before the model saw it and must not be un-grounded for that.
+                    AgentSession.shared.noteToolOutput(output)
                     speech?.recordVerifiedResult(toolID: step.canonicalID, output: output)
                 }
                 switch step.disposition {

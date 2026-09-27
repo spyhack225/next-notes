@@ -63,6 +63,10 @@ struct ProposalArgumentsSheet: View {
         .frame(width: DS.Size.sheetWidth)
     }
 
+    /// P1-25's `.identifier` kind rides with the single-line fields rather than getting a case
+    /// of its own: an id is one unbroken string, so a `TextEditor` would be a puzzle box, and by
+    /// the time a person is looking at this sheet the value came from a search result or from
+    /// their own sentence because `AgentIdentifierGrounding` already refused anything else.
     @ViewBuilder
     private func field(for parameter: WorkspaceTool.Parameter) -> some View {
         switch parameter.kind {
@@ -79,7 +83,7 @@ struct ProposalArgumentsSheet: View {
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
             }
-        case .text, .list, .date:
+        case .identifier, .text, .list, .date:
             LabeledContent(label(parameter)) {
                 VStack(alignment: .trailing, spacing: DS.Space.xxs) {
                     TextField(parameter.description, text: binding(parameter.name))

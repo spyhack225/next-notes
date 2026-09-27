@@ -151,6 +151,9 @@ enum ToolCallReviewBuilder {
         switch parameter.kind {
         case .multiline: return .longText
         case .date: return .dateTime
+        // P1-25: shown on the card verbatim, and the check that it is worth showing runs before
+        // the card exists. Same reason as `ToolCallValidation.fieldKind`.
+        case .identifier: return .text
         case .list, .text: break
         }
         if name == "to" || name == "cc" || name == "bcc" || name.contains("email")

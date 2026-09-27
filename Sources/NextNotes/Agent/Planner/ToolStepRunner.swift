@@ -193,6 +193,31 @@ final class ToolStepRunner: ToolStepExecuting {
         // Bound by this code, not taken from the model: what the user said this turn.
         let arguments = AgentToolLoop.groundedArguments(
             for: canonicalID, proposed: call.arguments, request: request)
+        // P1-25: an id has to come from something the person was shown or something they said.
+        // This sits **before** the repeated-call signature and before the executor, and that
+        // position is the whole point: on 20 September an `append_doc` was approved with
+        // `document_id` = "You open Google Chrome", and Google rejected it. A refusal here is a
+        // repair, so the model reads one plain sentence on the next round and a card is never
+        // shown — and the whole call is refused rather than its arguments trimmed, because a
+        // half-grounded `append_doc` is a write to a document nobody named.
+        let ungrounded = AgentIdentifierGrounding.ungrounded(
+            toolID: canonicalID, arguments: arguments,
+            haystack: AgentSession.shared.groundingHaystack())
+        if let first = ungrounded.first {
+            agent.plannerTraceForTesting?(.rejectedCall(
+                name: call.name, reason: "ungrounded identifier"))
+            AgentAuditLog.shared.record(
+                kind: .tool, title: "Refused a call with an id nothing supplied",
+                detail: "\(first.parameter) was not in any result the user saw",
+                toolID: canonicalID)
+            guard repairs < maxRepairs else {
+                return ToolStepResult(canonicalID: canonicalID, disposition: .endTurn(
+                    .stopped("I couldn't find that, so I stopped there.")))
+            }
+            repairs += 1
+            return ToolStepResult(canonicalID: canonicalID, disposition: .repaired(
+                toolID: canonicalID, note: AgentIdentifierGrounding.note(for: first)))
+        }
         // Keyed on the canonical id, so an alias and its own spelling are one step.
         let signature = canonicalID + "|" + arguments.keys.sorted()
             .map { "\($0)=\(arguments[$0] ?? "")" }.joined(separator: "|")

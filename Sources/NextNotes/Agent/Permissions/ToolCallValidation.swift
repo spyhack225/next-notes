@@ -84,6 +84,11 @@ enum ToolCallValidation {
         switch parameter.kind {
         case .multiline: return .longText
         case .date: return .dateTime
+        // P1-25: an id is text as far as the *card* is concerned — a card shows it so a person
+        // can check it — and it is P1-25's own check, before this one, that decides whether it is
+        // worth showing at all. Naming it here rather than letting it fall into the `.list, .text`
+        // arm means the kind is never silently forgotten if the switch is ever read.
+        case .identifier: return .text
         case .list, .text:
             let name = parameter.name.lowercased()
             if name == "to" || name == "cc" || name == "bcc" || name.contains("email")

@@ -44,6 +44,11 @@ struct WorkspaceTool: Sendable, Identifiable {
             case list
             /// ISO 8601, or a plain `YYYY-MM-DD`.
             case date
+            /// An identifier issued by a tool or the person: a document id, a message number, a
+            /// file id. P1-25's kind, and **marked here rather than guessed from the name** — a
+            /// heuristic on the name would have to encode "id", "_id" and "message" and would be
+            /// wrong the first time a tool called something `reference`.
+            case identifier
         }
 
         /// The JSON-schema type. Everything is a string: the model writes command-line
@@ -54,6 +59,8 @@ struct WorkspaceTool: Sendable, Identifiable {
             switch kind {
             case .list: schema["description"] = "\(description) Comma-separated."
             case .date: schema["description"] = "\(description) ISO 8601."
+            case .identifier: schema["description"] = "\(description) Copy it exactly from a "
+                + "search result or from what the user said; do not invent one."
             case .text, .multiline: break
             }
             return schema
@@ -101,7 +108,8 @@ enum WorkspaceTools {
             summary: "Read one email in full, by the number a search printed beside it.",
             risk: .read,
             parameters: [
-                .init(name: "message", description: "The number from the last search, or a message id.")
+                .init(name: "message", description: "The number from the last search, or a message id.",
+                      kind: .identifier)
             ],
             titleBuilder: { arguments in
                 let message = arguments["message"] ?? ""
@@ -143,7 +151,8 @@ enum WorkspaceTools {
             summary: "Read the text of a Google Doc the user can open, by its document id.",
             risk: .read,
             parameters: [
-                .init(name: "document_id", description: "The Google Docs document id.")
+                .init(name: "document_id", description: "The Google Docs document id.",
+                           kind: .identifier)
             ],
             titleBuilder: { "Read the Doc \($0["document_id"] ?? "")" },
             previewBuilder: nil
@@ -172,7 +181,8 @@ enum WorkspaceTools {
             summary: "Append text to the end of an existing Google Doc.",
             risk: .write,
             parameters: [
-                .init(name: "document_id", description: "The document to append to."),
+                .init(name: "document_id", description: "The document to append to.",
+                           kind: .identifier),
                 .init(name: "text", description: "The text to append.", kind: .multiline),
             ],
             titleBuilder: { "Add to the Doc \($0["document_id"] ?? "")" },
@@ -269,7 +279,8 @@ enum WorkspaceTools {
             summary: "Reply to a Gmail message the user has received, in its own thread.",
             risk: .send,
             parameters: [
-                .init(name: "message_id", description: "The Gmail message id to reply to."),
+                .init(name: "message_id", description: "The Gmail message id to reply to.",
+                        kind: .identifier),
                 .init(name: "body", description: "The reply, in plain text.", kind: .multiline),
             ],
             titleBuilder: { "Reply to \($0["message_id"] ?? "")" },

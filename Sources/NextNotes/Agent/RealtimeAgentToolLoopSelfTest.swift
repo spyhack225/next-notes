@@ -1216,6 +1216,110 @@ enum RealtimeAgentToolLoopSelfTest {
             }
         }
         print("  TOOLLOOP_PRODUCTION_ACCOUNT_READ: 10 cases, guard is pure")
+        failures.append(contentsOf: runIdentifierCases(check: check))
+        return failures
+    }
+
+    /// P1-25's table. Pure: no model, no provider, no store, no executor.
+    ///
+    /// The failure it exists for is the only Workspace write ever approved on this Mac: an
+    /// `append_doc` whose `document_id` was *"You open Google Chrome"*, approved about eight
+    /// seconds after it was proposed, and rejected by Google. The id was a fragment of the
+    /// person's own sentence — so the rule is not "an id must look like an id", it is "an id
+    /// must have been *said*", and that is what I4 pins as carefully as I1.
+    static func runIdentifierCases(check: (String, Bool) -> Void) -> [String] {
+        var failures: [String] = []
+        func fail(_ name: String) { failures.append(name); check(name, false) }
+
+        // Every id-kind parameter in the catalogue is marked. One mark per parameter, and
+        // "every" is the assertion: a tool added next month with an unmarked `document_id`
+        // would otherwise be silently unguarded.
+        var marked: [String] = []
+        for tool in WorkspaceTools.all {
+            marked += tool.parameters.filter { $0.kind == .identifier }.map {
+                "\(tool.name).\($0.name)"
+            }
+        }
+        for expected in ["read_email.message", "read_doc.document_id", "append_doc.document_id",
+                         "reply_email.message_id"] {
+            if marked.contains(expected) == false {
+                fail("\(expected) is not marked as an identifier")
+            }
+        }
+        // Nothing else in the catalogue claims to be one, so a later tool cannot be guarded by
+        // accident through a name the heuristic happens to like.
+        if marked.count != 4 {
+            fail("\(marked.count) parameters are marked as identifiers, expected 4: "
+                 + marked.joined(separator: ", "))
+        }
+
+        // I1 — the owner's own call. Red before the guard: nothing looked at the value.
+        //
+        // The refusal is read through a **named binding**, never an index. The first version of
+        // this case indexed `[0]` after an `isEmpty` check, and when the guard (wrongly) found
+        // nothing the test crashed with "Index out of range" instead of failing — which is how a
+        // real bug in the guard was found, and the worst way to find one.
+        let said = "Append bring passports to the trip doc"
+        let refusals = AgentIdentifierGrounding.ungrounded(
+            toolID: "append_doc", arguments: ["document_id": "You open Google Chrome"],
+            haystack: said)
+        guard let refusal = refusals.first else {
+            fail("I1: an id lifted from the person's own sentence was accepted")
+            print("  TOOLLOOP_PRODUCTION_IDENTIFIERS: aborted at I1, no guard to describe")
+            return failures
+        }
+        let note = AgentIdentifierGrounding.note(for: refusal)
+        if note.contains("document_id") {
+            fail("I1b: the refusal names a schema key the model must not read back")
+        }
+        if note.contains("You open Google Chrome") {
+            fail("I1c: the refusal quotes the value back, so the model can keep it")
+        }
+
+        // I2 — the id a search actually returned. This is the case that must keep working:
+        // a guard that refuses every id is a guard that stops Drive and Docs.
+        let found = "1) Pricing sheet v3 — Google Drive (id: 1AbCdEfGhIjKlMnOp)"
+        if AgentIdentifierGrounding.ungrounded(
+            toolID: "append_doc", arguments: ["document_id": "1AbCdEfGhIjKlMnOp"],
+            haystack: said + "\n" + found).isEmpty == false {
+            fail("I2: an id a search returned was refused")
+        }
+
+        // I3 — an id the person typed. The rule is "said or shown", and a person typing a
+        // document id is the other half of that; refusing it would make a working request
+        // impossible for the exact people who can do it.
+        if AgentIdentifierGrounding.ungrounded(
+            toolID: "append_doc", arguments: ["document_id": "1XyZ"],
+            haystack: said + "\nAppend to doc 1XyZ please").isEmpty == false {
+            fail("I3: an id the user typed was refused")
+        }
+
+        // I4 — the message *number*. A search prints numbered rows and the tool description
+        // says to read one by its number, so "2" is grounded by the number being printed and
+        // not by anything resembling an id. A substring test handles it; a shape test would
+        // have refused it, and refusing it would break every "read the second one" turn.
+        let listed = "1) Marcus Lee — Pricing sheet v3\n2) Ana Ruiz — Deck for Friday\n3) Cyril"
+        if AgentIdentifierGrounding.ungrounded(
+            toolID: "read_email", arguments: ["message": "2"],
+            haystack: listed).isEmpty == false {
+            fail("I4: a search result's own numbering was refused")
+        }
+        // And a number that was not printed is refused, which is the same test's other half.
+        if AgentIdentifierGrounding.ungrounded(
+            toolID: "read_email", arguments: ["message": "9"],
+            haystack: listed).isEmpty {
+            fail("I4b: a message number no search printed was accepted")
+        }
+
+        // A tool with no marked parameter is untouched by all of this, so nothing that is not
+        // an id can be refused by a rule about ids.
+        if AgentIdentifierGrounding.ungrounded(
+            toolID: "create_event", arguments: ["title": "Anything at all"],
+            haystack: "nothing relevant here").isEmpty == false {
+            fail("a non-identifier parameter was refused by the identifier rule")
+        }
+        print("  TOOLLOOP_PRODUCTION_IDENTIFIERS: \(4) id parameters marked, "
+            + "I1–I4 green, matcher is \"FunctionCallGrounding\" reused")
         return failures
     }
 
@@ -1641,20 +1745,40 @@ enum RealtimeAgentToolLoopSelfTest {
         window: Int, tool: String
     ) async -> (characters: Int, reply: String) {
         let log = PlannerScriptLog()
-        let arguments = tool == "read_doc"
-            ? #"{"document_id":"1"}"# : #"{"query":"pricing"}"#
+        // P1-25 changed this fixture, and the change is the point. It used to ask
+        // `read_doc` with `document_id` "1" on a turn about a pricing sheet — an id nothing
+        // said and nothing showed — and the identifier guard refused it, so the case measured
+        // 0 characters and failed. **The guard was right and the fixture was wrong**: a real
+        // turn cannot have an id nobody ever saw. So the script now does what a person would
+        // do, search and then read the document the search named, which also puts I2's
+        // scenario through the real loop rather than only through the pure function.
+        let documentID = "1AbCdEfGhIjKlMnOp"
+        let script: [String]
+        if tool == "read_doc" {
+            script = [hermes(#"{"name":"search_email","arguments":{"query":"pricing document"}}"#),
+                      hermes(#"{"name":"read_doc","arguments":{"document_id":"\#(documentID)"}}"#),
+                      "Here is what it says."]
+        } else {
+            script = [hermes(#"{"name":"search_email","arguments":{"query":"pricing"}}"#),
+                      "Here is what it says."]
+        }
         agent.localModelProviderForTesting = PlannerScriptProvider(
-            id: .localServer, window: window, promptTokens: 2_000,
-            script: [hermes("{\"name\":\"\(tool)\",\"arguments\":\(arguments)}"),
-                     "Here is what it says."],
-            log: log)
-        AgentToolExecutor.fakeForTesting = { _, _ in AgentToolResult(summary: bulk) }
+            id: .localServer, window: window, promptTokens: 2_000, script: script, log: log)
         agent.budgetForTesting = nil
         agent.setTypedPendingForTesting(nil)
+        // Cleared *after* the provider is built and before the turn, so the search's result is
+        // the only thing in the conversation when `read_doc` is planned.
         AgentSession.shared.clear()
         let ran = ScriptedToolLog()
         AgentToolExecutor.fakeForTesting = { tool, _ in
             ran.record(tool.id)
+            // The listing that grounds the id, and the document itself, are different sizes on
+            // purpose: the listing is short and the document is the bulk result whose cap this
+            // case is measuring.
+            if tool.id == "search_email" {
+                return AgentToolResult(summary: "1) Pricing sheet v3 — Google Drive (id: "
+                    + documentID + ")")
+            }
             return AgentToolResult(summary: bulk)
         }
         let turn = await agent.handle("what is in the pricing sheet", source: .text)

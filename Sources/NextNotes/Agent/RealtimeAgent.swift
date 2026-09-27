@@ -848,6 +848,36 @@ final class AgentSession {
 
     /// One call site, from the tool loop, so a tool cannot be planned and missed by the guard.
     func noteToolCompleted(_ toolID: String) { completedToolIDs.insert(toolID) }
+
+    /// What the conversation has actually been *shown*, for P1-25's id check. Bounded on both
+    /// axes and conversation-scoped, like `completedToolIDs`, because an id that was never
+    /// printed to anybody is an id nobody could have copied.
+    ///
+    /// A bounded window rather than "everything": it holds the last few results so a follow-up
+    /// turn ("append to that one") can still ground, and it stops there rather than growing with
+    /// a long conversation. The alternative — the full transcript — is what the planner is
+    /// already handed and is capped elsewhere; a second unbounded copy of it is the thing
+    /// AGENTS.md warns about, so this is capped at 12 results and 8,000 characters.
+    private var toolOutputLines: [String] = []
+    private static let toolOutputLimit = 12
+    private static let toolOutputCharacters = 8_000
+
+    func noteToolOutput(_ output: String) {
+        let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.isEmpty == false else { return }
+        toolOutputLines.append(trimmed)
+        if toolOutputLines.count > Self.toolOutputLimit {
+            toolOutputLines.removeFirst(toolOutputLines.count - Self.toolOutputLimit)
+        }
+    }
+
+    /// Everything the conversation has been shown, plus what the person said. One string, because
+    /// the matcher is a single substring test and two haystacks would be two chances to
+    /// disagree about what was in scope.
+    func groundingHaystack(now: Date = Date()) -> String {
+        let said = recentUserTexts(limit: 8).joined(separator: "\n")
+        return ([said] + toolOutputLines).joined(separator: "\n")
+    }
     /// A background task's announcement, recorded as a tool-backed row.
     static let backgroundTaskContextKind = "backgroundTask"
     /// The one routine offer a session gets. Not an answer: voice bookkeeping skips it.
@@ -1018,6 +1048,7 @@ final class AgentSession {
         // exchange ("summarise my emails" → "is this from my emails?") would have turn 2 re-read
         // an account turn 1 had already read, which is the cost of the guard this set feeds.
         completedToolIDs = []
+        toolOutputLines = []
         // A new session: the core-memory snapshot is read again, picking up the last one's saves.
         beginMemorySession()
     }
@@ -1237,6 +1268,7 @@ final class AgentSession {
         messages.removeAll()
         lastSuppressedVoice = nil
         completedToolIDs = []
+        toolOutputLines = []
         if let fileURL { try? FileManager.default.removeItem(at: fileURL) }
         onConversationCleared?()
     }

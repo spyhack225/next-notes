@@ -15,6 +15,9 @@ struct ToolRepair: Sendable, Equatable {
         case malformedCall = "malformed_call"
         case truncatedCall = "truncated_call"
         case badQuery = "bad_query"
+        /// P1-25: the call named an id no source supported. Recoverable, because the fix is a
+        /// search and then the exact value — which is why it is a repair and not a denial.
+        case ungroundedIdentifier = "ungrounded_identifier"
     }
 
     let kind: Kind
