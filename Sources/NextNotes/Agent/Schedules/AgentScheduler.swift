@@ -1219,7 +1219,11 @@ final class AgentScheduler {
                     let draft = try await approveDraft(id: id)
                     IslandState.shared.showAgentReply("Approved: \(draft.title)")
                 } catch {
-                    IslandState.shared.showAgentReply("That draft did not run: \(error.localizedDescription)")
+                    // P1-10b: the same renderer as the runner, so a card in the island and a
+                    // row in the list read the same way. "That draft did not run:" was also
+                    // the wrong tense for an approval that never started.
+                    IslandState.shared.showAgentReply(AgentReplyRenderer.render(
+                        .infrastructure(error.localizedDescription), voice: false))
                 }
             }
         case .recordNow, .skip, .open, .approveProposal, .dismissProposal:

@@ -367,7 +367,10 @@ final class PortraitService {
             store.notePass(now: now)
             return PortraitPassOutcome(result: .drafted(lines.count), model: model.label)
         } catch {
-            return PortraitPassOutcome(result: .failed(error.localizedDescription), model: model.label)
+            // P1-10b: the pane prints this reason after "The last look could not finish:", so
+            // a raw error was a raw error on screen. The pass's own model label is beside it.
+            return PortraitPassOutcome(result: .failed(AgentReplyRenderer.render(
+                .infrastructure(error.localizedDescription), voice: false)), model: model.label)
         }
     }
 
@@ -429,11 +432,22 @@ final class PortraitService {
     /// The model's prose, split into sentences. A pass offers at most three; anything past
     /// that is a report, and a report is what the notes are for. The drafts themselves are
     /// built by the caller, so they carry the model that actually wrote them.
+    /// P1-10b, and the reason the 27 September draft was a raw `<tool_call>` block: the
+    /// sentences were taken straight off the model's output. The scrub is the one every reply
+    /// gets, and a draft is a sentence a person is about to read, so it is not a second policy
+    /// — it is the same call. A line that is only markup is then shorter than the minimum and
+    /// is dropped, rather than being offered as an insight.
     static func sentences(from output: String) -> [String] {
         var result: [String] = []
         for line in output.split(whereSeparator: \.isNewline) {
-            let text = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
                 .trimmingCharacters(in: CharacterSet(charactersIn: "-•* "))
+            // Dropped, not cleaned. See `AgentReplyRenderer.containsMarkup`: a line the model
+            // spent on a call or on thinking leaves wreckage rather than a shorter sentence —
+            // `{"name":"search_email"}` once the id is gone, "Let me check the graph first."
+            // once the tags are — and neither is an insight to put in front of a person.
+            guard AgentReplyRenderer.containsMarkup(trimmed) == false else { continue }
+            let text = AgentReplyRenderer.scrub(trimmed, outcome: nil)
             guard text.count >= 20 else { continue }
             result.append(text)
             if result.count == 3 { break }

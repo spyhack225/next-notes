@@ -383,7 +383,13 @@ final class ScheduledRunner: ScheduledRunning {
                                toolID: tool.id, taskID: taskID, scheduleID: schedule.id)
                 return result.summary
             } catch {
-                return "\(tool.id) did not run: \(error.localizedDescription)"
+                // P1-10b: a sentence, through the one renderer. This used to be
+                // "\(tool.id) did not run: \(error.localizedDescription)" — a registry id and
+                // a raw error, in a routine's own words, with no turn to render it through. The
+                // audit row beside it still carries the tool id and the raw text, which is where
+                // they belong.
+                return AgentReplyRenderer.render(
+                    .infrastructure(error.localizedDescription), voice: false)
             }
         }
         // Anything that writes, sends or changes: prepare it, record the receipt, end the run.
@@ -411,7 +417,10 @@ final class ScheduledRunner: ScheduledRunning {
                            toolID: tool.id, taskID: taskID, scheduleID: schedule.id)
             return "Prepared as a draft for the user's approval; it was not run. Nothing more to do."
         } catch {
-            return "\(tool.id) could not be drafted: \(error.localizedDescription)"
+            // P1-10b, as above. "It was not run" is already in the sentence above this one —
+            // the success path says so — so the failure says what went wrong, in words.
+            return AgentReplyRenderer.render(
+                .infrastructure(error.localizedDescription), voice: false)
         }
     }
 
@@ -508,7 +517,10 @@ enum RoutineDraftApproval {
             return draft
         } catch {
             draft.status = .failed
-            draft.result = error.localizedDescription
+            // P1-10b: `RoutinesView` prints this after "Failed:", so a raw error was a raw
+            // error in the list. The audit event two lines down keeps the original text.
+            draft.result = AgentReplyRenderer.render(
+                .infrastructure(error.localizedDescription), voice: false)
             store.saveDraft(draft)
             ActionOrchestrator.shared.appendExternalEvent(
                 actionID: draft.receiptID, stage: .failed, detail: error.localizedDescription)

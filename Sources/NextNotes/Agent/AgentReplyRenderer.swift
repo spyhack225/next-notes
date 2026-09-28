@@ -142,6 +142,13 @@ enum AgentTurnOutcome: Sendable {
     case modelFailed(String)
     /// A hand-off to another harness could not do it and the turn ran here instead.
     indirect case handedOffFellBack(note: String, then: AgentTurnOutcome)
+    /// J L8 (2026-09-27): the model spent its whole answer allowance and stopped mid-answer.
+    /// The partial text is kept, because throwing it away loses a real answer, and the fact
+    /// that it stops is said, because showing half a sentence as though it were the whole one
+    /// is the failure. Distinct from `.repairLimit`, which is about how the *turn* went rather
+    /// than where the tokens ran out, and from `.timedOut`, which is our clock rather than the
+    /// model's allowance.
+    case cutShort(String)
 }
 
 /// The one place a reply is written for a person.
@@ -171,6 +178,8 @@ enum AgentReplyRenderer {
         case .modelFailed: return "The model didn't finish that answer. Try again."
         case .handedOffFellBack(let note, let then):
             return handoffNote(note) + "\n\n" + render(then, voice: voice)
+        case .cutShort(let partial):
+            return withResult(partial, "I was cut off there — ask me to go on.")
         }
     }
 
@@ -231,14 +240,39 @@ enum AgentReplyRenderer {
     /// cut off mid-object leaked exactly that on 2026-09-23. One alternation, compiled
     /// once: this runs on every reply and a regex per marker per reply is 20 compiles for
     /// the same answer.
+    /// **`\u200B`, not `\u{200B}`.** The braces are Swift's spelling for a code point; ICU
+    /// wants the four-hex-digit form, so the pattern as written **did not compile** — and
+    /// `try?` turned that into `nil`, which `if let markupRegex` then skipped in silence. The
+    /// first step of the scrub on every reply had never run: the 27 September Portrait draft
+    /// that was a raw `<tool_call>` block (J L9) went through this exact function. A
+    /// self-test now asserts the regex exists, so a second uncompilable pattern is a named
+    /// failure rather than a scrub that quietly does nothing.
     private static let markupRegex = try? NSRegularExpression(pattern: [
-        #"<\u{200B}?/?tool_call>"#, #"</\u{200B}?tool_call>"#,
+        #"<\u200B?/?tool_call>"#, #"</\u200B?tool_call>"#,
         #"<use_tools\s*/?>"#, #"<answer\s*/?>"#, #"<think>"#, #"</think>"#,
         #"<function[^>]*>"#, #"</function>"#, #"<parameter[^>]*>"#, #"</parameter>"#,
         #"\[TOOL_CALLS\]"#, #"</?tool_calls>"#, #"<\|[^>]*>"#, #"\|>"#,
         #"name=""#, #"\{"name"""#, #",?"arguments""#, #"\{"arguments"""#,
-        #"<\u{200B}?/?invoke[^>]*>"#, #"</\u{200B}?invoke>"#,
+        #"<\u200B?/?invoke[^>]*>"#, #"</\u200B?invoke>"#,
     ].joined(separator: "|"))
+
+    /// Whether the markup pattern compiled. Nothing may be shown to a person on the strength
+    /// of a regex that is silently absent, and a `try?` cannot report its own failure.
+    static var markupPatternCompiled: Bool { markupRegex != nil }
+
+    /// Whether `text` carries raw tool markup or a reasoning block at all.
+    ///
+    /// Distinct from `scrub`, and needed because scrubbing is not always enough. Strip the tags
+    /// off a model's `<think>Let me check the graph.</think>` and the sentence is left looking
+    /// exactly like an insight; strip them off a call and `{"name":"search_email"}` is left
+    /// behind. So a caller that is choosing *lines* — the Portrait pass, which offers a draft
+    /// for a person to keep — asks this first and drops the line, rather than offering the
+    /// wreckage of a line the model spent on something else.
+    static func containsMarkup(_ text: String) -> Bool {
+        guard let markupRegex else { return false }
+        return markupRegex.firstMatch(
+            in: text, range: NSRange(text.startIndex..., in: text)) != nil
+    }
 
     /// Every registry id and alias the scrub removes, from the one registry, so a new tool
     /// is covered the day it is added and none of this has to be kept in step by hand.

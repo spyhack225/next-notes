@@ -43,10 +43,101 @@ enum ScheduleSelfTest {
         failures += await triggerFailures(root: root)
         failures += await GoalSelfTest.failures(root: root.appendingPathComponent("goals"))
         failures += policyFailures()
+        failures += p110bReplyCases()
 
         for failure in failures { print("SCHEDULE_CHECK_FAILED: \(failure)") }
         print(failures.isEmpty ? "SCHEDULE_OK" : "SCHEDULE_FAILED")
         return failures.isEmpty
+    }
+
+    /// P1-10b: a routine's failure sentence is a sentence, not an audit row.
+    ///
+    /// Four places put a raw error, and two of them a registry id, in front of a person: a
+    /// routine read that failed, a draft that could not be prepared, the stored `draft.result`
+    /// the Routines list prints after "Failed:", and the island's reply when an approval does
+    /// not go through. None of them had a turn to render through, which is why they each wrote
+    /// their own — and why the task's grep found them.
+    ///
+    /// The fix is the existing renderer, not a second vocabulary beside it: `.infrastructure`
+    /// already knows the four causes a person can act on, and `.denied` carries a plain
+    /// sentence through untouched. The sentences are checked here; the four call sites are
+    /// checked as text, because a call site that interpolates `localizedDescription` into a
+    /// returned string is invisible to any test that only calls a function.
+    @MainActor
+    static func p110bReplyCases() -> [String] {
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+        // The four causes, through the one renderer, typed and spoken.
+        for (reason, expected) in [
+            ("not signed in", "isn't connected"),
+            ("The helper is not installed", "isn't installed"),
+            ("Google timed out", "didn't answer in time"),
+            ("HTTP 429: quota exceeded", "usage limit"),
+        ] {
+            let typed = AgentReplyRenderer.render(.infrastructure(reason), voice: false)
+            check("a routine failure that means \"\(reason)\" says \"\(expected)\", "
+                + "got \"\(typed)\"", typed.localizedCaseInsensitiveContains(expected))
+            check("a routine failure sentence carries no url: \"\(typed)\"",
+                  !typed.lowercased().contains("http"))
+        }
+        // An unrecognised cause keeps the provider's words — that is the renderer's contract,
+        // and it is how "isn't downloaded" survives — with the parts that are not for a person
+        // removed. So the assertion is about the *scrub*, not about the words disappearing:
+        // a url, a registry id and raw markup all have to go, and what is left is the reason.
+        let odd = AgentReplyRenderer.render(.infrastructure(
+            "GET https://api.gmail.com/v1/users/me: read <tool_call> search_email "
+                + "(OSStatus error -128.)"), voice: false)
+        check("an unrecognised routine failure is still a plain sentence: \"\(odd)\"",
+              odd.hasPrefix("I couldn't do that"))
+        check("an unrecognised routine failure drops the url, the id and the markup: \"\(odd)\"",
+              !odd.lowercased().contains("http") && !odd.contains("search_email")
+                && !odd.contains("tool_call"))
+        check("an unrecognised routine failure keeps the reason itself: \"\(odd)\"",
+              odd.contains("OSStatus error -128"))
+
+        // The four call sites, as text.
+        let forbidden: [(String, String)] = [
+            ("Sources/NextNotes/Agent/Schedules/ScheduledRunner.swift",
+             #"return "[^"]*localizedDescription"#),
+            ("Sources/NextNotes/Agent/Schedules/ScheduledRunner.swift",
+             #"draft\.result = error\.localizedDescription"#),
+            ("Sources/NextNotes/Agent/Schedules/AgentScheduler.swift",
+             #"showAgentReply\("[^"]*localizedDescription"#),
+            ("Sources/NextNotes/Knowledge/Portrait.swift",
+             #"\.failed\(error\.localizedDescription"#),
+        ]
+        var leaks: [String] = []
+        for (file, pattern) in forbidden {
+            guard let text = Self.source(of: file) else {
+                failures.append("could not read \(file) to check for a raw error in a reply")
+                continue
+            }
+            let expression = try? NSRegularExpression(pattern: pattern)
+            for (number, line) in Self.codeLines(of: text).enumerated()
+            where expression?.firstMatch(
+                in: line.text, range: NSRange(line.text.startIndex..., in: line.text)) != nil {
+                leaks.append("\(file):\(line.number)")
+            }
+        }
+        check("a raw error still reaches a person through \(leaks.count) call site(s): "
+            + leaks.joined(separator: ", "), leaks.isEmpty)
+
+        // And a registry id never does. `did not run: ` and `could not be drafted: ` were the
+        // two shapes, and the task's own grep is the assertion.
+        var idLeaks: [String] = []
+        for file in ["Sources/NextNotes/Agent/Schedules/ScheduledRunner.swift",
+                     "Sources/NextNotes/Agent/Schedules/AgentScheduler.swift"] {
+            guard let text = Self.source(of: file) else { continue }
+            for line in Self.codeLines(of: text)
+            where line.text.contains("did not run: ") || line.text.contains("could not be drafted: ") {
+                idLeaks.append("\(file):\(line.number)")
+            }
+        }
+        check("a registry id is still written into a routine's words: "
+            + idLeaks.joined(separator: ", "), idLeaks.isEmpty)
+        return failures
     }
 
     // MARK: - Fixtures
@@ -1594,4 +1685,52 @@ enum ScheduleSelfTest {
         var isCallActive = false
         var isAgentBusy = false
     }
+
+
+    /// A source file's lines with the comments removed, keeping each line's real number.
+    ///
+    /// A scan that cannot tell code from prose fails on the comment explaining what it is
+    /// looking for, and a self-test that fails on its own documentation is one that gets
+    /// deleted rather than fixed. Both this file's own explanatory comments and the
+    /// pre-existing ones about routine drafts were matching `did not run: ` before this.
+    private static func codeLines(of text: String) -> [(number: Int, text: String)] {
+        var result: [(Int, String)] = []
+        var inBlock = false
+        for (index, raw) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
+            let line = String(raw)
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if inBlock {
+                if trimmed.contains("*/") { inBlock = false }
+                continue
+            }
+            if trimmed.hasPrefix("//") { continue }
+            if trimmed.hasPrefix("/*") {
+                if !trimmed.contains("*/") { inBlock = true }
+                continue
+            }
+            result.append((index + 1, line))
+        }
+        return result
+    }
+
+    /// A source file beside the compiled product, for the checks that have to read code rather
+    /// than run it. `nil` when the tree is not where it was, and the case that asked says so
+    /// rather than passing quietly.
+    private static func source(of relativePath: String) -> String? {
+        // Walk up to the package root rather than counting levels: this file sits five deep
+        // today, and a self-test that silently stops reading the tree when somebody moves a
+        // file is worse than one that says it could not.
+        var root = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        for _ in 0..<8 {
+            if FileManager.default.fileExists(atPath: root.appendingPathComponent("Package.swift").path) {
+                return try? String(contentsOf: root.appendingPathComponent(relativePath),
+                                   encoding: .utf8)
+            }
+            let parent = root.deletingLastPathComponent()
+            if parent.path == root.path { break }
+            root = parent
+        }
+        return nil
+    }
+
 }

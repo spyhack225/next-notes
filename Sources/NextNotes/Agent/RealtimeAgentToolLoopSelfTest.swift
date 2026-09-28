@@ -1036,6 +1036,7 @@ enum RealtimeAgentToolLoopSelfTest {
         defer { AgentCapabilityManifestBuilder.inputsOverrideForTesting = nil }
         failures.append(contentsOf: await runReadApprovalCases(agent: agent, check: check))
         failures.append(contentsOf: await runHistoryBudgetCases(agent: agent, check: check))
+        failures.append(contentsOf: await runCutShortCases(agent: agent, check: check))
         failures.append(contentsOf: await runToleranceCases(agent: agent, check: check))
         failures.append(contentsOf: await runBudgetCases(agent: agent, check: check))
         failures.append(contentsOf: await runRendererCases(agent: agent, check: check))
@@ -1331,8 +1332,105 @@ enum RealtimeAgentToolLoopSelfTest {
         if KnowledgeToolGate.isAvailable(indexEnabled: false, toolsEnabled: true) {
             fail("the knowledge tools are visible with the index off")
         }
+        // P1-10b: the markup scrub, which had never run.
+        //
+        // `markupRegex` was written with Swift's `\u{200B}` inside an ICU pattern, so it did
+        // not compile; `try?` made it `nil` and `if let markupRegex` skipped the first step of
+        // the scrub on every reply in the app. The 27 September Portrait draft that was a raw
+        // `tool_call` block (J L9) went through this function. The assertion is the regex
+        // itself as well as the behaviour, because a scrub that does nothing and a scrub that
+        // is not there look identical from a reply.
+        if AgentReplyRenderer.markupPatternCompiled == false {
+            fail("the reply scrub's markup pattern does not compile, so raw tool markup is never removed")
+        }
+        for markup in ["<\u{200B}tool_call>{\"name\":\"search_email\",\"arguments\":{}}</\u{200B}tool_call>",
+                       "<tool_call>{\"name\":\"search_email\"}</tool_call>",
+                       "</tool_call>", #"<think>The answer</think>"#] {
+            let cleaned = AgentReplyRenderer.scrub("Here it is. \(markup) That is all.", outcome: nil)
+            check("raw tool markup survived the scrub: \(cleaned)", !cleaned.contains("tool_call")
+                && !cleaned.contains("<think>") && !cleaned.contains("search_email"))
+            check("the answer around the markup was kept: \(cleaned)",
+                  cleaned.contains("Here it is.") && cleaned.contains("That is all."))
+        }
+        check("a normal sentence is untouched by the markup scrub",
+              AgentReplyRenderer.scrub("Your standup is at 9:30.", outcome: nil)
+                  == "Your standup is at 9:30.")
+
         print("  TOOLLOOP_PRODUCTION_READ_APPROVAL: 3 recorded decisions, 1 setting check, "
-            + "\(sites.count) call sites scanned, 2-switch knowledge gate")
+            + "\(sites.count) call sites scanned, 2-switch knowledge gate, "
+            + "5 markup forms scrubbed")
+        return failures
+    }
+
+    /// P1-10b / J L8: an answer the model ran out of allowance on is shown as cut off.
+    ///
+    /// `finishedByLimit` existed on `LLMCompletion` and the final-answer round threw it away,
+    /// taking `.text` off the optional and keeping nothing else. The person got half a sentence
+    /// presented as the whole one, and there was no way to tell from the reply that anything
+    /// was missing. The marker is the fix; the case is here so the flag cannot go back to
+    /// being dropped.
+    @MainActor
+    static func runCutShortCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        var failures: [String] = []
+        func fail(_ name: String) { failures.append(name); check(name, false) }
+        let hermes: (String) -> String = { "<\u{200B}tool_call>\($0)</\u{200B}tool_call>" }
+
+        // The renderer's own sentence, both forms.
+        let typed = AgentReplyRenderer.render(.cutShort("Ana owns the launch date and the deck is"),
+                                              voice: false)
+        check("a cut-off answer keeps what the model wrote: \"\(typed)\"",
+              typed.contains("Ana owns the launch date"))
+        check("a cut-off answer says it was cut off: \"\(typed)\"",
+              typed.contains("cut off"))
+        let spoken = AgentReplyRenderer.render(.cutShort("Ana owns the launch date and the deck is"),
+                                               voice: true)
+        check("the spoken form of a cut-off answer is shorter and still says so: \"\(spoken)\"",
+              spoken.count <= typed.count && spoken.contains("cut off"))
+
+        // And the wiring, read as text. The behavioural half above pins the sentence; this
+        // pins the thing that made the sentence unreachable, which no call can observe:
+        //
+        // The planner's own rounds **stream**, and a stream yields strings, so
+        // `LLMCompletion.finishedByLimit` is structurally unreachable there — the flag was
+        // not being ignored, it was being thrown away. `LlamaGrammarPlanner` infers a cut-off
+        // from the grammar refusing to match, and `PromptConventionPlanner` and
+        // `OpenAIToolsPlanner` cannot see it at all. Carrying it out of a stream is a change
+        // to every provider's signature, and not this task.
+        //
+        // The final answer round is the exception: it asks through `complete`, so it holds the
+        // whole completion — and it is the sentence a person reads. The old line was
+        // `(try? await …complete(…))?.text`, which took the text and discarded the flag.
+        let loopSource = Self.source(of: "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift")
+        guard let loopSource else {
+            fail("could not read the tool loop to check that a cut-off answer is not dropped")
+            return failures
+        }
+        // The final-answer round, by the lines around its own `maxTokens: visible` call. The
+        // closing paren is optional in the pattern because the call used to be wrapped in
+        // `(try? …)` and no longer is — and a pattern written for the old shape is a pattern
+        // that stops matching the moment the bug is fixed.
+        guard let finalRound = loopSource.range(
+            of: #"maxTokens: visible\)\)?[\s\S]{0,900}?finishedByLimit"#,
+            options: .regularExpression) else {
+            fail("the final answer round cannot see whether the model ran out of allowance, "
+                + "so a cut-off answer is shown as a finished one")
+            return failures
+        }
+        check("the final answer round reads the cut-off flag off the completion: "
+            + "\(loopSource[finalRound].suffix(60).replacingOccurrences(of: "\n", with: " "))",
+              loopSource[finalRound].contains("finishedByLimit"))
+        // And the exact old shape is gone: the completion was taken apart for its text, which
+        // is what made the flag unreachable in the first place.
+        let discarded = loopSource.range(
+            of: #"maxTokens: visible\)\)\?\?\.text"#, options: .regularExpression)
+        check("the final answer round still throws the completion away for its text, at line "
+            + "\(discarded.map { loopSource[..<$0.lowerBound].filter { $0 == "\n" }.count + 1 } ?? 0)",
+              discarded == nil)
+
+        print("  TOOLLOOP_PRODUCTION_CUT_SHORT: 3 sentences, final-answer round keeps the "
+            + "completion; the streamed planner rounds cannot see the flag (recorded)")
         return failures
     }
 
@@ -3169,6 +3267,9 @@ private struct PlannerScriptProvider: LLMProvider {
     let window: Int
     let promptTokens: Int
     let script: [String]
+    /// P1-10b / J L8: answer every completion as one the model ran out of allowance on. Off by
+    /// default, so every other case's provider behaves exactly as it did.
+    var cutOffByLimit: Bool = false
     let log: PlannerScriptLog
     var contextTokens: Int { window }
     var unavailableReason: String? { get async { nil } }
@@ -3177,7 +3278,8 @@ private struct PlannerScriptProvider: LLMProvider {
 
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         let text = await next(system: system, user: user, maxTokens: maxTokens)
-        return LLMCompletion(text: text, generatedTokens: text.count, duration: 0)
+        return LLMCompletion(text: text, generatedTokens: text.count, duration: 0,
+                             finishedByLimit: cutOffByLimit)
     }
 
     func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error> {

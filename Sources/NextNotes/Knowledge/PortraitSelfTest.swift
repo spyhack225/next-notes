@@ -183,6 +183,27 @@ enum PortraitSelfTest {
             return false
         }
         check("the no-graph reason did not name the graph as the missing piece", why.contains("graph"))
+        // P1-10b / J L9: the 27 September draft was a raw `<tool_call>` block, because the
+        // sentences were taken straight off the model's output. The scrub every reply already
+        // got had a pattern that did not compile, so it never ran — that is
+        // `AgentReplyRenderer.markupPatternCompiled`, pinned in `--selftest-toolloop-production`.
+        // What is pinned here is the Portrait half: a model that writes a call produces no
+        // draft at all rather than one a person is asked to keep.
+        for (output, expected) in [
+            ("- The pricing sheet is still the deck from March.\n- Ana owns the launch date.",
+             2),
+            ("- <tool_call>{\"name\":\"search_knowledge\",\"arguments\":{\"query\":\"pricing\"}}</tool_call>",
+             0),
+            ("- <think>Let me check the graph first.</think>",
+             0),
+        ] {
+            let lines = PortraitService.sentences(from: output)
+            check("a model output of \(expected) draft(s) produced \(lines.count): \(lines)",
+                  lines.count == expected)
+            check("no draft carries tool markup: \(lines)",
+                  lines.allSatisfy { !$0.contains("tool_call") && !$0.contains("<think>") })
+        }
+
         for failure in failures { print("PORTRAIT_WRONG: \(failure)") }
         print(failures.isEmpty ? "PORTRAIT_OK" : "PORTRAIT_FAILED: \(failures.count) problem(s)")
         return failures.isEmpty

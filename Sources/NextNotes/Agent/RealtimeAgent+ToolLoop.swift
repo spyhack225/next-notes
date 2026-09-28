@@ -1494,18 +1494,29 @@ extension RealtimeAgent {
             // through `complete(…)` and never through a grammar. A grammar over the manifest
             // would steer a round that has nothing it is allowed to run, and the
             // prompt-convention path is the right one for it either way.
-            let text: String? = await withBoundedWait(budget.perRound) {
-                (try? await finalProvider.complete(
-                    system: finalSystem, user: finalUser, maxTokens: visible))?.text
+            // P1-10b / J L8: the whole completion, not just its text. `finishedByLimit` is the
+            // model's own word for "I spent my allowance" — Apple's estimate, llama's generated
+            // count, an OpenAI-compatible server's `finish_reason == "length"`, OpenRouter's cut
+            // — and a provider that cannot tell leaves it false. The final answer is the one
+            // place it matters most: this is the sentence a person reads.
+            // `withBoundedWait` is generic over the closure's own return type, so the `try?`
+            // makes `T` an `LLMCompletion?` and the result an `LLMCompletion??`; the trailing
+            // `?? nil` flattens it. The old line took `.text` off the optional and threw the
+            // rest of the completion away, which is the only place `finishedByLimit` lived.
+            let completion: LLMCompletion? = await withBoundedWait(budget.perRound) {
+                () -> LLMCompletion? in
+                try? await finalProvider.complete(
+                    system: finalSystem, user: finalUser, maxTokens: visible)
             } ?? nil
             // A model that emits a call anyway keeps its prose and loses the call.
-            let prose = text.map { AgentToolCallParser.parse($0, knownNames: []).prose } ?? ""
+            let prose = completion.map { AgentToolCallParser.parse($0.text, knownNames: []).prose } ?? ""
             guard !prose.isEmpty else {
                 return incomplete("I couldn’t finish the tool plan within the safe limit.",
                                   completed: runner.completedToolIDs, inFlight: nil)
             }
             // `confirmed` keeps the memory confirmations, which the call-cap exit used to drop.
-            return confirmed(prose)
+            guard completion?.finishedByLimit == true else { return confirmed(prose) }
+            return confirmed(AgentReplyRenderer.render(.cutShort(prose), voice: voice))
         }
         // P1-06 step 10 (H1 #17): a correction starts the round clock over, and once every
         // ten seconds tops the ceiling back up to half of what the budget allows.
