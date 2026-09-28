@@ -237,6 +237,11 @@ enum DS {
         /// The level bar inside the HUD capsule.
         static let hudBarWidth: CGFloat = 72
 
+        /// P1-20: the composer row's trailing control. One size in every state, so the row does
+        /// not change width when a turn starts or ends — which it did, twice a turn, with a Stop
+        /// button appearing beside a Send button.
+        static let composerControl = CGSize(width: 74, height: 28)
+
         static let meter = CGSize(width: 160, height: 44)
         static let levelBarHeight: CGFloat = 6
         static let levelBarPeakWidth: CGFloat = 2

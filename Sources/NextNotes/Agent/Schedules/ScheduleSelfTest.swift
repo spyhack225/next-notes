@@ -110,12 +110,12 @@ enum ScheduleSelfTest {
         ]
         var leaks: [String] = []
         for (file, pattern) in forbidden {
-            guard let text = Self.source(of: file) else {
+            guard let text = SourceScan.file(file) else {
                 failures.append("could not read \(file) to check for a raw error in a reply")
                 continue
             }
             let expression = try? NSRegularExpression(pattern: pattern)
-            for (number, line) in Self.codeLines(of: text).enumerated()
+            for (number, line) in SourceScan.codeLines(of: text).enumerated()
             where expression?.firstMatch(
                 in: line.text, range: NSRange(line.text.startIndex..., in: line.text)) != nil {
                 leaks.append("\(file):\(line.number)")
@@ -129,8 +129,8 @@ enum ScheduleSelfTest {
         var idLeaks: [String] = []
         for file in ["Sources/NextNotes/Agent/Schedules/ScheduledRunner.swift",
                      "Sources/NextNotes/Agent/Schedules/AgentScheduler.swift"] {
-            guard let text = Self.source(of: file) else { continue }
-            for line in Self.codeLines(of: text)
+            guard let text = SourceScan.file(file) else { continue }
+            for line in SourceScan.codeLines(of: text)
             where line.text.contains("did not run: ") || line.text.contains("could not be drafted: ") {
                 idLeaks.append("\(file):\(line.number)")
             }
@@ -1687,50 +1687,5 @@ enum ScheduleSelfTest {
     }
 
 
-    /// A source file's lines with the comments removed, keeping each line's real number.
-    ///
-    /// A scan that cannot tell code from prose fails on the comment explaining what it is
-    /// looking for, and a self-test that fails on its own documentation is one that gets
-    /// deleted rather than fixed. Both this file's own explanatory comments and the
-    /// pre-existing ones about routine drafts were matching `did not run: ` before this.
-    private static func codeLines(of text: String) -> [(number: Int, text: String)] {
-        var result: [(Int, String)] = []
-        var inBlock = false
-        for (index, raw) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
-            let line = String(raw)
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if inBlock {
-                if trimmed.contains("*/") { inBlock = false }
-                continue
-            }
-            if trimmed.hasPrefix("//") { continue }
-            if trimmed.hasPrefix("/*") {
-                if !trimmed.contains("*/") { inBlock = true }
-                continue
-            }
-            result.append((index + 1, line))
-        }
-        return result
-    }
-
-    /// A source file beside the compiled product, for the checks that have to read code rather
-    /// than run it. `nil` when the tree is not where it was, and the case that asked says so
-    /// rather than passing quietly.
-    private static func source(of relativePath: String) -> String? {
-        // Walk up to the package root rather than counting levels: this file sits five deep
-        // today, and a self-test that silently stops reading the tree when somebody moves a
-        // file is worse than one that says it could not.
-        var root = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-        for _ in 0..<8 {
-            if FileManager.default.fileExists(atPath: root.appendingPathComponent("Package.swift").path) {
-                return try? String(contentsOf: root.appendingPathComponent(relativePath),
-                                   encoding: .utf8)
-            }
-            let parent = root.deletingLastPathComponent()
-            if parent.path == root.path { break }
-            root = parent
-        }
-        return nil
-    }
 
 }

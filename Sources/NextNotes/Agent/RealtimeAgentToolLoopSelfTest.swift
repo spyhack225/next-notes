@@ -1309,7 +1309,7 @@ enum RealtimeAgentToolLoopSelfTest {
                      "Sources/NextNotes/Agent/Planner/ToolStepRunner.swift"]
         var literals: [String] = []
         for site in sites {
-            guard let text = Self.source(of: site) else {
+            guard let text = SourceScan.file(site) else {
                 fail("could not read \(site) to check for a hard-coded read approval")
                 continue
             }
@@ -1402,7 +1402,7 @@ enum RealtimeAgentToolLoopSelfTest {
         // The final answer round is the exception: it asks through `complete`, so it holds the
         // whole completion — and it is the sentence a person reads. The old line was
         // `(try? await …complete(…))?.text`, which took the text and discarded the flag.
-        let loopSource = Self.source(of: "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift")
+        let loopSource = SourceScan.file("Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift")
         guard let loopSource else {
             fail("could not read the tool loop to check that a cut-off answer is not dropped")
             return failures
@@ -1532,13 +1532,6 @@ enum RealtimeAgentToolLoopSelfTest {
     /// than run it. `nil` when the tree is not where it was -- and the case that asked says so
     /// rather than passing quietly, because a scan that found no file must not read as a scan
     /// that found no literal.
-    private static func source(of relativePath: String) -> String? {
-        // `#filePath` is this file, so the repository root is four levels up.
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().deletingLastPathComponent()
-        return try? String(contentsOf: root.appendingPathComponent(relativePath), encoding: .utf8)
-    }
 
     /// P1-25's table. Pure: no model, no provider, no store, no executor.
     ///

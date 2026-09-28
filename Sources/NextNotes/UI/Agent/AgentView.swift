@@ -14,8 +14,14 @@ struct AgentView: View {
     @State private var activityStore = AgentActivityStore.shared
     @State private var roles = ModelRoleStore.shared
     @State private var loadNotice = ModelLoadNotice.shared
-    @State private var draft = ""
+    /// P1-20: `@SceneStorage`, not `@State`. The draft was `@State`, so it lived exactly as long
+    /// as the view: switching to Reminders and back lost whatever had been typed but not sent.
+    /// A scene-scoped string is the whole fix — no new store, no new type, and it clears when
+    /// the window closes, which is what a draft should do.
+    @SceneStorage("agentDraft") private var draft = ""
     @State private var showsRecentTasks = false
+    /// P1-20: the composer's own rows. View state on purpose — see `ComposerNotice`.
+    @State private var notices: [ComposerNotice] = []
     /// Whether the trailing inspector is open. A layout preference, so it is persisted
     /// rather than held in `NavigationState` — which is where *places*, not pane furniture,
     /// live.
@@ -37,17 +43,23 @@ struct AgentView: View {
     private enum TimelineItem: Identifiable {
         case message(AgentSession.Message, String?)
         case event(AgentAuditEntry)
+        /// P1-20: a row the composer raised about the interface. It lives in this enum and
+        /// nowhere else, which is what keeps it out of the model's history, the knowledge index
+        /// and `usage.jsonl` — a notice is not something the Agent said.
+        case notice(ComposerNotice)
 
         var id: String {
             switch self {
             case .message(let message, _): "message-\(message.id)"
             case .event(let entry): "event-\(entry.id)"
+            case .notice(let notice): "notice-\(notice.id.timeIntervalSince1970)"
             }
         }
         var at: Date {
             switch self {
             case .message(let message, _): message.at
             case .event(let entry): entry.at
+            case .notice(let notice): notice.at
             }
         }
     }
@@ -70,7 +82,10 @@ struct AgentView: View {
         let actions = audit.entries.filter {
             $0.at >= start && ($0.kind == .tool || $0.kind == .permission || $0.kind == .task)
         }.prefix(40).map { TimelineItem.event($0) }
-        return (speech + (messages.isEmpty ? [] : actions)).sorted {
+        // A notice is always shown, even with no messages yet: interrupting the very first turn
+        // is exactly when a person most needs to know it was them.
+        let said = notices.suffix(10).map { TimelineItem.notice($0) }
+        return (speech + said + (messages.isEmpty ? [] : actions)).sorted {
             if $0.at == $1.at { return $0.id < $1.id }
             return $0.at < $1.at
         }
@@ -210,6 +225,7 @@ struct AgentView: View {
                         switch item {
                         case .message(let message, let source): messageRow(message, source: source)
                         case .event(let entry): eventRow(entry)
+                        case .notice(let notice): noticeRow(notice)
                         }
                     }
                     if agent.isThinking { thinkingRow }
@@ -362,6 +378,17 @@ struct AgentView: View {
         }
         .padding(DS.Space.cardTight)
         .glassSurface()
+    }
+
+    /// P1-20's notice. A plain centred line, deliberately unlike a message row: it is not
+    /// something either party said, and a row shaped like a message would teach the eye to read
+    /// it as one. It fades on its own so a transcript read tomorrow is not littered with them.
+    private func noticeRow(_ notice: ComposerNotice) -> some View {
+        Text(notice.text)
+            .font(DS.Font.chip)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .transition(.opacity)
     }
 
     private func messageRow(_ message: AgentSession.Message, source: String?) -> some View {
@@ -571,14 +598,31 @@ struct AgentView: View {
                     send()
                     return .handled
                 }
-            if agent.isThinking {
+            // P1-20: one trailing control in one place. It was a Stop button that appeared
+            // while a turn ran beside a Send button that was always there, so the row changed
+            // width at the start and end of every turn. The rule is `ComposerControl`'s: an
+            // empty box while the Agent is busy offers Stop, and anything typed offers Send —
+            // which is also the only way a follow-up could be sent without pressing Return.
+            switch ComposerControl.state(
+                draftIsEmpty: draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                isThinking: agent.isThinking) {
+            case .send(let enabled):
+                Button("Send", action: send)
+                    .disabled(!enabled)
+                    .frame(width: DS.Size.composerControl.width,
+                           height: DS.Size.composerControl.height)
+                    .accessibilityLabel("Send")
+            case .stop:
+                // Stop must not touch the draft. Cancelling the approval gate and the turn is
+                // the whole of it — no `draft = ""` here, and the case below is why.
                 Button("Stop") {
                     ACPConfirmationGate.shared.cancel()
                     RealtimeAgent.shared.cancel()
                 }
+                .frame(width: DS.Size.composerControl.width,
+                       height: DS.Size.composerControl.height)
+                .accessibilityLabel("Stop")
             }
-            Button("Send", action: send)
-                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(.bottom, DS.Space.m)
     }
@@ -586,9 +630,16 @@ struct AgentView: View {
     private func send() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+        // Cleared **here**, after the text has been read out and before the turn starts, rather
+        // than at the top: a send that is refused or that never begins must not leave the text
+        // sitting in the box looking unsent. Stop never clears it at all.
         draft = ""
         ACPConfirmationGate.shared.cancel()
         if agent.isThinking {
+            // The interrupt is real and P3-11 owns what it means; what was missing is that
+            // nothing said so. The notice is a view row — `ComposerNotice` never becomes a
+            // message, so it cannot reach the model's history, the index or `usage.jsonl`.
+            notices.append(.interruptedEarlierRequest(Date()))
             RealtimeAgent.shared.interrupt()
         }
         Task { await RealtimeAgent.shared.handleLive(text, source: .text) }

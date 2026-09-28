@@ -226,6 +226,83 @@ enum AgentPaneSelfTest {
             }
         }
 
+        // P1-20: the composer's one control, and the notice an interrupting send raises.
+        for (empty, thinking, expected) in [
+            (true, false, ComposerControl.send(enabled: false)),
+            (false, false, ComposerControl.send(enabled: true)),
+            (false, true, ComposerControl.send(enabled: true)),
+            (true, true, ComposerControl.stop),
+        ] {
+            let got = ComposerControl.state(draftIsEmpty: empty, isThinking: thinking)
+            if got != expected {
+                failures.append("composer draft=\(empty ? "empty" : "typed") "
+                                + "thinking=\(thinking) is \(got), expected \(expected)")
+            }
+        }
+        // The one rule, said as a rule: typing while a turn runs offers Send, not Stop. That is
+        // the whole point of the change — a follow-up was previously only sendable by pressing
+        // Return, which worked and was invisible.
+        if ComposerControl.state(draftIsEmpty: false, isThinking: true).isStop {
+            failures.append("typing during a turn offers Stop, so a follow-up cannot be sent")
+        }
+        // And both states are one size, so the row cannot change width.
+        if DS.Size.composerControl.width <= 0 || DS.Size.composerControl.height <= 0 {
+            failures.append("the composer's control has no size token")
+        }
+        // The notice: one sentence, produced only by an interrupting send, and never a message.
+        let notice = ComposerNotice.interruptedEarlierRequest(Date())
+        if notice.text != "Stopped the earlier request to answer this." {
+            failures.append("the interrupting-send notice reads \"\(notice.text)\"")
+        }
+        for banned in ["interrupt", "cancel", "Agent", "tool", "id:"] where notice.text
+            .contains(banned) {
+            failures.append("the notice contains \"\(banned)\": \"\(notice.text)\"")
+        }
+        // A notice is not a message. There is no cast to assert — `ComposerNotice` is an enum
+        // and `AgentSession.Message` a struct, so the compiler already forbids one becoming the
+        // other — so what is pinned is the *only* way a row reaches the conversation: the view
+        // records messages through the session, and nothing about a notice goes near it. That
+        // is what keeps it out of the model's history, the knowledge index and `usage.jsonl`.
+        if ComposerNotice.interruptedEarlierRequest(notice.at).id != notice.id {
+            failures.append("two notices raised at the same instant are not told apart")
+        }
+
+        // The draft's storage is a property wrapper, which no runtime check can see: `@State`
+        // and `@SceneStorage` are both a `String` by the time anything else runs. So it is read
+        // as text — and this is the step-1 finding, which is that the draft **was** `@State` and
+        // was therefore lost whenever the view was rebuilt, which is what switching panes does.
+        // `if let` rather than `guard … else { } else { }`: Swift's grammar reads the second
+        // `else` as a new statement, so that shape does not parse at all. Verified on this
+        // toolchain rather than assumed.
+        if let view = SourceScan.file("Sources/NextNotes/UI/Agent/AgentView.swift") {
+            let draftLine = view.split(separator: "\n")
+                .first(where: { $0.contains("agentDraft") })
+            if draftLine?.contains("@SceneStorage") != true {
+                failures.append("the composer's draft is not kept in @SceneStorage, so it is "
+                                + "lost when the pane is rebuilt: "
+                                + "\(draftLine.map(String.init) ?? "not found")")
+            }
+            if view.contains("@State private var draft") {
+                failures.append("the composer's draft is still @State as well")
+            }
+            // And Stop must not clear it. A `draft = ""` inside the stop branch is the bug this
+            // rule exists to prevent, and it is invisible to a case that only calls the control.
+            // Two things this has to get right, and both were wrong first. Bounded by the
+            // composer, not by `send()`: `send()` is *supposed* to clear the draft, and a range
+            // that reached it reported a bug that is the intended behaviour. And read from
+            // `SourceScan`'s comment-stripped lines, because the Stop branch's own comment names
+            // the bug — `no draft = "" here` — and a scan that reads comments fails on it.
+            let code = SourceScan.codeLines(of: view).map(\.text).joined(separator: "\n")
+            if let stopBranch = code.range(of: "case .stop:"),
+               let composerEnd = code.range(of: ".padding(.bottom, DS.Space.m)"),
+               stopBranch.lowerBound < composerEnd.lowerBound,
+               code[stopBranch.lowerBound..<composerEnd.lowerBound].contains("draft = \"\"") {
+                failures.append("the composer's Stop branch clears the draft")
+            }
+        } else {
+            failures.append("could not read AgentView to check where the draft is kept")
+        }
+
         for note in notes { print("NOTE: \(note)") }
         for failure in failures { print("AGENT_PANES_WRONG: \(failure)") }
         print(failures.isEmpty
