@@ -3,6 +3,7 @@ import AppKit
 import Darwin
 import FluidAudio
 import NextNotesDictionary
+import os
 import SwiftUI
 
 @main
@@ -98,6 +99,14 @@ enum SelfTest {
         }
     }
 
+    /// See the dispatch site for why this is a modifier and not a self-test.
+    static let downloadNotesModelFlag = "--download-notes-model"
+
+    /// "4.7 GB" rather than "4977171584", in the same formatter the Models tab uses, so a
+    /// line in a log reads like the card the person would have seen.
+    static func byteText(_ bytes: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: max(0, bytes), countStyle: .file)
+    }
     static let outputFlag = "--selftest-out"
     static let timeoutFlag = "--selftest-timeout"
 
@@ -240,6 +249,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // `--selftest-*` flag.
         if CommandLine.arguments.contains("--usage-report") {
             runUsageReport()
+            return
+        }
+
+        // `--download-notes-model`: a **modifier**, not a `--selftest-*` flag, in the shape of
+        // `--fake-calendar` and `--wake-mic-record` — it changes the machine rather than
+        // answering a question about it.
+        //
+        // It exists because the only other path to the built-in model is the Models tab, and
+        // driving that needs Accessibility, which an agent on this machine is refused
+        // (`AXIsProcessTrusted()` answers false even through LaunchServices). The model is
+        // also the thing the Agent role is meant to use, so every model-dependent gate —
+        // `--selftest-tool-awareness`, `--selftest-voice-grounding`, and the Phase 1 exit
+        // score — is unreachable without it. That is AGENTS.md's own case for a flag: most of
+        // this app needs a permission, a model or an account a coding agent cannot obtain.
+        //
+        // It prints one line per 5% and a final `NOTES_MODEL_DOWNLOAD_*`, and it reports the
+        // digest the spec is waiting to pin rather than pinning it itself.
+        if CommandLine.arguments.contains(SelfTest.downloadNotesModelFlag) {
+            runNotesModelDownload()
             return
         }
 
@@ -3343,6 +3371,73 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// `runRequestedSelfTest`, while `SelfTest.isRunning` is still false. `writeSelfTest`
     /// honours `--selftest-out`, so a LaunchServices launch with no stdout still leaves
     /// its rows in a file.
+    /// Downloads the built-in notes/Agent model through the app's own `ModelDownloader`,
+    /// which is the only path that gets the resume, the size check and the digest.
+    ///
+    /// The disk guard is `LocalModelStore`'s own arithmetic, copied rather than re-derived:
+    /// the file plus `ModelDownloader.minimumFreeBytesAfterDownload`. A download that fills
+    /// the disk is the one failure this app must not cause, and a second copy of the rule is
+    /// a second answer to it.
+    private func runNotesModelDownload() {
+        Task { @MainActor in
+            if NotesModels.isDownloaded {
+                writeSelfTest("NOTES_MODEL_DOWNLOAD_ALREADY: \(NotesModels.spec.displayName) is on disk")
+                NSApp.terminate(nil)
+                return
+            }
+            let free = ModelDownloader.availableDiskBytes()
+            let needed = NotesModels.spec.expectedBytes
+                + ModelDownloader.minimumFreeBytesAfterDownload
+            guard free >= needed else {
+                writeSelfTest("""
+                    NOTES_MODEL_DOWNLOAD_NO_ROOM: \(SelfTest.byteText(free)) free, \
+                    \(SelfTest.byteText(needed)) needed
+                    """)
+                NSApp.terminate(nil)
+                return
+            }
+            writeSelfTest("""
+                NOTES_MODEL_DOWNLOAD_START: \(NotesModels.spec.displayName) \
+                \(NotesModels.spec.displaySize) from \
+                \(NotesModels.spec.url.host ?? "the hub")
+                """)
+            // The progress callback is `@Sendable` and runs off the main actor, so the
+            // "have I printed this 5% band yet" latch is a lock rather than a captured `var` —
+            // the same `OSAllocatedUnfairLock` the wake telemetry uses for its throttle.
+            let printed = OSAllocatedUnfairLock(initialState: -1)
+            do {
+                try await NotesModels.download { fraction in
+                    let percent = Int((fraction * 100).rounded())
+                    guard printed.withLock({ seen -> Bool in
+                        guard seen != percent / 5 else { return false }
+                        seen = percent / 5
+                        return true
+                    }) else { return }
+                    // The callback is synchronous, so the hop is a detached task rather than
+                    // `MainActor.run` — and a progress line is not worth an await the
+                    // downloader would have to wait on.
+                    Task { @MainActor in
+                        self.writeSelfTest("NOTES_MODEL_DOWNLOAD: \(percent)%")
+                    }
+                }
+                // The spec's digest is still `nil`, and AGENTS.md's instruction is that the
+                // downloader computes it and **the next agent pins it** — so it is reported
+                // here rather than written, because a flag that edits a source file is a
+                // second way for a build to change.
+                let url = NotesModels.spec.fileURL
+                writeSelfTest("""
+                    NOTES_MODEL_DOWNLOAD_OK: \(NotesModels.spec.displayName) at \
+                    \(url.lastPathComponent) bytes=\(ModelDownloader.fileSize(at: url)) \
+                    sha256=\(((try? ModelDownloader.sha256(of: url)) ?? "unavailable"))
+                    """)
+                InstalledModelLibrary.shared.refresh()
+            } catch {
+                writeSelfTest("NOTES_MODEL_DOWNLOAD_FAILED: \(error.localizedDescription)")
+            }
+            NSApp.terminate(nil)
+        }
+    }
+
     private func runUsageReport() {
         Task { @MainActor in
             for line in await UsageReport.run(arguments: CommandLine.arguments) {

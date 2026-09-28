@@ -298,14 +298,18 @@ struct AgentCapabilityManifest: Sendable, Equatable {
             // browser tools do one thing each. The last sentence is the one that stops an
             // overclaim — a page that plays video is not a tool that watched a video, and
             // "I'll check what's trending" after a navigate is a promise nothing backs.
+            //
+            // Kept short on purpose. The first version of this rule was three sentences and
+            // pushed the whole-class planner prompt to 2,046 tokens against a 2,000 ceiling for
+            // an 8,192-token reader, so `--selftest-tool-awareness` and
+            // `--selftest-voice-grounding` both went red. The ceiling is not the thing to move
+            // — a small reader has to fit — so the rule says the same thing in half the words.
             lines.append("""
-                The browser: browser.navigate opens a URL and nothing else. "Open YouTube and \
-                search cats" is two requests — navigate, then browser.fill or browser.snapshot, \
-                then click or fill to act. Never stop after the navigate and say you will look \
-                for it; the turn is not finished until the second call has run. \
-                browser.snapshot reads the page as text, so anything not in that text — a \
-                video's contents, what is trending, what is playing — is not known, and saying \
-                you will check it is a promise you cannot keep. Say what the page showed.
+                The browser: browser.navigate opens a URL and nothing else, so "open YouTube \
+                and search cats" needs a second call — fill, snapshot or click — and saying you \
+                will look afterwards is not doing it. A snapshot reads the page as text: what a \
+                video shows, what is trending and what is playing are not in it, so do not \
+                promise them.
                 """)
         }
         if selectedIntents.contains(.screen) {

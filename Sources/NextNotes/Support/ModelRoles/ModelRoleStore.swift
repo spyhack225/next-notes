@@ -699,6 +699,20 @@ final class ModelRoleStore {
             // select the built-in file is what makes the next answer come from it.
             await runtime.select(nil)
         }
+        // The store's own availability snapshot decides, not the machine underneath it.
+        //
+        // `LLMProviders.resolve` asks the real disk, so a store built with an injected
+        // `availability` — which is the seam every model test uses — would still hand back
+        // the app's own runtime and quietly contradict what it was told. That is not
+        // hypothetical: downloading the built-in model turned
+        // `--selftest-model-unopenable` case H red, because a store seeded
+        // `.nothingInstalled` began resolving to `.appLLM` anyway.
+        //
+        // In production nothing changes. The snapshot is seeded from disk at init, so
+        // `builtInModelReady` already answers this, and the answer is the same one
+        // `resolve` would have given — with the difference that a store told "nothing is
+        // installed" now believes it.
+        guard availability.builtInModelReady else { return nil }
         return await LLMProviders.resolve(preferring: .appLLM)
     }
 

@@ -13,9 +13,15 @@ enum NotesModels {
         url: URL(string: "https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF/resolve/main/gemma-4-E4B-it-Q4_K_M.gguf")!,
         // Measured 2026-09-22 via the Hub resolve redirect (final Content-Length).
         expectedBytes: 4_977_171_584,
-        // Unpinned until a verified download lands on this machine: the downloader logs
-        // the computed digest and the next run pins it, per the S1MiniModels convention.
-        expectedSHA256: nil
+        // Pinned 2026-09-28 from a real download on this machine, computed by
+        // `ModelDownloader.sha256(of:)` and reported by `--download-notes-model`:
+        //   NOTES_MODEL_DOWNLOAD_OK: Gemma 4 E4B … bytes=4977171584
+        //     sha256=85a896a047553e842f25297ee5b031d64ff30147d9c4af17b1e4b394cd1fab87
+        // This is the "next agent to get it pins it" step AGENTS.md describes, and it is the
+        // S1MiniModels convention. The byte count was already pinned from the Hub's LFS
+        // record; the digest now makes a truncated or substituted file fail at the door
+        // rather than at the first generation.
+        expectedSHA256: "85a896a047553e842f25297ee5b031d64ff30147d9c4af17b1e4b394cd1fab87"
     )
 
     static var fileURL: URL { spec.fileURL }
