@@ -20,9 +20,20 @@ enum AgentSessionSelfTest {
         let file = root.appendingPathComponent(AgentSession.fileName)
         var refreshes = 0
         var requests: [AgentSession.ReviewRequest] = []
-        func makeSession() -> AgentSession {
-            let session = AgentSession(fileURL: file, now: clock.now, idleMinutes: { 30 },
-                                       beginMemorySession: { refreshes += 1 })
+        // P1-18: an explicit `workingBudget`, because the product's fold point moved from
+        // 10,000 to 24,000 and every existing case here measures compaction, not the product
+        // default. Without it the old numbers would keep passing by accident and the fixture
+        // would stop meaning what it says.
+        // `name` defaults to the fixture's own file, so every existing case keeps its rows
+        // where it expects them. The P1-18 cases pass their own: a 40-turn session written to
+        // the shared file is not a bug in the budget, it is the fixture arguing with a check
+        // that counts what is on disk.
+        func makeSession(workingBudget: Int = 10_000, name: String = "agent-conversation.json")
+            -> AgentSession {
+            let session = AgentSession(fileURL: root.appendingPathComponent(name),
+                                       now: clock.now, idleMinutes: { 30 },
+                                       beginMemorySession: { refreshes += 1 },
+                                       workingBudget: workingBudget)
             session.onReviewRequest = { requests.append($0) }
             return session
         }
@@ -134,6 +145,105 @@ enum AgentSessionSelfTest {
               history.first?.content.hasPrefix(AgentSessionBoundary.summaryHeader) == true
                 && history.first?.role == .user)
         check("chat history is over its budget", history.reduce(0) { $0 + $1.content.count } <= 2_500)
+
+        // MARK: P1-18 — a history budget that scales with the reader
+        //
+        // The finding (H1 #9) is that every one of these budgets was a literal: 2,500 on the
+        // first pass, 6,000 in the planner, 1,800 per message, and a hard 10,000 ceiling on the
+        // session context. A reader with a 262,144-token window was given less than one email
+        // listing, and the 10,000 ceiling clipped silently, so raising the caller's budget
+        // changed nothing at all. Red today on both counts.
+
+        // The table, pure. Four readers, and the two numbers each one decides.
+        for (tokens, characters, perMessage) in [
+            (4_096, 2_500, 1_000), (8_192, 6_000, 2_400), (32_768, 12_000, 4_800),
+            (262_144, 24_000, 6_000),
+        ] {
+            check("a \(tokens)-token reader is given \(characters) characters of history, "
+                + "expected \(characters)",
+                  AgentHistoryBudget.characters(contextTokens: tokens) == characters)
+            check("a \(characters)-character budget clips one message at \(perMessage), "
+                + "expected \(perMessage)",
+                  AgentHistoryBudget.perMessageCap(budget: characters) == perMessage)
+        }
+        check("the largest budget is reachable rather than silently clipped",
+              AgentHistoryBudget.characters(contextTokens: 262_144)
+                  == AgentHistoryBudget.maximumCharacters)
+
+        // A long session on the product's own budget. **Red today:** clipped to 10,000 by the
+        // `min(Self.contextCharacters, …)` at the top of `contextForCurrentTurn`.
+        let roomy = makeSession(workingBudget: AgentHistoryBudget.maximumCharacters,
+                              name: "p118-roomy.json")
+        for turn in 0..<40 {
+            roomy.recordUser("Turn \(turn) asks about the pricing sheet and the deck. "
+                + String(repeating: "detail ", count: 90), source: .text)
+            roomy.recordAssistant("Turn \(turn) answer. " + String(repeating: "detail ", count: 90))
+        }
+        roomy.recordUser("And the final question?", source: .text)
+        let roomyContext = roomy.contextForCurrentTurn(
+            maxCharacters: AgentHistoryBudget.maximumCharacters)
+        check("a 262,144-token reader was given \(roomyContext.count) characters of history, "
+            + "expected more than 10,000",
+              roomyContext.count > 10_000)
+        check("a 262,144-token reader was given \(roomyContext.count) characters, "
+            + "over the \(AgentHistoryBudget.maximumCharacters) ceiling",
+              roomyContext.count <= AgentHistoryBudget.maximumCharacters)
+
+        // One very long message, and the per-message cap that scales with the budget. **Red
+        // today:** there is no `perMessageCharacters` to pass, so the first assertion fails at
+        // 1,800 and there is no marker at the end.
+        let longMessage = makeSession(workingBudget: AgentHistoryBudget.maximumCharacters,
+                                    name: "p118-long-message.json")
+        longMessage.recordUser("A short question about one very long document.")
+        longMessage.recordAssistant(String(repeating: "word ", count: 1_800))
+        longMessage.recordUser("And now?")
+        let big = longMessage.chatHistoryForCurrentTurn(
+            maxCharacters: AgentHistoryBudget.maximumCharacters,
+            perMessageCharacters: AgentHistoryBudget.perMessageCap(
+                budget: AgentHistoryBudget.maximumCharacters))
+        // The long assistant row on its own. The join would count the short user message and
+        // the compaction summary too, and 6,046 characters of "≤ 6,000" is a measurement of
+        // the wrong thing rather than a failure of the right one.
+        let bigBody = big.first { $0.role == .assistant }?.content ?? ""
+        check("one message inside a 24,000-character budget is \(bigBody.count) characters, "
+            + "expected at most 6,000",
+              bigBody.count <= 6_000)
+        check("one message inside a 24,000-character budget is \(bigBody.count) characters, "
+            + "so the 1,800 cap is still what is being applied",
+              bigBody.count > 1_800)
+        check("a clipped message says so instead of ending mid-word",
+              bigBody.contains(AgentHistoryBudget.clippedSuffix))
+
+        // The same message on a small reader's budget, which is the per-message cap doing its
+        // job rather than one constant for everybody.
+        let smallBudget = makeSession(workingBudget: 2_500, name: "p118-small.json")
+        smallBudget.recordUser("A short question about one very long document.")
+        smallBudget.recordAssistant(String(repeating: "word ", count: 1_800))
+        smallBudget.recordUser("And now?")
+        let small = smallBudget.chatHistoryForCurrentTurn(
+            maxCharacters: 2_500,
+            perMessageCharacters: AgentHistoryBudget.perMessageCap(budget: 2_500))
+        let smallBody = small.first { $0.role == .assistant }?.content ?? ""
+        check("one message inside a 2,500-character budget is \(smallBody.count) characters, "
+            + "expected at most 1,000",
+              smallBody.count <= 1_000)
+
+        // And the voice frontend's call, which P4-08 owns: 1,400 total and **no**
+        // `perMessageCharacters`, so it keeps today's 1,800 per message. Asserted because
+        // `perMessageCap(budget: 1_400)` is 560, and passing it there would silently halve
+        // voice history to make a table look tidy.
+        let voice = makeSession(workingBudget: AgentHistoryBudget.maximumCharacters,
+                               name: "p118-voice.json")
+        voice.recordUser("A short question about one very long document.")
+        voice.recordAssistant(String(repeating: "word ", count: 1_800))
+        voice.recordUser("And now?")
+        let voiceBody = voice.chatHistoryForCurrentTurn(maxCharacters: 1_400)
+            .first { $0.role == .assistant }?.content ?? ""
+        check("the voice frontend's history is \(voiceBody.count) characters, over the 560 "
+            + "over the 560 that perMessageCap would have given it",
+              voiceBody.count > 560)
+        check("the voice frontend's history is \(voiceBody.count) characters, over its 1,400",
+              voiceBody.count <= 1_400)
         if let tailID = long.compactedTailStartID, let tail = long.messages.firstIndex(where: { $0.id == tailID }) {
             check("the live boundary is not a turn start", long.messages[tail].role == "user")
         } else {

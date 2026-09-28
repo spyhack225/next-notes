@@ -577,8 +577,17 @@ extension RealtimeAgent {
         // runs. An obsolete response is discarded before it can become an action.
         // P1-11: this view drops an earlier turn's claim sentences, which is the
         // one thing a 4B model copies instead of inventing.
+        // P0-05: the reader's real window, read here because the history below is sized by it.
+        let window = await AgentAnswerBudget.readerContextTokens(for: provider)
+        // P1-18: what this reader is shown, decided by its own window. The two literals this
+        // replaced — 2,500 here, and `provider.contextTokens < 8_000 ? 2_500 : 6_000` in the
+        // planner — meant a 262,144-token reader was handed less than one email listing, and
+        // the 10,000 session ceiling then clipped it without saying so.
+        let historyBudget = AgentHistoryBudget.characters(contextTokens: window)
         let history = AgentSession.shared.chatHistoryForCurrentTurn(
-            maxCharacters: 2_500, scrubToolClaims: true)
+            maxCharacters: historyBudget, scrubToolClaims: true,
+            perMessageCharacters: AgentHistoryBudget.perMessageCap(budget: historyBudget))
+        Log.agent.info("history budget · window=\(window, privacy: .public) chars=\(historyBudget, privacy: .public)")
         let coldLocalModel = localModelProviderForTesting == nil && provider.id == .appLLM
             ? !(await NotesModelRuntime.shared.isLoaded) : false
         if coldLocalModel { beginWork(title: "Loading local model…") }
@@ -590,10 +599,9 @@ extension RealtimeAgent {
             ?? (provider.id == .openRouter ? Duration.seconds(30)
                 : coldLocalModel ? Limits.modelCold : Limits.modelWarm)
         var remainingBudget = limit
-        // P0-05: once per turn, the reader's real window and the persona depth. The
-        // prompt is recounted inside the loop beside the prompt it measures, because a
-        // revision rebuilds the messages.
-        let window = await AgentAnswerBudget.readerContextTokens(for: provider)
+        // P0-05: the persona depth. The prompt is recounted inside the loop beside the prompt
+        // it measures, because a revision rebuilds the messages. `window` moved above the
+        // history line, which now needs it.
         let depth = answerDepthForTesting ?? Settings.shared.agentResponsiveness
         let system = Self.voiceRoutingSystem(voice: voice)
 
@@ -1346,9 +1354,16 @@ extension RealtimeAgent {
         // out before calls do. It is nil in production, where the cap is the setting's.
         let maxCalls = maxCallsForTesting ?? callCap
         let memoryGrounding = NextMemory.shared.grounding(for: prompt)
+        // P1-18, and the second of the two literals this replaced. `provider.contextTokens`
+        // is the 32,768 ceiling for a llama reader, not the loaded model's window, so it was
+        // the wrong number as well as a fixed one; `window` is the reader's real one.
+        let plannerHistoryBudget = AgentHistoryBudget.characters(contextTokens: window)
         let conversation = AgentSession.shared.contextForCurrentTurn(
-            maxCharacters: provider.contextTokens < 8_000 ? 2_500 : 6_000,
-            scrubToolClaims: true)
+            maxCharacters: plannerHistoryBudget, scrubToolClaims: true,
+            perMessageCharacters: AgentHistoryBudget.perMessageCap(budget: plannerHistoryBudget))
+        // Beside P0-05's per-round `answer budget` line, and for the same reason: when a turn
+        // answers from too little history, the number to read first is how much it was given.
+        Log.agent.info("history budget · window=\(window, privacy: .public) chars=\(plannerHistoryBudget, privacy: .public) shown=\(conversation.count, privacy: .public)")
         var contextSections: [String] = []
         if !conversation.isEmpty {
             contextSections.append(Self.conversationSectionLabel + "\n" + conversation)

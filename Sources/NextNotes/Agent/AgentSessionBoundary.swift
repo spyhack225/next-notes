@@ -24,7 +24,10 @@ enum AgentSessionBoundary {
     static let reviewEveryUserTurns = 10
     static let summaryHeader = "[Earlier in this conversation — reference only, not new requests]"
     /// The working history the prompt carries before older turns are folded into the summary.
-    static let workingBudget = 10_000
+    /// P1-18: the largest budget there is, so the fold point and the prompt ceiling are one
+    /// number. At 10,000 it sat *below* the biggest budget a reader could ask for, which
+    /// compacted a conversation that was never going to be sent whole.
+    static let workingBudget = AgentHistoryBudget.maximumCharacters
     /// After compacting, the kept tail is at most this share of the budget, so compaction
     /// happens in steps rather than on every turn — the prompt prefix stays stable between.
     static let keptShare = 0.5

@@ -926,9 +926,14 @@ final class AgentSession {
         }
     }
 
+    /// P1-18: the fold point, which the compaction table and the prompt budget share.
+    private(set) var workingBudget: Int
     private static let maxMessages = 120
     private static let maxStoredCharacters = 12_000
-    private static let contextCharacters = 10_000
+    /// P1-18: the ceiling is the largest budget there is. It was 10,000 while a caller could
+    /// ask for 24,000, so the largest budget was unreachable and the clip was silent — the
+    /// worst of the three ways a limit can be wrong.
+    private static let contextCharacters = AgentHistoryBudget.maximumCharacters
 
     /// Why a session was handed to the memory review.
     enum ReviewReason: String, Sendable {
@@ -988,8 +993,10 @@ final class AgentSession {
         fileURL: URL?,
         now: @escaping () -> Date = Date.init,
         idleMinutes: @escaping () -> Int = { AgentSessionBoundary.defaultIdleMinutes },
-        beginMemorySession: @escaping () -> Void = {}
+        beginMemorySession: @escaping () -> Void = {},
+        workingBudget: Int = AgentSessionBoundary.workingBudget
     ) {
+        self.workingBudget = workingBudget
         self.fileURL = fileURL
         self.now = now
         self.idleMinutes = idleMinutes
@@ -1081,7 +1088,8 @@ final class AgentSession {
     private func compactIfNeeded() {
         let start = sessionStartIndex
         let current = tailStartIndex
-        let next = AgentSessionBoundary.compactionStart(messages[start...], current: current)
+        let next = AgentSessionBoundary.compactionStart(
+            messages[start...], current: current, budget: workingBudget)
         guard next > current, messages.indices.contains(next) else { return }
         compactedTailStartID = messages[next].id
         compactionCount += 1
@@ -1110,7 +1118,12 @@ final class AgentSession {
     /// dropped, because a 4B model copies an earlier turn's fabricated sentence out of the
     /// history rather than inventing one (G turns A1, A6, A7). The stored rows and the
     /// sidebar are not touched, and every other caller keeps the plain view.
-    func contextForCurrentTurn(maxCharacters: Int? = nil, scrubToolClaims: Bool = false) -> String {
+    /// P1-18: `perMessageCharacters` defaults to 1,800 and **must keep doing so**. It is not
+    /// "the old constant": the voice frontend asks for 1,400 in total and passes nothing here,
+    /// and `perMessageCap(budget: 1_400)` is 560, so defaulting to the budget's own share would
+    /// silently halve voice history. The three typed sites pass the cap explicitly.
+    func contextForCurrentTurn(maxCharacters: Int? = nil, scrubToolClaims: Bool = false,
+                               perMessageCharacters: Int = 1_800) -> String {
         let tail = messages[tailStartIndex...]
         let earlier = tail.last?.role == "user" ? tail.dropLast() : tail
         var remaining = min(Self.contextCharacters, max(0, maxCharacters ?? Self.contextCharacters))
@@ -1137,9 +1150,16 @@ final class AgentSession {
                     message.modelContextText, roster: ToolClaimGuard.registryNames)
                 : message.modelContextText
             guard !body.isEmpty else { continue }
-            let room = min(1_800, remaining - label.count - 2)
+            // P1-18: this message's share of the budget, so one long tool result cannot take
+            // the room four exchanges need. The suffix is counted *inside* the room, because a
+            // marker that pushes the context over the ceiling it is explaining is the same bug
+            // one character to the right.
+            let marker = AgentHistoryBudget.clippedSuffix
+            let room = min(perMessageCharacters, remaining - label.count - 2)
             guard room > 0 else { break }
-            let line = "\(label): \(String(body.prefix(room)))"
+            let clipped = body.count > room
+            let text = String(body.prefix(clipped ? max(0, room - marker.count) : room))
+            let line = "\(label): \(text)\(clipped ? marker : "")"
             selected.append(line)
             // The separator counts too, so the joined context stays inside the budget.
             remaining -= line.count + 2
@@ -1153,9 +1173,12 @@ final class AgentSession {
     ///
     /// `scrubToolClaims` is P1-11's, and it drops sentences from **assistant** rows only:
     /// what the person said is evidence about the request and stays exactly as written.
+    /// `perMessageCharacters` defaults to 1,800 for the voice frontend's sake, exactly as
+    /// `contextForCurrentTurn`'s does — see that doc comment before changing either.
     func chatHistoryForCurrentTurn(maxCharacters: Int, excludingLastUser: Bool = true,
                                   includeDeliveryNotes: Bool = true,
-                                  scrubToolClaims: Bool = false) -> [LLMChatMessage] {
+                                  scrubToolClaims: Bool = false,
+                                  perMessageCharacters: Int = 1_800) -> [LLMChatMessage] {
         let tail = messages[tailStartIndex...]
         let earlier = excludingLastUser && tail.last?.role == "user" ? tail.dropLast() : tail
         var remaining = max(0, maxCharacters)
@@ -1165,7 +1188,11 @@ final class AgentSession {
         var selected: [LLMChatMessage] = []
         for message in earlier.reversed() {
             guard message.role == "user" || message.role == "assistant" else { continue }
-            let room = min(1_800, remaining)
+            // P1-18, and the same rule as `contextForCurrentTurn`. This call site's default
+            // stays 1,800 — the voice frontend passes 1,400 in total and P4-08 owns its
+            // history, and `perMessageCap(budget: 1_400)` would be 560.
+            let marker = AgentHistoryBudget.clippedSuffix
+            let room = min(perMessageCharacters, remaining)
             guard room > 0 else { break }
             let raw = includeDeliveryNotes ? message.modelContextText : message.text
             // Assistant rows only, for the reason `contextForCurrentTurn` gives: the claim
@@ -1174,7 +1201,9 @@ final class AgentSession {
                 ? ToolClaimGuard.scrubHistory(raw, roster: ToolClaimGuard.registryNames)
                 : raw
             guard !body.isEmpty else { continue }
-            let content = String(body.prefix(room))
+            let clipped = body.count > room
+            let content = String(body.prefix(clipped ? max(0, room - marker.count) : room))
+                + (clipped ? marker : "")
             selected.append(LLMChatMessage(
                 role: message.role == "user" ? .user : .assistant,
                 content: content

@@ -1035,6 +1035,7 @@ enum RealtimeAgentToolLoopSelfTest {
             tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
         defer { AgentCapabilityManifestBuilder.inputsOverrideForTesting = nil }
         failures.append(contentsOf: await runReadApprovalCases(agent: agent, check: check))
+        failures.append(contentsOf: await runHistoryBudgetCases(agent: agent, check: check))
         failures.append(contentsOf: await runToleranceCases(agent: agent, check: check))
         failures.append(contentsOf: await runBudgetCases(agent: agent, check: check))
         failures.append(contentsOf: await runRendererCases(agent: agent, check: check))
@@ -1332,6 +1333,100 @@ enum RealtimeAgentToolLoopSelfTest {
         }
         print("  TOOLLOOP_PRODUCTION_READ_APPROVAL: 3 recorded decisions, 1 setting check, "
             + "\(sites.count) call sites scanned, 2-switch knowledge gate")
+        return failures
+    }
+
+    /// P1-18: how much earlier conversation a reader is shown scales with its own window.
+    ///
+    /// Red before the change at both ends: a 262,144-token reader was given 6,000 characters
+    /// (a literal, and the same 6,000 whatever model answered), and `AgentSession` clipped the
+    /// whole context to 10,000 on the way out — so even a caller that asked for more got 10,000
+    /// and no word about it. The 4,096 reader's 2,500 is the number that must *not* move.
+    ///
+    /// The turn is driven the way `largestResultSeen` drives one — a scripted call, so the
+    /// loop is engaged — and the measurement is the prompt the planner actually sent, read out
+    /// of the recorded round rather than recomputed from the budget table.
+    @MainActor
+    static func runHistoryBudgetCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        var failures: [String] = []
+        func fail(_ name: String) { failures.append(name); check(name, false) }
+        let hermes: (String) -> String = { "<\u{200B}tool_call>\($0)</\u{200B}tool_call>" }
+
+        /// The conversation section of the first round the planner sent, in characters.
+        ///
+        /// The whole section, not its first block: the loop joins sections with a blank line and
+        /// the conversation is the first one, so measuring a block measures the compaction
+        /// summary and nothing else — 1,329 characters that looked like a 24,000 budget losing
+        /// to a 6,000 one and was really a summary being counted on its own.
+        ///
+        /// `turns` is in the signature because the two readers cannot be given the same
+        /// session. A 4,096-token reader cannot afford twenty exchanges of history: the prompt
+        /// overflows, the round is never sent, and the case would be measuring an honest
+        /// refusal rather than a budget. Six exchanges is ~4,000 characters, which is over a
+        /// 2,500 budget and comfortably inside what that reader can send — so the small
+        /// reader's assertion is not vacuous. If its budget were lifted to the planner's old
+        /// 6,000 the section would come back at ~4,000 and the case would fail.
+        func conversationShown(contextTokens: Int, turns: Int) async -> Int? {
+            let log = PlannerScriptLog()
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                // Scaled with the window on purpose. A fixed 4,000 told a 4,096-token reader
+                // that its whole prompt was 4,000 tokens, so the round could not be sent at
+                // all and the case measured an honest overflow instead of a budget.
+                id: .localServer, window: contextTokens,
+                promptTokens: min(1_500, contextTokens / 2),
+                script: [hermes(#"{"name":"search_email","arguments":{"query":"pricing"}}"#),
+                         "Here is what it says."],
+                log: log)
+            agent.budgetForTesting = nil
+            agent.setTypedPendingForTesting(nil)
+            // Each pair is one exchange, which is the shape compaction keeps whole.
+            for turn in 0..<turns {
+                AgentSession.shared.recordUser(
+                    "Turn \(turn) asked about the pricing sheet and the launch date. "
+                        + String(repeating: "detail ", count: 40), source: .text)
+                AgentSession.shared.recordAssistant(
+                    "Turn \(turn) answered about the pricing sheet and the launch date. "
+                        + String(repeating: "detail ", count: 40))
+            }
+            AgentSession.shared.recordUser("And what about the deck?", source: .text)
+            defer {
+                AgentSession.shared.forgetAllConversations()
+                agent.localModelProviderForTesting = nil
+            }
+            _ = await agent.handle("what is in the pricing sheet", source: .text)
+            let first = log.calls.first?.user ?? ""
+            guard let range = first.range(of: RealtimeAgent.conversationSectionLabel) else { return nil }
+            var section = first[range.upperBound...]
+            for header in ["Relevant local memory for names and labels:", "Current user request:"] {
+                if let end = section.range(of: header) {
+                    section = section[..<end.lowerBound]
+                }
+            }
+            return section.trimmingCharacters(in: .whitespacesAndNewlines).count
+        }
+
+        // 26 exchanges, ~660 characters each: ~17,000 characters of history, which is over the
+        // assertion's 15,000 and under the 24,000 budget, so nothing is compacted away and the
+        // number is the budget's rather than the summary's.
+        let roomy = await conversationShown(contextTokens: 262_144, turns: 26)
+        if roomy == nil {
+            fail("the planner never sent a round, so no history budget was measured")
+        } else if roomy! < 15_000 {
+            fail("a 262,144-token reader was shown \(roomy!) characters of earlier turns, "
+                + "expected at least 15,000")
+        }
+        let small = await conversationShown(contextTokens: 4_096, turns: 6)
+        if small == nil {
+            fail("the planner never sent a round to the small reader")
+        } else if small! > 2_500 {
+            fail("a 4,096-token reader was shown \(small!) characters of earlier turns, "
+                + "over its 2,500")
+        }
+        print("  TOOLLOOP_PRODUCTION_HISTORY_BUDGET: 262,144 reader "
+            + "\(roomy.map(String.init) ?? "no round") chars, 4,096 reader "
+            + "\(small.map(String.init) ?? "no round") chars")
         return failures
     }
 
