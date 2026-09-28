@@ -5232,7 +5232,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     """)
             }
 
-            var failures = Self.islandStateFailures()
+            var failures = await Self.islandStateFailures()
             failures.append(contentsOf: Self.islandViewFailures())
             failures.append(contentsOf: AgentWorkingCard.scriptedFourStepFailures())
 
@@ -5306,8 +5306,75 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let islandSettle: TimeInterval = 1
 
     /// The island's priority rules, stated as cases. Returns the ones that came out wrong.
-    private static func islandStateFailures() -> [String] {
-        let state = IslandState()
+    /// P1-16 against the **real** gate, including the path that matters most: the Needle
+    /// watcher's 180 s expiry, which today leaves a card holding its only slot while nothing
+    /// on screen says it is there.
+    ///
+    /// Only `cancelPending(id:)` is used to end an ask. `respond(approved: true)` on a request
+    /// whose tool exists would *execute* it, and a self-test must never do that — so the
+    /// expiry is reproduced the way the watcher produces it, by cancelling the asker.
+    @MainActor
+    private static func pendingApprovalGateFailures() async -> [String] {
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+        guard let tool = AgentToolRegistry.shared.tool(named: "schedule.list") else {
+            return ["P1-16: the fixture tool is not registered"]
+        }
+        // Built the way `FunctionCallWatcher.request(for:tool:trigger:)` builds one, which is
+        // `static` and pure — so this is the shape that actually reaches the gate, not a
+        // convenient one.
+        let request = PermissionRequest(
+            toolID: tool.id, title: "Reminder for 9", detail: "Set a reminder", risk: tool.risk,
+            arguments: [:], scope: .any, meetingID: nil, taskID: nil,
+            trigger: .youSaid("set a reminder"))
+        let ask = Task { _ = await PermissionGate.shared.ask(request) }
+        // The gate presents synchronously on the main actor, so one turn of the loop is enough;
+        // the second attempt waits so a slow machine does not read as a failure.
+        for _ in 0..<40 where PermissionGate.shared.pending == nil {
+            try? await Task.sleep(for: .milliseconds(25))
+        }
+        guard let pending = PermissionGate.shared.pending else {
+            ask.cancel()
+            return failures + ["P1-16: ask() did not present the request"]
+        }
+        check("the gate presented a different request than it was asked",
+              pending.id == request.id)
+        let live = IslandState()
+        live.dismissNotice()
+        if case .pendingApproval(let proposal, let waiting) = live.kind {
+            check("the badge shows a different proposal than the gate's",
+                  proposal.id == request.id)
+            check("the badge counted something other than the one pending",
+                  waiting == 1)
+        } else {
+            failures.append("P1-16: a default IslandState() does not show a pending approval "
+                + "(\(live.kind))")
+        }
+        // The watcher's expiry: the asker is cancelled, and the badge must go with it.
+        ask.cancel()
+        for _ in 0..<40 where PermissionGate.shared.pending != nil {
+            try? await Task.sleep(for: .milliseconds(25))
+        }
+        check("cancelling the asker did not clear the gate", PermissionGate.shared.pending == nil)
+        live.refresh()
+        if case .pendingApproval = live.kind {
+            failures.append("P1-16: the badge outlived the request it was showing")
+        }
+        return failures
+    }
+
+    private static func islandStateFailures() async -> [String] {
+        // P1-16's fixture: a pending-approval source a case can move, so the whole live-state
+        // machine is driven without a real `PermissionGate.ask` — which would need a
+        // continuation resumed by a person who is not there. The *real* gate is exercised
+        // separately, in `pendingApprovalGateFailures` below, including the expiry that clears it.
+        final class PendingBox: @unchecked Sendable {
+            var value: (IslandProposal, Int)?
+        }
+        let box = PendingBox()
+        let state = IslandState(pendingApproval: { box.value })
         var failures: [String] = []
 
         func check(_ name: String, _ condition: Bool) {
@@ -5315,6 +5382,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         check("a fresh island is hidden", state.kind == .hidden)
+
+        // --- P1-16: the approval outlives its notice -------------------------------
+        let p = IslandProposal(
+            id: "selftest-approval", title: "Send the deck to Ana", detail: "The deck is ready.",
+            meetingID: nil)
+        state.propose(p)
+        check("the notice shows the card as a notice", state.kind == .agentProposal(p))
+        box.value = (p, 1)
+        // Stands in for the eight-second lapse.
+        state.dismissNotice()
+        check("an approval vanished when its notice lapsed",
+              state.kind == .pendingApproval(p, waiting: 1))
+        check("the pending badge opened by itself", state.isExpanded == false)
+        check("the pending badge has no identity of its own",
+              state.kind.identity == "pending:selftest-approval:1")
+        state.isHovered = true
+        check("hovering did not expand a pending badge", state.isExpanded)
+        state.isHovered = false
+        check("hovering left the badge collapsed again", state.isExpanded == false)
+        check("hovering changed the badge's kind", state.kind == .pendingApproval(p, waiting: 1))
+        box.value = (p, 2)
+        state.refresh()
+        check("a second request is not counted", state.kind == .pendingApproval(p, waiting: 2))
+        check("the count did not change the badge's identity",
+              state.kind.identity == "pending:selftest-approval:2")
+        box.value = nil
+        state.refresh()
+        check("the badge did not clear when the gate emptied", state.kind != .pendingApproval(p, waiting: 2))
+        check("the badge left the island showing something else",
+              state.kind == .hidden || state.kind == .agentProposal(p))
+
+        // The priority table, graded directly. `liveKind` cannot be driven into a pending
+        // approval *and* a meeting session in one test, and the order is the whole decision.
+        func winner(working: Bool = false, listening: Bool = false, dictating: Bool = false,
+                    pending: Bool = false, recording: Bool = false) -> IslandState.LiveSource {
+            IslandState.liveWinner(working: working, listening: listening, dictating: dictating,
+                                   pending: pending, recording: recording)
+        }
+        check("a working agent loses to a pending approval",
+              winner(working: true, pending: true) == .pendingApproval)
+        check("listening wins over a pending approval",
+              winner(listening: true, pending: true) == .listening)
+        check("dictation wins over a pending approval",
+              winner(dictating: true, pending: true) == .dictating)
+        check("a pending approval wins over a recording",
+              winner(pending: true, recording: true) == .pendingApproval)
+        check("a working agent is a working agent when nothing is pending",
+              winner(working: true) == .working)
+        check("a recording is still a recording",
+              winner(recording: true) == .recording)
+        check("nothing live is nothing", winner() == .none)
+
+        failures.append(contentsOf: await pendingApprovalGateFailures())
         check("a hidden island is not expanded", !state.isExpanded)
 
         let event = MeetingEvent(
@@ -5521,6 +5641,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .agentWorking(title: "Searching mail"),
             .agentReply("Done."),
             .problem("No microphone audio reached dictation."),
+            // P1-16: the live approval badge, at both waiting counts, because "1 waiting" and
+            // "2 waiting" are different layouts and a card that only ever renders the first is
+            // a card that has never been checked in the state it spends most of its life in.
+            .pendingApproval(IslandProposal(
+                id: "view-pending",
+                title: "Send the deck to Ana",
+                detail: "Email Sam with the deck.",
+                meetingID: nil
+            ), waiting: 1),
+            .pendingApproval(IslandProposal(
+                id: "view-pending",
+                title: "Send the deck to Ana",
+                detail: "Email Sam with the deck.",
+                meetingID: nil
+            ), waiting: 3),
         ]
 
         var failures: [String] = []

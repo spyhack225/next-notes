@@ -266,6 +266,15 @@ struct IslandView: View {
                     .foregroundStyle(ink)
                     .accessibilityLabel(proposal.needsSummary ?? "")
             }
+        case .pendingApproval(_, let waiting):
+            // P1-16: the badge's one number. "1 waiting" is what the card says when it is
+            // hovered, and the collapsed flank shows the same figure so the count is legible
+            // before anybody points at it.
+            Text("\(waiting) waiting")
+                .font(DS.Font.counterSmall)
+                .monospacedDigit()
+                .foregroundStyle(ink)
+                .accessibilityLabel(proposalAccessibilityLabel(waiting))
         case .agentWorking(_, let current, let total):
             // Collapsed: the counter and the one control worth the flank (P1-1).
             HStack(spacing: DS.Space.xs) {
@@ -290,6 +299,65 @@ struct IslandView: View {
             // Counters roll their digits rather than cutting to the next value: the island
             // sits still for minutes at a time, so the one thing that moves should move.
             .contentTransition(.numericText())
+    }
+
+    /// The proposal card's body, shared by the notice and by P1-16's live badge.
+    ///
+    /// Extracted rather than copied because these are the **same card**: a person who hovers
+    /// the badge eight seconds after the card opened it must be looking at exactly the thing
+    /// they missed. Two copies of seven lines of view is two cards, and they would drift.
+    @ViewBuilder
+    private func proposalBody(_ proposal: IslandProposal) -> some View {
+        VStack(alignment: .leading, spacing: DS.Space.xxs) {
+            // The count first, because it changes what the buttons mean. A card that
+            // leads with "Send an email to Marie" and buries "no address yet" in the
+            // second line is the card that gets approved without being read.
+            if let needed = proposal.needsSummary {
+                Label(needed, systemImage: "exclamationmark.circle")
+                    .font(DS.Font.chip)
+                    .foregroundStyle(ink)
+                    .labelStyle(.titleAndIcon)
+            }
+            Text(proposal.detail)
+                .font(DS.Font.callout)
+                .foregroundStyle(secondaryInk)
+                .lineLimit(2)
+        }
+    }
+
+    /// Plain words, and the singular is its own string: VoiceOver reading "1 waiting" is
+    /// fine and "2 waiting" is not a sentence anybody would say.
+    private func proposalAccessibilityLabel(_ waiting: Int) -> String {
+        waiting == 1 ? "1 request waiting for your answer"
+                     : "\(waiting) requests waiting for your answer"
+    }
+
+    /// The proposal card's buttons, shared for the same reason the body is: the badge and the
+    /// notice are one card, and an Approve in one place and a Review in the other would be a
+    /// difference nobody would notice until it mattered.
+    @ViewBuilder
+    private func proposalActions(_ proposal: IslandProposal) -> some View {
+        HStack(spacing: DS.Space.s) {
+            Button("Dismiss") { state.decide(proposal, approved: false) }
+            // System-audio candidates never get Approve-to-execute. A send that
+            // speaks in the user's name still cannot be approved from two lines.
+            switch proposal.leadAction {
+            case .prepare:
+                Button("Prepare") { state.prepare(proposal) }
+                    .buttonStyle(.borderedProminent)
+            case .review:
+                // Two different waits, two different words: something the user has to
+                // type is not the same request as something they only have to read.
+                Button(proposal.needsCount > 0 ? "Fill in\u{2026}" : "Review\u{2026}") {
+                    state.review(proposal)
+                }
+                .buttonStyle(.borderedProminent)
+            case .approve:
+                Button("Approve") { state.decide(proposal, approved: true) }
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .controlSize(.small)
     }
 
     // MARK: - Expanded detail and actions
@@ -327,22 +395,20 @@ struct IslandView: View {
                 .font(DS.Font.callout)
                 .foregroundStyle(secondaryInk)
 
-        case .agentProposal(let proposal):
+        case .pendingApproval(let proposal, let waiting):
+            // Exactly what `.agentProposal` draws for the same proposal, not a copy of it:
+            // one card, two routes onto it. The one line above it says the card is still
+            // waiting, because the *only* reason a person is looking at it is that they
+            // never saw it before.
             VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                // The count first, because it changes what the buttons mean. A card that
-                // leads with "Send an email to Marie" and buries "no address yet" in the
-                // second line is the card that gets approved without being read.
-                if let needed = proposal.needsSummary {
-                    Label(needed, systemImage: "exclamationmark.circle")
-                        .font(DS.Font.chip)
-                        .foregroundStyle(ink)
-                        .labelStyle(.titleAndIcon)
-                }
-                Text(proposal.detail)
-                    .font(DS.Font.callout)
+                Text(waiting == 1 ? "Waiting for your answer."
+                                  : "Waiting for your answer \u{2014} \(waiting) requests.")
+                    .font(DS.Font.chip)
                     .foregroundStyle(secondaryInk)
-                    .lineLimit(2)
+                proposalBody(proposal)
             }
+        case .agentProposal(let proposal):
+            proposalBody(proposal)
 
         case .agentListening(let transcript, let level):
             HStack(spacing: DS.Space.s) {
@@ -450,29 +516,15 @@ struct IslandView: View {
             Button("Dismiss") { state.dismissNotice() }
                 .controlSize(.small)
 
-        case .agentProposal(let proposal):
-            HStack(spacing: DS.Space.s) {
-                Button("Dismiss") { state.decide(proposal, approved: false) }
-                // System-audio candidates never get Approve-to-execute. A send that
-                // speaks in the user's name still cannot be approved from two lines.
-                switch proposal.leadAction {
-                case .prepare:
-                    Button("Prepare") { state.prepare(proposal) }
-                        .buttonStyle(.borderedProminent)
-                case .review:
-                    // Two different waits, two different words: something the user has to
-                    // type is not the same request as something they only have to read.
-                    Button(proposal.needsCount > 0 ? "Fill in\u{2026}" : "Review\u{2026}") {
-                        state.review(proposal)
-                    }
-                    .buttonStyle(.borderedProminent)
-                case .approve:
-                    Button("Approve") { state.decide(proposal, approved: true) }
-                        .buttonStyle(.borderedProminent)
-                }
-            }
-            .controlSize(.small)
+        case .pendingApproval(let proposal, _):
+            // The same buttons the notice carried, and the same call: `decide` answers the
+            // gate, and the gate's `respond` sets `pending = nil`, which is what clears the
+            // badge. Nothing here clears a notice, because there is no notice to clear — the
+            // card is being *drawn* by the live kind, and the answer is what ends it.
+            proposalActions(proposal)
 
+        case .agentProposal(let proposal):
+            proposalActions(proposal)
         case .problem:
             // Shown only while there is something to replay (D-03). The card has the
             // words on it and the button is the whole reason the recording was kept —

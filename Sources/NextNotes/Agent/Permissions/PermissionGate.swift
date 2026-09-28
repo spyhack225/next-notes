@@ -53,8 +53,18 @@ final class PermissionGate {
     /// Puts the island card up from the current state of the review, so the two never
     /// disagree about whether anything is still owed.
     private func raiseIsland(for request: PermissionRequest) {
+        IslandState.shared.propose(islandProposal(for: request))
+    }
+
+    /// The card for one request, built in one place.
+    ///
+    /// P1-16: extracted so the **live** island kind and the 8 s notice draw the same card. The
+    /// notice used to be the only thing that could show a pending approval, which is why the
+    /// approval vanished after eight seconds while `ask` was still waiting on the person — and
+    /// why the live path had to be able to build the proposal itself.
+    func islandProposal(for request: PermissionRequest) -> IslandProposal {
         let review = ToolCallReviewStore.shared.review(for: request)
-        IslandState.shared.propose(IslandProposal(
+        return IslandProposal(
             id: request.id,
             title: review.title,
             detail: review.isReadyToRun ? review.why : review.blockers[0].prompt,
@@ -63,8 +73,7 @@ final class PermissionGate {
             // answered where the whole thing is on screen — never from two lines.
             needsReview: request.risk >= .modify || !review.isReadyToRun,
             canExecute: review.isReadyToRun,
-            needsCount: review.blockers.count
-        ))
+            needsCount: review.blockers.count)
     }
 
     /// The card for the request on screen. Built on demand so a view that appears late

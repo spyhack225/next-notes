@@ -89,6 +89,22 @@ final class IslandState {
         case summarizing(progress: Double?)
         case notesReady(meetingID: UUID, title: String)
         case agentProposal(IslandProposal)
+        /// P1-16: a request is waiting for the person to answer it, and the eight-second
+        /// notice has already lapsed.
+        ///
+        /// It exists because the notice was the *only* thing that could show a pending approval.
+        /// `PermissionGate.ask` has no timeout, the tool loop, ACP, the Needle watcher and the
+        /// first-ingestion consent all wait on it, and in voice use the main window is usually
+        /// closed — so after eight seconds nothing on screen said the Agent was blocked on the
+        /// person. For meetings it was worse: the watcher's card holds its only slot for 180 s
+        /// while it was visible for 8 of them, and every later actionable sentence was dropped
+        /// with "a card of ours is already waiting".
+        ///
+        /// **Not** `demandsAttention`, and **not** an animated orb. A card that re-expanded
+        /// itself would cover the notch for the whole wait, and an orb that turns over names work
+        /// that is not running — nothing is processing while a person is deciding. It is a quiet
+        /// badge that expands on hover, and its orb is the still one.
+        case pendingApproval(IslandProposal, waiting: Int)
         /// The dedicated agent shortcut or wake phrase is listening.
         case agentListening(transcript: String, level: Float)
         /// A bounded tool or a background task is in flight.
@@ -147,6 +163,10 @@ final class IslandState {
             case .summarizing: "summarizing"
             case .notesReady(let id, _): "notes:\(id)"
             case .agentProposal(let proposal): "proposal:\(proposal.id)"
+            // The waiting count is in the identity on purpose: "1 waiting" becoming "2
+            // waiting" is a change the island has to animate to, and a badge whose text
+            // changed under a static identity would not.
+            case .pendingApproval(let proposal, let waiting): "pending:\(proposal.id):\(waiting)"
             case .agentListening: "agent.listening"
             case .agentWorking(_, let current, let total): "agent.working:\(current)/\(total)"
             case .agentReply: "agent.reply"
@@ -162,6 +182,12 @@ final class IslandState {
             case .meetingArmed, .notesReady, .agentProposal, .agentListening, .agentWorking, .agentReply: true
             // A sentence the user has to read is no use as a badge under the notch.
             case .problem: true
+            // P1-16: **deliberately false**, and the reason is in the case's own comment. A card
+            // that re-expanded itself would sit over the notch for the whole 180 s the Needle
+            // watcher's card can live, and a person who had not looked at the island in the
+            // first eight seconds would have the notch covered by a card they did not ask for.
+            // It expands on hover, which is a thing a person does on purpose.
+            case .pendingApproval: false
             default: false
             }
         }
@@ -195,6 +221,10 @@ final class IslandState {
             case .diarizing: .solving
             case .summarizing: .composing
             case .agentProposal: .searching
+            // `breathing`, and it is the reason the orb is not animated anywhere on this
+            // card: nothing is being processed while a person is deciding. This is the
+            // table's own "present and idle — waiting on purpose".
+            case .pendingApproval: .breathing
             case .agentListening: .listening
             case .agentWorking: .searching
             case .agentReply: .composing
@@ -268,6 +298,7 @@ final class IslandState {
         case .summarizing: MeetingStatus.summarizing.displayName
         case .notesReady(_, let title): title
         case .agentProposal(let proposal): proposal.title
+        case .pendingApproval(let proposal, _): proposal.title
         case .agentListening, .agentWorking, .agentReply: AgentIdentityStore.shared.name
         case .problem: "That didn\u{2019}t work"
         }
@@ -309,14 +340,29 @@ final class IslandState {
     @ObservationIgnored private let diarization: DiarizationService
     @ObservationIgnored private var isObserving = false
 
+    /// P1-16: where the island reads a pending approval from, injected so the self-test can
+    /// drive the whole live-state machine without standing up a real `PermissionGate.ask` —
+    /// which would need a continuation resumed by a person who is not there.
+    @ObservationIgnored private let pendingSource: @MainActor () -> (IslandProposal, Int)?
+
     init(
         meetings: MeetingController = .shared,
         notes: NotesService = .shared,
-        diarization: DiarizationService = .shared
+        diarization: DiarizationService = .shared,
+        pendingApproval: @escaping @MainActor () -> (IslandProposal, Int)? = IslandState.livePendingApproval
     ) {
         self.meetings = meetings
         self.notes = notes
         self.diarization = diarization
+        self.pendingSource = pendingApproval
+    }
+
+    /// The real one. Reads the gate on demand rather than being told, so a cancel, an answer
+    /// or the watcher's 180 s expiry all clear the badge without anything having to remember to.
+    @MainActor static func livePendingApproval() -> (IslandProposal, Int)? {
+        guard let request = PermissionGate.shared.pending else { return nil }
+        return (PermissionGate.shared.islandProposal(for: request),
+                1 + PermissionGate.shared.queuedCount)
     }
 
     /// Starts following the app. Called once, from the app delegate.
@@ -551,11 +597,49 @@ final class IslandState {
         return .dictating(transcript: transcript, level: level, isCapturing: isCapturing)
     }
 
+    /// Which live state wins when more than one is true. Pure, and the self-test grades it
+    /// directly, because the priority *is* the decision and reading it out of `liveKind()`
+    /// would mean standing up a meeting session and a dictation to test five booleans.
+    enum LiveSource: Equatable {
+        case working, listening, dictating, pendingApproval, recording, none
+    }
+
+    /// An agent that is "working" while a card is pending is **blocked on the person**, not
+    /// working, so the badge beats the working card. Listening and dictation keep priority
+    /// over both because they prove the microphone is live, which is a stronger statement than
+    /// either a spinner or a waiting badge. And the badge beats the meeting strip: an approval
+    /// a person cannot see is an approval that will time out.
+    static func liveWinner(
+        working: Bool, listening: Bool, dictating: Bool, pending: Bool, recording: Bool
+    ) -> LiveSource {
+        if listening { return .listening }
+        if dictating { return .dictating }
+        if pending { return .pendingApproval }
+        if working { return .working }
+        if recording { return .recording }
+        return .none
+    }
+
     private func liveKind() -> Kind {
         // Dictation first among the live states: it lasts as long as a key is held, and its
         // whole job is to prove the app heard the words being said right now. A meeting
         // counter losing three seconds to it costs nothing.
-        if case .agentWorking = ActivationController.shared.mode {
+        // P1-16: read once, and handed to `liveWinner` so the priority table above is the only
+        // place the order exists. `pending` is read before the working branch on purpose: it is
+        // a property read, not a branch, and reading it later would mean the answer depends on
+        // which branch ran first.
+        let pending = pendingSource()
+        let winner = Self.liveWinner(
+            working: { if case .agentWorking = ActivationController.shared.mode { return true }
+                       return false }(),
+            listening: { if case .agentListening = ActivationController.shared.mode { return true }
+                         return false }(),
+            dictating: dictation?.state.shouldShowHUD == true
+                && dictation?.commandModeOwnsHUD == false
+                && Settings.shared.hudPlacement == .notch,
+            pending: pending != nil,
+            recording: meetings.session?.isRecording == true)
+        if case .agentWorking = ActivationController.shared.mode, winner == .working {
             // P1-1: the running task's own steps, so the notch shows "3/5" and the
             // current step rather than one opaque "Thinking…" title.
             let feed = AgentActivityStore.shared.liveSteps
@@ -587,6 +671,10 @@ final class IslandState {
                 level: dictation.level,
                 isCapturing: dictation.state == .listening || dictation.isCapturingAudio
             )
+        }
+        // P1-16: the unanswered approval, which outlives its eight-second notice.
+        if let (proposal, waiting) = pending, winner == .pendingApproval {
+            return .pendingApproval(proposal, waiting: waiting)
         }
         // M-06: the unanswered detected-call question. Agent and dictation stay above
         // it; it sits above the recording readout (there is none while armed) and idle.
@@ -626,6 +714,12 @@ final class IslandState {
             _ = notes.steps
             _ = diarization.progress
             _ = ActivationController.shared.mode
+            // P1-16: the gate is `@Observable`, so an answer, a cancel and the Needle watcher's
+            // 180 s expiry all arrive as a change here rather than needing a poll. Without
+            // these two reads the badge would clear only on the next unrelated island change,
+            // which is the class of bug where a card is answered and stays on screen.
+            _ = PermissionGate.shared.pending
+            _ = PermissionGate.shared.queuedCount
             _ = AgentCaptureController.shared.transcript
             _ = AgentCaptureController.shared.level
             _ = AgentCaptureController.shared.lastReply
