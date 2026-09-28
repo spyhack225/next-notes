@@ -10,7 +10,57 @@ import Foundation
 enum UsageReport {
     static let daysFlag = "--usage-days"
     static let featureFlag = "--usage-feature"
+    /// P1-29: print one turn across both logs by id — the audit row that asked, and the
+    /// model passes that answered. A row that carries a `turnID` and nothing else to
+    /// connect it to is an id nobody can use, and this is what makes it usable.
+    static let turnFlag = "--usage-turn"
     static let defaultDays = 30
+
+    /// One turn, from `agent-audit.jsonl` and `usage.jsonl` at once.
+    ///
+    /// The finding this answers was that the audit could not say which model answered a given
+    /// request: the pieces existed — the audit row, the usage rows, both with an id on the
+    /// usage side — and did not join. They join on `turnID` now, and this is the reader.
+    ///
+    /// Read-only and outside the harness like every other report here, because both stores are
+    /// isolated under `SelfTest.isRunning` and a report over empty temp stores would print a
+    /// confident "no such turn" for a turn that happened. The audit side reads
+    /// `AgentAuditLog.loadForReport()` rather than `.entries`, which under the harness starts
+    /// empty by design.
+    static func turnLines(
+        turnID: UUID,
+        usage: [UsageRecord],
+        audit: [AgentAuditEntry]
+    ) -> [String] {
+        let passes = usage.filter { $0.turnID == turnID }
+            .sorted { $0.ts < $1.ts }
+        let rows = audit.filter { $0.turnID == turnID }.sorted { $0.at < $1.at }
+        guard !passes.isEmpty || !rows.isEmpty else {
+            return ["USAGE_TURN_ABSENT: \(turnID.uuidString)"]
+        }
+        var lines: [String] = []
+        for row in rows {
+            lines.append("USAGE_TURN_AUDIT \(row.at.ISO8601Format()) [\(row.kind.rawValue)] "
+                + "\(row.title) tool=\(row.toolID ?? "-")")
+        }
+        for pass in passes {
+            // The outcome is the two fields the row actually carries — a finish reason or an
+            // error class — rather than a single invented "outcome" column, so a line printed
+            // here is the same line a pass wrote.
+            let outcome = pass.errorClass.map { "error=\($0)" }
+                ?? pass.finishReason.map { "finish=\($0)" } ?? "ok"
+            lines.append("USAGE_TURN_PASS \(pass.ts.ISO8601Format()) "
+                + "feature=\(pass.feature) model=\(pass.modelID) "
+                + "locality=\(pass.locality) \(outcome) "
+                + "in=\(pass.promptTokens ?? 0) out=\(pass.completionTokens ?? 0) "
+                + "ttft=\(pass.ttftMs ?? 0)ms total=\(pass.totalMs)ms")
+        }
+        let conversation = rows.first?.conversationID ?? passes.first?.conversationID
+        lines.append("USAGE_TURN_OK turn=\(turnID.uuidString) "
+            + "conversation=\(conversation?.uuidString ?? "-") "
+            + "audit=\(rows.count) passes=\(passes.count)")
+        return lines
+    }
 
     /// The report for `rows`, in the documented key order: one `USAGE_REPORT_ROW` per
     /// (feature, model), sorted by feature then how often it ran, then
@@ -35,6 +85,12 @@ enum UsageReport {
     /// the report. A `--usage-days` value that is not a positive number falls back to the
     /// default rather than reading nothing.
     static func run(arguments: [String]) async -> [String] {
+        if let raw = turnValue(in: arguments), let turnID = UUID(uuidString: raw) {
+            return await turnReport(turnID: turnID)
+        }
+        if let raw = turnValue(in: arguments) {
+            return ["USAGE_TURN_BAD_ID: \(raw) is not a uuid"]
+        }
         let days = daysValue(in: arguments)
         let feature = featureValue(in: arguments)
         let since = Date().addingTimeInterval(-Double(days) * 86_400)
@@ -45,6 +101,27 @@ enum UsageReport {
             return (rows, fileCount(in: log.directory))
         }.value
         return lines(for: rows, files: files, since: since)
+    }
+
+    /// The whole history for one turn, from both files. The audit side is read with its own
+    /// store rather than the in-memory list, because this runs outside the harness and the
+    /// list holds at most `AgentAuditLog.memoryRows` of whatever this launch has seen.
+    private static func turnReport(turnID: UUID) async -> [String] {
+        let (usage, audit) = await Task.detached(priority: .utility) { () -> ([UsageRecord], [AgentAuditEntry]) in
+            (UsageLog.shared.load(since: nil), AgentAuditLog.loadForReport())
+        }.value
+        return turnLines(turnID: turnID, usage: usage, audit: audit)
+    }
+
+    /// `--usage-turn <uuid>`. A value that is absent, empty or begins with `--` is nil —
+    /// `SelfTest.value(after:)`'s rule, so `--usage-turn --usage-days 3` cannot read the
+    /// next flag as a turn id and report a turn that does not exist.
+    static func turnValue(in arguments: [String]) -> String? {
+        guard let index = arguments.firstIndex(of: turnFlag),
+              arguments.index(after: index) < arguments.endIndex else { return nil }
+        let value = arguments[arguments.index(after: index)]
+        guard !value.hasPrefix("--") else { return nil }
+        return value
     }
 
     // MARK: - Formatting

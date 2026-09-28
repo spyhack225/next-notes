@@ -618,6 +618,15 @@ final class FunctionCallWatcher {
             let expiry = Task { @MainActor in
                 try? await Task.sleep(for: .seconds(Self.cardLifetime))
                 ask.cancel()
+                // P1-29: a card that **expired** is the third lifecycle moment, and the only
+                // one that used to be invisible from every log: the card simply stopped being
+                // there. `PermissionGate` records the cancel, but the reason — nobody answered
+                // for three minutes, which is different from the person saying no — belongs
+                // here, where the wait was.
+                AgentAuditLog.shared.record(
+                    kind: .permission, title: "Approval expired",
+                    detail: "No answer after \(Int(Self.cardLifetime))s.",
+                    toolID: request.toolID, taskID: request.taskID)
             }
             let approved = await ask.value
             expiry.cancel()

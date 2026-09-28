@@ -179,13 +179,20 @@ struct LatencyCorrelation: Codable, Sendable, Equatable {
     let sessionID: UUID?
     let workID: UUID?
     let revision: Int?
+    /// P1-29: the turn, so a latency span joins an audit row and a usage row by id alone.
+    /// Optional, and absent from rows written before this — `MetricsStore` decodes a line that
+    /// predates the key, so a non-optional field would have emptied the whole ring on the first
+    /// run of a newer build over an older file.
+    let turnID: UUID?
 
     @TaskLocal static var current: LatencyCorrelation?
 
-    init(sessionID: UUID? = nil, workID: UUID? = nil, revision: Int? = nil) {
+    init(sessionID: UUID? = nil, workID: UUID? = nil, revision: Int? = nil,
+         turnID: UUID? = nil) {
         self.sessionID = sessionID
         self.workID = workID
         self.revision = revision
+        self.turnID = turnID
     }
 }
 

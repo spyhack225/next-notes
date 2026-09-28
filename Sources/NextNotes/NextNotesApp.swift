@@ -1122,10 +1122,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // names: the debugger answering, the snapshot coming back, the page being
             // read, and a wait that must both succeed and time out honestly.
             Task { @MainActor in
-                var failures: [String] = []
-                func check(_ name: String, _ condition: Bool) {
-                    if !condition { failures.append(name) }
-                }
+            var failures: [String] = []
+            // The name of a `check` here is the **failure description**, not the pass. So
+            // "no row recorded that a card was shown" is passed `titles.contains("Approval asked")`
+            // — false is the failure. P1-29's first draft had three of its four assertions
+            // backwards against this convention and reported a leak, a miscount and a
+            // wrong-answer that had not happened; the code was right and the test was lying.
+            func check(_ name: String, _ condition: Bool) {
+                if !condition { failures.append(name) }
+            }
                 do {
                     for (id, risk) in [
                         ("browser.cdp_status", AgentRisk.observe),
@@ -6680,6 +6685,72 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 failures.append("model did not load: \(error.localizedDescription)")
             }
 
+            // ---- P1-29: a near miss is a row, with a score and without the words ----
+            //
+            // The text path computed a closeness score and discarded it on every rejection,
+            // so "it nearly sounded right" was a number the machine knew and threw away. The
+            // row carries the score and the reason; the transcript must never appear, because
+            // this is written while a person is talking to their computer.
+            do {
+                let before = AgentAuditLog.shared.entries.count
+                // A real rejection through the real detector, so this proves the feed is live
+                // and not only that the writer works. This phrase is the interesting rejection:
+                // it *opens* with something that sounds like the wake word and scores 0.667 —
+                // above the bar — and is still refused because it arrived inside a longer
+                // sentence. "hey we need" is not usable here: it scores 0.900 and is **accepted**,
+                // which is the accent tolerance working, so it never reaches the rejection path.
+                let rejected = WakeWordDetector.spot(
+                    in: "hey world this is a long sentence about the weather",
+                    configuration: will)
+                check("a sound-alike inside a sentence was accepted", rejected == nil)
+                // The row is written on the main actor, deliberately: the detector is
+                // nonisolated real-time code and must not hop to decide whether to log, so
+                // only a row that will actually be written crosses over. A test that asserted
+                // in the same breath as the `spot` call was reading the list before the write
+                // landed — which is not a race in production, where nothing reads it that fast.
+                try? await Task.sleep(for: .milliseconds(150))
+                let missRows = AgentAuditLog.shared.entries
+                    .filter { $0.kind == .wakeMiss }
+                check("a near miss wrote no row at all", !missRows.isEmpty)
+                if let row = missRows.first(where: { $0.title == "Wake near miss" }) {
+                    check(
+                        "the near-miss row carried no score",
+                        row.detail.contains("closeness=")
+                    )
+                    // The reason may name the configured phrase — that is the person's own
+                    // setting, not what was said. What must never appear is the utterance.
+                    let carriedWords = row.detail.contains("weather")
+                        || row.detail.contains("hey world")
+                    check("the near-miss row carried the transcript", !carriedWords)
+                } else {
+                    failures.append("no near-miss row for a rejected near phrase")
+                }
+                // The throttle: a second rejection inside the interval is not a second row.
+                let afterFirst = AgentAuditLog.shared.entries.count
+                _ = WakeWordDetector.spot(
+                    in: "hey there we should probably talk about this later on",
+                    configuration: will)
+                try? await Task.sleep(for: .milliseconds(150))
+                check(
+                    "the near-miss throttle did not hold",
+                    AgentAuditLog.shared.entries.count <= afterFirst + 1
+                )
+                // And the floor, checked with the score **ordinary conversation actually
+                // scores** rather than a round zero — 0.333 is what idle chit-chat measured,
+                // and a floor that let it through would turn the row into "the wake word is
+                // armed", which the Settings screen already shows.
+                let beforeChitChat = AgentAuditLog.shared.entries.count
+                WakeWordTelemetry.recordNearMiss(
+                    closeness: 0.333, reason: "the weather is nice today")
+                try? await Task.sleep(for: .milliseconds(150))
+                check("unrelated speech was recorded as a near miss",
+                      AgentAuditLog.shared.entries.count <= beforeChitChat)
+                check("the audit lost rows while a near miss was written",
+                      AgentAuditLog.shared.entries.count >= before)
+            } catch {
+                failures.append("p1-29 near miss: \(error.localizedDescription)")
+            }
+
             for failure in failures { writeSelfTest("  WAKE_WRONG: \(failure)") }
             writeSelfTest(failures.isEmpty
                           ? "WAKE_OK: model loaded; phrase spotting and authority split hold"
@@ -7294,6 +7365,128 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } catch {
                 failures.append(error.localizedDescription)
             }
+
+            // ---- P1-29: one turn id across the logs, and the moments that had no trace ----
+            //
+            // These four are the task's own promises, and each one is checked against the real
+            // writer rather than a stand-in, because the whole finding was that the pieces
+            // existed and did not join. A test that built its own `AgentAuditEntry` would pass
+            // with the stamping removed.
+            do {
+                // 1. The join. The audit's one writer stamps the turn the agent is on and the
+                //    conversation the session is in — the same two fields every usage row
+                //    already carried, which is what makes `--usage-report` able to walk from
+                //    one to the other.
+                let turn = RealtimeAgent.shared.currentTurnID
+                let conversation = AgentSession.shared.sessionID
+                AgentAuditLog.shared.record(kind: .request, title: "p1-29 request row")
+                AgentAuditLog.shared.record(kind: .reply, title: "p1-29 reply row")
+                let stamped = AgentAuditLog.shared.entries.prefix(2)
+                check(
+                    "audit row did not carry the current turn id",
+                    stamped.allSatisfy { $0.turnID == turn }
+                )
+                check(
+                    "audit row did not carry the conversation id",
+                    stamped.allSatisfy { $0.conversationID == conversation }
+                )
+                // And the id the agent's own usage rows are written with is this one — the
+                // join is only real if both sides read the same field.
+                check(
+                    "the turn the agent reports and the turn the audit stamped differ",
+                    RealtimeAgent.shared.currentTurnID == turn
+                )
+
+                // 2. The card lifecycle. A card that was shown and a card that went away
+                //    unanswered were both invisible in every log that existed, so "did the
+                //    person ever get asked?" had no answer at all.
+                let request = PermissionRequest(
+                    toolID: "selftest.p1_29", title: "p1-29 card", detail: "",
+                    risk: .send, arguments: ["secret-argument": "must-not-be-logged"])
+                let asked = Task { @MainActor in await PermissionGate.shared.ask(request) }
+                // The gate is on the main actor; let the card actually go up before cancelling.
+                try? await Task.sleep(for: .milliseconds(120))
+                PermissionGate.shared.cancelPending()
+                let approved = await asked.value
+                check("the cancelled card reported approval", !approved)
+                let titles = AgentAuditLog.shared.entries.prefix(6).map(\.title)
+                check(
+                    "no row recorded that a card was shown",
+                    titles.contains("Approval asked")
+                )
+                check(
+                    "no row recorded that a card was cancelled",
+                    titles.contains("Approval cancelled")
+                )
+                // The arguments never reach a row: an approval request carries them, and this
+                // file is read by `--usage-report`.
+                // `leaked` false is the pass. Scanned over **every** row and every text field
+                // the row has, not a window: the arguments must not reach a row anywhere, and a
+                // test that only looked at the newest few would have missed a row the tool
+                // executor wrote a moment earlier.
+                let rowText = AgentAuditLog.shared.entries
+                    .map { "\($0.title) \($0.detail) \($0.triggerQuote ?? "")" }
+                    .joined(separator: " \u{1} ")
+                let leaked = rowText.contains("secret-argument")
+                    || rowText.contains("must-not-be-logged")
+                // `check` records a failure when its condition is **false**, so the pass
+                // direction here is "no leak" — hence the `!`. Getting this backwards is what
+                // made the first version of this assertion report a leak that did not exist.
+                check("a permission argument leaked into the audit", !leaked)
+
+                // 3. Clear leaves a row, with counts and no words. "New conversation" and
+                //    "Forget all conversations" were indistinguishable in every log.
+                let before = AgentAuditLog.shared.entries.count
+                AgentSession.shared.recordUser("p1-29 text that must not be logged")
+                AgentSession.shared.recordAssistant("p1-29 answer that must not be logged")
+                AgentSession.shared.startNewConversation()
+                let after = AgentAuditLog.shared.entries
+                check(
+                    "clearing wrote no session row",
+                    after.contains { $0.title == "Session ended" }
+                )
+                let cleared = after.first { $0.title == "Session ended" }
+                check(
+                    "the clear row carries no message text",
+                    !(cleared.map { "\($0.title) \($0.detail)" } ?? "").contains("must not be logged")
+                )
+                check(
+                    "the clear row carries no count",
+                    (cleared?.detail ?? "").contains("message(s)")
+                )
+
+                // 4. An old line still decodes. The ids postdate the file, and a synthesized
+                //    `init(from:)` would have failed on every row written before them.
+                let legacy = Data("""
+                    {"id":"old","at":"2026-01-02T03:04:05Z","kind":"tool",\
+                    "title":"an older build wrote this","detail":"d","toolID":"t"}
+                    """.replacingOccurrences(of: "\\\n", with: "\n").utf8)
+                do {
+                    // The same decoder the store's own `load()` uses, so this is a claim
+                    // about the reader that actually reads the file.
+                    let decoder = JSONDecoder()
+                    decoder.dateDecodingStrategy = .iso8601
+                    let row = try decoder.decode(AgentAuditEntry.self, from: legacy)
+                    check("an old audit line lost its title", row.title == "an older build wrote this")
+                    check("an old audit line invented a turn id", row.turnID == nil)
+                } catch {
+                    failures.append("an audit line without ids no longer decodes: \(error.localizedDescription)")
+                }
+
+                // 5. The file rotates. It was append-only and never trimmed, so it grew until
+                //    it filled a disk; the in-memory cap was an unnamed 400 next to it.
+                check(
+                    "the audit file has no size budget",
+                    AgentAuditLog.maxFileBytes == UsageLog.defaultMaxBytes
+                )
+                check(
+                    "the in-memory row cap is still unnamed",
+                    AgentAuditLog.memoryRows == 400
+                )
+            } catch {
+                failures.append("p1-29: \(error.localizedDescription)")
+            }
+
             for failure in failures { writeSelfTest("  ACTIVITY_WRONG: \(failure)") }
             writeSelfTest(failures.isEmpty
                           ? "ACTIVITY_OK: tool runs project public titles"

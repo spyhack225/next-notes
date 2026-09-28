@@ -1065,6 +1065,15 @@ final class AgentSession {
 
     private func endSession(_ reason: ReviewReason) {
         let session = Array(currentSessionMessages)
+        // P1-29: the moment a conversation stops existing is the one moment nothing else
+        // records. "New conversation" and "Forget all conversations" are indistinguishable
+        // in every log that existed, which is the finding that produced this row — and a
+        // person asking "when did it erase my history?" deserves an answer that is not a
+        // guess. Counts only: a summary of what was lost is still the text that was lost.
+        AgentAuditLog.shared.record(
+            kind: .request, title: "Session ended",
+            detail: "\(reason.rawValue) · \(session.count) message(s) · \(compactionCount) compaction(s).",
+            turnID: RealtimeAgent.shared.currentTurnID, conversationID: sessionID)
         if !session.isEmpty {
             let request = ReviewRequest(sessionID: sessionID, reason: reason, messages: session)
             onReviewRequest?(request)
@@ -1097,6 +1106,15 @@ final class AgentSession {
         guard next > current, messages.indices.contains(next) else { return }
         compactedTailStartID = messages[next].id
         compactionCount += 1
+        // P1-29: compaction is the one operation that makes a conversation shorter **while
+        // the person is still in it**, and nothing recorded that it had happened — the visible
+        // count of turns and the model's actual history are two different numbers, and a person
+        // asking "what did it forget?" had no way to find the boundary. Counted, not quoted:
+        // the summary is where the erased words now live.
+        AgentAuditLog.shared.record(
+            kind: .request, title: "History compacted",
+            detail: "\(next - start) message(s) folded into a summary · \(compactionCount) total.",
+            turnID: RealtimeAgent.shared.currentTurnID, conversationID: sessionID)
         // The summary replaced turns the snapshot was frozen beside; read memory again.
         beginMemorySession()
     }
@@ -1329,18 +1347,23 @@ final class AgentSession {
     /// P1-26 splits the two meanings: this starts a conversation, and `forgetAllConversations()`
     /// is the one that deletes, behind a confirmation that says what it removes.
     func startNewConversation() {
+        let erased = messages.count
         endSession(.newConversation)
         messages.removeAll()
         lastSuppressedVoice = nil
         completedToolIDs = []
         toolOutputLines = []
         if let fileURL { try? Self.emptyPayload.write(to: fileURL) }
+        AgentAuditLog.shared.record(
+            kind: .request, title: "New conversation",
+            detail: "\(erased) message(s) left behind.")
     }
 
     /// *Forget all conversations*: the person's own deleting action, and the only path that
     /// removes anything from the index. The session is ended and handed to the review first, so
     /// the memory side keeps what it needs, and then every row goes.
     func forgetAllConversations() {
+        let erased = messages.count
         endSession(.cleared)
         messages.removeAll()
         lastSuppressedVoice = nil
@@ -1348,6 +1371,9 @@ final class AgentSession {
         toolOutputLines = []
         if let fileURL { try? FileManager.default.removeItem(at: fileURL) }
         onConversationCleared?()
+        AgentAuditLog.shared.record(
+            kind: .request, title: "Conversations forgotten",
+            detail: "\(erased) message(s) deleted.")
     }
 
     /// What an empty `agent-conversation.json` holds. Written by `startNewConversation` rather

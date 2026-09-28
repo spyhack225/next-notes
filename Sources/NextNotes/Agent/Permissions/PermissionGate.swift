@@ -48,6 +48,15 @@ final class PermissionGate {
         // seconds and then changes its mind has already been pressed.
         ToolCallReviewStore.shared.begin(request)
         raiseIsland(for: request)
+        // P1-29: a card that was **shown** is a moment the audit could not see, so "did the
+        // person ever get asked?" had no answer in any log. The tool id and the request id,
+        // never the arguments — a permission request carries the arguments, and this file is
+        // read by `--usage-report`.
+        AgentAuditLog.shared.record(
+            kind: .permission, title: "Approval asked",
+            detail: "Waiting for a person.",
+            toolID: request.toolID, taskID: request.taskID,
+            triggerQuote: request.trigger.quote)
     }
 
     /// Puts the island card up from the current state of the review, so the two never
@@ -150,6 +159,11 @@ final class PermissionGate {
     /// Explicit global stop releases every approval waiter. Ordinary voice
     /// interruption does not call this; a task correction uses its own id.
     func cancelPending() {
+        // P1-29: a card that went away unanswered is the other moment with no trace. Recorded
+        // here rather than at each caller, because "cancelled" has five entry points
+        // (`cancelPending()`, the task id, the request id, `cancelMatching`, ACP's cancel) and
+        // a row at each is four rows that can be forgotten.
+        noteCancelled(count: queued.count + (pending == nil ? 0 : 1))
         let abandoned = queued
         queued.removeAll()
         for (request, _) in abandoned { ToolCallReviewStore.shared.remove(id: request.id) }
@@ -169,7 +183,19 @@ final class PermissionGate {
         cancelMatching { $0.id == id }
     }
 
+    /// P1-29, shared by the two cancel paths. Counted rather than itemised: a cancelled card
+    /// is a fact about the turn, and a list of the requests that were abandoned is the kind of
+    /// detail that ends up reading somebody's work back to them.
+    private func noteCancelled(count: Int) {
+        guard count > 0 else { return }
+        AgentAuditLog.shared.record(
+            kind: .permission, title: "Approval cancelled",
+            detail: "\(count) request(s) went unanswered.")
+    }
+
     private func cancelMatching(_ matches: (PermissionRequest) -> Bool) {
+        noteCancelled(count: queued.filter { matches($0.0) }.count
+            + (pending.map { matches($0) ? 1 : 0 } ?? 0))
         let removed = queued.filter { matches($0.0) }
         queued.removeAll { matches($0.0) }
         for (request, continuation) in removed {

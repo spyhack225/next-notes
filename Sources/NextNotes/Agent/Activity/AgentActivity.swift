@@ -71,6 +71,15 @@ struct AgentAuditEntry: Identifiable, Sendable, Equatable, Codable {
     /// audit row can be read against what the person actually said. Nil when nothing was
     /// quotable — an unattributed call quotes nothing, and nothing is invented for it.
     var triggerQuote: String?
+    /// P1-29: the turn this row belongs to, and the conversation it was in.
+    ///
+    /// The two ids `usage.jsonl` already carries on every model pass, so a single request can
+    /// now be followed from its audit row to the passes that answered it by id alone. Optional
+    /// on purpose and in the decoder's vocabulary: an audit line written by an older build, or
+    /// by a path with no turn — a routine, an idle unload — must still read, and `AgentAuditEntry`
+    /// has a hand-written decoder precisely so a missing key is not a lost file.
+    var turnID: UUID?
+    var conversationID: UUID?
 
     init(
         id: String = UUID().uuidString,
@@ -82,10 +91,14 @@ struct AgentAuditEntry: Identifiable, Sendable, Equatable, Codable {
         taskID: String? = nil,
         meetingID: UUID? = nil,
         scheduleID: UUID? = nil,
-        triggerQuote: String? = nil
+        triggerQuote: String? = nil,
+        turnID: UUID? = nil,
+        conversationID: UUID? = nil
     ) {
         self.scheduleID = scheduleID
         self.triggerQuote = triggerQuote
+        self.turnID = turnID
+        self.conversationID = conversationID
         self.id = id
         self.at = at
         self.kind = kind
@@ -115,5 +128,10 @@ extension AgentAuditEntry {
         meetingID = try container.decodeIfPresent(UUID.self, forKey: .meetingID)
         scheduleID = try container.decodeIfPresent(UUID.self, forKey: .scheduleID)
         triggerQuote = try container.decodeIfPresent(String.self, forKey: .triggerQuote)
+        // P1-29. `decodeIfPresent` and not `decode`: these two keys postdate the file, and a
+        // synthesized `init(from:)` would fail on every line written before them — the same
+        // trap `MeetingModels` has a hand-written initializer for.
+        turnID = try container.decodeIfPresent(UUID.self, forKey: .turnID)
+        conversationID = try container.decodeIfPresent(UUID.self, forKey: .conversationID)
     }
 }

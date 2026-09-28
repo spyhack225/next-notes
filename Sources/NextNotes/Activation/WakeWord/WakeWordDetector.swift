@@ -38,6 +38,14 @@ enum WakeWordDetector {
         configuration: WakeWordConfiguration
     ) -> Detection? {
         let result = WakePhraseConfirmation.check(transcript: haystack, phrase: phrase)
+        // P1-29: this call already computed a score and threw it away on the rejection path.
+        // Now the rejection is the interesting half — a phrase that nearly sounded right is
+        // what the calibration data and the false-accept tuning both need, and the spotter's
+        // own stage gives no score at all, so this text path is the only place one exists.
+        if !result.accepted {
+            WakeWordTelemetry.recordNearMiss(
+                closeness: result.closeness, reason: result.reason)
+        }
         guard result.accepted, result.matchedWords > 0 else { return nil }
         guard let range = rangeOfLeadingWords(result.matchedWords, in: haystack) else { return nil }
         let after = haystack[range.upperBound...]

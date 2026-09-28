@@ -360,8 +360,15 @@ struct KnowledgeSearchView: View {
             hits = found
             facets = counts
             problem = nil
-            queryTrace.end(note: "hits=\(found.count)")
-            let total = totalTrace.end(note: "hits=\(found.count)")
+            // P1-29: an **empty** query is not a search that found nothing. It runs on the
+            // first keystroke of every visit, and it recorded `hits=0` — the same line a real
+            // query with no results wrote, so a 0-hit spike in the trace was unanswerable: it
+            // could have been "people searched for things that are not there" or "the field was
+            // empty eleven times while somebody looked at the screen". One word separates
+            // them, and the reader of the trace is a person deciding what to look at.
+            let searched = !KnowledgeFTSQuery.tokens(query).isEmpty
+            queryTrace.end(note: searched ? "hits=\(found.count)" : "empty")
+            let total = totalTrace.end(note: searched ? "hits=\(found.count)" : "empty")
             if !KnowledgeFTSQuery.tokens(query).isEmpty {
                 let fileHits = found.filter { !$0.isPassage }.count
                 Log.app.info("""

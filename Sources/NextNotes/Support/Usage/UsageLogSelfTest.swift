@@ -32,7 +32,7 @@ import Foundation
 /// is the missing dictation seam plus the missing guard entry.
 enum UsageLogSelfTest {
     /// How many cases a green run reports: U1–U7, M1–M7, D1–D3, R1–R3 and E1–E4.
-    private static let caseCount = 24
+    private static let caseCount = 25
 
     /// `run()` is async so E1 can await the real main-actor agent path: the old synchronous
     /// runner blocked the main actor on a semaphore while its cases ran, which no
@@ -92,6 +92,12 @@ enum UsageLogSelfTest {
             failures += labelled("E2", checkE2(rows: rows))
             failures += labelled("E3", checkE3(before: realBefore))
             failures += labelled("E4", checkE4())
+            // P1-29: one turn across both logs. `turnLines` is pure, so the join is checked
+            // here rather than by trying to produce a real turn — the reader is the thing that
+            // was missing, and a reader over a synthetic pair is the same reader.
+            let p129 = checkTurnJoin()
+            failures += labelled("P129", p129.problems)
+            rows += p129.rows
         }
 
         for failure in failures { print("USAGE_LOG_WRONG: \(failure)") }
@@ -1348,6 +1354,63 @@ enum UsageLogSelfTest {
         "turnID", "conversationID", "workID", "revision", "meetingID",
         "dictationRunID", "scheduleID",
     ]
+
+    /// P1-29. The join, over a synthetic pair, in the order the reader is asked for it: the
+    /// audit rows and the model passes of one `turnID`, with the conversation named once.
+    private static func checkTurnJoin() -> (problems: [String], rows: [UsageRecord]) {
+        var problems: [String] = []
+        let turn = UUID()
+        let conversation = UUID()
+        let audit = [
+            AgentAuditEntry(kind: .request, title: "Asked something",
+                            turnID: turn, conversationID: conversation),
+            AgentAuditEntry(kind: .reply, title: "Answered",
+                            turnID: turn, conversationID: conversation)
+        ]
+        var pass = fullyPopulatedRow()
+        pass.turnID = turn
+        pass.conversationID = conversation
+        pass.ts = Date(timeIntervalSince1970: 1_700_000_500)
+        let lines = UsageReport.turnLines(turnID: turn, usage: [pass], audit: audit)
+        let ok = lines.last ?? ""
+        if !lines.contains(where: {
+            $0.contains("USAGE_TURN_AUDIT") && $0.contains("[request] Asked something")
+        }) {
+            problems.append("the audit side of a turn did not print")
+        }
+        if !lines.contains(where: { $0.contains("USAGE_TURN_PASS") && $0.contains("Scripted Test Model") }) {
+            problems.append("the model pass of a turn did not print")
+        }
+        if !ok.contains("audit=2 passes=1") {
+            problems.append("the turn line counted \(ok), not audit=2 passes=1")
+        }
+        if !ok.contains(conversation.uuidString) {
+            problems.append("the turn line did not name the conversation")
+        }
+        // A turn in one log and not the other is the case the whole task was about, and it
+        // must still print what there is rather than claim nothing happened.
+        let auditOnly = UsageReport.turnLines(turnID: turn, usage: [], audit: audit)
+        if auditOnly.last?.contains("audit=2 passes=0") != true {
+            problems.append("a turn with no model pass did not report audit=2 passes=0")
+        }
+        // And a turn that is in neither log says so — `ABSENT`, not a confident empty answer.
+        let absent = UsageReport.turnLines(turnID: UUID(), usage: [pass], audit: audit)
+        if absent.first != "USAGE_TURN_ABSENT: \(absent[0].suffix(36))" {
+            problems.append("an unknown turn did not report USAGE_TURN_ABSENT")
+        }
+        // The argument reader refuses the next flag, so `--usage-turn --usage-days 3` cannot
+        // read a flag as an id — the same rule `SelfTest.value(after:)` exists for.
+        if UsageReport.turnValue(in: ["--usage-turn"]) != nil {
+            problems.append("a missing --usage-turn value was read as a turn id")
+        }
+        if UsageReport.turnValue(in: ["--usage-turn", "--usage-days", "3"]) != nil {
+            problems.append("--usage-turn read the next flag as a turn id")
+        }
+        if UsageReport.turnValue(in: ["--usage-turn", turn.uuidString]) != turn.uuidString {
+            problems.append("--usage-turn did not read its own value")
+        }
+        return (problems, [pass])
+    }
 
     private static let documentedToolCodingKeys: Set<String> = ["id", "ok", "ms", "errorClass"]
 

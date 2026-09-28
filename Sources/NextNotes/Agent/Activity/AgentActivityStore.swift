@@ -141,7 +141,16 @@ final class AgentAuditLog {
 
     private(set) var entries: [AgentAuditEntry] = []
 
-    private static var fileURL: URL {
+    /// P1-29: how many rows the **in-memory** list keeps. Named because the file it was
+    /// written next to was an unnamed `400`, and a number with no name is a number nobody can
+    /// change on purpose. The file is a different budget and a different rule — see
+    /// `rotateIfNeeded`.
+    static let memoryRows = 400
+
+    /// `nonisolated` with `load()`, and for the same reason: it derives a path and touches no
+    /// main-actor state. The rotated file's URL is built the same way beside it, so the two
+    /// cannot drift onto different directories.
+    nonisolated private static var fileURL: URL {
         AppIdentity.applicationSupportDirectory.appendingPathComponent("agent-audit.jsonl")
     }
 
@@ -158,11 +167,21 @@ final class AgentAuditLog {
         taskID: String? = nil,
         meetingID: UUID? = nil,
         scheduleID: UUID? = nil,
-        triggerQuote: String? = nil
+        triggerQuote: String? = nil,
+        turnID: UUID? = nil,
+        conversationID: UUID? = nil
     ) {
         // Self-tests may inspect the in-memory audit trail (see `--selftest-tasks`),
         // but must never write fixture text into the person's persistent history —
         // the same split ActionReceiptStore uses.
+        // P1-29: the turn and conversation are filled **here**, not at each call site.
+        //
+        // The task's promise is that a single request can be followed from its audit row to its
+        // model passes by `turnID` alone, and the only way that is true by construction rather
+        // than by remembering is for the one writer to stamp every row. A caller that knows a
+        // different turn — a routine, a recovery, an idle unload with no turn at all — passes
+        // its own; nil here means "whatever turn is running", which is the right default for
+        // every request, reply, tool, permission and wake row.
         let entry = AgentAuditEntry(
             kind: kind,
             title: title,
@@ -171,13 +190,39 @@ final class AgentAuditLog {
             taskID: taskID,
             meetingID: meetingID,
             scheduleID: scheduleID,
-            triggerQuote: triggerQuote
+            triggerQuote: triggerQuote,
+            turnID: turnID ?? RealtimeAgent.shared.currentTurnID,
+            conversationID: conversationID ?? AgentSession.shared.sessionID
         )
         entries.insert(entry, at: 0)
-        if entries.count > 400 { entries = Array(entries.prefix(400)) }
+        if entries.count > Self.memoryRows { entries = Array(entries.prefix(Self.memoryRows)) }
         guard !SelfTest.isRunning else { return }
         appendToDisk(entry)
     }
+
+    /// P1-29: rotate at 8 MB, the same rule and the same size `UsageLog` uses.
+    ///
+    /// The audit file was **append-only and never trimmed** — only the in-memory list was
+    /// capped — so it grew without bound and a person's activity history was a file that could
+    /// fill a disk. One rotation, one file kept: `agent-audit.1.jsonl` beside it, exactly the
+    /// shape `usage.1.jsonl` has, so the reader is the same two-file walk.
+    ///
+    /// Rotation happens **before** the append that would pass the limit, so the line that tips
+    /// it over lands in the new file rather than in one that is already too big.
+    private func rotateIfNeeded(adding bytes: Int) {
+        let fm = FileManager.default
+        guard let attributes = try? fm.attributesOfItem(atPath: Self.fileURL.path),
+              let size = attributes[.size] as? Int, size + bytes > Self.maxFileBytes else { return }
+        let rotated = Self.rotatedFileURL
+        try? fm.removeItem(at: rotated)
+        try? fm.moveItem(at: Self.fileURL, to: rotated)
+    }
+
+    static let maxFileBytes = 8 * 1_024 * 1_024
+    nonisolated static var rotatedFileURL: URL {
+        AppIdentity.applicationSupportDirectory.appendingPathComponent(rotatedFileName)
+    }
+    nonisolated static let rotatedFileName = "agent-audit.1.jsonl"
 
     private func appendToDisk(_ entry: AgentAuditEntry) {
         let encoder = JSONEncoder()
@@ -186,6 +231,7 @@ final class AgentAuditLog {
               var line = String(data: data, encoding: .utf8)
         else { return }
         line.append("\n")
+        rotateIfNeeded(adding: line.utf8.count)
         if FileManager.default.fileExists(atPath: Self.fileURL.path),
            let handle = try? FileHandle(forWritingTo: Self.fileURL) {
             defer { try? handle.close() }
@@ -196,7 +242,19 @@ final class AgentAuditLog {
         }
     }
 
-    private static func load() -> [AgentAuditEntry] {
+    /// P1-29: the whole audit file, for a report that runs outside the harness.
+    ///
+    /// `entries` is the wrong reader here for two reasons: it holds at most `memoryRows` of
+    /// whatever this launch has written, and under `SelfTest.isRunning` it starts empty on
+    /// purpose. `--usage-report --usage-turn <id>` needs every row on disk, and it must be
+    /// callable off the main actor, so the load is `static` and returns a value.
+    nonisolated static func loadForReport() -> [AgentAuditEntry] { load() }
+
+    /// `nonisolated` because it reads a file and builds a value: no `self`, no main-actor
+    /// state, and `--usage-report` calls it off the main actor. The enclosing class being
+    /// `@MainActor` does not make a stateless static actor-bound, and marking this one so
+    /// would have forced the report to hop for no reason.
+    nonisolated private static func load() -> [AgentAuditEntry] {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         guard let data = try? Data(contentsOf: fileURL),
