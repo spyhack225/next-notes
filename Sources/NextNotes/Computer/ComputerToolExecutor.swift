@@ -10,6 +10,15 @@ enum ComputerToolExecutor {
 
     @MainActor
     static func run(_ tool: AgentTool, arguments: [String: String]) throws -> AgentToolResult {
+        // P1-23: arm the watch around anything that changes the Mac, and refuse to start a step
+        // once the person has taken it back. One check for the whole switch, rather than per
+        // case, because a tool added next month with a `click` in it is then covered by
+        // construction instead of by remembering.
+        HumanInputWatch.arm(toolName: tool.name)
+        defer { HumanInputWatch.endAction() }
+        if HumanInputWatch.mayPostAnotherEvent() == false {
+            return HumanInputWatch.pauseResult()
+        }
         switch tool.name {
         case "active_app":
             return AgentToolResult(summary: ComputerContext.current.activeSummary)
@@ -445,6 +454,13 @@ enum ComputerToolExecutor {
         guard let app = NSWorkspace.shared.frontmostApplication,
               AccessibilitySnapshot.lastProcessID == app.processIdentifier else {
             throw AgentError.backendUnavailable("The inspected window is no longer frontmost. Inspect again.")
+        }
+        // P1-23: never fill a secret. Checked **before** anything is posted, from the role the
+        // snapshot already carries — not from the text, and with no model call.
+        if let refusal = SecureFieldRule.refusal(
+            role: AccessibilitySnapshot.role(of: id), inputType: nil,
+            secure: AccessibilitySnapshot.isSecureField(id)) {
+            return AgentToolResult(summary: refusal.sentence)
         }
         try AccessibilitySnapshot.setValue(id: id, text: text)
         let observed = AccessibilitySnapshot.value(of: id)

@@ -223,7 +223,31 @@ enum BrowserCDPClient {
         case "fill", "select":
             let text = arguments["text"] ?? arguments["value"] ?? ""
             let encoded = jsonStringLiteral(text)
-            return try await act(arguments: arguments, target: target, expectedValue: text) { id, socket in
+            return try await act(
+                arguments: arguments, target: target, expectedValue: text,
+                // P1-23, **before** the fill: never type into a secret. Asked of the DOM as a
+                // fact about the control's `type`, never read from the page's prose and never
+                // asked of a model. The one thing a page cannot lie about is the type of the
+                // element it is asking to be typed into.
+                refusing: { id, socket in
+                    let secret = try await evaluate(
+                        """
+                        (() => {
+                          const el = document.querySelectorAll(
+                            '\(snapshotSelector)'
+                          )[\(max(0, id - 1))];
+                          if (!el) return 'unknown';
+                          const t = (el.getAttribute('type') || el.tagName || '').toLowerCase();
+                          return /password|cc-name|cc-number|cc-csv|cvv/.test(t)
+                            ? 'secret' : 'plain';
+                        })()
+                        """,
+                        webSocketURL: socket)
+                    guard secret.contains("secret") else { return nil }
+                    return AgentToolResult(
+                        summary: SecureFieldRule.refusalSentence(for: "This page"))
+                }
+            ) { id, socket in
                 try await evaluate(
                     """
                     (() => {
@@ -605,11 +629,19 @@ enum BrowserCDPClient {
         target: BrowserCDPTarget,
         expectedValue: String? = nil,
         retryAllowed: Bool = false,
+        /// P1-23: a check that may **refuse the action outright**, run once the id is resolved
+        /// and before the body does anything. A parameter rather than a test inside the body
+        /// because the body returns a CDP string and has no way to express "I will not do this" —
+        /// which is why the first attempt at this returned a type error rather than a refusal.
+        refusing: ((Int, String) async throws -> AgentToolResult?)? = nil,
         body: (Int, String) async throws -> String
     ) async throws -> AgentToolResult {
         let rawID = arguments["id"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard let id = Int(rawID), id > 0 else {
             return AgentToolResult(summary: "No snapshot id \(rawID.isEmpty ? "(missing)" : rawID). Snapshot first.")
+        }
+        if let refusing, let refusal = try await refusing(id, target.webSocketDebuggerURL) {
+            return refusal
         }
         guard let snapshot = SnapshotCache.shared.snapshot(for: target), !snapshot.nodes.isEmpty else {
             return AgentToolResult(summary: "No snapshot for target id \(target.id). Snapshot first.")

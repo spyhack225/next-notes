@@ -298,6 +298,10 @@ final class RealtimeAgent {
         // One turn id per handled utterance (P0-20a): the answer pass and every planner
         // round it leads to share it.
         currentTurnID = UUID()
+        // P1-23: a new request starts with the Mac. A pause from the previous turn must not
+        // refuse this turn's first computer action — someone typing a new question is not asking
+        // the agent to resume a plan they paused.
+        HumanInputWatch.resetForNewTurn()
         finishFirstTTSTrace(note: "superseded")
         let text = utterance.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {

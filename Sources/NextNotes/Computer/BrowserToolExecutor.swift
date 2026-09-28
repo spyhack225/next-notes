@@ -22,6 +22,14 @@ enum BrowserToolExecutor {
 
     @MainActor
     static func run(_ tool: AgentTool, arguments: [String: String]) throws -> AgentToolResult {
+        // P1-23: a browser action over CDP does not move the OS pointer, but a person typing
+        // into **the same tab** is the same conflict, so the yield is armed here too rather
+        // than only in `ComputerToolExecutor`. The sentence and the state are the same one.
+        HumanInputWatch.arm(toolName: tool.name)
+        defer { HumanInputWatch.endAction() }
+        if HumanInputWatch.mayPostAnotherEvent() == false {
+            return HumanInputWatch.pauseResult()
+        }
         switch tool.name {
         case "navigate", "download":
             return try ComputerToolExecutor.run(

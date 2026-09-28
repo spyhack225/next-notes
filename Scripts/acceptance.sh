@@ -254,6 +254,7 @@ EXPERIMENTAL_ENTRIES=(
   "selftest-commandkey|300"
   "selftest-composio|300"
   "selftest-computer-actions|300"
+  "selftest-computer-yield|300|via-open"
   "selftest-computer-vision|300"
   "selftest-concurrent-voice|300"
   "selftest-contention|300"

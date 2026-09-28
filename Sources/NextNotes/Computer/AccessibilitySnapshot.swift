@@ -9,6 +9,23 @@ import Foundation
 /// purpose, so it may take a little longer and return fewer, labelled controls.
 @MainActor
 enum AccessibilitySnapshot {
+    /// Posts one event, unless the person has the Mac.
+    ///
+    /// **The per-event seam, and the reason this is here rather than only in the executor.** A
+    /// `scroll` is ten events and a `drag` is dozens; a check that runs once per tool call would
+    /// let the agent finish the remaining nine after the person reached for the mouse. The
+    /// target is under 100 ms from their input to our last event, and only a check at the post
+    /// can promise that.
+    ///
+    /// Returns false when the event was **not** posted, and the caller stops its loop.
+    @discardableResult
+    static func post(_ event: CGEvent) -> Bool {
+        guard HumanInputWatch.mayPostAnotherEvent() else { return false }
+        HumanInputWatch.notePosted()
+        event.post(tap: .cghidEventTap)
+        return true
+    }
+
     private static var last: [String: AXUIElement] = [:]
     private static var lastGeneration = 0
     private(set) static var lastProcessID: pid_t?
@@ -82,6 +99,46 @@ enum AccessibilitySnapshot {
         return valueRef as? String
     }
 
+    /// The AX role of an element the last snapshot labelled, and whether it is a secure field.
+    ///
+    /// P1-23. `last` is the map the snapshot built, so this is the same element `value(of:)`
+    /// reads and the same id `set_text` is given — no second walk, and no way for the check to
+    /// consult a different element than the one about to be typed into.
+    ///
+    /// The secure flag is separate from the role on purpose: a role of `AXTextField` is the
+    /// ordinary case, and refusing every one of those would make the rule refuse the whole app.
+    /// `AXSecureTextField` is what a password box actually reports.
+    static func role(of id: String) -> String? {
+        guard let element = last[id] else { return nil }
+        var roleRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
+        return roleRef as? String
+    }
+
+    /// Whether the element declares itself a secure text field, by subrole or by attribute.
+    static func isSecureField(_ id: String) -> Bool {
+        guard let element = last[id] else { return false }
+        for attribute in [kAXSubroleAttribute as CFString, kAXRoleAttribute as CFString] {
+            var value: CFTypeRef?
+            AXUIElementCopyAttributeValue(element, attribute, &value)
+            if let role = value as? String, role == "AXSecureTextField" { return true }
+        }
+        return false
+    }
+
+    /// The snapshot generation, for the self-test that proves a carry-on re-walked the window.
+    ///
+    /// A carry-on that reuses the ids from before the pause is the bug this pins: those ids are
+    /// coordinates into a tree the person has since moved.
+    static var lastGenerationForTesting: Int { lastGeneration }
+
+    /// The id of a secure field in the last snapshot, if it has one. P1-23's Y4 needs the id a
+    /// plan would actually aim at, not a synthetic one.
+    static var lastSecureFieldIDForTesting: String? {
+        for (id, _) in last where isSecureField(id) { return id }
+        return nil
+    }
+
     static func firstTextFieldID() -> String? {
         for (id, element) in last {
             var roleRef: CFTypeRef?
@@ -129,15 +186,20 @@ enum AccessibilitySnapshot {
             default: break
             }
         }
-        guard let down = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: true),
-              let up = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: false)
+        // P1-23: every event this app posts goes through the tagged source, so
+        // `HumanInputWatch` can tell the agent's keystrokes from the person's. `nil` here would
+        // post an untagged event, which the watch reads as the person pausing the agent — the
+        // agent cancelling itself on its own typing.
+        let source = HumanInputWatch.eventSource()
+        guard let down = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true),
+              let up = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
         else {
             throw AgentError.permissionDenied("Could not post a key event.")
         }
         down.flags = flags
         up.flags = flags
-        down.post(tap: .cghidEventTap)
-        up.post(tap: .cghidEventTap)
+        guard post(down) else { return }
+        post(up)
     }
 
     private static func walk(
@@ -273,7 +335,7 @@ enum AccessibilitySnapshot {
         }
         for _ in 0..<clicks {
             guard let event = CGEvent(
-                scrollWheelEvent2Source: nil,
+                scrollWheelEvent2Source: HumanInputWatch.eventSource(),
                 units: .line,
                 wheelCount: 2,
                 wheel1: Int32(vertical),
@@ -283,7 +345,7 @@ enum AccessibilitySnapshot {
                 throw AgentError.permissionDenied("Could not post a scroll event.")
             }
             event.location = cgPoint(fromAppKit: point)
-            event.post(tap: .cghidEventTap)
+            guard post(event) else { return }
         }
     }
 
@@ -297,19 +359,19 @@ enum AccessibilitySnapshot {
         let downType: CGEventType = button == .right ? .rightMouseDown : .leftMouseDown
         let upType: CGEventType = button == .right ? .rightMouseUp : .leftMouseUp
         if let move = CGEvent(
-            mouseEventSource: nil, mouseType: .mouseMoved,
+            mouseEventSource: HumanInputWatch.eventSource(), mouseType: .mouseMoved,
             mouseCursorPosition: target, mouseButton: cgButton
         ) {
-            move.post(tap: .cghidEventTap)
+            guard post(move) else { return }
         }
         let counted = max(1, clickCount)
         for count in 1...counted {
             guard let down = CGEvent(
-                    mouseEventSource: nil, mouseType: downType,
+                    mouseEventSource: HumanInputWatch.eventSource(), mouseType: downType,
                     mouseCursorPosition: target, mouseButton: cgButton
                  ),
                  let up = CGEvent(
-                    mouseEventSource: nil, mouseType: upType,
+                    mouseEventSource: HumanInputWatch.eventSource(), mouseType: upType,
                     mouseCursorPosition: target, mouseButton: cgButton
                  )
             else {
@@ -317,8 +379,8 @@ enum AccessibilitySnapshot {
             }
             down.setIntegerValueField(.mouseEventClickState, value: Int64(count))
             up.setIntegerValueField(.mouseEventClickState, value: Int64(count))
-            down.post(tap: .cghidEventTap)
-            up.post(tap: .cghidEventTap)
+            guard post(down) else { return }
+            post(up)
         }
     }
 
@@ -331,13 +393,13 @@ enum AccessibilitySnapshot {
         let from = cgPoint(fromAppKit: startPoint)
         let to = cgPoint(fromAppKit: endPoint)
         guard let down = CGEvent(
-            mouseEventSource: nil, mouseType: .leftMouseDown,
+            mouseEventSource: HumanInputWatch.eventSource(), mouseType: .leftMouseDown,
             mouseCursorPosition: from, mouseButton: .left
         ) else {
             throw AgentError.permissionDenied("Could not post the start of a drag.")
         }
         down.setIntegerValueField(.mouseEventClickState, value: 1)
-        down.post(tap: .cghidEventTap)
+        guard post(down) else { return }
         let steps = 8
         for step in 1...steps {
             let fraction = CGFloat(step) / CGFloat(steps)
@@ -346,20 +408,22 @@ enum AccessibilitySnapshot {
                 y: from.y + (to.y - from.y) * fraction
             )
             guard let drag = CGEvent(
-                mouseEventSource: nil, mouseType: .leftMouseDragged,
+                mouseEventSource: HumanInputWatch.eventSource(), mouseType: .leftMouseDragged,
                 mouseCursorPosition: mid, mouseButton: .left
             ) else {
                 throw AgentError.permissionDenied("Could not post a drag step.")
             }
-            drag.post(tap: .cghidEventTap)
+            // P1-23: one check per step. A drag is eight events, and the person reaching for the
+            // mouse halfway through is the case this file exists for.
+            guard post(drag) else { return }
         }
         guard let up = CGEvent(
-            mouseEventSource: nil, mouseType: .leftMouseUp,
+            mouseEventSource: HumanInputWatch.eventSource(), mouseType: .leftMouseUp,
             mouseCursorPosition: to, mouseButton: .left
         ) else {
             throw AgentError.permissionDenied("Could not post the end of a drag.")
         }
-        up.post(tap: .cghidEventTap)
+        post(up)
     }
 
     /// AppKit screen coordinates (origin at the bottom-left) to CGEvent coordinates

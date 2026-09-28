@@ -1037,6 +1037,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-computer-yield") {
+            Task { @MainActor in
+                // P1-23. The live half needs the Accessibility grant, which a shell-launched
+                // run is denied (AGENTS.md: TCC keys a grant to the responsible process), so
+                // this is a `via-open` flag like `--selftest-computer-actions`. The grant-free
+                // half is what INTEGRATION runs, and it is here too so one flag answers both
+                // questions rather than printing a half-answer.
+                let free = ComputerYieldSelfTest.grantFreeFailures()
+                guard free.isEmpty else {
+                    ComputerYieldSelfTest.report(free, marker: "unused")
+                    SelfTest.failed = true
+                    NSApp.terminate(nil)
+                    return
+                }
+                let live = await ComputerYieldLiveSelfTest.run()
+                let all = free + live
+                if all.isEmpty {
+                    // Broken up rather than one nested ternary: the type checker gives up on the
+                    // combined string, and a self-test flag that does not compile is a flag
+                    // nobody runs.
+                    var summary = "COMPUTER_YIELD_OK: \(ComputerYieldSelfTest.grantFreeCount) "
+                        + "grant-free cases, and "
+                    if live.isEmpty {
+                        summary += "the live half was not run (no Accessibility grant)"
+                    } else {
+                        let ms = ComputerYieldLiveSelfTest.lastLatencyMilliseconds
+                        summary += "\(live.count) live cases; yield latency \(ms) ms"
+                    }
+                    writeSelfTest(summary)
+                } else {
+                    ComputerYieldSelfTest.report(all, marker: "unused")
+                    SelfTest.failed = true
+                }
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-seat-grid") {
             Task { @MainActor in
                 let ok = SeatGridSelfTest.run()
