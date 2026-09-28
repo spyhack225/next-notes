@@ -124,9 +124,24 @@ enum AgentNow {
         switch shape {
         case .none: []
         case .dateOnly: [.time]
-        case .compact: [.time, .next, .recording, .frontApp]
+        // P1-04: the front app is **not** in any shape a person talks to, and that is a
+        // correction rather than an omission. The `.screen` rule in
+        // `AgentCapabilityManifest.ruleLines()` says the frontmost app "come[s] from
+        // computer.active_app" and that without a call "you do not know" — and the block was
+        // handing the model the answer anyway, from a cache that is as old as the prompt.
+        // Two sources for one fact, one of them stale, and the stale one is easier to use.
+        //
+        // Measured on the live eval, A04 ("Which app is frontmost?", 6322-character prompt
+        // that already carried the rule and the tool) answered "Google Chrome is frontmost"
+        // in one round with no call at all. The rule was not the problem; the shortcut was.
+        //
+        // `frontApp` stays in `AgentNowFacts` and in the cache — this is about what a prompt
+        // may assert, not about deleting what is known. A read of `computer.active_app`
+        // auto-runs and costs no model pass, so the latency argument for carrying it here
+        // does not survive contact with the tool that answers it properly.
+        case .compact: [.time, .next, .recording]
         case .unattended: [.time, .next, .then, .recording]
-        case .full: Set(Line.allCases)
+        case .full: Set(Line.allCases).subtracting([.frontApp])
         }
     }
 

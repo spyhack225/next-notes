@@ -287,6 +287,27 @@ struct AgentCapabilityManifest: Sendable, Equatable {
                 address or a choice is a question to ask, never a promise to send.
                 """)
         }
+        if selectedIntents.contains(.browser) {
+            // P1-04. `.browser` was the one selected class with no rule line at all, and the
+            // live eval showed the shape of the hole: A01 and A02 ("open youtube and search
+            // cats", "open youtube and play the latest Cortech video") both called
+            // browser.navigate, both stopped, and both were graded UNGROUNDED — the model had
+            // done the first half of a two-part request and said it would do the second.
+            //
+            // So: navigating is not the task, the second half needs its own call, and the
+            // browser tools do one thing each. The last sentence is the one that stops an
+            // overclaim — a page that plays video is not a tool that watched a video, and
+            // "I'll check what's trending" after a navigate is a promise nothing backs.
+            lines.append("""
+                The browser: browser.navigate opens a URL and nothing else. "Open YouTube and \
+                search cats" is two requests — navigate, then browser.fill or browser.snapshot, \
+                then click or fill to act. Never stop after the navigate and say you will look \
+                for it; the turn is not finished until the second call has run. \
+                browser.snapshot reads the page as text, so anything not in that text — a \
+                video's contents, what is trending, what is playing — is not known, and saying \
+                you will check it is a promise you cannot keep. Say what the page showed.
+                """)
+        }
         if selectedIntents.contains(.screen) {
             lines.append("""
                 The Mac: which app is frontmost, what its window says and what is on the screen \
