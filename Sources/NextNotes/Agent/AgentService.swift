@@ -314,6 +314,32 @@ final class AgentService {
         Task { @MainActor [weak self] in
             guard let self else { return }
             defer { self.running.remove(proposal.id) }
+            // P1-19, and the only place this runs: a proposal outlives the process on purpose,
+            // so the check belongs at the moment of approval and not at the moment of writing.
+            // The four views — the Actions tab, the console, the banner, the notification — all
+            // come through here, so none of them decides anything about freshness.
+            //
+            // `accountTag` is nil when the profile read could not be made, and then the account
+            // check is skipped rather than guessed at. `now` is read here so the card's sentence
+            // and the decision come from the same instant.
+            let freshness = ApprovalFreshness.evaluate(
+                proposal, now: Date(), currentAccountTag: await self.cli.accountTag())
+            guard freshness.mayRun else {
+                // The refusal is the whole outcome: a card a person reads, and a record that
+                // says the action was declined rather than silently absent. The arguments are
+                // not copied into a record, for the reason `AgentActionRecord.title` gives.
+                self.problems[id] = freshness.refusal
+                self.record(
+                    AgentActionRecord(
+                        id: proposal.id,
+                        tool: proposal.tool,
+                        title: proposal.title,
+                        performedAt: Date(),
+                        detail: freshness.refusal,
+                        failure: freshness.refusal,
+                        source: proposal.source), for: id)
+                return
+            }
             do {
                 let result = try await AgentToolExecutor.run(
                     proposal,
@@ -428,7 +454,21 @@ final class AgentService {
             dismiss(proposal)
             return
         }
+        // A banner carries no title, no arguments and no meeting, so this is the one place a
+        // stale press can fire something. Two things route it to the card instead: a send, as
+        // before, and — P1-19 — a proposal older than `ApprovalFreshness.bannerAgeLimit`.
+        // That is not a second confirmation: the card is where a send has always been approved
+        // from, and a press on the card itself fires as it does now.
         guard proposal.risk < .send else {
+            Notifications.shared.withdrawAgentProposal(id: proposalID)
+            NavigationState.shared.show(meeting: meetingID)
+            AppDelegate.showMainWindow()
+            return
+        }
+        let days = Calendar.current.dateComponents(
+            [.day], from: Calendar.current.startOfDay(for: proposal.createdAt),
+            to: Calendar.current.startOfDay(for: Date())).day ?? 0
+        guard days <= ApprovalFreshness.bannerAgeLimit else {
             Notifications.shared.withdrawAgentProposal(id: proposalID)
             NavigationState.shared.show(meeting: meetingID)
             AppDelegate.showMainWindow()
@@ -521,7 +561,26 @@ final class AgentService {
             meetingID: id,
             needsReview: needsReview
         ))
-        Notifications.shared.postAgentProposal(first, canApprove: !needsReview)
+        // P1-19: the banner says where the card came from. A banner is the only place a
+        // proposal can be approved with none of the card on screen, so "Tuesday's design
+        // review" is the difference between approving this and approving something.
+        Notifications.shared.postAgentProposal(
+            first, canApprove: !needsReview, origin: originLine(for: id))
+    }
+
+    /// "From Tuesday's design review" — P1-19.
+    ///
+    /// The meeting's own title, and a weekday only when it was not today, because a date on
+    /// every banner is noise and a date on *last week's* banner is the whole point. Formatted in
+    /// words rather than numbers: this is read at a glance, and `09/24` is not.
+    private func originLine(for id: UUID) -> String? {
+        guard let meeting = store.meeting(id: id) else { return nil }
+        let title = meeting.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else { return nil }
+        let calendar = Calendar.current
+        if calendar.isDateInToday(meeting.start) { return "From \(title)" }
+        let day = meeting.start.formatted(.dateTime.weekday(.wide))
+        return "From \(day)'s \(title)"
     }
 
     private func record(_ action: AgentActionRecord, for id: UUID) {

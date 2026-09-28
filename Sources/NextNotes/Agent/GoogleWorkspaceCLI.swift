@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// Where the Workspace CLI is in its own setup, which is the only thing the app can say
@@ -246,6 +247,83 @@ actor GoogleWorkspaceCLI {
         } catch {
             return .failed(error.localizedDescription)
         }
+    }
+
+    // MARK: - Which account is signed in (P1-19)
+
+    /// The signed-in address, reduced to a tag, cached until the auth state changes.
+    ///
+    /// `auth status` reports which credential stores exist and **nothing about which account**,
+    /// so there was no way for a stored proposal to notice that the person switched accounts and
+    /// then approved a week-old card. This is the read that closes that, and it is the profile
+    /// read rather than anything from the auth output:
+    ///
+    /// ```
+    /// gws gmail users getProfile --params '{"userId":"me"}' --format json
+    /// ```
+    ///
+    /// Measured 2026-09-27 on this Mac: 0.40 s wall, returning
+    /// `{"emailAddress": "<32 chars>", "historyId": "…", "messagesTotal": …,
+    /// "threadsTotal": …}`. **The address is not kept** — `accountTag` is the first 16 hex
+    /// characters of SHA-256 over the lowercased address, and nothing else is held, because a
+    /// proposal file is copied into meeting folders and the tag is enough to notice a change.
+    ///
+    /// Compact JSON with no space around the colon, for the same reason every other `gws` call
+    /// in this file writes it that way: the CLI's own request parser has been measured reading
+    /// `{"input": "…"}` as an empty value. The profile read needs `userId` as a param — without
+    /// it the command answers HTTP 400 `validationError`, which is a shape worth knowing.
+    private var cachedAccountTag: String?
+    private var accountTagRead = false
+
+    /// The current account's tag, or nil when it could not be read.
+    ///
+    /// **Nil is a real answer, not a failure to try**: offline, signed out, or a `gws` that is
+    /// not installed all produce nil, and `ApprovalFreshness` then skips the account check. A
+    /// tag is never invented — an invented tag would refuse every approval on a machine whose
+    /// profile read failed, which is the worst failure a safety check can have.
+    func accountTag() async -> String? {
+        if accountTagRead { return cachedAccountTag }
+        accountTagRead = true
+        cachedAccountTag = await readAccountTag()
+        return cachedAccountTag
+    }
+
+    /// Drops the cached tag. Called when the auth state changes, so a sign-in or a sign-out is
+    /// the only thing that makes the next read go back to the CLI.
+    func forgetAccountTag() {
+        accountTagRead = false
+        cachedAccountTag = nil
+    }
+
+    private func readAccountTag() async -> String? {
+        guard await binaryURL() != nil else { return nil }
+        guard let output = try? await run(
+            ["gmail", "users", "getProfile", "--params", #"{"userId":"me"}"#,
+             "--format", "json"], timeout: Self.probeTimeout) else { return nil }
+        struct Profile: Decodable { let emailAddress: String? }
+        guard let profile = try? JSONDecoder().decode(Profile.self, from: output.standardOutput),
+              let address = profile.emailAddress?
+                  .trimmingCharacters(in: .whitespacesAndNewlines),
+              !address.isEmpty else { return nil }
+        return Self.tag(for: address)
+    }
+
+    /// First 16 hex characters of SHA-256 over the lowercased address.
+    ///
+    /// 16 characters is 64 bits, which is far more than enough to notice that the account is not
+    /// the one a proposal was prepared for, and short enough that the tag cannot be a
+    /// brute-force oracle for a short or predictable address.
+    nonisolated static func tag(for address: String) -> String {
+        // Lowercased **here** rather than at the call site: a tag is a function of the account,
+        // and an address is the same account whatever case it was typed in. A function that only
+        // matched when its caller remembered to normalise is one that will not, eventually.
+        let normalized = address.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let digest = SHA256.hash(data: Data(normalized.utf8))
+        let hex = digest.map { byte in
+            let value = String(byte, radix: 16)
+            return value.count == 1 ? "0" + value : value
+        }.joined()
+        return String(hex.prefix(16))
     }
 
     /// Where `gws auth setup` expects the OAuth client JSON to be, so the Settings tab can

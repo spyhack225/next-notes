@@ -689,6 +689,32 @@ enum WorkspaceToolRunner {
         return trimmed
     }
 
+    /// The `Date` behind an argument, or nil when it is not a date this file understands.
+    ///
+    /// P1-19 needs the moment a `create_event` card names, so that approving "Thursday at 3" on
+    /// Friday does not create an event in the past. It parses through **`rfc3339`'s own format
+    /// list** rather than a second grammar: this is that function's input side, sitting beside
+    /// it, so a shape the runner would send cannot be a shape this cannot read. An argument it
+    /// does not recognise is nil, and a nil time is never a reason to refuse an action over.
+    static func date(fromArgument value: String) -> Date? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let strict = ISO8601DateFormatter()
+        strict.formatOptions = [.withInternetDateTime]
+        if let date = strict.date(from: trimmed) { return date }
+        strict.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = strict.date(from: trimmed) { return date }
+        for format in ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm",
+                        "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm"] {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = .current
+            formatter.dateFormat = format
+            if let date = formatter.date(from: trimmed) { return date }
+        }
+        return nil
+    }
+
     private static func createEvent(
         _ arguments: [String: String],
         cli: any WorkspaceCLIRunning

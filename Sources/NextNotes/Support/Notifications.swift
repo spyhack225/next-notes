@@ -249,10 +249,19 @@ final class Notifications {
     ///   for anything that speaks in the user's name: the body is one sentence of rationale,
     ///   and approving a message from a card that never showed it is how the wrong email
     ///   gets sent.
-    func postAgentProposal(_ proposal: AgentProposal, canApprove: Bool = true) {
+    /// - Parameter origin: P1-19's "which meeting, and which day". A banner is the one place a
+    ///   proposal can be approved from with nothing of the card on screen, so a leftover from
+    ///   last week looks exactly like one from this morning. The subtitle names the meeting it
+    ///   came from, in the app's own words, and a date only when the meeting was not today —
+    ///   "From Tuesday's design review" rather than a timestamp nobody reads.
+    func postAgentProposal(_ proposal: AgentProposal, canApprove: Bool = true,
+                           origin: String? = nil) {
         let content = UNMutableNotificationContent()
         content.title = proposal.title
         content.body = proposal.rationale
+        if let origin, !origin.isEmpty {
+            content.subtitle = origin
+        }
         content.categoryIdentifier = canApprove ? Category.agentProposal : Category.agentReview
         content.userInfo = [
             UserInfoKey.proposalID: proposal.id,

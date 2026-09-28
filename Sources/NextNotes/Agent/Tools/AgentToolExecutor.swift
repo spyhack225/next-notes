@@ -321,6 +321,17 @@ enum AgentToolExecutor {
         )
     }
 
+    /// P1-19: the moment a workspace card names, from the catalogue's own date parameter.
+    /// `MeetingAgent.startsAt(in:arguments:)` is the same rule over an `AgentTool`; this is the
+    /// name-only form for the path that has one, so the two cannot drift into two parsers.
+    private static func proposalStartsAt(toolName: String,
+                                         arguments: [String: String]) -> Date? {
+        guard let tool = WorkspaceTools.all.first(where: { $0.name == toolName })
+        else { return nil }
+        return MeetingAgent.startsAt(
+            in: AgentTool.workspace(tool), arguments: arguments)
+    }
+
     @MainActor
     private static func perform(
         _ tool: AgentTool,
@@ -343,7 +354,14 @@ enum AgentToolExecutor {
                 meetingID: UUID(),
                 tool: tool.name,
                 arguments: arguments,
-                rationale: ""
+                rationale: "",
+                // P1-19: the account and the moment this card names, so a card approved later
+                // can notice that either has moved. See `AgentProposal` for why both are
+                // optional and why a nil accountTag skips the check rather than refusing.
+                // `GoogleWorkspaceCLI.shared` because this is the name/arguments entry point,
+                // which has no CLI of its own to ask; the read is cached after the first call.
+                accountTag: await GoogleWorkspaceCLI.shared.accountTag(),
+                startsAt: proposalStartsAt(toolName: tool.name, arguments: arguments)
             )
             // §8.2's two-step ingestion consent: the first read from a newly connected
             // account runs look → show findings → ask, even under auto-allow reads. Where

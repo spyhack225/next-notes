@@ -132,6 +132,23 @@ struct AgentProposal: Identifiable, Sendable, Equatable, Codable {
     /// such field, and one that failed to decode would take the whole file with it — nil
     /// reads as `.review`, which is what every proposal from before this existed was.
     let source: AgentProposalSource?
+    /// P1-19: the Google account this was prepared for, as a tag — the first 16 hex characters
+    /// of SHA-256 over the lowercased address. **The address itself is never stored, here or
+    /// anywhere else**: a proposal file is copied into meeting folders, and the tag is enough to
+    /// notice that the account changed.
+    ///
+    /// Optional, and so is every use of it: nil means the profile read could not be made when
+    /// this proposal was written, and `ApprovalFreshness` then skips the account check rather
+    /// than refusing. A proposal written by an older build has no such field and must still
+    /// decode — AGENTS.md's "adding a property without `decodeIfPresent` orphans every record
+    /// on disk" is the same trap in a different file.
+    var accountTag: String? = nil
+    /// P1-19: the moment the card names, parsed once from the tool's own time argument when
+    /// there is one, so approving "Thursday at 3" on Friday does not create an event in the
+    /// past. `WorkspaceToolRunner.rfc3339` is the only parser; this is not a second one.
+    /// Nil for a proposal with no time in it, and for an argument that did not parse — an
+    /// unparseable time is not a reason to refuse an action over.
+    var startsAt: Date? = nil
 
     /// Whether this came from the post-meeting pass, an undecided old file included.
     var isFromReview: Bool { (source ?? .review) == .review }
@@ -170,7 +187,9 @@ struct AgentProposal: Identifiable, Sendable, Equatable, Codable {
         rationale: String,
         createdAt: Date = Date(),
         source: AgentProposalSource? = nil,
-        evidence: String? = nil
+        evidence: String? = nil,
+        accountTag: String? = nil,
+        startsAt: Date? = nil
     ) {
         self.id = id
         self.meetingID = meetingID
@@ -180,6 +199,8 @@ struct AgentProposal: Identifiable, Sendable, Equatable, Codable {
         self.evidence = evidence
         self.createdAt = createdAt
         self.source = source
+        self.accountTag = accountTag
+        self.startsAt = startsAt
     }
 }
 

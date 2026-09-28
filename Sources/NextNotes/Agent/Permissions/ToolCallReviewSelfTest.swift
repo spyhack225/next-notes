@@ -546,8 +546,134 @@ enum ToolCallReviewSelfTest {
               ToolCallReviewStore.shared.isReadyToRun(id: proposalID))
         ToolCallReviewStore.shared.remove(id: proposalID)
 
+        failures += await p119FreshnessCases(check: check)
+
         for failure in failures { print("TOOL_REVIEW_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOL_REVIEW_OK" : "TOOL_REVIEW_FAILED")
         return failures.isEmpty
+    }
+
+    /// P1-19: a proposal outlives the process on purpose, so the check is that the world still
+    /// matches the card when it is finally approved.
+    ///
+    /// `now` and the current tag are injected, so case D is five days old without the suite
+    /// waiting five days, and nothing here reads the real `gws`.
+    @MainActor
+    static func p119FreshnessCases(check: (String, Bool) -> Void) async -> [String] {
+        var failures: [String] = []
+        func fail(_ name: String) { failures.append(name); check(name, false) }
+        let now = Date()
+        let meeting = UUID()
+        func proposal(createdAt: Date, accountTag: String? = nil,
+                      startsAt: Date? = nil) -> AgentProposal {
+            AgentProposal(meetingID: meeting, tool: "create_event",
+                          arguments: ["title": "Design review",
+                                      "start": "2026-09-24T15:00:00-04:00"],
+                          rationale: "", createdAt: createdAt,
+                          accountTag: accountTag, startsAt: startsAt)
+        }
+        let hour: TimeInterval = 3_600
+        let day: TimeInterval = 86_400
+
+        // A. Tag matches, an hour old, no time in it: today's path.
+        check("A. a card an hour old for this account is fresh",
+              ApprovalFreshness.evaluate(proposal(createdAt: now.addingTimeInterval(-hour),
+                                                  accountTag: "abc123"),
+                                         now: now, currentAccountTag: "abc123") == .fresh)
+        // A nil tag on either side skips the account check rather than refusing.
+        check("A-nil-recorded. a card with no recorded account is not refused for it",
+              ApprovalFreshness.evaluate(proposal(createdAt: now.addingTimeInterval(-hour)),
+                                         now: now, currentAccountTag: "abc123") == .fresh)
+        check("A-nil-current. a card is not refused when the current account cannot be read",
+              ApprovalFreshness.evaluate(proposal(createdAt: now.addingTimeInterval(-hour),
+                                                  accountTag: "abc123"),
+                                         now: now, currentAccountTag: nil) == .fresh)
+
+        // B. The account changed.
+        if ApprovalFreshness.evaluate(proposal(createdAt: now.addingTimeInterval(-hour),
+                                               accountTag: "abc123"),
+                                      now: now, currentAccountTag: "zzz999") != .accountChanged {
+            fail("B. a card prepared for another Google account was still fresh")
+        }
+        // C. The time has passed.
+        if ApprovalFreshness.evaluate(proposal(createdAt: now.addingTimeInterval(-hour),
+                                               startsAt: now.addingTimeInterval(-day)),
+                                      now: now, currentAccountTag: nil) != .timeHasPassed {
+            fail("C. a card whose time had passed was still fresh")
+        }
+        // The order: an account that changed is reported as that even when the time has passed
+        // too, because the card is about a different world before it is about a moment.
+        if ApprovalFreshness.evaluate(proposal(createdAt: now.addingTimeInterval(-day * 5),
+                                               accountTag: "abc123",
+                                               startsAt: now.addingTimeInterval(-day)),
+                                      now: now,
+                                      currentAccountTag: "zzz999") != .accountChanged {
+            fail("an account change was not reported ahead of a time that had passed")
+        }
+
+        // D. Five days old. A banner press must not fire it; the card may.
+        let aged = proposal(createdAt: now.addingTimeInterval(-day * 5))
+        if ApprovalFreshness.evaluate(aged, now: now, currentAccountTag: nil)
+            != .aged(days: 5) {
+            fail("D. a five-day-old card was not reported as aged")
+        }
+        check("D-banner. an aged card cannot fire from a banner",
+              ApprovalFreshness.evaluate(aged, now: now, currentAccountTag: nil).mayFireFromBanner
+                  == false)
+        check("D-card. an aged card can still be approved from the card",
+              ApprovalFreshness.evaluate(aged, now: now, currentAccountTag: nil).mayRun)
+        // The boundary itself: three days is a banner press, four is not.
+        check("D-boundary-3. a three-day-old card still fires from a banner",
+              ApprovalFreshness.evaluate(proposal(createdAt: now.addingTimeInterval(-day * 3)),
+                                         now: now, currentAccountTag: nil).mayFireFromBanner)
+        check("D-boundary-4. a four-day-old card does not fire from a banner",
+              ApprovalFreshness.evaluate(proposal(createdAt: now.addingTimeInterval(-day * 4)),
+                                         now: now, currentAccountTag: nil).mayFireFromBanner
+                  == false)
+
+        // E. An old proposal file with neither field decodes, and is fresh apart from age.
+        let oldJSON = """
+        {"id":"p-old","meetingID":"\(meeting.uuidString)","tool":"create_event",\
+        "arguments":{"title":"Design review"},"rationale":"","createdAt":\
+        \(now.addingTimeInterval(-hour).timeIntervalSince1970)}
+        """
+        guard let decoded = try? JSONDecoder().decode(
+            AgentProposal.self, from: Data(oldJSON.utf8)) else {
+            fail("E. a proposal written before this existed no longer decodes")
+            return failures
+        }
+        check("E-fields. an old proposal decodes with no account tag and no time",
+              decoded.accountTag == nil && decoded.startsAt == nil)
+        check("E-fresh. an old proposal is fresh, not refused",
+              ApprovalFreshness.evaluate(decoded, now: now, currentAccountTag: "abc123")
+                  == .fresh)
+
+        // F. The sentences: no tool id, no schema key, and not the phrase "account tag".
+        for freshness in [ApprovalFreshness.Freshness.accountChanged,
+                          .timeHasPassed, .aged(days: 5), .aged(days: 1)] {
+            let sentence = freshness.refusal
+            for banned in ["create_event", "accountTag", "account tag", "arguments", "\"_"] {
+                check("F. the refusal for \(freshness) contains \"\(banned)\": \"\(sentence)\"",
+                      sentence.contains(banned) == false)
+            }
+            check("F-sentence. the refusal for \(freshness) reads as a sentence: \"\(sentence)\"",
+                  sentence.first != "{" && sentence.isEmpty == false)
+        }
+        check("F-fresh. a fresh card has nothing to refuse",
+              ApprovalFreshness.Freshness.fresh.refusal.isEmpty)
+
+        // The tag itself: 16 hex characters, stable, and not the address.
+        let tag = GoogleWorkspaceCLI.tag(for: "ana@example.com")
+        check("an account tag is 16 hex characters: \(tag)",
+              tag.count == 16 && tag.allSatisfy { $0.isHexDigit })
+        check("an account tag is the same for the same address",
+              tag == GoogleWorkspaceCLI.tag(for: "ana@example.com"))
+        check("an account tag is the same whatever the case",
+              tag == GoogleWorkspaceCLI.tag(for: "Ana@Example.com"))
+        check("two accounts get different tags",
+              tag != GoogleWorkspaceCLI.tag(for: "sam@example.com"))
+        check("an account tag is not the address",
+              tag.contains("ana@example.com") == false)
+        return failures
     }
 }

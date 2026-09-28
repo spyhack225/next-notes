@@ -362,7 +362,10 @@ actor MeetingAgent {
             }
             let planned = proposals(
                 from: calls, tools: tools, meeting: meeting, policy: policy,
-                source: source, transcript: transcript
+                source: source, transcript: transcript,
+                // P1-19: read once per pass, not once per proposal. The CLI caches it anyway,
+                // and a nil here is the honest answer when the profile read could not be made.
+                accountTag: await GoogleWorkspaceCLI.shared.accountTag()
             )
             recorder.noteCounts(["proposed": calls.count, "accepted": planned.count])
             ledger.adopt(recorder)
@@ -416,13 +419,25 @@ actor MeetingAgent {
     /// — and a call missing an argument the tool needs, which would fail the moment it was
     /// approved. Duplicates go too: a model asked for follow-ups often proposes the same
     /// email twice with different wording.
+    /// The moment a proposal's card names, read off the tool's own first date parameter.
+    ///
+    /// P1-19. The catalogue declares which parameters are dates (`WorkspaceTool.Parameter.Kind.date`),
+    /// so this asks the tool rather than hard-coding "start" — a second tool with a time in it
+    /// gets the same treatment for free, and a tool with none gets nil, which is not a refusal.
+    static func startsAt(in tool: AgentTool, arguments: [String: String]) -> Date? {
+        guard let name = tool.parameters.first(where: { $0.kind == .date })?.name else { return nil }
+        guard let value = arguments[name] else { return nil }
+        return WorkspaceToolRunner.date(fromArgument: value)
+    }
+
     private func proposals(
         from calls: [AgentToolCall],
         tools: [AgentTool],
         meeting: Meeting,
         policy: AgentPolicy,
         source: AgentProposalSource,
-        transcript: String
+        transcript: String,
+        accountTag: String?
     ) -> [AgentProposal] {
         var seen: Set<String> = []
         var proposals: [AgentProposal] = []
@@ -472,7 +487,14 @@ actor MeetingAgent {
                 arguments: arguments,
                 rationale: call.rationale.isEmpty ? tool.description : call.rationale,
                 source: source,
-                evidence: call.evidence
+                evidence: call.evidence,
+                // P1-19: the world this card was prepared against. The account tag is nil when
+                // the profile read could not be made, and the card then skips the account check
+                // rather than guessing — an invented tag would refuse every approval on a
+                // machine whose read failed. `startsAt` comes from the tool's own first date
+                // argument, through the runner's parser.
+                accountTag: accountTag,
+                startsAt: Self.startsAt(in: tool, arguments: arguments)
             ))
             if proposals.count == AgentPrompts.maxProposals { break }
         }
