@@ -2530,12 +2530,14 @@ final class AgentCaptureController {
         return failures
     }
 
+    /// The wrapper stays so the goodbye branch is one line, and the rule is P1-15's.
+    ///
+    /// It was a `contains` over a phrase list, so any fragment anywhere in a turn closed the
+    /// session before the request was handed on — and the branch closes the coordinator, ends
+    /// the audio session and clears the announcement queue **first**, so the answer was
+    /// probably never spoken. Now it is whole-turn signatures, in `VoiceTurnPolicy`, graded
+    /// there against a positive corpus of ordinary speech.
     private static func isGoodbye(_ text: String) -> Bool {
-        let lowered = text.lowercased()
-        return [
-            "that's all", "thats all", "that's it", "thats it",
-            "goodbye", "good bye", "stop listening", "go to sleep",
-            "nothing else", "we're done", "we are done",
-        ].contains { lowered.contains($0) }
+        VoiceTurnPolicy.isClosingTurn(text)
     }
 }

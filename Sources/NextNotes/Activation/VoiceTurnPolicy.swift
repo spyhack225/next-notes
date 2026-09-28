@@ -72,6 +72,52 @@ enum VoiceTurnPolicy {
             .joined(separator: " ")
     }
 
+    /// Whole-turn closing signatures, in this file's own `normalizedKey` form.
+    ///
+    /// The rule this replaces was `lowered.contains` over a phrase list, and a substring
+    /// anywhere in a turn ended the voice session **before the request was handed on** — the
+    /// goodbye branch calls `closeSession()` and clears the announcement queue first, so the
+    /// answer was probably never spoken and pending announcements were thrown away.
+    /// "Is there nothing else on my calendar?", "Remind me to go to sleep at eleven.",
+    /// "Tell me when we're done with the deck.", "Is that it for the budget?" and
+    /// "Say goodbye to Ana in the email." all matched a fragment.
+    ///
+    /// No real instance was found — 0 of the audit's requests contain a goodbye phrase — so
+    /// this is a **subtractive deterministic gate matched by fragment**, which is the class
+    /// AGENTS.md bans on the voice path, and the class rather than the instance is the bug.
+    /// Nothing here is a rule, a word count, or a `contains`: a turn closes only when its
+    /// normalized key **equals** an entry, or is a closing lead followed by one. A list that
+    /// names its entries can only be wrong in one visible place, and `selfTestFailures` grades
+    /// it against a positive corpus of ordinary speech.
+    static let closingSignatures: Set<String> = [
+        "goodbye", "good bye", "bye", "bye bye",
+        "that s all", "thats all", "that s it", "thats it",
+        "that s it for now", "that s all for now", "that s it for tonight",
+        "that s all thanks", "that s all thank you",
+        "that s it thanks", "that s it thank you",
+        "stop listening", "go to sleep", "nothing else",
+        "nothing else thanks", "nothing else thank you",
+        "we re done", "we are done", "i m done", "i am done",
+    ]
+
+    /// An acknowledgment before the signature: "Thanks, that's all." Closed as `lead + " " +
+    /// signature` rather than by a `hasSuffix`, so "Remind me to go to sleep" can never match
+    /// "go to sleep" however the list is read.
+    static let closingLeads: Set<String> = [
+        "thanks", "thank you", "ok", "okay", "great", "perfect", "no",
+    ]
+
+    /// Whether this turn closes the voice session. A whole key, or a lead plus a whole key.
+    static func isClosingTurn(_ utterance: String) -> Bool {
+        let key = normalizedKey(utterance)
+        guard key.isEmpty == false else { return false }
+        if closingSignatures.contains(key) { return true }
+        for lead in closingLeads where key.hasPrefix(lead + " ") {
+            if closingSignatures.contains(String(key.dropFirst(lead.count + 1))) { return true }
+        }
+        return false
+    }
+
     /// Exact signatures that accept a pending offer or a worker's question, in this
     /// file's own `normalizedKey` form (lowercase, punctuation removed).
     ///
@@ -108,6 +154,41 @@ enum VoiceTurnPolicy {
 
     static func selfTestFailures() -> [String] {
         var failures: [String] = []
+
+        // P1-15: a goodbye is a whole turn, not a fragment of one. Both corpora are pinned, and
+        // the second one is the half that matters — a subtractive gate matched by substring is
+        // wrong about ordinary speech whether or not it is ever right about a goodbye.
+        for text in ["Goodbye.", "Bye!", "That's all.", "Thanks, that's all.",
+                     "Okay, that's it for now.", "Stop listening.", "Go to sleep.",
+                     "Nothing else, thanks.", "We're done.", "That's all, thank you."] {
+            if isClosingTurn(text) == false {
+                failures.append("a goodbye did not close the session: \(text)")
+            }
+        }
+        // Every one of these is an ordinary request that the old substring rule closed on, or
+        // would have. "Say goodbye to Ana in the email" and "that's all I need to know" are the
+        // two that make the class obvious: both contain a goodbye phrase as a fragment of a
+        // sentence about something else entirely.
+        for text in ["Is there nothing else on my calendar?",
+                     "Remind me to go to sleep at eleven.",
+                     "Tell me when we're done with the deck.",
+                     "Is that it for the budget?",
+                     "Say goodbye to Ana in the email.",
+                     "What's on my calendar? That's all I need to know",
+                     "I'm done with the report, can you send it?",
+                     "Thanks for the summary"] {
+            if isClosingTurn(text) {
+                failures.append("an ordinary request closed the session: \(text)")
+            }
+        }
+        // The list grades itself: an entry nobody can say is a rule, not a signature, and a
+        // signature that is only ever reachable as a lead's tail is a lead.
+        for signature in closingSignatures {
+            if isClosingTurn(signature) == false {
+                failures.append("a closing signature does not close on its own: \(signature)")
+            }
+        }
+
         // P0-3: the short fragments from agent-conversation.json, by exact signature.
         for text in ["boys", "Am", "Take it.", "Okay.", "hey win", "Hey we", "did", "Uh"]
         where knownNoiseFragment(in: text) == nil {
