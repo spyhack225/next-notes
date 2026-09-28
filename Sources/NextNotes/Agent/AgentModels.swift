@@ -215,13 +215,22 @@ struct WorkspaceToolResult: Sendable {
     /// A concrete postcondition checked by the native executor, separate from its
     /// human-readable success sentence and provider-created identifier.
     let verification: String?
+    /// P1-21: the write left and nothing came back, so what is here is a **read's** answer
+    /// about it — or the absence of one. Not a failure, and never a retry.
+    ///
+    /// A field rather than a sentence a caller matches on. The first version of the wiring keyed
+    /// on `summary.hasPrefix("I\u{2019}m not sure")`, which is the text-rule `AgentReplyRenderer`
+    /// and P0-17 exist to remove: a reworded sentence silently stops being recognised and the
+    /// duplicate-send bug comes back with nobody testing it.
+    var outcomeUnknown: Bool = false
 
     init(summary: String, reference: String? = nil, link: URL? = nil,
-         verification: String? = nil) {
+         verification: String? = nil, outcomeUnknown: Bool = false) {
         self.summary = summary
         self.reference = reference
         self.link = link
         self.verification = verification
+        self.outcomeUnknown = outcomeUnknown
     }
 }
 

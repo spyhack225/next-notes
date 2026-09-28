@@ -547,10 +547,230 @@ enum ToolCallReviewSelfTest {
         ToolCallReviewStore.shared.remove(id: proposalID)
 
         failures += await p119FreshnessCases(check: check)
+        failures += await p121UnknownOutcomeCases(check: check)
 
         for failure in failures { print("TOOL_REVIEW_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOL_REVIEW_OK" : "TOOL_REVIEW_FAILED")
         return failures.isEmpty
+    }
+
+    /// P1-21: a write whose result never came back is "not sure", never "failed".
+    ///
+    /// Driven with a fake CLI, so nothing is sent and no account is read. The rule is pure and is
+    /// pinned first (which errors prove nothing was sent), then the read, then the sentence —
+    /// and the store's decode, which is the half that loses data rather than mislabelling it.
+    @MainActor
+    static func p121UnknownOutcomeCases(check: (String, Bool) -> Void) async -> [String] {
+        var failures: [String] = []
+        func fail(_ name: String) { failures.append(name); check(name, false) }
+
+        // The rule. Four errors prove nothing left the Mac; everything else after launch does not.
+        for (error, known) in [
+            (WorkspaceCLIError.notInstalled, true),
+            (.notAuthenticated, true),
+            (.invalidRequest("bad flag"), true),
+            (.launchFailed("no such file"), true),
+            (.apiFailed("500"), false),
+            (.timedOut(60), false),
+            (.badOutput, false),
+        ] as [(WorkspaceCLIError, Bool)] {
+            if error.outcomeIsKnown != known {
+                fail("\(error) says the outcome is "
+                    + "\(error.outcomeIsKnown ? "known" : "unknown"), expected "
+                    + "\(known ? "known" : "unknown")")
+            }
+            // And the receipt status that follows, with the receipt in the `.fired` state.
+            let status = ActionOrchestrator.status(forThrown: error, afterFiring: true)
+            if status != (known ? ActionReceiptStatus.failed : .outcomeUnknown) {
+                fail("\(error) after firing records \(status), expected "
+                    + "\(known ? "failed" : "outcomeUnknown")")
+            }
+        }
+        // Before firing, everything is an ordinary failure — the receipt is the record of what
+        // happened, and nothing had left yet.
+        if ActionOrchestrator.status(forThrown: WorkspaceCLIError.badOutput, afterFiring: false)
+            != .failed {
+            fail("an error before firing recorded something other than failed")
+        }
+
+        // The read. A fake that times out the send and then answers the Sent search.
+        final class ScriptedCLI: WorkspaceCLIRunning, @unchecked Sendable {
+            var sends = 0
+            var searches = 0
+            var sentFolderHasIt: Bool
+            init(sentFolderHasIt: Bool) { self.sentFolderHasIt = sentFolderHasIt }
+            func run(_ arguments: [String], timeout: TimeInterval) async throws
+                -> WorkspaceCLIOutput {
+                let verb = arguments.joined(separator: " ")
+                if verb.contains("messages send") || verb.contains("messages send")
+                    || verb.contains("send") {
+                    sends += 1
+                    throw WorkspaceCLIError.timedOut(60)
+                }
+                if verb.contains("messages list") {
+                    searches += 1
+                    let body = sentFolderHasIt
+                        ? #"{"messages":[{"id":"m-1","threadId":"t-1"}]}"#
+                        : #"{"messages":[]}"#
+                    return WorkspaceCLIOutput(
+                        standardOutput: Data(body.utf8), standardError: "", exitCode: 0)
+                }
+                throw WorkspaceCLIError.badOutput
+            }
+        }
+        let proposal = AgentProposal(
+            meetingID: UUID(), tool: "send_email",
+            arguments: ["to": "ana@example.com", "subject": "The deck",
+                        "body": "Here it is."],
+            rationale: "")
+
+        // B. The read finds it: "It went out." — and the send counter is **zero**, because
+        // resolving is a read. The task's case A ("the send counter is 1") belongs to the whole
+        // write path through `ActionOrchestrator.execute`, which the rule above pins as a pure
+        // function; this half proves the other thing that matters, that the resolver never
+        // becomes a retry.
+        let found = ScriptedCLI(sentFolderHasIt: true)
+        let foundResult = await WorkspaceToolRunner.unknownOutcomeResult(proposal, cli: found)
+        if foundResult.summary != "It went out." {
+            fail("a send the Sent folder holds reads \"\(foundResult.summary)\", "
+                + "expected \"It went out.\"")
+        }
+        if foundResult.outcomeUnknown == false {
+            fail("a resolved unknown outcome is not marked as unknown on the result — the "
+                + "caller keys on the flag, not on the sentence")
+        }
+        if found.sends != 0 {
+            fail("resolving an unknown outcome sent the message \(found.sends) times — "
+                + "resolving is a read and must never be a retry")
+        }
+        if found.searches != 1 {
+            fail("resolving an unknown outcome ran \(found.searches) reads, expected 1")
+        }
+
+        // C. The read finds nothing: the "not sure" sentence, Check again offered, no resend.
+        let missing = ScriptedCLI(sentFolderHasIt: false)
+        let missingResult = await WorkspaceToolRunner.unknownOutcomeResult(proposal, cli: missing)
+        let said = WorkspaceToolRunner.unknownOutcomeSentence(
+            tool: "send_email", arguments: proposal.arguments, outcome: .notFound)
+        if missingResult.summary != said.sentence {
+            fail("a send that is not in Sent reads \"\(missingResult.summary)\", "
+                + "expected \"\(said.sentence)\"")
+        }
+        if said.offersCheckAgain == false {
+            fail("an unresolved send offers no Check again")
+        }
+        if missing.sends != 0 {
+            fail("an unresolved send was retried automatically (\(missing.sends) sends)")
+        }
+        // F. The sentences carry no tool id, no schema key and no address.
+        for tool in ["send_email", "draft_email", "create_event", "create_doc"] {
+            for outcome in [WorkspaceToolRunner.UnknownOutcome.notFound, .noReliableRead] {
+                let sentence = WorkspaceToolRunner.unknownOutcomeSentence(
+                    tool: tool, arguments: ["to": "ana@example.com", "subject": "The deck"],
+                    outcome: outcome).sentence
+                for banned in [tool, "\"to\"", "\"subject\"", "@"] where sentence
+                    .contains(banned) {
+                    fail("the \(tool) sentence contains \"\(banned)\": \"\(sentence)\"")
+                }
+            }
+        }
+        // A fuzzy match is never reported as certain.
+        if WorkspaceToolRunner.unknownOutcomeSentence(
+            tool: "send_email", arguments: [:], outcome: .found(looksLike: true)
+        ).sentence != "It looks like it went out." {
+            fail("a fuzzy match is reported as certain")
+        }
+
+        // G. The store. One record with a status this build has no word for, and two good ones:
+        // `load()` must keep the two, and the next `record` must write three — not one.
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NextNotesSelfTest-receipts-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let good = ActionReceipt(actionID: UUID(), intent: ActionIntent(
+            source: .meeting, authority: .systemDerived, verb: "send_email",
+            arguments: [:], evidence: [], risk: .send, confidence: 1),
+            source: .meeting, authority: .systemDerived, toolID: "send_email")
+        var odd = ActionReceipt(
+            actionID: UUID(), intent: good.intent, source: .meeting,
+            authority: .systemDerived, toolID: "send_email")
+        odd.status = .fired
+        let file = root.appendingPathComponent("receipts.json")
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        var rows: [[String: Any]] = []
+        for (index, receipt) in [good, odd, good].enumerated() {
+            var row = (try? JSONSerialization.jsonObject(
+                with: encoder.encode(receipt))) as? [String: Any] ?? [:]
+            if index == 1 { row["status"] = "some_future_stage" }
+            rows.append(row)
+        }
+        // The directory has to exist, and the write has to be checked. A `try?` on both is how
+        // this case first read "0 of 3" for a reason that had nothing to do with the store.
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        guard let data = try? JSONSerialization.data(withJSONObject: rows),
+              (try? data.write(to: file, options: .atomic)) != nil else {
+            fail("the receipts fixture could not be written to \(file.path)")
+            return failures
+        }
+        // G1. An unknown **status** keeps its row, read as `couldNotVerify`. The task expected
+        // two of three here; the tolerant `ActionReceiptStatus.init(from:)` does better than
+        // that, and a case written to the weaker expectation would have "fixed" the decode by
+        // dropping a row that is perfectly readable. Asserting the stronger behaviour is the
+        // point: a downgrade must not lose an audit row.
+        let store = ActionReceiptStore(fileURL: file)
+        if store.count != 3 {
+            fail("a receipts file with one unknown status loaded \(store.count) of 3, "
+                + "expected 3 — a version difference must not lose a row")
+        }
+        let oddRead = store.receipts.first { $0.actionID == odd.actionID }
+        if oddRead?.status != .couldNotVerify {
+            fail("a row with a status this build has no word for reads "
+                + "\(oddRead?.status.rawValue ?? "nothing"), expected couldNotVerify")
+        }
+
+        // G2. A row this build genuinely cannot read — a required field of the wrong type — is
+        // dropped **on its own**, and the file keeps everything else. This is the half the
+        // per-element decode exists for, and it is what the old `decode([…]) ?? []` turned into
+        // an empty file that the next `record` then overwrote.
+        //
+        // **Every row here is a `[String: Any]`, never an `ActionReceipt`.** Handing a Swift
+        // struct to `JSONSerialization.data(withJSONObject:)` raises an Objective-C exception
+        // that Swift cannot catch: the self-test task died there, the app fell through into the
+        // AppKit run loop looking exactly like a running app, and the run reported a hang
+        // instead of a crash — the same class of trap AGENTS.md records for `NSUnarchiver`.
+        var broken = ActionReceipt(
+            actionID: UUID(), intent: good.intent, source: .meeting,
+            authority: .systemDerived, toolID: "send_email")
+        broken.status = .outcomeUnknown
+        let brokenRow = (try? JSONSerialization.jsonObject(
+            with: encoder.encode(broken))) as? [String: Any] ?? [:]
+        var unreadable = brokenRow
+        unreadable["toolID"] = 42  // a number where a string is required
+        let goodRow = (try? JSONSerialization.jsonObject(
+            with: encoder.encode(good))) as? [String: Any] ?? [:]
+        if let mixed = try? JSONSerialization.data(
+            withJSONObject: [goodRow, unreadable, goodRow]) {
+            try? mixed.write(to: file, options: .atomic)
+        }
+        let partial = ActionReceiptStore(fileURL: file)
+        if partial.count != 2 {
+            fail("a receipts file with one unreadable row loaded \(partial.count) of 3, "
+                + "expected 2 — one bad row must not empty the file")
+        }
+        // And the record that used to overwrite it. The unreadable row must still be on disk
+        // afterwards: the store dropping a row it cannot read is correct, the store *erasing*
+        // the file is the bug.
+        _ = partial.record(good)
+        if let after = try? Data(contentsOf: file),
+           let rows = try? JSONSerialization.jsonObject(with: after) as? [[String: Any]],
+           rows.count != 3 {
+            fail("after one record the file holds \(rows.count) rows, expected 3 — the "
+                + "unreadable row was overwritten rather than left alone")
+        }
+        if ActionReceiptStore(fileURL: file).count != 2 {
+            fail("reloading after a record lost the readable rows")
+        }
+        return failures
     }
 
     /// P1-19: a proposal outlives the process on purpose, so the check is that the world still

@@ -843,14 +843,17 @@ enum WorkspaceToolRunner {
 
     /// The `--params` / `--json` payload. `gws` takes JSON on the command line, and a
     /// hand-built string breaks on the first apostrophe in a search query.
-    private static func json(_ object: [String: Any]) -> String {
+    /// Internal rather than private: P1-21\u{2019}s resolver lives in its own file and is
+    /// part of this type, so these three are its own helpers reaching it. They are not
+    /// general-purpose and are not used outside the runner.
+    static func json(_ object: [String: Any]) -> String {
         guard let data = try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]) else {
             return "{}"
         }
         return String(decoding: data, as: UTF8.self)
     }
 
-    private static func dictionary(from output: WorkspaceCLIOutput) -> [String: Any]? {
+    static func dictionary(from output: WorkspaceCLIOutput) -> [String: Any]? {
         (try? output.json()) as? [String: Any]
     }
 
@@ -970,7 +973,7 @@ enum WorkspaceToolRunner {
 
     /// RFC 3339 in the user's own zone, which is what `timeMin`/`timeMax` want: sent as UTC,
     /// a day boundary lands hours into the previous or next day for most of the world.
-    private static func timestamp(_ date: Date) -> String {
+    static func timestamp(_ date: Date) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
         formatter.timeZone = .current

@@ -313,6 +313,12 @@ enum AgentToolExecutor {
             promptIfNeeded: false,
             permissionAlreadyGranted: approvedByUser,
             allowUnverifiedResult: workspaceTool.risk > .read,
+            // P1-21: this is the caller that can answer "did it go out", because it owns the
+            // Workspace tools. Passing it is what turns a timed-out send into "I'm not sure"
+            // with a read behind it, rather than into a failure the person retries.
+            resolveUnknownOutcome: {
+                await WorkspaceToolRunner.unknownOutcomeResult(proposal, cli: cli)
+            },
             fire: { prepared in
                 var frozen = proposal
                 frozen.arguments = prepared.executionPlan.arguments

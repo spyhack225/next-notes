@@ -264,6 +264,30 @@ enum ActionReceiptStatus: String, Codable, Sendable, CaseIterable {
     case failed
     case couldNotVerify
     case cancelled
+    /// P1-21: the write left the Mac and nothing came back. **Not a failure.** `gws` runs with a
+    /// 60 s timeout and is terminated when it expires, and a Google write that takes longer than
+    /// that — or that exits after the request left with something unreadable on stdout — produced
+    /// a receipt that said `failed`, a card that said it failed, and a person who pressed it
+    /// again. That is how the app sends the same email twice, and it is live today rather than a
+    /// recovery-after-restart problem.
+    ///
+    /// Distinct from `failed` in the only direction that matters: `failed` means the app knows
+    /// nothing was sent, and this means the app does not know. Distinct from `couldNotVerify`,
+    /// which is a *read* that could not confirm a result we already had.
+    case outcomeUnknown
+
+    /// P1-21: an unrecognised stored value decodes as `couldNotVerify` rather than throwing.
+    ///
+    /// Hand-written for one reason, and it is the reason this enum is dangerous at all: a new
+    /// case makes every receipts file written by another build — an older one after a
+    /// downgrade, or a newer one read by this build — fail to decode, and `load()` used to answer
+    /// a decode failure with an **empty list**, which the next `record` then overwrote the file
+    /// with. A status nobody recognises is a record about a step this build does not have a word
+    /// for; `couldNotVerify` is the honest reading, and the row stays.
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = ActionReceiptStatus(rawValue: raw) ?? .couldNotVerify
+    }
 }
 
 struct ActionReceiptEvent: Codable, Equatable, Sendable, Identifiable {
@@ -330,12 +354,30 @@ final class ActionReceiptStore {
     static let shared = ActionReceiptStore()
 
     private(set) var receipts: [ActionReceipt]
-    private static var fileURL: URL {
+    /// The file this store owns. An instance rather than a static constant, so a self-test can
+    /// have a store of its own — case G writes real bytes and reads them back, and the only way
+    /// to do that honestly is a store pointed at a temporary file. `MeetingStore.isolated()` is
+    /// the same seam.
+    private let fileURL: URL
+    static var defaultFileURL: URL {
         AppIdentity.applicationSupportDirectory.appendingPathComponent("action-receipts.json")
     }
 
     /// A self-test starts empty: it must never read the user's receipts either.
-    private init() { receipts = SelfTest.isRunning ? [] : Self.load() }
+    private init() {
+        fileURL = Self.defaultFileURL
+        receipts = SelfTest.isRunning ? [] : Self.load(from: fileURL)
+    }
+
+    /// A store over its own file. The only way to construct one outside `shared`, and it never
+    /// reads or writes the user's receipts whatever the harness is doing.
+    init(fileURL: URL) {
+        self.fileURL = fileURL
+        receipts = SelfTest.isRunning ? Self.load(from: fileURL) : Self.load(from: fileURL)
+    }
+
+    /// How many receipts this store holds. For a self-test that has just written a file.
+    var count: Int { receipts.count }
 
     @discardableResult
     func record(_ receipt: ActionReceipt) -> Bool {
@@ -360,7 +402,7 @@ final class ActionReceiptStore {
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(receipts) else { return false }
         do {
-            try data.write(to: Self.fileURL, options: .atomic)
+            try data.write(to: fileURL, options: .atomic)
             return true
         } catch {
             Log.agent.error("Could not persist action receipt: \(error.localizedDescription, privacy: .public)")
@@ -368,11 +410,54 @@ final class ActionReceiptStore {
         }
     }
 
-    private static func load() -> [ActionReceipt] {
+    /// **One undecodable record must not empty the file.** P1-21.
+    ///
+    /// This used to be `decode([ActionReceipt].self) ?? []`, and the two halves of that were the
+    /// bug: a single record this build cannot read took every record with it, and the next
+    /// `record` → `save()` then wrote that empty list back over the file. The audit trail is the
+    /// one store that must never be silently emptied, and it was the one store that could be
+    /// emptied by a version difference alone.
+    ///
+    /// So each record is decoded on its own, the ones that decode are kept, and the rest are
+    /// counted in the log rather than dropped without word. A file that is not a JSON array at
+    /// all is a different failure and still reads as empty — there is nothing in it to keep.
+    private static func load(from fileURL: URL) -> [ActionReceipt] {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         guard let data = try? Data(contentsOf: fileURL) else { return [] }
-        return (try? decoder.decode([ActionReceipt].self, from: data)) ?? []
+        guard let rows = try? decoder.decode([AnyReceiptRow].self, from: data) else { return [] }
+        var kept: [ActionReceipt] = []
+        var unreadable = 0
+        for row in rows {
+            if let receipt = row.receipt {
+                kept.append(receipt)
+            } else {
+                // A row with a field this build does not have, rather than a row with a status
+                // it does not: `ActionReceiptStatus.init(from:)` already absorbs the latter.
+                unreadable += 1
+            }
+        }
+        if unreadable > 0 {
+            Log.agent.error("""
+                action receipts: kept \(kept.count) of \(rows.count) \
+                (\(unreadable) unreadable by this build, left on disk)
+                """)
+        }
+        return kept
+    }
+
+    /// One element of the stored array, decoded on its own so a failure is a nil rather than a
+    /// whole-array throw.
+    ///
+    /// **Not** `Data`: `JSONDecoder` cannot decode a JSON object into `Data`, and an array of
+    /// them fails the same way — which is a decode failure that looks exactly like the bug this
+    /// replaced, because the result is still an empty store. A one-field struct is what actually
+    /// works, and `receipt` is the whole of it.
+    private struct AnyReceiptRow: Decodable {
+        let receipt: ActionReceipt?
+        init(from decoder: Decoder) throws {
+            receipt = try? ActionReceipt(from: decoder)
+        }
     }
 }
 
@@ -405,6 +490,14 @@ final class ActionOrchestrator {
         permissionAlreadyGranted: Bool = false,
         allowUnverifiedResult: Bool = false,
         isStillValid: (@MainActor @Sendable () async -> Bool)? = nil,
+        /// P1-21: how to find out whether a write that never answered actually went out.
+        ///
+        /// A parameter rather than a call into the Workspace runner from here, because this
+        /// function knows nothing about Gmail or Drive and the caller that *can* answer is the
+        /// one that owns the tool. It is also the only shape that cannot grow a second answer:
+        /// either a caller supplies the read or the outcome stays unknown and the person is
+        /// asked, and there is no default that guesses.
+        resolveUnknownOutcome: (@MainActor @Sendable () async -> AgentToolResult)? = nil,
         fire: @escaping @MainActor (PreparedAction) async throws -> AgentToolResult
     ) async throws -> AgentToolResult {
         // Nobody is present for a scheduled run, so nothing may wait on a person: a
@@ -558,9 +651,35 @@ final class ActionOrchestrator {
             }
             throw error
         } catch {
-            add(.failed, error.localizedDescription)
+            // P1-21: after `.fired`, the question is not "did it fail" but "does this error
+            // prove nothing was sent". Only four do, and they are the ones
+            // `WorkspaceCLIError.outcomeIsKnown` names; everything else left the Mac and came
+            // back silent, which is `.outcomeUnknown` and not `.failed`. A read never lands
+            // here in that state — nothing was created by asking.
+            let status = Self.status(forThrown: error, afterFiring: receipt.status == .fired
+                                     || receipt.status == .outcomeUnknown
+                                     || receipt.status == .completed)
+            add(status, error.localizedDescription)
+            // The write left and nothing came back. Ask whatever can answer, and return its
+            // sentence rather than throwing: a thrown error is rendered as a failure, and that
+            // is the claim this whole task exists to stop the app making.
+            if status == .outcomeUnknown, let resolve = resolveUnknownOutcome {
+                receipt.completedAt = Date()
+                return await resolve()
+            }
             throw error
         }
+    }
+
+    /// P1-21: the one place the unknown-outcome rule is decided.
+    ///
+    /// `afterFiring` is the receipt's own state rather than a flag threaded down, because the
+    /// receipt is the record of what happened: a throw before `.fired` is an ordinary failure
+    /// whatever it is. Static and pure so the rule can be pinned without a runtime.
+    static func status(forThrown error: Error, afterFiring: Bool) -> ActionReceiptStatus {
+        guard afterFiring else { return .failed }
+        guard let cli = error as? WorkspaceCLIError else { return .failed }
+        return cli.outcomeIsKnown ? .failed : .outcomeUnknown
     }
 
     /// Where the card's "why" line comes from.

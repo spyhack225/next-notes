@@ -1316,6 +1316,26 @@ next morning. That is also why `AgentService.decide` falls back to scanning meet
 proposal id: a button pressed on a notification left over from a previous launch names a
 proposal this process has never seen.
 
+**A write that did not answer is "not sure", never "failed".** A Google write runs through
+`gws` with a 60-second timeout and is terminated when it expires, so a send that takes longer
+than that — or that exits after the request left with something unreadable on stdout — used to
+record `.failed`, show a card that said it failed, and invite the person to press it again. That
+is how the app sends the same email twice, and it was live rather than a recovery case. Only
+four errors prove nothing left the Mac (`WorkspaceCLIError.outcomeIsKnown`: `.notInstalled`,
+`.notAuthenticated`, `.invalidRequest`, `.launchFailed`); **every other error after launch is
+`.outcomeUnknown`**, and exit 1 counts as unknown because it covers a 500 as well as a refusal.
+Before asking the person, the app asks Google: `WorkspaceToolRunner.resolveUnknown` runs one
+read per write tool, and a match found by the loose rule is "looks like it went out", never
+certain. **A write is never retried automatically, for any error** — "Send again" is a *new
+approval of the same prepared content*, and the timeout itself does not get raised. The state
+travels on `WorkspaceToolResult.outcomeUnknown` rather than in a sentence, because a reworded
+string is how a duplicate-send bug comes back with nobody testing it. Two supporting rules: the
+receipts store decodes element by element and gives an unrecognised status a hand-written
+`init(from:)` mapping to `.couldNotVerify`, because one unreadable row used to empty the audit
+trail and the next `record` then overwrote the file; and `JSONSerialization.data(withJSONObject:)`
+raised on a Swift struct there, which killed a self-test task and left the app in the run loop
+looking like a hang — pass dictionaries, never a `Codable` value.
+
 **`CalendarService.refresh()` queues behind the pass in flight instead of returning
 early.** The obvious `guard !isRefreshing` was written first and was wrong twice over: a
 caller that had just ticked a calendar got a pass that had already read the old settings,

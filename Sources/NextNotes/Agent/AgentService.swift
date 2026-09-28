@@ -346,6 +346,20 @@ final class AgentService {
                     cli: self.cli,
                     approvedByUser: true
                 )
+                // P1-21: the write's own answer when it did not come back. The result carries
+                // the "not sure" sentence, so it is recorded as the outcome and shown as a
+                // problem with **Check again** — another read. There is deliberately no
+                // "Send again" here: re-sending is a *new approval of the same prepared
+                // content*, and this function has no business starting one.
+                if result.outcomeUnknown {
+                    self.problems[id] = result.summary
+                    self.record(
+                        AgentActionRecord(
+                            id: proposal.id, tool: proposal.tool, title: proposal.title,
+                            performedAt: Date(), detail: result.summary,
+                            source: proposal.source), for: id)
+                    return
+                }
                 let unverified = proposal.risk > .read && result.verification == nil
                 if unverified {
                     self.problems[id] = "The action ran, but its effect could not be verified. Inspect the target before retrying."

@@ -102,6 +102,29 @@ enum WorkspaceCLIError: LocalizedError, Equatable {
             "The Workspace CLI printed something that isn\u{2019}t JSON."
         }
     }
+
+    /// P1-21: does this error prove **nothing left the Mac**?
+    ///
+    /// Only four do. `.notInstalled` and `.launchFailed` never started a process.
+    /// `.notAuthenticated` is exit 2, which the CLI documents as "not authenticated" and answers
+    /// before the request. `.invalidRequest` is exit 3 — local validation, refused before the
+    /// API saw it.
+    ///
+    /// **Everything else after launch is unknown**: `.timedOut` (the write may have gone and the
+    /// process was terminated before it answered), `.badOutput` (the request may have gone and
+    /// the reply was unreadable), and `.apiFailed` — which is exit 1, and exit 1 covers a 500 as
+    /// well as a refusal, so it cannot distinguish "Google said no" from "Google did not say".
+    ///
+    /// Deliberately conservative, and the same shape as OpenMuse's. A read never consults this:
+    /// its failure is a failure, because nothing was created by asking.
+    var outcomeIsKnown: Bool {
+        switch self {
+        case .notInstalled, .notAuthenticated, .invalidRequest, .launchFailed:
+            return true
+        case .apiFailed, .timedOut, .badOutput:
+            return false
+        }
+    }
 }
 
 /// The one thing `WorkspaceToolRunner` needs from the CLI, so it can be handed a fake.
