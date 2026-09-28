@@ -23,18 +23,23 @@ enum KnowledgeToolGate {
     /// effect only while the index is on — `isAvailable` requires both.
     nonisolated static let defaultEnabled = true
 
-    /// All three: the index is on, the Agent may use it, and reads run without asking. With
-    /// reads set to ask, the planner is not told about the tools at all — the tool loop
-    /// auto-approves the reads it plans, so leaving them in would bypass the switch.
-    static func isAvailable(indexEnabled: Bool, toolsEnabled: Bool, lookThingsUp: Bool) -> Bool {
-        indexEnabled && toolsEnabled && lookThingsUp
+    /// **Two** switches: the index is on, and the Agent may use it.
+    ///
+    /// P1-17 removed the third. It used to require *reads run without asking*, on the theory
+    /// that "the tool loop auto-approves the reads it plans, so leaving them in would bypass
+    /// the switch" — and then bypassed the switch three times by hard-coding `true`. So a person
+    /// who wanted to approve reads did not get a card; they lost meeting search entirely, which
+    /// is the opposite of what the switch they were turning said. Whether a read runs without
+    /// asking is the planner's **per-call** decision (`autoApproveReads`), never a reason to hide
+    /// a tool from the model.
+    static func isAvailable(indexEnabled: Bool, toolsEnabled: Bool) -> Bool {
+        indexEnabled && toolsEnabled
     }
 
     @MainActor
     static var isAvailable: Bool {
         isAvailable(indexEnabled: Settings.shared.knowledgeIndexEnabled,
-                    toolsEnabled: Settings.shared.knowledgeAgentToolsEnabled,
-                    lookThingsUp: Settings.shared.agentAutoRunReadTools)
+                    toolsEnabled: Settings.shared.knowledgeAgentToolsEnabled)
     }
 
     /// What a call needs at execution time, routines included: the index and the Agent switch.

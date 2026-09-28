@@ -1034,6 +1034,7 @@ enum RealtimeAgentToolLoopSelfTest {
         AgentCapabilityManifestBuilder.inputsOverrideForTesting = AgentCapabilityInputs.allEnabled(
             tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
         defer { AgentCapabilityManifestBuilder.inputsOverrideForTesting = nil }
+        failures.append(contentsOf: await runReadApprovalCases(agent: agent, check: check))
         failures.append(contentsOf: await runToleranceCases(agent: agent, check: check))
         failures.append(contentsOf: await runBudgetCases(agent: agent, check: check))
         failures.append(contentsOf: await runRendererCases(agent: agent, check: check))
@@ -1218,6 +1219,132 @@ enum RealtimeAgentToolLoopSelfTest {
         print("  TOOLLOOP_PRODUCTION_ACCOUNT_READ: 10 cases, guard is pure")
         failures.append(contentsOf: runIdentifierCases(check: check))
         return failures
+    }
+
+    /// P1-17: "Look things up without asking" said one thing and did another.
+    ///
+    /// It was hard-coded `true` at three production call sites -- the planner's closure, the
+    /// direct-intent path, and `ToolStepRunner` -- so switching it off changed nothing for a
+    /// typed or a voice turn. `AgentToolExecutor.run` then folds that argument into the policy
+    /// (`effective.autoRead = true`), so the constant did not merely fail to ask: it overwrote
+    /// the answer the policy had already reached. The one place the switch *did* bite was
+    /// `KnowledgeToolGate`, which hid the knowledge tools rather than asking about the read, so
+    /// somebody who wanted to approve their reads lost meeting search outright.
+    ///
+    /// **These cases call the broker directly, and that is deliberate.** A whole synthetic turn
+    /// through `handle` was tried first and is a broken way to test this: routing needs the
+    /// state the earlier case groups build, and a case that never reaches the code it names
+    /// reports the routing rather than the setting. One version of it did reach the loop and
+    /// still measured nothing, because a shared `PlannerScriptLog` served the second case past
+    /// the end of its own script. So the decision is read where the decision is made, and the
+    /// wiring is read as text -- which is the only way to see a constant at three call sites.
+    @MainActor
+    static func runReadApprovalCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        var failures: [String] = []
+        func fail(_ name: String) { failures.append(name); check(name, false) }
+
+        AgentToolExecutor.fakeForTesting = { _, _ in AgentToolResult(summary: "fixture") }
+        defer { AgentToolExecutor.fakeForTesting = nil }
+        /// The decision `run` made about the call it was handed, read back out of the executor
+        /// rather than asserted by the caller.
+        func decided(_ id: String, _ risk: AgentRisk, _ autoApproveReads: Bool) async -> Bool? {
+            AgentToolExecutor.recordedReadApprovalsForTesting = []
+            guard let tool = AgentToolRegistry.shared.tool(named: id), tool.risk == risk else {
+                return nil
+            }
+            _ = try? await AgentToolExecutor.run(
+                tool.id, arguments: [:], policy: .denyMutations,
+                autoApproveReads: autoApproveReads, promptIfNeeded: false)
+            return AgentToolExecutor.recordedReadApprovalsForTesting
+                .first { $0.tool == tool.id }?.autoApproved
+        }
+
+        // 1. The switch off: a read asks. **Red before the change** -- the call sites passed
+        // `true`, and the executor's `effective.autoRead = true` then overrode the policy.
+        if await decided("search_email", .read, false) != false {
+            fail("a read auto-ran with 'look things up' switched off")
+        }
+        // 2. The switch on: unchanged, which is the default and the common case.
+        if await decided("search_email", .read, true) != true {
+            fail("a read asked with 'look things up' switched on")
+        }
+        // 3. A write, with the read switch **on**: still asks. This is the half that stops the
+        // fix becoming a licence, and it is why the recorded value is
+        // `autoApproveReads && risk <= .read` rather than the argument on its own.
+        // `.write`, not `.modify`: `draft_email` is a write that saves rather than sends, and
+        // the case names the tool's own class rather than a guess at it.
+        if await decided("draft_email", .write, true) != false {
+            fail("a write auto-ran because the read switch was on")
+        }
+
+        // 4. The property those three call sites read, and the reason the harness needs an
+        // override at all: the answer is the person's setting, with one override that exists
+        // only under the harness so a self-test can never move the saved choice.
+        let saved = Settings.shared.agentAutoRunReadTools
+        if agent.readsRunWithoutAsking != saved {
+            fail("'look things up' does not follow the saved setting")
+        }
+        agent.readApprovalOverrideForTesting = false
+        if agent.readsRunWithoutAsking {
+            fail("the self-test override did not turn the switch off")
+        }
+        agent.readApprovalOverrideForTesting = true
+        if agent.readsRunWithoutAsking == false {
+            fail("the self-test override did not turn the switch on")
+        }
+        agent.readApprovalOverrideForTesting = nil
+        if Settings.shared.agentAutoRunReadTools != saved {
+            fail("a self-test moved the owner's saved 'look things up' setting")
+        }
+
+        // 5. The three production call sites, read as text. The decision above proves the broker
+        // honours the argument it is handed; this proves the argument is the person's answer at
+        // every place a read can be planned. A literal `true` here *is* the bug, and it is
+        // invisible to a case that only calls the function.
+        let sites = ["Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift",
+                     "Sources/NextNotes/Agent/Planner/ToolStepRunner.swift"]
+        var literals: [String] = []
+        for site in sites {
+            guard let text = Self.source(of: site) else {
+                fail("could not read \(site) to check for a hard-coded read approval")
+                continue
+            }
+            for (number, line) in text.split(separator: "\n").enumerated()
+            where line.contains("autoApproveReads: true") {
+                literals.append("\(site):\(number + 1)")
+            }
+        }
+        check("a read is still approved by a constant rather than by the person's setting: "
+            + literals.joined(separator: ", "), literals.isEmpty)
+
+        // 6. And the gate, which is where the switch used to remove a tool instead of asking
+        // about the read. Two inputs, and the tools stay visible either way.
+        if KnowledgeToolGate.isAvailable(indexEnabled: true, toolsEnabled: true) == false {
+            fail("the knowledge tools are hidden from a person who wants to approve their reads")
+        }
+        if KnowledgeToolGate.isAvailable(indexEnabled: true, toolsEnabled: false) {
+            fail("the knowledge tools are visible with the Agent's own switch off")
+        }
+        if KnowledgeToolGate.isAvailable(indexEnabled: false, toolsEnabled: true) {
+            fail("the knowledge tools are visible with the index off")
+        }
+        print("  TOOLLOOP_PRODUCTION_READ_APPROVAL: 3 recorded decisions, 1 setting check, "
+            + "\(sites.count) call sites scanned, 2-switch knowledge gate")
+        return failures
+    }
+
+    /// A source file beside the compiled product, for the checks that have to read code rather
+    /// than run it. `nil` when the tree is not where it was -- and the case that asked says so
+    /// rather than passing quietly, because a scan that found no file must not read as a scan
+    /// that found no literal.
+    private static func source(of relativePath: String) -> String? {
+        // `#filePath` is this file, so the repository root is four levels up.
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        return try? String(contentsOf: root.appendingPathComponent(relativePath), encoding: .utf8)
     }
 
     /// P1-25's table. Pure: no model, no provider, no store, no executor.

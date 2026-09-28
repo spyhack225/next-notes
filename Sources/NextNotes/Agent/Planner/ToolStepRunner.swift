@@ -283,7 +283,9 @@ final class ToolStepRunner: ToolStepExecuting {
                             try await AgentToolExecutor.run(
                                 canonicalID, arguments: arguments, policy: policy,
                                 taskID: workID,
-                                autoApproveReads: true,
+                                // P1-17: the person's setting. The planner's path is the one
+                                // the switch describes, so it is the one that reads it.
+                                autoApproveReads: agent.readsRunWithoutAsking,
                                 promptIfNeeded: !agent.denyUnattendedApprovalsForTesting,
                                 // P0-07: a write may only commit while the input that planned
                                 // it is classified. Reads run through user speech; the loop's

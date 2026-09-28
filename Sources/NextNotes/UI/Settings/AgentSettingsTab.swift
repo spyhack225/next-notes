@@ -333,15 +333,22 @@ struct AgentSettingsTab: View {
 
     private var permissions: some View {
         Section {
-            Toggle("Read calendar and mail without asking", isOn: $settings.agentAutoRunReadTools)
+            // P1-17: the same words the Workspace tab uses, because it is the same setting and
+            // one setting should have one name. It was "Read calendar and mail without asking"
+            // and governed *every* read the Agent plans -- files, meetings, knowledge, pages --
+            // so the label described two accounts out of six.
+            Toggle("Look things up without asking", isOn: $settings.agentAutoRunReadTools)
             Toggle("Search local files without asking", isOn: $settings.agentAutoSearchFiles)
             Toggle("Click and type without asking", isOn: $settings.agentAllowComputerControl)
         } header: {
             Text("Allow without asking")
         } footer: {
-            SettingsNote(text: "Inspecting the front window is automatic. Clicks and typing "
-                         + "ask unless this is on. Sending, deleting and privileged commands "
-                         + "always ask. There is no switch that allows everything.")
+            SettingsNote(text: "Turn this off and the Agent asks before reading your mail, "
+                         + "calendar, files, meetings or notes — you approve each one. "
+                         + "Inspecting the front window is automatic either way. Clicks and "
+                         + "typing ask unless the switch below is on. Sending, deleting and "
+                         + "privileged commands always ask. There is no switch that allows "
+                         + "everything.")
         }
     }
 }

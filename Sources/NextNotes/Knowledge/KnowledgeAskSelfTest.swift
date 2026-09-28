@@ -248,11 +248,21 @@ enum KnowledgeAskSelfTest {
         let off = roster(toolsAllowed: false)
         check("the planner does not see the knowledge tools when allowed", KnowledgeToolCatalogue.ids.isSubset(of: on))
         check("the planner sees the knowledge tools when not allowed", off.isDisjoint(with: KnowledgeToolCatalogue.ids))
-        for index in 0..<8 {
-            let (a, b, c) = (index & 1 != 0, index & 2 != 0, index & 4 != 0)
-            check("the gate opened with index=\(a) tools=\(b) lookup=\(c)",
-                  KnowledgeToolGate.isAvailable(indexEnabled: a, toolsEnabled: b, lookThingsUp: c) == (a && b && c))
+        // P1-17: **two** inputs, and the eight-case table becomes four. The third was
+        // "reads run without asking", which used to hide the knowledge tools when a person
+        // asked to approve their reads -- so the switch that was supposed to add a card
+        // removed a tool instead. This changes what the rule *is*, not how hard it is checked.
+        for index in 0..<4 {
+            let (a, b) = (index & 1 != 0, index & 2 != 0)
+            check("the gate opened with index=\(a) tools=\(b)",
+                  KnowledgeToolGate.isAvailable(indexEnabled: a, toolsEnabled: b) == (a && b))
         }
+        // Stated positively, because that is the whole of P1-17: the tools stay visible to the
+        // planner whether or not reads run without asking. Asking about a read is a per-call
+        // decision (`autoApproveReads`), and a person who wants one is asking for a card, not
+        // for a smaller catalogue -- so the gate must not have a third input.
+        check("the knowledge tools are open to a person who wants to approve their reads",
+              KnowledgeToolGate.isAvailable(indexEnabled: true, toolsEnabled: true))
         guard let search = registry.tool(named: "search_knowledge") else { return failures }
         check("search_knowledge asks although reads run without asking",
               PermissionPolicy(autoRead: true).allowsAutomatically(search, authority: .user))

@@ -55,6 +55,24 @@ final class RealtimeAgent {
     /// followed it.
     private(set) var currentTurnID = UUID()
 
+    /// P1-17: whether a read the Agent plans runs without asking.
+    ///
+    /// It used to be hard-coded `true` in three places on the tool loop, which meant the
+    /// setting said one thing and did another: "Look things up without asking" is what Settings
+    /// calls it, and switching it off changed nothing for a typed or voice turn. The one place
+    /// it *did* bite was the wrong one -- `KnowledgeToolGate` hid the knowledge tools rather
+    /// than asking about the read, so somebody who wanted to approve reads lost meeting search
+    /// outright instead of getting a card. **The default stays true**; the setting is what it
+    /// says it is.
+    ///
+    /// The override is honoured only under the harness, because `Settings` writes
+    /// `UserDefaults.standard` and a self-test must never move the owner's saved choice.
+    var readApprovalOverrideForTesting: Bool?
+    var readsRunWithoutAsking: Bool {
+        if SelfTest.isRunning, let override = readApprovalOverrideForTesting { return override }
+        return Settings.shared.agentAutoRunReadTools
+    }
+
     /// Records the model a turn will answer with. `nil` clears it: no model answered, so
     /// the pane must not keep naming the previous turn's model beside this turn's reply.
     func publishAnsweringModel(_ provider: (any LLMProvider)?) {

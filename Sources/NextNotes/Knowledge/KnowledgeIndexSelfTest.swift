@@ -314,12 +314,13 @@ enum KnowledgeIndexSelfTest {
                 suite.removeObject(forKey: KnowledgeIndexSettings.enabledKey)
                 suite.removeObject(forKey: KnowledgeToolGate.enabledKey)
 
-                // d. The gate opens on a fresh install: index on, tools on, reads auto-running.
+                // d. The gate opens on a fresh install: index on, tools on. P1-17 removed the
+                // third input -- reads running without asking is a per-call decision, not a
+                // reason to hide a tool from the planner.
                 check("the knowledge gate is unavailable on a fresh install",
                       KnowledgeToolGate.isAvailable(
                         indexEnabled: true,
-                        toolsEnabled: Settings.initialKnowledgeAgentToolsEnabled(from: suite),
-                        lookThingsUp: true))
+                        toolsEnabled: Settings.initialKnowledgeAgentToolsEnabled(from: suite)))
             } else {
                 failures.append("the P0-21 settings suite could not be created")
             }

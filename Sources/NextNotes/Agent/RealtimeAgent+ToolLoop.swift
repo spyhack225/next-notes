@@ -457,7 +457,11 @@ extension RealtimeAgent {
                 name,
                 arguments: arguments,
                 policy: .fromSettings(),
-                autoApproveReads: true
+                // P1-17: the person's setting, not a constant. `runTool` also gained
+                // `promptIfNeeded` below, because a read that has to ask and cannot raise a card
+                // is a read that is simply refused.
+                autoApproveReads: readsRunWithoutAsking,
+                promptIfNeeded: !denyUnattendedApprovalsForTesting
             )
             return result.summary
         } catch {
@@ -2202,7 +2206,9 @@ extension RealtimeAgent {
             let result = try await AgentToolExecutor.run(
                 name, arguments: arguments, policy: .fromSettings(),
                 taskID: voiceWork?.id.uuidString,
-                autoApproveReads: true,
+                // P1-17: the direct-intent path asked the same question and hard-coded the
+                // answer, so a shortcut read was the one read a person could not be asked about.
+                autoApproveReads: readsRunWithoutAsking,
                 promptIfNeeded: !denyUnattendedApprovalsForTesting
             )
             return .done(result.summary)

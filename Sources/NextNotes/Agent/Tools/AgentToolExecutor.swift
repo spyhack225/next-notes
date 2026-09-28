@@ -9,6 +9,10 @@ enum AgentToolExecutor {
     typealias FakeToolRun = @MainActor @Sendable (AgentTool, [String: String]) async throws -> AgentToolResult
     @MainActor static var fakeForTesting: FakeToolRun?
 
+    /// P1-17: every (tool, would-it-ask) this process decided, under the harness only.
+    /// Appended, not assigned, so a multi-turn case can see the order as well as the values.
+    @MainActor static var recordedReadApprovalsForTesting: [(tool: String, autoApproved: Bool)] = []
+
     @MainActor
     static func run(
         _ name: String,
@@ -24,6 +28,16 @@ enum AgentToolExecutor {
     ) async throws -> AgentToolResult {
         guard let tool = AgentToolRegistry.shared.tool(named: name) else {
             throw AgentError.unknownTool(name)
+        }
+        // P1-17: the decision this call actually made about approval, recorded for the
+        // self-test. It is computed **here**, from the same two values the policy below is
+        // built from, and recorded *before* the fake returns -- so what a case reads is what
+        // production would have done rather than what the caller claimed. A write records
+        // `false` whatever the caller passed, which is the half that stops this becoming a
+        // licence to auto-approve anything.
+        if SelfTest.isRunning {
+            recordedReadApprovalsForTesting.append(
+                (tool: tool.id, autoApproved: autoApproveReads && tool.risk <= .read))
         }
         if SelfTest.isRunning, let fake = fakeForTesting {
             return try await fake(tool, arguments)
