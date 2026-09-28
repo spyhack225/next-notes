@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// Turns one tool call into `gws` invocations and their answer into something short.
@@ -76,7 +77,8 @@ enum WorkspaceToolRunner {
         case "create_doc": return try await createDoc(arguments, cli: cli)
         case "append_doc": return try await appendDoc(arguments, cli: cli)
         case "upload_to_drive": return try await uploadToDrive(arguments, cli: cli)
-        case "create_event": return try await createEvent(arguments, cli: cli)
+        case "create_event":
+            return try await createEvent(arguments, cli: cli, proposalID: proposal.id)
         case "draft_email": return try await sendEmail(arguments, cli: cli, asDraft: true)
         case "send_email": return try await sendEmail(arguments, cli: cli, asDraft: false)
         case "reply_email": return try await replyEmail(arguments, cli: cli)
@@ -715,25 +717,87 @@ enum WorkspaceToolRunner {
         return nil
     }
 
+    /// P1-22: the identifier a `create_event` is inserted under, derived from the receipt.
+    ///
+    /// Google accepts a client-chosen event `id` in base32hex, 5–1024 characters, and a UUID's
+    /// lowercase hex digits qualify. The hex is taken **without dashes**, because a dash is not
+    /// in the base32hex alphabet and the measurement showed the accepted shape was plain hex.
+    ///
+    /// The point is not a tidier id. It is that inserting the same id twice is **refused**
+    /// (measured 2026-09-28: exit 1, `409 "The requested identifier already exists."`), so a
+    /// repeated create is a no-op instead of a second event on the person's calendar.
+    /// Keyed on the **proposal's** id, not on a fresh `UUID()` per call.
+    ///
+    /// That distinction is the whole feature. A fresh id per call would make every repeat a
+    /// *different* event, which is the duplicate this task exists to prevent; the id has to be a
+    /// function of the approval, so pressing the same card twice inserts the same event and
+    /// Google refuses the second one.
+    ///
+    /// The value is 32 lowercase hex characters either way: a proposal id that already is a UUID
+    /// is used as-is, and anything else is hashed to the same shape, because Google accepts
+    /// base32hex and a dash is not in that alphabet.
+    static func eventIdentifier(for proposalID: String) -> String {
+        let stripped = proposalID.replacingOccurrences(of: "-", with: "").lowercased()
+        if stripped.count == 32, stripped.allSatisfy(\.isHexDigit) { return stripped }
+        let digest = SHA256.hash(data: Data(proposalID.utf8))
+        let hex = digest.map { byte in
+            let value = String(byte, radix: 16)
+            return value.count == 1 ? "0" + value : value
+        }.joined()
+        return String(hex.prefix(32))
+    }
+
+    /// Whether a failed insert is Google refusing a duplicate rather than a failure.
+    ///
+    /// **It arrives as exit 1**, which `WorkspaceCLIError.outcomeIsKnown` deliberately calls
+    /// *unknown* — the right answer for a 500 or a silent timeout, and the wrong one here. So the
+    /// duplicate is recognised where it happens, and reported as `completed`: the event *is* on
+    /// the calendar, which is the only thing the caller asked for.
+    static func isDuplicateEvent(_ error: WorkspaceCLIError) -> Bool {
+        guard case .apiFailed(let detail) = error else { return false }
+        let lower = detail.lowercased()
+        return lower.contains("identifier already exists") || lower.contains("duplicate")
+    }
+
     private static func createEvent(
         _ arguments: [String: String],
-        cli: any WorkspaceCLIRunning
+        cli: any WorkspaceCLIRunning,
+        proposalID: String
     ) async throws -> WorkspaceToolResult {
-        var command = [
-            "calendar", "+insert",
-            "--summary", arguments["title"] ?? "",
-            "--start", rfc3339(arguments["start"] ?? ""),
-            "--end", rfc3339(arguments["end"] ?? ""),
+        // P1-22: the raw insert, with the identifier the receipt already owns. Measured, not
+        // guessed: `--params` takes `calendarId` and `--json` takes the body, both verified with
+        // `--dry-run` before the live call, and the duplicate refusal is the 409 above.
+        let id = eventIdentifier(for: proposalID)
+        var body: [String: Any] = [
+            "id": id,
+            "summary": arguments["title"] ?? "",
+            "start": ["dateTime": rfc3339(arguments["start"] ?? "")],
+            "end": ["dateTime": rfc3339(arguments["end"] ?? "")],
         ]
         if let description = arguments["description"], !description.isEmpty {
-            command.append(contentsOf: ["--description", description])
+            body["description"] = description
         }
-        for attendee in WorkspaceTools.list(arguments["attendees"]) {
-            command.append(contentsOf: ["--attendee", attendee])
+        let attendees = WorkspaceTools.list(arguments["attendees"])
+        if !attendees.isEmpty { body["attendees"] = attendees.map { ["email": $0] } }
+        let command = [
+            "calendar", "events", "insert",
+            "--params", json(["calendarId": "primary"]),
+            "--json", json(body),
+        ]
+        let output: WorkspaceCLIOutput
+        do {
+            output = try await cli.run(command)
+        } catch let error as WorkspaceCLIError where isDuplicateEvent(error) {
+            // It is already there. That is the outcome, not a problem, and the card says so
+            // rather than showing a failure for an event that exists.
+            return WorkspaceToolResult(
+                summary: "It was already on your calendar.",
+                reference: id,
+                verification: "Google refused a duplicate id, so the event was already there")
         }
-        let output = try await cli.run(command)
         let fields = dictionary(from: output) ?? [:]
-        guard let id = string(fields, "id") else { throw WorkspaceCLIError.badOutput }
+        // Google echoes the id back, but the one it accepted is the one we sent.
+        guard string(fields, "id") != nil else { throw WorkspaceCLIError.badOutput }
         let readback = try? await cli.run([
             "calendar", "events", "get", "--params", json([
                 "calendarId": "primary", "eventId": id,
@@ -1221,6 +1285,108 @@ extension WorkspaceToolRunner {
             wrong("search_email refused a maxResults it should have clamped: \(error.localizedDescription)")
         }
 
+        // MARK: 5b — P1-22: the raw insert carries an identifier the receipt already owns, and
+        // a refused duplicate is the outcome rather than a failure.
+        //
+        // The fixture bodies are the shapes `gws` printed on 2026-09-28 against this Mac, not
+        // guesses: an insert answering `{"id": …, "htmlLink": …, "status": "confirmed"}`, and a
+        // refused repeat answering
+        // `{"error":{"code":409,"message":"The requested identifier already exists.","reason":"duplicate"}}`
+        // with exit 1.
+        do {
+            // The identifier, and the property that makes the feature work at all.
+            let proposalID = "3F2504E0-4F89-41D3-9A0C-0305E82C3301"
+            let id = eventIdentifier(for: proposalID)
+            if id != "3f2504e04f8941d39a0c0305e82c3301" {
+                wrong("the event identifier is \"\(id)\", expected the proposal id's hex")
+            }
+            if id.contains("-") || id.count != 32 {
+                wrong("the event identifier is not 32 dash-free hex characters: \(id)")
+            }
+            if eventIdentifier(for: "not-a-uuid") != eventIdentifier(for: "not-a-uuid") {
+                wrong("the event identifier is not stable for a non-UUID proposal id")
+            }
+            if eventIdentifier(for: "a") == eventIdentifier(for: "b") {
+                wrong("two proposals share an event identifier")
+            }
+            // The duplicate, recognised where it happens.
+            if isDuplicateEvent(.apiFailed("The requested identifier already exists.")) == false {
+                wrong("a refused duplicate id is not recognised as a duplicate")
+            }
+            if isDuplicateEvent(.apiFailed("Something else went wrong")) {
+                wrong("an unrelated API failure is read as a duplicate")
+            }
+            if isDuplicateEvent(.timedOut(60)) {
+                wrong("a timeout is read as a duplicate")
+            }
+
+            // And the whole call, twice, against a fake that can only ever answer 409. It
+            // cannot write: every call it receives is turned into the same refusal, and the
+            // `events get` read-back it is asked for afterwards is answered as absent.
+            final class DuplicateEventCLI: WorkspaceCLIRunning, @unchecked Sendable {
+                var insertArguments: [[String]] = []
+                func run(_ arguments: [String], timeout: TimeInterval) async throws
+                    -> WorkspaceCLIOutput {
+                    if arguments.contains("insert") { insertArguments.append(arguments) }
+                    throw WorkspaceCLIError.apiFailed("The requested identifier already exists.")
+                }
+            }
+            let cli = DuplicateEventCLI()
+            let first = (try? await run(AgentProposal(
+                id: proposalID, meetingID: UUID(), tool: "create_event",
+                arguments: ["title": "Design review", "start": "2026-10-01T09:00:00-04:00",
+                            "end": "2026-10-01T09:30:00-04:00"],
+                rationale: ""), cli: cli))
+            if first?.summary != "It was already on your calendar." {
+                wrong("a refused duplicate reads \"\(first?.summary ?? "nothing")\", expected "
+                    + "\"It was already on your calendar.\"")
+            }
+            // The same card pressed twice inserts the same id both times: that is the whole
+            // point, and a per-call UUID would have made two events.
+            _ = try? await run(AgentProposal(
+                id: proposalID, meetingID: UUID(), tool: "create_event",
+                arguments: ["title": "Design review", "start": "2026-10-01T09:00:00-04:00",
+                            "end": "2026-10-01T09:30:00-04:00"],
+                rationale: ""), cli: cli)
+            // The body is the argument that carries the summary. **Not** the one that starts
+            // with `{"id"`, which was the first guess: `json()` sorts keys, so a body with an
+            // `end` begins `{"end":…` and the id is nowhere near the front.
+            let bodies = cli.insertArguments.compactMap { list -> String? in
+                list.first(where: { $0.contains("\"summary\"") })
+            }
+            if cli.insertArguments.count != 2 {
+                wrong("two approvals made \(cli.insertArguments.count) inserts, expected 2")
+            }
+            if Set(bodies).count != 1 {
+                wrong("two approvals of one card sent different event bodies: \(bodies)")
+            }
+            if bodies.first?.contains("\"id\":\"\(id)\"") != true {
+                wrong("the insert body does not carry the receipt's identifier "
+                    + "\(id): \(bodies.first ?? "none")")
+            }
+            // And the command is the raw insert, not the `+insert` helper: one call per tool.
+            let command = cli.insertArguments.first ?? []
+            if command.first != "calendar" || command.dropFirst().first != "events"
+                || !command.contains("insert") {
+                wrong("create_event is not the raw calendar events insert: \(command)")
+            }
+            if command.contains("+insert") {
+                wrong("create_event still uses the +insert helper alongside the raw path")
+            }
+            // The body carries the id, the summary and both times.
+            let body = command.first(where: { $0.contains("\"summary\"") }) ?? ""
+            for needed in ["\"id\"", "\"summary\"", "\"start\"", "\"end\"", "Design review",
+                           "2026-10-01T09:00:00-04:00"] {
+                if body.contains(needed) == false {
+                    wrong("the insert body is missing \(needed): \(body)")
+                }
+            }
+            // And the caller's arguments are unchanged: no magic added to `title`.
+            if body.contains(proposalID) {
+                wrong("the proposal id leaked into the event's text")
+            }
+        }
+
         // MARK: 6 — a filter that matches nothing is an answer, and says what it searched
         do {
             let empty = FakeWorkspaceCLI(messages: [])
@@ -1325,8 +1491,17 @@ extension WorkspaceToolRunner {
 /// than asserted in a comment. Every write tool raises `notInstalled` instead of answering,
 /// which is what keeps this half from performing one even if the catalogue is edited.
 private final class FakeWorkspaceCLI: WorkspaceCLIRunning, @unchecked Sendable {
+    /// The verbs that change something, refused before anything is parsed.
+    ///
+    /// `insert` joined the list with P1-22, which moved `create_event` off the `+insert` helper
+    /// onto the raw `calendar events insert` — and a fake that did not know the new verb would
+    /// have fallen through to `badOutput` instead of refusing, which reads like a bug in the
+    /// runner rather than a refusal by the fake. The siblings are here so the next write tool
+    /// does not re-open the same hole: a list of verbs that must be kept true is a list that
+    /// gets forgotten, and a fake that fails open is worse than no fake.
     private static let writeCommands: Set<String> = [
-        "+send", "+reply", "+insert", "+write", "+upload", "create", "trash", "delete", "batchUpdate",
+        "+send", "+reply", "+insert", "+write", "+upload", "create", "trash", "delete",
+        "batchUpdate", "insert", "send", "import", "patch", "update", "copy", "move", "purge",
     ]
 
     private let messages: [WorkspaceSelfTestMail]

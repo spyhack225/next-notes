@@ -5812,9 +5812,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let fixtureFailures = await WorkspaceToolRunner.selfTestFailures()
             for failure in fixtureFailures { writeSelfTest("GWS_FIXTURES_WRONG: \(failure)") }
             if fixtureFailures.isEmpty {
-                writeSelfTest("GWS_FIXTURES_OK: 9 cases")
+                writeSelfTest("GWS_FIXTURES_OK: 10 cases")
             } else {
-                writeSelfTest("GWS_FIXTURES_FAILED: \(fixtureFailures.count) problem(s) in 9 cases")
+                writeSelfTest("GWS_FIXTURES_FAILED: \(fixtureFailures.count) problem(s) in 10 cases")
             }
 
             let cli = GoogleWorkspaceCLI.shared
