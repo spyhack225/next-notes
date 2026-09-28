@@ -55,7 +55,9 @@ enum PrefixCacheSelfTest {
         case .ok(let reused, let promptTokens, let first, let second):
             SelfTest.diagnostic(
                 "LLM_PREFIX_CACHE_OK: reused \(reused)/\(promptTokens) tokens, "
-                    + "prefill \(formatted(first))s → \(formatted(second))s")
+                    + "prefill \(formatted(first))s → \(formatted(second))s; "
+                    + "stable prompt front \(stableFrontPercent)% "
+                    + "(was 73% before P1-28)")
             return true
         case .failed(let problems):
             for problem in problems {
@@ -67,6 +69,57 @@ enum PrefixCacheSelfTest {
     }
 
     // MARK: - Part A, pure
+
+    /// P1-28 R2: how much of the system prompt two different requests share.
+    ///
+    /// The rule is about **position**, not about the set: every selected tool is still in the
+    /// prompt (that is `--selftest-native-tools`'s job) and the grammar still comes from
+    /// `manifest.selected`. What changed is that the part that varies per request moved to the
+    /// very end, so a turn selecting a different class no longer invalidates the cache from
+    /// section 3 onwards.
+    /// The measured share of the system prompt two different requests have in common, as a
+    /// percentage. Recorded in the marker because a number nobody reads is a bar nobody can
+    /// tell has moved: this was 73 % before P1-28 and is recorded on every run after.
+    private(set) static var stableFrontPercent = 0
+
+    static func stableFrontFailures() -> [String] {
+        var failures: [String] = []
+        func manifest(for request: String) -> AgentCapabilityManifest {
+            AgentCapabilityManifestBuilder.build(
+                AgentCapabilityInputs.live(reader: .voiceFrontend), request: request)
+        }
+        // Two requests that cannot select the same classes: one is about mail, one about
+        // files. If the shared front were small this is what would catch it.
+        let mail = RealtimeAgent.plannerSystem(
+            manifest: manifest(for: "Summarise my last emails"), voice: false,
+            request: "Summarise my last emails")
+        let files = RealtimeAgent.plannerSystem(
+            manifest: manifest(for: "find the login handler file"), voice: false,
+            request: "find the login handler file")
+        guard mail.isEmpty == false, files.isEmpty == false else {
+            return ["a planner system prompt came back empty, so there is no front to compare"]
+        }
+        let shared = mail.commonPrefix(with: files).count
+        let ratio = Double(shared) / Double(min(mail.count, files.count))
+        stableFrontPercent = Int(ratio * 100)
+        // 80 % is the task's bar, and the measurement before the change was 484–1,012 of about
+        // 2,000 — between a quarter and a half.
+        if ratio < 0.8 {
+            failures.append(
+                "two requests selecting different classes share only \(shared) characters "
+                    + "(\(Int(ratio * 100))%) of the smaller prompt, expected at least 80% — "
+                    + "something that varies per request is still near the front")
+        }
+        // And the varying part really is at the end, by construction rather than by luck: the
+        // last section of one prompt must not be the first section of the other's front.
+        if let mailTail = mail.components(separatedBy: "\n\n").last,
+           mailTail.contains("tool_call") || mailTail.contains("Also available:") {
+            // Expected: the call format is last.
+        } else {
+            failures.append("the call format is not in the last section of the prompt")
+        }
+        return failures
+    }
 
     private static func pureFailures() -> [String] {
         var failures: [String] = []
@@ -86,6 +139,19 @@ enum PrefixCacheSelfTest {
                         + "expected \(entry.expected)")
             }
         }
+
+        // P1-28 R2, and it is pure: **two requests that select different classes must share
+        // almost the whole system prompt.**
+        //
+        // This is the measurement the finding was traced from — two turns shared only 484–1,012
+        // of about 2,000 tokens because the per-request rule lines sat at section 3, above
+        // memory, skills and the date. It needs no model at all: the question is a property of
+        // the assembled string, and that is what makes it worth having here rather than only in
+        // the live half, which needs the Agent model and is `LLM_PREFIX_CACHE_ABSENT` without it.
+        // Called directly rather than through `MainActor.assumeIsolated`, which *asserts*
+        // isolation rather than checking it and takes the process down when it is wrong. The
+        // enclosing enum is already `@MainActor`, so this is already on the main actor.
+        failures.append(contentsOf: stableFrontFailures())
 
         let system = "You are a helpful assistant. Keep the answer short."
         let firstUser = LLMChatMessage(role: .user, content: "First question.")

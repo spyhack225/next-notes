@@ -1064,13 +1064,43 @@ extension RealtimeAgent {
         // (`AgentNow`, section 7). It was here and nowhere else on the spoken path, which is
         // why "today" was whatever the model said it was, and it is there now for every path
         // with a clock — together with the next two events, so "what's next?" needs no round.
+        // P1-28: the stable half in the front, the earned half in the tail. `plannerRules`
+        // returns only the fixed rules now, so nothing that changes per request sits above
+        // section 5.
+        let halves: (stable: String, extra: String) =
+            catalogue ? splitCatalogue(manifest) : (stable: "", extra: "")
         let capabilities = catalogue ? """
             \(answering.isEmpty ? "Available tools:" : "Answered by \(answering). Available tools:")
-            \(manifest.plannerCatalogue(compact: manifest.compactCatalogue))
+            \(halves.stable)
             """ : ""
+        let earned = catalogue
+            ? plannerRuleLines(manifest: manifest, extraCatalogue: halves.extra)
+            : ""
         return AgentPromptContext.assemble(
             .toolLoop, rules: plannerRules(manifest: manifest, voice: voice, catalogue: catalogue),
-            capabilities: capabilities, skills: skills).system
+            capabilities: capabilities, volatileTail: earned, skills: skills).system
+    }
+
+    /// The call format and the per-request lines, as the last thing in the prompt.
+    ///
+    /// Split out of `plannerRules` for P1-28 so the fixed rules and the volatile tail are two
+    /// values rather than one string with a seam inside it. `plannerRules` keeps returning both
+    /// for every other caller, so nothing else changes shape.
+    static func plannerRuleLines(
+        manifest: AgentCapabilityManifest, extraCatalogue: String
+    ) -> String {
+        let catalogueRules = """
+            For a tool step, emit exactly one Hermes call as
+            <tool_call>{"name":"...","arguments":{...},"rationale":"..."}</tool_call>.
+            Never call a tool that is not listed below. If a listed tool can answer the
+            request, call it now; never ask whether you should. Use the date given below
+            for requests about today; do not guess a date from prior context.
+            """
+        var out = extraCatalogue.isEmpty ? catalogueRules
+            : catalogueRules + "\n" + extraCatalogue
+        let lines = manifest.ruleLines()
+        if lines.isEmpty == false { out += "\n" + lines }
+        return out
     }
 
     /// Whether this request is asking which model is answering. Word-bounded, and about the
@@ -1163,9 +1193,14 @@ extension RealtimeAgent {
 
             Which model this is, is not one of the things never to expose: if you are asked,
             say the name given above plainly, and never claim you have no model.
-            """ + tail(base, catalogue: catalogue, manifest: manifest)
+            """
         }
-        return tail(base, catalogue: catalogue, manifest: manifest)
+        // P1-28: **no tail here.** The call format and the per-request rule lines are the
+        // volatile tail now, assembled by `plannerRuleLines` and joined last of all, so that a
+        // turn which selects a different class does not invalidate the cache from section 3
+        // onwards. `tail(_:catalogue:manifest:)` is kept for the shape it has and is no longer
+        // called by this path; the prompt is byte-identical in content and different in order.
+        return base
     }
 
     private static func tail(
@@ -1182,6 +1217,32 @@ extension RealtimeAgent {
         let lines = manifest.ruleLines()
         let tail = lines.isEmpty ? catalogueRules : catalogueRules + "\n" + lines
         return base + "\n" + tail
+    }
+
+    /// P1-28: the catalogue split in two, and only the **order** changed.
+    ///
+    /// The stable half is the entries `coreIDs` names — the ones every turn has, whatever the
+    /// request — and it goes in `capabilities`, at section 5. The other half is whatever the
+    /// manifest earned this turn, and it goes in the volatile tail, last of all.
+    ///
+    /// **The set is untouched.** The grammar and the `tools` array still come from
+    /// `manifest.selected`, so `--selftest-native-tools` keeps proving that the grammar, the
+    /// prompt catalogue and the schema are one set; what moved is which half of that one set is
+    /// rendered where.
+    private static func splitCatalogue(
+        _ manifest: AgentCapabilityManifest
+    ) -> (stable: String, extra: String) {
+        let stable = manifest.selected.filter {
+            AgentCapabilityManifestBuilder.coreIDs.contains($0.id)
+        }
+        let extra = manifest.selected.filter {
+            AgentCapabilityManifestBuilder.coreIDs.contains($0.id) == false
+        }
+        return (AgentCapabilityManifest.renderCatalogue(stable, compact: manifest.compactCatalogue),
+                extra.isEmpty ? "" :
+                    "Also available:\n"
+                    + AgentCapabilityManifest.renderCatalogue(
+                        extra, compact: manifest.compactCatalogue))
     }
 
     /// The planned turn: resolve one provider, bind the reader, then run rounds. `provider`

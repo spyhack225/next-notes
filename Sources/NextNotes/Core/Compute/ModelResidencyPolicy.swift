@@ -146,7 +146,14 @@ final class ModelResidencyGuardian: @unchecked Sendable {
         for model in plan {
             switch model {
             case .notes:
-                let unloaded = await NotesModelRuntime.shared.shutdown()
+                // P1-28: the reason, on the unload row. Memory pressure was the one cause
+                // with no trace at all before, and it is the one whose cost is arguable —
+                // §12 keeps the order notes → diarization, never wake/ASR, and a plan nobody
+                // can check is a plan nobody can keep.
+                // `noteUnload` is actor-isolated with the rest of the runtime, so it is awaited
+                // rather than called: an unawaited call is a compile error here, which is the
+                // right outcome for a fire-and-forget write to the latency log.
+                let unloaded = await NotesModelRuntime.shared.noteAndShutdown(reason: .pressure)
                 // `shutdown()` records the unload with the runtime generation it
                 // actually released. Do not follow it with an unguarded registry
                 // write: a replacement load may begin while the actor is suspended,

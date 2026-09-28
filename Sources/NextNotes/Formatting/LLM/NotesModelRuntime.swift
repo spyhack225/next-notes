@@ -328,6 +328,8 @@ actor NotesModelRuntime {
     /// Swaps in the chosen model. Only safe with nothing loaded and nothing running.
     private func applyPendingSpec() {
         guard let pendingSpec else { return }
+        // P1-28: A model chosen while this runtime held one: the switch, not an idle unload.
+        noteUnload(reason: .switched)
         if model != nil { shutdownNow() }
         spec = pendingSpec
         self.pendingSpec = nil
@@ -548,6 +550,8 @@ actor NotesModelRuntime {
             if pendingSpec == nil { pendingSpec = pendingBefore }
             deferredShutdown = deferred
         }
+        // P1-28: The trial verified the model and dropped it — a trial is a load with a purpose, not a load.
+        noteUnload(reason: .trial)
         shutdownNow()
         spec = candidate
         pendingSpec = nil
@@ -665,6 +669,8 @@ actor NotesModelRuntime {
         try await withBackgroundLane { jobID in
             // The lane waits for any generation using these pointers to finish.
             // Calling shutdown() before the wait could free its sampler/context.
+            // P1-28: Recovery after a failure: the pointers were freed because something went wrong.
+            noteUnload(reason: .error)
             shutdownNow()
             try await loadIfNeeded(schedulerJobID: jobID)
         }
@@ -1128,6 +1134,8 @@ actor NotesModelRuntime {
             activeOperations -= 1
             lastUse = Date()
             if activeOperations == 0 && deferredShutdown {
+                // P1-28: A model chosen while this operation ran; the swap lands here.
+                noteUnload(reason: .switched)
                 shutdownNow()
                 // A model chosen while this operation was running swaps in here, now that
                 // nothing is reading the weights that were just freed.
@@ -1463,8 +1471,46 @@ actor NotesModelRuntime {
     func unloadIfIdle(after interval: TimeInterval = NotesModelRuntime.idleUnload) {
         guard conversationLeases.isEmpty, activeOperations == 0, model != nil,
               Date().timeIntervalSince(lastUse) >= interval else { return }
+        // P1-28: the reason goes to `metrics.jsonl` as well as the system log. §12 keeps the
+        // 10-minute idle unload, and the cost of that limit is only arguable if the unloads it
+        // causes are legible.
+        noteUnload(reason: .idle, residentFor: Date().timeIntervalSince(lastUse))
         shutdown()
         Log.llm.info("\(self.spec.displayName, privacy: .public) unloaded after idling")
+    }
+
+    /// P1-28: one row per unload, with why.
+    ///
+    /// A **span** rather than a new log file (AGENTS.md: one usage log, and `metrics.jsonl` is
+    /// the latency file) and a zero duration on purpose — an unload is an instant, and inventing
+    /// a duration would make the file's own p50 answer a question nobody asked. The reason
+    /// rides in `note`, which is what the field is for.
+    func noteUnload(reason: UnloadReason, residentFor: TimeInterval? = nil) {
+        let held = residentFor.map { " after \(Int($0))s" } ?? ""
+        let note = "model=\(spec.displayName) reason=\(reason.rawValue) resident\(held)"
+        MetricsStore.shared.recordAsync(
+            LatencySpan(
+                name: .modelUnload,
+                startedAt: Date(), endedAt: Date(), durationSeconds: 0,
+                note: note))
+    }
+
+    /// Notes the reason and releases, in one actor hop.
+    ///
+    /// For the callers outside this actor — memory pressure, and anything else that reaches in
+    /// from `Core/`. Two calls would leave a window where a second unload could be noted between
+    /// the reason and the release, and the log would carry a reason for something that had not
+    /// happened yet.
+    func noteAndShutdown(reason: UnloadReason) -> Bool {
+        guard model != nil else { return false }
+        noteUnload(reason: reason)
+        return shutdown()
+    }
+
+    /// Why a model was released. Five reasons, because five is what the call sites actually are;
+    /// a sixth invented now would be a reason nothing can produce.
+    enum UnloadReason: String, Sendable {
+        case idle, pressure, switched, trial, shutdown, error
     }
 
     /// Releases model and context. The process-wide backend belongs to `LlamaBackend`.
@@ -1687,8 +1733,44 @@ actor NotesModelRuntime {
     ///
     /// When `schedulerJobID` is set (outer `withBackgroundLane`), the load checkpoints
     /// before the heavy mmap so a queued `realtimeASR` job can take the lane first.
+    /// P1-28: a launch-time diagnostic must never load a model.
+    ///
+    /// The trace behind this found four "reloads" on 2026-09-27 that were **four processes**,
+    /// not four reloads: `--usage-report`, `--notes-context-live` and the other launch-time
+    /// diagnostics run as the real app, at least one of them loaded the model, and one crashed
+    /// inside a llama load during `NSApp.terminate`. A second copy of the weights in another
+    /// process then pushed this one's weights out of memory — 6.0 s to prefill 172 tokens, for
+    /// a process whose only job was to print a report.
+    ///
+    /// So the refusal is here, in the one function that loads, rather than in each diagnostic:
+    /// a list of flags that each has to remember is a list that forgets one. The check is
+    /// **prefix-based** and names the shape (`--usage-report`, `--selftest-…`, `--probe-…`,
+    /// `--notes-context-live`) rather than enumerating today's flags, so a new diagnostic is
+    /// covered the day it is written.
+    ///
+    /// `loadAttemptCount` is left at 0, so a self-test can prove the load never started rather
+    /// than only that a flag was seen.
+    nonisolated static func refusesToLoadForLaunchDiagnostic() -> Bool {
+        // `--selftest-` is deliberately **absent**, and the first version of this list included
+        // it — which broke `--selftest-llm-prefix-cache`, whose live half drives a **private**
+        // runtime and legitimately needs a load. A self-test already reaches a model through
+        // private instances and temp stores; what it must never do is touch the *shared*
+        // runtime, and that is enforced where the harness is installed rather than by a flag
+        // prefix. The list below is the diagnostics that run **as the app, in place of it**.
+        let diagnostic = ["--usage-report", "--notes-context-live", "--probe-", "--avatar-sheet",
+                          "--settings-sheet", "--meeting-quality-report"]
+        return CommandLine.arguments.contains { argument in
+            diagnostic.contains { argument.hasPrefix($0) }
+        }
+    }
+
     private func loadIfNeeded(schedulerJobID: UUID? = nil) async throws {
         if model != nil, vocabulary != nil { return }
+        if Self.refusesToLoadForLaunchDiagnostic() {
+            Log.agent.info("model load refused: a launch-time diagnostic is running")
+            throw AgentError.backendUnavailable(
+                "A launch-time diagnostic is running, so no model was loaded.")
+        }
         if let loadTask { return try await loadTask.value }
         // Nothing is loaded and nothing is loading, which is the only safe moment to adopt a
         // model the user chose while the previous one was busy.

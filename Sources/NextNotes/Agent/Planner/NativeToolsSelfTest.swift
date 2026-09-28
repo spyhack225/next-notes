@@ -215,9 +215,13 @@ enum NativeToolsSelfTest {
         // byte-identical on both paths and this says so.
         let system = RealtimeAgent.plannerSystem(
             manifest: manifest, voice: false, request: "what's on my calendar")
-        let promptHasCatalogue = system.contains(manifest.plannerCatalogue(
-            compact: manifest.compactCatalogue))
-        check("prompt carries the catalogue", promptHasCatalogue,
+        // P1-28: the catalogue is now rendered in **two** places — the stable half at section 5
+        // and the earned half in the volatile tail — so the one-string containment it used to
+        // check is no longer the right question. The question is unchanged and stronger: every
+        // selected id appears somewhere in the prompt, and the grammar's ids are the same set.
+        let promptHasCatalogue = manifest.selected.allSatisfy { system.contains($0.id) }
+        check("prompt carries every selected tool (stable front + volatile tail)",
+              promptHasCatalogue,
               "the planner prompt lost its catalogue, so a grammar cannot replace it")
 
         // MARK: 4 — the two paths on the same text

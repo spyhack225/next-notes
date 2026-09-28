@@ -151,9 +151,24 @@ struct AgentPromptContext: Sendable {
     /// narrow readers, where a meeting title is worth more than the minute it starts.
     var now: String = ""
 
+    /// P1-28: the part of the system prompt that changes with the request, kept **last**
+    /// among the assembled sections.
+    ///
+    /// The reason is the prompt cache, and it is the only reason. A local model's KV cache is
+    /// reused from the front of the prompt, so a byte that moves near the top invalidates
+    /// everything after it — and the per-request class lines and the extra catalogue entries
+    /// used to sit at section 3, *before* memory, skills and the date. Two turns that selected
+    /// different classes then shared only 484–1,012 of about 2,000 tokens, and the prefill was
+    /// paid again from scratch.
+    ///
+    /// Stable front, varying tail: persona, grounding, fixed rules, memory, the **stable**
+    /// catalogue, skills, date, and only then this. `AgentNow` is already last for the same
+    /// family of reason and this does not move it.
+    var volatileTail: String = ""
+
     /// Sections 1–7, joined. Empty for a path that receives nothing (ACP).
     var system: String {
-        [persona, grounding, rules, memory, capabilities, skills, now]
+        [persona, grounding, rules, memory, capabilities, skills, now, volatileTail]
             .filter { !$0.isEmpty }
             .joined(separator: "\n\n")
     }
@@ -176,6 +191,7 @@ struct AgentPromptContext: Sendable {
         rules: String,
         memory: String? = nil,
         capabilities: String = "",
+        volatileTail: String = "",
         skills: String = "",
         now: String? = nil,
         grounding: AgentGrounding? = nil,
@@ -219,6 +235,7 @@ struct AgentPromptContext: Sendable {
             capabilities: capabilities.trimmingCharacters(in: .whitespacesAndNewlines),
             skills: skills.trimmingCharacters(in: .whitespacesAndNewlines),
             now: nowSection,
+            volatileTail: volatileTail.trimmingCharacters(in: .whitespacesAndNewlines),
             memoryCharacters: memoryValue.count
         )
     }

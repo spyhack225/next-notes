@@ -89,6 +89,14 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
 
     // Milestone 1 also asked for model-load timing. One span, the model name in `note`.
     case modelLoad = "model.load"
+    /// P1-28: an unload, with **its reason** on the span's `note`.
+    ///
+    /// The trace behind this found unloads on 23–24 September with an idle gap and no record
+    /// of why anywhere: `shutdownNow` wrote only to the system log, which ages out in minutes
+    /// and is not read. So "why did the model load again" had no answer in the file the app
+    /// already writes, and the answer had to be a flag on the unload rather than a new log.
+    /// `id` | `pressure` | `switch` | `trial` | `shutdown` | `error`.
+    case modelUnload = "model.unload"
     case modelQueue = "model.queue"
     case modelContext = "model.context"
     case modelPrefill = "model.prefill"
@@ -128,7 +136,7 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
              .voiceOnsetToStop, .voiceInterClauseGap, .voiceSpeculation,
              .voiceMainActorStall, .voiceFrontendUnavailable, .voiceEOUPrepare:
             return .agent
-        case .modelLoad, .modelQueue, .modelContext, .modelPrefill, .modelFirstToken:
+        case .modelLoad, .modelUnload, .modelQueue, .modelContext, .modelPrefill, .modelFirstToken:
             return .model
         case .askTotal, .askProvider, .askRetrieve, .askFirstToken, .askGenerate,
              .searchTotal, .searchEmbed, .searchQuery:
