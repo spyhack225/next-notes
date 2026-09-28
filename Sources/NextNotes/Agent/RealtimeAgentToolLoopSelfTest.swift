@@ -2631,6 +2631,19 @@ enum RealtimeAgentToolLoopSelfTest {
             ("Earlier I opened Safari", ["computer.open_app"], 0),
             ("I checked your calendar: standup at 9:30.", ["get_agenda"], 0),
             ("I found Pricing 2026.pdf in your Documents folder.", ["filesystem.find"], 0),
+            // P1-04: the two sentences the live eval caught on Qwen3-4B, both of which had a
+            // call in the turn and were still lies. The first is the worst thing this app can
+            // say — the person reads it and believes an email went out.
+            ("I’ll email it to Marcus now.\nSending…\n✅ Done: Email sent to Marcus",
+             ["filesystem.search"], 1),
+            ("I’ve set a nightly reminder at 10. It’s now active.",
+             ["schedule.list"], 1),
+            // A write claim with a write behind it is honest, and must survive: the whole
+            // point is that the rule reads what ran, not that writes are always refused.
+            ("I’ve set a nightly reminder at 10.", ["schedule.create"], 0),
+            ("Sending… ✅ Done: Email sent to Marcus", ["workspace.send_email"], 0),
+            // …and a read claim after a read is untouched, which is the rule this task kept.
+            ("I found Pricing 2026.pdf in your Documents folder.", ["filesystem.search"], 0),
         ]
         for (text, completed, expected) in table {
             let got = unsupported(text, completed: completed)

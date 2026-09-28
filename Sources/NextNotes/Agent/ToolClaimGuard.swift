@@ -31,6 +31,12 @@ enum ToolClaimGuard {
     struct Claim: Sendable, Equatable {
         let text: String
         let toolID: String?
+        /// P1-04: whether this is a claim that something **changed**, rather than that
+        /// something was read. A read is invisible to everyone else and a write is not, so
+        /// the two are not the same kind of claim: "I found your pricing sheet" after a
+        /// `filesystem.search` is true, and "✅ Done: Email sent to Marcus" after the same
+        /// search is a lie that the person acts on.
+        let isWrite: Bool
     }
 
     /// First-person completed actions, word-bounded on both sides so "bi ran" and
@@ -44,6 +50,43 @@ enum ToolClaimGuard {
         "i looked at your", "i looked through your", "i looked in your",
         "i listed", "i opened", "i read your",
     ]
+
+    /// Claims that something **changed** (P1-04).
+    ///
+    /// The list above is entirely read verbs, and the rule underneath it — a claim naming no
+    /// tool is backed by *any* completed call — was built for them. That is why a 4B model
+    /// could say "I've set a nightly reminder. It's now active" after `schedule.list`, and
+    /// "Sending… ✅ Done: Email sent to Marcus" after a `filesystem.search`: both are claims
+    /// with no tool named, both had a call in the turn, and a call that looked at a file
+    /// cannot send an email.
+    ///
+    /// Kept to first-person completed actions in the same word-bounded form as the read
+    /// list, for the same reason: "I set it out for you" is a claim, and the grammar stays
+    /// the single place this judgement is written down.
+    static let writeClaimPhrases: [String] = [
+        "i sent", "i've sent", "i have sent",
+        "i emailed", "i've emailed", "i have emailed",
+        "i messaged", "i texted", "i replied", "i forwarded", "i invited",
+        "i set", "i've set", "i have set", "i set up", "i scheduled", "i booked",
+        "i created", "i added", "i saved", "i filed", "i drafted",
+        "i deleted", "i moved", "i renamed", "i cancelled", "i canceled", "i paused",
+        "i started", "i installed", "i opened and clicked",
+    ]
+
+    /// The status lines a model writes instead of a sentence. "✅ Done: Email sent to Marcus"
+    /// and "Sending…" carry no first-person verb at all, so the phrase list cannot see them,
+    /// and they are the shape the model reached for when it was role-playing a progress feed
+    /// rather than reporting a result.
+    private static let writeClaimShapes: NSRegularExpression? = {
+        let patterns = [
+            // "✅ Done: Email sent to Marcus", "Done — saved the file".
+            #"(?m)^\W*(done|sent|emailed|saved|created|scheduled|booked|scheduled|deleted|added|filed|updated)\W*[:—–-]"#,
+            // "Sending…" / "Creating the draft…" — the in-progress line the model invented.
+            #"(?m)^\W*(sending|emailing|scheduling|creating|saving|deleting|booking|installing)\b[.!.…]*\s*$"#,
+        ]
+        return try? NSRegularExpression(
+            pattern: patterns.joined(separator: "|"), options: [.caseInsensitive])
+    }()
 
     /// The two claims whose object sits between the verb and the rest, so neither can be a
     /// phrase. Compiled once for the process: this runs on the path a person's turn waits on.
@@ -65,7 +108,7 @@ enum ToolClaimGuard {
     /// What a partial response could still grow into, for the speech gate. `claimPhrases`
     /// covers most of it by prefix; "i found" is here because the sentence it belongs to
     /// needs its second half before it is a claim.
-    private static let claimOpeners: [String] = claimPhrases + ["i found"]
+    private static let claimOpeners: [String] = claimPhrases + writeClaimPhrases + ["i found"]
 
     /// Every claim in a finished reply. Pure, and cheap: one lowercased pass and a substring
     /// scan per name, with the boundaries checked by hand rather than by a regex per name.
@@ -75,20 +118,30 @@ enum ToolClaimGuard {
     /// that is a bare word ("search", "find") is not a claim: those are words people use
     /// about their own work.
     static func claims(in reply: String, roster: Set<String>) -> [Claim] {
-        let lowered = reply.lowercased()
+        let lowered = normalised(reply)
         guard !lowered.isEmpty else { return [] }
         var found: [Claim] = []
         for name in roster.sorted() where name.contains(".") || name.contains("_") {
             if boundedOccurrence(of: name, in: lowered) != nil {
-                found.append(Claim(text: name, toolID: name))
+                // `isWrite` is left false for a named tool: the registry is main-actor and
+                // this runs on the speech path, and `unsupported` already resolves the id
+                // there — where it can ask what the tool actually does.
+                found.append(Claim(text: name, toolID: name, isWrite: false))
             }
         }
         for phrase in claimPhrases where boundedOccurrence(of: phrase, in: lowered) != nil {
-            found.append(Claim(text: phrase, toolID: nil))
+            found.append(Claim(text: phrase, toolID: nil, isWrite: false))
+        }
+        for phrase in writeClaimPhrases where boundedOccurrence(of: phrase, in: lowered) != nil {
+            found.append(Claim(text: phrase, toolID: nil, isWrite: true))
         }
         if let shapes = claimShapes,
            shapes.firstMatch(in: reply, range: NSRange(reply.startIndex..., in: reply)) != nil {
-            found.append(Claim(text: "i found … in your", toolID: nil))
+            found.append(Claim(text: "i found … in your", toolID: nil, isWrite: false))
+        }
+        if let shapes = writeClaimShapes,
+           shapes.firstMatch(in: reply, range: NSRange(reply.startIndex..., in: reply)) != nil {
+            found.append(Claim(text: "done: …", toolID: nil, isWrite: true))
         }
         return found
     }
@@ -102,12 +155,37 @@ enum ToolClaimGuard {
     static func unsupported(_ claims: [Claim], completed: [String]) -> [Claim] {
         guard !claims.isEmpty, !completed.isEmpty else { return claims }
         let ran = Set(completed)
+        // What this turn actually changed, as opposed to what it read. Only built when a
+        // write claim is in play, because it is a registry walk and this is the turn's path.
+        let ranWriteTools: Set<String>? = claims.contains(where: \.isWrite)
+            ? Set(completed.filter { AgentToolRegistry.shared.tool(named: $0)?.risk
+                .changesSomething == true })
+            : nil
         return claims.filter { claim in
-            guard let spelled = claim.toolID else { return false }
-            // A model may write the alias; a completed call is recorded under the canonical
-            // id, so the claim is resolved before it is judged.
-            let canonical = AgentToolRegistry.shared.tool(named: spelled)?.id ?? spelled
-            return !ran.contains(canonical)
+            if let spelled = claim.toolID {
+                // A model may write the alias; a completed call is recorded under the
+                // canonical id, so the claim is resolved before it is judged.
+                let canonical = AgentToolRegistry.shared.tool(named: spelled)?.id ?? spelled
+                return !ran.contains(canonical)
+            }
+            // A claim that names no tool is backed by any call **this turn ran** — which is
+            // the right rule for a read, because nothing in "I checked your calendar" says
+            // which call it means and a verb-to-tool table would refuse true sentences.
+            //
+            // It was the wrong rule for a write, and that is how a 4B model got to
+            // "✅ Done: Email sent to Marcus" after a `filesystem.search`: one call had run,
+            // so the claim counted as backed. P1-04 — a claim that something *changed* is
+            // backed only by a call that changed something. Reading a file cannot send an
+            // email, and a rule that says so is the whole difference between the two.
+            //
+            // Deliberately narrower than the rejected P1-14 leg, which classified the *class*
+            // of thing a reply talked about and measured as a net loss. This asks one
+            // question — did anything change — and the write verdict is what the risk classes
+            // already mean by `.send`.
+            if let ranWriteTools, claim.isWrite {
+                return ranWriteTools.isDisjoint(with: ran)
+            }
+            return false
         }
     }
 
@@ -117,9 +195,27 @@ enum ToolClaimGuard {
     /// Generous on purpose, like `AgentRefusalGuard.mayBeDenial`: holding costs a pause,
     /// and "I ran —" being heard costs the truth of the turn.
     static func mayBeClaim(_ partial: String) -> Bool {
-        let text = partial.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let text = normalised(partial).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return false }
         return claimOpeners.contains { $0.hasPrefix(text) || text.contains($0) }
+    }
+
+    /// Lowercased, with the typographic apostrophe folded to the ASCII one.
+    ///
+    /// Both phrase lists are written with `'`, and a reply does not agree: dictation and
+    /// Apple's own transcription return `’` ("I’ve set a nightly reminder"), and so does
+    /// every model that has been near a curly quote. Matching the raw lowercased string meant
+    /// **every contracted claim was invisible** — "I’ve searched your files" was not a claim,
+    /// and the read list has been half-dead for that reason since P1-11.
+    ///
+    /// Found by writing a test case with a real apostrophe in it rather than a typed one: the
+    /// P1-04 case for the reminder claim read `0 unsupported, expected 1` against a sentence
+    /// that plainly claims one.
+    ///
+    /// Only the matched copy is folded. The reply itself is stored, shown and spoken as it
+    /// was written; this is the grammar's problem, not the person's text.
+    private static func normalised(_ text: String) -> String {
+        text.lowercased().replacingOccurrences(of: "\u{2019}", with: "'")
     }
 
     /// Assistant text with every sentence carrying a claim removed. This is the copy a model

@@ -52,6 +52,20 @@ enum AgentRisk: String, Codable, Sendable, CaseIterable, Comparable {
         }
     }
 
+    /// Whether running this changes something outside the app.
+    ///
+    /// Not the same question as `mayAutoRun`, and deliberately named apart from it: that one
+    /// is a permission policy, this one is a fact about the world, and a policy change must not
+    /// silently move which replies count as claims of an action. The two agree today, and
+    /// `ToolClaimGuard` wants the fact — a reply that says it *sent* something is claiming an
+    /// effect, and a `filesystem.search` does not have one.
+    var changesSomething: Bool {
+        switch self {
+        case .observe, .read: false
+        case .modify, .write, .send, .purchase, .destructive, .privileged: true
+        }
+    }
+
     /// Whether this class may ever run without a person pressing a button.
     var mayAutoRun: Bool {
         switch self {
