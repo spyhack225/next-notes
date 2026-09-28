@@ -43,6 +43,7 @@ enum MemoryReviewSelfTest {
             failures += await backfillFailures(root: root.appendingPathComponent("backfill"))
             failures += sensitiveFailures()
             failures += await cloudGateFailures(root: root.appendingPathComponent("cloud-gate"))
+            failures += p130Failures(root: root.appendingPathComponent("p1-30"))
         }
 
         for failure in failures { print("MEMORY_REVIEW_WRONG: \(failure)") }
@@ -507,17 +508,22 @@ enum MemoryReviewSelfTest {
                 && scheduler.pending.first?.turns.filter { $0.role == "user" }.count == 10)
         // A meeting line does not count as a turn, and a later capture replaces the earlier one.
         session.recordUser("A line from the meeting.", source: .meeting)
+        let beforeNoticesClear = notifier.notices.count
         session.forgetAllConversations()
-        check(&failures, "Clear conversation did not replace the queued review with the whole session",
-              scheduler.pending.count == 1 && scheduler.pending.first?.reason == .cleared
-                && scheduler.pending.first?.turns.contains { $0.text.contains("A line from the meeting") } == false)
-        let beforeNotices = notifier.notices.count
-        if case .reviewed(let count) = await scheduler.runOnce() {
-            check(&failures, "a session with nothing to remember saved something", count == 0)
-        } else {
-            failures.append("the cleared session was not reviewed")
-        }
-        check(&failures, "a review that saved nothing posted a notice", notifier.notices.count == beforeNotices)
+        // P1-30 changed this. It used to assert that the clear **replaced** the queued
+        // turn-interval job with a `.cleared` one holding the whole session — which meant
+        // pressing "Forget all conversations" erased the transcript and then handed its texts,
+        // other people's side talk included, straight to the review. Target 3 is that a
+        // deleted conversation is not reviewed at all, so the queue is now empty: the clear
+        // takes the work that was waiting with it.
+        check(&failures, "a deleted conversation left a review queued",
+              scheduler.pending.isEmpty)
+        let callsBeforeClear = scripted.callCount
+        _ = await scheduler.runOnce()
+        check(&failures, "a review ran after the delete",
+              scripted.callCount == callsBeforeClear)
+        check(&failures, "a review ran after the delete, and it noticed",
+              notifier.notices.count == beforeNoticesClear)
         check(&failures, "a reviewed session is queued again after the watermark",
               MemoryReviewJob(AgentSession.ReviewRequest(sessionID: UUID(), reason: .launch, messages: [
                   AgentSession.Message(role: "user", text: "Old words.", at: clock.now().addingTimeInterval(-3_600))
@@ -706,8 +712,15 @@ enum MemoryReviewSelfTest {
         let next = UUID()
         let offer = state.takeOffer(for: next, now: monday + 3 * 86_400)
         print("MEMORY_REVIEW_SUGGESTION \(offer ?? "none")")
+        // P1-30 changed what an offer can say. It used to check for "what", because the offer
+        // quoted the request as it was said — "You've asked “what's on my calendar”" — and
+        // "what" was in that sentence. The request log no longer keeps the words (side talk
+        // from a meeting reached this store), so the offer is built from the key, and for
+        // "what's on my calendar today?" the key is just "calendar": "what" and "today" are
+        // both in `filler`. The offer still names the request, still says how many days and
+        // what hour — which is the part a person decides on.
         check(&failures, "suggestions: not offered in the next session",
-              offer?.contains("what") == true && offer?.contains("3 different days") == true
+              offer?.contains("calendar") == true && offer?.contains("3 different days") == true
                 && offer?.contains("around 9:00") == true)
         check(&failures, "suggestions: offered twice", state.takeOffer(for: UUID(), now: monday + 4 * 86_400) == nil)
         check(&failures, "suggestions: a suggestion did not persist as offered",
@@ -719,8 +732,9 @@ enum MemoryReviewSelfTest {
         let session = AgentSession(fileURL: nil, now: clock.now, idleMinutes: { 30 })
         let offering = MemoryReviewStateStore(directory: root.appendingPathComponent("offer"))
         let found = UUID()
+        // P1-30: no `request` — a suggestion carries its key, which is what `offer()` reads.
         offering.recordReviewForTesting(RoutineSuggestion(
-            id: UUID(), request: "what's on my calendar", key: "calendar",
+            id: UUID(), key: "calendar",
             occurrences: [clock.now(), clock.now() + 86_400, clock.now() + 172_800],
             detectedInSession: found, createdAt: clock.now()))
         session.routineOfferProvider = { offering.takeOffer(for: $0, now: clock.now()) }
@@ -1092,6 +1106,130 @@ extension MemoryReviewSelfTest {
     }
 
     // MARK: - Sensitive categories
+
+    /// P1-30: the review's own file holds no utterance text.
+    ///
+    /// The first case is the whole task, and it is checked the way AGENTS.md insists — by
+    /// reading the **bytes actually written** and searching for a phrase that was said, rather
+    /// than by asserting the struct has no field. A struct can have no `text` and a writer can
+    /// still put the sentence in `detail`.
+    static func p130Failures(root: URL) -> [String] {
+        var failures: [String] = []
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let marker = "zqxjvwhistlefathom"
+        let state = MemoryReviewStateStore(directory: root)
+        let sessionID = UUID()
+        let at = Date(timeIntervalSince1970: 1_700_000_000)
+        let rows = [
+            AgentSession.Message(role: "user", text: "what is on my calendar this \(marker)",
+                                 at: at, source: "voice", sessionID: sessionID),
+            AgentSession.Message(role: "assistant", text: "Two meetings.", at: at + 1, sessionID: sessionID),
+        ]
+        let job = MemoryReviewJob(AgentSession.ReviewRequest(sessionID: sessionID, reason: .idle, messages: rows),
+                                  reviewedThrough: state.reviewedThrough)
+        guard let built = job else {
+            return ["p1-30: the fixture was not a review job"]
+        }
+        _ = state.recordReview(built, now: at + 120)
+        let written = (try? String(contentsOf: state.fileURL, encoding: .utf8)) ?? ""
+        check(&failures, "p1-30: the review wrote no request rows at all", state.requests.isEmpty == false)
+        check(&failures, "p1-30: the spoken phrase reached the review's file",
+              written.contains(marker))
+        check(&failures, "p1-30: the key is missing, so nothing was recognised",
+              !state.requests.isEmpty && !state.requests[0].key.isEmpty)
+
+        // A `.cleared` session must produce no request rows. Driven through the real
+        // `AgentSession.endSession` path, because the rule is one branch of that method and a
+        // test that called `recordReview` directly would not see it at all.
+        let clearedState = MemoryReviewStateStore(directory: root.appendingPathComponent("cleared"))
+        let clearedSession = AgentSession(fileURL: nil, now: { at }, idleMinutes: { 30 })
+        var reviewed: [AgentSession.ReviewRequest] = []
+        clearedSession.onReviewRequest = { reviewed.append($0) }
+        clearedSession.recordUser("something \(marker) said before I cleared it", source: .voice)
+        clearedSession.recordAssistant("Sure.", source: .text)
+        clearedSession.forgetAllConversations()
+        // The clear is still **told** — that is the only signal that can reach the
+        // scheduler's queue, and `enqueue` is where the purge lives. What must not happen is
+        // a review: one notification, carrying `.cleared`, and nothing queued.
+        check(&failures, "p1-30: the clear was not announced to the review",
+              reviewed.count == 1 && reviewed.first?.reason == .cleared)
+        check(&failures, "p1-30: a deleted conversation's words reached the review's file",
+              ((try? String(contentsOf: clearedState.fileURL, encoding: .utf8)) ?? "")
+                .contains(marker) == false)
+
+        // A version-1 file — the shape on disk today, with `text` on every request row —
+        // loads, and the next write has none of it. Written by hand as raw JSON so the
+        // fixture cannot drift into the new shape by being built from the new types.
+        let legacyDir = root.appendingPathComponent("legacy")
+        try? FileManager.default.createDirectory(at: legacyDir, withIntermediateDirectories: true)
+        let legacyFile = legacyDir.appendingPathComponent(MemoryReviewStateStore.fileName)
+        let legacy = """
+            {"version":1,"reviewedThrough":null,"memoryOff":false,
+             "requests":[{"key":"calendar my today what","text":"what is on my calendar \(marker)",
+                           "at":\(at.timeIntervalSince1970),"sessionID":"\(sessionID.uuidString)"}],
+             "suggestions":[],"runs":[],"harvested":[],"backfill":null}
+            """
+        try? legacy.write(to: legacyFile, atomically: true, encoding: .utf8)
+        let migrated = MemoryReviewStateStore(directory: legacyDir)
+        check(&failures, "p1-30: a version-1 file did not load its request rows",
+              migrated.requests.count == 1)
+        check(&failures, "p1-30: the migration did not run on load",
+              ((try? String(contentsOf: legacyFile, encoding: .utf8)) ?? "").contains(marker) == false)
+
+        // 30 days. A row at 31 days goes; one at 29 stays — the boundary is the point, and a
+        // test that only used an obviously-old row would pass a rule of "a month".
+        //
+        // Both epochs are **reference** dates, because that is what `MemoryReviewStateStore`
+        // encodes (`timeIntervalSinceReferenceDate`, 2001-01-01). A first draft used
+        // `timeIntervalSince1970` and the rows landed 31 years in the future, where no age
+        // rule can reach them — and the 31-day row passed, so the test was green for a store
+        // that had pruned nothing.
+        let pruneDir = root.appendingPathComponent("prune")
+        try? FileManager.default.createDirectory(at: pruneDir, withIntermediateDirectories: true)
+        let pruneFile = pruneDir.appendingPathComponent(MemoryReviewStateStore.fileName)
+        let now = Date()
+        let recent = now.addingTimeInterval(-29 * 86_400).timeIntervalSinceReferenceDate
+        let ancient = now.addingTimeInterval(-31 * 86_400).timeIntervalSinceReferenceDate
+        let seeded = """
+            {"version":\(MemoryReviewStateStore.currentVersion),
+             "requests":[{"key":"old routine words","at":\(ancient),"sessionID":null},
+                         {"key":"new routine words","at":\(recent),"sessionID":null}],
+             "suggestions":[],"runs":[],"harvested":[],"backfill":null}
+            """
+        try? seeded.write(to: pruneFile, atomically: true, encoding: .utf8)
+        let pruned = MemoryReviewStateStore(directory: pruneDir)
+        check(&failures, "p1-30: a 31-day-old request row was kept",
+              pruned.requests.allSatisfy { $0.key != "old routine words" })
+        check(&failures, "p1-30: a 29-day-old request row was pruned",
+              pruned.requests.contains { $0.key == "new routine words" })
+
+        // A resolved suggestion's rows go with it. It has to be a real row, not just a
+        // suggestion: `prune` drops occurrences, and with none it has nothing to do — which
+        // is what the first version of this case asserted, wrongly, as a pass.
+        let resolvedDir = root.appendingPathComponent("resolved")
+        try? FileManager.default.createDirectory(at: resolvedDir, withIntermediateDirectories: true)
+        let resolvedFile = resolvedDir.appendingPathComponent(MemoryReviewStateStore.fileName)
+        let fresh = Date().timeIntervalSinceReferenceDate
+        let withResolved = """
+            {"version":\(MemoryReviewStateStore.currentVersion),
+             "requests":[{"key":"settled words","at":\(fresh),"sessionID":null}],
+             "suggestions":[{"id":"\(UUID().uuidString)","key":"settled words","occurrences":[\(fresh)],
+                             "detectedInSession":null,"createdAt":\(fresh),"resolvedAt":\(fresh)}],
+             "runs":[],"harvested":[],"backfill":null}
+            """
+        try? withResolved.write(to: resolvedFile, atomically: true, encoding: .utf8)
+        // The row is already gone by the time this reads: `load()` prunes, so seeding a
+        // resolved suggestion's occurrence and then loading the store **is** the behaviour.
+        // A first version of this case asserted the row was still there and that a second
+        // `prune` call did the work — which would have passed a store that pruned nothing on
+        // load, because it was doing the pruning itself.
+        let resolvedState = MemoryReviewStateStore(directory: resolvedDir)
+        check(&failures, "p1-30: a resolved suggestion's row survived the load",
+              resolvedState.requests.isEmpty)
+        check(&failures, "p1-30: the resolved suggestion itself was dropped",
+              resolvedState.suggestions.count == 1)
+        return failures
+    }
 
     static func sensitiveFailures() -> [String] {
         var failures: [String] = []

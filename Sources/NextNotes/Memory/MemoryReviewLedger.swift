@@ -11,10 +11,37 @@ import Foundation
 ///
 /// The Memories sheet reads the newest row as one line: *Last looked: today 17:40 — saved 2*.
 struct MemoryReviewRun: Codable, Identifiable, Equatable, Sendable {
-    /// One proposal the review dropped, and why, in the words the list shows.
+    /// One group of proposals the review dropped, and why, in the words the list shows.
+    ///
+    /// P1-30: this used to be a list of decisions, each keeping the **text of the proposed
+    /// fact** — and a refused fact is often one the review took from somebody else in the
+    /// room, which is the case the whole task is about. It also grew without bound, because
+    /// 40 refusals that all say the same thing is one line of information.
+    ///
+    /// So a decision is now a reason and a count, collapsed by reason. The *what* is not lost
+    /// to the person: the memory store holds every fact that was saved, and the refusal
+    /// reasons are the part that is only visible here.
     struct Decision: Codable, Equatable, Sendable {
-        let text: String
         let reason: String
+        let count: Int
+
+        init(reason: String, count: Int) {
+            self.reason = reason
+            self.count = count
+        }
+
+        /// A file written before P1-30 has `text` on every decision and no `count`. It reads
+        /// as one decision for its reason, which is what it was: the count is the collapse,
+        /// and there was nothing to collapse.
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            reason = try container.decode(String.self, forKey: .reason)
+            count = try container.decodeIfPresent(Int.self, forKey: .count) ?? 1
+        }
+
+        var line: String {
+            count > 1 ? "\(reason) (\(count)×)" : reason
+        }
     }
 
     var id = UUID()
@@ -26,8 +53,12 @@ struct MemoryReviewRun: Codable, Identifiable, Equatable, Sendable {
     /// "Local model on this Mac", "Apple Intelligence", "OpenRouter", or why it waited.
     var model: String
     var proposed = 0
-    /// The facts this pass saved.
-    var saved: [String] = []
+    /// The **ids** of the facts this pass saved, not their text (P1-30).
+    ///
+    /// The text was the fact itself, written twice — once in the memory store where it
+    /// belongs, and once here where it need not be. The Memories sheet reads the count off
+    /// this and the fact out of the store, and nothing else needed the words.
+    var saved: [UUID] = []
     /// Proposals the code-level skip rules dropped before the store saw them.
     var skipped: [Decision] = []
     /// Calls the guards, the store or the allowlist refused.
@@ -64,10 +95,16 @@ struct MemoryReviewRun: Codable, Identifiable, Equatable, Sendable {
     }
 
     /// Everything one row decided, for the disclosure under the line.
+    ///
+    /// P1-30: counts and reasons. This used to read "Saved: <the fact>" and "Skipped “<the
+    /// proposed fact>”", which is a genuinely useful disclosure and the cost of this task:
+    /// the person can no longer read here exactly what the review declined to remember. What
+    /// they keep is why, how many, and the facts themselves in the Memories list — which is
+    /// where a fact that *was* saved has always lived.
     var details: [String] {
-        saved.map { "Saved: \($0)" }
-            + skipped.map { "Skipped “\($0.text)” — \($0.reason)" }
-            + refused.map { "Blocked “\($0.text)” — \($0.reason)" }
+        (saved.isEmpty ? [] : ["Saved \(saved.count) fact(s)."])
+            + skipped.map { "Skipped — \($0.line)" }
+            + refused.map { "Blocked — \($0.line)" }
     }
 
     /// The row for a pass that ran, built from its outcome.
@@ -77,9 +114,9 @@ struct MemoryReviewRun: Codable, Identifiable, Equatable, Sendable {
         MemoryReviewRun(
             at: now, trigger: job.trigger.rawValue,
             subject: job.label.isEmpty ? "your \(job.trigger.subject)" : "your \(job.trigger.subject) \(job.label)",
-            model: model, proposed: outcome.proposed, saved: outcome.saved.map(\.text),
-            skipped: outcome.skipped.map { Decision(text: shortened($0.call), reason: $0.reason) },
-            refused: outcome.refused.map { Decision(text: shortened($0.call), reason: $0.reason) },
+            model: model, proposed: outcome.proposed, saved: outcome.saved.map(\.id),
+            skipped: Self.decisions(from: outcome.skipped),
+            refused: Self.decisions(from: outcome.refused),
             modelCalled: outcome.modelCalled)
     }
 
@@ -93,9 +130,21 @@ struct MemoryReviewRun: Codable, Identifiable, Equatable, Sendable {
         return run
     }
 
-    /// `memory.remember: The user …` → `The user …`, clipped for a settings row.
-    private static func shortened(_ call: String) -> String {
-        let text = call.contains(": ") ? String(call.split(separator: ": ", maxSplits: 1).last ?? "") : call
-        return text.count > 120 ? String(text.prefix(120)) + "…" : text
+    /// One `Decision` per distinct reason, carrying how many proposals shared it.
+    ///
+    /// The count is sorted highest-first so the disclosure leads with what happened most, and
+    /// the order of the model's own calls is not preserved — it was an accident of ordering,
+    /// and nothing read it as a sequence.
+    private static func decisions(
+        from dropped: [MemoryReviewOutcome.Refusal]
+    ) -> [Decision] {
+        var counts: [String: Int] = [:]
+        for item in dropped { counts[item.reason, default: 0] += 1 }
+        // Split from the sort so the type checker does not have to reason about a chained
+        // `sorted` + `map` over a dictionary here; it times out on this expression otherwise.
+        let ordered = counts.sorted { lhs, rhs -> Bool in
+            lhs.value == rhs.value ? lhs.key < rhs.key : lhs.value > rhs.value
+        }
+        return ordered.map { Decision(reason: $0.key, count: $0.value) }
     }
 }

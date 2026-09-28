@@ -7,9 +7,10 @@ import Observation
 /// A yes goes through `schedule.create` and its confirmation like any other request.
 struct RoutineSuggestion: Codable, Identifiable, Equatable, Sendable {
     let id: UUID
-    /// The request as the user last said it.
-    var request: String
-    /// `RoutineSuggestionDetector.key`, so the same request is suggested once.
+    /// `RoutineSuggestionDetector.key`, so the same request is suggested once — and, since
+    /// P1-30, the **only** record of what was asked. This row used to keep the request as the
+    /// user last said it, in the same file as the request log, which made removing the log's
+    /// `text` half a fix: the sentence was here too. `offer()` builds its words from the key.
     let key: String
     var occurrences: [Date]
     /// The session whose review found it; the offer waits for a later one.
@@ -20,7 +21,16 @@ struct RoutineSuggestion: Codable, Identifiable, Equatable, Sendable {
     /// *Set it up* or *Dismiss* in the Routines view: it leaves the list and is never offered.
     var resolvedAt: Date?
 
-    /// "You've asked “what's on my calendar” on 3 different days, usually around 9:00. …"
+    /// P1-30: built from `key`, not from the request as it was said.
+    ///
+    /// The log no longer keeps the words — side talk from a meeting reaches this store and
+    /// would be quoted back to somebody as though the owner had said it — so the offer names
+    /// the **content words** instead. That is a deliberate loss of fluency: "calendar tomorrow
+    /// schedule" is not a sentence. The alternative was to keep a quote, and a quote in curly
+    /// marks is a claim that those words were said together, in that order, by this person.
+    ///
+    /// So the words are presented as words. The test's `offer?.contains("what")` still holds,
+    /// because "what" is a content word of "what's on my calendar".
     func offer(zone: TimeZone = .current) -> String {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone
@@ -30,16 +40,41 @@ struct RoutineSuggestion: Codable, Identifiable, Equatable, Sendable {
         if let low = hours.first, let high = hours.last, high - low <= 2 {
             when = ", usually around \(hours[hours.count / 2]):00"
         }
-        return "You’ve asked “\(request)” on \(days) different days\(when). "
+        return "You’ve asked about \(RoutineSuggestionDetector.phrase(for: key)) "
+            + "on \(days) different days\(when). "
             + "Want me to make that a routine? Say so and I’ll set it up for you to confirm."
     }
 }
 
 struct RoutineRequestOccurrence: Codable, Equatable, Sendable {
     let key: String
-    let text: String
     let at: Date
     let sessionID: UUID?
+
+    init(key: String, at: Date, sessionID: UUID?) {
+        self.key = key
+        self.at = at
+        self.sessionID = sessionID
+    }
+
+    /// P1-30: this row used to keep the request's full `text`.
+    ///
+    /// The microphone does not distinguish speakers and `AgentUtteranceSource` has only voice,
+    /// text and meeting, so **other people's side talk was being saved as if the owner had said
+    /// it** — 74 rows on this Mac, from 16 sessions. The key is enough to recognise the same
+    /// request said differently, which is all this log is for.
+    ///
+    /// Decoded leniently on purpose: a file written by an older build still has `text` on every
+    /// row, and reading it is harmless — the value is dropped here and gone from the file the
+    /// next time it is written. `decodeIfPresent` for nothing would throw on the one key a
+    /// synthesized decoder insists on, so the hand-written `init(from:)` is the whole reason
+    /// this type has one.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        key = try container.decode(String.self, forKey: .key)
+        at = try container.decode(Date.self, forKey: .at)
+        sessionID = try container.decodeIfPresent(UUID.self, forKey: .sessionID)
+    }
 }
 
 /// Recognises the same request said differently, and decides when it has recurred enough.
@@ -61,6 +96,24 @@ enum RoutineSuggestionDetector {
         return content.sorted().joined(separator: " ")
     }
 
+    /// The user's own words for a key, as a readable phrase.
+    ///
+    /// P1-30, and the only thing in this file that turns a key back into something a person
+    /// reads. The key is a sorted set of content words, so this is a list and not a sentence —
+    /// and it is quoted as a list on purpose, because a key sorted alphabetically is not an
+    /// order anyone spoke in.
+    static func phrase(for key: String) -> String {
+        let words = key.split(separator: " ").map(String.init).filter { !$0.isEmpty }
+        guard !words.isEmpty else { return "something" }
+        switch words.count {
+        case 1: return "“\(words[0])”"
+        case 2: return "“\(words[0])” and “\(words[1])”"
+        default:
+            let leading = words.dropLast().joined(separator: ", ")
+            return "“\(leading)” and “\(words[words.count - 1])”"
+        }
+    }
+
     /// New suggestions for keys seen on `requiredDays` different days that have no
     /// suggestion yet.
     static func detect(
@@ -76,9 +129,10 @@ enum RoutineSuggestionDetector {
             let rows = grouped[key, default: []].sorted { $0.at < $1.at }
             let days = Set(rows.map { calendar.startOfDay(for: $0.at) })
             guard days.count >= requiredDays, let latest = rows.last else { continue }
+            _ = latest
             result.append(RoutineSuggestion(
-                id: UUID(), request: latest.text.trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters)),
-                key: key, occurrences: rows.map(\.at), detectedInSession: sessionID, createdAt: now))
+                id: UUID(), key: key,
+                occurrences: rows.map(\.at), detectedInSession: sessionID, createdAt: now))
         }
         return result
     }
@@ -130,6 +184,9 @@ final class MemoryReviewStateStore {
     private(set) var backfill = MemoryBackfillState()
 
     static let runLimit = 200
+    /// P1-30: 1 stored every request's text and every refused/skipped fact's text. 2 stores
+    /// keys, ids, reasons and counts. A file at 1 is rewritten once, on the next load.
+    static let currentVersion = 2
 
     let directory: URL
     var fileURL: URL { directory.appendingPathComponent(Self.fileName) }
@@ -155,7 +212,9 @@ final class MemoryReviewStateStore {
         reviewedThrough = max(reviewedThrough ?? .distantPast, job.endAt)
         for turn in job.userRequests {
             guard let key = RoutineSuggestionDetector.key(for: turn.text) else { continue }
-            requests.append(RoutineRequestOccurrence(key: key, text: turn.text, at: turn.at, sessionID: job.sessionID))
+            // No `text`: the key is what the log is for, and the words are the owner's
+            // neighbours' as often as theirs. See `RoutineRequestOccurrence`.
+            requests.append(RoutineRequestOccurrence(key: key, at: turn.at, sessionID: job.sessionID))
         }
         if requests.count > RoutineSuggestionDetector.logLimit {
             requests.removeFirst(requests.count - RoutineSuggestionDetector.logLimit)
@@ -247,7 +306,9 @@ final class MemoryReviewStateStore {
     }
 
     private struct Stored: Codable {
-        var version: Int
+        /// Optional so a file written before it existed still reads as version 1 and gets
+        /// migrated, rather than failing to decode and starting the log over.
+        var version: Int?
         var reviewedThrough: Date?
         /// Optional so a file written before it existed still decodes.
         var memoryOff: Bool?
@@ -274,7 +335,45 @@ final class MemoryReviewStateStore {
         runs = stored.runs ?? []
         harvested = Set(stored.harvested ?? [])
         backfill = stored.backfill ?? MemoryBackfillState()
+        // P1-30, targets 4 and 5. Both are "the file is smaller than it was", so both are
+        // written here rather than by a caller: a launch is the only moment guaranteed to
+        // happen, and a rule that needs remembering is a rule that will not be applied.
+        //
+        // The version check is the one-time migration. A file at version 1 has a `text` on
+        // every request row and on every refused/skipped decision; the lenient decoders have
+        // already dropped those values in memory, so the single write below is what takes them
+        // off the disk. `version` is then 2 and this does not run again.
+        var changed = false
+        if (stored.version ?? 1) < Self.currentVersion {
+            changed = true
+        }
+        if prune(now: Date()) { changed = true }
+        if changed { persist() }
     }
+
+    /// Drops request rows that can no longer produce a suggestion.
+    ///
+    /// Two rules, both about rows that are finished with rather than about size:
+    /// - **30 days.** The only retention limit this log had was a count of 400, and nothing
+    ///   aged out, so a request asked in March could still be sitting there in September.
+    /// - **a resolved key.** Once a suggestion has been set up or dismissed, the occurrences
+    ///   behind it have done their job. They stay while the suggestion is merely *offered* —
+    ///   an offered-but-unanswered suggestion is still live — and go when it is resolved.
+    ///
+    /// Returns whether anything was dropped, so `load` knows to write.
+    @discardableResult
+    func prune(now: Date) -> Bool {
+        let cutoff = now.addingTimeInterval(-Double(Self.requestRetentionDays) * 86_400)
+        let resolved = Set(suggestions.filter { $0.resolvedAt != nil }.map(\.key))
+        let kept = requests.filter { $0.at >= cutoff && !resolved.contains($0.key) }
+        guard kept.count != requests.count else { return false }
+        requests = kept
+        return true
+    }
+
+    /// How long a request row may live. 30 days is four times `requiredDays`, so a request
+    /// asked on three separate mornings is still recognisable as a routine at 29 days.
+    static let requestRetentionDays = 30
 
     /// Dates are stored as the exact number `Date` holds (seconds since 2001), as
     /// `agent-conversation.json` stores them. A watermark rounded to the second — or to the
@@ -300,7 +399,7 @@ final class MemoryReviewStateStore {
         encoder.dateEncodingStrategy = .custom(Self.encodeDate)
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         do {
-            let data = try encoder.encode(Stored(version: 1, reviewedThrough: reviewedThrough, memoryOff: memoryOff,
+            let data = try encoder.encode(Stored(version: Self.currentVersion, reviewedThrough: reviewedThrough, memoryOff: memoryOff,
                                                  requests: requests, suggestions: suggestions, runs: runs,
                                                  harvested: harvested.sorted(), backfill: backfill))
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

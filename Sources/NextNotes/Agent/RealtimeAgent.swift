@@ -1076,11 +1076,22 @@ final class AgentSession {
             turnID: RealtimeAgent.shared.currentTurnID, conversationID: sessionID)
         if !session.isEmpty {
             let request = ReviewRequest(sessionID: sessionID, reason: reason, messages: session)
+            // P1-30: a *deleted* conversation is not reviewed either. P1-26 stopped the
+            // indexing half of this and left the review half running, so pressing "Forget all
+            // conversations" erased the transcript and then wrote its texts — including other
+            // people's side talk — straight into `agent-memory-review.json`. The delete has to
+            // mean the delete: the one action a person takes precisely to get rid of something
+            // must not be the one action that preserves a copy of it.
+            // P1-30: the review is told about the clear as well, because
+            // `MemoryReviewScheduler.enqueue` is where a deleted conversation is purged from
+            // the queue and its watermark moved past — and this is the only signal that
+            // reaches that queue. The scheduler does not review it; that is the whole point,
+            // and the rule lives in one writer rather than in a branch here that another
+            // caller could route around.
             onReviewRequest?(request)
-            // Only a *deleted* conversation is not indexed. "New conversation" is an ordinary
-            // boundary and is treated as one, which is the whole of P1-26: the previous code
-            // deleted the index because the only boundary a person could cause was also the only
-            // one that erased history.
+            // "New conversation" is an ordinary boundary and is treated as one, which is
+            // the whole of P1-26: the previous code deleted the index because the only
+            // boundary a person could cause was also the only one that erased history.
             if reason != .cleared { onSessionEnded?(request) }
         }
         sessionID = UUID()

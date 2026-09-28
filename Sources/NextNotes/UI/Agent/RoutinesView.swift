@@ -82,8 +82,17 @@ struct RoutinesView: View {
                         Button("Set it up") {
                             review.resolveSuggestion(id: suggestion.id)
                             NavigationState.shared.showConversation()
-                            let request = suggestion.request
-                            Task { await RealtimeAgent.shared.handleLive("Set this up: \(request)", source: .text) }
+                            // P1-30: the content words rather than the sentence as it was
+                            // said, which this row no longer keeps. The person pressed a
+                            // button about something they asked for three times running, and
+                            // the words are what the routine is about — but they are not a
+                            // transcription, and pretending otherwise here would reintroduce
+                            // the leak the ledger just stopped keeping.
+                            Task {
+                                await RealtimeAgent.shared.handleLive(
+                                    "Set this up as a routine about \(suggestion.key)",
+                                    source: .text)
+                            }
                         }
                         .buttonStyle(.borderedProminent)
                         Button("Dismiss") { review.resolveSuggestion(id: suggestion.id) }

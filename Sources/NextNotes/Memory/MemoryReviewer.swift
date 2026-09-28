@@ -971,6 +971,25 @@ final class MemoryReviewScheduler {
     /// A newer capture of the same session replaces the older one: rows only grow, and both
     /// are cut at the same watermark.
     func enqueue(_ request: AgentSession.ReviewRequest) {
+        // P1-30: a deleted conversation is **purged, not reviewed**.
+        //
+        // The session still tells us a clear happened — that is the only signal that can
+        // reach this queue — and this is the one place that acts on it, so the rule does not
+        // need a second hook and cannot be missed on a path that forgets one. Two things
+        // happen and nothing else: any job already waiting for this conversation goes, and
+        // the watermark moves past what was deleted so no backfill reads it back later.
+        //
+        // Before this, pressing "Forget all conversations" erased the transcript and then
+        // handed its texts — other people's side talk included — to the review, which wrote
+        // them into `agent-memory-review.json`. The one action a person takes precisely to
+        // get rid of something must not be the one action that preserves a copy of it.
+        if request.reason == .cleared {
+            pending.removeAll { $0.sessionID == request.sessionID }
+            if let last = request.messages.last?.at {
+                state.markReviewed(through: max(last, now()))
+            }
+            return
+        }
         syncMemorySetting()
         guard environment.isMemoryEnabled else {
             // Memory off: the session is passed over for good, not held for later.
