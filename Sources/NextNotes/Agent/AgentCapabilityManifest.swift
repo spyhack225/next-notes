@@ -262,8 +262,9 @@ struct AgentCapabilityManifest: Sendable, Equatable {
         if selectedIntents.contains(.reminders) {
             lines.append("""
                 Reminders: call schedule.list first and update a match rather than duplicate it.
-                Restate when and what in one sentence and wait for the user's yes before
-                schedule.create. Refuse repeats the fields cannot express.
+                Restate when and what in one sentence, then call schedule.create — the card it
+                raises is the yes, not a question in words. Refuse repeats the fields cannot
+                express.
                 A routine (kind routine) runs tools later with nobody present: restate when, what
                 and the tool ids it will use, and say that anything that writes or sends waits for
                 approval. Its text must be standalone instructions. It is tested once on creation.
