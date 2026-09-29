@@ -193,6 +193,33 @@ enum PersonaSelfTest {
         // directory is removed only once the isolation check proved it is the per-process
         // temporary one: the line this replaced deleted whatever `PersonaStore.shared`
         // pointed at, which under a broken check is the person's own persona folder.
+        // P1-04: the persona text must not instruct a form. The paragraph that did —
+        // "Add below: the name you want the Agent to use, what it should call you" — is
+        // onboarding copy inside the model's instructions, and the model filled the form in
+        // and read it back as its answer on two different models across all 30 eval cases.
+        // Pinned on the *text* so it cannot come back quietly, and on the guard so the guard
+        // is known to fire on the shape that actually came back.
+        let personaLower = PersonaStore.builtInBaseText.lowercased()
+        check("the persona text still tells the model to produce a card",
+              !personaLower.contains("add below")
+                  && !personaLower.contains("what it should call you")
+                  && !personaLower.contains("how it should sound"))
+        for (reply, shouldFire) in [
+            ("Agent Name: Friend\nWhat it should call you: Serge", true),
+            ("How it should sound: warm and personal", true),
+            // No card label, so the guard stays quiet. This is the Apple run's "I'm Will,
+            // your friendly helper", which is the same *smell* and a different defect: a
+            // model paraphrasing the persona rather than reading a blank. Watching for one
+            // would make this guard fire on honest sentences.
+            ("I am your friend on this Mac.", false),
+            ("You have a standup at 9:30 and a budget review at 2.", false),
+            ("Your name is not important here; the file is.", false),
+            ("I found Pricing 2026.pdf in your Documents folder.", false),
+        ] {
+            check("recital guard on \(String(reply.prefix(28))) is \(shouldFire)",
+                  PersonaStore.isCardRecital(reply) == shouldFire)
+        }
+
         failures += PersonaCareEval.failures()
         if sharedIsolated {
             try? FileManager.default.removeItem(at: shared.fileURL.deletingLastPathComponent())

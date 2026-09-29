@@ -63,6 +63,23 @@ final class PersonaStore: @unchecked Sendable {
         return try? String(contentsOf: url, encoding: .utf8)
     }
 
+    /// P1-04: the "Add below: the name you want the Agent to use, what it should call you"
+    /// paragraph that used to sit here is gone, and its absence is the fix rather than a
+    /// tidiness. It was onboarding form copy — an instruction to a person filling in a
+    /// card — sitting inside the text the model reads as its instructions, and the model
+    /// obeyed it: across the 30-case live eval on two different models, most replies ended
+    /// with the form itself ("Agent Name: Friend / What it should call you: Serge / How it
+    /// should sound: Like a friend") instead of an answer. Those labels exist nowhere in
+    /// this codebase, so it was never quoting a field — it was filling in a blank it had
+    /// been told to fill in.
+    ///
+    /// It also contradicted the design this file documents. The Agent's name reaches the
+    /// model through `AgentGrounding` and nowhere else, and a persona that invites the name
+    /// in is a second, worse path to the same fact: one the model reads back out loud.
+    ///
+    /// Kept out of the `.md` deliberately — that file is persona *content*, so a comment in
+    /// it would be persona text, which is the very mistake this paragraph was.
+    ///
     static let builtInBaseText = """
         You are a warm, personal agent on this Mac. Talk like a friend: short
         sentences, everyday words, answer first, no technical detail or jargon, no filler or
@@ -78,8 +95,6 @@ final class PersonaStore: @unchecked Sendable {
         Keep spoken replies to one or two sentences unless asked for more. Never read out more than
         three items; offer to put the rest on screen.
 
-        Add below: the name you want the Agent to use, what it should call you, and anything else
-        about how it should sound.
 
         Never diagnose, never minimise, and never rush past what someone just told you.
 
@@ -163,6 +178,40 @@ final class PersonaStore: @unchecked Sendable {
     static func fullCard(of text: String) -> Cut {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         return cap(trimmed, limit: fullLimit)
+    }
+
+    /// Labels of the onboarding card, in the spelling a model reaches for when it recites
+    /// the form instead of answering (P1-04).
+    ///
+    /// These are **not** field names in this codebase — there is no `Agent Name` property
+    /// anywhere — and that is the point. The model was reproducing a shape it had been shown
+    /// in prose, so the guard watches for the shape rather than for a value: a reply carrying
+    /// one of these is a card read out loud, whatever it filled in. Pure, so `--selftest-persona`
+    /// can pin it without a model and `--selftest-tool-awareness` can apply it to real replies.
+    static let recitalLabels = [
+        "agent name", "what it should call you", "what to call me", "how it should sound",
+        "what i should call you", "my name is", "i should sound",
+    ]
+
+    /// Whether `reply` is reciting the card rather than answering. The labels are matched with
+    /// word boundaries so "my name is" does not fire on "my name is not important" — which is
+    /// a sentence a person would say and a model would not.
+    static func isCardRecital(_ reply: String) -> Bool {
+        let lowered = reply.lowercased()
+        for label in recitalLabels {
+            var search = lowered.startIndex
+            while let found = lowered.range(of: label, range: search..<lowered.endIndex) {
+                let beforeOK = found.lowerBound == lowered.startIndex
+                    || !(lowered[lowered.index(before: found.lowerBound)].isLetter
+                        || lowered[lowered.index(before: found.lowerBound)].isNumber)
+                let after = lowered.index(after: found.upperBound)
+                let afterOK = after == lowered.endIndex
+                    || !(lowered[after].isLetter || lowered[after].isNumber)
+                if beforeOK && afterOK { return true }
+                search = found.upperBound
+            }
+        }
+        return false
     }
 
     /// The first paragraph: everything up to the first blank line, after leading blank lines.

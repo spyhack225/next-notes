@@ -389,6 +389,13 @@ enum RealtimeAgentToolLoopSelfTest {
             if answer != probe.expected {
                 failures.append("\(probe.name): expected \(probe.expected), got \(answer)")
             }
+            // P1-04: a reply that reads the persona card out loud is not an answer, whatever
+            // it filled the card in with. Every probe here was failing this way before the
+            // card's "Add below…" paragraph came out of the persona text, and the expected
+            // string alone did not catch it — the model appended the form *after* answering.
+            if PersonaStore.isCardRecital(answer) {
+                failures.append("\(probe.name): the reply recited the persona card")
+            }
         }
         for failure in failures { print("TOOL_AWARENESS_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOL_AWARENESS_OK" : "TOOL_AWARENESS_FAILED")
