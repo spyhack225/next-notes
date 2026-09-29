@@ -290,10 +290,34 @@ final class InstalledModelLibrary {
     /// broken: the user deleted it in Finder, and the app should agree.
     func refresh() {
         reloadFromDisk()
+        // A self-test has no UI waiting on a probe, and every one of them ends the process
+        // within seconds. Spawning an untracked probe here is what crashed the process on
+        // 2026-09-28: `--selftest-model-roles` reached `NSApp.terminate` while the probe was
+        // still inside `llama_model_load_from_file` → `load_vocab` → `token_to_piece`, and
+        // `exit` ran `__cxa_finalize_ranges` → `ggml_metal_device_free` underneath it —
+        // EXC_BAD_ACCESS at a garbage pointer in the vocab cache, on a background thread,
+        // with the main thread in Metal teardown. Nothing is lost by not spawning it: every
+        // path that needs a verdict awaits `refreshSupportVerdicts()` itself, which is why
+        // "a role can never be handed a file nobody has classified" was true before this.
+        guard !SelfTest.isRunning else { return }
         // Off the main path on purpose: a probe opens a vocabulary, which is milliseconds,
         // but it is not something the UI should wait behind. `usableModels` simply leaves an
         // unprobed row out until the answer is in.
-        Task { await refreshSupportVerdicts() }
+        probeTask?.cancel()
+        probeTask = Task { await refreshSupportVerdicts() }
+    }
+
+    /// The probe this store started, so a caller that is about to end the process can wait
+    /// for it.
+    private var probeTask: Task<Void, Never>?
+
+    /// Waits for an in-flight probe. **Nothing may end the process while a probe is inside
+    /// llama.** `NSApp.terminate` runs static destructors, and llama frees its Metal device
+    /// from one — so a probe that outlives the terminate call is dereferencing freed state.
+    /// That is the measured crash above, and this is the seam that prevents it.
+    func drainProbes() async {
+        await probeTask?.value
+        probeTask = nil
     }
 
     private func reloadFromDisk() {

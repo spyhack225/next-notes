@@ -101,6 +101,8 @@ enum SelfTest {
 
     /// See the dispatch site for why this is a modifier and not a self-test.
     static let downloadNotesModelFlag = "--download-notes-model"
+    /// Classifies the model files in the real `Models/` folder. See the dispatch site.
+    static let probeLocalModelsFlag = "--probe-local-models"
 
     /// "4.7 GB" rather than "4977171584", in the same formatter the Models tab uses, so a
     /// line in a log reads like the card the person would have seen.
@@ -268,6 +270,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // digest the spec is waiting to pin rather than pinning it itself.
         if CommandLine.arguments.contains(SelfTest.downloadNotesModelFlag) {
             runNotesModelDownload()
+            return
+        }
+
+        // `--probe-local-models`: a **modifier**, and the companion of `--download-notes-model`.
+        //
+        // A model dropped into `Models/` is invisible until it has been classified, because
+        // `usableModels` leaves out any row whose support verdict is missing — and the only
+        // code that writes a verdict is `refreshSupportVerdicts`, reached from
+        // `InstalledModelLibrary.shared`. Under a `--selftest-*` flag `SelfTest.isRunning` is
+        // true and `.shared` is a per-process temp copy, so **no self-test can classify the
+        // owner's real folder**, and the harness is right to: that is the whole point of store
+        // isolation. A flag with no `--selftest-` prefix runs before the harness is armed, so
+        // it reads and writes the real one.
+        //
+        // The verdict itself is still the app's own: `general.architecture` from the GGUF
+        // header, cross-checked against the linked llama.cpp build, and a vocabulary open.
+        // This flag adds no judgement of its own.
+        if CommandLine.arguments.contains(SelfTest.probeLocalModelsFlag) {
+            runLocalModelProbe()
             return
         }
 
@@ -3434,6 +3455,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } catch {
                 writeSelfTest("NOTES_MODEL_DOWNLOAD_FAILED: \(error.localizedDescription)")
             }
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// One line per model file in the real `Models/` folder: the architecture the header
+    /// claims, whether this build can open it, and the answer the library now holds.
+    private func runLocalModelProbe() {
+        Task { @MainActor in
+            let library = InstalledModelLibrary.shared
+            // This flag is **not** a `--selftest-*` run, so `SelfTest.isRunning` is false and
+            // the library's own `refresh()` did start a probe at launch. Drain it before
+            // ending the process — llama frees its Metal device from a static destructor, and
+            // a probe still inside `llama_model_load_from_file` when that happens is the
+            // measured crash of 2026-09-28.
+            await library.drainProbes()
+            await library.refreshSupportVerdicts()
+            library.refresh()
+            await library.drainProbes()
+            guard !library.models.isEmpty else {
+                writeSelfTest("LOCAL_MODEL_PROBE_EMPTY: nothing to classify")
+                NSApp.terminate(nil)
+                return
+            }
+            for model in library.models {
+                writeSelfTest(String(
+                    format: "LOCAL_MODEL_PROBE: %@ arch=%@ verdict=%@ usable=%@ bytes=%lld",
+                    model.id,
+                    model.support?.detail ?? "-",
+                    model.support?.verdict.rawValue ?? "unclassified",
+                    String(library.usableModels.contains { $0.id == model.id }),
+                    model.bytes))
+            }
+            writeSelfTest("LOCAL_MODEL_PROBE_OK: \(library.models.count) model(s)")
             NSApp.terminate(nil)
         }
     }
