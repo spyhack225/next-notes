@@ -100,8 +100,8 @@ struct MeetingActionsView: View {
     /// nothing to do. They need different answers and a single "nothing yet" hides that.
     private var emptyDescription: String {
         if !settings.agentEnabled {
-            return "Follow-up actions are turned off. The Workspace tab in Settings turns "
-                + "them on, once the Google Workspace CLI is signed in."
+            return "Follow-up actions are turned off. Turn them on in Settings, then connect "
+                + "your Google account."
         }
         if !agent.authState.isSignedIn {
             return agent.authState.detail

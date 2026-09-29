@@ -101,8 +101,8 @@ enum MeetingScratchpadSelfTest {
 
             let one = MeetingScratchNote(text: "two\nlines\ntyped")
             expect(ScratchNotesMerger.markdown([one])
-                == "## Your notes\n\n- two lines typed",
-                "a note that spans lines is still one bullet")
+                == "## Your notes\n\n- two\n  lines\n  typed",
+                "a note that spans lines keeps its line breaks inside one bullet")
         }
 
         // MARK: - c. The round trip through the real file.
@@ -166,6 +166,62 @@ enum MeetingScratchpadSelfTest {
             store.saveScratchpad([tieA, tieB], for: meeting.id)
             expect(store.scratchpad(for: meeting.id).map(\.text) == ["tie a", "tie b"],
                 "two lines typed in the same instant keep their order, on every read")
+        }
+
+        // MARK: - c1. A failed write is visible and cannot report a saved draft.
+
+        do {
+            let store = MeetingStore.isolated()
+            let meeting = seed(store, "Unwritable notes")
+            let directory = store.directory(for: meeting.id)
+            let scratchpadPath = directory.appendingPathComponent(MeetingStore.scratchpadFile)
+            let notesPath = directory.appendingPathComponent(MeetingStore.notesFile)
+            let blocked = (try? fm.createDirectory(
+                at: scratchpadPath, withIntermediateDirectories: false
+            )) != nil && (try? fm.createDirectory(
+                at: notesPath, withIntermediateDirectories: false
+            )) != nil
+            expect(blocked, "the isolated meeting can seed blocked file paths")
+
+            let before = store.scratchpadRevision
+            expect(!store.saveScratchpad([MeetingScratchNote(text: "keep my draft")],
+                                         for: meeting.id),
+                "a blocked scratchpad path reports that the note was not saved")
+            expect(store.scratchpadRevision == before,
+                "a failed scratchpad write cannot notify the panel of a saved note")
+            expect(store.scratchpad(for: meeting.id).isEmpty,
+                "a failed scratchpad write leaves the previous file alone")
+            expect(!store.saveNotes("## Summary\n\nSome notes", for: meeting.id),
+                "a blocked notes path reports that generated notes were not saved")
+            expect(store.notes(for: meeting.id) == nil,
+                "a failed notes write leaves no document to announce")
+        }
+
+        // MARK: - c2. A finished meeting keeps manual notes without a model pass.
+
+        do {
+            let store = MeetingStore.isolated()
+            let meeting = seed(store, "Manual-only notes")
+            store.saveScratchpad([MeetingScratchNote(text: "First\nSecond")], for: meeting.id)
+            expect(MeetingPipeline.saveManualNotesIfPresent(for: meeting.id, store: store),
+                "the no-generation finish saves the person's own notes")
+            let once = store.notes(for: meeting.id)
+            expect(once == "## Your notes\n\n- First\n  Second",
+                "the finished Notes tab can read both lines without a model")
+            expect(MeetingPipeline.saveManualNotesIfPresent(for: meeting.id, store: store),
+                "a resumed finish can write the same meeting again")
+            expect(store.notes(for: meeting.id) == once,
+                "a resumed finish does not duplicate the person's section")
+            store.saveScratchpad([
+                MeetingScratchNote(text: "First\nSecond", at: Date(timeIntervalSince1970: 10)),
+                MeetingScratchNote(text: "Saved just after Stop", at: Date(timeIntervalSince1970: 20)),
+            ], for: meeting.id)
+            expect(MeetingPipeline.saveManualNotesIfPresent(for: meeting.id, store: store),
+                "a draft saved just after Stop updates the finished page")
+            let updated = store.notes(for: meeting.id) ?? ""
+            expect(updated.contains("- Saved just after Stop")
+                && updated.components(separatedBy: "## Your notes").count == 2,
+                "the late draft appears under the one handwritten section")
         }
 
         // MARK: - d. The cap keeps the most recent.

@@ -333,6 +333,24 @@ enum NativeToolsSelfTest {
                 && invisibleParsed.calls.first?.arguments["date"] == "2026-09-28",
               "the captured ling completion did not parse; got calls=\(invisibleParsed.calls) "
                 + "malformed=\(invisibleParsed.malformed.map(\.kind.rawValue))")
+        // Qwen3.5-4B wrote an empty `<arg_key></arg_key>` and this reader filed the value
+        // under an empty name, handing `filesystem.search` a `folder?=true` it cannot use.
+        let emptyKey = "<tool_call>filesystem.search\n"
+            + "<arg_key></arg_key>\n<arg_value>true</arg_value>\n"
+            + "</tool_call>"
+        let emptyParsed = AgentToolCallParser.parse(emptyKey, knownNames: schemaNames)
+        check("an empty <arg_key> produced an argument with no name",
+              emptyParsed.calls.first?.arguments[""] == nil,
+              "an unnamed argument survived: \(emptyParsed.calls.first?.arguments ?? [:])")
+        // An empty *value* is not the same thing and is kept: "no filter" is how
+        // search_email says "the latest mail".
+        let emptyValue = "<tool_call>search_email\n<arg_key>query</arg_key>\n"
+            + "<arg_value></arg_value>\n</tool_call>"
+        let valueParsed = AgentToolCallParser.parse(emptyValue, knownNames: schemaNames)
+        check("an empty <arg_value> was dropped instead of meaning no filter",
+              valueParsed.calls.first?.arguments["query"] == "",
+              "an empty value was lost: \(valueParsed.calls.first?.arguments ?? [:])")
+
         check("a call whose tags carry a zero-width space also reported itself malformed",
               invisibleParsed.malformed.isEmpty,
               "the call parsed and still logged as malformed: \(invisibleParsed.malformed)")

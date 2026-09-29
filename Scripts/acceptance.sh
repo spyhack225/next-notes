@@ -212,6 +212,10 @@ INTEGRATION_ENTRIES=(
   # the classification function (IM-08a): what a remote turn *is*. INTEGRATION —
   # it is pure, so it needs no grant, no pairing, no model and no store
   "selftest-imessage-class|300"
+  # self-channel pairing (IM-07): the window, the boundary, the group refusal and
+  # the settings round-trip. INTEGRATION — the decision is pure and the store is
+  # a temp directory, so no grant, no device and no live database
+  "selftest-imessage-pairing|300"
   # runs.jsonl appends in memory and retention is opt-in (D-15a), and the
   # clipboard restore never overwrites a copy the user just made (D-15b):
   # a temp directory and a private pasteboard, no grant and no model

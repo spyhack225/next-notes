@@ -2148,6 +2148,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
 
+        // NextNotes-iMessage IM-07: self-channel pairing. The pure decision, the store
+        // round-trip, the older-shape decode and the service cycle. No grant, no device
+        // and no live database — the pairing logic is a function of the row and the
+        // window, and that is the part that must be pinned.
+        if arguments.contains("--selftest-imessage-pairing") {
+            Task { @MainActor in
+                writeSelfTest(await SelfChannelSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+
         // Reached only when a `--selftest-…` flag was given that no branch above claimed —
         // in practice one whose required argument was left off, since `value(after:)`
         // returns nil for a trailing flag. Falling through to `return false` would launch

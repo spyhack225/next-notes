@@ -278,7 +278,11 @@ enum MeetingResumeSelfTest {
             }
             // One row per write is what production records, so the rows are the count.
             func writes() -> Int {
-                MetricsStore.shared.spans(named: .meetingTranscriptWrite).count
+                // LatencyTrace queues its row off the recording path. Read only after the
+                // queue has caught up, or a fast replay counts zero writes for a file
+                // already on disk and later attributes them to the trailing-write case.
+                MetricsStore.shared.flushForTesting()
+                return MetricsStore.shared.spans(named: .meetingTranscriptWrite).count
             }
 
             // 100 segments over 20 s of meeting clock: five 5-second writes at most,

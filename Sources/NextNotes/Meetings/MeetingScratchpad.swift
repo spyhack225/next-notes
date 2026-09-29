@@ -84,17 +84,21 @@ enum ScratchNotesMerger {
         var pinned: [String] = []
         var rest: [String] = []
         for note in notes {
-            let line = note.singleLine
+            let line = note.text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !line.isEmpty else { continue }
+            // A note can contain Shift-Return line breaks, including a whole document
+            // the person chose to keep. Indent continuation lines under the same bullet
+            // so the notes page preserves those breaks without creating extra entries.
+            let bullet = "- " + line.replacingOccurrences(of: "\n", with: "\n  ")
             if note.isPinned {
-                pinned.append(line)
+                pinned.append(bullet)
             } else {
-                rest.append(line)
+                rest.append(bullet)
             }
         }
         let sections = [pinned, rest]
             .filter { !$0.isEmpty }
-            .map { $0.map { "- \($0)" }.joined(separator: "\n") }
+            .map { $0.joined(separator: "\n") }
         guard !sections.isEmpty else { return "" }
         return (["## \(heading)"] + sections).joined(separator: "\n\n")
     }

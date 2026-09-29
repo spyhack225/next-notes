@@ -209,7 +209,7 @@ enum MeetingConsoleSelfTest {
                 let capitalised = String(section.rawValue.prefix(1)).uppercased()
                     + String(section.rawValue.dropFirst())
                 let type = "MeetingConsole\(capitalised)Section"
-                expect(sheet.contains("\(type)(session: session)"),
+                expect(sheet.contains("\(type)(session: session"),
                        "the panel draws \(section.title) from \(type)")
             }
             // The rail is the whole of `allCases`, and one shape per screen.

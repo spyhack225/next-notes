@@ -18,6 +18,7 @@ import SwiftUI
 /// `MeetingConsoleSheet`; this file draws none of them, and it draws no orb of its own.
 struct MeetingConsoleAskSection: View {
     let session: MeetingSession
+    @Binding var draft: String
 
     @State private var navigation = NavigationState.shared
     /// The one conversation. Held as state so the panel redraws when a row lands, and named
@@ -26,18 +27,10 @@ struct MeetingConsoleAskSection: View {
     @State private var agent = RealtimeAgent.shared
     @State private var activityStore = AgentActivityStore.shared
     @State private var identity = AgentIdentityStore.shared
-    @State private var workspace = AgentService.shared
-    @State private var settings = Settings.shared
     @State private var loadNotice = ModelLoadNotice.shared
 
-    @State private var draft = ""
     @State private var showsSuggestions = true
     @FocusState private var isComposerFocused: Bool
-
-    /// Persisted rather than held, for `AgentView`'s reason: this is a preference about how
-    /// the panel behaves, not a piece of state the turn is in, and a person who widened the
-    /// scope once should not have to do it again in the next meeting.
-    @AppStorage("meetingConsole.ask.scope") private var storedScope = MeetingAskScope.thisMeeting.rawValue
 
     /// `.thinking` while a turn is in flight, and `.idle` the rest of the time — including
     /// while the meeting itself is recording, because the recording is the *meeting's* work
@@ -53,30 +46,33 @@ struct MeetingConsoleAskSection: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.Space.l) {
-            MeetingConsoleSectionHeader(
-                section: .ask,
-                subtitle: "\(identity.name) reads this meeting to answer."
-            )
-            suggestions
-            thread
-            if agent.isThinking { thinkingRow }
-            if let reason = widerReason { notice(reason, symbol: "link.badge.plus") }
-            // A model that failed is said here as well as in Settings, for `AgentView`'s
-            // reason: this panel answers questions, so it is the surface where a silent
-            // fallback has to be visible and the one move that changes it has to be a click
-            // away.
-            if let problem = loadNotice.message {
-                notice(problem, symbol: "exclamationmark.triangle")
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: DS.Space.l) {
+                    MeetingConsoleSectionHeader(
+                        section: .ask,
+                        subtitle: "\(identity.name) reads this meeting to answer."
+                    )
+                    suggestions
+                    thread
+                    if agent.isThinking { thinkingRow }
+                    // A model failure belongs beside the question that exposed it.
+                    if let problem = loadNotice.message {
+                        notice(problem, symbol: "exclamationmark.triangle")
+                    }
+                }
+                .padding(DS.Space.page)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            composer
-            // The reference's own footer line, and the same sentence `AgentView` and the
-            // island carry: a written answer read while a meeting is running is still an
-            // answer, and the caveat belongs under every one of them.
-            Text("Next Notes is AI and can make mistakes.")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .center)
+            Divider()
+            VStack(spacing: DS.Space.s) {
+                composer
+                Text("Next Notes is AI and can make mistakes.")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .padding(DS.Space.page)
         }
     }
 
@@ -312,49 +308,11 @@ struct MeetingConsoleAskSection: View {
         }
     }
 
-    // MARK: - The two honest states about reach
-
-    /// The scope the composer is in, clamped to what is actually on offer.
-    ///
-    /// A stored choice of *Everything else* on a Mac that has since been signed out falls
-    /// back to the meeting rather than being honoured: the wide scope is not offered without
-    /// an account, and a scope the composer cannot keep is a scope the person did not choose.
-    private var scope: MeetingAskScope {
-        let chosen = MeetingAskScope(rawValue: storedScope) ?? .thisMeeting
-        return availableScopes.contains(chosen) ? chosen : .thisMeeting
-    }
-
-    private var canReachEverythingElse: Bool {
-        settings.agentEnabled && workspace.authState.isSignedIn
-    }
-
-    private var availableScopes: [MeetingAskScope] {
-        canReachEverythingElse ? MeetingAskScope.allCases : [.thisMeeting]
-    }
-
-    /// Why the wider scope is not on offer, in one sentence, or nil when it is.
-    ///
-    /// Two reasons that need two sentences, and neither of them is a failure: a switch the
-    /// person turned off, and an account that was never connected. The meeting scope is
-    /// unaffected by both — the meeting tools are native and read a live meeting with nothing
-    /// connected at all — so this is a notice about one scope, never a reason to refuse the
-    /// panel.
-    private var widerReason: String? {
-        if canReachEverythingElse { return nil }
-        if !settings.agentEnabled {
-            return "Follow-up actions are turned off, so this answers from the meeting only. "
-                + "Turn them on in Settings to ask about your mail, calendar and files as well."
-        }
-        return "Your Google account is not connected, so this answers from the meeting only. "
-            + "Connect it in Settings to ask about your mail, calendar and files as well."
-    }
+    // MARK: - Model availability
 
     /// A quiet inline notice, with the one move that changes it.
     ///
-    /// One shape for the two things that can be said here — the account is not there, or the
-    /// model that answers has failed — because a person reading either of them mid-meeting
-    /// needs the same two things, and a second layout for a second sentence would be the
-    /// third piece of chrome this section is not allowed to own.
+    /// A model that cannot answer needs to say why in the panel where the question was asked.
     private func notice(_ message: String, symbol: String) -> some View {
         HStack(alignment: .top, spacing: DS.Space.s) {
             Image(systemName: symbol)
@@ -376,38 +334,11 @@ struct MeetingConsoleAskSection: View {
 
     // MARK: - The composer
 
-    /// The reference's `+ / field / affordance` bar, as one rounded field with a leading menu.
-    ///
-    /// The scope is written rather than drawn as a glyph: it is a statement about what the
-    /// assistant will read on the person's behalf, and a symbol that can be clicked and never
-    /// read is not one. That costs about eighty points of a 312pt column, which is why the
-    /// field's line cap is one lower than `AgentView`'s.
+    /// The question field and its controls. Tool access is decided by the agent's manifest
+    /// for the actual words asked; a separate scope selector here would need to change that
+    /// decision before it could promise a narrower answer.
     private var composer: some View {
         HStack(alignment: .bottom, spacing: DS.Space.s) {
-            Menu {
-                ForEach(availableScopes) { candidate in
-                    Button {
-                        storedScope = candidate.rawValue
-                    } label: {
-                        if candidate == scope {
-                            Label(candidate.title, systemImage: "checkmark")
-                        } else {
-                            Text(candidate.title)
-                        }
-                    }
-                    .help(candidate.help)
-                }
-            } label: {
-                Text(scope.title)
-                    .font(DS.Font.chip)
-                    .lineLimit(1)
-                    .fixedSize()
-            }
-            .menuStyle(.borderlessButton)
-            .controlSize(.small)
-            .help(scope.help)
-            .accessibilityLabel("Ask about: \(scope.title)")
-
             TextField("Ask about this meeting…", text: $draft, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(1...4)
@@ -453,37 +384,5 @@ struct MeetingConsoleAskSection: View {
         // `cancel` would write a "Stopped." line into the meeting's own thread.
         if agent.isThinking { RealtimeAgent.shared.interrupt() }
         Task { await RealtimeAgent.shared.handleLive(text, source: .meeting) }
-    }
-}
-
-/// What the assistant is allowed to look at for a turn asked from this panel.
-///
-/// Two, and the difference between them is the account rather than anything in this view.
-/// The meeting tools are native and need nothing connected, so a question about the meeting
-/// in front of you is answerable on a Mac that has never signed in to anything. Everything
-/// else means reading the account, which is the Workspace switch and `AgentService`'s auth
-/// state — so it is offered only when both are there, and what it costs is said in the panel
-/// rather than discovered in an answer that quietly came from somewhere else.
-enum MeetingAskScope: String, CaseIterable, Identifiable {
-    case thisMeeting
-    case everythingElse
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .thisMeeting: "This meeting"
-        case .everythingElse: "Everything else I know"
-        }
-    }
-
-    /// One line, in the person's words, read before the choice rather than after it.
-    var help: String {
-        switch self {
-        case .thisMeeting:
-            "Answers from what has been said in this meeting."
-        case .everythingElse:
-            "Also looks in your mail, calendar and files, which can take a moment."
-        }
     }
 }

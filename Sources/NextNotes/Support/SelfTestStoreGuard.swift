@@ -44,6 +44,10 @@ enum SelfTestStoreGuard {
         "imessage-outbound.sqlite",
         "imessage-outbound.sqlite-wal",
         "imessage-outbound.sqlite-shm",
+        // IM-07's settings file. A harness run that wrote a pairing would change which
+        // chat the feature answers from, and a run that wrote a watermark would replay
+        // rows the owner has already seen.
+        "imessage-settings.json",
     ]
 
     /// The preference namespaces a self-test must leave alone.

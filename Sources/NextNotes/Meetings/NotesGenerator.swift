@@ -808,6 +808,7 @@ enum NotesError: LocalizedError {
     case emptyNotes
     case contextTooSmall
     case noProvider
+    case saveFailed
 
     var errorDescription: String? {
         switch self {
@@ -820,6 +821,8 @@ enum NotesError: LocalizedError {
         case .noProvider:
             "Your assistant\u{2019}s brain isn\u{2019}t downloaded yet \u{2014} get it in "
                 + "Settings \u{25b8} Models, or turn on Apple Intelligence."
+        case .saveFailed:
+            "The notes couldn't be saved. Check that this Mac has free space, then try again."
         }
     }
 }

@@ -286,7 +286,14 @@ enum AgentToolCallParser {
             if let key = tagText(line, named: "arg_key") {
                 // A second key before its value means the model lost one; the previous pair
                 // is dropped rather than paired with the wrong value.
-                pendingKey = key
+                //
+                // An **empty** key is dropped and clears the pending slot, so the value that
+                // follows it is discarded rather than filed under `""`. Measured on
+                // Qwen3.5-4B, 2026-09-28, which wrote `<arg_key></arg_key>` and produced
+                // `filesystem.search(folder?=true)` — an argument with no name, handed to a
+                // tool that takes none. An empty *value* is left alone: `search_email(query=)`
+                // is a real and useful call, and "no filter" is how that tool says "latest".
+                pendingKey = key.isEmpty ? nil : key
                 continue
             }
             if let value = tagText(line, named: "arg_value"), let key = pendingKey {

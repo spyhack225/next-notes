@@ -107,10 +107,11 @@ enum MeetingConsoleActivity: Equatable, CaseIterable, Sendable {
 struct MeetingConsoleSheet: View {
     let session: MeetingSession
 
-    /// `nil` rather than a non-optional because that is what a single-selection `List`
-    /// binds to. An empty selection falls back to the first section rather than drawing a
-    /// blank pane.
-    @State private var selection: MeetingConsoleSection?
+    /// A single-selection `List` binds to an optional, but the first section must also
+    /// appear selected when the panel opens, not merely supply content behind an empty rail.
+    @State private var selection: MeetingConsoleSection? = .notes
+    /// An unfinished question survives a trip to Notes or History while this sheet stays up.
+    @State private var askDraft = ""
 
     var body: some View {
         HSplitView {
@@ -185,7 +186,7 @@ struct MeetingConsoleSheet: View {
                 floatingAction: view.floatingAction
             )
         case .ask:
-            let view = MeetingConsoleAskSection(session: session)
+            let view = MeetingConsoleAskSection(session: session, draft: $askDraft)
             return Resolved(
                 body: AnyView(view),
                 activity: view.activity,
@@ -201,15 +202,19 @@ struct MeetingConsoleSheet: View {
         let shown = current
         return VStack(spacing: 0) {
             status(shown)
-            ScrollView {
+            if section == .ask {
+                // Ask owns a scrolling thread and a fixed composer. Wrapping it in this
+                // scroll view would push the field off screen after a few replies.
                 shown.body
-                    .padding(DS.Space.page)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    // Room for the action to sit over. An inset rather than a bottom
-                    // padding on the pane, because the pill is an *overlay* — the content
-                    // passes under it, and this is the only thing that lets the last line
-                    // be scrolled out from underneath.
-                    .padding(.bottom, Self.actionClearance)
+            } else {
+                ScrollView {
+                    shown.body
+                        .padding(DS.Space.page)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        // The Notes pill overlays the scroll content. Other sections have
+                        // no pill, so they need no empty space under their last row.
+                        .padding(.bottom, shown.floatingAction == nil ? 0 : Self.actionClearance)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

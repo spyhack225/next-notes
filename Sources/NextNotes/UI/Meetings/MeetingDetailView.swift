@@ -470,8 +470,11 @@ struct MeetingDetailView: View {
             && store.audioURL(for: meeting) != nil
     }
 
-    /// The key `.task` watches: the meeting, plus every write of any `notes.md`.
-    private var notesKey: String { "\(meeting.id)-\(notesService.revision)" }
+    /// The key `.task` watches: model writes, plus the finishing status change that puts
+    /// hand-written notes on the page when automatic generation is off.
+    private var notesKey: String {
+        "\(meeting.id)-\(meeting.status.displayName)-\(notesService.revision)"
+    }
 
     /// The provider the meeting-notes role resolves to right now — the effective choice, so
     /// a role pointed at something unavailable marks the model that would actually run.

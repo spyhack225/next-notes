@@ -98,6 +98,11 @@ enum MeetingPipeline {
     /// summary Doc is dropped before it reaches `proposals.json`.
     private static func finish(_ meeting: Meeting, store: MeetingStore = .shared) -> Meeting {
         var done = meeting
+        // With automatic generation off (or no transcript to generate from), NotesService
+        // never runs. The person's own lines still need to reach the finished Notes tab.
+        if !saveManualNotesIfPresent(for: done.id, store: store), store === MeetingStore.shared {
+            NotesService.shared.reportSaveFailure(for: done.id)
+        }
         // A recording that had already failed keeps its failure. Reaching the end of the
         // pipeline is not the same as having worked.
         if !done.status.isFailure { done.status = .done }
@@ -108,6 +113,24 @@ enum MeetingPipeline {
         let finished = store.meeting(id: done.id) ?? done
         AgentService.shared.review(finished)
         return finished
+    }
+
+    /// Keep the scratchpad's source file and put its current lines on the finished page.
+    /// Merging with an existing document is idempotent, so a resumed finish cannot append
+    /// another "Your notes" block or erase notes from a prior manual generation.
+    @discardableResult
+    static func saveManualNotesIfPresent(for id: UUID, store: MeetingStore) -> Bool {
+        let manual = ScratchNotesMerger.markdown(store.scratchpad(for: id))
+        guard !manual.isEmpty else { return true }
+        let current = store.notes(for: id) ?? ""
+        let merged = ScratchNotesMerger.merged(manual: manual, generated: current)
+        guard merged != current else { return true }
+        guard store.saveNotes(
+            merged,
+            for: id
+        ) else { return false }
+        if store === MeetingStore.shared { NotesService.shared.notesDidChange() }
+        return true
     }
 
     /// Whether this meeting's speakers are worth telling apart, and can be.

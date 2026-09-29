@@ -349,17 +349,24 @@ final class MeetingStore {
         try? String(contentsOf: directory(for: id).appendingPathComponent(Self.notesFile), encoding: .utf8)
     }
 
-    func saveNotes(_ markdown: String, for id: UUID) {
+    @discardableResult
+    func saveNotes(_ markdown: String, for id: UUID) -> Bool {
         let directory = directory(for: id)
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try? markdown.write(
-            to: directory.appendingPathComponent(Self.notesFile),
-            atomically: true,
-            encoding: .utf8
-        )
-        searchCache[id] = nil
-        searchInvalidated.insert(id)
-        KnowledgeIndexer.shared.meetingChanged(id)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try markdown.write(
+                to: directory.appendingPathComponent(Self.notesFile),
+                atomically: true,
+                encoding: .utf8
+            )
+            searchCache[id] = nil
+            searchInvalidated.insert(id)
+            KnowledgeIndexer.shared.meetingChanged(id)
+            return true
+        } catch {
+            Log.meeting.error("couldn't save notes: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
     }
 
     // MARK: - Hand-written notes
@@ -386,15 +393,24 @@ final class MeetingStore {
     /// typed line is the meeting's own text and belongs in the same haystack as its
     /// transcript — `NotesService` folds the same lines into `notes.md` when the notes are
     /// written, which is where they are chunked.
-    func saveScratchpad(_ notes: [MeetingScratchNote], for id: UUID) {
+    @discardableResult
+    func saveScratchpad(_ notes: [MeetingScratchNote], for id: UUID) -> Bool {
         let directory = directory(for: id)
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        } catch {
+            Log.meeting.error("couldn't save scratchpad: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
         let kept = Array(Self.ordered(notes).suffix(MeetingScratchNote.maxStored))
-        write(kept, to: directory.appendingPathComponent(Self.scratchpadFile))
+        guard write(kept, to: directory.appendingPathComponent(Self.scratchpadFile)) else {
+            return false
+        }
         scratchpadRevision += 1
         searchCache[id] = nil
         searchInvalidated.insert(id)
         KnowledgeIndexer.shared.meetingChanged(id)
+        return true
     }
 
     /// By when each line was typed, ties keeping the order they arrived in.
@@ -697,12 +713,15 @@ final class MeetingStore {
     /// Atomic on purpose: this is written from a state machine that can be interrupted by
     /// a crash or a forced quit, and a half-written `meeting.json` makes the whole meeting
     /// invisible on the next launch.
-    private func write(_ value: some Encodable, to url: URL) {
-        guard let data = try? Self.encoder.encode(value) else { return }
+    @discardableResult
+    private func write(_ value: some Encodable, to url: URL) -> Bool {
         do {
+            let data = try Self.encoder.encode(value)
             try data.write(to: url, options: .atomic)
+            return true
         } catch {
             Log.meeting.error("couldn't write \(url.lastPathComponent): \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 }

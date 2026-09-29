@@ -290,8 +290,7 @@ struct MeetingConsoleActionsSection: View {
             OrbUnavailableView(
                 .breathing,
                 title: "Follow-up actions are off",
-                message: "The Workspace tab in Settings turns them on, once the Google "
-                    + "Workspace CLI is signed in.",
+                message: "Turn them on in Settings, then connect your Google account.",
                 hasField: false
             ) {
                 SettingsLink { Text("Open Settings\u{2026}") }

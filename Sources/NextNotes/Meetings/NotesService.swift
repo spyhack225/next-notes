@@ -37,6 +37,8 @@ final class NotesService {
     func isRunning(_ id: UUID) -> Bool { steps[id] != nil }
     func problem(for id: UUID) -> String? { problems[id] }
     func clearProblem(for id: UUID) { problems[id] = nil }
+    func reportSaveFailure(for id: UUID) { problems[id] = NotesError.saveFailed.localizedDescription }
+    func notesDidChange() { revision += 1 }
 
     /// Advances the watchdog's clock for one pass.
     private func noteProgress(_ id: UUID) { lastProgressAt[id] = Date() }
@@ -66,6 +68,12 @@ final class NotesService {
         // map-reduce flag with chunk, collapse and drop counts (M-05), or the
         // error's type name — never a model name, a token count or text.
         let began = Date()
+        // Model selection may load or probe a provider. Show that work immediately and
+        // keep a second press from appearing to do nothing while the await is in flight.
+        steps[id] = NotesGenerator.Step(message: "Preparing\u{2026}", fraction: nil)
+        problems[id] = nil
+        noteProgress(id)
+        defer { steps[id] = nil }
 
         // Use the role-based model selection for meeting notes.
         // If a specific provider is preferred (e.g., from Regenerate button), use that.
@@ -91,11 +99,6 @@ final class NotesService {
             return nil
         }
 
-        steps[id] = NotesGenerator.Step(message: "Preparing\u{2026}", fraction: nil)
-        problems[id] = nil
-        noteProgress(id)
-        defer { steps[id] = nil }
-
         do {
             let brief = await notesBrief(for: meeting, provider: provider)
             // P0-20b: the usage row names the role that chose the model, and says when
@@ -118,10 +121,10 @@ final class NotesService {
             // own heading, and the merge is idempotent — so a second pass over a document
             // that already carries the block cannot leave two of them behind.
             let manual = ScratchNotesMerger.markdown(store.scratchpad(for: id))
-            store.saveNotes(
+            guard store.saveNotes(
                 ScratchNotesMerger.merged(manual: manual, generated: result.markdown),
                 for: id
-            )
+            ) else { throw NotesError.saveFailed }
             revision += 1
             LatencyTrace.record(
                 .meetingNotes,
@@ -285,6 +288,12 @@ final class NotesService {
 
             let segments = store.transcript(for: id)
             let model = await generate(for: updated, segments: segments, preferring: provider)
+            // A failed model cannot hide the person's notes. This also catches a line
+            // saved after generate's snapshot while the panel was closing: the merge
+            // compares first, so an ordinary completed pass does no second file write.
+            if !MeetingPipeline.saveManualNotesIfPresent(for: id, store: store) {
+                reportSaveFailure(for: id)
+            }
 
             // Re-read rather than write the captured copy back: the store's record may
             // have been rewritten while this ran, and it may be gone entirely — a deleted

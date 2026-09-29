@@ -146,6 +146,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-imessage-decode
 --selftest-imessage-watch  --selftest-imessage-class
 --selftest-imessage-loop
+--selftest-imessage-pairing
 --selftest-residency
 --selftest-cleanup-structure               --selftest-commandkey
 --selftest-tool-review                     --selftest-function-calls [engine-dir]
@@ -1187,6 +1188,11 @@ the manifest. **A transcript dump prefixed onto the utterance would be the secon
 `AgentCapabilityManifest` that this file forbids**, and `RealtimeAgent` records the utterance
 verbatim, so the dump would land in the permanent conversation and in every later turn's
 context. If you want more in the turn, add a tool.
+
+The Ask panel no longer shows a "This meeting / Everything else" scope menu. Both choices
+used to call `handleLive(text, source: .meeting)` with identical arguments, so the control
+changed a label without changing what the agent could read. A future scope control must
+change the per-turn `AgentCapabilityManifest` before it promises a narrower answer.
 
 **A hand-written note is the person's, and `notes.md` is the model's.** They are different
 files because the model's pass overwrites `notes.md` and must never overwrite a line someone

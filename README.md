@@ -972,7 +972,8 @@ twelve. What you type goes to `scratchpad.json` in the meeting's own folder, and
 `notes.md` once, at the end, through a merge that is pure and idempotent — so a second pass
 cannot produce two "Your notes" sections. **Meeting panel** ▸ Notes tidies those fragments
 into a readable document *while the meeting is still running*, and writes nothing until you
-press Keep.
+press Keep. Your own lines still appear in the finished Notes tab when automatic note writing
+is off or the model cannot write its notes.
 
 Notes are written automatically when a recording finishes (*Write notes when a meeting
 ends*), and **Regenerate** rewrites them with either provider afterwards.

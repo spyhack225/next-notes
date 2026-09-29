@@ -28,6 +28,7 @@ struct MeetingConsoleNotesSection: View {
     @State private var draft = ""
     @State private var result: Tidy?
     @State private var problem: String?
+    @State private var saveProblem: String?
     @State private var isTidying = false
     @State private var isKept = false
     @State private var pass: Task<Void, Never>?
@@ -94,19 +95,15 @@ struct MeetingConsoleNotesSection: View {
     private var pillHelp: String {
         if isTidying { return "Turning your own lines into a tidied document." }
         if !hasSomethingToWorkFrom {
-            return "Nothing to work from yet: no note of your own, and nothing heard yet."
-        }
-        if notes.isEmpty {
-            return "You have not written anything yet, so this works from what the meeting "
-                + "has been heard saying."
+            return "Write a note of your own first."
         }
         return "Turn your own lines into a tidied document. Your lines are not changed."
     }
 
-    /// What the pass can read: a line of the person's own, or something the meeting has been
-    /// heard saying. Empty means the button is off, and the help above says so.
+    /// The transcript is background for the tidier, never source material for new notes.
+    /// With no line of the person's own, there is nothing this pass may write.
     private var hasSomethingToWorkFrom: Bool {
-        !notes.isEmpty || !session.segments.isEmpty
+        !notes.isEmpty
     }
 
     // MARK: - Body
@@ -126,6 +123,9 @@ struct MeetingConsoleNotesSection: View {
                     dismiss: { self.problem = nil }
                 )
             }
+            if let saveProblem {
+                ProblemBanner(message: saveProblem) { self.saveProblem = nil }
+            }
             if notes.isEmpty, result == nil, !session.isRecording {
                 emptyState
             } else {
@@ -136,7 +136,12 @@ struct MeetingConsoleNotesSection: View {
         }
         // The panel closed: the model is decoding into a result nobody will read, and
         // `run`'s cancellation handler exists to stop it rather than to let it finish.
-        .onDisappear { pass?.cancel() }
+        .onDisappear {
+            pass?.cancel()
+            // Stop or a rail change removes this view, including its @State draft. Save a
+            // line that was still in the field rather than making Return the only exit.
+            saveDraft(refocus: false)
+        }
     }
 
     /// One plain sentence, and never a claim that something is being worked on.
@@ -364,26 +369,28 @@ struct MeetingConsoleNotesSection: View {
     /// note of theirs and this is not the place to reflow it. Focus goes back to the field
     /// afterwards, so the next line can be typed without a click.
     private func addNote() {
+        saveDraft(refocus: true)
+    }
+
+    private func saveDraft(refocus: Bool) {
         let text = trimmedDraft
         guard !text.isEmpty else { return }
         var existing = notes
         existing.append(MeetingScratchNote(text: text))
-        MeetingStore.shared.saveScratchpad(existing, for: session.meeting.id)
+        guard save(existing) else { return }
         draft = ""
-        composerFocused = true
+        if refocus { composerFocused = true }
     }
 
     private func setPinned(_ pinned: Bool, on note: MeetingScratchNote) {
         var existing = notes
         guard let index = existing.firstIndex(where: { $0.id == note.id }) else { return }
         existing[index].isPinned = pinned
-        MeetingStore.shared.saveScratchpad(existing, for: session.meeting.id)
+        _ = save(existing)
     }
 
     private func delete(_ note: MeetingScratchNote) {
-        MeetingStore.shared.saveScratchpad(
-            notes.filter { $0.id != note.id }, for: session.meeting.id
-        )
+        _ = save(notes.filter { $0.id != note.id })
     }
 
     /// The tidied document, kept. One pinned multi-line note rather than a document of
@@ -393,8 +400,29 @@ struct MeetingConsoleNotesSection: View {
         guard let document = result?.document else { return }
         var existing = notes
         existing.append(MeetingScratchNote(text: document, isPinned: true))
-        MeetingStore.shared.saveScratchpad(existing, for: session.meeting.id)
-        isKept = true
+        if save(existing) { isKept = true }
+    }
+
+    /// Keep the editor and the previous file intact when a write fails. A note the person
+    /// just typed must not disappear from the field before it has reached disk.
+    private func save(_ notes: [MeetingScratchNote]) -> Bool {
+        let id = session.meeting.id
+        guard MeetingStore.shared.saveScratchpad(notes, for: id) else {
+            saveProblem = "Your note couldn't be saved. Check that this Mac has free space, then try again."
+            return false
+        }
+        saveProblem = nil
+        // Stop may finish the meeting before this section disappears and saves its pending
+        // draft. In that order the pipeline has already made notes.md, so fold the new line
+        // into it now and refresh a detail view that may already be showing the page.
+        if let status = MeetingStore.shared.meeting(id: id)?.status,
+           (status == .summarizing || status == .extracting
+                || status == .done || status.isFailure),
+           !MeetingPipeline.saveManualNotesIfPresent(for: id, store: .shared) {
+            NotesService.shared.reportSaveFailure(for: id)
+            saveProblem = "Your note was saved, but the finished notes couldn't be updated."
+        }
+        return true
     }
 
     // MARK: - The store
