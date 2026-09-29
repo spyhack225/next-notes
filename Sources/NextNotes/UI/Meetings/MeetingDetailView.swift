@@ -209,6 +209,12 @@ struct MeetingDetailView: View {
                 }
             }
 
+            if meeting.transcriptPass == "live-only:audio-incomplete" {
+                Text("The recording stopped saving. Your live transcript was kept, but some audio may be missing.")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.warning)
+            }
+
             if let url = meeting.conferenceURL {
                 Link(destination: url) {
                     Label(url.host() ?? url.absoluteString, systemImage: "video")

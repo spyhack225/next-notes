@@ -128,8 +128,8 @@ final class MeetingStore {
             var repaired = meeting
             // Older recordings saved the audio link only at Stop. If the process died
             // first, a valid audio.caf survived but the resumer could not see it.
-            // Adopt it conservatively: an orphan is kept, never auto-deleted, because
-            // the original keep-audio choice was not persisted either.
+            // Adopt it conservatively. Nil means the original keep-audio choice is
+            // unknown, so no automatic release may delete the only recovered copy.
             if repaired.audioFileName == nil,
                [.recording, .transcribing].contains(repaired.status) {
                 let orphan = directory(for: meeting.id).appendingPathComponent(Self.audioFile)
@@ -137,7 +137,6 @@ final class MeetingStore {
                     as? NSNumber
                 if (size?.int64Value ?? 0) > 4_096 {
                     repaired.audioFileName = Self.audioFile
-                    repaired.audioIsTemporary = false
                     Log.meeting.info("recovered unlinked audio for \"\(meeting.title, privacy: .public)\"")
                 }
             }
@@ -499,7 +498,7 @@ final class MeetingStore {
     ///
     /// The whole keep-or-drop rule lives here, and it is three lines:
     ///
-    /// - A recording made only for diarization (`Meeting.audioIsTemporary`) goes. That
+    /// - A recording made only for diarization (`Meeting.audioIsTemporary == true`) goes. That
     ///   answer was written when the recording started, so changing the settings later
     ///   never turns a recording the user asked to keep into one this method may delete.
     /// - A recording the user asked to keep goes only when "delete once the notes are
@@ -508,6 +507,8 @@ final class MeetingStore {
     ///   nothing was made from.
     /// - Nothing goes while a failed diarization pass is still offering "Identify again",
     ///   because that retry has nothing to read without it.
+    /// - An orphan recovered after a crash has an unknown keep choice (`nil`), so it
+    ///   is never automatically deleted even when the current setting says to delete.
     ///
     /// M-10: the pipeline end no longer calls this directly — `releaseAudioWhenDue`
     /// schedules a temporary recording's release 72 hours out first, and the sweep
@@ -515,11 +516,21 @@ final class MeetingStore {
     /// stays the only thing in the app that deletes a recording.
     ///
     /// - Parameter notesWritten: whether the pass that is finishing rewrote `notes.md`.
-    func releaseAudio(for id: UUID, notesWritten: Bool = false) {
+    func releaseAudio(
+        for id: UUID,
+        notesWritten: Bool = false,
+        deleteKeptAfterNotes: Bool? = nil
+    ) {
         guard var meeting = meeting(id: id), let name = meeting.audioFileName else { return }
         guard DiarizationService.shared.problem(for: id) == nil else { return }
-        if meeting.audioIsTemporary != true {
-            guard Settings.shared.meetingsDeleteAudioAfterNotes, notesWritten else { return }
+        switch meeting.audioIsTemporary {
+        case nil:
+            return
+        case false:
+            guard deleteKeptAfterNotes ?? Settings.shared.meetingsDeleteAudioAfterNotes,
+                  notesWritten else { return }
+        case true:
+            break
         }
 
         try? FileManager.default.removeItem(at: directory(for: id).appendingPathComponent(name))

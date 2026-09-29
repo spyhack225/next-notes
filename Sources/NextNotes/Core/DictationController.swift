@@ -388,7 +388,7 @@ final class DictationController {
     private let formatter: (any TextFormatter)?
     /// Injected only by tests; production types into whatever had focus. A self-test that
     /// used the real injector would type its fixture into the terminal that started it.
-    private let insert: @MainActor (String, TextInjector.Origin?) async -> TextInjector.Outcome
+    private let insert: (@MainActor (String, TextInjector.Origin?) async -> TextInjector.Outcome)?
     /// Injected only by tests; production files the run for the Dictation list. A self-test
     /// that used the real log would write its fixtures into the user's own history — which
     /// it did, until this seam existed.
@@ -791,8 +791,7 @@ final class DictationController {
         commandProcessor: any TextCommandProcessor = FoundationModelCommandProcessor(),
         makeEngine: @escaping @MainActor @Sendable () -> any TranscriptionEngine = engineForCurrentSetting,
         limits: Limits = .standard,
-        insert: @escaping @MainActor (String, TextInjector.Origin?) async -> TextInjector.Outcome
-            = { await TextInjector.insert($0, returningTo: $1) },
+        insert: (@MainActor (String, TextInjector.Origin?) async -> TextInjector.Outcome)? = nil,
         record: @escaping @MainActor (DictationRun) -> Void = { RunLog.record($0) },
         // D-15c: a self-test passes `.selfTest` so the deadlines it injects on purpose do
         // not read as production failures in the user's unified log.
@@ -1062,10 +1061,11 @@ final class DictationController {
         showCommandMode(nil)
         origin = TextInjector.captureOrigin()
         let target = OutputProfileStore.shared.captureTarget()
+        let contextOrigin = origin?.app.bundleIdentifier == AppIdentity.bundleIdentifier ? nil : origin
         ScreenContextStore.shared.beginCapture(
             for: target,
-            processID: origin?.app.processIdentifier,
-            originBundleID: origin?.app.bundleIdentifier
+            processID: contextOrigin?.app.processIdentifier,
+            originBundleID: contextOrigin?.app.bundleIdentifier
         )
         // The replay is a hold whose "capture" is the audio the last one kept, so the
         // tail reads frames, voiced windows and chunks exactly as it would for a live one.
@@ -1249,15 +1249,17 @@ final class DictationController {
         // is small and deliberately shorter than the walk's own.
         origin = TextInjector.captureOrigin()
         let target = OutputProfileStore.shared.captureTarget()
+        let contextOrigin = origin?.app.bundleIdentifier == AppIdentity.bundleIdentifier ? nil : origin
         ScreenContextStore.shared.beginCapture(
             for: target,
             // The process id, not the `NSRunningApplication` it came from. The walk happens on
             // a detached task and `AXUIElement` is not `Sendable`; an `Int32` is, and the
             // harvester builds its own element from it on the far side.
             //
-            // Deliberately `origin`'s pid rather than one derived from `target`. A nil origin
-            // means Next Notes itself was frontmost, and then there is no harvest at all — even
-            // though `captureTarget()` still resolves a profile, from the last foreign app.
+            // Deliberately the foreign origin's pid rather than one derived from `target`.
+            // When Next Notes is frontmost the insertion origin is still captured, but
+            // there is no external screen context to harvest, even if `captureTarget()`
+            // resolves a profile from the last foreign app.
             //
             // `originBundleID` is what makes the pid and the bundle identifier name the same
             // running process rather than merely being asserted to. They come from two reads of
@@ -1267,8 +1269,8 @@ final class DictationController {
             // last foreign app. So Cursor could be the target while the pid belonged to
             // something else entirely, and the harvest would then walk an app no adapter and no
             // deny list was ever consulted for and label the result "Cursor".
-            processID: origin?.app.processIdentifier,
-            originBundleID: origin?.app.bundleIdentifier
+            processID: contextOrigin?.app.processIdentifier,
+            originBundleID: contextOrigin?.app.bundleIdentifier
         )
         // Wake the Apple cleanup model while the key is still down: a session staged here
         // and reused by `FoundationModelFormatter.clean` measured 0.94s versus 4.69s cold
@@ -1883,7 +1885,20 @@ final class DictationController {
         recordRun(text: output, corrections: corrections, cleanup: cleanupRecord, runID: runID)
 
         let injectBegan = Date()
-        let outcome = await insert(output, origin)
+        let outcome: TextInjector.Outcome
+        if let insert {
+            outcome = await insert(output, origin)
+        } else {
+            outcome = await TextInjector.insert(
+                output,
+                returningTo: origin,
+                whileCurrent: { [weak self] in self?.session == session }
+            )
+        }
+        // The insertion path can await activation and pasteboard delivery. A cancel may
+        // end this hold and a new press may take the controller's single microphone slot
+        // while that await is suspended. The old tail must leave the new hold untouched.
+        guard self.session == session else { return }
         let injectSeconds = Date().timeIntervalSince(injectBegan)
         LatencyTrace.record(.dictationCleanupToInjection, seconds: injectSeconds)
         if let releasedAt {
@@ -1921,6 +1936,8 @@ final class DictationController {
         }
 
         switch outcome {
+        case .superseded:
+            return
         case .inserted:
             // The words landed, so an earlier failed hold is no longer the one worth
             // keeping (D-03).

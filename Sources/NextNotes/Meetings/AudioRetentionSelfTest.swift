@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 
 /// `--selftest-audio-retention` (M-10): temporary meeting audio is kept 72 hours
@@ -22,6 +23,38 @@ enum AudioRetentionSelfTest {
         let retention = MeetingStore.temporaryAudioRetention
         let now = Date()
         let audioFile = MeetingStore.audioFile
+
+        // The system tap may join after the mic has already forced older frames to
+        // disk. The real stereo file must keep that empty beginning on the right
+        // channel; merely checking the live segment clock misses this regression.
+        do {
+            let dir = fm.temporaryDirectory.appendingPathComponent(
+                "meeting-audio-alignment-\(UUID().uuidString)", isDirectory: true)
+            try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+            defer { try? fm.removeItem(at: dir) }
+            let url = dir.appendingPathComponent(audioFile)
+            do {
+                let writer = try MeetingAudioWriter(url: url)
+                await writer.append([Float](repeating: 0.5, count: 8 * 16_000), from: .mic)
+                await writer.append([Float](repeating: 0.25, count: 2 * 16_000),
+                                    from: .system, startFrame: 8 * 16_000)
+                await writer.finish()
+            }
+            let recording = try AVAudioFile(forReading: url)
+            guard let pcm = AVAudioPCMBuffer(
+                pcmFormat: recording.processingFormat, frameCapacity: 10 * 16_000)
+            else { throw MeetingAudioWriterError.unsupportedFormat }
+            try recording.read(into: pcm)
+            let left = pcm.floatChannelData?[MeetingAudioWriter.micChannel]
+            let right = pcm.floatChannelData?[MeetingAudioWriter.systemChannel]
+            check("late tap file length is 10 s", pcm.frameLength == 10 * 16_000)
+            check("late tap leaves microphone speech at 6 s", abs((left?[6 * 16_000] ?? 0) - 0.5) < 0.01)
+            check("late tap leaves system silence at 6 s", abs(right?[6 * 16_000] ?? 1) < 0.01)
+            check("late tap begins system speech at 8 s", abs((right?[8 * 16_000 + 1] ?? 0) - 0.25) < 0.01)
+            check("late tap does not invent later mic speech", abs(left?[8 * 16_000 + 1] ?? 1) < 0.01)
+        } catch {
+            failures.append("late tap recording alignment: \(error.localizedDescription)")
+        }
 
         func exists(_ store: MeetingStore, _ id: UUID) -> Bool {
             fm.fileExists(atPath: store.directory(for: id)

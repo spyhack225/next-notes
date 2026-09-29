@@ -325,8 +325,9 @@ enum LocalOnceRoute: Equatable {
 extension RealtimeAgent {
     /// Confirmation-aware entry for the Agent sidebar. Same wait as voice
     /// `handle` — a missing ACP CLI parks on [Run once] / [Cancel].
-    func handleLive(_ utterance: String, source: AgentUtteranceSource) async -> AgentTurn {
-        await handle(utterance, source: source)
+    func handleLive(_ utterance: String, source: AgentUtteranceSource,
+                    turnID: UUID? = nil) async -> AgentTurn {
+        await handle(utterance, source: source, turnID: turnID)
     }
 
     /// Voice `handle` parks here when the CLI is missing. Nil-shaped

@@ -126,6 +126,9 @@ final class FinalTranscriptService {
     private func keepLive(id: UUID, pass: String, store: MeetingStore) {
         guard var meeting = store.meeting(id: id) else { return }
         meeting.transcriptPass = pass
+        if store.transcript(for: id).isEmpty {
+            meeting.status = .failed("The recording could not be transcribed.")
+        }
         store.save(meeting)
         _ = MeetingPipeline.afterFinalPass(meeting, store: store)
     }

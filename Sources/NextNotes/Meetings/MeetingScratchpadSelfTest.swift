@@ -173,6 +173,17 @@ enum MeetingScratchpadSelfTest {
                                                      generated: "## Summary\n\nDiscussed launch.")
             expect(ScratchNotesMerger.merged(manual: manualPage, generated: oncePage) == oncePage,
                 "a page's own subheadings do not duplicate after another notes pass")
+            let pageWithEmptyHeading = MeetingScratchNote(
+                text: "## Agenda\nDecision to keep\n\n##\n\nNext step",
+                kind: .document
+            )
+            let manualWithEmptyHeading = ScratchNotesMerger.markdown([pageWithEmptyHeading])
+            let onceWithEmptyHeading = ScratchNotesMerger.merged(
+                manual: manualWithEmptyHeading, generated: "## Summary\n\nDiscussed launch."
+            )
+            expect(ScratchNotesMerger.merged(manual: manualWithEmptyHeading,
+                                             generated: onceWithEmptyHeading) == onceWithEmptyHeading,
+                "an empty heading in the person's page cannot become the merge boundary")
             if let encoded = try? JSONEncoder().encode(MeetingScratchNote(text: "old note")),
                var object = try? JSONSerialization.jsonObject(with: encoded) as? [String: Any] {
                 object.removeValue(forKey: "kind")
@@ -309,7 +320,7 @@ enum MeetingScratchpadSelfTest {
                 "the hand-written block comes first, not after the model's own notes")
             expect(once.hasSuffix(generated),
                 "the generated notes come last, byte for byte")
-            expect(once == "## Your notes\n\n- Q3 messaging rollout, are teams ready?\n\n- confirm ICP alignment\n\n##\n\n\(generated)",
+            expect(once == "## Your notes\n\n- Q3 messaging rollout, are teams ready?\n\n- confirm ICP alignment\n\n---\n<!-- next-notes-manual-boundary -->\n\n\(generated)",
                 "the block, a horizontal rule, then the notes (got \(once.debugDescription))")
 
             let twice = ScratchNotesMerger.merged(manual: manual, generated: once)

@@ -4709,6 +4709,71 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 )
             }
 
+            // A previous hold can still be inside the async injector when Cancel
+            // starts a new one. Finishing that old insertion must not unsubscribe
+            // the new hold's microphone or return its state to idle.
+            let delayedInsert = DelayedSelfTestInsert()
+            let delayedInbox = SelfTestInbox()
+            let delayed = DictationController(
+                formatter: RuleBasedFormatter(),
+                makeEngine: { SelfTestEngine(shape: .prompt(delay: .zero)) },
+                limits: limits,
+                insert: { text, _ in
+                    let wasDelayed = await delayedInsert.waitForFirst()
+                    if !wasDelayed { delayedInbox.append(text) }
+                    return .inserted
+                },
+                record: { _ in },
+                log: .selfTest,
+                outcome: { sink.append($0) }
+            )
+            delayed.startButtonRecording()
+            holdsStarted += 1
+            let firstListeningBy = Date().addingTimeInterval(4)
+            while Date() < firstListeningBy, delayed.state != .listening {
+                try? await Task.sleep(for: .milliseconds(25))
+            }
+            delayed.stopButtonRecording()
+            let firstInsertBy = Date().addingTimeInterval(4)
+            while Date() < firstInsertBy, !delayedInsert.firstIsWaiting {
+                try? await Task.sleep(for: .milliseconds(25))
+            }
+            if !delayedInsert.firstIsWaiting {
+                failures.append("the delayed-insert hold never reached injection")
+            } else {
+                delayed.cancelDictation()
+                delayed.startButtonRecording()
+                holdsStarted += 1
+                let secondListeningBy = Date().addingTimeInterval(4)
+                while Date() < secondListeningBy, delayed.state != .listening {
+                    try? await Task.sleep(for: .milliseconds(25))
+                }
+                if delayed.state != .listening {
+                    failures.append("the hold after a canceled injection did not start listening")
+                }
+                delayedInsert.releaseFirst()
+                try? await Task.sleep(for: .milliseconds(100))
+                if delayed.state != .listening {
+                    failures.append("the canceled hold's late injection ended the new recording")
+                }
+                delayed.stopButtonRecording()
+                let secondIdleBy = Date().addingTimeInterval(4)
+                while Date() < secondIdleBy, delayed.state != .idle {
+                    try? await Task.sleep(for: .milliseconds(25))
+                }
+                if delayed.state != .idle || delayedInbox.contents().count != 1 {
+                    failures.append("the hold after a delayed insertion did not finish normally")
+                }
+            }
+
+            // The focused meeting editor belongs to Next Notes itself. Its app
+            // identity must survive key-down capture so a later app switch can be
+            // handled by the same return/copy preference as any other destination.
+            if TextInjector.origin(for: NSRunningApplication.current)?.app.processIdentifier
+                != NSRunningApplication.current.processIdentifier {
+                failures.append("Next Notes was omitted from dictation origin capture")
+            }
+
             // D-01b g. Every hold started filed exactly one outcome: no path reports
             // twice, and no path loses a hold without a row.
             if sink.count != holdsStarted {
@@ -8456,6 +8521,27 @@ final class SelfTestInbox {
     private var texts: [String] = []
     func append(_ text: String) { texts.append(text) }
     func contents() -> [String] { texts }
+}
+
+/// Holds the first injector call until the self-test has canceled that hold and
+/// started another. Later calls return immediately.
+@MainActor
+final class DelayedSelfTestInsert {
+    private var first: CheckedContinuation<Void, Never>?
+    private var didWait = false
+    var firstIsWaiting: Bool { first != nil }
+
+    func waitForFirst() async -> Bool {
+        guard !didWait else { return false }
+        didWait = true
+        await withCheckedContinuation { continuation in first = continuation }
+        return true
+    }
+
+    func releaseFirst() {
+        first?.resume()
+        first = nil
+    }
 }
 
 /// Collects the hold outcomes a self-test's `DictationController` filed (D-01b).

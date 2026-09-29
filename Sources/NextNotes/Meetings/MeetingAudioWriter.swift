@@ -8,8 +8,9 @@ import Foundation
 /// of speaker information that costs nothing to keep.
 ///
 /// The tracks arrive from two independent audio callbacks that neither start nor tick
-/// together, so frames are paired as they become available and whichever side is ahead
-/// waits in a queue. At 16 kHz the two clocks drift by far less than a word.
+/// together. The first buffer on each track is placed on the recording clock, then frames
+/// are paired in order. In particular, a system tap that joins late must begin after
+/// silence on its channel, not beside the last five seconds of microphone audio.
 ///
 /// One of the two can also never arrive at all — a refused process tap leaves the meeting
 /// running on the microphone alone — so the wait is bounded. Past `maxLeadFrames` the
@@ -17,9 +18,8 @@ import Foundation
 /// ninety-minute meeting would sit in memory and then ask for one buffer the size of it.
 actor MeetingAudioWriter {
     /// How far one track may run ahead before the other is written off as silent. Five
-    /// seconds is far longer than the two callbacks ever drift, long enough to absorb a
-    /// slow-starting tap without shifting that track against the other, and still only
-    /// 320 KB of queue.
+    /// seconds is far longer than the two callbacks ever drift, and still only 320 KB of
+    /// queue. A late-starting tap is aligned by its recording-clock offset, not this bound.
     private static let maxLeadFrames = Int(5 * ChunkedTranscriber.sampleRate)
     /// Written in bounded pieces so a long backlog never needs one giant allocation.
     private static let maxWriteFrames = Int(30 * ChunkedTranscriber.sampleRate)
@@ -35,6 +35,14 @@ actor MeetingAudioWriter {
 
     private var micQueue: [Float] = []
     private var systemQueue: [Float] = []
+    /// Number of stereo frames already written. Together with each queue length this
+    /// gives that track's next absolute frame on the recording clock.
+    private var writtenFrames = 0
+    /// Once the first timed packet arrives, advance by actual sample counts. This
+    /// also lets a packet that is wholly behind an already written cursor be trimmed
+    /// across subsequent packets, rather than moving the second packet forward.
+    private var micNextCaptureFrame: Int?
+    private var systemNextCaptureFrame: Int?
 
     /// Called once, on the first write failure (M-10). The session surfaces the
     /// message; the writer stops trying after it.
@@ -43,6 +51,9 @@ actor MeetingAudioWriter {
     /// Once set, incoming samples are dropped rather than queued — a two-hour
     /// meeting must not grow memory behind a file that can no longer take bytes.
     private var writeError: String?
+
+    /// A file that failed after being created cannot recover shed live ASR windows.
+    var didFail: Bool { writeError != nil }
 
     /// 16-bit on disk, float in memory: `AVAudioFile` converts on write, and int16 halves
     /// what an hour of meeting costs on a machine with ten gigabytes free.
@@ -80,15 +91,58 @@ actor MeetingAudioWriter {
         )
     }
 
-    func append(_ samples: [Float], from source: AudioSource) {
+    /// `startFrame` locates the first captured buffer on the meeting clock. Later
+    /// buffers advance from that origin by their sample counts, so callback scheduling
+    /// jitter cannot repeatedly insert or remove frames. Existing fixture callers may
+    /// omit it and start both tracks at frame zero.
+    func append(_ samples: [Float], from source: AudioSource, startFrame: Int? = nil) {
         // The file failed once; nothing after that lands anywhere, and saying so
         // again would be noise. The transcript keeps running without the file.
         guard writeError == nil else { return }
+        guard !samples.isEmpty else { return }
         switch source {
-        case .mic: micQueue.append(contentsOf: samples)
-        case .system: systemQueue.append(contentsOf: samples)
+        case .mic:
+            let packetStart = micNextCaptureFrame ?? startFrame
+            micNextCaptureFrame = packetStart.map { $0 + samples.count }
+            let aligned = alignedSamples(samples, from: .mic, startFrame: packetStart)
+            micQueue.append(contentsOf: aligned)
+        case .system:
+            let packetStart = systemNextCaptureFrame ?? startFrame
+            systemNextCaptureFrame = packetStart.map { $0 + samples.count }
+            let aligned = alignedSamples(samples, from: .system, startFrame: packetStart)
+            systemQueue.append(contentsOf: aligned)
         }
+        guard writeError == nil else { return }
         writePairedFrames()
+    }
+
+    /// Silence spans a late track's missing beginning. If the other track has already
+    /// forced the file cursor past this buffer, trim the overlap instead of moving the
+    /// remaining speech to a later time. The normal path allocates no padding.
+    private func alignedSamples(
+        _ samples: [Float], from source: AudioSource, startFrame: Int?
+    ) -> [Float] {
+        guard let startFrame else { return samples }
+        let cursor = writtenFrames + (source == .mic ? micQueue.count : systemQueue.count)
+        let target = max(0, startFrame)
+        if target > cursor {
+            // A tap can join minutes into a recording. Pad in bounded pieces and
+            // flush the older ones as we go, rather than allocate minutes of zeroes.
+            var gap = target - cursor
+            while gap > 0, writeError == nil {
+                let count = min(gap, Self.maxWriteFrames)
+                switch source {
+                case .mic: micQueue.append(contentsOf: repeatElement(0, count: count))
+                case .system: systemQueue.append(contentsOf: repeatElement(0, count: count))
+                }
+                writePairedFrames()
+                gap -= count
+            }
+            return writeError == nil ? samples : []
+        }
+        let overlap = cursor - target
+        if overlap >= samples.count { return [] }
+        return Array(samples.dropFirst(overlap))
     }
 
     /// Flushes the side that ran on longest, padding the other with silence.
@@ -153,6 +207,7 @@ actor MeetingAudioWriter {
 
         do {
             try file.write(from: buffer)
+            writtenFrames += frames
         } catch {
             // The samples were consumed above; no later chunk may queue behind this.
             recordWriteFailure(error.localizedDescription)

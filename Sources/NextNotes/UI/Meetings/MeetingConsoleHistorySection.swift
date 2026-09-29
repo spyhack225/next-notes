@@ -28,7 +28,6 @@ struct MeetingConsoleHistorySection: View {
     /// overlap whenever the key changes mid-query, and a plain `Bool` cleared by whichever
     /// finished last would drop the status row to idle over a search that is still going.
     @State private var runTicket = 0
-    @Environment(\.dismiss) private var dismiss
 
     /// What the query answered, and what it was asked. The filter is not decoration: it is
     /// the check that keeps the previous question's rows off a screen now wearing the new
@@ -52,11 +51,22 @@ struct MeetingConsoleHistorySection: View {
     private struct QueryKey: Equatable {
         let meetingID: UUID
         let status: MeetingStatus
+        let title: String
+        let attendees: [String]
         let filter: MeetingRecallFilter
         let revision: Int
-        let stored: Int
+        let stored: [StoredMeeting]
         let indexOn: Bool
         let graphOn: Bool
+    }
+
+    /// Only fields the recall rows and their people filter read. A live transcript write
+    /// must not restart History, but a rename or changed attendee list must.
+    private struct StoredMeeting: Equatable {
+        let id: UUID
+        let title: String
+        let start: Date
+        let attendees: [String]
     }
 
     /// How many rows the panel asks for.
@@ -76,7 +86,8 @@ struct MeetingConsoleHistorySection: View {
     /// which is also why the wait below reads from the same predicate as this does, so the
     /// status row and the pane never disagree about whether a search is up.
     var activity: MeetingConsoleActivity {
-        isRefreshing ? .lookingBack : .idle
+        guard !others.isEmpty, availability == .ready else { return .idle }
+        return isRefreshing ? .lookingBack : .idle
     }
 
     /// Nothing here acts: History reads the person's own library and the meeting they are
@@ -99,6 +110,7 @@ struct MeetingConsoleHistorySection: View {
         // filter cuts from one list to another with nothing in between, which reads as a
         // jump rather than as an answer to a new question.
         .animation(DS.Motion.consoleSectionChange, value: filter)
+        .preference(key: MeetingConsoleActivityPreference.self, value: activity)
     }
 
     // MARK: - The filter
@@ -355,9 +367,17 @@ struct MeetingConsoleHistorySection: View {
         store.meetings.filter { $0.id != session.meeting.id }
     }
 
+    private var currentMeeting: Meeting {
+        store.meeting(id: session.meeting.id) ?? session.meeting
+    }
+
     private var queryKey: QueryKey {
-        QueryKey(meetingID: session.meeting.id, status: session.meeting.status, filter: filter,
-                 revision: store.searchRevision, stored: store.meetings.count,
+        let meeting = currentMeeting
+        return QueryKey(meetingID: meeting.id, status: meeting.status,
+                 title: meeting.title, attendees: meeting.attendees, filter: filter,
+                 revision: store.searchRevision,
+                 stored: others.map { StoredMeeting(id: $0.id, title: $0.title,
+                                                   start: $0.start, attendees: $0.attendees) },
                  indexOn: settings.knowledgeIndexEnabled,
                  graphOn: settings.knowledgeGraphEnabled)
     }
@@ -378,7 +398,7 @@ struct MeetingConsoleHistorySection: View {
         defer { if runTicket == ticket { runTicket = 0 } }
 
         let found = await MeetingRecall.hits(
-            meeting: session.meeting,
+            meeting: currentMeeting,
             filter: filter,
             indexer: KnowledgeIndexer.shared,
             store: store,
@@ -397,17 +417,10 @@ struct MeetingConsoleHistorySection: View {
     /// a row's position becomes a jump and its token means a second press on the same row
     /// moves again; the plain overload is the one a result uses to open a meeting's notes.
     ///
-    /// **The panel closes, and asking for it is the honest thing to do.** It is presented
-    /// by `MeetingLiveView` as a sheet, so the moment this lands `MeetingsView` is showing
-    /// the meeting that was tapped, the live view goes out of the hierarchy, and the sheet
-    /// that was attached to it goes with it. The panel would close either way; dismissing
-    /// makes the order deterministic instead of a side effect of somebody else's layout
-    /// pass. The recording carries on regardless — the session is the controller's, not the
-    /// panel's — and the live meeting is the first row of the Meetings list when the
-    /// person wants it back. It happens on a tap and on nothing else: not on a filter
-    /// change, not on a re-run, not when the meeting finishes.
+    /// The console is a separate window, so navigation alone does not uncover the
+    /// selected meeting. Close that window after selecting the destination.
     private func open(_ hit: MeetingRecallHit) {
         navigation.show(meeting: hit.meetingID, at: 0)
-        dismiss()
+        MeetingConsoleWindowController.shared.close()
     }
 }

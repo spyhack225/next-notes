@@ -268,6 +268,36 @@ enum DictationHygieneSelfTest {
                 "a copy made during the restore window was overwritten: the pasteboard reads \(read(pasteboard))"
             )
         }
+
+        // Cancel during the 40 ms pasteboard handoff: the old hold must not
+        // post ⌘V after a newer hold has taken the microphone, and the saved
+        // clipboard must come back because no paste was made.
+        pasteboard.clearContents()
+        pasteboard.setString("A", forType: .string)
+        var current = true
+        var posted = false
+        let canceled = Task { @MainActor in
+            await TextInjector.insertViaPasteboard(
+                "B",
+                pasteboard: pasteboard,
+                postPaste: { posted = true },
+                restoreDelay: .milliseconds(50),
+                whileCurrent: { current }
+            )
+        }
+        let handoffBy = Date().addingTimeInterval(0.1)
+        while Date() < handoffBy, pasteboard.string(forType: .string) != "B" {
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        if pasteboard.string(forType: .string) != "B" {
+            problems.append("the canceled insertion never entered the pasteboard handoff")
+        }
+        current = false
+        let canceledRestore = await canceled.value
+        await canceledRestore?.value
+        if posted || pasteboard.string(forType: .string) != "A" {
+            problems.append("a canceled insertion posted paste or left its text on the clipboard")
+        }
         return problems
     }
 

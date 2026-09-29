@@ -1,5 +1,29 @@
 import SwiftUI
 
+/// The id of the Agent turn started from this window. The Agent is shared by voice and the
+/// Agent pane, so its global busy flag alone cannot make a Stop button belong to Ask.
+@MainActor
+@Observable
+final class MeetingConsoleAskWork {
+    var activeTurnID: UUID?
+
+    static func owns(activeTurnID: UUID?, currentTurnID: UUID, isThinking: Bool) -> Bool {
+        activeTurnID != nil && activeTurnID == currentTurnID && isThinking
+    }
+
+    func owns(_ agent: RealtimeAgent) -> Bool {
+        Self.owns(activeTurnID: activeTurnID, currentTurnID: agent.currentTurnID,
+                  isThinking: agent.isThinking)
+    }
+
+    func cancelIfOwned(_ agent: RealtimeAgent) {
+        guard activeTurnID != nil, activeTurnID == agent.currentTurnID else { return }
+        ACPConfirmationGate.shared.cancel()
+        agent.cancel()
+        activeTurnID = nil
+    }
+}
+
 /// The meeting panel's Ask section: the assistant, asked something while the meeting runs.
 ///
 /// **No service, no prompt prefix, and no second conversation.** The question goes out as it
@@ -19,6 +43,7 @@ import SwiftUI
 struct MeetingConsoleAskSection: View {
     let session: MeetingSession
     @Binding var draft: String
+    let work: MeetingConsoleAskWork
 
     @State private var navigation = NavigationState.shared
     /// The one conversation. Held as state so the panel redraws when a row lands, and named
@@ -28,6 +53,7 @@ struct MeetingConsoleAskSection: View {
     @State private var activityStore = AgentActivityStore.shared
     @State private var identity = AgentIdentityStore.shared
     @State private var loadNotice = ModelLoadNotice.shared
+    @State private var sendProblem: String?
 
     @FocusState private var isComposerFocused: Bool
 
@@ -35,7 +61,7 @@ struct MeetingConsoleAskSection: View {
     /// while the meeting itself is recording, because the recording is the *meeting's* work
     /// and the Meetings screen already says so. This case means one thing: a turn this
     /// section started is running right now.
-    var activity: MeetingConsoleActivity { agent.isThinking ? .thinking : .idle }
+    var activity: MeetingConsoleActivity { work.owns(agent) ? .thinking : .idle }
 
     // MARK: - Body
 
@@ -60,10 +86,13 @@ struct MeetingConsoleAskSection: View {
                         MeetingConsoleSectionHeader(section: .ask)
                     }
                     thread
-                    if agent.isThinking { thinkingRow }
+                    if work.owns(agent) { thinkingRow }
                     // A model failure belongs beside the question that exposed it.
                     if let problem = loadNotice.message {
                         notice(problem, symbol: "exclamationmark.triangle")
+                    }
+                    if let sendProblem {
+                        notice(sendProblem, symbol: "exclamationmark.triangle")
                     }
                 }
                 .padding(DS.Space.page)
@@ -76,6 +105,7 @@ struct MeetingConsoleAskSection: View {
             .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .preference(key: MeetingConsoleActivityPreference.self, value: activity)
     }
 
     // MARK: - The way in
@@ -338,13 +368,12 @@ struct MeetingConsoleAskSection: View {
                     return .handled
                 }
 
-            if agent.isThinking {
+            if work.owns(agent) {
                 Button("Stop", systemImage: "stop.fill") {
                     // The gate first, as in `AgentView`: this panel cannot draw the card a
                     // parked confirmation waits on, so a turn that would have stopped for
                     // approval has to be told no rather than left asking in silence.
-                    ACPConfirmationGate.shared.cancel()
-                    RealtimeAgent.shared.cancel()
+                    work.cancelIfOwned(agent)
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
@@ -363,11 +392,27 @@ struct MeetingConsoleAskSection: View {
     private func send() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+        guard let active = MeetingController.shared.session,
+              active === session, session.isRecording else {
+            sendProblem = "This meeting has ended."
+            return
+        }
+        if let contextID = MeetingContextStore.shared.current?.meetingID,
+           contextID != session.meeting.id {
+            sendProblem = "I’m still getting this meeting ready. Try again after speech appears."
+            return
+        }
+        sendProblem = nil
         draft = ""
         // A second question while the first is still running supersedes it, which is what
         // `AgentView.send` does: `interrupt` keeps the transcript and drops the work, and
         // `cancel` would write a "Stopped." line into the meeting's own thread.
-        if agent.isThinking { RealtimeAgent.shared.interrupt() }
-        Task { await RealtimeAgent.shared.handleLive(text, source: .meeting) }
+        if work.owns(agent) { agent.interrupt() }
+        let turnID = UUID()
+        work.activeTurnID = turnID
+        Task {
+            _ = await agent.handleLive(text, source: .meeting, turnID: turnID)
+            if work.activeTurnID == turnID { work.activeTurnID = nil }
+        }
     }
 }

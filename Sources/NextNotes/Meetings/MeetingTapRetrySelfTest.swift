@@ -13,9 +13,8 @@ import Foundation
 /// `MeetingStore.isolated()`. Three phases:
 ///
 /// 1. *Join* — the injected start throws twice and then succeeds on a 0.2 s cadence:
-///    the problem clears, and the system track's first segment carries the join time
-///    (± 0.1 s), because `advanceOrigin` placed the late track where the recording
-///    already was instead of letting it count from zero.
+///    the problem clears, and the system track's first segment carries the first
+///    captured buffer's time, rather than a retry attempt's earlier start time.
 /// 2. *Exhaustion* — a tap that never joins gives up after ten attempts and stays
 ///    stopped without anyone stopping the meeting.
 /// 3. *Stop* — `stop()` cancels a live retry; no start is attempted afterwards. The
@@ -39,6 +38,7 @@ enum MeetingTapRetrySelfTest {
         // The seams under test. Restored whichever way the run ends.
         let previousStart = SystemAudioCapture.startCallOverrideForTesting
         let previousTranscribe = MeetingSession.transcribeOverrideForTesting
+        let previousPermission = MeetingSession.microphonePermissionOverrideForTesting
         SystemAudioCapture.startCallOverrideForTesting = { format, onBuffer, onLevel in
             try await fake.start(outputFormat: format, onBuffer: onBuffer, onLevel: onLevel)
         }
@@ -48,7 +48,24 @@ enum MeetingTapRetrySelfTest {
         defer {
             SystemAudioCapture.startCallOverrideForTesting = previousStart
             MeetingSession.transcribeOverrideForTesting = previousTranscribe
+            MeetingSession.microphonePermissionOverrideForTesting = previousPermission
         }
+
+        // Stop while start() is suspended at the permission prompt. A late grant
+        // must not subscribe the microphone or leave a finished empty meeting.
+        let permissionGate = MeetingPermissionGate()
+        MeetingSession.microphonePermissionOverrideForTesting = { await permissionGate.wait() }
+        let pendingMeeting = Meeting(title: "Cancelled before capture", start: Date(), status: .scheduled)
+        let pendingController = MeetingController(store: store)
+        let pendingStart = Task { await pendingController.start(meeting: pendingMeeting) }
+        while !permissionGate.entered { await Task.yield() }
+        await pendingController.stop()
+        permissionGate.release()
+        let startedAfterStop = await pendingStart.value
+        check("a late permission grant restarted a stopped meeting", !startedAfterStop)
+        check("stopped pending start still owns the controller slot", pendingController.session == nil)
+        check("stopped pending start persisted an empty meeting", store.meeting(id: pendingMeeting.id) == nil)
+        MeetingSession.microphonePermissionOverrideForTesting = previousPermission
 
         // --- Phase 1: two failures, then a join on the 0.2 s cadence.
         await fake.configure(succeedOnCall: 3)
@@ -77,8 +94,9 @@ enum MeetingTapRetrySelfTest {
             format: "MEETING_TAP_RETRY_JOINED=%.2fs CALLS=%d",
             joinElapsed, await fake.calls))
 
-        // The late track must sit at the join time, not at zero: its first segment is
-        // the transcriber's first window, whose origin was placed at the join.
+        // The late track must sit at the first captured buffer, not at zero or the
+        // time the retry began. The fake delivers buffers before start() returns, so
+        // the problem-clear time is later than the actual join on a busy machine.
         var firstSystem: TranscriptSegment?
         while Date().timeIntervalSince(began) < 6 {
             firstSystem = session.segments.first { $0.source == .system }
@@ -86,12 +104,15 @@ enum MeetingTapRetrySelfTest {
             try? await Task.sleep(for: .milliseconds(50))
         }
         check("no system segment arrived from the late tap", firstSystem != nil)
+        let firstBufferAt = await fake.firstBufferAt
+        check("the fake tap delivered no first buffer", firstBufferAt != nil)
         if let segment = firstSystem {
+            let captureElapsed = firstBufferAt?.timeIntervalSince(began) ?? joinElapsed
             check(
                 String(
-                    format: "first system segment starts at %.2fs but the join was at %.2fs — origin not placed",
-                    segment.start, joinElapsed),
-                segment.start >= joinElapsed - 0.1 && segment.start <= joinElapsed + 0.3)
+                    format: "first system segment starts at %.2fs but capture began at %.2fs — origin not placed",
+                    segment.start, captureElapsed),
+                segment.start >= captureElapsed - 0.1 && segment.start <= captureElapsed + 0.3)
         }
 
         // Success ends the loop: no further attempts after the join.
@@ -160,9 +181,25 @@ enum MeetingTapRetrySelfTest {
             log("MEETING_TAP_RETRY_WRONG: \(failure)")
         }
         log(failures.isEmpty
-            ? "MEETING_TAP_RETRY_OK: joined late, placed at the join time, gave up and stopped cleanly"
+            ? "MEETING_TAP_RETRY_OK: joined late, placed at first capture, gave up and stopped cleanly"
             : "MEETING_TAP_RETRY_FAILED: \(failures.count) check(s) wrong")
         return failures.isEmpty
+    }
+}
+
+@MainActor
+private final class MeetingPermissionGate {
+    private var continuation: CheckedContinuation<Bool, Never>?
+    private(set) var entered = false
+
+    func wait() async -> Bool {
+        entered = true
+        return await withCheckedContinuation { continuation = $0 }
+    }
+
+    func release() {
+        continuation?.resume(returning: true)
+        continuation = nil
     }
 }
 
@@ -173,6 +210,7 @@ enum MeetingTapRetrySelfTest {
 /// the other half of the conversation from the moment it started.
 private actor FakeTap {
     private(set) var calls = 0
+    private(set) var firstBufferAt: Date?
     private var succeedOnCall: Int?
     private var noise: [Float] = []
 
@@ -180,6 +218,7 @@ private actor FakeTap {
         self.succeedOnCall = succeedOnCall
         // Each phase counts its own attempts: 1 initial + the retries it watches.
         calls = 0
+        firstBufferAt = nil
         if noise.isEmpty { noise = Self.syntheticNoise(seconds: 6) }
     }
 
@@ -197,6 +236,7 @@ private actor FakeTap {
         while index < noise.count {
             let end = min(index + chunk, noise.count)
             if let buffer = Self.buffer(Array(noise[index..<end]), format: outputFormat) {
+                if firstBufferAt == nil { firstBufferAt = Date() }
                 onBuffer(AudioChunk(buffer: buffer))
                 onLevel(0.1)
             }

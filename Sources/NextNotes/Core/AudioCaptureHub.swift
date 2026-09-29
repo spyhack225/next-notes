@@ -121,6 +121,7 @@ final class AudioCaptureHub {
     }
 
     private func makeWorker(
+        for consumer: Consumer,
         outputFormat: AVAudioFormat,
         onBuffer: @escaping @Sendable (AudioChunk) -> Void,
         onLevel: @escaping @Sendable (Float) -> Void,
@@ -144,6 +145,7 @@ final class AudioCaptureHub {
             }
         }
         return AudioCaptureDeliveryWorker(
+            maxPending: consumer == .meeting ? 256 : 8,
             outputFormat: outputFormat,
             converter: converter,
             onBuffer: onBuffer,
@@ -159,6 +161,7 @@ final class AudioCaptureHub {
         var replacements: [Consumer: Slot] = [:]
         for (consumer, slot) in previous {
             let worker = try makeWorker(
+                for: consumer,
                 outputFormat: slot.outputFormat,
                 onBuffer: slot.onBuffer,
                 onLevel: slot.onLevel,
@@ -207,6 +210,7 @@ final class AudioCaptureHub {
             Log.audio.error("capture delivery backlog full — dropped audio buffer")
         }
         let worker = try makeWorker(
+            for: consumer,
             outputFormat: outputFormat,
             onBuffer: onBuffer,
             onLevel: onLevel,
@@ -239,14 +243,33 @@ final class AudioCaptureHub {
 
     /// Drop a consumer. Stops the shared input engine when the last one leaves.
     func unsubscribe(_ consumer: Consumer) {
-        lock.lock()
-        let slot = slots.removeValue(forKey: consumer)
-        let shouldStop = slots.isEmpty && isRunning
-        lock.unlock()
+        let (slot, shouldStop) = takeSlot(consumer)
         slot?.worker.stop()
         if shouldStop {
             stopEngine()
         }
+    }
+
+    private func takeSlot(_ consumer: Consumer) -> (Slot?, Bool) {
+        lock.lock()
+        let slot = slots.removeValue(forKey: consumer)
+        let shouldStop = slots.isEmpty && isRunning
+        lock.unlock()
+        return (slot, shouldStop)
+    }
+
+    /// Stop admitting this consumer's callbacks, then deliver everything already
+    /// accepted before returning. Meeting Stop uses this before closing its stream:
+    /// an immediate `unsubscribe` discards the worker's pending mic buffers and leaves
+    /// holes in both `audio.caf` and the transcript. The three-second ceiling keeps a
+    /// wedged callback from pinning Stop indefinitely; false means the caller must
+    /// report an incomplete recording.
+    func unsubscribeAndDrain(_ consumer: Consumer) async -> Bool {
+        let (slot, shouldStop) = takeSlot(consumer)
+        slot?.worker.stopAccepting()
+        if shouldStop { stopEngine() }
+        guard let slot else { return true }
+        return await slot.worker.drainAndStop(timeout: 3)
     }
 
     // MARK: - Engine
@@ -379,12 +402,15 @@ final class AudioCaptureHub {
 /// `AVAudioEngine` invokes the tap on a real-time thread. Allocating a converted buffer,
 /// running a KWS model, or calling an arbitrary consumer on that thread can make the engine
 /// miss its deadline. A serial DispatchQueue keeps each consumer's buffers ordered while the
-/// small pending count puts a hard ceiling on memory when a model falls behind. Overflow is
-/// coalesced and reported on a utility queue; the expensive work remains on the lane.
+/// pending count puts a hard ceiling on memory when a model falls behind. The meeting
+/// gets a larger lane because a missed packet would be absent from both live ASR and
+/// `audio.caf`; wake and dictation retain the short-latency eight-packet lane. Overflow
+/// is coalesced and reported on a utility queue; the expensive work remains on the lane.
 private final class AudioCaptureDeliveryWorker: @unchecked Sendable {
-    /// Eight 2048-frame buffers is about one second at 16 kHz: enough to absorb a short model
-    /// hiccup while making sustained overload visible instead of growing without bound.
-    static let maxPending = 8
+    /// The normal lane has eight packets. The meeting lane has 256 native tap packets,
+    /// about twelve seconds at 2048 frames/44.1 kHz, bounded to a few MB of audio.
+    /// Sustained overload is still reported instead of silently corrupting a recording.
+    private let maxPending: Int
 
     private struct Item: @unchecked Sendable {
         let source: AVAudioPCMBuffer
@@ -403,17 +429,23 @@ private final class AudioCaptureDeliveryWorker: @unchecked Sendable {
     private let onLevel: @Sendable (Float) -> Void
     private let onOverflow: @Sendable (Int) -> Void
     private var pending = 0
+    private var isAccepting = true
     private var isActive = true
     private var dropped = 0
     private var overflowReportScheduled = false
+    /// Includes a report already claimed by the utility callback but not yet
+    /// delivered. Stop waits for it before Session inspects the capture-loss count.
+    private let overflowReports = DispatchGroup()
 
     init(
+        maxPending: Int,
         outputFormat: AVAudioFormat,
         converter: AVAudioConverter?,
         onBuffer: @escaping @Sendable (AudioChunk) -> Void,
         onLevel: @escaping @Sendable (Float) -> Void,
         onOverflow: @escaping @Sendable (Int) -> Void
     ) {
+        self.maxPending = maxPending
         self.outputFormat = outputFormat
         self.converter = converter
         self.onBuffer = onBuffer
@@ -424,24 +456,20 @@ private final class AudioCaptureDeliveryWorker: @unchecked Sendable {
     /// Non-blocking from the audio callback. Returns false when this item was dropped.
     func enqueue(source: AVAudioPCMBuffer, level: Float, captureHostTime: UInt64? = nil) -> Bool {
         lock.lock()
-        guard isActive else {
+        guard isAccepting else {
             lock.unlock()
             return false
         }
-        guard pending < Self.maxPending else {
+        guard pending < maxPending else {
             dropped += 1
-            let count = dropped
             let report = !overflowReportScheduled
             overflowReportScheduled = true
+            if report { overflowReports.enter() }
             lock.unlock()
             if report {
-                DispatchQueue.global(qos: .utility).async { [weak self] in
-                    guard let self else { return }
-                    self.lock.lock()
-                    let total = self.dropped
-                    self.overflowReportScheduled = false
-                    self.lock.unlock()
-                    self.onOverflow(max(count, total))
+                DispatchQueue.global(qos: .utility).async { [self] in
+                    flushOverflow()
+                    overflowReports.leave()
                 }
             }
             return false
@@ -458,8 +486,47 @@ private final class AudioCaptureDeliveryWorker: @unchecked Sendable {
 
     func stop() {
         lock.lock()
+        isAccepting = false
         isActive = false
         lock.unlock()
+    }
+
+    func stopAccepting() {
+        lock.lock()
+        isAccepting = false
+        lock.unlock()
+    }
+
+    /// Claims any pending count exactly once. A utility callback queued before Stop
+    /// will see zero and do nothing if the drain claimed it first. If that callback
+    /// already claimed it, `overflowReports` still waits for its delivery.
+    private func flushOverflow() {
+        lock.lock()
+        let count = dropped
+        dropped = 0
+        overflowReportScheduled = false
+        lock.unlock()
+        if count > 0 { onOverflow(count) }
+    }
+
+    /// A serial-queue barrier waits only for accepted work. There is no polling or
+    /// fixed delay on the normal path; a stuck callback is cut off after the bound.
+    func drainAndStop(timeout: TimeInterval) async -> Bool {
+        stopAccepting()
+        flushOverflow()
+        let barrier = DispatchGroup()
+        barrier.enter()
+        queue.async { barrier.leave() }
+        let drained = await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async { [self] in
+                let deadline = DispatchTime.now() + timeout
+                let audioDone = barrier.wait(timeout: deadline) == .success
+                let reportsDone = overflowReports.wait(timeout: deadline) == .success
+                continuation.resume(returning: audioDone && reportsDone)
+            }
+        }
+        stop()
+        return drained
     }
 
     private func deliver(_ item: Item) {
@@ -624,6 +691,69 @@ extension AudioCaptureHub {
         }
         if !hub.isSubscribed(.meeting) {
             failures.append("meeting consumer missing after subscribe")
+        }
+
+        // A short scheduling stall must not punch holes in a meeting's *file* as
+        // well as its live transcript. The ordinary eight-packet lane above should
+        // overflow; the meeting lane must retain the same 32-packet burst in order,
+        // including every packet still queued when Stop unsubscribes it.
+        let meetingDelivery = CaptureSelfTestRecorder()
+        do {
+            try hub.subscribe(
+                .meeting,
+                outputFormat: format,
+                onBuffer: { chunk in
+                    meetingDelivery.append(
+                        AudioConversion.samples(of: chunk.buffer).first ?? -1,
+                        hostTime: chunk.captureHostTime)
+                    Thread.sleep(forTimeInterval: 0.01)
+                },
+                onOverflow: { count in meetingDelivery.overflow(count) }
+            )
+            for index in 0..<32 {
+                guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 32) else { break }
+                buffer.frameLength = 32
+                buffer.floatChannelData?[0].initialize(repeating: Float(index), count: 32)
+                hub.fanOut(buffer, captureHostTime: UInt64(index + 2000))
+            }
+            let drained = await hub.unsubscribeAndDrain(.meeting)
+            let report = meetingDelivery.snapshot()
+            if !drained || report.values != (0..<32).map({ Float($0) }) || report.overflow != 0 {
+                failures.append("meeting Stop lost queued audio (\(report.values.count)/32, drops=\(report.overflow), drained=\(drained))")
+            }
+            try hub.subscribe(.meeting, outputFormat: format, onBuffer: sink, onLevel: level)
+        } catch {
+            failures.append("meeting delivery subscribe failed: \(error.localizedDescription)")
+        }
+
+        // Overflow is reported from a utility queue. A Stop that only drains the
+        // audio queue can return before that report reaches the meeting's loss count.
+        // Force overflow in a one-packet worker, then require the exact count at
+        // return and no delayed duplicate from its already queued report callback.
+        let overflowAtStop = CaptureSelfTestRecorder()
+        let overflowWorker = AudioCaptureDeliveryWorker(
+            maxPending: 1,
+            outputFormat: format,
+            converter: nil,
+            onBuffer: { _ in Thread.sleep(forTimeInterval: 0.02) },
+            onLevel: { _ in },
+            onOverflow: { count in overflowAtStop.overflow(count) }
+        )
+        if let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 32) {
+            buffer.frameLength = 32
+            var rejected = 0
+            for _ in 0..<16 {
+                if !overflowWorker.enqueue(source: buffer, level: 0) { rejected += 1 }
+            }
+            let drained = await overflowWorker.drainAndStop(timeout: 1)
+            let atReturn = overflowAtStop.snapshot().overflow
+            try? await Task.sleep(for: .milliseconds(30))
+            let afterReturn = overflowAtStop.snapshot().overflow
+            if !drained || rejected == 0 || atReturn != rejected || afterReturn != rejected {
+                failures.append("Stop missed or doubled overflow (dropped=\(rejected), at return=\(atReturn), later=\(afterReturn), drained=\(drained))")
+            }
+        } else {
+            failures.append("overflow drain fixture buffer unavailable")
         }
 
         // Dictation path must not leave the old hold latch set without a hub seat.

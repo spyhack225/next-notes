@@ -109,7 +109,7 @@ enum MeetingResumeSelfTest {
                       excludingMeetingIDs: recoveringIDs.subtracting([a.id]), store: store))
             let recoveredOrphan = store.meeting(id: orphan.id)
             check("orphan audio was linked", recoveredOrphan?.audioFileName == MeetingStore.audioFile)
-            check("orphan audio was conservatively kept", recoveredOrphan?.audioIsTemporary == false)
+            check("orphan audio keeps its unknown choice", recoveredOrphan?.audioIsTemporary == nil)
             check("orphan audio is readable by final pass",
                   recoveredOrphan.flatMap { store.audioURL(for: $0) } != nil)
             check("recovery replaced the calendar's planned end",
@@ -153,7 +153,10 @@ enum MeetingResumeSelfTest {
                 done.status = .done
                 store.save(done)
                 // Exactly where `NotesService.summarize(announce: true)` releases it.
-                store.releaseAudio(for: meeting.id, notesWritten: true)
+                // Force the setting that exposed the installed-app failure, without
+                // changing the owner's preference or relying on its current value.
+                store.releaseAudio(for: meeting.id, notesWritten: true,
+                                   deleteKeptAfterNotes: true)
             }
             func finalPassFake(_ meeting: Meeting) {
                 order.append(("finalPass", meeting.id.uuidString))

@@ -286,8 +286,11 @@ final class SystemAudioCapture: @unchecked Sendable {
     private func startIO() throws {
         var created: AudioDeviceIOProcID?
         let status = AudioDeviceCreateIOProcIDWithBlock(&created, aggregateID, ioQueue) {
-            [weak self] _, inputData, _, _, _ in
-            self?.handle(inputData)
+            [weak self] _, inputData, inputTime, _, _ in
+            let stamp = inputTime.pointee
+            self?.handle(
+                inputData,
+                captureHostTime: stamp.mFlags.contains(.hostTimeValid) ? stamp.mHostTime : nil)
         }
         guard status == noErr, let created else {
             throw SystemAudioError.ioProcCreationFailed(status)
@@ -325,7 +328,7 @@ final class SystemAudioCapture: @unchecked Sendable {
 
     // MARK: - Audio thread
 
-    private func handle(_ inputData: UnsafePointer<AudioBufferList>) {
+    private func handle(_ inputData: UnsafePointer<AudioBufferList>, captureHostTime: UInt64?) {
         guard let tapFormat,
               let buffer = AVAudioPCMBuffer(pcmFormat: tapFormat, bufferListNoCopy: inputData)
         else { return }
@@ -341,7 +344,7 @@ final class SystemAudioCapture: @unchecked Sendable {
         // this callback returns — so nothing downstream may ever see this buffer directly.
         guard let converter else {
             if let copy = AudioConversion.copy(buffer) {
-                onBuffer?(AudioChunk(buffer: copy))
+                onBuffer?(AudioChunk(buffer: copy, captureHostTime: captureHostTime))
             }
             return
         }
@@ -349,7 +352,7 @@ final class SystemAudioCapture: @unchecked Sendable {
         guard let converted = AudioConversion.convert(buffer, to: outputFormat, using: converter) else {
             return
         }
-        onBuffer?(AudioChunk(buffer: converted))
+        onBuffer?(AudioChunk(buffer: converted, captureHostTime: captureHostTime))
     }
 
     // MARK: - Core Audio lookups
