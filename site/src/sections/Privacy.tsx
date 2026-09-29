@@ -31,7 +31,7 @@ export default function Privacy() {
       <div className="max-w-6xl mx-auto">
         <motion.h2
           {...fadeUp(0)}
-          className="text-5xl md:text-7xl lg:text-8xl font-medium tracking-[-2px] text-center leading-[1.02]"
+          className="text-5xl md:text-7xl lg:text-8xl font-medium tracking-display text-center leading-display"
         >
           Every other tool{" "}
           <span className="font-serif italic font-normal">waits for you.</span>

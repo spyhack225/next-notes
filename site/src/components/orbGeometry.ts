@@ -586,7 +586,7 @@ function twists(count: number): Twist[] {
 function solveCycle(t: number, count: number, slot: number, rest: number): SolveCycle {
   const span = 2 * count * slot;
   const tc = t % (span + rest);
-  const amount = new Array<number>(count).fill(0);
+  const amount = Array.from({ length: count }, () => 0);
   let hand = -1;
   if (tc < span) {
     const index = Math.min(2 * count - 1, Math.floor(tc / slot));

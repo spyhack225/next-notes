@@ -1,0 +1,17 @@
+{
+  "jsPlugins": ["@shadcn/lint"],
+  "ignorePatterns": ["docs/**", "dist/**", "node_modules/**"],
+  "settings": {
+    "shadcn": {
+      "note": "Site design rules live in AGENTS.md under 'Design system'."
+    }
+  },
+  "rules": {
+    "shadcn/no-restyle": "error",
+    "shadcn/no-raw-colors": "error",
+    "shadcn/no-arbitrary-values": "error",
+    "shadcn/no-inline-styles": "error",
+    "shadcn/no-unknown-classes": "error",
+    "shadcn/require-static-classes": "error"
+  }
+}

@@ -1,7 +1,9 @@
-import { Github } from "lucide-react";
+import { Github, Moon, Sun } from "lucide-react";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import Orb from "../components/Orb";
 import { DOWNLOAD_URL, REPO_URL } from "../lib/motion";
+import { getTheme, subscribeTheme, toggleTheme, type Theme } from "../lib/theme";
 
 const links = [
   { label: "How it works", href: "#how-it-works" },
@@ -10,6 +12,10 @@ const links = [
 ];
 
 export default function Navbar() {
+  const [theme, setTheme] = useState<Theme>(getTheme);
+
+  useEffect(() => subscribeTheme(setTheme), []);
+
   return (
     <motion.header
       initial={{ opacity: 0, y: -12 }}
@@ -20,7 +26,7 @@ export default function Navbar() {
       <nav className="flex items-center justify-between gap-6">
         <a href="#top" className="flex items-center gap-2.5 shrink-0">
           <Orb size={28} />
-          <span className="font-bold tracking-[-0.02em]">Next Notes</span>
+          <span className="font-bold tracking-logo">Next Notes</span>
         </a>
 
         <div className="hidden md:flex items-center gap-3 text-sm">
@@ -44,6 +50,18 @@ export default function Navbar() {
           >
             Download
           </a>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            className="liquid-glass w-10 h-10 rounded-full flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors"
+          >
+            {theme === "dark" ? (
+              <Sun className="w-4.5 h-4.5" strokeWidth={1.6} />
+            ) : (
+              <Moon className="w-4.5 h-4.5" strokeWidth={1.6} />
+            )}
+          </button>
           <a
             href={REPO_URL}
             target="_blank"
@@ -51,7 +69,7 @@ export default function Navbar() {
             aria-label="Next Notes on GitHub"
             className="liquid-glass w-10 h-10 rounded-full flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors"
           >
-            <Github className="w-[18px] h-[18px]" strokeWidth={1.6} />
+            <Github className="w-4.5 h-4.5" strokeWidth={1.6} />
           </a>
         </div>
       </nav>

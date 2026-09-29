@@ -26,12 +26,10 @@ function Word({
 }) {
   const opacity = useTransform(progress, range, [0.15, 1]);
   return (
-    <span className="relative inline-block mr-[0.25em]">
+    <span className="relative inline-block mr-word">
       <motion.span
-        style={{
-          opacity,
-          color: highlighted ? "hsl(var(--foreground))" : "hsl(var(--hero-subtitle))",
-        }}
+        className={`mission-word ${highlighted ? "text-foreground" : "text-hero-subtitle"}`}
+        style={{ "--word-reveal": opacity } as React.CSSProperties}
       >
         {word}
       </motion.span>
@@ -85,7 +83,7 @@ export default function Mission() {
         aria-hidden="true"
       >
         {/* Present and idle — waiting on you, on purpose. */}
-        <div className="scale-[0.75] sm:scale-90 md:scale-100">
+        <div className="scale-75 sm:scale-90 md:scale-100">
           <Orb state="breathing" size={420} />
         </div>
       </div>
@@ -97,7 +95,7 @@ export default function Mission() {
           start={0}
           end={0.7}
           highlight
-          className="text-2xl md:text-4xl lg:text-5xl font-medium tracking-[-1px] leading-[1.25]"
+          className="text-2xl md:text-4xl lg:text-5xl font-medium tracking-headline leading-reveal"
         />
         <RevealParagraph
           text={PARAGRAPH_TWO}
@@ -105,7 +103,7 @@ export default function Mission() {
           start={0.65}
           end={1}
           highlight={false}
-          className="text-xl md:text-2xl lg:text-3xl font-medium mt-10 leading-[1.35]"
+          className="text-xl md:text-2xl lg:text-3xl font-medium mt-10 leading-settle"
         />
       </div>
     </section>

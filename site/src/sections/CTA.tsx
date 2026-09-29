@@ -9,11 +9,11 @@ export default function CTA() {
         className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30"
         aria-hidden="true"
       >
-        <div className="scale-[0.6] sm:scale-[0.8] md:scale-100">
+        <div className="scale-cta-backdrop sm:scale-cta-backdrop-lg md:scale-100">
           <Orb state="connecting" size={560} />
         </div>
       </div>
-      <div className="absolute inset-0 bg-background/45 z-[1] pointer-events-none" />
+      <div className="absolute inset-0 bg-background/45 z-veil pointer-events-none" />
 
       <div className="relative z-10 flex flex-col items-center text-center">
         <motion.div {...fadeUp(0)}>
@@ -22,7 +22,7 @@ export default function CTA() {
 
         <motion.h2
           {...fadeUp(0.1)}
-          className="text-4xl md:text-6xl font-medium tracking-[-1.5px] mt-8"
+          className="text-4xl md:text-6xl font-medium tracking-section mt-8"
         >
           Start <span className="font-serif italic font-normal">talking.</span>
         </motion.h2>

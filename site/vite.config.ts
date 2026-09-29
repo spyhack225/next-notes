@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 // Served from the root of its own domain — https://next-notes.com/ — on DigitalOcean App
 // Platform, which publishes `docs/` as the site root. No repo-name prefix: that was needed
@@ -24,5 +25,5 @@ export default defineConfig({
     // instead, which is the only part that accumulates.
     emptyOutDir: false,
   },
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
 });

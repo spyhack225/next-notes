@@ -54,8 +54,9 @@ network request while a meeting is open.
 
 ## Landing page (`site/`)
 
-React, React DOM, Framer Motion, Tailwind CSS, PostCSS, Autoprefixer, Vite and TypeScript
-are MIT; `lucide-react` is ISC; the Fontsource packages redistribute Inter and
+React, React DOM, Framer Motion, Tailwind CSS (v4, via `@tailwindcss/vite`), Vite and
+TypeScript are MIT; `lucide-react` is ISC; Oxlint and `@shadcn/lint` (the site's lint
+gate) are MIT; the Fontsource packages redistribute Inter and
 Instrument Serif under the SIL Open Font License 1.1. The fonts keep their OFL terms when
 the site is copied; the OFL's only real constraint — do not sell the fonts on their own and
 do not rename them — is untouched by the AGPL.

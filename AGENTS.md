@@ -1716,6 +1716,29 @@ orbGap / xxxl` and `DS.Font.eyebrow / eyebrowTracking / emptyStateTitle / emptyS
 are the layout and type this vocabulary needs. As always: if a view needs a number that is
 not here, add it here rather than inlining it.
 
+### The site's toolchain
+
+`site/` builds with Vite + React + **Tailwind v4** (`@tailwindcss/vite`): there is no
+`tailwind.config.js` and no PostCSS config — the theme is `src/index.css`'s `@theme inline`
+block. The build writes to `docs/`, which is **tracked** and served by DigitalOcean, so
+`npm run build` changes files git sees. From `site/`, the whole gate is:
+
+```
+npm run typecheck && npm run lint && npm run build
+```
+
+`npm run lint` is Oxlint plus `@shadcn/lint` with **all six rules at error**
+(`site/.oxlintrc.json`), and the bar is zero findings. The plugin's settings line names
+this paragraph as the home of the site's design rules ("Site design rules live in AGENTS.md
+under 'Design system'") — keep the two in sync if either moves. What the rules shape: an
+arbitrary value (`tracking-[-1.5px]`) is an error, so the page's type scale lives in
+`@theme` as `--tracking-* / --leading-* / --text-*` and one-off layout becomes an
+`@utility` (`hero-rows`, `z-veil`); an inline style is an error, so a dynamic value goes
+through a CSS custom property (`--orb-size`, `--word-reveal`) consumed by a class.
+`.oxlintrc.json` ignores `docs/` so the build never lints its own bundle, and
+`no-unknown-classes` is what makes a forgotten token a red lint line rather than an
+unstyled element — verify it once by adding a bogus class and watching it fail.
+
 ## macOS specifics
 
 **Ad-hoc signing is not "unsigned", it is a new identity every build.** An ad-hoc signature

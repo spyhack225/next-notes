@@ -13,10 +13,11 @@ import Orb from "./Orb";
  * column of `--hero-col` (index.css) for the type, and the decoration lives in lanes that
  * are defined as what is left over:
  *
- *   • the two side cards sit in `calc((100% - var(--hero-col)) / 2)` gutters, so they
+ *   • the two side cards sit in `.hero-lane` gutters — the leftover of the viewport minus
+   *     `--hero-col` — so they
  *     cannot reach the column no matter how wide the window is;
  *   • the island and the chips sit in the outer rows of the hero's
- *     `grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)]`, above and below the type rather
+ *     `hero-rows`, above and below the type rather
  *     than behind it, so they cannot reach it no matter how tall the window is.
  *
  * Everything is `aria-hidden`: every claim here is made in words elsewhere on the page, so
@@ -62,8 +63,6 @@ function useAnim() {
  */
 export default function HeroStage() {
   const anim = useAnim();
-  const lane = { width: "calc((100% - var(--hero-col)) / 2)" };
-
   return (
     <div
       className="absolute inset-0 z-0 hidden min-[1440px]:block pointer-events-none select-none"
@@ -71,17 +70,16 @@ export default function HeroStage() {
     >
       {/* 1 — A voice ask. The Mac already has the context; the agent answers from it. */}
       <div
-        className="absolute inset-y-0 left-0 flex items-center justify-center px-4 2xl:px-8"
-        style={lane}
+        className="hero-lane absolute inset-y-0 left-0 flex items-center justify-center px-4 2xl:px-8"
       >
         <motion.div
           {...anim(0)}
           data-hero-card="ask"
-          className="w-full max-w-[300px] liquid-glass rounded-2xl p-4"
+          className="w-full max-w-75 liquid-glass rounded-2xl p-4"
         >
           <div className="flex items-center gap-2 mb-3">
             <Orb state="listening" size={28} />
-            <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="text-micro uppercase tracking-caption text-muted-foreground">
               Asking
             </span>
           </div>
@@ -96,17 +94,16 @@ export default function HeroStage() {
 
       {/* 5 — Acting on the Mac. Same gutter; it arrives after that card leaves. */}
       <div
-        className="absolute inset-y-0 left-0 flex items-center justify-center px-4 2xl:px-8"
-        style={lane}
+        className="hero-lane absolute inset-y-0 left-0 flex items-center justify-center px-4 2xl:px-8"
       >
         <motion.div
           {...anim(CYCLE * 0.48)}
           data-hero-card="agent"
-          className="w-full max-w-[300px] liquid-glass rounded-2xl p-4"
+          className="w-full max-w-75 liquid-glass rounded-2xl p-4"
         >
           <div className="flex items-center gap-2 mb-3">
             <Orb state="searching" size={28} />
-            <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="text-micro uppercase tracking-caption text-muted-foreground">
               Acting
             </span>
           </div>
@@ -121,17 +118,16 @@ export default function HeroStage() {
 
       {/* 3 — The approval. The whole safety story in one card: it asks, you press. */}
       <div
-        className="absolute inset-y-0 right-0 flex items-center justify-center px-4 2xl:px-8"
-        style={lane}
+        className="hero-lane absolute inset-y-0 right-0 flex items-center justify-center px-4 2xl:px-8"
       >
         <motion.div
           {...anim(CYCLE * 0.42)}
           data-hero-card="proposal"
-          className="w-full max-w-[300px] liquid-glass rounded-2xl p-4"
+          className="w-full max-w-75 liquid-glass rounded-2xl p-4"
         >
           <div className="flex items-center gap-2 mb-3">
             <Orb state="searching" size={28} />
-            <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="text-micro uppercase tracking-caption text-muted-foreground">
               Proposed
             </span>
           </div>
@@ -139,10 +135,10 @@ export default function HeroStage() {
             Schedule &ldquo;Cutover&rdquo; — Wednesday the 22nd, 10:00
           </p>
           <div className="flex items-center gap-2 mt-3">
-            <span className="text-[11px] rounded-full bg-foreground text-background px-3 py-1">
+            <span className="text-micro rounded-full bg-foreground text-background px-3 py-1">
               Approve
             </span>
-            <span className="text-[11px] rounded-full px-3 py-1 text-muted-foreground border border-border">
+            <span className="text-micro rounded-full px-3 py-1 text-muted-foreground border border-border">
               Dismiss
             </span>
           </div>
@@ -174,7 +170,7 @@ export function HeroStageIsland() {
       >
         <Orb state="listening" size={22} />
         <span className="text-sm text-foreground/90 whitespace-nowrap">Listening</span>
-        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+        <span className="text-micro text-muted-foreground whitespace-nowrap">
           just you · on this Mac
         </span>
       </motion.div>
@@ -206,7 +202,7 @@ export function HeroStageDestinations() {
         {["It remembers you", "It stays local", "It waits on you"].map((t) => (
           <span
             key={t}
-            className="liquid-glass rounded-full px-4 py-2 text-[11px] text-muted-foreground whitespace-nowrap"
+            className="liquid-glass rounded-full px-4 py-2 text-micro text-muted-foreground whitespace-nowrap"
           >
             {t}
           </span>

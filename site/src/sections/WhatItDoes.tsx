@@ -49,14 +49,14 @@ export default function WhatItDoes() {
       <div className="max-w-6xl mx-auto">
         <motion.p
           {...fadeUp(0)}
-          className="text-xs tracking-[3px] uppercase text-muted-foreground text-center"
+          className="text-xs tracking-eyebrow uppercase text-muted-foreground text-center"
         >
           What it does
         </motion.p>
 
         <motion.h2
           {...fadeUp(0.1)}
-          className="text-4xl md:text-6xl font-medium tracking-[-1.5px] text-center mt-6 leading-[1.05]"
+          className="text-4xl md:text-6xl font-medium tracking-section text-center mt-6 leading-section"
         >
           Ask. It knows you. Then it{" "}
           <span className="font-serif italic font-normal">follows through.</span>
@@ -67,7 +67,7 @@ export default function WhatItDoes() {
           {...fadeUp(0.2)}
           className="liquid-glass rounded-2xl mt-16 p-8 md:p-12 max-w-3xl mx-auto"
         >
-          <p className="text-[11px] tracking-[2px] uppercase text-muted-foreground">
+          <p className="text-micro tracking-label uppercase text-muted-foreground">
             You said
           </p>
           <p className="text-lg md:text-xl mt-3 text-muted-foreground leading-relaxed">
@@ -77,7 +77,7 @@ export default function WhatItDoes() {
 
           <div className="h-px bg-border/50 my-8" />
 
-          <p className="text-[11px] tracking-[2px] uppercase text-muted-foreground">
+          <p className="text-micro tracking-label uppercase text-muted-foreground">
             It answered
           </p>
           <p className="text-lg md:text-xl mt-3 leading-relaxed">

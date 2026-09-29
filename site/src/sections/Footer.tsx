@@ -22,7 +22,7 @@ export default function Footer() {
             aria-label="Next Notes on GitHub"
             className="liquid-glass w-10 h-10 rounded-full flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors"
           >
-            <Github className="w-[18px] h-[18px]" strokeWidth={1.6} />
+            <Github className="w-4.5 h-4.5" strokeWidth={1.6} />
           </a>
         </div>
       </div>

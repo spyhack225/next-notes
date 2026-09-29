@@ -23,7 +23,7 @@ export default function Hero() {
   return (
     <section
       id="top"
-      className="relative min-h-screen grid grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] justify-items-center px-6 sm:px-8 md:px-28 overflow-hidden"
+      className="relative min-h-screen grid hero-rows justify-items-center px-6 sm:px-8 md:px-28 overflow-hidden"
     >
       {/* No stock video here, or anywhere. The mark itself is the backdrop — the slow
           face-on ring, so it sits behind the headline rather than competing with it.
@@ -34,30 +34,28 @@ export default function Hero() {
       >
         {/* 520px of canvas is wider than a phone. Scale rather than crop: the ring is
             the mark, and a cropped ring reads as a mistake. */}
-        <div className="opacity-50 scale-[0.62] sm:scale-[0.85] md:scale-100">
+        <div className="opacity-50 scale-hero-backdrop sm:scale-hero-backdrop-lg md:scale-100">
           <Orb state="breathing" size={520} />
         </div>
       </div>
       <HeroStage />
-      <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-background to-transparent pointer-events-none z-[1]" />
+      <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-background to-transparent pointer-events-none z-veil" />
 
       <HeroStageIsland />
 
       <div
-        className="row-start-2 relative z-10 flex flex-col items-center text-center w-full"
-        style={{ maxWidth: "var(--hero-col)" }}
+        className="row-start-2 relative z-10 flex flex-col items-center text-center w-full max-w-hero"
       >
         <motion.h1
           {...fadeUp(0)}
-          className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-medium tracking-[-1px] sm:tracking-[-2px] leading-[1.02]"
+          className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-medium tracking-headline sm:tracking-display leading-display"
         >
           Your <span className="font-serif italic font-normal">Mac</span> is your best <span className="font-serif italic font-normal">personal agent</span>.
         </motion.h1>
 
         <motion.p
           {...fadeUp(0.15)}
-          className="mt-6 sm:mt-7 text-base sm:text-lg max-w-xl leading-relaxed"
-          style={{ color: "hsl(var(--hero-subtitle))" }}
+          className="mt-6 sm:mt-7 text-base sm:text-lg max-w-xl leading-relaxed text-hero-subtitle"
         >
           It already knows you — your files, your calendar, the names you use, a model
           that never leaves the desk. Next Notes turns that Mac into your default local

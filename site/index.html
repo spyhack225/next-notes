@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Theme before first paint: a stored choice wins, otherwise the system's. Runs
+         synchronously in the head so the page never flashes the wrong substrate.
+         lib/theme.ts is the same three rules after hydration — keep them in step. -->
+    <script>
+      (function () {
+        var stored = null;
+        try {
+          stored = localStorage.getItem("theme");
+        } catch (e) {}
+        var dark =
+          stored === "dark" ||
+          (stored !== "light" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.add(dark ? "dark" : "light");
+      })();
+    </script>
+
     <title>Next Notes — your Mac is the only agent you need</title>
     <meta
       name="description"
@@ -39,7 +56,8 @@
     <meta name="twitter:image" content="https://next-notes.com/og-image.png" />
     <meta name="twitter:image:alt" content="Next Notes — your Mac is the only agent you need. It stays with you." />
 
-    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0b" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
     <link rel="icon" href="./favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/png" href="./icon.png" sizes="256x256" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />

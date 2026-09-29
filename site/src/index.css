@@ -5,12 +5,84 @@
 @import "@fontsource/instrument-serif/400.css";
 @import "@fontsource/instrument-serif/400-italic.css";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/*
+ * The palette as Tailwind v4 tokens. Each maps onto the CSS variable that carries the
+ * actual colour, so a utility (`bg-background`, `text-muted-foreground`) resolves
+ * through `:root` at runtime and a theme flip needs no rebuild — only the variables
+ * below change between dark and light. `@shadcn/lint` reads these declarations as the
+ * list of colours this design system allows.
+ */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-hero-subtitle: hsl(var(--hero-subtitle));
+
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+
+  /*
+   * The type scale. Every value was tuned on this page — the eyebrows, the card
+   * captions, the headline tightenings — and `@shadcn/lint` refuses arbitrary
+   * values, so the scale lives here rather than in class brackets.
+   */
+  --tracking-display: -2px;
+  --tracking-section: -1.5px;
+  --tracking-headline: -1px;
+  --tracking-title: -0.01em;
+  --tracking-logo: -0.02em;
+  --tracking-eyebrow: 3px;
+  --tracking-label: 2px;
+  --tracking-caption: 0.14em;
+  --tracking-step: 0.2em;
+
+  --leading-display: 1.02;
+  --leading-section: 1.05;
+  --leading-reveal: 1.25;
+  --leading-settle: 1.35;
+
+  /* The micro caps: the hero card labels and the transcript labels. */
+  --text-micro: 11px;
+
+  /* The hero's reserved centre column, read from the one variable that defines it. */
+  --container-hero: var(--hero-col);
+
+  /* The gap between the words of the scroll-reveal paragraphs, in their own em so it
+     scales with the type. */
+  --spacing-word: 0.25em;
+
+  /* Backdrop orbs shrink on narrow viewports instead of being cropped. */
+  --scale-hero-backdrop: 0.62;
+  --scale-hero-backdrop-lg: 0.85;
+  --scale-cta-backdrop: 0.6;
+  --scale-cta-backdrop-lg: 0.8;
+}
 
 @layer base {
   :root {
+    /* Dark is the reference theme — the page's vocabulary (white-ink orbs on black)
+       was designed against it. The `light` block below overrides the same variables. */
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
 
@@ -35,10 +107,56 @@
 
     --hero-subtitle: 210 17% 95%;
 
+    /* The one orb ink. Depth is carried by radius and opacity alone; the hue follows
+       the theme so an orb reads on either substrate. */
+    --orb-ink: 0 0% 100%;
+
+    /* The glass pane's rim light, split out so the light theme can invert it. */
+    --glass-fill: 255 255 255;
+    --glass-fill-opacity: 0.01;
+    --glass-rim-opacity: 0.45;
+    --glass-rim-soft-opacity: 0.15;
+    --glass-highlight-opacity: 0.1;
+
     /* The width reserved for the hero's type. HeroStage derives its side lanes from
        what is left over, so this is the one number that keeps the decoration and the
        headline from ever meeting. Equal to Tailwind's max-w-4xl. */
     --hero-col: 56rem;
+  }
+
+  :root.light {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 4%;
+
+    --card: 0 0% 97%;
+    --card-foreground: 0 0% 4%;
+
+    --primary: 0 0% 4%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 92%;
+    --secondary-foreground: 0 0% 25%;
+
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: 170 20% 32%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 0 0% 86%;
+    --input: 0 0% 84%;
+    --ring: 0 0% 60%;
+
+    --hero-subtitle: 210 10% 20%;
+
+    --orb-ink: 0 0% 4%;
+
+    /* On a light substrate the pane's edge comes from shade, not light. */
+    --glass-fill: 0 0 0;
+    --glass-fill-opacity: 0.02;
+    --glass-rim-opacity: 0.2;
+    --glass-rim-soft-opacity: 0.08;
+    --glass-highlight-opacity: 0.08;
   }
 
   * {
@@ -59,15 +177,46 @@
   }
 }
 
+/*
+ * The hero's three-row grid: outer rows flex, the type owns the middle. Named because
+ * both Hero and HeroStage's layout contract refer to it as one thing.
+ */
+@utility hero-rows {
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+/* The layer the bottom gradients sit on: above the backdrop, below the content. */
+@utility z-veil {
+  z-index: 1;
+}
+
+/* A side lane: what is left of the viewport once the hero's centre column is reserved. */
+.hero-lane {
+  width: calc((100% - var(--hero-col)) / 2);
+}
+
+/* The orb canvas: sized by --orb-size, set from the component's size prop. */
+.orb-canvas {
+  display: block;
+  width: var(--orb-size);
+  height: var(--orb-size);
+}
+
+/* One word of the Mission reveal. Framer Motion drives --word-reveal per scroll frame. */
+.mission-word {
+  opacity: var(--word-reveal, 1);
+}
+
 /* The one surface treatment on the page: a near-invisible pane whose only edge is a
-   light that falls on its top and bottom lips. Copied verbatim from the spec. */
+   light that falls on its top and bottom lips. Copied verbatim from the spec. The fill
+   and rim run off theme variables so the same pane reads on a light substrate. */
 .liquid-glass {
-  background: rgba(255, 255, 255, 0.01);
+  background: rgb(var(--glass-fill) / var(--glass-fill-opacity));
   background-blend-mode: luminosity;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   border: none;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 1px rgb(var(--glass-fill) / var(--glass-highlight-opacity));
   position: relative;
   overflow: hidden;
 }
@@ -80,12 +229,12 @@
   padding: 1.4px;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.45) 0%,
-    rgba(255, 255, 255, 0.15) 20%,
-    rgba(255, 255, 255, 0) 40%,
-    rgba(255, 255, 255, 0) 60%,
-    rgba(255, 255, 255, 0.15) 80%,
-    rgba(255, 255, 255, 0.45) 100%
+    rgb(var(--glass-fill) / var(--glass-rim-opacity)) 0%,
+    rgb(var(--glass-fill) / var(--glass-rim-soft-opacity)) 20%,
+    rgb(var(--glass-fill) / 0) 40%,
+    rgb(var(--glass-fill) / 0) 60%,
+    rgb(var(--glass-fill) / var(--glass-rim-soft-opacity)) 80%,
+    rgb(var(--glass-fill) / var(--glass-rim-opacity)) 100%
   );
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,

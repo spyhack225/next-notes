@@ -62,14 +62,14 @@ export default function HowItWorks() {
       <div className="max-w-6xl mx-auto">
         <motion.p
           {...fadeUp(0)}
-          className="text-xs tracking-[3px] uppercase text-muted-foreground text-center"
+          className="text-xs tracking-eyebrow uppercase text-muted-foreground text-center"
         >
           How it works
         </motion.p>
 
         <motion.h2
           {...fadeUp(0.1)}
-          className="text-4xl md:text-6xl font-medium tracking-[-1.5px] text-center mt-6 leading-[1.05]"
+          className="text-4xl md:text-6xl font-medium tracking-section text-center mt-6 leading-section"
         >
           What you no longer{" "}
           <span className="font-serif italic font-normal">have to do.</span>
@@ -80,12 +80,12 @@ export default function HowItWorks() {
             <motion.div key={s.n} {...fadeUp(0.15 + i * 0.08)} className="flex flex-col">
               <div className="flex items-center gap-3 mb-6">
                 <Orb state={s.orb} size={64} />
-                <span className="text-xs tabular-nums tracking-[0.2em] text-muted-foreground">
+                <span className="text-xs tabular-nums tracking-step text-muted-foreground">
                   {s.n}
                 </span>
               </div>
 
-              <h3 className="font-semibold text-lg tracking-[-0.01em]">{s.value}</h3>
+              <h3 className="font-semibold text-lg tracking-title">{s.value}</h3>
               <p className="text-muted-foreground text-sm leading-relaxed mt-3">{s.body}</p>
 
               <p className="text-muted-foreground/60 text-xs leading-relaxed mt-4 pt-4 border-t border-border/40">
