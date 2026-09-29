@@ -314,6 +314,39 @@ enum NativeToolsSelfTest {
                 }
             }
         }
+        // P1-04. The exact completion `inclusionai/ling-3.0-flash-sante:free` returned for
+        // C01 on 2026-09-28, with the U+200B that its tokenizer put inside the tags. A
+        // complete, correct `get_agenda` call that the parser threw away as `truncated`,
+        // which re-planned to the same text and put the model on 0/10.
+        //
+        // The zero-width spaces are built with `\u{200B}` rather than pasted, because a
+        // pasted one is invisible in a diff and in review — which is the whole difficulty.
+        let z = "\u{200B}"
+        let captured = "<\(z)tool_call>get_agenda\n"
+            + "<arg_key>date</arg_key>\n"
+            + "<arg_value>2026-09-28</arg_value>\n"
+            + "</\(z)tool_call>"
+        let invisibleParsed = AgentToolCallParser.parse(captured, knownNames: schemaNames)
+        check("a call whose tags carry a zero-width space was thrown away",
+              invisibleParsed.calls.count == 1
+                && invisibleParsed.calls.first?.name == "get_agenda"
+                && invisibleParsed.calls.first?.arguments["date"] == "2026-09-28",
+              "the captured ling completion did not parse; got calls=\(invisibleParsed.calls) "
+                + "malformed=\(invisibleParsed.malformed.map(\.kind.rawValue))")
+        check("a call whose tags carry a zero-width space also reported itself malformed",
+              invisibleParsed.malformed.isEmpty,
+              "the call parsed and still logged as malformed: \(invisibleParsed.malformed)")
+        // And the stripper is the one place that does it, so nothing else has to know.
+        check("the invisible marks survive a round trip through the stripper",
+              AgentToolCallParser.stripInvisibleMarks("a\(z)b") == "ab"
+                && AgentToolCallParser.stripInvisibleMarks("plain") == "plain",
+              "the stripper did not remove U+200B, or altered text without one")
+        // A call with no invisible mark is untouched, newlines included: the Hermes format is
+        // line-oriented and a `CharacterSet.controlCharacters` sweep would take them with it.
+        check("the stripper removed a newline",
+              AgentToolCallParser.stripInvisibleMarks("a\nb").contains("\n"),
+              "the stripper took a newline, which the Hermes format is line-oriented on")
+
         let tags = accumulator.tags()
         let parsed = AgentToolCallParser.parse(tags, knownNames: schemaNames)
         check("split deltas reassemble", parsed.calls.count == 1

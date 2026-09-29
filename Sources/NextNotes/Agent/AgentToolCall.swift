@@ -120,7 +120,7 @@ enum AgentToolCallParser {
     /// the risk a tolerant parser carries, and the reason an unmarked object is read only at
     /// the start of the completion or inside a code fence, and only for a name in this set.
     static func parse(_ text: String, knownNames: Set<String>) -> ToolCallParse {
-        let body = stripReasoningBlock(text)
+        let body = stripInvisibleMarks(stripReasoningBlock(text))
         var result = ToolCallParse()
         var consumed: [Range<String.Index>] = []
         func isFree(_ range: Range<String.Index>) -> Bool {
@@ -268,6 +268,50 @@ enum AgentToolCallParser {
     }
 
     /// An XML call as the JSON body the decoder understands.
+    /// The Hermes line form. Pure, and returns nil for anything that is not it, so it costs
+    /// the JSON path nothing: the first line must be a bare name and at least one
+    /// `<arg_key>`/`<arg_value>` pair must follow.
+    private static func hermesLineCall(
+        from body: String, knownNames: Set<String>, requireKnownName: Bool
+    ) -> AgentToolCall? {
+        let lines = body.split(separator: "\n", omittingEmptySubsequences: true)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        guard let first = lines.first, !first.hasPrefix("<"), !first.contains("{") else {
+            return nil
+        }
+        var arguments: [String: String] = [:]
+        var pendingKey: String?
+        for line in lines.dropFirst() {
+            if let key = tagText(line, named: "arg_key") {
+                // A second key before its value means the model lost one; the previous pair
+                // is dropped rather than paired with the wrong value.
+                pendingKey = key
+                continue
+            }
+            if let value = tagText(line, named: "arg_value"), let key = pendingKey {
+                arguments[key] = value
+                pendingKey = nil
+            }
+        }
+        guard !arguments.isEmpty || lines.count == 1 else { return nil }
+        if requireKnownName, !knownNames.contains(first) { return nil }
+        var object: [String: Any] = ["name": first]
+        if !arguments.isEmpty { object["arguments"] = arguments }
+        return makeCall(name: first, object: object)
+    }
+
+    /// The text between `<name>` and its closer, or nil when the line is not that tag.
+    private static func tagText(_ line: String, named tag: String) -> String? {
+        let open = "<\(tag)>", close = "</\(tag)>"
+        guard let start = line.range(of: open) else { return nil }
+        guard let end = line.range(of: close, range: start.upperBound..<line.endIndex) else {
+            return nil
+        }
+        return String(line[start.upperBound..<end.lowerBound])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private static func xmlBody(openTag: String, inner: String) -> String {
         // `<function=NAME>` and `<function name="NAME">` are the two spellings, and an
         // attribute may come before the name, so the `name=` attribute is looked for first
@@ -344,6 +388,26 @@ enum AgentToolCallParser {
                 from: xml, knownNames: knownNames, requireKnownName: requireKnownName) {
                 return .success(call)
             }
+        }
+        // The Hermes **line** form: a bare tool name, then one `<arg_key>` / `<arg_value>`
+        // pair per line.
+        //
+        // P1-04. Measured on `inclusionai/ling-3.0-flash-sante:free`, 2026-09-28. The
+        // planner prompt asks for JSON inside the tags — it is one line of instruction and it
+        // is the same line every other model is given — and this model answered in the line
+        // form instead. The tolerant reader had readers for JSON, for XML
+        // (`<function>` / `<invoke>`, MiniCPM5-2B) and for bare objects, and **none** for
+        // this, so a call that was entirely correct was reported `truncated`, the turn
+        // re-planned, got the same text, and after eight rounds answered "The model didn't
+        // finish that answer". That is the whole of that model's 0/10.
+        //
+        // It is a reader and not a prompt change for two reasons: the prompt already states
+        // the format it wants, and a model that chooses a different one is still a model that
+        // is trying to call the tool. This is the job `parse` exists for — "every format the
+        // shipped models are known to emit" — and this one was shipped by a model and not read.
+        if tolerant, let call = hermesLineCall(
+            from: trimmed, knownNames: knownNames, requireKnownName: requireKnownName) {
+            return .success(call)
         }
         let repaired = tolerant ? repair(trimmed) : nil
         for candidate in [trimmed, repaired].compactMap({ $0 }) {
@@ -596,6 +660,48 @@ enum AgentToolCallParser {
         }
         return nil
     }
+
+    /// The invisible characters a tokenizer can put inside a tag.
+    ///
+    /// P1-04. Measured on `inclusionai/ling-3.0-flash-sante:free`, 2026-09-28: the model
+    /// returned a **complete and correct** call —
+    ///
+    ///     <tool_call>get_agenda
+    ///     <arg_key>date</arg_key>
+    ///     <arg_value>2026-09-28</arg_value>
+    ///     </tool_call>
+    ///
+    /// — with U+200B ZERO WIDTH SPACE inside the `tool_call` tags. The tags therefore do not
+    /// match, nothing is consumed, and a call the model got entirely right is reported as
+    /// `truncated` and thrown away. The turn then re-plans, gets the same text, and after
+    /// eight rounds answers "The model didn't finish that answer" — which is what put that
+    /// model on 0/10.
+    ///
+    /// The invisible marks are in the **detokenised** text, not in ours: no file under
+    /// `Sources/` contains U+200B, so the prompt is clean and this is the model's own
+    /// tokenizer rendering a byte-level token.
+    ///
+    /// Fixed here, at the one place a completion enters, rather than by teaching each tag
+    /// pattern to tolerate them: the grammar has seven call shapes and six of them would
+    /// otherwise need the same allowance, and a caller that forgot would be a second answer.
+    /// `round.raw` is untouched, so the log still shows exactly what arrived.
+    static func stripInvisibleMarks(_ text: String) -> String {
+        guard text.unicodeScalars.contains(where: { Self.invisible.contains($0) }) else {
+            return text
+        }
+        var out = String.UnicodeScalarView()
+        for scalar in text.unicodeScalars where !Self.invisible.contains(scalar) {
+            out.append(scalar)
+        }
+        return String(out)
+    }
+
+    /// U+200B–U+200D, U+2060, U+FEFF and the soft hyphen. Kept as a set of scalars rather
+    /// than a `CharacterSet`, because a `CharacterSet` built from `.controlCharacters` would
+    /// also take the newlines the Hermes format is line-oriented on.
+    private static let invisible: Set<Unicode.Scalar> = [
+        "\u{200B}", "\u{200C}", "\u{200D}", "\u{2060}", "\u{FEFF}", "\u{00AD}",
+    ].compactMap { Unicode.Scalar($0) }.reduce(into: Set<Unicode.Scalar>()) { $0.insert($1) }
 
     private static func stripReasoningBlock(_ text: String) -> String {
         guard text.contains("<think>") else { return text }
