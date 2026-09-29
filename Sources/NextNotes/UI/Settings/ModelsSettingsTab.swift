@@ -348,28 +348,35 @@ struct ModelsSettingsTab: View {
         }
         .confirmationDialog(
             "Use \(rolePromptModel?.displayName ?? "this model") for agent turns?",
-            item: $rolePromptModel,
-            actions: { model in
+            isPresented: Binding(
+                get: { rolePromptModel != nil },
+                set: { if !$0 { rolePromptModel = nil } }
+            ),
+            actions: {
                 // Through the role store, not straight at the file: the next turn
                 // re-asserts the role's choice, so a file switch alone flips back. Offered
                 // only for a file the probe opened **and** a trial proved answers —
                 // assigning a role to a file this build cannot run is the promise the
                 // whole guard exists to stop.
-                if model.isRunnable, canAnswer(model) {
-                    Button("Use for agent turns") {
-                        roles.setChoice(.installedModel(id: model.id), for: .agent)
+                if let model = rolePromptModel {
+                    if model.isRunnable, canAnswer(model) {
+                        Button("Use for agent turns") {
+                            roles.setChoice(.installedModel(id: model.id), for: .agent)
+                        }
                     }
                 }
                 Button("Keep file only", role: .cancel) {}
             },
-            message: { model in
-                if canAnswer(model) {
-                    Text("The Agent role decides what answers — it currently uses "
-                         + "\(roles.displayName(for: .agent)). The file stays loaded either way.")
-                } else {
-                    Text("Next Notes hasn’t checked that this file can answer yet. "
-                         + "Use \u{201c}Check it works\u{201d} first — if it can’t, nothing "
-                         + "is switched.")
+            message: {
+                if let model = rolePromptModel {
+                    if canAnswer(model) {
+                        Text("The Agent role decides what answers — it currently uses "
+                             + "\(roles.displayName(for: .agent)). The file stays loaded either way.")
+                    } else {
+                        Text("Next Notes hasn’t checked that this file can answer yet. "
+                             + "Use \u{201c}Check it works\u{201d} first — if it can’t, nothing "
+                             + "is switched.")
+                    }
                 }
             }
         )

@@ -204,6 +204,7 @@ enum NotesLongformSelfTest {
               NotesGenerator.isContextOverflow(
                   LanguageModelSession.GenerationError.exceededContextWindowSize(
                       .init(debugDescription: "fixture"))))
+        #if compiler(>=6.4)
         if #available(macOS 27.0, *) {
             check("the macOS 27 context-size refusal did not match",
                   NotesGenerator.isContextOverflow(
@@ -211,6 +212,7 @@ enum NotesLongformSelfTest {
                           contextSize: 4_096, tokenCount: 5_000,
                           debugDescription: "fixture"))))
         }
+        #endif
         check("an unrelated error matched the context-refusal matcher",
               !NotesGenerator.isContextOverflow(NotesError.emptyNotes))
 
@@ -388,12 +390,14 @@ final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
     /// The context-size refusal the fixture raises (M-12): Apple's macOS 27 spelling
     /// where the OS has it, the session-level one before that.
     private func overflowError() -> Error {
+        #if compiler(>=6.4)
         if #available(macOS 27.0, *) {
             return LanguageModelError.contextSizeExceeded(.init(
                 contextSize: contextTokens,
                 tokenCount: contextTokens + 1,
                 debugDescription: "fixture: the prompt exceeds the context window"))
         }
+        #endif
         return LanguageModelSession.GenerationError.exceededContextWindowSize(
             .init(debugDescription: "fixture: the prompt exceeds the context window"))
     }

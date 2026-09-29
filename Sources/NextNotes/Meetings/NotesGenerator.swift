@@ -578,9 +578,11 @@ struct NotesGenerator: Sendable {
         if let llama = error as? LlamaError, case .inputTooLong = llama { return true }
         if let generation = error as? LanguageModelSession.GenerationError,
            case .exceededContextWindowSize = generation { return true }
+        #if compiler(>=6.4)
         if #available(macOS 27.0, *),
            let language = error as? LanguageModelError,
            case .contextSizeExceeded = language { return true }
+        #endif
         return false
     }
 

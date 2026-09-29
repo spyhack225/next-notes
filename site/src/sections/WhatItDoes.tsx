@@ -21,7 +21,7 @@ const features: { title: string; body: string; orb: OrbState }[] = [
   {
     orb: "weaving",
     title: "It sits in the meeting with you",
-    body: "It reads your calendar and starts when the meeting does, asking first. Your microphone and what comes out of the speakers are two tracks — so it knows who said what without anything joining the call.",
+    body: "It reads your calendar and can start with the meeting, asking first. A movable window keeps your notes, next steps, earlier meetings and questions together while recording continues. Your microphone and speakers stay separate; nothing joins the call.",
   },
   {
     orb: "searching",

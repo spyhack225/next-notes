@@ -41,8 +41,8 @@ const STEPS: {
     n: "04",
     orb: "composing",
     value: "You stop repeating yourself",
-    body: "It keeps the thread — the meeting you were in, the name it learned last week, the draft you almost sent. The next ask starts from where you left off, not from a blank chat.",
-    detail: "One folder per meeting. A dictionary of your names. Proposals that wait on you.",
+    body: "It keeps the thread — the meeting you were in, the name it learned last week, the draft you almost sent. During a meeting, one window holds your notes, next steps, earlier meetings and questions while recording carries on.",
+    detail: "One folder per meeting. A dictionary of your names. Follow-ups that wait on you.",
   },
   {
     n: "05",

@@ -103,11 +103,15 @@ enum MemoryPortabilitySelfTest {
             let restored = NextMemory(directory: directory("restored"), now: clock.now)
             let receipt = try restored.restore(decoded, mode: .replace)
             check("a replace restore saved nothing", receipt.saved.count == 3)
+            let restoredIDs = restored.entries.map(\.id).sorted { $0.uuidString < $1.uuidString }
+            let originalIDs = store.entries.map(\.id).sorted { $0.uuidString < $1.uuidString }
+            let restoredText = Set(restored.entries.map(\.text))
+            let originalText = Set(store.entries.map(\.text))
+            let restoredDates = Set(restored.entries.map(\.createdAt))
+            let originalDates = Set(store.entries.map(\.createdAt))
             check("a replace restore changed the memories",
-                  restored.entries.map(\.id).sorted(by: { $0.uuidString < $1.uuidString })
-                      == store.entries.map(\.id).sorted(by: { $0.uuidString < $1.uuidString })
-                      && Set(restored.entries.map(\.text)) == Set(store.entries.map(\.text))
-                      && Set(restored.entries.map(\.createdAt)) == Set(store.entries.map(\.createdAt)))
+                  restoredIDs == originalIDs && restoredText == originalText
+                      && restoredDates == originalDates)
             check("a replace restore lost the labels", restored.items.count == 2)
             // And it survives being written and read again, which is the actual promise.
             let reopened = NextMemory(directory: restored.fileURL!.deletingLastPathComponent())

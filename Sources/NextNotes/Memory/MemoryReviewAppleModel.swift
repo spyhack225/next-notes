@@ -44,6 +44,13 @@ struct AppleMemoryReviewModel: MemoryReviewModel {
                 FoundationModelFormatter.unavailableReason ?? "The on-device model is unavailable.")
         }
         let session = LanguageModelSession(instructions: system)
+        // The label changed between the macOS 26 and 27 SDKs; both request the
+        // same deterministic sampling mode.
+        #if compiler(>=6.4)
+        let options = GenerationOptions(samplingMode: .greedy)
+        #else
+        let options = GenerationOptions(sampling: .greedy)
+        #endif
         let response = try await session.respond(
             to: user,
             generating: AppleMemoryReviewAnswer.self,
@@ -51,7 +58,7 @@ struct AppleMemoryReviewModel: MemoryReviewModel {
             // on the fixture set temperature 0 still sampled — two runs of the same case
             // produced different calls ("The user is unrestricted now." in one, NONE in the
             // next), which made every graded number unrepeatable. Greedy is one answer.
-            options: GenerationOptions(samplingMode: .greedy)
+            options: options
         )
         return Self.toolCallText(response.content.calls)
     }

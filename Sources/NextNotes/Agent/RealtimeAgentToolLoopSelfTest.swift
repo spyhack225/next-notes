@@ -1025,12 +1025,17 @@ enum RealtimeAgentToolLoopSelfTest {
         // P1-10a step 0 (landed in M-12): the Apple provider reads the framework's own
         // window, not the old 4,096 constant. Apple FM only; ABSENT elsewhere.
         if FoundationModelFormatter.unavailableReason == nil {
-            let appleContext = SystemLanguageModel.default.contextSize
             let apple = FoundationModelLLMProvider()
             print("APPLE_FM_CONTEXT=\(apple.contextTokens)")
+            #if compiler(>=6.4)
+            let appleContext = SystemLanguageModel.default.contextSize
             check("FoundationModelLLMProvider.contextTokens answered \(apple.contextTokens), "
                 + "not SystemLanguageModel.default.contextSize (\(appleContext))",
                   apple.contextTokens == appleContext)
+            #else
+            check("FoundationModelLLMProvider.contextTokens lost its older-SDK floor",
+                  apple.contextTokens == 4_096)
+            #endif
         }
 
         // P1-04. Thirteen cases, each written before the fix and each failing on the

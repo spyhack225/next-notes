@@ -15,8 +15,12 @@ struct FoundationModelLLMProvider: LLMProvider {
     /// the real window on 27+, and may answer nothing useful while the model is
     /// unavailable — the 4,096 floor keeps the budget arithmetic sane either way.
     var contextTokens: Int {
+        #if compiler(>=6.4)
         let reported = SystemLanguageModel.default.contextSize
         return reported > 0 ? reported : 4_096
+        #else
+        return 4_096
+        #endif
     }
 
     var unavailableReason: String? {
@@ -28,11 +32,13 @@ struct FoundationModelLLMProvider: LLMProvider {
     /// deliberately lower: French tokenises denser than the English rule of thumb, and
     /// an estimate that over-counts costs a slice of window, not a rejected prompt.
     func countTokens(_ text: String) async throws -> Int {
+        #if compiler(>=6.4)
         if #available(macOS 26.4, *) {
             if let count = try? await SystemLanguageModel.default.tokenCount(for: text) {
                 return max(1, count)
             }
         }
+        #endif
         return max(1, (text.count + charactersPerToken - 1) / charactersPerToken)
     }
 
@@ -88,11 +94,13 @@ struct FoundationModelLLMProvider: LLMProvider {
 
     /// The system model's own token count on macOS 26.4+, characters / 4 otherwise.
     static func measuredTokenCount(_ text: String) async -> (count: Int, estimated: Bool) {
+        #if compiler(>=6.4)
         if #available(macOS 26.4, *) {
             if let count = try? await SystemLanguageModel.default.tokenCount(for: text) {
                 return (max(1, count), false)
             }
         }
+        #endif
         return (max(1, text.count / 4), true)
     }
 

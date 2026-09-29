@@ -16,7 +16,8 @@ Next Notes is free and open source, and requires macOS 26 on Apple silicon.
 - **Meeting notes without a bot.** It reads your calendar and starts when the meeting
   does, after asking. Your microphone and your speaker output are captured as two separate
   tracks, which is how the transcript attributes who said what without anything joining
-  the call.
+  the call. A movable meeting window keeps notes, next steps, earlier meetings and questions
+  together while recording continues.
 - **Ask the Mac.** ⇧⌘ Space, or say “Hey Next”. Silence ends a turn; Done leaves the
   conversation. It can inspect the frontmost window, click and type, search files and
   run a shell command — never sudo — each behind an Approve card unless you already

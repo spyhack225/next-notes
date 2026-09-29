@@ -144,14 +144,14 @@ final class WakeWordCalibrator {
                 // The generous listener runs first and on every buffer, so an attempt
                 // that the configured one misses still has a reason attached to it.
                 if let tag = wideOpen?.accept(samples: samples) {
-                    Task { @MainActor in self?.noteHeardAs(tag) }
+                    Task { @MainActor [weak self] in self?.noteHeardAs(tag) }
                 }
                 guard let keyword = loaded.accept(samples: samples) else { return }
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     self?.didSpot(keyword)
                 }
             }, onLevel: { [weak self] value in
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     self?.level = value
                     if let self, value > self.peakLevel {
                         self.peakLevel = value

@@ -203,6 +203,7 @@ struct FoundationModelsToolPlanner: AgentWholeTurnPlanner {
     static func toolTokens(
         tools: [any Tool], system: String
     ) async -> Int {
+        #if compiler(>=6.4)
         if #available(macOS 26.4, *) {
             let model = SystemLanguageModel.default
             let toolCount = (try? await model.tokenCount(for: tools)) ?? 0
@@ -210,6 +211,7 @@ struct FoundationModelsToolPlanner: AgentWholeTurnPlanner {
                 ?? (system.count / 4)
             return toolCount + instructionCount
         }
+        #endif
         return (system.count / 4) + (tools.count * 60)
     }
 }

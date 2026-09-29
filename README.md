@@ -1308,8 +1308,8 @@ the sphere on the site and the sphere at the notch are the same object. It freez
 same frame the app does when Reduce Motion is on. There is no stock photography or video
 anywhere on the page, and nothing is hotlinked.
 
-The page claims no download, because there is no signed release to download — it points at
-this repository instead. If a release ever ships, the call to action is the thing to change.
+The page's download button points to the stable `NextNotes.dmg` asset on the latest GitHub
+release. The disk image is signed but not notarized, so the page gives the first-open step.
 
 ## Not built yet
 
