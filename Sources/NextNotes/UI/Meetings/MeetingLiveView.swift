@@ -12,20 +12,9 @@ struct MeetingLiveView: View {
     @State private var controller = MeetingController.shared
     @State private var store = MeetingStore.shared
     @State private var isRenamingMeeting = false
-    @State private var isShowingConsole = false
 
     var body: some View {
-        // The panel's sheet is attached only when a sheet may be raised, so the rule is
-        // one call rather than a comment — see `MeetingConsolePolicy`. Everything else
-        // about this view is the rename sheet and the transcript, unchanged.
-        if showsConsole {
-            base
-                .sheet(isPresented: $isShowingConsole) {
-                    MeetingConsoleSheet(session: session)
-                }
-        } else {
-            base
-        }
+        base
     }
 
     private var base: some View {
@@ -41,8 +30,7 @@ struct MeetingLiveView: View {
         }
     }
 
-    /// The one gate, read in both places it applies: the sheet, and the button that would
-    /// raise it. A self-test must not end up with a button that does nothing.
+    /// A self-test must not end up with a button that opens a window.
     private var showsConsole: Bool {
         MeetingConsolePolicy.shouldPresent(isSelfTest: SelfTest.isRunning)
     }
@@ -150,7 +138,7 @@ struct MeetingLiveView: View {
     /// obvious one. The panel is the thing you *may* open, not the thing that is happening.
     private var consoleButton: some View {
         Button {
-            isShowingConsole = true
+            MeetingConsoleWindowController.shared.show(session: session)
         } label: {
             Label("Meeting panel", systemImage: "sidebar.trailing")
         }

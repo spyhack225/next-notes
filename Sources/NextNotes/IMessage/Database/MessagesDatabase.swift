@@ -269,6 +269,22 @@ actor MessagesDatabase {
         }
     }
 
+    /// Resolves a `handle.ROWID` to its `uncanonicalized_id`. Used by the pairing
+    /// trigger to find the sender handle for a row.
+    func handle(id: Int64) async throws -> String? {
+        let sql = "SELECT uncanonicalized_id FROM handle WHERE ROWID = ?"
+        let statement = try prepare(sql)
+        defer { sqlite3_finalize(statement) }
+        sqlite3_bind_int64(statement, 1, id)
+        switch sqlite3_step(statement) {
+        case SQLITE_ROW:
+            guard let text = sqlite3_column_text(statement, 0) else { return nil }
+            return String(cString: text)
+        case SQLITE_DONE: return nil
+        default: throw stepError(statement, sql)
+        }
+    }
+
     /// How many messages one pass reads. Bounded so a first pass over a long history
     /// cannot hold the actor while it walks every row; IM-06 drains it on the next pass.
     static let defaultPage = 200

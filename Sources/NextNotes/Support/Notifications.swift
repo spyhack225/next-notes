@@ -239,6 +239,17 @@ final class Notifications {
         post(content, identifier: "meeting-notes-\(meeting.id.uuidString)")
     }
 
+    /// A recording or transcript write failed while the person is likely in another app.
+    /// One notification per meeting replaces repeats from subsequent failed writes.
+    func postMeetingStorageProblem(meeting: Meeting) {
+        let content = UNMutableNotificationContent()
+        content.title = "Meeting may not be saved"
+        content.body = "Check your Mac's storage and see what Next Notes captured."
+        content.userInfo = [UserInfoKey.meetingID: meeting.id.uuidString]
+        content.sound = .default
+        post(content, identifier: "meeting-storage-\(meeting.id.uuidString)")
+    }
+
     /// "Next Notes would like to send this", with Approve / Dismiss.
     ///
     /// Carries the proposal's id rather than the meeting's, because two proposals for one

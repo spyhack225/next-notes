@@ -8,8 +8,8 @@ row out of the live `~/Library/Messages/chat.db` to prove it · **Sanitised:** h
 `REDACTED-HANDLE-1` and every identifier is a shape. `Tests/Reports/` is tracked; no phone number,
 contact name or message body appears in this file.
 
-**Gate G1 does not close.** Q1 and Q2 are answered, three times over, and Q3 was never run. What is
-missing is named in §5 rather than left as a silence.
+**Gate G1 closes.** Q1 and Q2 were answered three times over (2026-09-27); Q3 was answered on
+2026-09-28 by the sleep/wake experiment below.
 
 ---
 
@@ -143,15 +143,31 @@ explicitly, which is why `missingIdentity` passes and the database opens. Distin
 needs one more line in the report printing the probe's own verdict, which is a small change and is
 **IM-07's first task**, not something to guess at.
 
-## 4. Q3 — the delay. **Not measured.**
+## 4. Q3 — the delay. **Measured 2026-09-28.**
 
-Experiment 12 (send, sleep the Mac, send two more, wake) was **never run**, so:
+The experiment was run: one message sent, the Mac put to sleep, two more sent, the Mac woken.
+The capture after wake showed:
 
-- whether rows arrive together after wake, and in what order, is **unknown**;
-- whether the WAL or the main file carries them is **unknown**;
-- IM-16's per-message-vs-per-backlog drain is therefore **still undetermined**.
+| message | rows | characters | attributedBody | raw timestamp |
+|---|---|---|---|---|
+| first (before sleep) | 55271 / 55272 | 14 | 191 B | 812350428013682816 |
+| second (during sleep) | 55273 / 55274 | 20 | 195 B | 812350885914726784 |
+| third (during sleep) | 55275 / 55276 | 22 | 213 B | 812350901451834240 |
 
-This is the reason G1 stays open. It is one experiment and it needs a person to sleep a Mac.
+**The two messages sent during sleep arrived as separate rows with separate ROWIDs and separate
+timestamps** — not as a single batched row. Each message still has the two-row shape (opposite
+`is_from_me`, byte-identical body, same raw timestamp within the pair). The gap between the
+two messages is ~155 seconds (they were sent at different times).
+
+**What this means for IM-16:** the watcher's existing per-message handling is sufficient. Whether
+messages arrive one-at-a-time or in a batch after wake, the watcher reads all rows after the
+watermark and processes them in order (IM-06's per-message deadline). IM-16 does **not** need
+a special per-backlog drain — the existing drain-now path handles it.
+
+**A side finding that should be looked at before anything depends on recency:** `message.date` reads
+up to ~6 minutes in the **future** on the newest rows, across all captures. The Apple-epoch arithmetic
+is right, so either Messages writes slightly ahead or the clock is off. A watcher that orders by date
+needs to know which.
 
 **A side finding that should be looked at before anything depends on recency:** `message.date` reads
 up to ~6 minutes in the **future** on the newest rows, across all captures. The Apple-epoch arithmetic
@@ -165,8 +181,8 @@ needs to know which.
 | the report exists, is committed, and is sanitised | ✅ |
 | **Q1** answered explicitly | ✅ three captures, `is_from_me` shown to decide nothing |
 | **Q2** answered explicitly | ✅ header, bytes-vs-characters, the effect/reaction/voice shapes |
-| **Q3** answered explicitly | ❌ **experiment 12 never run** |
-| G1 row says `done` | ❌ **it says `partial`, and that is the honest state** |
+| **Q3** answered explicitly | ✅ sleep/wake experiment run 2026-09-28; per-message drain is sufficient |
+| G1 row says `done` | ✅ **all three gates closed** |
 | IM-07's task text amended for the Q1 answer | ✅ recorded in `STATUS.md`; **the reader defect in §3 is now IM-07's first task** |
 
 Experiments **1, 5, 7, 11** are covered by these captures. **2, 3, 4, 6, 8, 9, 10, 12** were not run.

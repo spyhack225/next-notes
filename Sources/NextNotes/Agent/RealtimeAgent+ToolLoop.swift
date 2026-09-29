@@ -1513,6 +1513,7 @@ extension RealtimeAgent {
         // log line and the fallback can name it.
         enum FinalRoundReason: String {
             case roundsExhausted, callsExhausted, repeatedCall
+            case needleFirst
             /// P1-24: the plan was about to answer without having read the account the person
             /// asked about, so the app ran the read and this round answers from it. Logged like
             /// the other three because "why did that take two rounds" is a question the log has
@@ -1578,6 +1579,53 @@ extension RealtimeAgent {
             // `confirmed` keeps the memory confirmations, which the call-cap exit used to drop.
             guard completion?.finishedByLimit == true else { return confirmed(prose) }
             return confirmed(AgentReplyRenderer.render(.cutShort(prose), voice: voice))
+        }
+        // Benchmark only. Needle replaces the first planning round when it finds a call;
+        // the call still crosses the same manifest, grounding and approval boundary as a
+        // call written by the base model. A one-step result needs only an answer pass.
+        if SelfTest.isRunning && ToolLoopLiveEval.needleFirstForTesting {
+            let needleBegan = clock.now
+            let firstCall = await ToolLoopLiveEval.needleFirstCall(
+                request: prompt, manifest: manifest)
+            runner.charge(needleBegan.duration(to: clock.now))
+            if let firstCall {
+                let step = await runner.execute(firstCall)
+                if let output = step.output {
+                    results.append(carried(step.canonicalID, output))
+                    AgentSession.shared.noteToolOutput(output)
+                    speech?.recordVerifiedResult(toolID: step.canonicalID, output: output)
+                }
+                switch step.disposition {
+                case .completed:
+                    if !ModelRoleStore.likelyMultiStep(prompt) {
+                        return planned(await finalAnswerRound(reason: .needleFirst))
+                    }
+                    // A compound request may need another tool using this result. Resume
+                    // the ordinary planner with the verified output already in `results`.
+                case .repaired(let toolID, let note):
+                    results.append(carried(toolID, note))
+                case .skipped:
+                    break
+                case .answerNow(let reason):
+                    return planned(await finalAnswerRound(
+                        reason: reason == .repeatedCall ? .repeatedCall : .callsExhausted))
+                case .outOfTime:
+                    return planned(incomplete("I stopped the tool plan because it took too long.",
+                                             completed: runner.completedToolIDs,
+                                             inFlight: step.canonicalID))
+                case .endTurn(let end):
+                    switch end {
+                    case .notReady(let sentence), .stopped(let sentence):
+                        return planned(confirmed(sentence))
+                    case .denied(let sentence):
+                        return planned(confirmed(AgentReplyRenderer.render(
+                            .denied(sentence), voice: voice)))
+                    case .infrastructure(let sentence):
+                        return planned(confirmed(AgentReplyRenderer.render(
+                            .infrastructure(sentence), voice: voice)))
+                    }
+                }
+            }
         }
         // P1-06 step 10 (H1 #17): a correction starts the round clock over, and once every
         // ten seconds tops the ceiling back up to half of what the budget allows.

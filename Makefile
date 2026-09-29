@@ -159,6 +159,7 @@ app: build
 	@cp Resources/agent-persona-base.md "$(CONTENTS)/Resources/"
 	@# Notion-style avatar parts (Felix Wong / Noto, CC0). See Resources/NotionAvatar/ATTRIBUTION.md.
 	@cp -R Resources/NotionAvatar "$(CONTENTS)/Resources/"
+	@cp -R Resources/MeetingEditor "$(CONTENTS)/Resources/"
 	@# The knowledge graph's ontology. Ontology.swift carries a compiled-in copy for bare
 	@# binaries, and --selftest-extract fails if the two drift.
 	@cp Resources/knowledge-ontology.yaml "$(CONTENTS)/Resources/"

@@ -986,14 +986,14 @@ enum MultiStepPlanRouting: Sendable {
         "open", "go", "find", "search", "check", "summarise", "summarize", "list",
         "send", "create", "read", "write", "book", "buy", "reserve", "plan",
         "schedule", "remind", "draft", "email", "look", "get", "show", "make",
-        "add", "update",
+        "add", "update", "play",
     ]
 
     static func likelyMultiStep(_ text: String) -> Bool {
         let lowered = text.lowercased()
-        // Sequencers: "then", "and then", "after", "afterwards". "and" alone is not
-        // enough — it joins two nouns as often as two steps.
-        guard lowered.range(of: #"\b(then|after|afterwards)\b"#,
+        // "And" counts only when two distinct action verbs are present below; by itself
+        // it joins nouns as often as steps.
+        guard lowered.range(of: #"\b(and|then|after|afterwards)\b"#,
                             options: .regularExpression) != nil else { return false }
         var hits = 0
         for verb in verbs {

@@ -19,29 +19,25 @@ enum MeetingResumeSelfTest {
         // MARK: - a. The pure planner over the Target 1 table.
 
         let t = true, f = false
-        let plannerCases: [(String, MeetingStatus, Bool, Bool, Bool, ResumeAction)] = [
-            ("rec+segs+audio+pass=finalPass", .recording, t, t, t, .finalPass),
-            ("rec+empty+audio+pass=finalPass", .recording, f, t, t, .finalPass),
-            ("rec+segs+noAudio+pass=pipeline", .recording, t, f, t, .pipelineAfterTranscript),
-            ("rec+empty+noAudio+pass=fail", .recording, f, f, t,
+        let plannerCases: [(String, MeetingStatus, Bool, Bool, ResumeAction)] = [
+            ("rec+segs+audio=finalPass", .recording, t, t, .finalPass),
+            ("rec+empty+audio=finalPass", .recording, f, t, .finalPass),
+            ("rec+segs+noAudio=pipeline", .recording, t, f, .pipelineAfterTranscript),
+            ("rec+empty+noAudio=fail", .recording, f, f,
              .fail("Next Notes quit before anything was transcribed.")),
-            ("tra+segs+audio+pass=finalPass", .transcribing, t, t, t, .finalPass),
-            ("tra+empty+noAudio=fail", .transcribing, f, f, t,
+            ("tra+segs+audio=finalPass", .transcribing, t, t, .finalPass),
+            ("tra+empty+noAudio=fail", .transcribing, f, f,
              .fail("Next Notes quit before anything was transcribed.")),
-            ("rec+segs+audio+passOff=pipeline", .recording, t, t, f, .pipelineAfterTranscript),
-            ("rec+empty+audio+passOff=fail", .recording, f, t, f,
-             .fail("Next Notes quit before anything was transcribed.")),
-            ("diarizing+audio=diarize", .diarizing, t, t, t, .diarize),
-            ("diarizing+noAudio=notes", .diarizing, t, f, t, .notes),
-            ("summarizing=notes", .summarizing, t, f, t, .notes),
-            ("extracting=extractAgain", .extracting, t, f, t, .extractAgain),
-            ("done=none", .done, t, f, t, .none),
-            ("failed=none", .failed("old"), t, f, t, .none),
+            ("diarizing+audio=diarize", .diarizing, t, t, .diarize),
+            ("diarizing+noAudio=notes", .diarizing, t, f, .notes),
+            ("summarizing=notes", .summarizing, t, f, .notes),
+            ("extracting=extractAgain", .extracting, t, f, .extractAgain),
+            ("done=none", .done, t, f, .none),
+            ("failed=none", .failed("old"), t, f, .none),
         ]
-        for (name, status, hasTranscript, hasAudio, finalPassOn, expected) in plannerCases {
+        for (name, status, hasTranscript, hasAudio, expected) in plannerCases {
             let got = MeetingStore.resumeAction(
-                for: status, hasTranscript: hasTranscript,
-                hasAudio: hasAudio, finalPassOn: finalPassOn
+                for: status, hasTranscript: hasTranscript, hasAudio: hasAudio
             )
             check("planner \(name) got \(got)", got == expected)
         }
@@ -50,7 +46,6 @@ enum MeetingResumeSelfTest {
 
         do {
             let store = MeetingStore.isolated()
-            let passOn = Settings.shared.meetingsFinalPass
             let fm = FileManager.default
 
             func seed(
@@ -96,9 +91,30 @@ enum MeetingResumeSelfTest {
             let b = await seed(status: .diarizing, segments: threeSegments(), audio: true, temporary: true)
             let c = await seed(status: .summarizing, segments: threeSegments(), audio: false, temporary: false)
             let d = await seed(status: .recording, segments: [], audio: false, temporary: false)
+            var orphan = await seed(status: .recording, segments: threeSegments(), audio: true, temporary: true)
+            orphan.audioFileName = nil
+            orphan.audioIsTemporary = nil
+            orphan.end = orphan.start.addingTimeInterval(1_800)
+            store.save(orphan)
 
             let plan = store.repairInterruptedMeetings()
             let actionOf = Dictionary(uniqueKeysWithValues: plan)
+            let recoveringIDs = Set(plan.map { $0.0 })
+
+            check("repair waits on its own active status",
+                  !LiveKnowledgeIndexEnvironment.isForegroundBusy(
+                      excludingMeetingIDs: recoveringIDs, store: store))
+            check("repair still waits on another active status",
+                  LiveKnowledgeIndexEnvironment.isForegroundBusy(
+                      excludingMeetingIDs: recoveringIDs.subtracting([a.id]), store: store))
+            let recoveredOrphan = store.meeting(id: orphan.id)
+            check("orphan audio was linked", recoveredOrphan?.audioFileName == MeetingStore.audioFile)
+            check("orphan audio was conservatively kept", recoveredOrphan?.audioIsTemporary == false)
+            check("orphan audio is readable by final pass",
+                  recoveredOrphan.flatMap { store.audioURL(for: $0) } != nil)
+            check("recovery replaced the calendar's planned end",
+                  recoveredOrphan.map { ($0.end ?? .distantFuture) < orphan.start.addingTimeInterval(60) }
+                      ?? false)
 
             // Repair advances the statuses but releases no audio: the stage that
             // finishes owns the unchanged `releaseAudio` rule.
@@ -110,11 +126,8 @@ enum MeetingResumeSelfTest {
                 let url = store.directory(for: id).appendingPathComponent(MeetingStore.audioFile)
                 check("\(label) audio survives repair", fm.fileExists(atPath: url.path))
             }
-            if passOn {
-                check("A plans finalPass", actionOf[a.id] == .finalPass)
-            } else {
-                check("A plans pipeline (pass off)", actionOf[a.id] == .pipelineAfterTranscript)
-            }
+            check("A plans finalPass", actionOf[a.id] == .finalPass)
+            check("orphan plans finalPass", actionOf[orphan.id] == .finalPass)
             check("B plans diarize", actionOf[b.id] == .diarize)
             check("C plans notes", actionOf[c.id] == .notes)
 
@@ -159,7 +172,7 @@ enum MeetingResumeSelfTest {
             )
             await resumer.resume(plan)
 
-            for (meeting, label) in [(a, "A"), (b, "B"), (c, "C")] {
+            for (meeting, label) in [(a, "A"), (b, "B"), (c, "C"), (orphan, "orphan")] {
                 let current = store.meeting(id: meeting.id)
                 check("\(label) reached done", current?.status == .done)
                 check("\(label) has notes.md", store.notes(for: meeting.id) == "fake notes")
@@ -170,14 +183,16 @@ enum MeetingResumeSelfTest {
                 let url = store.directory(for: id).appendingPathComponent(MeetingStore.audioFile)
                 check("\(label) temp audio released after notes", !fm.fileExists(atPath: url.path))
             }
+            check("recovered orphan audio stays available after notes",
+                  fm.fileExists(atPath: store.directory(for: orphan.id)
+                      .appendingPathComponent(MeetingStore.audioFile).path))
             let stagesOf = { (id: UUID) in order.filter { $0.1 == id.uuidString }.map(\.0) }
-            let expectedA = passOn
-                ? ["finalPass", "afterTranscript", "diarize", "notes"]
-                : ["afterTranscript", "diarize", "notes"]
+            let expectedA = ["finalPass", "afterTranscript", "diarize", "notes"]
             check("A order \(stagesOf(a.id))", stagesOf(a.id) == expectedA)
             check("B order \(stagesOf(b.id))", stagesOf(b.id) == ["diarize", "notes"])
             check("C order \(stagesOf(c.id))", stagesOf(c.id) == ["notes"])
             check("D ran nothing", stagesOf(d.id).isEmpty)
+            check("orphan order \(stagesOf(orphan.id))", stagesOf(orphan.id) == expectedA)
         }
 
         // MARK: - c. The pure stall rule.
@@ -190,6 +205,23 @@ enum MeetingResumeSelfTest {
               !StageWatchdog.isStalled(sinceProgress: 599, busySeconds: 0, limit: 600))
         check("notes 600s stalled",
               StageWatchdog.isStalled(sinceProgress: 600, busySeconds: 0, limit: 600))
+
+        // A failed disk write must not put unsaved text in the store's cache and
+        // claim it is recoverable after a crash. A directory at the target path
+        // forces the real atomic writer to fail without relying on this Mac's disk.
+        do {
+            let store = MeetingStore.isolated()
+            let meeting = Meeting(title: "Unwritable transcript", start: Date(), status: .recording)
+            store.save(meeting)
+            let target = store.directory(for: meeting.id)
+                .appendingPathComponent(MeetingStore.transcriptFile)
+            try? FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
+            let segment = TranscriptSegment(start: 0, end: 1, text: "saved?", source: .mic)
+            check("failed transcript write returned success",
+                  !store.saveTranscript([segment], for: meeting.id))
+            check("failed transcript write entered the cache",
+                  store.transcript(for: meeting.id).isEmpty)
+        }
 
         // MARK: - d. A stage that never reports a step is stopped with its audio kept.
 
@@ -365,7 +397,7 @@ enum MeetingResumeSelfTest {
 
         for failure in failures { log("MEETING_RESUME_WRONG: \(failure)") }
         log(failures.isEmpty
-            ? "MEETING_RESUME_OK: 3/3 resumable meetings reached .done with notes; no temp audio released early; \(throttleReport)"
+            ? "MEETING_RESUME_OK: 4/4 resumable meetings reached .done with notes; no temp audio released early; \(throttleReport)"
             : "MEETING_RESUME_FAILED: \(failures.count) check(s) wrong")
         return failures.isEmpty
     }

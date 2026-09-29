@@ -2,8 +2,8 @@ import Foundation
 
 /// What a launch-time repair decided for one interrupted meeting (M-08).
 ///
-/// Computed purely from the status on disk, whether a transcript and audio survived,
-/// and whether M-01's final pass is on — so the self-test and the repair decide the
+/// Computed purely from the status on disk and whether a transcript and audio survived,
+/// so the self-test and the repair decide the
 /// same way. Resume itself lives in `MeetingResumer`, which takes injected runners.
 enum ResumeAction: Equatable, Sendable {
     /// `.recording` / `.transcribing` with audio and the final pass on: re-transcribe

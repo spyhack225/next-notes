@@ -188,8 +188,9 @@ final class MeetingSession {
         )
         if !wantsAudio,
            keep || Settings.shared.meetingsDiarize || Settings.shared.meetingsFinalPass {
-            audioProblem = "Not enough disk space to keep a recording; the transcript is still being written."
+            audioProblem = "Your Mac is low on storage. This meeting may not be saved."
             Log.meeting.info("meeting audio skipped: less than 1 GB free")
+            Notifications.shared.postMeetingStorageProblem(meeting: meeting)
         }
         if wantsAudio {
             let url = store.directory(for: meeting.id).appendingPathComponent(MeetingStore.audioFile)
@@ -202,14 +203,23 @@ final class MeetingSession {
                 // (a disk filling up mid-recording). It stops at its first error and
                 // reports once through the callback below; the meeting keeps going on
                 // the transcript alone.
-                let audioWriter = try MeetingAudioWriter(url: url, onWriteError: { [weak self] message in
-                    Task { @MainActor in self?.audioProblem = message }
+                let audioWriter = try MeetingAudioWriter(url: url, onWriteError: { [weak self] _ in
+                    Task { @MainActor in
+                        guard let self else { return }
+                        self.audioProblem = "This meeting's recording stopped saving. Check your Mac's storage."
+                        Notifications.shared.postMeetingStorageProblem(meeting: self.meeting)
+                    }
                 })
                 writer = audioWriter
                 meeting.audioFileName = MeetingStore.audioFile
                 meeting.audioIsTemporary = !keep
+                // Persist the link before capture starts. A force-quit during recording
+                // leaves audio.caf behind; launch repair must know it belongs here.
+                store.save(meeting)
             } catch {
                 Log.meeting.error("keep-audio disabled for this meeting: \(error.localizedDescription, privacy: .public)")
+                audioProblem = "This meeting's recording could not start saving. Check your Mac's storage."
+                Notifications.shared.postMeetingStorageProblem(meeting: meeting)
             }
         }
 
@@ -381,8 +391,7 @@ final class MeetingSession {
         switch MeetingStore.resumeAction(
             for: .recording,
             hasTranscript: !segments.isEmpty,
-            hasAudio: audioFileHasContent,
-            finalPassOn: Settings.shared.meetingsFinalPass
+            hasAudio: audioFileHasContent
         ) {
         case .fail(let message):
             meeting.status = .failed(message)
@@ -692,9 +701,17 @@ final class MeetingSession {
         transcriptTrailingWrite?.cancel()
         transcriptTrailingWrite = nil
         let trace = LatencyTrace.start(.meetingTranscriptWrite)
-        store.saveTranscript(segments, for: meeting.id)
+        let saved = store.saveTranscript(segments, for: meeting.id)
         trace.end(note: "segments=\(segments.count)")
         transcriptThrottle.recordWrite(at: clock)
+        if !saved {
+            transcriptThrottle.markPending()
+            armTrailingTranscriptWrite()
+            if audioProblem == nil {
+                audioProblem = "This meeting stopped saving. Check your Mac's storage."
+                Notifications.shared.postMeetingStorageProblem(meeting: meeting)
+            }
+        }
     }
 
     /// M-16c: every exit path — `stop`, `endAbruptly` and `abort` — writes the file

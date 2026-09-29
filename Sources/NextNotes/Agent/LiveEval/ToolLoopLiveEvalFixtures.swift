@@ -316,41 +316,40 @@ final class LiveEvalFixtures: @unchecked Sendable {
     /// against the field it names, and that a miss says so. Ages are relative to `now`, which
     /// is what makes `newer_than:2d` mean something on any day the eval is run.
     private static func mail(now: Date) -> [LiveEvalMessage] {
-        func stamp(daysAgo: Int, hour: Int, minute: Int) -> Date {
-            let day = Calendar.current.date(
-                byAdding: .day, value: -daysAgo, to: now) ?? now
-            return Calendar.current.date(
-                bySettingHour: hour, minute: minute, second: 0, of: day) ?? day
+        // Keep the same mailbox and ordering at every hour. Calendar-clock stamps made
+        // today's 18:20 message appear in the future during morning eval runs.
+        func stamp(hoursAgo: Double) -> Date {
+            now.addingTimeInterval(-hoursAgo * 3_600)
         }
         let to = "sam@productflo.example"
         return [
             LiveEvalMessage(
-                stamp: stamp(daysAgo: 0, hour: 8, minute: 12),
+                stamp: stamp(hoursAgo: 3),
                 fromName: "Marcus Lee", fromAddress: "marcus@productflo.example", to: to,
                 subject: "Pricing sheet v3", snippet: "Here is the updated pricing sheet…",
                 unread: false),
             LiveEvalMessage(
-                stamp: stamp(daysAgo: 0, hour: 9, minute: 40),
+                stamp: stamp(hoursAgo: 2),
                 fromName: "Ana Ruiz", fromAddress: "ana@example.com", to: to,
                 subject: "Deck for Friday", snippet: "Can you send the deck by Friday?",
                 unread: true),
             LiveEvalMessage(
-                stamp: stamp(daysAgo: 0, hour: 7, minute: 5),
+                stamp: stamp(hoursAgo: 4),
                 fromName: "GitHub", fromAddress: "no-reply@github.example", to: to,
                 subject: "[next-notes] CI passed on main", snippet: "All 214 checks passed.",
                 unread: false),
             LiveEvalMessage(
-                stamp: stamp(daysAgo: 0, hour: 18, minute: 20),
+                stamp: stamp(hoursAgo: 1),
                 fromName: "Cyril", fromAddress: "cyril@example.com", to: to,
                 subject: "Dinner tomorrow?", snippet: "Are you free tomorrow evening?",
                 unread: true),
             LiveEvalMessage(
-                stamp: stamp(daysAgo: 3, hour: 11, minute: 15),
+                stamp: stamp(hoursAgo: 3 * 24),
                 fromName: "Stripe", fromAddress: "noreply@stripe.example", to: to,
                 subject: "Your invoice for September",
                 snippet: "Your September invoice is ready.", unread: false),
             LiveEvalMessage(
-                stamp: stamp(daysAgo: 9, hour: 16, minute: 5),
+                stamp: stamp(hoursAgo: 9 * 24),
                 fromName: "Marcus Lee", fromAddress: "marcus@productflo.example", to: to,
                 subject: "Re: contract renewal", snippet: "The renewal terms are attached.",
                 unread: true),

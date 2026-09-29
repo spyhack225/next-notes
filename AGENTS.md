@@ -1122,13 +1122,27 @@ speakers are confirmed (the speaker sheet's Save), a diarization problem is dism
 free disk is under 5 GB — under the guard "as today" wins, and the sweep releases the
 oldest temporary recordings first until the space is back. Under 1 GB free at start
 nothing is written at all (`MeetingSession.shouldWriteAudio`), the live pane shows
-"Not enough disk space to keep a recording; the transcript is still being written.", and
+"Your Mac is low on storage. This meeting may not be saved.", and
 the final pass records `live-only:no-audio`; the writer stops at its first write error
-and reports it once rather than logging a failed chunk per frame. The sweep never touches
+and reports it once rather than logging a failed chunk per frame. A write failure also
+posts a meeting notification, since the person is usually in the call app. A failed
+`transcript.json` write is not cached as saved and is retried after five seconds. The sweep never touches
 a kept recording, a meeting that is still active, or one whose diarization problem is
 still offering "Identify again". `--selftest-audio-retention` is the gate (INTEGRATION);
 it seeds its meetings through `MeetingStore.isolated()` and injects the clock and the
 free space, so it never depends on this Mac's disk.
+
+**An interrupted recording may leave audio that `meeting.json` has not linked yet.**
+The 2026-09-29 Dilan call hit APFS `ENOSPC` during capture and the app later exited by
+signal 9. About 45 seconds of `audio.caf` survived, but the old `MeetingSession.start`
+saved `audioFileName` only in memory until Stop, so launch repair saw no audio. The
+repair worker then waited forever because `LiveKnowledgeIndexEnvironment.isForegroundBusy`
+counted the very `.transcribing` row it was supposed to repair. Save the audio link before
+capture, adopt a non-empty orphan `audio.caf` conservatively on repair, and exclude the
+planned recovery IDs from the worker's foreground gate. Recovery re-reads surviving audio
+even when the normal post-meeting final pass is off: an interrupted live transcript can
+end earlier than the recording. `--selftest-meeting-resume` pins the orphan, gate and
+failed transcript-write cases.
 
 it seeds its meetings through `MeetingStore.isolated()` and injects the clock and the
 free space, so it never depends on this Mac's disk.
@@ -1176,8 +1190,9 @@ speakers. Lowering the pause threshold instead is the wrong repair: at 0.4 s it 
 mid-clause, because that is where the gaps actually are.
 
 **The meeting console is four windows onto four things that already exist, and three of them
-had no new data layer on purpose.** `MeetingConsoleSheet` is a sheet on `MeetingLiveView`
-(⌘⇧M, the "Meeting panel" button) with a rail of four sections over one column of content.
+had no new data layer on purpose.** `MeetingConsoleWindowController` opens a movable,
+resizable window from `MeetingLiveView` (⌘⇧M, the "Meeting panel" button), with a rail of
+four sections over one column of content. `MeetingConsoleSheet` is the content view.
 **Notes** is the only one with anything new behind it, **Actions** draws the reconciler
 `MeetingActionsView` already draws, **History** asks a query that did not exist, and **Ask**
 has no service at all. That last one is the load-bearing decision: the agent already owns
@@ -1202,6 +1217,8 @@ and no second root — and it reaches `notes.md` once, at the end, through
 `ScratchNotesMerger.merged(manual:generated:)`, which is pure and idempotent so a second pass
 cannot produce two "Your notes" sections. `MeetingScratchNote.singleLine` exists because a
 recall row needs one line and a note may hold a paragraph.
+The freeform page is one `.document` row in that same file. Older `.line` rows remain readable
+and editable; `ScratchNotesMerger` keeps the page's headings, lists and to-dos as Markdown.
 
 **A filter that cannot answer says so; it does not answer a different question.** `MeetingRecall`
 has four filters and three sources, and the split is the feature: `.recent` and `.samePeople`
@@ -1224,22 +1241,15 @@ and it writes nothing until they press "Keep this". A pass cut off by its allowa
 which is the only verification available on a machine with none installed.
 
 **The panel must not present under a self-test**, and that is `MeetingConsolePolicy`'s whole
-job, for the reason `OnboardingPolicy.shouldPresent` carries: a sheet keeps `NSApp.terminate`
-from ever completing, so the run would print its result and hang, and the watchdog would report
-a timeout for a run that had already finished. **One animating orb per screen is a property of
-`MeetingConsoleSheet`, not a thing four sections each remember**: a section returns a
-`MeetingConsoleActivity` and the sheet draws the orb, `.idle` draws none, and the Notes pill's
-badge-size orb is `isAnimated: false` precisely so the two shapes cannot both be live for one
-job. `--selftest-meeting-console` pins that table, the rail order, the gate, and scans all five
-files for a literal value that is not a token.
-
-**The panel has never been seen by an eye, and there is no grant-free way to see it.** That is
-the honest state of the whole feature and it is recorded in
-`roadmap/done/MEETING-CONSOLE-2026-09-26/` — `00-README.md` for what it is and the five rules it
-lives by, `01-PANEL.md` for the five pieces and what must not be undone, `02-VERIFICATION.md` for
-every gate and the two defects that running them found. `--settings-sheet` renders panes with
-`cacheDisplay`, which needs a hosted window, so there is no equivalent trick for a sheet. Open a
-meeting and press ⌘⇧M; that check has not happened yet.
+job: a window can keep `NSApp.terminate` from completing after a run prints its result.
+**One animating orb per screen is a property of `MeetingConsoleSheet`**: a section returns a
+`MeetingConsoleActivity` and the content view draws the orb; `.idle` draws none.
+`--selftest-meeting-console` pins that table, the rail order, the window wiring, the gate,
+and the design-token rule. The first live screenshots on 2026-09-29 exposed a fixed sheet
+that could not move or close visibly, a cramped note field, and an Ask composer clipped by
+content. The movable window and page editor address those observations; a new live visual
+check is still needed for the revised layout. `--meeting-console-preview [dir]` renders
+Notes and Ask through an offscreen host at the real window size without a meeting grant.
 
 **`gws` prints to stderr when it succeeds, so stderr is not an error channel.** Every run
 begins `Using keyring backend: keyring` before it does anything. `GoogleWorkspaceCLI` used to

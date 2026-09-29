@@ -1,0 +1,52 @@
+:root { color-scheme: dark; font: 14px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: #202124; color: #e9eaed; }
+body { overflow-y: auto; }
+button { font: inherit; }
+.page { max-width: 780px; min-height: 100vh; margin: auto; padding: 28px 56px 90px 76px; }
+.eyebrow { display: flex; justify-content: space-between; gap: 16px; margin: 0 0 22px; color: #8d929e; font-size: 10px; font-weight: 700; letter-spacing: .11em; }
+.eyebrow span { font-size: 11px; font-weight: 400; letter-spacing: 0; }
+#editor { min-height: 420px; outline: 0; line-height: 1.65; overflow-wrap: anywhere; }
+#editor .tiptap { min-height: 420px; outline: 0; }
+#editor p { margin: 0 0 10px; }
+#editor p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #7e8490; float: left; height: 0; pointer-events: none; }
+#editor h1, #editor h2, #editor h3 { line-height: 1.25; letter-spacing: -.025em; margin: 27px 0 9px; }
+#editor h1 { font-size: 27px; } #editor h2 { font-size: 21px; } #editor h3 { font-size: 17px; }
+#editor h1:first-child, #editor h2:first-child, #editor h3:first-child { margin-top: 0; }
+#editor ul, #editor ol { margin: 4px 0 12px; padding-left: 26px; }
+#editor li { margin: 2px 0; padding-left: 3px; }
+#editor li p { margin: 0; }
+#editor ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+#editor ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 10px; padding: 0; }
+#editor ul[data-type="taskList"] li > label { padding-top: 2px; }
+#editor ul[data-type="taskList"] li > div { flex: 1; }
+#editor input[type="checkbox"] { accent-color: #8caaff; width: 15px; height: 15px; margin: 3px 0; }
+#editor blockquote { border-left: 3px solid #7389b0; margin: 15px 0; padding: 2px 0 2px 16px; color: #b8c1d0; }
+#editor pre { padding: 14px 16px; margin: 15px 0; border: 1px solid #3d4148; border-radius: 8px; background: #17191d; overflow-x: auto; }
+#editor code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; border-radius: 4px; background: #30343b; padding: 1px 4px; }
+#editor pre code { padding: 0; background: transparent; }
+#editor hr { border: 0; border-top: 1px solid #454a54; margin: 22px 0; }
+#editor a { color: #a8c2ff; text-decoration: underline; }
+#editor table { border-collapse: collapse; margin: 15px 0; width: 100%; table-layout: fixed; }
+#editor th, #editor td { border: 1px solid #505661; min-width: 70px; padding: 7px 9px; vertical-align: top; position: relative; }
+#editor th { background: #303641; font-weight: 600; }
+#editor table p { margin: 0; }
+#editor .selectedCell::after { content: ''; position: absolute; inset: 0; background: #6688d033; pointer-events: none; }
+#editor .column-resize-handle { position: absolute; right: -2px; top: 0; bottom: 0; width: 4px; background: #8daaff; pointer-events: none; }
+#editor ::selection { background: #536896; }
+#gutter { position: fixed; left: max(8px, calc((100vw - 780px)/2 + 14px)); display: none; gap: 1px; align-items: center; z-index: 5; }
+#gutter.visible { display: flex; }
+#gutter button { border: 0; border-radius: 5px; color: #949ba7; background: transparent; cursor: pointer; width: 25px; height: 26px; font-size: 21px; line-height: 1; }
+#gutter button:hover { color: #f7f8fa; background: #393e47; }
+#block-actions { font-size: 17px !important; }
+#bubble, .menu { position: fixed; display: none; z-index: 20; border: 1px solid #464b55; background: #30343b; box-shadow: 0 12px 28px #0008; border-radius: 10px; }
+#bubble.visible, .menu.visible { display: flex; }
+#bubble { gap: 2px; padding: 4px; }
+#bubble button { border: 0; border-radius: 6px; color: #dce0e7; background: transparent; min-width: 29px; height: 27px; cursor: pointer; }
+#bubble button:hover, #bubble button.active { color: white; background: #4a5772; }
+.menu { flex-direction: column; width: 235px; max-height: min(440px, 65vh); padding: 6px; overflow-y: auto; }
+.menu-item { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; padding: 8px 10px; border: 0; border-radius: 6px; color: #eef0f4; background: transparent; cursor: pointer; text-align: left; }
+.menu-item:hover, .menu-item:focus-visible, #slash-menu .menu-item.selected { background: #4c596f; outline: 0; }
+.menu-item small { color: #a5adba; font-size: 11px; }
+.menu-caption { padding: 8px 10px 5px; color: #a7afbc; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.menu-divider { border-top: 1px solid #4c515a; margin: 5px 4px; }

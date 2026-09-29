@@ -154,6 +154,37 @@ enum MeetingScratchpadSelfTest {
             expect(bullets == ["- pinned last", "- first", "- second", "- third"],
                 "pinned first is the block's rule alone, not the file's order (\(bullets))")
 
+            let page = MeetingScratchNote(text: "# Plan\n\n- [ ] Call Alex", kind: .document,
+                                          richHTML: "<h1>Plan</h1><ul data-type=\"taskList\"><li>Call Alex</li></ul>")
+            store.saveScratchpad(withPin + [page], for: meeting.id)
+            let restoredPage = store.scratchpad(for: meeting.id).first { $0.id == page.id }
+            expect(restoredPage?.kind == .document && restoredPage?.text == page.text,
+                "a freeform page keeps its type and text across the file")
+            expect(restoredPage?.richHTML == page.richHTML,
+                "a rich page keeps its editable formatting across the file")
+            let rendered = ScratchNotesMerger.markdown(store.scratchpad(for: meeting.id))
+            expect(rendered.contains("# Plan\n\n- [ ] Call Alex")
+                   && !rendered.contains("- # Plan"),
+                "a page keeps headings and to-dos as Markdown instead of becoming one bullet")
+            let pageWithSection = MeetingScratchNote(text: "# Plan\n\n## Milestones\n\n- [ ] Call Alex",
+                                                     kind: .document)
+            let manualPage = ScratchNotesMerger.markdown([pageWithSection])
+            let oncePage = ScratchNotesMerger.merged(manual: manualPage,
+                                                     generated: "## Summary\n\nDiscussed launch.")
+            expect(ScratchNotesMerger.merged(manual: manualPage, generated: oncePage) == oncePage,
+                "a page's own subheadings do not duplicate after another notes pass")
+            if let encoded = try? JSONEncoder().encode(MeetingScratchNote(text: "old note")),
+               var object = try? JSONSerialization.jsonObject(with: encoded) as? [String: Any] {
+                object.removeValue(forKey: "kind")
+                object.removeValue(forKey: "richHTML")
+                let oldData = try? JSONSerialization.data(withJSONObject: object)
+                let decoded = oldData.flatMap { try? JSONDecoder().decode(MeetingScratchNote.self, from: $0) }
+                expect(decoded?.kind == .line, "older scratchpad rows still read as lines")
+                expect(decoded?.richHTML == nil, "older scratchpad rows do not require rich formatting")
+            } else {
+                expect(false, "the older row fixture could be made")
+            }
+
             let url = store.directory(for: meeting.id)
                 .appendingPathComponent(MeetingStore.scratchpadFile)
             expect(fm.fileExists(atPath: url.path),
@@ -244,6 +275,13 @@ enum MeetingScratchpadSelfTest {
                 "the cap drops the oldest (\(kept.first?.text ?? "nil"))")
             expect(kept.last?.text == "line \(MeetingScratchNote.maxStored + extra - 1)",
                 "the newest line is the one kept (\(kept.last?.text ?? "nil"))")
+            let earlyPage = MeetingScratchNote(text: "# Long meeting", at: base.addingTimeInterval(-1),
+                                               kind: .document)
+            store.saveScratchpad([earlyPage] + written, for: meeting.id)
+            let withPage = store.scratchpad(for: meeting.id)
+            expect(withPage.count == MeetingScratchNote.maxStored
+                   && withPage.first?.id == earlyPage.id,
+                "an early freeform page survives the cap while the oldest lines expire")
             expect(onDisk(store, meeting.id).count == MeetingScratchNote.maxStored,
                 "the file itself is capped, so it cannot grow without bound")
         }

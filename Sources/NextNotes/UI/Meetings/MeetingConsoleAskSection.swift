@@ -29,7 +29,6 @@ struct MeetingConsoleAskSection: View {
     @State private var identity = AgentIdentityStore.shared
     @State private var loadNotice = ModelLoadNotice.shared
 
-    @State private var showsSuggestions = true
     @FocusState private var isComposerFocused: Bool
 
     /// `.thinking` while a turn is in flight, and `.idle` the rest of the time — including
@@ -38,22 +37,28 @@ struct MeetingConsoleAskSection: View {
     /// section started is running right now.
     var activity: MeetingConsoleActivity { agent.isThinking ? .thinking : .idle }
 
-    /// `nil`: the composer is at the bottom of the body, where the reference puts it. The
-    /// sheet's pill slot belongs to whichever section has one primary action to offer, and
-    /// asking a question is a field a person is already typing in.
-    var floatingAction: AnyView? { nil }
-
     // MARK: - Body
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: DS.Space.l) {
-                    MeetingConsoleSectionHeader(
-                        section: .ask,
-                        subtitle: "\(identity.name) reads this meeting to answer."
-                    )
-                    suggestions
+                    if visibleMessages.isEmpty {
+                        VStack(alignment: .leading, spacing: DS.Space.m) {
+                            Image(systemName: "sparkles")
+                                .font(DS.Font.title)
+                                .foregroundStyle(DS.Color.accent)
+                            Text("Ask about this meeting")
+                                .font(DS.Font.title)
+                            Text("Find a decision, a follow-up or something you missed.")
+                                .font(DS.Font.callout)
+                                .foregroundStyle(DS.Color.textSecondary)
+                        }
+                        .padding(.top, DS.Space.xl)
+                        suggestions
+                    } else {
+                        MeetingConsoleSectionHeader(section: .ask)
+                    }
                     thread
                     if agent.isThinking { thinkingRow }
                     // A model failure belongs beside the question that exposed it.
@@ -64,16 +69,13 @@ struct MeetingConsoleAskSection: View {
                 .padding(DS.Space.page)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
-            VStack(spacing: DS.Space.s) {
-                composer
-                Text("Next Notes is AI and can make mistakes.")
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
+            composer
             .padding(DS.Space.page)
+            .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - The way in
@@ -85,33 +87,27 @@ struct MeetingConsoleAskSection: View {
     /// one fills the field rather than sending it — a person in a call should see what they
     /// are about to ask before it is asked.
     private var suggestions: some View {
-        GlassCard(cornerRadius: DS.Radius.glass, padding: DS.Space.card) {
-            DisclosureGroup(isExpanded: $showsSuggestions) {
-                VStack(alignment: .leading, spacing: DS.Space.s) {
-                    ForEach(Self.suggestions, id: \.self) { question in
-                        Button {
-                            draft = question
-                            isComposerFocused = true
-                        } label: {
-                            HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
-                                Text(question)
-                                    .font(DS.Font.callout)
-                                    .multilineTextAlignment(.leading)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                Spacer(minLength: 0)
-                                Image(systemName: "arrow.up.left")
-                                    .foregroundStyle(DS.Color.textTertiary)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .help("Put this in the box so you can change it first")
+        VStack(alignment: .leading, spacing: DS.Space.s) {
+            ForEach(Self.suggestions, id: \.self) { question in
+                Button {
+                    draft = question
+                    isComposerFocused = true
+                } label: {
+                    HStack(spacing: DS.Space.s) {
+                        Text(question)
+                            .font(DS.Font.callout)
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: DS.Space.s)
+                        Image(systemName: "arrow.up.left")
+                            .foregroundStyle(DS.Color.textTertiary)
                     }
+                    .padding(DS.Space.m)
+                    .background(DS.Color.content, in: RoundedRectangle(cornerRadius: DS.Radius.card))
+                    .overlay(RoundedRectangle(cornerRadius: DS.Radius.card)
+                        .stroke(DS.Color.separator))
                 }
-                .padding(.top, DS.Space.s)
-            } label: {
-                Text("Try asking")
-                    .font(DS.Font.sectionLabel)
+                .buttonStyle(.plain)
+                .help("Put this in the box so you can change it first")
             }
         }
     }
@@ -140,7 +136,7 @@ struct MeetingConsoleAskSection: View {
     private var threadMessages: [AgentSession.Message] {
         var out: [AgentSession.Message] = []
         var carriesAnswer = false
-        for message in conversation.messages {
+        for message in conversation.messages where message.at >= session.meeting.start {
             // A question re-decides whether the rows after it belong to this panel; every
             // other row belongs to whichever question is open, and to none once a question
             // from somewhere else has taken over.
@@ -166,21 +162,7 @@ struct MeetingConsoleAskSection: View {
 
     @ViewBuilder
     private var thread: some View {
-        if visibleMessages.isEmpty, !agent.isThinking {
-            OrbUnavailableView(
-                .breathing,
-                title: "Nothing asked yet",
-                message: session.isRecording
-                    ? "This meeting is still running. Ask about what has been said so far."
-                    : "Ask about anything that was said in this meeting.",
-                // The panel already carries a field behind the whole content column; a second
-                // one inside the empty state is the same texture drawn twice. And while a turn
-                // is in flight this is not drawn at all: an empty state says the screen is at
-                // rest, and the sheet's status row would then be running its own orb beside
-                // this one's.
-                hasField: false
-            )
-        } else if !visibleMessages.isEmpty {
+        if !visibleMessages.isEmpty {
             VStack(alignment: .leading, spacing: DS.Space.l) {
                 ForEach(visibleMessages) { message in
                     messageRow(message)
@@ -212,11 +194,9 @@ struct MeetingConsoleAskSection: View {
                     .font(DS.Font.body)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(DS.Space.m)
-                    .background(
-                        isUser ? DS.Color.accent.opacity(DS.Opacity.chipFill) : DS.Color.content,
-                        in: RoundedRectangle(cornerRadius: DS.Radius.card)
-                    )
+                    .padding(isUser ? DS.Space.m : 0)
+                    .background(isUser ? DS.Color.accent.opacity(DS.Opacity.chipFill) : .clear,
+                                in: RoundedRectangle(cornerRadius: DS.Radius.card))
             }
             // The Agent pane's own bubble cap, which the 312pt content column is far narrower
             // than — `maxWidth` clamps, so the bubble simply takes the column.
@@ -246,8 +226,7 @@ struct MeetingConsoleAskSection: View {
             return "These are only the turns asked from inside meetings. The rest of the "
                 + "conversation is one press away."
         }
-        return "Showing the last \(visibleMessages.count) of \(all) lines asked in meetings. "
-            + "The rest of the conversation is one press away."
+        return "Showing \(visibleMessages.count) of \(all) messages from meetings."
     }
 
     // MARK: - The turn in flight
@@ -338,9 +317,9 @@ struct MeetingConsoleAskSection: View {
     /// for the actual words asked; a separate scope selector here would need to change that
     /// decision before it could promise a narrower answer.
     private var composer: some View {
-        HStack(alignment: .bottom, spacing: DS.Space.s) {
+        HStack(alignment: .bottom, spacing: DS.Space.m) {
             TextField("Ask about this meeting…", text: $draft, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
+                .textFieldStyle(.plain)
                 .lineLimit(1...4)
                 .focused($isComposerFocused)
                 .onSubmit { send() }
@@ -360,19 +339,25 @@ struct MeetingConsoleAskSection: View {
                 }
 
             if agent.isThinking {
-                Button("Stop") {
+                Button("Stop", systemImage: "stop.fill") {
                     // The gate first, as in `AgentView`: this panel cannot draw the card a
                     // parked confirmation waits on, so a turn that would have stopped for
                     // approval has to be told no rather than left asking in silence.
                     ACPConfirmationGate.shared.cancel()
                     RealtimeAgent.shared.cancel()
                 }
-                .controlSize(.small)
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
             }
-            Button("Send", action: send)
-                .controlSize(.small)
+            Button("Send", systemImage: "arrow.up", action: send)
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderedProminent)
                 .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
+        .padding(DS.Space.m)
+        .background(DS.Color.content, in: RoundedRectangle(cornerRadius: DS.Radius.glass))
+        .overlay(RoundedRectangle(cornerRadius: DS.Radius.glass)
+            .stroke(DS.Color.separator))
     }
 
     private func send() {

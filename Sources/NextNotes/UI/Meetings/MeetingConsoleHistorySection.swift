@@ -82,7 +82,6 @@ struct MeetingConsoleHistorySection: View {
     /// Nothing here acts: History reads the person's own library and the meeting they are
     /// in is not something this section can change. The panel's one floating action belongs
     /// to the section that has one to offer.
-    var floatingAction: AnyView? { nil }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.l) {

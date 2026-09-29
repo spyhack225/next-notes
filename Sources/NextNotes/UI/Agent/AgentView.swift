@@ -211,15 +211,35 @@ struct AgentView: View {
                     Text("Conversation")
                         .font(DS.Font.sectionLabel)
                     if isEmpty {
-                        OrbUnavailableView(
-                            .breathing,
-                            title: "Nothing yet",
-                            message: "Ask what’s on your calendar, or what was just said in a meeting."
-                        ) {
-                            Button("What’s on my calendar?") {
-                                Task { await RealtimeAgent.shared.handleLive("What's on my calendar today?", source: .text) }
+                        VStack(alignment: .leading, spacing: DS.Space.l) {
+                            Image(systemName: "sparkles")
+                                .font(DS.Font.title)
+                                .foregroundStyle(DS.Color.accent)
+                            Text("What can I help with?")
+                                .font(DS.Font.title)
+                            Text("Ask a question or give me something to do.")
+                                .font(DS.Font.callout)
+                                .foregroundStyle(DS.Color.textSecondary)
+                            ForEach(Self.starterQuestions, id: \.self) { question in
+                                Button {
+                                    draft = question
+                                } label: {
+                                    HStack(spacing: DS.Space.s) {
+                                        Text(question)
+                                        Spacer(minLength: DS.Space.s)
+                                        Image(systemName: "arrow.up.left")
+                                            .foregroundStyle(DS.Color.textTertiary)
+                                    }
+                                    .padding(DS.Space.m)
+                                    .background(DS.Color.content,
+                                                in: RoundedRectangle(cornerRadius: DS.Radius.card))
+                                    .overlay(RoundedRectangle(cornerRadius: DS.Radius.card)
+                                        .stroke(DS.Color.separator))
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
+                        .padding(.top, DS.Space.xl)
                     }
                     ForEach(timeline) { item in
                         switch item {
@@ -256,10 +276,12 @@ struct AgentView: View {
                     Color.clear.frame(height: DS.Space.xs).id("conversation-bottom")
                 }
                 .padding(DS.Space.page)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: DS.Size.agentChatMaxWidth, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
-            .defaultScrollAnchor(.bottom)
+            .defaultScrollAnchor(isEmpty ? .top : .bottom)
             .onAppear {
+                guard !isEmpty else { return }
                 Task { @MainActor in
                     await Task.yield()
                     proxy.scrollTo("conversation-bottom", anchor: .bottom)
@@ -311,9 +333,17 @@ struct AgentView: View {
             }
             .padding(.horizontal, DS.Space.page)
             .padding(.top, DS.Space.s)
+            .frame(maxWidth: DS.Size.agentChatMaxWidth)
+            .frame(maxWidth: .infinity)
             .background(DS.Color.window)
         }
     }
+
+    private static let starterQuestions = [
+        "What’s on my calendar today?",
+        "Summarize my latest meeting",
+        "Help me plan my day",
+    ]
 
     /// Whether a live run's working card is already drawing this request inline.
     private func isShownInline(_ request: PermissionRequest) -> Bool {
@@ -414,11 +444,9 @@ struct AgentView: View {
                     .font(DS.Font.body)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(DS.Space.m)
-                    .background(
-                        isUser ? DS.Color.accent.opacity(DS.Opacity.chipFill) : DS.Color.content,
-                        in: RoundedRectangle(cornerRadius: DS.Radius.card)
-                    )
+                    .padding(isUser ? DS.Space.m : 0)
+                    .background(isUser ? DS.Color.accent.opacity(DS.Opacity.chipFill) : .clear,
+                                in: RoundedRectangle(cornerRadius: DS.Radius.card))
             }
             .frame(maxWidth: DS.Size.agentBubbleMaxWidth, alignment: isUser ? .trailing : .leading)
             if !isUser { Spacer(minLength: DS.Space.xl) }
@@ -582,9 +610,9 @@ struct AgentView: View {
     }
 
     private var composer: some View {
-        HStack(alignment: .bottom, spacing: DS.Space.s) {
+        HStack(alignment: .bottom, spacing: DS.Space.m) {
             TextField("Ask \(identity.name)…", text: $draft, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
+                .textFieldStyle(.plain)
                 .lineLimit(1...5)
                 .onSubmit { send() }
                 .onKeyPress(phases: .down) { press in
@@ -607,23 +635,31 @@ struct AgentView: View {
                 draftIsEmpty: draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                 isThinking: agent.isThinking) {
             case .send(let enabled):
-                Button("Send", action: send)
+                Button("Send", systemImage: "arrow.up", action: send)
                     .disabled(!enabled)
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.borderedProminent)
                     .frame(width: DS.Size.composerControl.width,
                            height: DS.Size.composerControl.height)
                     .accessibilityLabel("Send")
             case .stop:
                 // Stop must not touch the draft. Cancelling the approval gate and the turn is
                 // the whole of it — no `draft = ""` here, and the case below is why.
-                Button("Stop") {
+                Button("Stop", systemImage: "stop.fill") {
                     ACPConfirmationGate.shared.cancel()
                     RealtimeAgent.shared.cancel()
                 }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
                 .frame(width: DS.Size.composerControl.width,
                        height: DS.Size.composerControl.height)
                 .accessibilityLabel("Stop")
             }
         }
+        .padding(DS.Space.m)
+        .background(DS.Color.content, in: RoundedRectangle(cornerRadius: DS.Radius.glass))
+        .overlay(RoundedRectangle(cornerRadius: DS.Radius.glass)
+            .stroke(DS.Color.separator))
         .padding(.bottom, DS.Space.m)
     }
 

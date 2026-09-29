@@ -69,6 +69,15 @@ enum ModelRoleSelfTest {
         if ModelRoleStore.likelyMultiStep("open Safari") {
             failures.append("a single app request was read as a multi-step plan")
         }
+        if !ModelRoleStore.likelyMultiStep("open youtube and play the latest Cortech video") {
+            failures.append("open and play was reduced to opening a page")
+        }
+        if !ModelRoleStore.likelyMultiStep("find the pricing document and email it to Marcus") {
+            failures.append("find and email was reduced to finding a file")
+        }
+        if ModelRoleStore.likelyMultiStep("open the docs and slides") {
+            failures.append("two nouns joined by and were read as two steps")
+        }
         // Two verbs and a sequencer, but the shortcut already answers it with no model
         // round — it must never be sent online for being long.
         if ModelRoleStore.likelyMultiStep("open Chrome and then go to youtube.com") {

@@ -31,6 +31,12 @@ copies their licence files into `Next Notes.app/Contents/Resources/WebRTCAudio/`
 
 ## macOS dependencies
 
+The meeting notes editor bundles Tiptap 3, its ProseMirror dependencies, and markdown-it
+from `Web/MeetingEditor/`. They and most transitive packages are MIT licensed; `entities`
+is BSD-2-Clause and `argparse` is PSF-2.0. Their licence texts are shipped in
+`Resources/MeetingEditor/licenses/`. The editor bundle is built locally and makes no
+network request while a meeting is open.
+
 | Component | Licence |
 |---|---|
 | llama.cpp XCFramework (`ggml-org/llama.cpp`) | MIT |

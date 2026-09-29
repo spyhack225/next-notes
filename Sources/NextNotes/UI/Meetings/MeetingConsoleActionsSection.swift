@@ -39,7 +39,6 @@ struct MeetingConsoleActionsSection: View {
     /// Nothing, on purpose. An approval belongs on the row that approves, beside the
     /// message it approves; a panel-wide "Approve all" would put a bulk path in front of
     /// irreversible actions, which is the one thing the permission model exists to prevent.
-    var floatingAction: AnyView? { nil }
 
     // MARK: - Body
 

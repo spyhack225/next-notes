@@ -49,6 +49,15 @@ struct MessagesWatcherDelivery: Sendable {
     /// continues, and the later rows go first. This flag is how a consumer knows.
     var deferred = false
 
+    /// The chat this row came from. The watcher knows this (it is the filter), and the
+    /// bridge needs it to decide membership. Carried here rather than queried because a
+    /// row that belongs to two chats is returned twice on an unfiltered pass, and the
+    /// bridge must know which chat this delivery is for.
+    var chatGUID: String = ""
+    /// The row's sender handle, resolved from `handle_id`. The envelope does not carry it
+    /// (IM-08a's design), and the bridge needs it to resolve direction.
+    var senderHandle: String? = nil
+
     /// The attachments, or empty. `resolution.isComplete` says whether empty means none or
     /// means not yet.
     var attachments: [MessagesAttachment] { resolution.attachments }

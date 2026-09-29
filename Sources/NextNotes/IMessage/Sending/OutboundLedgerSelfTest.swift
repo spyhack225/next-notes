@@ -714,6 +714,82 @@ enum MessagesLedgerSelfTest {
             failures.append("harness: threw \(error)")
         }
 
+        // MARK: - IM-08d: the bridge
+
+        do {
+            let bridgeDir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("NextNotesSelfTest-bridge-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true)
+            try? FileManager.default.createDirectory(at: bridgeDir, withIntermediateDirectories: true)
+            let bridgeStore = RemoteIdentityStore(directory: bridgeDir)
+            try? bridgeStore.update { $0.localIdentity = "+15551234567" }
+            let bridgeLedger = OutboundMessageLedger(store: IMessageOutboundStore(root: FileManager.default.temporaryDirectory
+                .appendingPathComponent("NextNotesSelfTest-bridge-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true)))
+            let collector = BridgeCollector()
+            let bridge = IMessageBridge(ledger: bridgeLedger, store: bridgeStore) { candidate in
+                await collector.addCandidate(candidate)
+            } onCard: { notice in
+                await collector.addCard(notice)
+            }
+
+            // 1. A .userCommand yields one candidate with the sender's own words.
+            let commandEnvelope = IMessageEnvelope(
+                rowID: 1, guid: "g1", date: 0, isFromMe: false, service: "iMessage",
+                body: .text("Hi Next", discardedBytes: 0), source: .textColumn)
+            await bridge.handle(delivery: MessagesWatcherDelivery(
+                envelope: commandEnvelope,
+                resolution: .noneNeeded,
+                chatGUID: "iMessage;-;+15551234567",
+                senderHandle: "+15551234567"))
+            await check("a .userCommand yields one candidate") {
+                let count = await collector.candidateCount
+                let text = await collector.firstCandidateText
+                return count == 1 && text == "Hi Next" ? nil : "got \(count) candidates"
+            }
+
+            // 2. A .fromSomebodyElse yields no candidate and one card.
+            let foreignEnvelope = IMessageEnvelope(
+                rowID: 2, guid: "g2", date: 0, isFromMe: false, service: "iMessage",
+                body: .text("Hello from somebody else", discardedBytes: 0), source: .textColumn)
+            await bridge.handle(delivery: MessagesWatcherDelivery(
+                envelope: foreignEnvelope,
+                resolution: .noneNeeded,
+                chatGUID: "iMessage;-;+15551234567",
+                senderHandle: "+15559876543"))
+            await check("a .fromSomebodyElse yields no candidate and one card") {
+                let count = await collector.candidateCount
+                let cards = await collector.cardCount
+                return count == 1 && cards == 1 ? nil : "got \(count) candidates, \(cards) cards"
+            }
+
+            // 3. A second .userCommand with the same text yields no second candidate (fingerprint).
+            await bridge.handle(delivery: MessagesWatcherDelivery(
+                envelope: commandEnvelope,
+                resolution: .noneNeeded,
+                chatGUID: "iMessage;-;+15551234567",
+                senderHandle: "+15551234567"))
+            await check("a second .userCommand with the same text yields no second candidate") {
+                let count = await collector.candidateCount
+                return count == 1 ? nil : "got \(count) candidates"
+            }
+
+            // 4. A .userSentSomethingElse yields no candidate and no card.
+            let effectEnvelope = IMessageEnvelope(
+                rowID: 3, guid: "g3", date: 0, isFromMe: false, service: "iMessage",
+                body: .notText(bundleID: nil, discardedBytes: 0), source: .attributedBody)
+            await bridge.handle(delivery: MessagesWatcherDelivery(
+                envelope: effectEnvelope,
+                resolution: .noneNeeded,
+                chatGUID: "iMessage;-;+15551234567",
+                senderHandle: "+15551234567"))
+            await check("a .userSentSomethingElse yields no candidate and no card") {
+                let count = await collector.candidateCount
+                let cards = await collector.cardCount
+                return count == 1 && cards == 1 ? nil : "got \(count) candidates, \(cards) cards"
+            }
+        } catch {
+            failures.append("bridge: threw \(error)")
+        }
+
         // Blocked first, then the wrong lines, then the marker: `writeSelfTest` writes this in a
         // single call while `print` goes through a buffered stream, so the verdict has to be in
         // the returned string to be the last thing a reader sees.
@@ -726,6 +802,18 @@ enum MessagesLedgerSelfTest {
     }
 
     // MARK: - Helpers
+
+    /// A thread-safe collector for the bridge's output, so the self-test can assert on
+    /// what the bridge produced without a mutable capture in a `@Sendable` closure.
+    private actor BridgeCollector {
+        private var candidates: [RemoteCandidate] = []
+        private var cards: [IMessageLocalNotice] = []
+        var candidateCount: Int { candidates.count }
+        var cardCount: Int { cards.count }
+        var firstCandidateText: String? { candidates.first?.text }
+        func addCandidate(_ candidate: RemoteCandidate) { candidates.append(candidate) }
+        func addCard(_ notice: IMessageLocalNotice) { cards.append(notice) }
+    }
 
     /// A candidate for a row carrying exactly the digest a send recorded, in the paired chat.
     static func candidate(rowID: Int64, guid: String, digest: Data, date: Int64) -> OutboundEchoCandidate {

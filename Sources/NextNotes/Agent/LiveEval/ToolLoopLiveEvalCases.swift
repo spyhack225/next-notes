@@ -73,7 +73,7 @@ enum ExtraRule: Sendable {
     case distinctReplies
     /// A01: the term must appear in a navigate url or in a `browser.fill` value.
     case searchTermReached(String)
-    /// A02: at least two browser calls, or a navigate url containing the term.
+    /// A02: click the named video, or navigate directly to its URL.
     case browserFollowThrough(String)
     /// P1-27's O06: nothing ran from the second turn on. `answerOnly` is judged over the whole
     /// case, so a two-turn case cannot say "the first turn may look, the second must not" —

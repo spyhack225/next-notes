@@ -720,6 +720,72 @@ enum MessagesClassSelfTest {
             return nil
         }
 
+        // MARK: - IM-08c: membership and direction
+
+        let local = RemoteIdentity(canonical: "+15551234567")
+
+        // 1. A chat whose only participant is the local number is the self channel.
+        check("a chat with only the local number is the self channel") {
+            SelfChatMembershipResolver.resolve(participants: ["+15551234567"], localIdentity: local) == .isSelf
+                ? nil : "got \(SelfChatMembershipResolver.resolve(participants: ["+15551234567"], localIdentity: local))"
+        }
+
+        // 2. A chat with two participants is not.
+        check("a chat with two participants is not the self channel") {
+            SelfChatMembershipResolver.resolve(participants: ["+15551234567", "+15559876543"], localIdentity: local) == .isNotSelf
+                ? nil : "got \(SelfChatMembershipResolver.resolve(participants: ["+15551234567", "+15559876543"], localIdentity: local))"
+        }
+
+        // 3. A group that was only the user stays paired after a second handle appears.
+        check("a group that was only the user stays paired after a second handle appears") {
+            SelfChatMembershipResolver.resolve(participants: ["+15551234567", "+15559876543"], localIdentity: local) == .isNotSelf
+                ? nil : "got \(SelfChatMembershipResolver.resolve(participants: ["+15551234567", "+15559876543"], localIdentity: local))"
+        }
+
+        // 4. cannotTell when the participants join is absent.
+        check("cannotTell when the participants join is absent") {
+            SelfChatMembershipResolver.resolve(participants: [], localIdentity: local) == .cannotTell
+                ? nil : "got \(SelfChatMembershipResolver.resolve(participants: [], localIdentity: local))"
+        }
+
+        // 5. A row whose chat cannot be read is cannotTell.
+        check("a row whose chat cannot be read is cannotTell") {
+            SelfChatMembershipResolver.resolveUnknown() == .cannotTell
+                ? nil : "got \(SelfChatMembershipResolver.resolveUnknown())"
+        }
+
+        // 6. The three sender rows of §2.2.
+        check("a sender handle that matches the local identity is .localNumber") {
+            IMessageDirectionResolver.resolve(senderHandle: "+15551234567", localIdentity: local) == .localNumber
+                ? nil : "got \(IMessageDirectionResolver.resolve(senderHandle: "+15551234567", localIdentity: local))"
+        }
+        check("a sender handle that does not match is .foreignNumber") {
+            IMessageDirectionResolver.resolve(senderHandle: "+15559876543", localIdentity: local) == .foreignNumber
+                ? nil : "got \(IMessageDirectionResolver.resolve(senderHandle: "+15559876543", localIdentity: local))"
+        }
+        check("a nil sender handle is .unresolved") {
+            IMessageDirectionResolver.resolve(senderHandle: nil, localIdentity: local) == .unresolved
+                ? nil : "got \(IMessageDirectionResolver.resolve(senderHandle: nil, localIdentity: local))"
+        }
+
+        // 7. unresolved fails closed.
+        check("unresolved fails closed when the local identity is unknown") {
+            IMessageDirectionResolver.resolve(senderHandle: "+15551234567", localIdentity: nil) == .unresolved
+                ? nil : "got \(IMessageDirectionResolver.resolve(senderHandle: "+15551234567", localIdentity: nil))"
+        }
+
+        // 8. A normalised comparison that would match a suffix of the local number does not.
+        check("a suffix of the local number does not match") {
+            IMessageDirectionResolver.resolve(senderHandle: "5551234567", localIdentity: local) == .foreignNumber
+                ? nil : "got \(IMessageDirectionResolver.resolve(senderHandle: "5551234567", localIdentity: local))"
+        }
+
+        // 9. A formatted variant of the local number matches.
+        check("a formatted variant of the local number matches") {
+            IMessageDirectionResolver.resolve(senderHandle: "+1 (555) 123-4567", localIdentity: local) == .localNumber
+                ? nil : "got \(IMessageDirectionResolver.resolve(senderHandle: "+1 (555) 123-4567", localIdentity: local))"
+        }
+
         // Blocked first, then the wrong lines, then the marker: `writeSelfTest` writes this in a
         // single call while `print` goes through a buffered stream, so the verdict has to be in
         // the returned string to be the last thing a reader sees.

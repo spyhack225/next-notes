@@ -90,7 +90,7 @@ struct RoutinesView: View {
                             // the leak the ledger just stopped keeping.
                             Task {
                                 await RealtimeAgent.shared.handleLive(
-                                    "Set this up as a routine about \(suggestion.key)",
+                                    "Set up a repeating reminder about \(suggestion.key)",
                                     source: .text)
                             }
                         }

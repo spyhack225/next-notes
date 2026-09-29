@@ -933,7 +933,21 @@ final class LiveKnowledgeIndexEnvironment: KnowledgeIndexEnvironment {
     /// in progress, and any meeting still transcribing, diarizing or writing notes.
     var isRecording: Bool { Self.isForegroundBusy }
 
-    static var isForegroundBusy: Bool { isCapturing || RealtimeAgent.shared.isThinking }
+    static var isForegroundBusy: Bool { isForegroundBusy(excludingMeetingIDs: []) }
+
+    /// Launch repair owns these meeting IDs, so they must not make its own busy
+    /// gate true forever. A new live session still blocks repair through `session`.
+    static func isForegroundBusy(
+        excludingMeetingIDs ids: Set<UUID>,
+        store: MeetingStore = .shared
+    ) -> Bool {
+        MeetingController.shared.session != nil
+            || (AppDelegate.current?.controller.state.isActive ?? false)
+            || RealtimeAgent.shared.isThinking
+            || store.meetings.contains {
+                $0.status.isActive && $0.status != .extracting && !ids.contains($0.id)
+            }
+    }
 
     /// A meeting or dictation recording, or a meeting still transcribing, diarizing or
     /// writing notes.

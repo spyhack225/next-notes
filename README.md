@@ -625,7 +625,8 @@ Sources/NextNotes/
 │   │                               ProposalArgumentsSheet, SpeakerNamesSheet,
 │   │                               RenameMeetingSheet, MeetingConsoleSheet — the four-
 │   │                               section panel that opens over a live meeting, and its
-│   │                               Notes / Actions / History / Ask sections
+│   │                               Notes / Actions / History / Ask sections;
+│   │                               MeetingRichEditor hosts the bundled local Tiptap page
 │   ├── Agent/                      AgentView — conversation, activity history, audit trail;
 │   │                               ActivityView — cross-session history, approvals ledger,
 │   │                               heartbeat; IdeasView — the static gallery; GoalsView;
@@ -1353,10 +1354,13 @@ had the one real thing it needs:
   `SYSTEM_AUDIO_SILENT` here, and no recording has yet contained an "Others" track. Every
   call succeeds without the grant and every sample is zero, which is why the Permissions
   checklist shows that row as unanswerable rather than guessing.
-- **The meeting panel.** Built, self-tested (rail order, one orb per screen, no sheet under
-  the harness) and in the app — and **never seen by an eye.** There is no grant-free way to
-  render a sheet here; every visual claim about it is argued from the design tokens and the
-  source. Open a meeting and press ⌘⇧M; that is the first real check and it has not happened.
+- **The meeting panel.** The first live screenshots on 2026-09-29 showed a fixed sheet with
+  no visible close control, a cramped note field, and an Ask composer that could fall below
+  the bottom edge. It is now a movable, resizable window with a close button, a rich
+  notes page and a pinned Ask composer. The editor has inline formatting, slash commands,
+  block controls and a drag grip; the scratchpad stores its HTML and Markdown together.
+  The revised layout still needs a live visual check. `--meeting-console-preview [dir]`
+  renders the window shell offscreen; embedded WebKit content needs a live app check.
 - **The wake word in a real room.** `--selftest-wake-live` is red at the shipped
   sensitivity: 17 of 24 synthetic clips hit, 3 of 32 near-misses are false accepts, and the
   tuning pass took the measured maximum of the trade surface rather than lowering the bar.

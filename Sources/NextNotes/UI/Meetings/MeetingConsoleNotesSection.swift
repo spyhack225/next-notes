@@ -3,13 +3,9 @@ import SwiftUI
 /// The meeting panel's Notes section: the surface you write on by hand while the meeting
 /// runs, and the one place a tidy of what you wrote appears.
 ///
-/// Three decisions are load-bearing, and none of them is the layout.
-///
-/// **The composer's Return adds.** A person taking notes mid-meeting is looking at the
-/// meeting, not at this pane, and a field that swallows what they typed until they find the
-/// button loses it. So Return saves the line and leaves the caret exactly where it was —
-/// copied from `AgentView`'s composer, which solved the same problem the same way — and
-/// Shift-Return is the line break.
+/// The page is a single `.document` entry in the meeting's existing scratchpad. Editing
+/// remains freeform in a rich editor. HTML preserves the page's formatting and Markdown
+/// feeds the existing summary and notes.md path. Older captured lines stay below the page.
 ///
 /// **The result appears underneath, and never instead.** The tidied document is a separate
 /// card under the person's own lines, and keeping it is a separate, explicit act. That is
@@ -18,21 +14,23 @@ import SwiftUI
 /// as one pinned `MeetingScratchNote`, which is how it reaches `notes.md` — through the merge
 /// `NotesService` already owns, at the end of the meeting.
 ///
-/// **The rows are not a `List`.** The Dictation screen's list is deliberately non-selectable,
-/// and a `List` here would be that same trade in the one place it costs the most: copy is how
-/// a person gets a single fragment out of a set of notes, and a caret where a row should be
-/// is a note they cannot copy. So the rows are a stack, and the text in them is selectable.
+/// **The rows are not a `List`.** Existing lines remain selectable and editable in place.
 struct MeetingConsoleNotesSection: View {
     let session: MeetingSession
 
-    @State private var draft = ""
+    @State private var document = ""
+    @State private var documentHTML: String?
+    @State private var documentID: UUID?
+    @State private var isLoaded = false
+    @State private var saveTask: Task<Void, Never>?
+    @State private var editingNoteID: UUID?
+    @State private var editingText = ""
     @State private var result: Tidy?
     @State private var problem: String?
     @State private var saveProblem: String?
     @State private var isTidying = false
     @State private var isKept = false
     @State private var pass: Task<Void, Never>?
-    @FocusState private var composerFocused: Bool
 
     /// The tidied document, and the two claims the panel has to make about it: who wrote it
     /// and whether it is the whole of what they asked for.
@@ -59,39 +57,7 @@ struct MeetingConsoleNotesSection: View {
 
     // MARK: - The primary action
 
-    /// The pill the panel draws over its content, in the two states it has.
-    ///
-    /// Disabled with a help that says *which* of the two things it needs is missing, rather
-    /// than a dead button: a person who cannot tell why a button is grey will press it
-    /// again, and one who is told "no note of yours yet" knows exactly what to do.
-    var floatingAction: AnyView? {
-        let canRun = !isTidying && hasSomethingToWorkFrom
-        return AnyView(
-            Button(action: tidy) {
-                HStack(spacing: DS.Space.s) {
-                    if isTidying {
-                        // The same job the status row above is reporting, at badge size — and
-                        // *still*, which is the whole point. The sheet's `LabeledOrb` is the
-                        // one animating shape on this screen; a second live canvas naming the
-                        // same pass would be two orbs for one job, and the reference's pill
-                        // spinner is a shape the panel already draws elsewhere.
-                        ThinkingOrb(state: .composing, size: DS.Size.orbBadge, isAnimated: false)
-                    } else {
-                        Image(systemName: "sparkles")
-                    }
-                    Text(isTidying ? "Writing the notes" : "Write the notes")
-                        .font(DS.Font.callout)
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!canRun)
-            .help(pillHelp)
-            .animation(DS.Motion.consoleSectionChange, value: isTidying)
-        )
-    }
-
-    /// Why the pill is or is not available, in one sentence naming what is missing.
+    /// Why the summary action is or is not available.
     private var pillHelp: String {
         if isTidying { return "Turning your own lines into a tidied document." }
         if !hasSomethingToWorkFrom {
@@ -103,7 +69,7 @@ struct MeetingConsoleNotesSection: View {
     /// The transcript is background for the tidier, never source material for new notes.
     /// With no line of the person's own, there is nothing this pass may write.
     private var hasSomethingToWorkFrom: Bool {
-        !notes.isEmpty
+        !notes.isEmpty || !document.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     // MARK: - Body
@@ -126,21 +92,18 @@ struct MeetingConsoleNotesSection: View {
             if let saveProblem {
                 ProblemBanner(message: saveProblem) { self.saveProblem = nil }
             }
-            if notes.isEmpty, result == nil, !session.isRecording {
-                emptyState
-            } else {
-                composer
-                if !notes.isEmpty { lines(notes) }
-                if let result { tidied(result) }
-            }
+            documentEditor
+            let older = notes.filter { $0.kind == .line }
+            if !older.isEmpty { lines(older) }
+            if let result { tidied(result) }
         }
+        .onAppear(perform: loadDocument)
         // The panel closed: the model is decoding into a result nobody will read, and
         // `run`'s cancellation handler exists to stop it rather than to let it finish.
         .onDisappear {
             pass?.cancel()
-            // Stop or a rail change removes this view, including its @State draft. Save a
-            // line that was still in the field rather than making Return the only exit.
-            saveDraft(refocus: false)
+            saveTask?.cancel()
+            saveDocument()
         }
     }
 
@@ -153,9 +116,7 @@ struct MeetingConsoleNotesSection: View {
     /// a person's own line is kept as written is the part a person mid-meeting actually needs,
     /// so it lives here rather than only in the orb state.
     private var headerSubtitle: String? {
-        notes.isEmpty
-            ? "Type anything you want to remember. It is yours, and it is kept as you write it."
-            : nil
+        "Your own page. Write freely while the meeting continues."
     }
 
     /// The count, or nothing. A chip that reads "0" is a piece of chrome saying nothing,
@@ -171,57 +132,80 @@ struct MeetingConsoleNotesSection: View {
         )
     }
 
-    /// Nothing at all — no line, no tidied document, and no meeting to hear.
-    ///
-    /// The orb is `breathing`, which is the vocabulary's word for "nothing here yet", and it
-    /// is the only shape on the panel while this is what is drawn: `activity` is `.idle`
-    /// here, so the sheet's status row has no orb of its own to put beside it. Widening
-    /// this to "no note typed yet" would put a second animating orb on a screen whose status
-    /// row is already saying the meeting is being braided together.
-    private var emptyState: some View {
-        OrbUnavailableView(
-            .breathing,
-            title: "Nothing written yet",
-            message: "Type anything you want to remember while the meeting goes. It is yours, "
-                + "and it is kept exactly as you write it.",
-            // The panel already carries a field behind the whole content column; a second
-            // one inside the empty state is the same texture drawn twice.
-            hasField: false
-        )
+    // MARK: - The page
+
+    private var documentEditor: some View {
+        VStack(alignment: .leading, spacing: DS.Space.s) {
+            HStack(spacing: DS.Space.s) {
+                Text("Select text to format. Type / for blocks.")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+                Spacer(minLength: DS.Space.s)
+                Button(isTidying ? "Writing…" : "Write summary", systemImage: "sparkles", action: tidy)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isTidying || !hasSomethingToWorkFrom)
+                    .help(pillHelp)
+            }
+            if isLoaded {
+                MeetingRichEditor(html: documentHTML, markdown: document) { html, markdown in
+                    documentHTML = html
+                    document = markdown
+                    scheduleSave()
+                } onError: { message in
+                    saveProblem = message
+                }
+                .frame(minHeight: DS.Size.meetingConsoleDocumentMinHeight)
+                .background(DS.Color.content, in: RoundedRectangle(cornerRadius: DS.Radius.card))
+                .overlay(RoundedRectangle(cornerRadius: DS.Radius.card)
+                    .stroke(DS.Color.separator))
+            }
+            Text("Your page saves as you write. Use + beside a block to add another.")
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+        }
     }
 
-    // MARK: - The composer
-
-    private var composer: some View {
-        VStack(alignment: .leading, spacing: DS.Space.s) {
-            TextField("Type a note and press Return…", text: $draft, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .frame(height: DS.Size.meetingConsoleNoteEditorHeight)
-                .focused($composerFocused)
-                .help("Return saves this line and leaves the cursor here. "
-                    + "Shift-Return starts a new line.")
-                // Plain Return adds; anything else is the text field's own newline. Copied
-                // from `AgentView`'s composer, which is the other place a person types into
-                // a panel they are not looking at.
-                .onKeyPress(phases: .down) { press in
-                    guard press.key == .return else { return .ignored }
-                    if press.modifiers.contains(.shift)
-                        || press.modifiers.contains(.option)
-                        || press.modifiers.contains(.control) {
-                        return .ignored
-                    }
-                    addNote()
-                    return .handled
-                }
-            HStack {
-                Spacer(minLength: DS.Space.s)
-                Button(action: addNote) {
-                    Label("Add", systemImage: "plus")
-                }
-                .disabled(trimmedDraft.isEmpty)
-                .help("Save this line and keep the cursor in the field")
-            }
+    private func loadDocument() {
+        guard !isLoaded else { return }
+        if let saved = notes.first(where: { $0.kind == .document }) {
+            document = saved.text
+            documentHTML = saved.richHTML
+            documentID = saved.id
         }
+        isLoaded = true
+    }
+
+    private func scheduleSave() {
+        guard isLoaded else { return }
+        saveTask?.cancel()
+        saveTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            saveDocument()
+        }
+    }
+
+    @discardableResult
+    private func saveDocument() -> Bool {
+        guard isLoaded else { return true }
+        var current = notes
+        let text = document
+        let html = documentHTML
+        if let index = current.firstIndex(where: { $0.id == documentID }) {
+            if current[index].text == text && current[index].richHTML == html { return true }
+            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                current.remove(at: index)
+            } else {
+                current[index].text = text
+                current[index].richHTML = html
+            }
+        } else {
+            guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return true }
+            let note = MeetingScratchNote(text: text, kind: .document, richHTML: html)
+            documentID = note.id
+            current.append(note)
+        }
+        return save(current)
     }
 
     // MARK: - The person's own lines
@@ -238,18 +222,39 @@ struct MeetingConsoleNotesSection: View {
     }
 
     private func line(_ note: MeetingScratchNote) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
+        HStack(alignment: .top, spacing: DS.Space.s) {
             Text(note.at, style: .time)
                 .font(DS.Font.timestamp)
                 .foregroundStyle(DS.Color.textTertiary)
-            // Selectable, and multi-line: a line somebody typed across two lines is still
-            // one line of theirs, and the view does not get to reflow it.
-            Text(note.text)
-                .font(DS.Font.body)
-                .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
+            if editingNoteID == note.id {
+                VStack(alignment: .leading, spacing: DS.Space.s) {
+                    TextEditor(text: $editingText)
+                        .font(DS.Font.body)
+                        .frame(height: DS.Size.meetingConsoleNoteEditorHeight)
+                    HStack(spacing: DS.Space.s) {
+                        Button("Save") { update(note) }
+                            .buttonStyle(.borderedProminent)
+                        Button("Cancel") { editingNoteID = nil }
+                    }
+                }
                 .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text(note.text)
+                    .font(DS.Font.body)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
             HStack(spacing: DS.Space.xs) {
+                Button {
+                    editingNoteID = note.id
+                    editingText = note.text
+                } label: {
+                    Image(systemName: "pencil")
+                }
+                .buttonStyle(.borderless)
+                .help("Edit this note")
+                .accessibilityLabel("Edit this note")
                 Button {
                     setPinned(!note.isPinned, on: note)
                 } label: {
@@ -321,6 +326,8 @@ struct MeetingConsoleNotesSection: View {
 
     private func tidy() {
         guard !isTidying, hasSomethingToWorkFrom else { return }
+        saveTask?.cancel()
+        guard saveDocument() else { return }
         pass?.cancel()
         isTidying = true
         problem = nil
@@ -359,34 +366,18 @@ struct MeetingConsoleNotesSection: View {
 
     // MARK: - Writing
 
-    private var trimmedDraft: String {
-        draft.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    /// The line the person just typed, saved whole.
-    ///
-    /// `text` rather than `singleLine`, because a line they pressed Return inside is one
-    /// note of theirs and this is not the place to reflow it. Focus goes back to the field
-    /// afterwards, so the next line can be typed without a click.
-    private func addNote() {
-        saveDraft(refocus: true)
-    }
-
-    private func saveDraft(refocus: Bool) {
-        let text = trimmedDraft
-        guard !text.isEmpty else { return }
-        var existing = notes
-        existing.append(MeetingScratchNote(text: text))
-        guard save(existing) else { return }
-        draft = ""
-        if refocus { composerFocused = true }
-    }
-
     private func setPinned(_ pinned: Bool, on note: MeetingScratchNote) {
         var existing = notes
         guard let index = existing.firstIndex(where: { $0.id == note.id }) else { return }
         existing[index].isPinned = pinned
         _ = save(existing)
+    }
+
+    private func update(_ note: MeetingScratchNote) {
+        var existing = notes
+        guard let index = existing.firstIndex(where: { $0.id == note.id }) else { return }
+        existing[index].text = editingText
+        if save(existing) { editingNoteID = nil }
     }
 
     private func delete(_ note: MeetingScratchNote) {

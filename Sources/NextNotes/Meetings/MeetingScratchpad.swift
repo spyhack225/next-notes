@@ -9,15 +9,35 @@ import Foundation
 /// finished, so the block is always the person's and never something a summary can
 /// paraphrase away.
 struct MeetingScratchNote: Identifiable, Codable, Equatable, Sendable {
+    enum Kind: String, Codable, Sendable { case line, document }
+
     var id: UUID = UUID()
     var text: String
     var at: Date
     var isPinned: Bool
+    var kind: Kind
+    /// The rich editor's lossless page. `text` remains Markdown for notes.md and search.
+    var richHTML: String?
 
-    init(text: String, at: Date = Date(), isPinned: Bool = false) {
+    init(text: String, at: Date = Date(), isPinned: Bool = false, kind: Kind = .line,
+         richHTML: String? = nil) {
         self.text = text
         self.at = at
         self.isPinned = isPinned
+        self.kind = kind
+        self.richHTML = richHTML
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, text, at, isPinned, kind, richHTML }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        text = try values.decode(String.self, forKey: .text)
+        at = try values.decode(Date.self, forKey: .at)
+        isPinned = try values.decode(Bool.self, forKey: .isPinned)
+        kind = try values.decodeIfPresent(Kind.self, forKey: .kind) ?? .line
+        richHTML = try values.decodeIfPresent(String.self, forKey: .richHTML)
     }
 
     /// How many notes one meeting keeps.
@@ -83,9 +103,14 @@ enum ScratchNotesMerger {
     static func markdown(_ notes: [MeetingScratchNote]) -> String {
         var pinned: [String] = []
         var rest: [String] = []
+        var pages: [String] = []
         for note in notes {
             let line = note.text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !line.isEmpty else { continue }
+            if note.kind == .document {
+                pages.append(line)
+                continue
+            }
             // A note can contain Shift-Return line breaks, including a whole document
             // the person chose to keep. Indent continuation lines under the same bullet
             // so the notes page preserves those breaks without creating extra entries.
@@ -99,8 +124,9 @@ enum ScratchNotesMerger {
         let sections = [pinned, rest]
             .filter { !$0.isEmpty }
             .map { $0.joined(separator: "\n") }
-        guard !sections.isEmpty else { return "" }
-        return (["## \(heading)"] + sections).joined(separator: "\n\n")
+        let content = sections + pages
+        guard !content.isEmpty else { return "" }
+        return (["## \(heading)"] + content).joined(separator: "\n\n")
     }
 
     /// The hand-written block, the generated notes, and one horizontal rule between them.
@@ -132,18 +158,21 @@ enum ScratchNotesMerger {
         guard let start = lines.firstIndex(where: { trimmed($0) == "## \(heading)" }) else {
             return document
         }
-        var end = start + 1
-        while end < lines.count {
-            if isRule(lines[end]) {
-                end += 1
-                break
-            }
-            if isSectionHeading(lines[end]) { break }
-            end += 1
+        // A person's freeform page may contain its own level-2 headings. In a document
+        // we merged before, our standalone rule is the boundary, even if those headings
+        // appear first. Older generated documents without the rule still stop at the next
+        // heading as before.
+        let end: Int
+        if let rule = ((start + 1)..<lines.count).first(where: { isRule(lines[$0]) }) {
+            end = rule + 1
+        } else {
+            end = ((start + 1)..<lines.count).first(where: { isSectionHeading(lines[$0]) })
+                ?? lines.count
         }
         // The blank lines that separated the block from what follows are not its own.
-        while end < lines.count, trimmed(lines[end]).isEmpty { end += 1 }
-        return (Array(lines[..<start]) + Array(lines[end...])).joined(separator: "\n")
+        var after = end
+        while after < lines.count, trimmed(lines[after]).isEmpty { after += 1 }
+        return (Array(lines[..<start]) + Array(lines[after...])).joined(separator: "\n")
     }
 
     private static func isRule(_ line: String) -> Bool {

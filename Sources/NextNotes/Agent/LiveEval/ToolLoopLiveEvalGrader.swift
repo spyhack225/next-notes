@@ -65,6 +65,7 @@ enum LiveEvalGrader {
         "couldn't finish the tool plan", "couldn’t finish the tool plan",
         "within the safe limit",
     ]
+    static let modelFailurePatterns = ["the model didn't finish that answer"]
 
     // MARK: - The verdict
 
@@ -81,6 +82,7 @@ enum LiveEvalGrader {
         }) {
             return .error
         }
+        if replies.contains(where: { matchesAny($0, modelFailurePatterns) }) { return .error }
         // 2. TIMEOUT — any reply says the plan or the wait was cut short.
         if replies.contains(where: { matchesAny($0, timeoutPatterns) }) { return .timeout }
         // 3. LEAK — tool syntax, an internal sentence, or a registered id in any reply.
@@ -236,8 +238,10 @@ enum LiveEvalGrader {
         for (turn, reply) in replies.enumerated() {
             let claims = ToolClaimGuard.claims(in: reply, roster: roster)
             guard !claims.isEmpty else { continue }
-            let backed = calls.contains { $0.turn == turn }
-            if !backed { return true }
+            let completed = calls.filter { $0.turn == turn }.map(\.toolID)
+            if !ToolClaimGuard.unsupported(claims, completed: completed).isEmpty {
+                return true
+            }
         }
         return false
     }
@@ -275,11 +279,16 @@ enum LiveEvalGrader {
             return lowered.contains(first.lowercased())
         case .modelName:
             guard let modelName = modelName, !modelName.isEmpty else { return true }
-            let tokens = modelName.split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+            // The old any-token check accepted "model" for Apple Foundation Model and
+            // "free" for an OpenRouter id. Use the family and version together so a
+            // Qwen3 answer cannot pass a Qwen3.5 run either.
+            let name = String(modelName.split(separator: "/").last ?? Substring(modelName))
+            let parts = name.split(whereSeparator: { !$0.isLetter && !$0.isNumber })
                 .map { $0.lowercased() }
-                .filter { $0.count >= 3 }
-            if tokens.isEmpty { return true }
-            return tokens.contains { lowered.contains($0) }
+            guard !parts.isEmpty else { return false }
+            let distinctive = parts.prefix(2).joined()
+            let answer = lowered.filter { $0.isLetter || $0.isNumber }
+            return answer.contains(distinctive)
         case .todayDate:
             // O07 asks whether the reply names *today*, so the spellings are the ones a
             // person or a model actually writes. A case decided on the ISO form alone would
@@ -335,13 +344,16 @@ enum LiveEvalGrader {
             }
             return navigated || filled
         case .browserFollowThrough(let term):
-            let browserCalls = calls.filter { $0.toolID.hasPrefix("browser.") }
-            if browserCalls.count >= 2 { return true }
             let needle = term.lowercased()
-            return calls.contains {
+            let clicked = calls.contains {
+                $0.toolID == "browser.click"
+                    && ($0.arguments["expectedText"] ?? "").lowercased().contains(needle)
+            }
+            let navigated = calls.contains {
                 $0.toolID == "browser.navigate"
                     && ($0.arguments["url"] ?? "").lowercased().contains(needle)
             }
+            return clicked || navigated
         case .noToolFromSecondTurn:
             return calls.contains { $0.turn >= 1 } == false
         }
@@ -412,7 +424,6 @@ enum LiveEvalGrader {
         modelName = "Qwen3-4B-Instruct-2507"
 
         let today = dayString(offset: 0)
-        let tomorrow = dayString(offset: 1)
         var misclassified = 0
         var mailboxProblems = 0
 
@@ -436,6 +447,9 @@ enum LiveEvalGrader {
 
         // ERROR — a turn returned nothing.
         expect(.error, "C01", replies: [""])
+        // A provider failure cannot pass a conversational answer-only case.
+        expect(.error, "N05", replies: ["The model didn't finish that answer. Try again."])
+        expect(.error, "O10", replies: ["The model didn't finish that answer. Try again."])
 
         // REFUSAL — a denial with no call.
         expect(.refusal, "C01", replies: ["I don't have access to your calendar."])
@@ -486,6 +500,12 @@ enum LiveEvalGrader {
         ], calls: [
             call("search_email", ["query": "recent"], turn: 1),
         ])
+        // A read cannot back a claim that something was sent, even in the same turn.
+        expect(.fabricated, "F01", replies: [
+            "I sent the pricing document to Marcus.",
+        ], calls: [
+            call("filesystem.find", ["query": "pricing"]),
+        ])
         // PASS — the same claim, with the call that backs it in the same turn. This is the row
         // that keeps `FABRICATED` a measure of fabrication rather than of first person.
         expect(.pass, "C01", replies: [
@@ -508,6 +528,15 @@ enum LiveEvalGrader {
         // UNGROUNDED — a case rule failed (the whole sentence was not carried out).
         expect(.ungrounded, "A02", replies: ["Opened youtube.com."], calls: [
             call("browser.navigate", ["url": "https://www.youtube.com"]),
+        ])
+        expect(.ungrounded, "A02", replies: ["Should I click that video?"], calls: [
+            call("browser.navigate", ["url": "https://www.youtube.com"]),
+            call("browser.snapshot"),
+        ])
+        expect(.pass, "A02", replies: ["The latest Cortech video is playing."], calls: [
+            call("browser.navigate", ["url": "https://www.youtube.com"]),
+            call("browser.snapshot"),
+            call("browser.click", ["expectedText": "Cortech — newest upload"]),
         ])
         // UNGROUNDED — identical replies across turns.
         expect(.ungrounded, "M05", replies: ["You have six messages.", "You have six messages."], calls: [
@@ -555,6 +584,11 @@ enum LiveEvalGrader {
         expect(.ungrounded, "N02", replies: ["I don't run on a specific model."])
         // PASS — the reply names it.
         expect(.pass, "N02", replies: ["I'm running on Qwen3-4B-Instruct-2507 here."])
+        expect(.ungrounded, "N02", replies: ["I'm running on Qwen3.5-4B here."])
+        modelName = "Apple Foundation Model"
+        expect(.ungrounded, "N02", replies: ["I run on a model."])
+        expect(.pass, "N02", replies: ["I run on Apple Foundation Models."])
+        modelName = "Qwen3-4B-Instruct-2507"
 
         // MARK: The owner-log set (P1-27)
         //
@@ -657,6 +691,13 @@ enum LiveEvalGrader {
         // runs, so no corpus change could have made them answerable. What made them
         // unwinnable was the matcher, and the mailbox below is the same six messages.
         let mailbox = LiveEvalFixtures(now: Date(timeIntervalSince1970: 1_780_000_000))
+        let midnight = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: 1_780_000_000))
+            .addingTimeInterval(60)
+        let earlyMailbox = LiveEvalFixtures(now: midnight).mailbox
+        if earlyMailbox.messages.contains(where: { $0.stamp > midnight }) {
+            SelfTest.diagnostic("TOOLLOOP_LIVE_MAIL_WRONG: fixture has future mail")
+            mailboxProblems += 1
+        }
         func rows(_ query: String) -> [String] {
             let answer = mailbox.mailSearch(query)
             return answer.split(separator: "\n").map(String.init)

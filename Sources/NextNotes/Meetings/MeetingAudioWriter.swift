@@ -137,7 +137,7 @@ actor MeetingAudioWriter {
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frames)),
               let channels = buffer.floatChannelData
         else {
-            Log.meeting.error("audio write failed: couldn't allocate \(frames, privacy: .public) frames")
+            recordWriteFailure("The recording could not be saved.")
             return false
         }
 
@@ -154,18 +154,18 @@ actor MeetingAudioWriter {
         do {
             try file.write(from: buffer)
         } catch {
-            // M-10: the first write error stops the writer — a full disk turns
-            // every later chunk into the same error, and per-chunk logging of it
-            // is noise. The samples were already consumed from the queues above,
-            // so nothing grows behind the failure.
-            if writeError == nil {
-                writeError = error.localizedDescription
-                Log.meeting.error("audio write failed; stopping the recording file: \(error.localizedDescription, privacy: .public)")
-                onWriteError?(writeError ?? "The recording file could not be written.")
-            }
+            // The samples were consumed above; no later chunk may queue behind this.
+            recordWriteFailure(error.localizedDescription)
             return false
         }
         return true
+    }
+
+    private func recordWriteFailure(_ message: String) {
+        guard writeError == nil else { return }
+        writeError = message
+        Log.meeting.error("audio write failed; stopping the recording file: \(message, privacy: .public)")
+        onWriteError?(message)
     }
 }
 

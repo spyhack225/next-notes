@@ -337,6 +337,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        if CommandLine.arguments.contains("--meeting-console-preview") {
+            runMeetingConsolePreview()
+            return
+        }
+
         // Interactive, not a self-test: records real-room wake-phrase captures into the
         // LiveFixtures directory `--selftest-wake-live` grades. Returns before every other
         // subsystem, so no scheduler, wake monitor or agent starts behind the microphone.
@@ -460,9 +465,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     diarize: { DiarizationService.shared.process($0) },
                     notes: { NotesService.shared.summarize($0, announce: true) },
                     isBusy: {
-                        LiveKnowledgeIndexEnvironment.isForegroundBusy
+                        LiveKnowledgeIndexEnvironment.isForegroundBusy(
+                            excludingMeetingIDs: Set(resumePlan.map(\.0))
+                        )
                             || LiveKnowledgeIndexEnvironment.isVoiceBusy
-                            || MeetingController.shared.isRecording
                     }
                 ).resume(resumePlan)
             }
@@ -2160,6 +2166,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
 
+        // `--imessage-pair-now`: enter pairing mode and watch for the next "Hi Next"
+        // message. A command-line trigger so a person can pair without waiting for
+        // IM-17's consent sheet. Reads the live database, so it needs Full Disk Access
+        // and must be launched with `--via-open`.
+        if arguments.contains("--imessage-pair-now") {
+            Task { @MainActor in
+                await runPairingTrigger()
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+
         // Reached only when a `--selftest-…` flag was given that no branch above claimed —
         // in practice one whose required argument was left off, since `value(after:)`
         // returns nil for a trailing flag. Falling through to `return false` would launch
@@ -2189,6 +2207,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// The rejections matter more than the acceptances: a dictionary rule fires on every
     /// future transcript, so learning "I think" -> "we should" from someone rewriting a
     /// sentence is far worse than learning nothing at all.
+    /// `--imessage-pair-now`: enter pairing mode, read the live database for a
+    /// "Hi Next" message, and pair. A command-line trigger so a person can pair
+    /// without waiting for IM-17's consent sheet.
+    private func runPairingTrigger() async {
+        print("IMESSAGE_PAIR_NOW_DEBUG: starting")
+        let store = RemoteIdentityStore(directory: AppIdentity.applicationSupportDirectory)
+        let watermark = MessagesWatermark()
+        let pairing = SelfChannelPairing(store: store, watermark: watermark)
+
+        guard await pairing.enterPairingMode() else {
+            print("IMESSAGE_PAIR_NOW_FAILED: could not enter pairing mode")
+            return
+        }
+
+        do {
+            let database = try MessagesDatabase()
+            let chats = try await database.chats(limit: 200)
+            print("IMESSAGE_PAIR_NOW_DEBUG: found \(chats.count) chats")
+            let selfChat = chats.first { SelfChannel.isDirectChat($0.guid) }
+            guard let chat = selfChat else {
+                print("IMESSAGE_PAIR_NOW_FAILED: no direct self-conversation found")
+                return
+            }
+            print("IMESSAGE_PAIR_NOW_DEBUG: self-chat is \(chat.guid)")
+            let rows = try await database.messages(after: watermark.lastProcessedRowID, chatGUID: chat.guid, limit: 50)
+            print("IMESSAGE_PAIR_NOW_DEBUG: found \(rows.count) rows")
+            for row in rows {
+                var senderHandle: String? = nil
+                if let handleID = row.handleID {
+                    senderHandle = try await database.handle(id: handleID)
+                }
+                let input = PairingInput(
+                    rowID: row.rowID,
+                    text: row.text,
+                    chatGUID: chat.guid,
+                    senderHandle: senderHandle)
+                if await pairing.handle(input: input) {
+                    print("IMESSAGE_PAIR_NOW_OK: paired to \(chat.guid)")
+                    return
+                }
+            }
+            print("IMESSAGE_PAIR_NOW_FAILED: no 'Hi Next' message found in the self-conversation")
+        } catch {
+            print("IMESSAGE_PAIR_NOW_FAILED: \(error.localizedDescription)")
+        }
+    }
+
     private func runLearnSelfTest() {
         Task { @MainActor in
             struct Case {
@@ -3587,6 +3652,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 writeSelfTest("SETTINGS_SHEET_FAILED")
                 SelfTest.failed = true
             }
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// The meeting window at its real content size, with a fresh fixture meeting.
+    private func runMeetingConsolePreview() {
+        Task { @MainActor in
+            let directory = SelfTest.value(after: "--meeting-console-preview")
+                ?? FileManager.default.temporaryDirectory
+                    .appendingPathComponent("nextnotes-meeting-console-preview", isDirectory: true).path
+            let passed = MeetingConsolePreview.write(to: directory)
+            writeSelfTest(passed ? "MEETING_CONSOLE_PREVIEW_OK \(directory)"
+                                 : "MEETING_CONSOLE_PREVIEW_FAILED")
+            SelfTest.failed = !passed
             NSApp.terminate(nil)
         }
     }

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; connect-src 'none'">
+  <title>Meeting notes</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <div class="eyebrow">YOUR NOTES <span id="status">Loading…</span></div>
+    <div id="editor"></div>
+  </main>
+  <div id="gutter" aria-label="Block controls">
+    <button id="add-block" title="Add a block" aria-label="Add a block">+</button>
+    <button id="block-actions" title="Block actions" aria-label="Block actions">⠿</button>
+  </div>
+  <div id="bubble" aria-label="Formatting toolbar">
+    <button id="text-style" title="Text style">H⌄</button>
+    <button data-format="bold" title="Bold (⌘B)"><strong>B</strong></button>
+    <button data-format="italic" title="Italic (⌘I)"><em>I</em></button>
+    <button data-format="underline" title="Underline (⌘U)"><u>U</u></button>
+    <button data-format="strike" title="Strikethrough"><s>S</s></button>
+    <button data-format="code" title="Inline code">&lt;/&gt;</button>
+    <button data-format="link" title="Link (⌘K)">↗</button>
+    <button id="list-style" title="List style">☷</button>
+  </div>
+  <div id="block-menu" class="menu" role="menu" aria-label="Block actions"></div>
+  <div id="slash-menu" class="menu" role="menu" aria-label="Insert a block"></div>
+  <script src="editor.js"></script>
+</body>
+</html>

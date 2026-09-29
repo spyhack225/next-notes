@@ -125,13 +125,27 @@ final class MeetingStore {
         var plan: [(UUID, ResumeAction)] = []
         var interruptedExtractions: [UUID] = []
         for meeting in meetings where meeting.status.isActive {
-            let action = Self.resumeAction(
-                for: meeting.status,
-                hasTranscript: !transcript(for: meeting.id).isEmpty,
-                hasAudio: audioURL(for: meeting) != nil,
-                finalPassOn: Settings.shared.meetingsFinalPass
-            )
             var repaired = meeting
+            // Older recordings saved the audio link only at Stop. If the process died
+            // first, a valid audio.caf survived but the resumer could not see it.
+            // Adopt it conservatively: an orphan is kept, never auto-deleted, because
+            // the original keep-audio choice was not persisted either.
+            if repaired.audioFileName == nil,
+               [.recording, .transcribing].contains(repaired.status) {
+                let orphan = directory(for: meeting.id).appendingPathComponent(Self.audioFile)
+                let size = (try? FileManager.default.attributesOfItem(atPath: orphan.path))?[.size]
+                    as? NSNumber
+                if (size?.int64Value ?? 0) > 4_096 {
+                    repaired.audioFileName = Self.audioFile
+                    repaired.audioIsTemporary = false
+                    Log.meeting.info("recovered unlinked audio for \"\(meeting.title, privacy: .public)\"")
+                }
+            }
+            let action = Self.resumeAction(
+                for: repaired.status,
+                hasTranscript: !transcript(for: meeting.id).isEmpty,
+                hasAudio: audioURL(for: repaired) != nil
+            )
             switch action {
             case .finalPass, .pipelineAfterTranscript:
                 repaired.status = .transcribing
@@ -147,9 +161,22 @@ final class MeetingStore {
             case .none:
                 continue
             }
-            if repaired.end == nil {
-                let lastEnd = transcript(for: meeting.id).map(\.end).max()
-                repaired.end = lastEnd.map { meeting.start.addingTimeInterval($0) } ?? Date()
+            let lastTranscriptEnd = transcript(for: meeting.id).map(\.end).max()
+                .map { meeting.start.addingTimeInterval($0) }
+            let lastAudioWrite = audioURL(for: repaired).flatMap {
+                try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+            }
+            let lastCaptured = [lastTranscriptEnd, lastAudioWrite].compactMap { $0 }.max()
+            if meeting.status == .recording {
+                // An armed calendar row still carries its scheduled end at the instant
+                // of a crash. Show the last captured moment, not a duration the app
+                // never recorded.
+                repaired.end = lastCaptured ?? Date()
+            } else if repaired.end == nil ||
+                        (lastCaptured.map { repaired.end! > $0.addingTimeInterval(60) } ?? false) {
+                // Also repairs a row that an older launch moved to `.transcribing`
+                // without replacing the scheduled end.
+                repaired.end = lastCaptured ?? Date()
             }
             save(repaired)
             plan.append((meeting.id, action))
@@ -180,13 +207,13 @@ final class MeetingStore {
 
     /// Where an interrupted meeting resumes (M-08 Target 1). Pure, so the repair, the
     /// session's own abrupt end and the self-test decide the same way.
-    /// `finalPassOn` is `meetingsFinalPass`: with audio on disk the final pass (M-01)
-    /// can recover speech even from an empty live transcript.
+    /// Recovery reads surviving audio even when the normal final-pass preference is off:
+    /// the live transcript may have stopped before the recording did.
     ///
     /// | Status on disk | transcript | audio | Action |
     /// |---|---|---|---|
-    /// | `.recording` / `.transcribing` | any | yes, final pass on | the final pass, then the pipeline |
-    /// | `.recording` / `.transcribing` | non-empty | no (or pass off) | the pipeline from the transcript |
+    /// | `.recording` / `.transcribing` | any | yes | the final pass, then the pipeline |
+    /// | `.recording` / `.transcribing` | non-empty | no | the pipeline from the transcript |
     /// | `.recording` / `.transcribing` | empty | no | failed — nothing was said |
     /// | `.diarizing` | — | yes | diarization, then notes |
     /// | `.diarizing` | — | no | notes |
@@ -195,24 +222,14 @@ final class MeetingStore {
     nonisolated static func resumeAction(
         for status: MeetingStatus,
         hasTranscript: Bool,
-        hasAudio: Bool,
-        finalPassOn: Bool
+        hasAudio: Bool
     ) -> ResumeAction {
         switch status {
         case .recording, .transcribing:
-            // M-01's own seam decides whether the pass runs — one answer to "is there
-            // a recording worth re-reading", shared with `MeetingPipeline`. With it on
-            // and audio on disk the pass recovers speech even from an empty transcript;
-            // everything else resumes from the transcript, or is a meeting nobody said
-            // anything in.
-            switch MeetingPipeline.finalPassDecision(settingOn: finalPassOn, hasAudio: hasAudio) {
-            case .run:
-                return .finalPass
-            case .skip:
-                return hasTranscript
-                    ? .pipelineAfterTranscript
-                    : .fail("Next Notes quit before anything was transcribed.")
-            }
+            if hasAudio { return .finalPass }
+            return hasTranscript
+                ? .pipelineAfterTranscript
+                : .fail("Next Notes quit before anything was transcribed.")
         case .diarizing:
             return hasAudio ? .diarize : .notes
         case .summarizing:
@@ -316,14 +333,18 @@ final class MeetingStore {
         return segments
     }
 
-    func saveTranscript(_ segments: [TranscriptSegment], for id: UUID) {
+    @discardableResult
+    func saveTranscript(_ segments: [TranscriptSegment], for id: UUID) -> Bool {
         let directory = directory(for: id)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        write(segments, to: directory.appendingPathComponent(Self.transcriptFile))
+        guard write(segments, to: directory.appendingPathComponent(Self.transcriptFile)) else {
+            return false
+        }
         transcriptCache[id] = segments
         searchCache[id] = nil
         searchInvalidated.insert(id)
         KnowledgeIndexer.shared.meetingChanged(id)
+        return true
     }
 
     /// The live 2–5 s tier, saved before the M-01 final pass overwrites
@@ -402,7 +423,15 @@ final class MeetingStore {
             Log.meeting.error("couldn't save scratchpad: \(error.localizedDescription, privacy: .public)")
             return false
         }
-        let kept = Array(Self.ordered(notes).suffix(MeetingScratchNote.maxStored))
+        let ordered = Self.ordered(notes)
+        // The freeform page is the person's ongoing document. A long meeting may produce
+        // more than 200 captured lines, but that must never evict the page written first.
+        let pages = Array(ordered.filter { $0.kind == .document }
+            .suffix(MeetingScratchNote.maxStored))
+        let lines = Array(ordered.filter { $0.kind == .line }
+            .suffix(MeetingScratchNote.maxStored - pages.count))
+        let retainedIDs = Set((pages + lines).map(\.id))
+        let kept = ordered.filter { retainedIDs.contains($0.id) }
         guard write(kept, to: directory.appendingPathComponent(Self.scratchpadFile)) else {
             return false
         }

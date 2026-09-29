@@ -158,12 +158,11 @@ enum MeetingConsoleSelfTest {
                    "\(section) is \(promise.capability) — it is marked \(section.symbol)")
         }
 
-        // MARK: The sheet is not presentable under a self-test
+        // MARK: The window is not presentable under a self-test
 
-        // A sheet keeps `NSApp.terminate` from ever completing, so a self-test that raised
-        // one would print its result and hang until the watchdog reported a timeout for a
-        // run that had already finished. Both directions: the policy has to refuse here and
-        // still allow the panel in the app.
+        // A window can keep `NSApp.terminate` from completing, so a self-test that raised
+        // one could print its result and then hang. Both directions: the policy refuses
+        // here and still allows the window in the app.
         expect(!MeetingConsolePolicy.shouldPresent(isSelfTest: true),
                "the panel is never presented during a self-test")
         expect(MeetingConsolePolicy.shouldPresent(isSelfTest: false),
@@ -195,8 +194,8 @@ enum MeetingConsoleSelfTest {
         if let live = sources[liveViewFile] {
             expect(live.contains("MeetingConsolePolicy.shouldPresent"),
                    "the live meeting view asks whether a panel may be presented")
-            expect(live.contains("MeetingConsoleSheet(session:"),
-                   "the live meeting view puts the panel up")
+            expect(live.contains("MeetingConsoleWindowController.shared.show(session: session)"),
+                   "the live meeting view opens the movable window")
             // The button is gated on the same rule as the sheet, not the sheet alone. A
             // self-test that drew the control with no panel behind it would carry a button
             // that does nothing, which is the one state this gate exists to prevent — and
@@ -205,6 +204,10 @@ enum MeetingConsoleSelfTest {
                    "the panel's own button is gated on the same rule as the panel")
         }
         if let sheet = sources["UI/Meetings/MeetingConsoleSheet.swift"] {
+            expect(sheet.contains("styleMask: [.titled, .closable, .miniaturizable, .resizable]"),
+                   "the meeting window can move, close, and resize")
+            expect(sheet.contains("Button(\"Close\", systemImage: \"xmark\""),
+                   "the meeting window has a visible Close button")
             for section in MeetingConsoleSection.allCases {
                 let capitalised = String(section.rawValue.prefix(1)).uppercased()
                     + String(section.rawValue.dropFirst())
@@ -222,6 +225,26 @@ enum MeetingConsoleSelfTest {
                    "the panel builds no orb of its own — the one it draws is LabeledOrb's")
             expect(sheet.contains("LabeledOrb("),
                    "…and it draws that one through LabeledOrb")
+        }
+        if let notes = sources["UI/Meetings/MeetingConsoleNotesSection.swift"] {
+            expect(notes.contains("MeetingRichEditor(html: documentHTML, markdown: document)"),
+                   "the notes page uses the direct rich editor")
+            expect(notes.contains("richHTML: html") && notes.contains("documentHTML = saved.richHTML"),
+                   "rich formatting is saved and restored through the scratchpad")
+        }
+        if let resources = MeetingRichEditor.resourceDirectory {
+            let html = resources.appendingPathComponent("index.html")
+            let css = resources.appendingPathComponent("style.css")
+            let script = resources.appendingPathComponent("editor.js")
+            expect(FileManager.default.fileExists(atPath: html.path)
+                   && FileManager.default.fileExists(atPath: css.path)
+                   && FileManager.default.fileExists(atPath: script.path),
+                   "the rich editor's local page, styles, and script are bundled")
+            let page = (try? String(contentsOf: html, encoding: .utf8)) ?? ""
+            expect(page.contains("connect-src 'none'"),
+                   "the local editor page blocks network connections")
+        } else {
+            expect(false, "the rich editor's local files can be found")
         }
 
         // MARK: No literal values in a view
@@ -255,7 +278,7 @@ enum MeetingConsoleSelfTest {
         // files look like. Without this half a matcher that flagged *everything* would pass
         // the check above.
         let tokenised = """
-        Text("a").frame(width: DS.Size.meetingConsoleWidth)
+        Text("a").frame(width: DS.Size.meetingConsoleMinWidth)
         VStack(spacing: DS.Space.l) { Text("b").padding(.horizontal, DS.Space.page) }
         """
         expect(literalValueOffenders(in: tokenised).isEmpty,
@@ -276,7 +299,7 @@ enum MeetingConsoleSelfTest {
         // the panel is 520 wide and a row is 44
         /* .frame(width: 20) */
         let caption = "20 minutes"
-        Text("x").frame(width: DS.Size.meetingConsoleWidth)
+        Text("x").frame(width: DS.Size.meetingConsoleMinWidth)
         """
         expect(literalValueOffenders(in: prose).isEmpty,
                "…and reads neither a comment nor a string as a value")
@@ -313,7 +336,7 @@ enum MeetingConsoleSelfTest {
     /// Comments come off first, so a comment that names a number (`520`, a "44pt" target)
     /// is not an offender. What is left is a judgement about the argument text:
     /// `.padding(.horizontal, DS.Space.page)` has no number in it and is not a value at
-    /// all, and `.frame(width: DS.Size.meetingConsoleWidth)` spells where its number came
+    /// all, and `.frame(width: DS.Size.meetingConsoleMinWidth)` spells where its number came
     /// from. A bare `.frame(width: 520)` is the shape being hunted.
     private static func literalValueOffenders(in source: String) -> [LiteralValue] {
         let text = strippingComments(source)
