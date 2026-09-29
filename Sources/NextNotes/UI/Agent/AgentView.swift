@@ -94,7 +94,7 @@ struct AgentView: View {
     /// Visible strings for this screen. Named so `--selftest-settings` can prove they
     /// still contain U+0020 — screenshots of this heading have been misread as one word.
     static let headingEyebrow = "Agent"
-    static let headingTitle = "Your Mac is your best personal agent"
+    static let headingTitle = "Your Mac is the only agent you need"
 
     var body: some View {
         // Two arrangements of the same section: the pane with the inspector's column

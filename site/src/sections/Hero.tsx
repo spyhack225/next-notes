@@ -50,7 +50,7 @@ export default function Hero() {
           {...fadeUp(0)}
           className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-medium tracking-headline sm:tracking-display leading-display"
         >
-          Your <span className="font-serif italic font-normal">Mac</span> is your best <span className="font-serif italic font-normal">personal agent</span>.
+          Your <span className="font-serif italic font-normal">Mac</span> is the <span className="font-serif italic font-normal">only agent</span> you need.
         </motion.h1>
 
         <motion.p

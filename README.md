@@ -1,6 +1,6 @@
 # Next Notes
 
-Your Mac is your best personal agent. Hold a key, talk, release — cleaned-up text lands in the app you were
+Your Mac is the only agent you need. Hold a key, talk, release — cleaned-up text lands in the app you were
 already in. Meetings record themselves. ⇧⌘ Space asks the same machine to click, search
 or follow through. A Wispr Flow-shaped native app with on-device defaults and optional cloud models.
 
