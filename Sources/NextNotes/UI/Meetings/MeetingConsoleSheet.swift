@@ -96,6 +96,18 @@ enum MeetingConsoleActivity: Equatable, CaseIterable, Sendable {
     var isBusy: Bool { self != .idle }
 }
 
+/// A mounted section reports its activity to the pinned status row. Reading `@State`
+/// from a freshly constructed child view observes its initial value instead of the work
+/// happening in that child.
+enum MeetingConsoleActivityPreference: PreferenceKey {
+    static let defaultValue: MeetingConsoleActivity = .idle
+
+    static func reduce(value: inout MeetingConsoleActivity,
+                       nextValue: () -> MeetingConsoleActivity) {
+        value = nextValue()
+    }
+}
+
 /// The window content: a rail of four destinations and the section currently showing.
 ///
 /// `HSplitView` keeps the four destinations beside one content pane without a second
@@ -112,6 +124,10 @@ struct MeetingConsoleSheet: View {
     @State private var selection: MeetingConsoleSection?
     /// An unfinished question survives a trip to Notes or History while this sheet stays up.
     @State private var askDraft = ""
+    @State private var notesWork = MeetingConsoleNotesWork()
+    @State private var askWork = MeetingConsoleAskWork()
+    @State private var displayedActivity: MeetingConsoleActivity = .idle
+    @State private var controller = MeetingController.shared
 
     init(session: MeetingSession, initialSection: MeetingConsoleSection = .notes,
          close: @escaping () -> Void) {
@@ -129,6 +145,18 @@ struct MeetingConsoleSheet: View {
         }
         .frame(minWidth: DS.Size.meetingConsoleMinWidth)
         .frame(minHeight: DS.Size.meetingConsoleMinHeight)
+        .onPreferenceChange(MeetingConsoleActivityPreference.self) { displayedActivity = $0 }
+        .onChange(of: section) { _, _ in displayedActivity = .idle }
+        .onChange(of: controller.session?.meeting.id) { _, activeID in
+            if activeID != session.meeting.id { close() }
+        }
+        .onChange(of: session.isRecording) { _, recording in
+            if !recording { close() }
+        }
+        .onDisappear {
+            notesWork.cancel()
+            askWork.cancelIfOwned(RealtimeAgent.shared)
+        }
     }
 
     private var section: MeetingConsoleSection { selection ?? .notes }
@@ -160,35 +188,19 @@ struct MeetingConsoleSheet: View {
     /// content and the status row in step.
     private struct Resolved {
         let body: AnyView
-        let activity: MeetingConsoleActivity
     }
 
     private var current: Resolved {
         switch section {
         case .notes:
-            let view = MeetingConsoleNotesSection(session: session)
-            return Resolved(
-                body: AnyView(view),
-                activity: view.activity
-            )
+            return Resolved(body: AnyView(MeetingConsoleNotesSection(session: session, work: notesWork)))
         case .actions:
-            let view = MeetingConsoleActionsSection(session: session)
-            return Resolved(
-                body: AnyView(view),
-                activity: view.activity
-            )
+            return Resolved(body: AnyView(MeetingConsoleActionsSection(session: session)))
         case .history:
-            let view = MeetingConsoleHistorySection(session: session)
-            return Resolved(
-                body: AnyView(view),
-                activity: view.activity
-            )
+            return Resolved(body: AnyView(MeetingConsoleHistorySection(session: session)))
         case .ask:
-            let view = MeetingConsoleAskSection(session: session, draft: $askDraft)
-            return Resolved(
-                body: AnyView(view),
-                activity: view.activity
-            )
+            return Resolved(body: AnyView(MeetingConsoleAskSection(session: session,
+                                                                  draft: $askDraft, work: askWork)))
         }
     }
 
@@ -209,7 +221,7 @@ struct MeetingConsoleSheet: View {
             .padding(.horizontal, DS.Space.page)
             .padding(.vertical, DS.Space.s)
             Divider()
-            status(shown)
+            status(notesWork.isTidying ? .writingNotes : displayedActivity)
             if section == .ask {
                 // Ask owns a scrolling thread and a fixed composer. Wrapping it in this
                 // scroll view would push the field off screen after a few replies.
@@ -235,9 +247,9 @@ struct MeetingConsoleSheet: View {
     /// Nothing is drawn for `.idle`: a shape naming work which is not running is a claim
     /// the app cannot back up.
     @ViewBuilder
-    private func status(_ shown: Resolved) -> some View {
-        if let orb = shown.activity.orb {
-            LabeledOrb(state: orb, title: shown.activity.title, size: DS.Size.orbSmall)
+    private func status(_ activity: MeetingConsoleActivity) -> some View {
+        if let orb = activity.orb {
+            LabeledOrb(state: orb, title: activity.title, size: DS.Size.orbSmall)
                 .padding(.horizontal, DS.Space.page)
                 .padding(.vertical, DS.Space.s)
         }

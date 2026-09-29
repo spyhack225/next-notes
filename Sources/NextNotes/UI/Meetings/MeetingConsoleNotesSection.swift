@@ -1,5 +1,29 @@
 import SwiftUI
 
+/// Window-owned work survives a trip to another section. It is cancelled when the window
+/// closes, rather than when this section temporarily leaves the view hierarchy.
+@MainActor
+@Observable
+final class MeetingConsoleNotesWork {
+    struct Tidy {
+        let document: String
+        let writer: String
+        let isCutShort: Bool
+    }
+
+    var result: Tidy?
+    var problem: String?
+    var isTidying = false
+    var isKept = false
+    @ObservationIgnored var pass: Task<Void, Never>?
+
+    func cancel() {
+        pass?.cancel()
+        pass = nil
+        isTidying = false
+    }
+}
+
 /// The meeting panel's Notes section: the surface you write on by hand while the meeting
 /// runs, and the one place a tidy of what you wrote appears.
 ///
@@ -17,6 +41,7 @@ import SwiftUI
 /// **The rows are not a `List`.** Existing lines remain selectable and editable in place.
 struct MeetingConsoleNotesSection: View {
     let session: MeetingSession
+    let work: MeetingConsoleNotesWork
 
     @State private var document = ""
     @State private var documentHTML: String?
@@ -25,20 +50,7 @@ struct MeetingConsoleNotesSection: View {
     @State private var saveTask: Task<Void, Never>?
     @State private var editingNoteID: UUID?
     @State private var editingText = ""
-    @State private var result: Tidy?
-    @State private var problem: String?
     @State private var saveProblem: String?
-    @State private var isTidying = false
-    @State private var isKept = false
-    @State private var pass: Task<Void, Never>?
-
-    /// The tidied document, and the two claims the panel has to make about it: who wrote it
-    /// and whether it is the whole of what they asked for.
-    private struct Tidy {
-        let document: String
-        let writer: String
-        let isCutShort: Bool
-    }
 
     // MARK: - What the panel is doing
 
@@ -51,7 +63,7 @@ struct MeetingConsoleNotesSection: View {
     /// orb is `MeetingConsoleActivity`'s own answer, so a panel at rest draws no shape at
     /// all.
     var activity: MeetingConsoleActivity {
-        if isTidying { return .writingNotes }
+        if work.isTidying { return .writingNotes }
         return session.isRecording ? .transcribing : .idle
     }
 
@@ -59,7 +71,7 @@ struct MeetingConsoleNotesSection: View {
 
     /// Why the summary action is or is not available.
     private var pillHelp: String {
-        if isTidying { return "Turning your own lines into a tidied document." }
+        if work.isTidying { return "Turning your own lines into a tidied document." }
         if !hasSomethingToWorkFrom {
             return "Write a note of your own first."
         }
@@ -81,12 +93,12 @@ struct MeetingConsoleNotesSection: View {
         let notes = self.notes
         return VStack(alignment: .leading, spacing: DS.Space.section) {
             MeetingConsoleSectionHeader(section: .notes, subtitle: headerSubtitle, accessory: accessory(notes))
-            if let problem {
+            if let problem = work.problem {
                 ProblemBanner(
                     message: problem,
                     retryTitle: "Try again",
                     retry: tidy,
-                    dismiss: { self.problem = nil }
+                    dismiss: { work.problem = nil }
                 )
             }
             if let saveProblem {
@@ -95,16 +107,14 @@ struct MeetingConsoleNotesSection: View {
             documentEditor
             let older = notes.filter { $0.kind == .line }
             if !older.isEmpty { lines(older) }
-            if let result { tidied(result) }
+            if let result = work.result { tidied(result) }
         }
         .onAppear(perform: loadDocument)
-        // The panel closed: the model is decoding into a result nobody will read, and
-        // `run`'s cancellation handler exists to stop it rather than to let it finish.
         .onDisappear {
-            pass?.cancel()
             saveTask?.cancel()
             saveDocument()
         }
+        .preference(key: MeetingConsoleActivityPreference.self, value: activity)
     }
 
     /// One plain sentence, and never a claim that something is being worked on.
@@ -141,9 +151,9 @@ struct MeetingConsoleNotesSection: View {
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
                 Spacer(minLength: DS.Space.s)
-                Button(isTidying ? "Writing…" : "Write summary", systemImage: "sparkles", action: tidy)
+                Button(work.isTidying ? "Writing…" : "Write summary", systemImage: "sparkles", action: tidy)
                     .buttonStyle(.borderedProminent)
-                    .disabled(isTidying || !hasSomethingToWorkFrom)
+                    .disabled(work.isTidying || !hasSomethingToWorkFrom)
                     .help(pillHelp)
             }
             if isLoaded {
@@ -281,7 +291,7 @@ struct MeetingConsoleNotesSection: View {
 
     // MARK: - The tidied document
 
-    private func tidied(_ tidy: Tidy) -> some View {
+    private func tidied(_ tidy: MeetingConsoleNotesWork.Tidy) -> some View {
         GlassCard {
             VStack(alignment: .leading, spacing: DS.Space.m) {
                 HStack(spacing: DS.Space.s) {
@@ -305,7 +315,7 @@ struct MeetingConsoleNotesSection: View {
                 }
                 MarkdownView(markdown: tidy.document)
                 HStack {
-                    if isKept {
+                    if work.isKept {
                         StatusChip(
                             text: "Added to your notes",
                             color: DS.Color.success,
@@ -325,20 +335,20 @@ struct MeetingConsoleNotesSection: View {
     // MARK: - The pass
 
     private func tidy() {
-        guard !isTidying, hasSomethingToWorkFrom else { return }
+        guard !work.isTidying, hasSomethingToWorkFrom else { return }
         saveTask?.cancel()
         guard saveDocument() else { return }
-        pass?.cancel()
-        isTidying = true
-        problem = nil
-        isKept = false
+        work.pass?.cancel()
+        work.isTidying = true
+        work.problem = nil
+        work.isKept = false
         // The provider is resolved *before* the task starts so the button's disabled state
         // and the pass agree: one resolution, and the role that owns the notes model is the
         // one that answers, exactly as `NotesService` resolves it.
         let meeting = session.meeting
         let notes = self.notes
         let segments = session.segments
-        pass = Task { @MainActor in
+        work.pass = Task { @MainActor in
             let provider = await ModelRoleStore.shared.provider(for: .meetingNotes)
             let outcome = await MeetingScratchpadTidier.run(
                 meeting: meeting, notes: notes, segments: segments, provider: provider
@@ -346,20 +356,22 @@ struct MeetingConsoleNotesSection: View {
             // A cancelled pass has nobody waiting for it: the panel closed, or a newer pass
             // started. Saying so would put a problem on screen for something the person did.
             guard !Task.isCancelled else { return }
-            isTidying = false
-            pass = nil
+            work.isTidying = false
+            work.pass = nil
             // The name can only be absent if the pass answered without one, which
             // `run` refuses to do — the fallback is here so a chip can never read
             // "Written by " with nothing after it.
             let writer = provider?.displayModelName ?? "the assistant"
             switch outcome {
             case .wrote(let document):
-                result = Tidy(document: document, writer: writer, isCutShort: false)
+                work.result = MeetingConsoleNotesWork.Tidy(
+                    document: document, writer: writer, isCutShort: false)
             case .cutShort(let document):
-                result = Tidy(document: document, writer: writer, isCutShort: true)
+                work.result = MeetingConsoleNotesWork.Tidy(
+                    document: document, writer: writer, isCutShort: true)
             case .noModel(let why), .failed(let why):
-                result = nil
-                problem = why
+                work.result = nil
+                work.problem = why
             }
         }
     }
@@ -388,10 +400,10 @@ struct MeetingConsoleNotesSection: View {
     /// them, so the merge at the end of the meeting puts one block under one heading
     /// instead of re-heading the same words once per line.
     private func keep() {
-        guard let document = result?.document else { return }
+        guard let document = work.result?.document else { return }
         var existing = notes
         existing.append(MeetingScratchNote(text: document, isPinned: true))
-        if save(existing) { isKept = true }
+        if save(existing) { work.isKept = true }
     }
 
     /// Keep the editor and the previous file intact when a write fails. A note the person

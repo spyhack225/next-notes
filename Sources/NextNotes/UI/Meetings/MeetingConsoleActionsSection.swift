@@ -94,6 +94,7 @@ struct MeetingConsoleActionsSection: View {
                 ToolCallReviewStore.shared.applyEdits(id: proposal.id, arguments: arguments)
             }
         }
+        .preference(key: MeetingConsoleActivityPreference.self, value: activity)
     }
 
     // MARK: - Reading the meeting

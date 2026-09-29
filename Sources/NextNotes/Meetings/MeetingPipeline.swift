@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 
 /// What happens to a meeting between the last transcribed window and `.done`.
@@ -20,8 +21,18 @@ enum MeetingPipeline {
     /// - Returns: the meeting with the status it now has, so the caller's copy stays in step
     ///   with the file.
     @discardableResult
-    static func afterTranscribing(_ meeting: Meeting, store: MeetingStore = .shared) -> Meeting {
-        guard !store.transcript(for: meeting.id).isEmpty else {
+    static func afterTranscribing(
+        _ meeting: Meeting,
+        store: MeetingStore = .shared,
+        recoverDroppedAudio: Bool = false
+    ) -> Meeting {
+        let hasAudio = store.audioURL(for: meeting).flatMap {
+            try? AVAudioFile(forReading: $0).length > 0
+        } ?? false
+        let hasTranscript = !store.transcript(for: meeting.id).isEmpty
+        // Live ASR can produce no segments even though the recording contains speech.
+        // The saved tracks are still eligible for the final pass in that case.
+        guard hasTranscript || hasAudio else {
             return finish(meeting, store: store)
         }
         // M-01: with the final pass on and audio on disk, the meeting stays
@@ -29,7 +40,9 @@ enum MeetingPipeline {
         // in long windows; otherwise today's body runs as `afterFinalPass`.
         switch finalPassDecision(
             settingOn: Settings.shared.meetingsFinalPass,
-            hasAudio: store.audioURL(for: meeting) != nil
+            hasAudio: hasAudio,
+            hasTranscript: hasTranscript,
+            droppedAudio: recoverDroppedAudio
         ) {
         case .run:
             FinalTranscriptService.shared.process(meeting, store: store)
@@ -48,7 +61,15 @@ enum MeetingPipeline {
     /// and the self-test decide the same way production does. The skip case carries
     /// the `Meeting.transcriptPass` value to record, or nil when the setting is off
     /// and nothing is recorded at all.
-    static nonisolated func finalPassDecision(settingOn: Bool, hasAudio: Bool) -> FinalPassDecision {
+    static nonisolated func finalPassDecision(
+        settingOn: Bool,
+        hasAudio: Bool,
+        hasTranscript: Bool = true,
+        droppedAudio: Bool = false
+    ) -> FinalPassDecision {
+        // A saved recording is the recovery path when the live tier produced nothing
+        // or shed windows. Run it even if the optional quality pass was switched off.
+        if hasAudio && (!hasTranscript || droppedAudio) { return .run }
         guard settingOn else { return .skip(nil) }
         return hasAudio ? .run : .skip("live-only:no-audio")
     }
@@ -111,7 +132,7 @@ enum MeetingPipeline {
         // than deleted here; a kept one follows the unchanged rule.
         store.releaseAudioWhenDue(for: done.id, notesWritten: false)
         let finished = store.meeting(id: done.id) ?? done
-        AgentService.shared.review(finished)
+        if !finished.status.isFailure { AgentService.shared.review(finished) }
         return finished
     }
 

@@ -289,7 +289,8 @@ final class RealtimeAgent {
         progressTitle = ""
     }
 
-    func handle(_ utterance: String, source: AgentUtteranceSource) async -> AgentTurn {
+    func handle(_ utterance: String, source: AgentUtteranceSource,
+                turnID: UUID? = nil) async -> AgentTurn {
         if source == .voice, localModelProviderForTesting == nil,
            !SelfTest.isRunning || VoiceConversationCoordinator.shared.streamForTesting != nil
                 || CommandLine.arguments.contains("--selftest-voice-pipeline") {
@@ -297,7 +298,7 @@ final class RealtimeAgent {
         }
         // One turn id per handled utterance (P0-20a): the answer pass and every planner
         // round it leads to share it.
-        currentTurnID = UUID()
+        currentTurnID = turnID ?? UUID()
         // P1-23: a new request starts with the Mac. A pause from the previous turn must not
         // refuse this turn's first computer action — someone typing a new question is not asking
         // the agent to resume a plan they paused.

@@ -39,6 +39,7 @@ enum MeetingTapRetrySelfTest {
         // The seams under test. Restored whichever way the run ends.
         let previousStart = SystemAudioCapture.startCallOverrideForTesting
         let previousTranscribe = MeetingSession.transcribeOverrideForTesting
+        let previousPermission = MeetingSession.microphonePermissionOverrideForTesting
         SystemAudioCapture.startCallOverrideForTesting = { format, onBuffer, onLevel in
             try await fake.start(outputFormat: format, onBuffer: onBuffer, onLevel: onLevel)
         }
@@ -48,7 +49,24 @@ enum MeetingTapRetrySelfTest {
         defer {
             SystemAudioCapture.startCallOverrideForTesting = previousStart
             MeetingSession.transcribeOverrideForTesting = previousTranscribe
+            MeetingSession.microphonePermissionOverrideForTesting = previousPermission
         }
+
+        // Stop while start() is suspended at the permission prompt. A late grant
+        // must not subscribe the microphone or leave a finished empty meeting.
+        let permissionGate = MeetingPermissionGate()
+        MeetingSession.microphonePermissionOverrideForTesting = { await permissionGate.wait() }
+        let pendingMeeting = Meeting(title: "Cancelled before capture", start: Date(), status: .scheduled)
+        let pendingController = MeetingController(store: store)
+        let pendingStart = Task { await pendingController.start(meeting: pendingMeeting) }
+        while !permissionGate.entered { await Task.yield() }
+        await pendingController.stop()
+        permissionGate.release()
+        let startedAfterStop = await pendingStart.value
+        check("a late permission grant restarted a stopped meeting", !startedAfterStop)
+        check("stopped pending start still owns the controller slot", pendingController.session == nil)
+        check("stopped pending start persisted an empty meeting", store.meeting(id: pendingMeeting.id) == nil)
+        MeetingSession.microphonePermissionOverrideForTesting = previousPermission
 
         // --- Phase 1: two failures, then a join on the 0.2 s cadence.
         await fake.configure(succeedOnCall: 3)
@@ -163,6 +181,22 @@ enum MeetingTapRetrySelfTest {
             ? "MEETING_TAP_RETRY_OK: joined late, placed at the join time, gave up and stopped cleanly"
             : "MEETING_TAP_RETRY_FAILED: \(failures.count) check(s) wrong")
         return failures.isEmpty
+    }
+}
+
+@MainActor
+private final class MeetingPermissionGate {
+    private var continuation: CheckedContinuation<Bool, Never>?
+    private(set) var entered = false
+
+    func wait() async -> Bool {
+        entered = true
+        return await withCheckedContinuation { continuation = $0 }
+    }
+
+    func release() {
+        continuation?.resume(returning: true)
+        continuation = nil
     }
 }
 

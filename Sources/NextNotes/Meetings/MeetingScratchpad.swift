@@ -89,10 +89,11 @@ enum ScratchNotesMerger {
     /// what is recognised can never drift apart.
     static let heading = "Your notes"
 
-    /// A bare `##` is a horizontal rule in GitHub-flavoured Markdown, and two hashes is
-    /// the shortest run that reads as one — `#` alone is an empty heading. It is also the
-    /// boundary the strip below finds, which is what makes merging idempotent.
-    private static let separator = "##"
+    /// The marker makes the boundary unambiguous even when a person's page contains an
+    /// empty heading or its own horizontal rule. The rule remains visible in rendered notes;
+    /// the comment is invisible and only used when a later save replaces the manual block.
+    private static let boundary = "<!-- next-notes-manual-boundary -->"
+    private static let separator = "---\n\(boundary)"
 
     /// The block a person's lines become: the heading, then one `- ` bullet each, pinned
     /// notes first because a line somebody pinned mid-meeting is the one they will look
@@ -151,19 +152,20 @@ enum ScratchNotesMerger {
     /// previous merge wrote, and finding it is what makes a second pass a no-op. Failing
     /// that it ends at the next level-2 heading, or at the end of the document, so a
     /// section the model wrote by hand goes whole rather than leaving its prose behind
-    /// under a heading that is no longer there.
+    /// under a heading that is no longer there. Older documents used a bare `##` as the
+    /// separator; recognise it only when no explicit marker exists.
     private static func withoutManualSection(_ document: String) -> String {
         let lines = document.split(separator: "\n", omittingEmptySubsequences: false)
             .map(String.init)
         guard let start = lines.firstIndex(where: { trimmed($0) == "## \(heading)" }) else {
             return document
         }
-        // A person's freeform page may contain its own level-2 headings. In a document
-        // we merged before, our standalone rule is the boundary, even if those headings
-        // appear first. Older generated documents without the rule still stop at the next
-        // heading as before.
+        // A person's freeform page may contain headings and rules of its own. The explicit
+        // marker is the only reliable boundary for a page written by this version.
         let end: Int
-        if let rule = ((start + 1)..<lines.count).first(where: { isRule(lines[$0]) }) {
+        if let marker = ((start + 1)..<lines.count).first(where: { trimmed(lines[$0]) == boundary }) {
+            end = marker + 1
+        } else if let rule = ((start + 1)..<lines.count).first(where: { isRule(lines[$0]) }) {
             end = rule + 1
         } else {
             end = ((start + 1)..<lines.count).first(where: { isSectionHeading(lines[$0]) })

@@ -235,6 +235,20 @@ enum MeetingFinalsSelfTest {
                 == .skip("live-only:no-audio"))
         check("audio decision is not run",
               MeetingPipeline.finalPassDecision(settingOn: true, hasAudio: true) == .run)
+        check("empty live transcript with saved audio did not get a recovery pass",
+              MeetingPipeline.finalPassDecision(
+                settingOn: false, hasAudio: true, hasTranscript: false) == .run)
+        check("dropped live windows with saved audio did not get a recovery pass",
+              MeetingPipeline.finalPassDecision(
+                settingOn: false, hasAudio: true, droppedAudio: true) == .run)
+        check("failed writer plus empty live transcript would look like a finished meeting",
+              MeetingSession.hasUnrecoverableLoss(
+                capturedDrop: false, skippedSeconds: 0, hasAudio: false,
+                writerFailed: true, hasTranscript: false, audioProblem: true))
+        check("an ordinary silent meeting was marked as failed",
+              !MeetingSession.hasUnrecoverableLoss(
+                capturedDrop: false, skippedSeconds: 0, hasAudio: false,
+                writerFailed: false, hasTranscript: false, audioProblem: false))
     }
 
     // MARK: - Helpers

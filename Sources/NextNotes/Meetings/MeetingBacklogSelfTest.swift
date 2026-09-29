@@ -103,6 +103,29 @@ enum MeetingBacklogSelfTest {
         check("fake saw \(calls) calls for \(cuts) cut windows — nothing merged",
               calls < cuts)
 
+        // Feed past the 300 s bound in one actor call so the drain cannot run
+        // between windows. This exercises the branch the 180 s fixture never did.
+        let overBound = ChunkedTranscriber(
+            source: .mic,
+            config: .init(minWindowSeconds: 60, maxWindowSeconds: 60,
+                          overlapSeconds: 0, emitsProvisionals: false),
+            transcribe: { samples in
+                (result: ASRResult(text: "", confidence: 1,
+                                   duration: Double(samples.count) / ChunkedTranscriber.sampleRate,
+                                   processingTime: 0, tokenTimings: nil),
+                 laneWait: 0, compute: 0)
+            },
+            onSegment: { _ in }
+        )
+        await overBound.append([Float](repeating: 0.1, count: Int(365 * ChunkedTranscriber.sampleRate)))
+        let overflowSeconds = await overBound.droppedAudioSeconds
+        await overBound.cancel()
+        check("over-bound input did not exercise a dropped-window path", overflowSeconds > 0)
+        check("a saved recording would not recover dropped live windows when final pass is off",
+              MeetingPipeline.finalPassDecision(
+                settingOn: false, hasAudio: true, droppedAudio: true) == .run)
+        log(String(format: "MEETING_BACKLOG_OVERBOUND_DROPPED_S=%.1f", overflowSeconds))
+
         for failure in failures { log("MEETING_BACKLOG_WRONG: \(failure)") }
         log(failures.isEmpty
             ? "MEETING_BACKLOG_OK: 0 s lost behind a slow transcriber over \(Int(inputSeconds))s of input"

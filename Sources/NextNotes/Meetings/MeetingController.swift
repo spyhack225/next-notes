@@ -15,6 +15,7 @@ final class MeetingController {
     private(set) var session: MeetingSession?
     /// The last failure, for the banner in the Meetings section.
     private(set) var problem: String?
+    private var stopInProgress = false
 
     private let store: MeetingStore
 
@@ -62,9 +63,17 @@ final class MeetingController {
 
         do {
             try await session.start()
+            guard self.session === session else { return false }
             NavigationState.shared.show(meeting: meeting.id)
             return true
         } catch {
+            // Stop may have cancelled a permission prompt, and another meeting may
+            // already own the slot by the time that old prompt returns.
+            guard self.session === session else { return false }
+            if case MeetingError.startCancelled = error {
+                // stop() still owns cleanup when capture had already begun.
+                return false
+            }
             problem = error.localizedDescription
             self.session = nil
             Log.meeting.error("couldn't start meeting: \(error.localizedDescription, privacy: .public)")
@@ -73,8 +82,11 @@ final class MeetingController {
     }
 
     func stop() async {
-        guard let session else { return }
+        guard !stopInProgress, let session else { return }
+        stopInProgress = true
+        defer { stopInProgress = false }
         await session.stop()
+        guard self.session === session else { return }
         let id = session.meeting.id
         self.session = nil
         NavigationState.shared.show(meeting: id)

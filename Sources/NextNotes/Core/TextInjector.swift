@@ -38,21 +38,26 @@ enum TextInjector {
         }
     }
 
-    /// The frontmost app, or nil when that is Next Notes itself.
-    ///
-    /// Nil is not a failure. The HUD is a non-activating panel, so during a normal dictation
-    /// the user's app stays frontmost and this returns it; nil means they really were in
-    /// Next Notes, and inserting into whatever is focused then is exactly right.
+    /// The frontmost app, including Next Notes when a meeting editor has focus.
+    /// Capturing our own app matters too: the user can leave Notes or Ask while the
+    /// tail is running, and the words still belong in the app where the hold began.
     static func captureOrigin() -> Origin? {
-        guard let app = NSWorkspace.shared.frontmostApplication,
-              app.bundleIdentifier != AppIdentity.bundleIdentifier
-        else { return nil }
+        origin(for: NSWorkspace.shared.frontmostApplication)
+    }
+
+    /// Kept separate from the workspace read so the own-app case can be checked
+    /// without changing focus or requesting Accessibility in a self-test.
+    static func origin(for app: NSRunningApplication?) -> Origin? {
+        guard let app else { return nil }
         return Origin(app: app, displayName: app.localizedName ?? app.bundleIdentifier ?? "that app")
     }
 
     /// Where the text ended up.
     enum Outcome: Equatable {
         case inserted
+        /// The hold was canceled during delivery. No later paste or Return is sent;
+        /// text may already have landed if cancellation followed the paste itself.
+        case superseded
         /// The origin app could not be brought back — it quit, or refused to come forward.
         /// The text is on the clipboard as a rescue, and the previous contents are
         /// deliberately *not* restored: a clipboard the user can paste is the difference
@@ -72,9 +77,11 @@ enum TextInjector {
     static func insert(
         _ text: String,
         returningTo origin: Origin?,
-        whenSwitched behavior: SwitchAwayBehavior = Settings.shared.switchAwayBehavior
+        whenSwitched behavior: SwitchAwayBehavior = Settings.shared.switchAwayBehavior,
+        whileCurrent: @MainActor () -> Bool = { true }
     ) async -> Outcome {
         guard !text.isEmpty else { return .inserted }
+        guard whileCurrent() else { return .superseded }
 
         if let origin, !origin.isFrontmost {
             switch behavior {
@@ -82,13 +89,15 @@ enum TextInjector {
                 Log.inject.info("switched away — inserting at the current caret by preference")
 
             case .copyToClipboard:
+                guard whileCurrent() else { return .superseded }
                 Log.inject.info("switched away — copying by preference, leaving \(origin.displayName, privacy: .public) alone")
                 leaveOnClipboard(text)
                 return .copiedByChoice(appName: origin.displayName)
 
             case .returnToApp:
                 Log.inject.info("switched away — returning to \(origin.displayName, privacy: .public)")
-                guard await restoreFocus(to: origin) else {
+                guard await restoreFocus(to: origin, whileCurrent: whileCurrent) else {
+                    guard whileCurrent() else { return .superseded }
                     Log.inject.error("could not return to \(origin.displayName, privacy: .public) — leaving the text on the clipboard")
                     leaveOnClipboard(text)
                     return .couldNotReturn(appName: origin.displayName)
@@ -96,8 +105,12 @@ enum TextInjector {
             }
         }
 
-        let placement = await place(text)
-        await maybeAutoSend(after: placement, origin: origin)
+        guard whileCurrent() else { return .superseded }
+        guard let placement = await place(text, whileCurrent: whileCurrent) else {
+            return .superseded
+        }
+        guard whileCurrent() else { return .superseded }
+        await maybeAutoSend(after: placement, origin: origin, whileCurrent: whileCurrent)
         return .inserted
     }
 
@@ -112,27 +125,38 @@ enum TextInjector {
     ///
     /// Polling rather than trusting the return value: activation is asynchronous, and
     /// pasting into an app that has not finished coming forward puts ⌘V somewhere else.
-    private static func restoreFocus(to origin: Origin) async -> Bool {
-        guard !origin.app.isTerminated else { return false }
+    private static func restoreFocus(
+        to origin: Origin,
+        whileCurrent: @MainActor () -> Bool
+    ) async -> Bool {
+        guard whileCurrent(), !origin.app.isTerminated else { return false }
 
         origin.app.activate()
-        if await waitUntilFrontmost(origin, within: .milliseconds(600)) { return true }
+        if await waitUntilFrontmost(origin, within: .milliseconds(600), whileCurrent: whileCurrent) {
+            return true
+        }
 
+        guard whileCurrent() else { return false }
         let element = AXUIElementCreateApplication(origin.app.processIdentifier)
         AXUIElementSetAttributeValue(element, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
-        return await waitUntilFrontmost(origin, within: .milliseconds(400))
+        return await waitUntilFrontmost(origin, within: .milliseconds(400), whileCurrent: whileCurrent)
     }
 
-    private static func waitUntilFrontmost(_ origin: Origin, within budget: Duration) async -> Bool {
+    private static func waitUntilFrontmost(
+        _ origin: Origin,
+        within budget: Duration,
+        whileCurrent: @MainActor () -> Bool
+    ) async -> Bool {
         let step = Duration.milliseconds(25)
         var waited = Duration.zero
         while waited < budget {
+            guard whileCurrent() else { return false }
             if origin.isFrontmost {
                 // Frontmost is not the same as ready for keystrokes: the app still has to
                 // restore its own key window and caret. Without this the ⌘V of the
                 // pasteboard fallback can arrive before there is anywhere to put it.
                 try? await Task.sleep(for: .milliseconds(60))
-                return true
+                return whileCurrent()
             }
             try? await Task.sleep(for: step)
             waited += step
@@ -206,14 +230,19 @@ enum TextInjector {
     }
 
     /// The dictation path: wait for the paste to land before Return can follow it.
-    private static func place(_ text: String) async -> Placement {
+    private static func place(
+        _ text: String,
+        whileCurrent: @MainActor () -> Bool
+    ) async -> Placement? {
         switch insertViaAccessibility(text) {
         case .inserted:
             Log.inject.info("inserted via AX (\(text.count) chars)")
             return .accessibility
         case .unverified(let reason):
             Log.inject.info("AX insert not verified (\(reason, privacy: .public)) — pasting")
-            await insertViaPasteboard(text)
+            guard await insertViaPasteboard(text, whileCurrent: whileCurrent) != nil else {
+                return nil
+            }
             return .pasteboard
         }
     }
@@ -224,7 +253,11 @@ enum TextInjector {
     /// those never typed anything. The bundle id is the app the text actually landed in:
     /// the origin captured at key-down, or the frontmost app when the user asked to insert
     /// wherever they are.
-    private static func maybeAutoSend(after placement: Placement, origin: Origin?) async {
+    private static func maybeAutoSend(
+        after placement: Placement,
+        origin: Origin?,
+        whileCurrent: @MainActor () -> Bool
+    ) async {
         let bundleID: String?
         if let origin, origin.isFrontmost {
             bundleID = origin.app.bundleIdentifier
@@ -240,6 +273,7 @@ enum TextInjector {
         case .pasteboard:
             break
         }
+        guard whileCurrent() else { return }
         postReturn()
         Log.inject.info("auto-send Return in \(bundleID ?? "unknown", privacy: .public)")
     }
@@ -355,8 +389,10 @@ enum TextInjector {
         _ text: String,
         pasteboard: NSPasteboard = .general,
         postPaste: @MainActor () -> Void = postCommandV,
-        restoreDelay: Duration = .milliseconds(420)
+        restoreDelay: Duration = .milliseconds(420),
+        whileCurrent: @MainActor () -> Bool = { true }
     ) async -> Task<Void, Never>? {
+        guard whileCurrent() else { return nil }
         let saved = pasteboard.pasteboardItems?.compactMap { item -> [NSPasteboard.PasteboardType: Data] in
             var copy: [NSPasteboard.PasteboardType: Data] = [:]
             for type in item.types {
@@ -374,6 +410,10 @@ enum TextInjector {
         // Give the target app a moment to observe the new pasteboard generation before
         // ⌘V arrives, or a fast paste can grab the *previous* contents.
         try? await Task.sleep(for: .milliseconds(40))
+        guard whileCurrent() else {
+            if pasteboard.changeCount == ourGeneration { restore(saved, to: pasteboard) }
+            return nil
+        }
         postPaste()
         Log.inject.info("pasted (\(text.count) chars)")
 

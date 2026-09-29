@@ -101,6 +101,18 @@ enum MeetingConsoleSelfTest {
         expect(allCases.filter { !$0.isBusy } == [.idle],
                "idle is the only activity that is not busy")
 
+        let ownTurn = UUID()
+        let otherTurn = UUID()
+        expect(MeetingConsoleAskWork.owns(activeTurnID: ownTurn, currentTurnID: ownTurn,
+                                          isThinking: true),
+               "Ask reports work only while its own turn is active")
+        expect(!MeetingConsoleAskWork.owns(activeTurnID: ownTurn, currentTurnID: otherTurn,
+                                           isThinking: true),
+               "another Agent or voice turn is not Ask's work")
+        expect(!MeetingConsoleAskWork.owns(activeTurnID: ownTurn, currentTurnID: ownTurn,
+                                           isThinking: false),
+               "a finished Ask turn is not still in progress")
+
         var busyTitles: [String: MeetingConsoleActivity] = [:]
         for activity in allCases where activity.isBusy {
             expect(!activity.title.isEmpty, "\(activity) has a title for the status row")
