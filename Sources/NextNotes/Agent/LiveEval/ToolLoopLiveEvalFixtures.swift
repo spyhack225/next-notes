@@ -15,6 +15,7 @@ final class LiveEvalCallLog: @unchecked Sendable {
     private let lock = NSLock()
     private var storage: [LiveEvalLoggedCall] = []
     private var currentTurn = 0
+    private var firstResults: [Int: ContinuousClock.Instant] = [:]
 
     func setTurn(_ turn: Int) {
         lock.lock()
@@ -29,6 +30,18 @@ final class LiveEvalCallLog: @unchecked Sendable {
             turn: currentTurn, toolID: toolID, arguments: arguments, risk: risk))
     }
 
+    func verifiedResult() {
+        lock.lock()
+        defer { lock.unlock() }
+        if firstResults[currentTurn] == nil { firstResults[currentTurn] = .now }
+    }
+
+    func firstResult(for turn: Int) -> ContinuousClock.Instant? {
+        lock.lock()
+        defer { lock.unlock() }
+        return firstResults[turn]
+    }
+
     var calls: [LiveEvalLoggedCall] {
         lock.lock()
         defer { lock.unlock() }
@@ -39,6 +52,7 @@ final class LiveEvalCallLog: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         storage.removeAll()
+        firstResults.removeAll()
         currentTurn = 0
     }
 }
@@ -74,12 +88,14 @@ final class LiveEvalFileRetrieval: FileRetrieving, @unchecked Sendable {
 
     func find(query: String, category: FileCategory?, folder: String?, modifiedAfter: Date?,
               limit: Int) throws -> [FileHit] {
+        defer { log.verifiedResult() }
         log.record(toolID: "filesystem.find", arguments: ["query": query], risk: .read)
         guard query.lowercased().contains("pric") else { return [] }
         return [pricingHit]
     }
 
     func tree(path: String, depth: Int, limit: Int) throws -> (hits: [FileHit], total: Int) {
+        defer { log.verifiedResult() }
         log.record(toolID: "filesystem.tree", arguments: ["path": path], risk: .read)
         return ([pricingHit], 1)
     }
@@ -364,7 +380,9 @@ final class LiveEvalFixtures: @unchecked Sendable {
     /// fixture table. It never throws: a fixture is always available.
     func run(_ tool: AgentTool, _ arguments: [String: String]) async throws -> AgentToolResult {
         log.record(toolID: tool.id, arguments: arguments, risk: tool.risk)
-        return AgentToolResult(summary: summary(for: tool.id, arguments: arguments))
+        let result = AgentToolResult(summary: summary(for: tool.id, arguments: arguments))
+        log.verifiedResult()
+        return result
     }
 
     private func value(_ arguments: [String: String], _ name: String) -> String {

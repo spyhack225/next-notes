@@ -1,0 +1,9 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/Next Notes.app/Contents/MacOS/NextNotes --selftest-native-tools
+2026-09-30 18:33:26.732 NextNotes[63973:446988] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+NATIVE_TOOLS_FIXTURE: 14 selected, browser.navigate, computer.active_app, computer.open_app, create_event, draft_email, filesystem.find…
+NATIVE_TOOLS_GRAMMAR: 40 rules
+NATIVE_TOOLS_LLAMA: 4/5 grammar-valid, 1/4 tool prompts called something, greeting answered: true · what's on my calen=get_agenda summarise my last = remind me at 9 to = open youtube= hi=
+NATIVE_TOOLS_APPLE: answered 5/5, reached computer.open_app,create_event,get_agenda,search_email
+NATIVE_TOOLS_CLOUD_ABSENT: no --allow-cloud, nothing was sent
+NATIVE_TOOLS_WRONG: llama: 1 round(s) were not sentences of the grammar
+NATIVE_TOOLS_FAILED: 1 problem(s)

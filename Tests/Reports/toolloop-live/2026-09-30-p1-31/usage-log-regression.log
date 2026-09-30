@@ -1,0 +1,6 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/Next Notes.app/Contents/MacOS/NextNotes --selftest-usage-log
+2026-09-30 18:23:46.618 NextNotes[62545:433437] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[18:23:50.265] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[18:23:50.266] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+USAGE_LOG_WRONG: E1: the typed turn wrote no answer row for its turnID
+USAGE_LOG_FAILED: 1 problem(s)

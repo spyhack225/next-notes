@@ -1,0 +1,49 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/Next Notes.app/Contents/MacOS/NextNotes --selftest-toolloop-live --model openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf --report /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/minicpm-needle-quick.md --quick --needle-first --selftest-out /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/minicpm-needle-quick-progress.txt
+2026-09-30 17:28:37.816 NextNotes[57831:338122] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[17:28:42.467] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[17:28:42.468] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[17:28:42.742] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[17:28:43.255] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[17:28:43.416] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[17:28:43.614] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[17:28:43.616] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 1.15s
+[17:28:43.633] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[17:28:43.633] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[17:28:43.633] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[17:28:43.638] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[17:28:43.654] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[17:28:43.654] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[17:28:43.654] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'
+TOOLLOOP_LIVE_MODEL: appLLM "MiniCPM5-2B" ctx=32768 role=installed:openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf
+TOOLLOOP_LIVE_NEEDLE_TOOLS create_event,get_agenda
+TOOLLOOP_LIVE_NEEDLE_TURN none 0.873s
+TOOLLOOP_LIVE_CASE C01 PASS 17.0s turns=1 tools=get_agenda(date=2026-09-30) reply="Today you have three things on the calendar: - 09:30–10:00 Standup - 14:00–15:00 Budget review with Ana - 16:30–17:00 Call with Marcus about pricing  Anything e"
+TOOLLOOP_LIVE_NEEDLE_TOOLS create_event,draft_email,get_agenda,read_email,reply_email,search_email,send_email
+TOOLLOOP_LIVE_NEEDLE_TURN none 0.574s
+TOOLLOOP_LIVE_CASE C04 PASS 21.4s turns=1 tools=search_email get_agenda(date=2026-10-01) reply="This takes a few steps on this Mac.  Here's a summary of your recent emails:  - Wednesday, September 30: Cyril asked about dinner tomorrow evening. - Ana Ruiz a"
+TOOLLOOP_LIVE_NEEDLE_TOOLS draft_email,read_email,reply_email,search_email,send_email
+TOOLLOOP_LIVE_NEEDLE_TURN search_email confidence=0.281 1.746s
+TOOLLOOP_LIVE_CASE M03 UNGROUNDED 11.8s turns=1 tools=search_email(query=email) search_email reply="Here's the last email in your inbox, from today: Cyril is asking about a dinner tomorrow evening. That's the most recent one.  If you'd like, I can read any oth"
+TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit
+TOOLLOOP_LIVE_CASE M04 REFUSAL 4.3s turns=1 tools=- reply="I can help you draft that email. Would you like me to send it as a draft, or do you have any details about the message you'd like to include?"
+TOOLLOOP_LIVE_NEEDLE_TOOLS draft_email,read_email,reply_email,search_email,send_email
+TOOLLOOP_LIVE_NEEDLE_TURN search_email confidence=0.712 1.165s
+TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit
+TOOLLOOP_LIVE_CASE M05 FILLER 20.1s turns=2 tools=search_email search_email reply="Sure — here's what your last emails covered:  - Cyril invited you to a dinner tomorrow evening. - Ana Ruiz asked the deck to be sent by Friday. - Marcus shared "
+TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit
+TOOLLOOP_LIVE_CASE K01 MISSED_TOOL 6.5s turns=1 tools=- reply="We had a decision to keep things moving forward — but it was more about staying open to new ideas than locking anything in. The meeting also left us unsure abou"
+TOOLLOOP_LIVE_NEEDLE_TOOLS schedule.create,schedule.list,schedule.pause,schedule.remove,schedule.resume,schedule.run_now,schedule.update
+TOOLLOOP_LIVE_NEEDLE_TURN none 2.097s
+TOOLLOOP_LIVE_CASE R02 PASS 12.4s turns=1 tools=schedule.create(days=7,id=put_book_out,kind=routine,model=gpt-4o-mini,on=True,plainEnglish=True,text=Remind to put the book out,time=22:00,title=Put book out) reply="Good. That reminder is already set for nights at 22:00. If you'd like it changed to 10 p.m., just say so and I'll update it."
+TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit
+TOOLLOOP_LIVE_CASE F03 MISSED_TOOL 4.1s turns=1 tools=- reply="I don't have a pricing document on file, and I'm not sure who Marcus is. If you can tell me more or share the document, I'd be happy to help."
+TOOLLOOP_LIVE_NEEDLE_TOOLS browser.click,browser.fill,browser.navigate,browser.screenshot,browser.select,browser.snapshot
+TOOLLOOP_LIVE_NEEDLE_TURN none 1.919s
+TOOLLOOP_LIVE_CASE A02 MISSED_TOOL 5.7s turns=1 tools=- reply="I'll open YouTube and look for the latest Cortech video."
+TOOLLOOP_LIVE_CASE N04 UNGROUNDED 2.2s turns=1 tools=- reply="I can help you with things like checking your calendar, opening files or apps, looking through your files, and setting up reminders. If you need something speci"
+TOOLLOOP_LIVE_NEEDLE turns=10 calls=2 errors=0
+TOOLLOOP_LIVE_CLASSES pass=3 error=0 timeout=0 leak=0 refusal=1 wrong_tool=0 fabricated=0 missed_tool=3 ungrounded=2 filler=1
+TOOLLOOP_LIVE_SCORE 3/10 (quick)
+TOOLLOOP_LIVE_REPORT /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/minicpm-needle-quick.md
+TOOLLOOP_LIVE_ELAPSED 105.7
+TOOLLOOP_LIVE_FAILED: 3/10 (quick) on MiniCPM5-2B — below the pass bar 9

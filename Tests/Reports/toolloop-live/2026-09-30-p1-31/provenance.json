@@ -1,0 +1,396 @@
+{
+  "commit": "379f2dda20b075defc6df48b249a947ec1a8b8d3",
+  "machine": "Apple M3",
+  "binary_sha256": "0a5377b19dcb100f04edf8e6dba56f0fdacbcff088d072127b2f36f63904e97e",
+  "sources": {
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEval.swift": "22251d95f178bcd5c359fad56f7f991751d742bd6e9a7c98a5d635f21984d538",
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalCases.swift": "c96b507e5577117c00c29656ac056c5595750b251f765e334a1809a8d4ed8f7a",
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalFixtures.swift": "37e246abc0767e034e1a0119300a4ed905176eb234982942fc045ac415b1ed58",
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalGrader.swift": "c12cdc5dedf9387dd8de34c189adbf36f7374dbf0d5025946009d97d05b2987c",
+    "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift": "1a6c1eebf2770bd64ef98a7cbe94de72a95a4b2700266d2142404827a5cf77c9",
+    "Sources/NextNotes/Agent/AgentCapabilityManifest.swift": "bba2323a95dbba3eb7dad4a6cf84581abab7c04f7705e77479fce0775cb908fc"
+  },
+  "artifacts": {
+    "unsloth--Qwen3-4B-Instruct-2507-Q4_K_M.gguf": {
+      "bytes": 2497281120,
+      "sha256": "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597"
+    },
+    "MiniCPM5-2B-Q4_K_M.gguf": {
+      "bytes": 1561318368,
+      "sha256": "ec2d5801640099e97d8d7e8003ad4d81f336e757811f03a26173dddf386602fd"
+    },
+    "gemma-4-E4B-it-Q4_K_M.gguf": {
+      "bytes": 4977171584,
+      "sha256": "85a896a047553e842f25297ee5b031d64ff30147d9c4af17b1e4b394cd1fab87"
+    },
+    "unsloth--Qwen3.5-4B-Q4_K_M.gguf": {
+      "bytes": 2740937888,
+      "sha256": "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4"
+    },
+    "needle3.cact": {
+      "bytes": 35335380,
+      "sha256": "c9d915eca282ed42d1a09b143b592adb4cc6744ffe2d294adf5cfc5548170c38"
+    },
+    "needle3-macos-arm64": {
+      "bytes": 824744,
+      "sha256": "bfcc14c38a7ebf670bf7ade3849b617d268120dc4cc75d3aa12c88bc7c0ba75c"
+    }
+  },
+  "runs": [
+    {
+      "name": "qwen3-base-quick",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/qwen3-base-quick-progress.txt",
+        "--selftest-toolloop-live",
+        "--model",
+        "unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/qwen3-base-quick.md",
+        "--quick"
+      ],
+      "exit_code": 1,
+      "load_before": [
+        3.46142578125,
+        7.14306640625,
+        6.64990234375
+      ],
+      "load_after": [
+        6.95751953125,
+        15.07373046875,
+        11.82177734375
+      ],
+      "wall_seconds": 346.367,
+      "sampled_app_peak_rss_bytes": 3408723968,
+      "sampled_needle_peak_rss_bytes": 0,
+      "free_disk_before_bytes": 24521637888,
+      "free_disk_after_bytes": 22175846400,
+      "markers": [
+        "TOOLLOOP_LIVE_CLASSES pass=5 error=0 timeout=0 leak=0 refusal=0 wrong_tool=0 fabricated=0 missed_tool=4 ungrounded=1 filler=0",
+        "TOOLLOOP_LIVE_SCORE 5/10 (quick)",
+        "TOOLLOOP_LIVE_FAILED: 5/10 (quick) on Qwen3-4B-Instruct-2507 \u2014 below the pass bar 9"
+      ]
+    },
+    {
+      "name": "qwen3-needle-quick",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/qwen3-needle-quick-progress.txt",
+        "--selftest-toolloop-live",
+        "--model",
+        "unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/qwen3-needle-quick.md",
+        "--quick",
+        "--needle-first"
+      ],
+      "exit_code": 1,
+      "load_before": [
+        6.95751953125,
+        15.07373046875,
+        11.82177734375
+      ],
+      "load_after": [
+        3.669921875,
+        7.94921875,
+        9.4326171875
+      ],
+      "wall_seconds": 276.677,
+      "sampled_app_peak_rss_bytes": 3699605504,
+      "sampled_needle_peak_rss_bytes": 114212864,
+      "free_disk_before_bytes": 22175846400,
+      "free_disk_after_bytes": 22170234880,
+      "markers": [
+        "TOOLLOOP_LIVE_CLASSES pass=6 error=0 timeout=0 leak=0 refusal=0 wrong_tool=0 fabricated=0 missed_tool=2 ungrounded=2 filler=0",
+        "TOOLLOOP_LIVE_SCORE 6/10 (quick)",
+        "TOOLLOOP_LIVE_FAILED: 6/10 (quick) on Qwen3-4B-Instruct-2507 \u2014 below the pass bar 9"
+      ]
+    },
+    {
+      "name": "minicpm-base-quick",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/minicpm-base-quick-progress.txt",
+        "--selftest-toolloop-live",
+        "--model",
+        "openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/minicpm-base-quick.md",
+        "--quick"
+      ],
+      "exit_code": 1,
+      "load_before": [
+        3.669921875,
+        7.94921875,
+        9.4326171875
+      ],
+      "load_after": [
+        51.86279296875,
+        20.3583984375,
+        13.84765625
+      ],
+      "wall_seconds": 116.89,
+      "sampled_app_peak_rss_bytes": 2622160896,
+      "sampled_needle_peak_rss_bytes": 0,
+      "free_disk_before_bytes": 22170226688,
+      "free_disk_after_bytes": 22156447744,
+      "markers": [
+        "TOOLLOOP_LIVE_CLASSES pass=2 error=0 timeout=0 leak=0 refusal=1 wrong_tool=0 fabricated=0 missed_tool=5 ungrounded=2 filler=0",
+        "TOOLLOOP_LIVE_SCORE 2/10 (quick)",
+        "TOOLLOOP_LIVE_FAILED: 2/10 (quick) on MiniCPM5-2B \u2014 below the pass bar 9"
+      ]
+    },
+    {
+      "name": "minicpm-needle-quick",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/minicpm-needle-quick-progress.txt",
+        "--selftest-toolloop-live",
+        "--model",
+        "openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/minicpm-needle-quick.md",
+        "--quick",
+        "--needle-first"
+      ],
+      "exit_code": 1,
+      "load_before": [
+        51.86279296875,
+        20.3583984375,
+        13.84765625
+      ],
+      "load_after": [
+        20.2568359375,
+        19.10205078125,
+        14.19775390625
+      ],
+      "wall_seconds": 113.396,
+      "sampled_app_peak_rss_bytes": 2467807232,
+      "sampled_needle_peak_rss_bytes": 112771072,
+      "free_disk_before_bytes": 22156443648,
+      "free_disk_after_bytes": 22052622336,
+      "markers": [
+        "TOOLLOOP_LIVE_CLASSES pass=3 error=0 timeout=0 leak=0 refusal=1 wrong_tool=0 fabricated=0 missed_tool=3 ungrounded=2 filler=1",
+        "TOOLLOOP_LIVE_SCORE 3/10 (quick)",
+        "TOOLLOOP_LIVE_FAILED: 3/10 (quick) on MiniCPM5-2B \u2014 below the pass bar 9"
+      ]
+    },
+    {
+      "name": "gemma-base-quick",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/gemma-base-quick-progress.txt",
+        "--selftest-toolloop-live",
+        "--model",
+        "file:/Users/sergekadjo/Library/Application Support/Next Notes/Models/gemma-4-E4B-it-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/gemma-base-quick.md",
+        "--quick"
+      ],
+      "exit_code": 1,
+      "load_before": [
+        20.2568359375,
+        19.10205078125,
+        14.19775390625
+      ],
+      "load_after": [
+        321.54833984375,
+        123.005859375,
+        55.6748046875
+      ],
+      "wall_seconds": 200.252,
+      "sampled_app_peak_rss_bytes": 4590223360,
+      "sampled_needle_peak_rss_bytes": 0,
+      "free_disk_before_bytes": 22052618240,
+      "free_disk_after_bytes": 20960530432,
+      "markers": [
+        "TOOLLOOP_LIVE_CLASSES pass=5 error=0 timeout=0 leak=0 refusal=1 wrong_tool=0 fabricated=0 missed_tool=3 ungrounded=1 filler=0",
+        "TOOLLOOP_LIVE_SCORE 5/10 (quick)",
+        "TOOLLOOP_LIVE_FAILED: 5/10 (quick) on gemma-4-E4B-it-Q4_K_M \u2014 below the pass bar 9"
+      ]
+    },
+    {
+      "name": "gemma-needle-quick",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/gemma-needle-quick-progress.txt",
+        "--selftest-toolloop-live",
+        "--model",
+        "file:/Users/sergekadjo/Library/Application Support/Next Notes/Models/gemma-4-E4B-it-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/gemma-needle-quick.md",
+        "--quick",
+        "--needle-first"
+      ],
+      "exit_code": 1,
+      "load_before": [
+        321.54833984375,
+        123.005859375,
+        55.6748046875
+      ],
+      "load_after": [
+        148.12548828125,
+        176.5126953125,
+        104.8759765625
+      ],
+      "wall_seconds": 316.475,
+      "sampled_app_peak_rss_bytes": 2732998656,
+      "sampled_needle_peak_rss_bytes": 97419264,
+      "free_disk_before_bytes": 20960456704,
+      "free_disk_after_bytes": 15368273920,
+      "markers": [
+        "TOOLLOOP_LIVE_CLASSES pass=0 error=1 timeout=0 leak=0 refusal=0 wrong_tool=0 fabricated=2 missed_tool=1 ungrounded=1 filler=0",
+        "TOOLLOOP_LIVE_PARTIAL 0/5 (quick)",
+        "TOOLLOOP_LIVE_INCOMPLETE: Needle failed on 1 turn(s); 5/10 cases attempted"
+      ]
+    },
+    {
+      "name": "qwen35-base-quick",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/qwen35-base-quick-progress.txt",
+        "--selftest-toolloop-live",
+        "--model",
+        "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/qwen35-base-quick.md",
+        "--quick"
+      ],
+      "exit_code": 1,
+      "load_before": [
+        148.12548828125,
+        176.5126953125,
+        104.8759765625
+      ],
+      "load_after": [
+        39.8271484375,
+        70.99755859375,
+        78.7080078125
+      ],
+      "wall_seconds": 405.583,
+      "sampled_app_peak_rss_bytes": 3252830208,
+      "sampled_needle_peak_rss_bytes": 0,
+      "free_disk_before_bytes": 15368269824,
+      "free_disk_after_bytes": 15547428864,
+      "markers": [
+        "TOOLLOOP_LIVE_CLASSES pass=2 error=0 timeout=0 leak=0 refusal=0 wrong_tool=0 fabricated=2 missed_tool=4 ungrounded=2 filler=0",
+        "TOOLLOOP_LIVE_SCORE 2/10 (quick)",
+        "TOOLLOOP_LIVE_FAILED: 2/10 (quick) on Qwen3.5-4B \u2014 below the pass bar 9"
+      ]
+    },
+    {
+      "name": "qwen35-needle-quick",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/qwen35-needle-quick-progress.txt",
+        "--selftest-toolloop-live",
+        "--model",
+        "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/qwen35-needle-quick.md",
+        "--quick",
+        "--needle-first"
+      ],
+      "exit_code": 1,
+      "load_before": [
+        39.8271484375,
+        70.99755859375,
+        78.7080078125
+      ],
+      "load_after": [
+        37.0556640625,
+        42.53173828125,
+        62.28173828125
+      ],
+      "wall_seconds": 305.716,
+      "sampled_app_peak_rss_bytes": 3264806912,
+      "sampled_needle_peak_rss_bytes": 95518720,
+      "free_disk_before_bytes": 15547424768,
+      "free_disk_after_bytes": 14448316416,
+      "markers": [
+        "TOOLLOOP_LIVE_CLASSES pass=1 error=1 timeout=0 leak=0 refusal=0 wrong_tool=0 fabricated=2 missed_tool=1 ungrounded=2 filler=0",
+        "TOOLLOOP_LIVE_PARTIAL 1/7 (quick)",
+        "TOOLLOOP_LIVE_INCOMPLETE: Needle failed on 1 turn(s); 7/10 cases attempted"
+      ]
+    },
+    {
+      "name": "qwen3-base-full",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/qwen3-base-full-progress.txt",
+        "--selftest-toolloop-live",
+        "--model",
+        "unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/qwen3-base-full.md"
+      ],
+      "exit_code": 1,
+      "load_before": [
+        37.0556640625,
+        42.53173828125,
+        62.28173828125
+      ],
+      "load_after": [
+        85.92919921875,
+        63.349609375,
+        56.32666015625
+      ],
+      "wall_seconds": 927.417,
+      "sampled_app_peak_rss_bytes": 2997157888,
+      "sampled_needle_peak_rss_bytes": 0,
+      "free_disk_before_bytes": 14448308224,
+      "free_disk_after_bytes": 12615999488,
+      "markers": [
+        "TOOLLOOP_LIVE_CLASSES pass=24 error=0 timeout=0 leak=0 refusal=0 wrong_tool=0 fabricated=0 missed_tool=11 ungrounded=4 filler=1",
+        "TOOLLOOP_LIVE_SCORE 17/30",
+        "TOOLLOOP_LIVE_OWNER 7/10",
+        "TOOLLOOP_LIVE_FAILED: 17/30 on Qwen3-4B-Instruct-2507 \u2014 below the pass bar 25"
+      ]
+    },
+    {
+      "name": "qwen3-needle-full",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/qwen3-needle-full-progress.txt",
+        "--selftest-toolloop-live",
+        "--model",
+        "unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/qwen3-needle-full.md",
+        "--needle-first"
+      ],
+      "exit_code": 1,
+      "load_before": [
+        85.92919921875,
+        63.349609375,
+        56.32666015625
+      ],
+      "load_after": [
+        25.04052734375,
+        71.65283203125,
+        75.8662109375
+      ],
+      "wall_seconds": 821.671,
+      "sampled_app_peak_rss_bytes": 3154411520,
+      "sampled_needle_peak_rss_bytes": 104054784,
+      "free_disk_before_bytes": 12615933952,
+      "free_disk_after_bytes": 15264493568,
+      "markers": [
+        "TOOLLOOP_LIVE_CLASSES pass=24 error=0 timeout=0 leak=0 refusal=1 wrong_tool=0 fabricated=1 missed_tool=9 ungrounded=4 filler=1",
+        "TOOLLOOP_LIVE_SCORE 16/30",
+        "TOOLLOOP_LIVE_OWNER 8/10",
+        "TOOLLOOP_LIVE_FAILED: 16/30 on Qwen3-4B-Instruct-2507 \u2014 below the pass bar 25"
+      ]
+    }
+  ]
+}

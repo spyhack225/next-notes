@@ -1,0 +1,19 @@
+  TOOLLOOP_PRODUCTION_READ_APPROVAL: 3 recorded decisions, 1 setting check, 2 call sites scanned, 2-switch knowledge gate, 5 markup forms scrubbed
+  TOOLLOOP_PRODUCTION_HISTORY_BUDGET: 262,144 reader 18513 chars, 4,096 reader 2500 chars
+  TOOLLOOP_PRODUCTION_ACCOUNT_READ: 10 cases, guard is pure
+  TOOLLOOP_PRODUCTION_IDENTIFIERS: 4 id parameters marked, I1–I4 green, matcher is "FunctionCallGrounding" reused
+TOOLLOOP_LIVE_NEEDLE_TOOLS memory.forget,memory.recall,memory.remember,memory.update
+TOOLLOOP_LIVE_NEEDLE_TURN memory.recall confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS schedule.create,schedule.list,schedule.pause,schedule.remove,schedule.resume,schedule.run_now,schedule.update
+TOOLLOOP_LIVE_NEEDLE_ERROR The listening model took longer than 8s.
+TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit
+TOOLLOOP_LIVE_NEEDLE_TOOLS schedule.create,schedule.list,schedule.pause,schedule.remove,schedule.resume,schedule.run_now,schedule.update
+TOOLLOOP_LIVE_NEEDLE_TURN schedule.list confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS memory.forget,memory.recall,memory.remember,memory.update
+TOOLLOOP_LIVE_NEEDLE_TURN memory.recall confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit
+  TOOLLOOP_PRODUCTION_NEEDLE: 1 problem(s)
+  TOOLLOOP_PRODUCTION_WRONG: the final answer round cannot see whether the model ran out of allowance, so a cut-off answer is shown as a finished one
+  TOOLLOOP_PRODUCTION_WRONG: the final answer round cannot see whether the model ran out of allowance, so a cut-off answer is shown as a finished one
+  TOOLLOOP_PRODUCTION_WRONG: Needle first: denied first write was retried or claimed as sent
+TOOLLOOP_PRODUCTION_FAILED

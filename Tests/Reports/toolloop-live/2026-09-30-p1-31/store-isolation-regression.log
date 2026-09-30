@@ -1,0 +1,55 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/Next Notes.app/Contents/MacOS/NextNotes --selftest-store-isolation
+2026-09-30 18:24:01.091 NextNotes[62649:434256] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[18:24:03.910] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[18:24:03.914] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[18:24:16.067] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[18:24:18.476] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[18:24:21.740] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[18:24:22.257] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[18:24:22.263] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 18.36s
+[18:24:22.291] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[18:24:22.292] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[18:24:22.292] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[18:24:22.299] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[18:24:22.321] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[18:24:22.324] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[18:24:22.327] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'
+STORE_ISOLATION_OK: 18 files and 23 defaults unchanged
+2026-09-30 18:24:53.295 NextNotes[62649:436044] 2026-09-30 18:24:53.295253 [E:onnxruntime:, sequential_executor.cc:671 ExecuteKernel] Non-zero status code returned while running Shape node. Name:'/Shape_33' Status Message: GetElementType is not implemented
+WARNING: Using native backtrace. Set GGML_BACKTRACE_LLDB for more info.
+WARNING: GGML_BACKTRACE_LLDB may cause native MacOS Terminal.app to crash.
+See: https://github.com/ggml-org/llama.cpp/pull/17869
+0   llama                               0x000000010ab35470 ggml_print_backtrace + 276
+1   llama                               0x000000010ab48338 _ZL23ggml_uncaught_exceptionv + 12
+2   libc++abi.dylib                     0x00000001904e92b0 _ZSt11__terminatePFvvE + 16
+3   libc++abi.dylib                     0x00000001904eb7bc __cxa_get_exception_ptr + 0
+4   libc++abi.dylib                     0x00000001904d818c __cxa_get_globals + 0
+5   libsherpa-onnx-c-api.dylib          0x0000000125598bc0 _ZN3Ort6detail11ThrowStatusERKNS_6StatusE + 272
+6   libsherpa-onnx-c-api.dylib          0x00000001255c6840 _ZN3Ort6detail11SessionImplI10OrtSessionE3RunERKNS_10RunOptionsEPKPKcPKNS_5ValueEmSA_PSB_m + 84
+7   libsherpa-onnx-c-api.dylib          0x000000012569a7e0 _ZN11sherpa_onnx31OnlineZipformer2TransducerModel10RunEncoderEN3Ort5ValueENSt3__16vectorIS2_NS3_9allocatorIS2_EEEES2_ + 348
+MODEL_ROLES_CODEX_FALLBACK: agent=localServer computerUse=localServer
+CONVERSATION_PROMPT_CHARS: 6081 persona 882 roster 5199
+PROMPT_TOKENS: 1967 for 24 tools (live loop)
+ANSWER_BUDGET: deep=1024 fast=1024 small=144 prompt=1136
+APPLE_FM_CONTEXT=8192
+  TOOLLOOP_PRODUCTION_READ_APPROVAL: 3 recorded decisions, 1 setting check, 2 call sites scanned, 2-switch knowledge gate, 5 markup forms scrubbed
+  TOOLLOOP_PRODUCTION_HISTORY_BUDGET: 262,144 reader 18513 chars, 4,096 reader 2500 chars
+  TOOLLOOP_PRODUCTION_CUT_SHORT: 3 sentences, final-answer round keeps the completion; the streamed planner rounds cannot see the flag (recorded)
+FITTED_PROMPT: 4 round(s), worst total 3155 tokens of 4,096
+  TOOLLOOP_PRODUCTION_ACCOUNT_READ: 10 cases, guard is pure
+  TOOLLOOP_PRODUCTION_IDENTIFIERS: 4 id parameters marked, I1–I4 green, matcher is "FunctionCallGrounding" reused
+TOOLLOOP_LIVE_NEEDLE_TOOLS memory.forget,memory.recall,memory.remember,memory.update
+TOOLLOOP_LIVE_NEEDLE_TURN memory.recall confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS schedule.create,schedule.list,schedule.pause,schedule.remove,schedule.resume,schedule.run_now,schedule.update
+TOOLLOOP_LIVE_NEEDLE_ERROR The listening model took longer than 8s.
+TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit
+TOOLLOOP_LIVE_NEEDLE_TOOLS schedule.create,schedule.list,schedule.pause,schedule.remove,schedule.resume,schedule.run_now,schedule.update
+TOOLLOOP_LIVE_NEEDLE_TURN schedule.list confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS memory.forget,memory.recall,memory.remember,memory.update
+TOOLLOOP_LIVE_NEEDLE_TURN memory.recall confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS send_email
+TOOLLOOP_LIVE_NEEDLE_TURN send_email confidence=0.990 0.000s
+  TOOLLOOP_PRODUCTION_NEEDLE: 0 problem(s)
+TOOLLOOP_PRODUCTION_OK
+STORE_ISOLATION_FLOW memory tools: Not saved: you didn't ask to forget it.
+8   libsherpa-onnx-c-api.dylib          0x00000001255b1bd4 _ZNK11sherpa_onnx28KeywordSpotterTransducerImpl13DecodeStreamsEPPNS_12OnlineStreamEi + 1440

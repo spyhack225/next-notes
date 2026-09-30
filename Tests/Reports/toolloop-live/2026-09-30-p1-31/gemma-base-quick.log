@@ -1,0 +1,46 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/Next Notes.app/Contents/MacOS/NextNotes --selftest-toolloop-live --model file:/Users/sergekadjo/Library/Application Support/Next Notes/Models/gemma-4-E4B-it-Q4_K_M.gguf --report /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/gemma-base-quick.md --quick --selftest-out /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/gemma-base-quick-progress.txt
+2026-09-30 17:30:31.167 NextNotes[57982:340659] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[17:30:47.450] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[17:30:47.450] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[17:30:50.489] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[17:30:51.919] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[17:30:52.466] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[17:30:53.392] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 5.83s
+[17:30:53.393] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[17:30:53.394] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[17:30:53.394] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[17:30:53.482] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[17:30:53.564] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[17:30:53.570] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[17:30:53.571] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[17:30:53.571] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'
+2026-09-30 17:33:46.988 NextNotes[57982:344607] 2026-09-30 17:33:46.985637 [E:onnxruntime:, sequential_executor.cc:671 ExecuteKernel] Non-zero status code returned while running Slice node. Name:'/Slice_88' Status Message: GetElementType is not implemented
+WARNING: Using native backtrace. Set GGML_BACKTRACE_LLDB for more info.
+WARNING: GGML_BACKTRACE_LLDB may cause native MacOS Terminal.app to crash.
+See: https://github.com/ggml-org/llama.cpp/pull/17869
+0   llama                               0x000000010ca4d470 ggml_print_backtrace + 276
+1   llama                               0x000000010ca60338 _ZL23ggml_uncaught_exceptionv + 12
+2   libc++abi.dylib                     0x00000001904e92b0 _ZSt11__terminatePFvvE + 16
+3   libc++abi.dylib                     0x00000001904eb7bc __cxa_get_exception_ptr + 0
+4   libc++abi.dylib                     0x00000001904d818c __cxa_get_globals + 0
+5   libsherpa-onnx-c-api.dylib          0x0000000162e58bc0 _ZN3Ort6detail11ThrowStatusERKNS_6StatusE + 272
+6   libsherpa-onnx-c-api.dylib          0x0000000162e86840 _ZN3Ort6detail11SessionImplI10OrtSessionE3RunERKNS_10RunOptionsEPKPKcPKNS_5ValueEmSA_PSB_m + 84
+7   libsherpa-onnx-c-api.dylib          0x0000000162f5a7e0 _ZN11sherpa_onnx31OnlineZipformer2TransducerModel10RunEncoderEN3Ort5ValueENSt3__16vectorIS2_NS3_9allocatorIS2_EEEES2_ + 348
+8   libsherpa-onnx-c-api.dylib          0x0000000162e71bd4 _ZNK11sherpa_onnx28KeywordSpotterTransducerImpl13DecodeStreamsEPPNS_12OnlineStreamEi + 1440
+9   libsherpa-onnx-c-api.dylib          0x0000000162e45a48 SherpaOnnxDecodeKeywordStream + 72
+TOOLLOOP_LIVE_MODEL: appLLM "gemma-4-E4B-it-Q4_K_M" ctx=32768 role=file:gemma-4-E4B-it-Q4_K_M
+TOOLLOOP_LIVE_CASE C01 PASS 27.6s turns=1 tools=get_agenda(date=2026-09-30) reply="You have a Standup at 9:30 AM, a Budget review with Ana at 2 PM, and a call with Marcus about pricing at 4:30 PM."
+TOOLLOOP_LIVE_CASE C04 PASS 50.9s turns=1 tools=search_email(maxResults=5) get_agenda(date=2026-10-01) reply="This takes a few steps on this Mac.  I see you want a summary of your recent emails and a list of tomorrow's events.  Your last emails include a question from C"
+TOOLLOOP_LIVE_CASE M03 REFUSAL 11.3s turns=1 tools=- reply="I can check your last emails for you. Should I just show you a summary of the most recent ones?"
+TOOLLOOP_LIVE_CASE M04 MISSED_TOOL 7.7s turns=1 tools=- reply="I can draft that email for you. What should the subject line be?"
+TOOLLOOP_LIVE_CASE M05 UNGROUNDED 14.7s turns=2 tools=search_email reply="I can show you more emails. Should I load the next batch for you?"
+TOOLLOOP_LIVE_CASE K01 PASS 10.3s turns=1 tools=meeting.decisions reply="We decided to move the launch to October 14 and keep the price at $12 a month."
+TOOLLOOP_LIVE_CASE R02 MISSED_TOOL 14.4s turns=1 tools=- reply="I haven't checked that yet."
+TOOLLOOP_LIVE_CASE F03 MISSED_TOOL 9.8s turns=1 tools=- reply="I can find the pricing document, but I need to know where to look for it first."
+TOOLLOOP_LIVE_CASE A02 PASS 27.9s turns=1 tools=browser.navigate(url=https://www.youtube.com) browser.snapshot browser.click(expectedText=Cortech — newest upload (2 days ago)) reply="I see you're looking to watch a Cortech video on YouTube. I found a link for the newest upload from two days ago. Should I click that one?"
+TOOLLOOP_LIVE_CASE N04 PASS 4.8s turns=1 tools=- reply="I can look at your calendar, email, Drive and Docs, reminders and routines, past meetings and notes, Mac apps and the screen, browser pages, installable skills,"
+TOOLLOOP_LIVE_CLASSES pass=5 error=0 timeout=0 leak=0 refusal=1 wrong_tool=0 fabricated=0 missed_tool=3 ungrounded=1 filler=0
+TOOLLOOP_LIVE_SCORE 5/10 (quick)
+TOOLLOOP_LIVE_REPORT /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/gemma-base-quick.md
+TOOLLOOP_LIVE_ELAPSED 179.7
+TOOLLOOP_LIVE_FAILED: 5/10 (quick) on gemma-4-E4B-it-Q4_K_M — below the pass bar 9

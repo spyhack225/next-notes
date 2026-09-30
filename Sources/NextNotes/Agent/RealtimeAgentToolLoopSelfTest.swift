@@ -1981,6 +1981,14 @@ enum RealtimeAgentToolLoopSelfTest {
 
         // Case 6. The 09-22 03:00Z leak, through the one gate every path passes.
         do {
+            // This case measures the reply scrub, not the direct file-search route.
+            // Pin its unavailable-index precondition now that live planner inputs
+            // correctly honor the surrounding all-enabled fixture.
+            let oldInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+            var scrubInputs = allEnabledFixture()
+            scrubInputs.fileIndexAvailable = false
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = scrubInputs
+            defer { AgentCapabilityManifestBuilder.inputsOverrideForTesting = oldInputs }
             agent.localModelProviderForTesting = PlannerScriptProvider(
                 id: .localServer, window: 4_096, promptTokens: 2_000,
                 script: ["Use filesystem.find to search for the pricing sheet."],

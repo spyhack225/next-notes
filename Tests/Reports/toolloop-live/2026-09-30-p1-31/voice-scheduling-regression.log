@@ -1,0 +1,5 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-scheduling
+2026-09-30 18:23:38.815 NextNotes[62523:433184] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[18:23:43.643] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[18:23:43.644] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+VOICE_SCHEDULING_OK

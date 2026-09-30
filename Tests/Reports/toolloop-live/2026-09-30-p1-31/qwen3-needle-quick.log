@@ -1,0 +1,50 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/Next Notes.app/Contents/MacOS/NextNotes --selftest-toolloop-live --model unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf --report /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/qwen3-needle-quick.md --quick --needle-first --selftest-out /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/qwen3-needle-quick-progress.txt
+2026-09-30 17:22:04.764 NextNotes[57328:329493] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[17:22:14.738] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[17:22:14.739] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[17:22:15.170] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[17:22:15.812] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[17:22:16.327] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[17:22:17.095] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[17:22:17.102] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 2.36s
+[17:22:17.127] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[17:22:17.127] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[17:22:17.128] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[17:22:17.137] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[17:22:17.169] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[17:22:17.171] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[17:22:17.171] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'
+TOOLLOOP_LIVE_MODEL: appLLM "Qwen3-4B-Instruct-2507" ctx=32768 role=installed:unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+TOOLLOOP_LIVE_NEEDLE_TOOLS create_event,get_agenda
+TOOLLOOP_LIVE_NEEDLE_TURN none 2.336s
+TOOLLOOP_LIVE_CASE C01 PASS 43.6s turns=1 tools=get_agenda(date=2026-09-30) reply="Here’s what’s on your calendar today:  - 09:30–10:00 Standup  - 14:00–15:00 Budget review with Ana  - 16:30–17:00 Call with Marcus about pricing"
+TOOLLOOP_LIVE_NEEDLE_TOOLS create_event,draft_email,get_agenda,read_email,reply_email,search_email,send_email
+TOOLLOOP_LIVE_NEEDLE_TURN none 1.661s
+TOOLLOOP_LIVE_CASE C04 UNGROUNDED 51.3s turns=1 tools=search_email(maxResults=5,query=) get_agenda(date=2026-10-01) reply="This takes a few steps on this Mac.  On 2026-10-01: - 08:00–08:45 Dentist - 15:00–15:45 Design sync - 19:00 Dinner with Cyril  I ran out of time before finishin"
+TOOLLOOP_LIVE_NEEDLE_TOOLS draft_email,read_email,reply_email,search_email,send_email
+TOOLLOOP_LIVE_NEEDLE_TURN search_email confidence=0.281 1.511s
+TOOLLOOP_LIVE_CASE M03 UNGROUNDED 19.2s turns=1 tools=search_email(query=email) reply="I checked your email, but there were no messages to show. Let me know if you'd like me to look again or check something specific."
+TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit
+TOOLLOOP_LIVE_CASE M04 MISSED_TOOL 14.7s turns=1 tools=- reply="Got it. I’ll draft that email for you right away.   Drafted:  To: ana@example.com  Subject: Deck Delivery – Friday  Body: Hi Ana,  I’ll send the deck on Friday."
+TOOLLOOP_LIVE_NEEDLE_TOOLS draft_email,read_email,reply_email,search_email,send_email
+TOOLLOOP_LIVE_NEEDLE_TURN search_email confidence=0.712 0.087s
+TOOLLOOP_LIVE_NEEDLE_TOOLS draft_email,read_email,reply_email,search_email,send_email
+TOOLLOOP_LIVE_NEEDLE_TURN none 0.097s
+TOOLLOOP_LIVE_CASE M05 PASS 30.0s turns=2 tools=search_email reply="Great — I’ve got that. Let’s take action on what matters most.   First, Marcus asked about contract renewal — do you want me to open the attached terms file for"
+TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit
+TOOLLOOP_LIVE_CASE K01 PASS 23.3s turns=1 tools=meeting.decisions reply="We decided to move the launch to October 14 and keep the price at $12 a month. Sarah also suggested adding a 10% buffer to the budget for ads. You’re responsibl"
+TOOLLOOP_LIVE_NEEDLE_TOOLS schedule.create,schedule.list,schedule.pause,schedule.remove,schedule.resume,schedule.run_now,schedule.update
+TOOLLOOP_LIVE_NEEDLE_TURN none 2.986s
+TOOLLOOP_LIVE_CASE R02 PASS 24.0s turns=1 tools=schedule.create(day=night,on=10:00,repeat=every night,text=Put the book out,title=Put book out) reply="Got it, Serge. Every night at 10, I’ll remind you to put the book out. Let me know if you’d like to change anything."
+TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit
+TOOLLOOP_LIVE_CASE F03 MISSED_TOOL 16.1s turns=1 tools=filesystem.search(folder=true,query=pricing) reply="I found the pricing document: *Pricing 2026.pdf* in your Documents folder. I’ll email it to Marcus now."
+TOOLLOOP_LIVE_NEEDLE_TOOLS browser.click,browser.fill,browser.navigate,browser.screenshot,browser.select,browser.snapshot
+TOOLLOOP_LIVE_NEEDLE_TURN none 1.605s
+TOOLLOOP_LIVE_CASE A02 PASS 35.7s turns=1 tools=browser.navigate(url=https://www.youtube.com) browser.snapshot(reason=Check YouTube page content to find Cortech videos) browser.click(expectedText=Cortech — newest upload (2 days ago),id=2) reply="I've opened YouTube and clicked on the latest Cortech upload. It should now be playing. Let me know if you'd like to do anything else."
+TOOLLOOP_LIVE_CASE N04 PASS 6.1s turns=1 tools=- reply="I can help you with your calendar, email, files, reminders, and apps. I can check what’s on your schedule, open apps, find files, or look up notes and meetings."
+TOOLLOOP_LIVE_NEEDLE turns=10 calls=2 errors=0
+TOOLLOOP_LIVE_CLASSES pass=6 error=0 timeout=0 leak=0 refusal=0 wrong_tool=0 fabricated=0 missed_tool=2 ungrounded=2 filler=0
+TOOLLOOP_LIVE_SCORE 6/10 (quick)
+TOOLLOOP_LIVE_REPORT /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/qwen3-needle-quick.md
+TOOLLOOP_LIVE_ELAPSED 264.2
+TOOLLOOP_LIVE_FAILED: 6/10 (quick) on Qwen3-4B-Instruct-2507 — below the pass bar 9

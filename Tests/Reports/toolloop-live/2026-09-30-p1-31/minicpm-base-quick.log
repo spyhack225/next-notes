@@ -1,0 +1,32 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/Next Notes.app/Contents/MacOS/NextNotes --selftest-toolloop-live --model openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf --report /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/minicpm-base-quick.md --quick --selftest-out /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31-2026-09-30/minicpm-base-quick-progress.txt
+2026-09-30 17:26:41.434 NextNotes[57633:335246] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[17:26:58.233] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[17:26:58.233] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[17:26:58.422] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[17:26:58.781] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[17:26:58.886] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[17:26:59.072] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[17:26:59.073] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 0.84s
+[17:26:59.089] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[17:26:59.089] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[17:26:59.089] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[17:26:59.094] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[17:26:59.106] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[17:26:59.106] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[17:26:59.106] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'
+TOOLLOOP_LIVE_MODEL: appLLM "MiniCPM5-2B" ctx=32768 role=installed:openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf
+TOOLLOOP_LIVE_CASE C01 PASS 19.1s turns=1 tools=get_agenda(date=2026-09-30) reply="Today you have three things on the calendar: - A 90-minute standup at 9:30 AM - A budget review with Ana at 2 PM - A call with Marcus about pricing at 4:30 PM  "
+TOOLLOOP_LIVE_CASE C04 PASS 28.1s turns=1 tools=search_email get_agenda(date=2026-10-01) reply="This takes a few steps on this Mac.  Here's a summary of your recent emails:  - Wednesday evening: Cyril is asking if you're free for dinner tomorrow. - Wednesd"
+TOOLLOOP_LIVE_CASE M03 UNGROUNDED 10.4s turns=1 tools=search_email reply="Here's the most recent email from your inbox:  Cyril <cyril@example.com> — Dinner tomorrow? — Are you free tomorrow evening?  That's the last one. Want me to se"
+TOOLLOOP_LIVE_CASE M04 REFUSAL 7.3s turns=1 tools=- reply="I can help you draft that email. Would you like me to send it as a draft, or do you have any details about the message you'd like to include?"
+TOOLLOOP_LIVE_CASE M05 MISSED_TOOL 7.6s turns=2 tools=- reply="I'll pull up your most recent emails to summarize them for you."
+TOOLLOOP_LIVE_CASE K01 MISSED_TOOL 7.3s turns=1 tools=- reply="We had a decision to keep things moving forward — but it was more about staying open to new ideas than locking anything in. The meeting also left us unsure abou"
+TOOLLOOP_LIVE_CASE R02 MISSED_TOOL 7.6s turns=2 tools=- reply="Got it, Serge. I'll set a reminder to put the book out every night at 10."
+TOOLLOOP_LIVE_CASE F03 MISSED_TOOL 3.8s turns=1 tools=- reply="I don't have a pricing document on file, and I'm not sure who Marcus is. If you can tell me more or share the document, I'd be happy to help."
+TOOLLOOP_LIVE_CASE A02 MISSED_TOOL 4.0s turns=1 tools=- reply="I'll open YouTube and look for the latest Cortech video."
+TOOLLOOP_LIVE_CASE N04 UNGROUNDED 2.3s turns=1 tools=- reply="I can help you with things like checking your calendar, opening files or apps, looking through your files, and setting up reminders. If you need something speci"
+TOOLLOOP_LIVE_CLASSES pass=2 error=0 timeout=0 leak=0 refusal=1 wrong_tool=0 fabricated=0 missed_tool=5 ungrounded=2 filler=0
+TOOLLOOP_LIVE_SCORE 2/10 (quick)
+TOOLLOOP_LIVE_REPORT /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31/minicpm-base-quick.md
+TOOLLOOP_LIVE_ELAPSED 97.7
+TOOLLOOP_LIVE_FAILED: 2/10 (quick) on MiniCPM5-2B — below the pass bar 9

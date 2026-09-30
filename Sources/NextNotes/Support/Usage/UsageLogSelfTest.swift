@@ -1169,10 +1169,19 @@ enum UsageLogSelfTest {
             $0.dictationRunID == runID && $0.feature == UsageFeature.dictationASR.rawValue
         }
 
-        if !agentRows.contains(where: { $0.pass == "answer" }) {
-            problems.append("the typed turn wrote no answer row for its turnID")
+        // P1-02 removed the typed header pass: this request now plans its read,
+        // then answers from it. Pin both real passes without asking production
+        // to restore the extra model round trip the old assertion required.
+        if agentRows.contains(where: { $0.pass == "answer" }) {
+            problems.append("the typed turn restored an unnecessary header pass")
         }
         let plannerRows = agentRows.filter { $0.pass == "planner" }
+        if plannerRows.count != 2 {
+            problems.append("the typed read and reply wrote \(plannerRows.count) planner rows, expected 2")
+        }
+        if turn?.reply.localizedCaseInsensitiveContains("frontmost") != true {
+            problems.append("the typed turn did not answer from its verified read")
+        }
         if let toolRow = plannerRows.first(where: { ($0.toolsProposed ?? []).contains("computer.active_app") }) {
             if toolRow.provider != UsageProvider.llama.rawValue {
                 problems.append("the planner row's provider was \(toolRow.provider), "
@@ -1461,9 +1470,9 @@ enum UsageLogSelfTest {
         )
     }
 
-    /// The scripted model behind E1's typed turn: the same three-step script
-    /// `--selftest-toolloop-production` uses — opt into tools, propose one read, answer
-    /// from its result — with a distinctive display name so the row proves which model ran.
+    /// The scripted model behind E1's typed turn: propose one read, then answer from
+    /// its result (P1-02 skips the old header pass). A distinctive display name proves
+    /// which model ran; the header response remains available to older voice callers.
     private struct TypedTurnUsageProvider: LLMProvider {
         let id = LLMProviderID.appLLM
         let displayModelName = "Scripted Typed Model"

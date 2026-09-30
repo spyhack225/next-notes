@@ -28,6 +28,7 @@ enum ToolLoopLiveEval {
         let label: String
         let roleChoice: String
         let isFallback: Bool
+        var artifact: InstalledLocalModel? = nil
     }
 
     struct Options {
@@ -42,6 +43,22 @@ enum ToolLoopLiveEval {
         var needleFirst = false
     }
 
+    struct TurnTiming: Codable, Sendable {
+        let turn: Int
+        let firstVerifiedResultSeconds: Double?
+        /// Completion of the first reply, not first-token or audible latency.
+        let answerSeconds: Double
+    }
+
+    struct NeedleAttempt: Codable, Sendable {
+        let seconds: Double
+        let proposedTool: String?
+        let acceptedTool: String?
+        let confidence: Double?
+        let outcome: String
+    }
+    static var needleAttemptsForTesting: [NeedleAttempt] = []
+
     struct CaseResult {
         let evalCase: LiveEvalCase
         let verdict: LiveEvalVerdict
@@ -51,6 +68,9 @@ enum ToolLoopLiveEval {
         let trace: [PlannerTraceEvent]
         let usage: [UsageRecord]
         let infrastructureError: String?
+        let timing: [TurnTiming]
+        let needle: [NeedleAttempt]
+        let process: ProcessSnapshot
     }
 
     // MARK: - Entry
@@ -239,6 +259,8 @@ enum ToolLoopLiveEval {
         // window, leave the first step to the ordinary planner rather than split a class.
         let matched = manifest.selected.filter { manifest.selectedIntents.contains($0.intent) }
         guard !matched.isEmpty, matched.count <= FunctionCallCatalogue.maxTools else {
+            needleAttemptsForTesting.append(NeedleAttempt(seconds: 0, proposedTool: nil,
+                acceptedTool: nil, confidence: nil, outcome: "class-does-not-fit"))
             SelfTest.diagnostic("TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit")
             return nil
         }
@@ -247,6 +269,27 @@ enum ToolLoopLiveEval {
             + shortlist.map(\.id).joined(separator: ","))
         let tools = needleTools(shortlist)
         let started = ContinuousClock.now
+        var proposed: String?
+        var accepted: String?
+        var confidence: Double?
+        var outcome = "error"
+        defer {
+            let seconds = started.duration(to: .now).secondsValue
+            needleAttemptsForTesting.append(NeedleAttempt(seconds: seconds, proposedTool: proposed,
+                acceptedTool: accepted, confidence: confidence, outcome: outcome))
+            // A diagnostic Needle pass uses the existing isolated usage sink, correlated
+            // with its actual Agent turn. No prompt, reasoning or argument is persisted.
+            UsageLog.shared.record(UsageRecord(
+                id: UUID(), ts: Date(), feature: UsageFeature.agentTyped.rawValue,
+                pass: "needle-first", provider: UsageProvider.needle.rawValue,
+                modelID: "needle3", locality: "local", totalMs: Int(seconds * 1_000),
+                finishReason: outcome == "error" ? "error" : "stop",
+                toolsProposed: proposed.flatMap { id in
+                    shortlist.contains(where: { $0.id == id }) ? [id] : nil },
+                counts: ["accepted": accepted == nil ? 0 : 1],
+                turnID: RealtimeAgent.shared.currentTurnID,
+                conversationID: AgentSession.shared.sessionID))
+        }
         do {
             let response: NeedleResponse
             if let override = needleResponseForTesting {
@@ -255,6 +298,8 @@ enum ToolLoopLiveEval {
                 response = try await NeedleRunner.shared.run(input: request, tools: tools, facts: [])
             }
             let seconds = started.duration(to: .now).secondsValue
+            proposed = response.functionCalls.first?.name
+            confidence = response.confidence
             if response.success == false {
                 needleErrorsForTesting += 1
                 SelfTest.diagnostic("TOOLLOOP_LIVE_NEEDLE_ERROR "
@@ -262,10 +307,15 @@ enum ToolLoopLiveEval {
                 return nil
             }
             guard let call = validatedNeedleCall(response, request: request, shortlist: shortlist) else {
+                outcome = response.validation?.negation == true ? "negated" :
+                    (proposed == nil || proposed == FunctionCallRelevance.abstentionToolID
+                        ? "abstained" : "rejected")
                 SelfTest.diagnostic("TOOLLOOP_LIVE_NEEDLE_TURN none \(String(format: "%.3f", seconds))s")
                 return nil
             }
             needleCallsForTesting += 1
+            accepted = call.name
+            outcome = "accepted"
             SelfTest.diagnostic("TOOLLOOP_LIVE_NEEDLE_TURN \(call.name) "
                 + "confidence=\(String(format: "%.3f", response.confidence ?? 0)) "
                 + "\(String(format: "%.3f", seconds))s")
@@ -288,19 +338,63 @@ enum ToolLoopLiveEval {
                                                isRequired: parameter.isRequired)
                 })
         }
-        return FunctionCallRelevance.wireTools(for: tools)
+        return tools + [FunctionCallTool(
+            id: FunctionCallRelevance.abstentionToolID,
+            description: "No listed tool can fulfill the request, or the request does not ask "
+                + "for any action or information from these tools. Questions, reads, searches "
+                + "and browser actions use the matching listed tool when available.",
+            parameters: [])]
     }
 
     static func validatedNeedleCall(
         _ response: NeedleResponse, request: String, shortlist: [AgentCapabilityManifest.Entry]
     ) -> AgentToolCall? {
-        guard response.validation?.negation != true,
+        guard response.success != false, response.validation?.negation != true,
               let call = response.functionCalls.first,
-              shortlist.contains(where: { $0.id == call.name }) else { return nil }
+              let entry = shortlist.first(where: { $0.id == call.name }),
+              let tool = AgentToolRegistry.shared.tool(named: entry.id) else { return nil }
         let flagged = response.ungroundedArguments(for: call.name)
-        return AgentToolCall(name: call.name,
-                             arguments: call.arguments.filter { !flagged.contains($0.key) },
+        let source = request + "\n" + AgentSession.shared.groundingHaystack()
+        let haystack = FunctionCallGrounding.normalize(source)
+        var arguments: [String: String] = [:]
+        for parameter in entry.parameters {
+            guard !flagged.contains(parameter.name),
+                  let raw = call.arguments[parameter.name] else { continue }
+            let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !value.isEmpty else { continue }
+            // The existing identifier guard knows about numbered messages and browser
+            // handles; a generic length heuristic would reject legitimate short handles.
+            if parameter.kind != .identifier {
+                let shape = FunctionCallCatalogue.shape(of: parameter)
+                guard FunctionCallGrounding.hasShape(value, shape),
+                      FunctionCallGrounding.isGrounded(value, in: haystack) else { continue }
+            }
+            arguments[parameter.name] = value
+        }
+        arguments = AgentToolLoop.groundedArguments(for: entry.id, proposed: arguments,
+                                                     request: request)
+        guard entry.parameters.filter(\.isRequired).allSatisfy({ arguments[$0.name] != nil }),
+              AgentIdentifierGrounding.ungrounded(toolID: entry.id, arguments: arguments,
+                                                  haystack: source).isEmpty,
+              ToolCallValidation.isRunnable(tool: tool, arguments: arguments) else { return nil }
+        // The passive listener's question/device refusal applies only to its writes.
+        // Reads are precisely what an active Agent is supposed to do for a question.
+        if entry.risk > .read,
+           FunctionCallRelevance.preflightRefusal(FunctionCallRequest(
+               utterance: request, tools: [FunctionCallCatalogue.descriptor(for: tool)])) != nil {
+            return nil
+        }
+        return AgentToolCall(name: entry.id, arguments: arguments,
                              rationale: "Needle first pass", evidence: nil)
+    }
+
+    static func needleNeedsContinuation(_ call: AgentToolCall, request: String) -> Bool {
+        if ModelRoleStore.likelyMultiStep(request) { return true }
+        // A preliminary recall can inform a save, but it cannot complete one. Keep
+        // the valid read and let System Two perform the outstanding memory operation.
+        return call.name == "memory.recall" && request.range(
+            of: #"^\s*(?:please\s+)?(?:can you\s+)?(?:remember\b|save (?:this|that)\b|keep in mind\b|make a note\b)"#,
+            options: [.regularExpression, .caseInsensitive]) != nil
     }
 
     // MARK: - Model resolution
@@ -437,7 +531,7 @@ enum ToolLoopLiveEval {
         guard await provider.unavailableReason == nil else { return nil }
         return ResolvedModel(
             provider: provider, label: model.displayName,
-            roleChoice: roleChoice, isFallback: isFallback)
+            roleChoice: roleChoice, isFallback: isFallback, artifact: model)
     }
 
     // MARK: - Running
@@ -480,6 +574,8 @@ enum ToolLoopLiveEval {
         for evalCase in cases {
             AgentSession.shared.startNewConversation()
             fixtures.beginCase()
+            needleAttemptsForTesting = []
+            var timing: [TurnTiming] = []
             var replies: [String] = []
             var trace: [PlannerTraceEvent] = []
             var turnIDs: [UUID] = []
@@ -493,6 +589,7 @@ enum ToolLoopLiveEval {
             while index < turns.count {
                 fixtures.setTurn(index)
                 let text = turns[index]
+                let turnBegan = ContinuousClock.now
                 let turn = await withBoundedWait(options.turnLimit) {
                     await agent.handle(text, source: .text)
                 }
@@ -503,6 +600,11 @@ enum ToolLoopLiveEval {
                     replies.append("")
                     break
                 }
+                timing.append(TurnTiming(
+                    turn: index,
+                    firstVerifiedResultSeconds: fixtures.log.firstResult(for: index)
+                        .map { turnBegan.duration(to: $0).secondsValue },
+                    answerSeconds: turnBegan.duration(to: .now).secondsValue))
                 replies.append(turn.reply)
                 index += 1
                 if !followUpSent, index == turns.count,
@@ -530,7 +632,8 @@ enum ToolLoopLiveEval {
             let result = CaseResult(
                 evalCase: evalCase, verdict: verdict, seconds: seconds,
                 replies: replies, calls: fixtures.calls, trace: trace, usage: usage,
-                infrastructureError: infrastructureError)
+                infrastructureError: infrastructureError, timing: timing,
+                needle: needleAttemptsForTesting, process: ProcessSnapshot.current())
             results.append(result)
             printCase(result)
             // A timed-out provider may keep decoding despite task cancellation. Starting
@@ -584,6 +687,9 @@ enum ToolLoopLiveEval {
         var lastMaxTokens: Int?
         var lastRaw: String?
         var usagePasses: [String]
+        var timing: [TurnTiming]
+        var needle: [NeedleAttempt]
+        var process: ProcessSnapshot
     }
 
     private static func reportRows(_ results: [CaseResult]) -> [ReportRow] {
@@ -633,7 +739,8 @@ enum ToolLoopLiveEval {
                 lastUserCharacters: lastUser,
                 lastMaxTokens: lastMaxTokens,
                 lastRaw: lastRaw.map { String($0.prefix(400)) },
-                usagePasses: usage)
+                usagePasses: usage, timing: result.timing, needle: result.needle,
+                process: result.process)
         }
     }
 
@@ -667,6 +774,33 @@ enum ToolLoopLiveEval {
         lines.append("- Mode: \(tag); pass bar \(bar)/\(plannedScored); elapsed "
             + "\(String(format: "%.1f", elapsed))s")
         lines.append("- Needle first: \(options.needleFirst ? "yes" : "no")")
+        if let artifact = model.artifact {
+            lines.append("- Artifact: `\(artifact.id)`; `\(artifact.fileURL.path)`; \(artifact.bytes) bytes")
+        }
+        lines.append("- Timing: per turn, first fixture result and completed reply; not first token or audio. "
+            + "One-time base-model warm-up excluded; Needle schema startup included. See JSONL.")
+        let resultTimes = results.flatMap { $0.timing.compactMap(\.firstVerifiedResultSeconds) }
+        let answerTimes = results.flatMap { $0.timing.map(\.answerSeconds) }
+        let totalTimes = results.map(\.seconds)
+        func percentiles(_ label: String, _ times: [Double]) {
+            let sorted = times.sorted()
+            guard !sorted.isEmpty else { lines.append("- \(label): no observations"); return }
+            func value(_ p: Double) -> Double { sorted[max(0, Int(ceil(p * Double(sorted.count))) - 1)] }
+            lines.append(String(format: "- %@: n=%d, p50=%.3fs, p95=%.3fs", label, sorted.count,
+                                value(0.5), value(0.95)))
+        }
+        percentiles("First verified fixture result", resultTimes)
+        percentiles("Completed reply", answerTimes)
+        percentiles("Whole case", totalTimes)
+        let attempts = results.flatMap(\.needle)
+        if options.needleFirst {
+            let outcomes = Dictionary(grouping: attempts, by: \.outcome).mapValues(\.count)
+            lines.append("- Needle outcomes: " + outcomes.keys.sorted().map { "\($0)=\(outcomes[$0]!)" }
+                .joined(separator: ", "))
+        }
+        if let peak = results.compactMap({ $0.process.peakResidentMemoryBytes }).max() {
+            lines.append("- App peak RSS: \(peak) bytes; excludes the Needle child.")
+        }
         if let interrupted {
             lines.append("- Incomplete: \(interrupted). Partial cases are diagnostic, not a score.")
         }

@@ -1,0 +1,20 @@
+{
+  "build": "make build: passed",
+  "install": "make install OPEN=0: passed",
+  "final_markers": {
+    "toolloop-production": "TOOLLOOP_PRODUCTION_OK",
+    "usage-log": "USAGE_LOG_OK: 25 cases"
+  },
+  "compared_runtime_changed_since_freeze": false,
+  "post_comparison_changes": [
+    "ToolClaimGuard comment",
+    "denied-write self-test assertion",
+    "UsageLogSelfTest P1-02 protocol assertions"
+  ],
+  "sources": {
+    "Sources/NextNotes/Agent/LiveEval/NeedleFirstStepSelfTest.swift": "9b4d93b21b4ae28e27662ccb0733c22b7f160a281d37500b9efb22c63ee5f5d9",
+    "Sources/NextNotes/Agent/ToolClaimGuard.swift": "48e1b11a790cec0e1d164611e9cafc2b1db0ccc55e31822b39cc4f6cfaa96007",
+    "Sources/NextNotes/Support/Usage/UsageLogSelfTest.swift": "441fa21a6fb6554619fce79eafd6eca270d3d97ebf0be3558a9a3653710098a4"
+  },
+  "native_tools": "Separate current red: 4/5 grammar-valid on two runs; no promotion; exact cause undetermined"
+}

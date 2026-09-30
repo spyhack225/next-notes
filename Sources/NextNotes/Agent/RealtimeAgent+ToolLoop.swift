@@ -1571,14 +1571,24 @@ extension RealtimeAgent {
                 try? await finalProvider.complete(
                     system: finalSystem, user: finalUser, maxTokens: visible)
             } ?? nil
+            let cutOff = completion?.finishedByLimit == true
             // A model that emits a call anyway keeps its prose and loses the call.
             let prose = completion.map { AgentToolCallParser.parse($0.text, knownNames: []).prose } ?? ""
             guard !prose.isEmpty else {
                 return incomplete("I couldn’t finish the tool plan within the safe limit.",
                                   completed: runner.completedToolIDs, inFlight: nil)
             }
+            // An answer-only pass must uphold the ordinary planner's claim rule too.
+            // Needle's first read is not evidence that a write happened. Use the same
+            // claim grammar and preserve the verified result, without another model pass.
+            if !ToolClaimGuard.unsupported(
+                ToolClaimGuard.claims(in: prose, roster: ToolClaimGuard.roster(for: runner.manifest)),
+                completed: runner.completedToolIDs).isEmpty {
+                speech?.cancel()
+                return stopped(ToolClaimGuard.honestReply)
+            }
             // `confirmed` keeps the memory confirmations, which the call-cap exit used to drop.
-            guard completion?.finishedByLimit == true else { return confirmed(prose) }
+            guard cutOff else { return confirmed(prose) }
             return confirmed(AgentReplyRenderer.render(.cutShort(prose), voice: voice))
         }
         // Benchmark only. Needle replaces the first planning round when it finds a call;
@@ -1598,7 +1608,7 @@ extension RealtimeAgent {
                 }
                 switch step.disposition {
                 case .completed:
-                    if !ModelRoleStore.likelyMultiStep(prompt) {
+                    if !ToolLoopLiveEval.needleNeedsContinuation(firstCall, request: prompt) {
                         return planned(await finalAnswerRound(reason: .needleFirst))
                     }
                     // A compound request may need another tool using this result. Resume

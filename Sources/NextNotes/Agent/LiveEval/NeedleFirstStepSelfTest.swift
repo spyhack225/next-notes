@@ -60,6 +60,12 @@ enum NeedleFirstStepSelfTest {
                                                   "body": "Here is the deck"],
                                 ungrounded: ["send_email.to"]),
                        "Email ana@example.com the deck") == nil)
+        check("valid fully grounded send refused",
+              accepted(response("send_email", ["to": "ana@acme.com", "subject": "deck",
+                                                  "body": "Here is the deck"]),
+                       "Email ana@acme.com the deck") != nil)
+        check("failed engine response accepted",
+              accepted(response("schedule.list", success: false), "List my reminders") == nil)
         check("valid read refused", accepted(response("schedule.list"), "List my reminders") != nil)
         check("valid recall refused", accepted(response("memory.recall", ["query": "brother"]),
                                                "What's my brother's name?") != nil)
@@ -76,6 +82,7 @@ enum NeedleFirstStepSelfTest {
         let oldTurns = ToolLoopLiveEval.needleTurnsForTesting
         let oldCalls = ToolLoopLiveEval.needleCallsForTesting
         let oldErrors = ToolLoopLiveEval.needleErrorsForTesting
+        let oldAttempts = ToolLoopLiveEval.needleAttemptsForTesting
         defer {
             agent.localModelProviderForTesting = oldProvider
             AgentCapabilityManifestBuilder.inputsOverrideForTesting = oldInputs
@@ -85,6 +92,7 @@ enum NeedleFirstStepSelfTest {
             ToolLoopLiveEval.needleTurnsForTesting = oldTurns
             ToolLoopLiveEval.needleCallsForTesting = oldCalls
             ToolLoopLiveEval.needleErrorsForTesting = oldErrors
+            ToolLoopLiveEval.needleAttemptsForTesting = oldAttempts
         }
         AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
         ToolLoopLiveEval.needleFirstForTesting = true
@@ -112,6 +120,78 @@ enum NeedleFirstStepSelfTest {
         check("engine timeout did not fall back exactly once",
               fixtures.calls.map(\.toolID) == ["schedule.list"]
                   && ToolLoopLiveEval.needleErrorsForTesting == before + 1)
+        // This catalogue cannot fit as a whole: no truncated shortlist and no engine call.
+        let compound = manifest("Search my email and calendar and files and browser")
+        var invoked = false
+        ToolLoopLiveEval.needleResponseForTesting = { _, _ in
+            invoked = true
+            return response("schedule.list")
+        }
+        let overCap = await ToolLoopLiveEval.needleFirstCall(
+            request: "Search my email and calendar and files and browser", manifest: compound)
+        check("an oversized intent class reached Needle",
+              compound.selected.filter { compound.selectedIntents.contains($0.intent) }.count
+                  > FunctionCallCatalogue.maxTools && overCap == nil && !invoked)
+        let noTool = await ToolLoopLiveEval.needleFirstCall(
+            request: "Hello", manifest: manifest("Hello"))
+        check("answer-only request reached Needle", noTool == nil && !invoked)
+
+        // A first read is not evidence that a send happened. The answer-only round
+        // must cross the same existing claim guard as an ordinary planner answer.
+        AgentSession.shared.startNewConversation()
+        fixtures.beginCase()
+        ToolLoopLiveEval.needleResponseForTesting = { _, _ in response("schedule.list") }
+        agent.localModelProviderForTesting = NeedleScriptProvider(state: NeedleScriptState(
+            script: ["I sent the email."]))
+        let unsupported = await agent.handle("List my reminders", source: .text)
+        check("answer-only round claimed an unexecuted send",
+              !unsupported.reply.lowercased().contains("i sent"))
+
+        // The first call and the base planner share one duplicate-call ledger.
+        AgentSession.shared.startNewConversation()
+        fixtures.beginCase()
+        ToolLoopLiveEval.needleResponseForTesting = { _, _ in
+            response("memory.recall", ["query": "short answers"])
+        }
+        agent.localModelProviderForTesting = NeedleScriptProvider(state: NeedleScriptState(script: [
+            "<tool_call>{\"name\":\"memory.recall\",\"arguments\":{\"query\":\"short answers\"}}</tool_call>",
+            "<tool_call>{\"name\":\"memory.remember\",\"arguments\":{\"kind\":\"profile\",\"text\":\"The user prefers short answers.\"}}</tool_call>",
+            "Saved your preference for short answers."]))
+        _ = await agent.handle("Remember that I prefer short answers", source: .text)
+        check("the base planner repeated an executed first call",
+              fixtures.calls.map(\.toolID) == ["memory.recall", "memory.remember"])
+        UsageLog.shared.flush()
+        let rows = UsageLog.shared.load().filter {
+            $0.turnID == agent.currentTurnID && $0.pass == "needle-first"
+        }
+        check("Needle's attempted first call was not logged once", rows.count == 1)
+
+        AgentSession.shared.startNewConversation()
+        fixtures.beginCase()
+        // Pin this policy check to one real send schema: unrelated tools added by
+        // another feature must not turn a denial test into an oversized-class skip.
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = .allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged).filter { $0.id == "send_email" },
+            reader: .voiceFrontend)
+        let actualReader = AgentCapabilityManifest.Reader(
+            provider: .localServer, displayName: "fixture", contextTokens: 32_768)
+        let liveInputs = AgentCapabilityInputs.live(reader: actualReader)
+        check("production planner ignored its fixture roster or reader",
+              liveInputs.tools.map(\.id) == ["send_email"] && liveInputs.reader == actualReader)
+        var deniedCalls = 0
+        AgentToolExecutor.fakeForTesting = { _, _ in
+            deniedCalls += 1
+            throw AgentError.permissionDenied("You said no.")
+        }
+        ToolLoopLiveEval.needleResponseForTesting = { _, _ in
+            response("send_email", ["to": "ana@acme.com", "subject": "hello", "body": "hello"])
+        }
+        agent.localModelProviderForTesting = NeedleScriptProvider(state: NeedleScriptState(script: []))
+        let denied = await agent.handle("Email ana@acme.com hello", source: .text)
+        let deniedClaims = ToolClaimGuard.claims(
+            in: denied.reply, roster: ToolClaimGuard.registryNames)
+        check("denied first write was retried or claimed as sent",
+              deniedCalls == 1 && ToolClaimGuard.unsupported(deniedClaims, completed: []).isEmpty)
         print("  TOOLLOOP_PRODUCTION_NEEDLE: \(failures.count) problem(s)")
         return failures
     }

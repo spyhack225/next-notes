@@ -21,9 +21,9 @@ import Foundation
 /// Two limits, stated rather than left to be discovered. A claim that names no tool is
 /// supported by **any** call this turn ran, because nothing in the sentence says which call
 /// it means and a verb-to-tool table would refuse true sentences ("I checked your calendar"
-/// after a mail read). And the final answer-only round is not checked: today it is only
-/// reachable once at least one call has completed or the plan was cut short, so there is
-/// nothing there for this to catch, and it is the one place a turn is guaranteed an answer.
+/// after a mail read). The final answer-only round uses this same guard: a completed read
+/// cannot back an invented send or save. A rejected answer preserves the last verified
+/// result rather than spending another model pass.
 enum ToolClaimGuard {
     /// One phrase that says a completed action happened, and the tool it names when it named
     /// one. `text` is what the reply said; `toolID` is the registry's own spelling, so an

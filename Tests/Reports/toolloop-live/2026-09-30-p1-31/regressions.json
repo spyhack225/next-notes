@@ -1,0 +1,62 @@
+[
+  {
+    "flag": "toolloop-live-grader",
+    "exit_code": 0,
+    "markers": [
+      "TOOLLOOP_LIVE_GRADER_OK"
+    ]
+  },
+  {
+    "flag": "capability-manifest",
+    "exit_code": 0,
+    "markers": [
+      "CAPABILITY_MANIFEST_OK"
+    ]
+  },
+  {
+    "flag": "native-tools",
+    "exit_code": 1,
+    "markers": [
+      "NATIVE_TOOLS_CLOUD_ABSENT: no --allow-cloud, nothing was sent",
+      "NATIVE_TOOLS_WRONG: llama: 1 round(s) were not sentences of the grammar",
+      "NATIVE_TOOLS_FAILED: 1 problem(s)"
+    ]
+  },
+  {
+    "flag": "toolloop",
+    "exit_code": 0,
+    "markers": [
+      "TOOLLOOP_OK"
+    ]
+  },
+  {
+    "flag": "voice-turns",
+    "exit_code": 0,
+    "markers": [
+      "VOICE_TURNS_OK"
+    ]
+  },
+  {
+    "flag": "voice-scheduling",
+    "exit_code": 0,
+    "markers": [
+      "VOICE_SCHEDULING_OK"
+    ]
+  },
+  {
+    "flag": "usage-log",
+    "exit_code": 1,
+    "markers": [
+      "USAGE_LOG_WRONG: E1: the typed turn wrote no answer row for its turnID",
+      "USAGE_LOG_FAILED: 1 problem(s)"
+    ]
+  },
+  {
+    "flag": "store-isolation",
+    "exit_code": 0,
+    "markers": [
+      "STORE_ISOLATION_OK: 18 files and 23 defaults unchanged",
+      "TOOLLOOP_PRODUCTION_OK"
+    ]
+  }
+]
