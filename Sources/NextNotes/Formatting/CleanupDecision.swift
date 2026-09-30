@@ -13,12 +13,15 @@ enum CleanupSemanticEngine: String, Sendable, Equatable {
     /// The app's on-device LLM, whichever file that is. `"qwen"` decodes here for
     /// logs and runs recorded before the rename.
     case appLLM = "appLLM"
+    /// MiniCPM5-2B pinned by file (`MiniCPMModels`), never the active model.
+    case miniCPM = "miniCPM"
 
     init?(rawValue value: String) {
         switch value {
         case "apple": self = .apple
         case "s1Mini": self = .s1Mini
         case "appLLM", "qwen": self = .appLLM
+        case "miniCPM": self = .miniCPM
         default: return nil
         }
     }
@@ -28,6 +31,7 @@ enum CleanupSemanticEngine: String, Sendable, Equatable {
         case .apple: return "apple"
         case .s1Mini: return "s1Mini"
         case .appLLM: return "appLLM"
+        case .miniCPM: return "miniCPM"
         }
     }
 
@@ -36,6 +40,7 @@ enum CleanupSemanticEngine: String, Sendable, Equatable {
         case .apple: "Apple Foundation Model"
         case .s1Mini: "S1-mini"
         case .appLLM: "On-device model"
+        case .miniCPM: "MiniCPM 5"
         }
     }
 

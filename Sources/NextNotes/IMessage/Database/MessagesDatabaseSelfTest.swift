@@ -443,6 +443,109 @@ enum MessagesDatabaseSelfTest {
                 }
                 return nil
             }
+
+            // 28–33. IM-10: a dispatched send is verified against its row, and the receipt
+            // comes from `ActionReceiptStore` — never a second store. The `send-verify`
+            // fixture holds two from-me rows: `FIXTURE-SEND-UNDELIVERED` (is_sent=0,
+            // is_delivered=0) and `FIXTURE-SEND-DELIVERED` (is_delivered=1).
+            let sendDB = try MessagesDatabase(root: corpus.url("send-verify"))
+            func sendRows(after rowID: Int64) async throws -> [MessageRow] {
+                try await sendDB.messages(after: rowID, chatGUID: FixtureCorpus.selfChatGUID)
+            }
+
+            // 28. A send with no row is `.failed` within the bounded wait — and the
+            // assertion is that it is not `.landed`: a sent-but-unseen row reported as
+            // landed reads as progress and is none.
+            await check("verify_never_lands_is_failed") {
+                let verdict = await IMessageActionVerifier.verify(
+                    textDigest: OutboundDigest.text("FIXTURE-NEVER-SENT"),
+                    afterRowID: 0, capabilities: sendDB.capabilities,
+                    fetch: sendRows, maxAttempts: 2, pauseNanos: 50_000_000)
+                guard case .failed = verdict else {
+                    return "a send with no row verified as landed, not failed"
+                }
+                return nil
+            }
+
+            // 29. A row with is_sent=0 verifies as `.landed` with its guid — never
+            // `.delivered`.
+            await check("verify_unsent_row_is_landed") {
+                let verdict = await IMessageActionVerifier.verify(
+                    textDigest: OutboundDigest.text("FIXTURE-SEND-UNDELIVERED"),
+                    afterRowID: 0, capabilities: sendDB.capabilities,
+                    fetch: sendRows, maxAttempts: 2, pauseNanos: 50_000_000)
+                guard case .landed(let guid) = verdict, guid == "FIXTURE-SEND-0001" else {
+                    return "the unsent row did not verify as landed on its guid"
+                }
+                return nil
+            }
+
+            // 30. A row with is_delivered=1 verifies as `.delivered` with its guid.
+            await check("verify_delivered_row_is_delivered") {
+                let verdict = await IMessageActionVerifier.verify(
+                    textDigest: OutboundDigest.text("FIXTURE-SEND-DELIVERED"),
+                    afterRowID: 0, capabilities: sendDB.capabilities,
+                    fetch: sendRows, maxAttempts: 2, pauseNanos: 50_000_000)
+                guard case .delivered(let guid) = verdict, guid == "FIXTURE-SEND-0002" else {
+                    return "the delivered row did not verify as delivered"
+                }
+                return nil
+            }
+
+            // 31. Without the delivery column there is no delivery claim to make: the
+            // same delivered row verifies as `.landed`.
+            await check("verify_degrades_without_delivery_column") {
+                let verdict = await IMessageActionVerifier.verify(
+                    textDigest: OutboundDigest.text("FIXTURE-SEND-DELIVERED"),
+                    afterRowID: 0, capabilities: MessagesCapabilities(),
+                    fetch: sendRows, maxAttempts: 2, pauseNanos: 50_000_000)
+                guard case .landed(let guid) = verdict, guid == "FIXTURE-SEND-0002" else {
+                    return "without is_delivered the row verified as delivered"
+                }
+                return nil
+            }
+
+            // 32. The receipt comes from the store and carries the dispatched payload:
+            // the frozen intent is equal byte for byte, with the digest in hex inside it.
+            let receiptDigest = OutboundDigest.text("FIXTURE-SEND-DELIVERED")
+            let receiptIntent = ActionIntent(
+                source: .agent, authority: .user, verb: "send", target: "self-conversation",
+                arguments: ["textHash": IMessageActionVerifier.hex(receiptDigest)], risk: .send)
+            let receiptDir = FileManager.default.temporaryDirectory.appendingPathComponent(
+                "NextNotesSelfTest-imessage-receipts-\(ProcessInfo.processInfo.processIdentifier)",
+                isDirectory: true)
+            try FileManager.default.createDirectory(at: receiptDir, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: receiptDir) }
+            let receiptStore = ActionReceiptStore(
+                fileURL: receiptDir.appendingPathComponent("action-receipts.json"))
+            let receiptActionID = UUID()
+            await check("verify_receipt_carries_payload") {
+                let receipt = IMessageActionVerifier.receipt(
+                    verification: .delivered(messageGUID: "FIXTURE-SEND-0002"),
+                    intent: receiptIntent, actionID: receiptActionID)
+                guard receipt.intent == receiptIntent else {
+                    return "the receipt does not carry the dispatched intent"
+                }
+                guard receipt.intent.arguments["textHash"] == IMessageActionVerifier.hex(receiptDigest) else {
+                    return "the receipt's textHash is not the dispatched digest"
+                }
+                guard receipt.status == .completed else {
+                    return "a delivered send receipted as \(receipt.status)"
+                }
+                _ = receiptStore.record(receipt)
+                return receiptStore.count == 1 ? nil : "the store holds \(receiptStore.count) receipts after one send"
+            }
+
+            // 33. A crash between dispatch and verification leaves the ledger row pending
+            // and must not create a second receipt: recording the same actionID twice
+            // upserts.
+            await check("verify_no_second_receipt") {
+                let again = IMessageActionVerifier.receipt(
+                    verification: .delivered(messageGUID: "FIXTURE-SEND-0002"),
+                    intent: receiptIntent, actionID: receiptActionID)
+                _ = receiptStore.record(again)
+                return receiptStore.count == 1 ? nil : "one send produced \(receiptStore.count) receipts"
+            }
         } catch {
             failures.append("fixtures: \(error)")
         }
@@ -478,7 +581,8 @@ private struct FixtureCorpus {
         ("basic-text", "basic-text", false),
         ("basic-text-degraded", "basic-text", true),
         ("self-message", "self-message", false),
-        ("direct-message", "direct-message", false)
+        ("direct-message", "direct-message", false),
+        ("send-verify", "send-verify", false)
     ]
 
     init(directory: URL) { self.directory = directory }

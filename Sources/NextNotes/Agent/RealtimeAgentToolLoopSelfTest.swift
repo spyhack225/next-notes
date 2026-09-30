@@ -1056,6 +1056,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: runDirectIntentCases(check: check))
         failures.append(contentsOf: await runOnDeviceBoundaryCases(agent: agent, check: check))
         failures.append(contentsOf: runAccountReadCases(check: check))
+        failures.append(contentsOf: await NeedleFirstStepSelfTest.run())
 
         for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")

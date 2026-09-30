@@ -153,7 +153,7 @@ enum SelfTest {
     /// A flat budget suits a test that does a fixed piece of work — load a model, run one
     /// utterance, report. The cleanup eval is not that shape: it runs every fixture in
     /// `CleanupEvalCases.all` through every requested engine, and one model-backed fixture
-    /// takes about a minute on this hardware. `--selftest-cleanup all` is five model passes
+    /// takes about a minute on this hardware. `--selftest-cleanup all` is six model passes
     /// over every fixture, so the flat 300s stopped it at the fourth fixture of twenty and
     /// called it hung — for a run that had been asked for roughly two hours of work and was
     /// proceeding normally. Sized from the fixtures instead, so adding a case moves the
@@ -178,10 +178,15 @@ enum SelfTest {
         }
         guard requested == "--selftest-cleanup" else { return flat }
 
-        let modelBacked: Set<String> = ["apple", "apple-grammar", "s1", "chain", "app-llm"]
+        let modelBacked: Set<String> = [
+            "apple", "apple-grammar", "s1", "chain", "app-llm", "minicpm",
+        ]
         let choice = value(after: "--selftest-cleanup") ?? "all"
+        // The head-to-head leg sizes for every candidate whether or not each file is
+        // here: absent models only ever shorten the run, never lengthen it.
         let passes = choice == "all"
             ? modelBacked.count
+            : choice == "app-llm-compare" ? 4
             : (modelBacked.contains(choice) ? 1 : 0)
         // "guard" and "rules" are pure computation and finish in milliseconds.
         guard passes > 0 else { return flat }
@@ -310,6 +315,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // NextNotes-iMessage IM-07/IM-09: the same shape, for the same reason. Pairs the
+        // self-channel on the newest "Hi Next" already in the live database and writes
+        // the real `imessage-settings.json`, so it can never be a `--selftest-*` flag.
+        // A branch inside `runRequestedSelfTest` never runs: `SelfTest.isRunning` is false
+        // for a flag without the `--selftest` prefix, so the guard at the top of that
+        // function returns before any such branch is reached and the runner waits for a
+        // verdict line that never comes.
+        if CommandLine.arguments.contains(IMessagePairNow.flag) {
+            runIMessagePairNow()
+            return
+        }
+
+        // NextNotes-iMessage IM-09/IM-10: the same shape, for the same reasons. Sends
+        // owner-approved words (the flag's own argument — there is no default text) to
+        // the paired self-conversation and watches for the row. Needs the Automation
+        // grant for the send and Full Disk Access for the watch, so `--via-open`.
+        if CommandLine.arguments.contains(IMessageSendTest.flag) {
+            runIMessageSendTest()
+            return
+        }
+
+        // NextNotes-iMessage IM-09: the same shape, for the same reason. Learns which
+        // participant reference form Messages.app resolves, with reads only — never a
+        // send. Needs the Automation grant, so `--via-open`.
+        if CommandLine.arguments.contains(IMessageAddressProbe.flag) {
+            runIMessageAddressProbe()
+            return
+        }
+
         // M-16a: the same shape, for the same reason. The quality report reads
         // the real `MeetingStore.shared`, which the harness must not touch and
         // should not be replaced under `SelfTest.isRunning` either — it exists
@@ -421,10 +455,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             choice: Settings.shared.cleanupEngine,
             fixesGrammar: Settings.shared.cleanupFixesGrammar,
             s1Downloaded: S1MiniModels.isDownloaded,
-            appleAvailable: FoundationModelFormatter.isAvailable
+            appleAvailable: FoundationModelFormatter.isAvailable,
+            miniCPMDownloaded: MiniCPMModels.isDownloaded
         )
         if warmup.contains(.loadS1Mini) {
             LocalModelStore.shared.prepareS1Mini()
+        }
+        if warmup.contains(.loadCleanupModel), !SelfTest.isRunning {
+            // Behind the Apple warm-up and at `.utility`: 1.5 GB of disk reads
+            // must not race the first hold, and a self-test process must neither
+            // pay for the load nor lose its cold measurement to it.
+            Task(priority: .utility) {
+                try? await Task.sleep(for: .seconds(5))
+                await MiniCPMModels.preload()
+            }
         }
         if warmup.contains(.warmApple) {
             warmObserver = NSWorkspace.shared.notificationCenter.addObserver(
@@ -2166,13 +2210,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
 
-        // `--imessage-pair-now`: enter pairing mode and watch for the next "Hi Next"
-        // message. A command-line trigger so a person can pair without waiting for
-        // IM-17's consent sheet. Reads the live database, so it needs Full Disk Access
-        // and must be launched with `--via-open`.
-        if arguments.contains("--imessage-pair-now") {
+        // NextNotes-iMessage IM-13/IM-17, applied early: the agent-name prefix that tells
+        // a self-conversation's two authors apart. Pure cases — no grant, no pairing,
+        // no store and no model.
+        if arguments.contains("--selftest-imessage-format") {
             Task { @MainActor in
-                await runPairingTrigger()
+                for line in AgentMessageFormat.runSelfTest() { writeSelfTest(line) }
                 NSApp.terminate(nil)
             }
             return true
@@ -2197,7 +2240,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// dictionary together — a number in which a Parakeet batch decode can hide a cleanup
     /// pass entirely. This harness times the cleanup call and nothing else.
     ///
-    /// `--selftest-cleanup rules|apple|apple-grammar|s1|chain|app-llm|all`. The first case a
+    /// `--selftest-cleanup rules|apple|apple-grammar|s1|chain|app-llm|minicpm|plan|app-llm-compare|all`. The first case a
     /// model-backed formatter sees pays its cold start and is reported separately, because
     /// on a machine where the model has idled out that is the latency a real dictation gets.
     /// Does correcting a transcript teach the right thing, and refuse the wrong thing?
@@ -2207,50 +2250,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// The rejections matter more than the acceptances: a dictionary rule fires on every
     /// future transcript, so learning "I think" -> "we should" from someone rewriting a
     /// sentence is far worse than learning nothing at all.
-    /// `--imessage-pair-now`: enter pairing mode, read the live database for a
-    /// "Hi Next" message, and pair. A command-line trigger so a person can pair
-    /// without waiting for IM-17's consent sheet.
-    private func runPairingTrigger() async {
-        print("IMESSAGE_PAIR_NOW_DEBUG: starting")
-        let store = RemoteIdentityStore(directory: AppIdentity.applicationSupportDirectory)
-        let watermark = MessagesWatermark()
-        let pairing = SelfChannelPairing(store: store, watermark: watermark)
-
-        guard await pairing.enterPairingMode() else {
-            print("IMESSAGE_PAIR_NOW_FAILED: could not enter pairing mode")
-            return
+    /// `--imessage-pair-now`: pairs the self-channel on the newest "Hi Next" already
+    /// in the live database. A diagnostic that writes the real settings file, so it
+    /// runs before `runRequestedSelfTest` with `SelfTest.isRunning` still false.
+    /// `writeSelfTest` honours `--selftest-out`, so a LaunchServices launch with no
+    /// stdout still leaves its verdict in a file.
+    private func runIMessagePairNow() {
+        Task { @MainActor in
+            for line in await IMessagePairNow.run() { writeSelfTest(line) }
+            NSApp.terminate(nil)
         }
+    }
 
-        do {
-            let database = try MessagesDatabase()
-            let chats = try await database.chats(limit: 200)
-            print("IMESSAGE_PAIR_NOW_DEBUG: found \(chats.count) chats")
-            let selfChat = chats.first { SelfChannel.isDirectChat($0.guid) }
-            guard let chat = selfChat else {
-                print("IMESSAGE_PAIR_NOW_FAILED: no direct self-conversation found")
-                return
-            }
-            print("IMESSAGE_PAIR_NOW_DEBUG: self-chat is \(chat.guid)")
-            let rows = try await database.messages(after: watermark.lastProcessedRowID, chatGUID: chat.guid, limit: 50)
-            print("IMESSAGE_PAIR_NOW_DEBUG: found \(rows.count) rows")
-            for row in rows {
-                var senderHandle: String? = nil
-                if let handleID = row.handleID {
-                    senderHandle = try await database.handle(id: handleID)
-                }
-                let input = PairingInput(
-                    rowID: row.rowID,
-                    text: row.text,
-                    chatGUID: chat.guid,
-                    senderHandle: senderHandle)
-                if await pairing.handle(input: input) {
-                    print("IMESSAGE_PAIR_NOW_OK: paired to \(chat.guid)")
-                    return
-                }
-            }
-            print("IMESSAGE_PAIR_NOW_FAILED: no 'Hi Next' message found in the self-conversation")
-        } catch {
-            print("IMESSAGE_PAIR_NOW_FAILED: \(error.localizedDescription)")
+    /// `--imessage-send-test <text>`: sends the owner's own words to the paired
+    /// self-conversation and watches for the row. A diagnostic that sends and reads
+    /// the real stores, so it runs before `runRequestedSelfTest` with
+    /// `SelfTest.isRunning` still false. `writeSelfTest` honours `--selftest-out`.
+    private func runIMessageSendTest() {
+        Task { @MainActor in
+            let text = SelfTest.value(after: IMessageSendTest.flag) ?? ""
+            for line in await IMessageSendTest.run(text: text) { writeSelfTest(line) }
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// `--imessage-address-probe`: learns which participant reference form Messages
+    /// resolves, with reads only. A diagnostic over the real settings, so it runs
+    /// before `runRequestedSelfTest` with `SelfTest.isRunning` still false.
+    /// `writeSelfTest` honours `--selftest-out`.
+    private func runIMessageAddressProbe() {
+        Task { @MainActor in
+            for line in await IMessageAddressProbe.run() { writeSelfTest(line) }
+            NSApp.terminate(nil)
         }
     }
 
@@ -2673,7 +2704,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // engine so one flag reports them all.
             var assertionFailures: [String] = []
 
-            for name in requested where name != "guard" {
+            for name in requested where name != "guard" && name != "plan"
+                && name != "app-llm-compare" {
                 let formatter: (any TextFormatter)?
                 let mode: CleanupGuard.Mode
                 switch name {
@@ -2704,6 +2736,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     mode = .grammar
                 case "app-llm", "qwen":
                     formatter = AppLLMCleanupFormatter(preferences: preferences, fixesGrammar: true)
+                    mode = .grammar
+                case "minicpm":
+                    // The experiment wiring, not the file: MiniCPM first, Apple as
+                    // its fallback, over the same corpus as every other engine. On a
+                    // Mac without the file Apple answers the leg — noted, not failed.
+                    if !MiniCPMModels.isDownloaded {
+                        writeSelfTest("  MiniCPM5-2B file absent — Apple answers this leg")
+                        formatter = FoundationModelFormatter(
+                            preferences: preferences, fixesGrammar: true
+                        )
+                    } else {
+                        formatter = MiniCPMCleanupFormatter(
+                            preferences: preferences, fixesGrammar: true
+                        )
+                    }
                     mode = .grammar
                 default:
                     formatter = nil
@@ -2797,6 +2844,105 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     warm-max=\(String(format: "%.3f", warmMax))s
                     """)
             }
+
+            // The layout leg: marker-free edge cases through the real planner.
+            // Speed is the plan's own seconds per case, quality is content survival,
+            // format is structure found vs invented — graded by `planFailures` below,
+            // so one flag reports all three. Not part of `all`: the formatter legs
+            // already size that budget, and this one spends a model call per case.
+            // Run it with `--selftest-cleanup plan`.
+            if requested.contains("plan") {
+                writeSelfTest("")
+                writeSelfTest("=== plan (live Apple layout pass) ===")
+                guard FoundationModelFormatter.isAvailable else {
+                    writeSelfTest(
+                        "CLEANUP_PLAN_ABSENT: "
+                            + (FoundationModelFormatter.unavailableReason
+                                ?? "Apple Intelligence unavailable")
+                    )
+                    NSApp.terminate(nil)
+                    return
+                }
+                let planner = AppleStructurePlanner()
+                var planTimings: [Double] = []
+                // One ungraded call first: the first plan in a process pays the model's
+                // cold start (P1 timed out at the 3.5 s floor twice), while a real
+                // dictation finds a session staged at key-down. Grading from cold would
+                // measure the warm-up, not the layout judgment.
+                let warmBegan = Date()
+                _ = await planner.plan(
+                    for: ["The build is green.", "We will ship it on Friday.",
+                          "Thanks to everyone who helped."],
+                    deadline: nil
+                )
+                writeSelfTest(
+                    "  warmup: \(String(format: "%.3f", Date().timeIntervalSince(warmBegan)))s "
+                        + "(ungraded cold start)"
+                )
+                for testCase in CleanupEvalCases.planCases {
+                    // The sentences the planner is handed in production are the rules
+                    // pass's output; the leg hands it the input split directly, so this
+                    // grades the layout judgment rather than the cleanup beside it.
+                    let sentences = SpokenStructure.sentenceSplit(testCase.input)
+                    let began = Date()
+                    let outcome = await planner.plan(for: sentences, deadline: nil)
+                    let seconds = Date().timeIntervalSince(began)
+                    planTimings.append(seconds)
+                    let plan = outcome.plan
+                    let laidOut = plan.flatMap {
+                        $0.rendered(sentences: sentences, target: CleanupEvalCases.target)
+                    }
+                    // Production fallback: a plan that is rejected or turned down
+                    // renders nothing, and the router falls back to the rules layout —
+                    // prose here, since no plan case carries a marker the rules render.
+                    let rendered = laidOut?.text ?? sentences.joined(separator: " ")
+                    let fate: String
+                    if let laidOut {
+                        let applied = laidOut.applied.map(\.rawValue).joined(separator: ",")
+                        fate = applied.isEmpty ? "prose" : "accepted (\(applied))"
+                    } else {
+                        let why = plan?.rejection(sentenceCount: sentences.count)
+                            ?? plan?.corroborationFailure(sentences: sentences)
+                            ?? outcome.rejection
+                            ?? "rendered nothing"
+                        fate = "turned down (\(why))"
+                    }
+                    assertionFailures += CleanupEvalCases.planFailures(
+                        for: testCase, rendered: rendered
+                    ).map { "plan: \($0)" }
+                    writeSelfTest("""
+                        \(testCase.id)\t\(String(format: "%.3f", seconds))s\t\(fate)
+                          want: \(testCase.expectation)
+                          in  : \(testCase.input)
+                          ship: \(Self.oneLine(rendered))
+                        """)
+                }
+                let sorted = planTimings.sorted()
+                let median = sorted.isEmpty ? 0 : sorted[sorted.count / 2]
+                writeSelfTest("""
+                    CLEANUP_PLAN_SUMMARY: n=\(planTimings.count) \
+                    median=\(String(format: "%.3f", median))s \
+                    max=\(String(format: "%.3f", planTimings.max() ?? 0))s
+                    """)
+            }
+
+            // The head-to-head leg: the same corpus through every GGUF on this Mac.
+            // One corpus, one formatter shape, one grading rule — the only thing that
+            // changes between rows is the weights. Not part of `all`: four model loads
+            // and four corpus passes is its own evening. Run it with
+            // `--selftest-cleanup app-llm-compare`.
+            if requested.contains("app-llm-compare") {
+                writeSelfTest("")
+                writeSelfTest("=== app-llm-compare (one corpus, every GGUF on this Mac) ===")
+                do {
+                    let ran = try await runModelCompareLeg(preferences: preferences)
+                    guard ran else { return }
+                } catch {
+                    writeSelfTest("CLEANUP_MODEL_COMPARE_FAILED: \(error.localizedDescription)")
+                    NSApp.terminate(nil)
+                    return
+                }
+            }
             guard assertionFailures.isEmpty else {
                 writeSelfTest("")
                 for failure in assertionFailures { writeSelfTest("  \(failure)") }
@@ -2807,6 +2953,212 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             writeSelfTest("CLEANUP_OK")
             NSApp.terminate(nil)
         }
+    }
+
+    /// One GGUF the head-to-head leg looks for in the Models folder.
+    private struct ModelCompareCandidate {
+        let displayName: String
+        /// Exact file when this Mac has pinned it; scanned by substring when nil,
+        /// because MiniCPM's file name is pinned nowhere.
+        let fileName: String?
+        let scanSubstring: String?
+    }
+
+    private static let modelCompareCandidates: [ModelCompareCandidate] = [
+        .init(displayName: "MiniCPM5-2B", fileName: nil, scanSubstring: "minicpm"),
+        .init(
+            displayName: "Qwen3-4B-Instruct-2507",
+            fileName: "unsloth--Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+            scanSubstring: nil
+        ),
+        .init(
+            displayName: "Qwen3.5-4B",
+            fileName: "unsloth--Qwen3.5-4B-Q4_K_M.gguf",
+            scanSubstring: nil
+        ),
+        .init(
+            displayName: "Gemma 4 E4B",
+            fileName: "gemma-4-E4B-it-Q4_K_M.gguf",
+            scanSubstring: nil
+        ),
+    ]
+
+    /// The same corpus through every GGUF file in the Models folder, one model
+    /// resident at a time. Returns false when there was nothing to run.
+    ///
+    /// A benchmark, not a gate: per-model assertion counts are reported, never
+    /// failed on — the table is the product. What fails the run is harness
+    /// trouble (thrown out), and what skips it is an empty folder (`ABSENT`,
+    /// never a green for work that never happened).
+    ///
+    /// Deliberately one production-faithful pass per case, not two: the
+    /// `app-llm` leg pays for a second unguarded call per fixture to tell a
+    /// rejection from a shrug, and four models cannot afford that doubling.
+    /// Guarded shipped output is what a dictation would have typed, so it is
+    /// what is graded here.
+    ///
+    /// The runtime is shared and real, so each row swaps it with the same
+    /// awaited `select` a person's own model change uses — one resident at a
+    /// time, which is what keeps four multi-gigabyte files inside a 16 GB Mac —
+    /// and hands it back afterwards. Nothing here touches the saved selection:
+    /// `select` moves the runtime, never the Models tab's answer.
+    @MainActor
+    private func runModelCompareLeg(preferences: CleanupPreferences) async throws -> Bool {
+        struct Row {
+            let name: String
+            let bytes: Int64
+            let failures: [String]
+            let timings: [Double]
+        }
+        let modelsDir = NotesModels.spec.fileURL.deletingLastPathComponent()
+        let files = try FileManager.default.contentsOfDirectory(
+            at: modelsDir,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: .skipsHiddenFiles
+        )
+        func url(for candidate: ModelCompareCandidate) -> URL? {
+            if let fileName = candidate.fileName {
+                let url = modelsDir.appendingPathComponent(fileName)
+                return FileManager.default.fileExists(atPath: url.path) ? url : nil
+            }
+            guard let substring = candidate.scanSubstring else { return nil }
+            return files.first {
+                $0.pathExtension.lowercased() == "gguf"
+                    && $0.deletingPathExtension().lastPathComponent
+                        .lowercased().contains(substring)
+            }
+        }
+
+        // The library row when this Mac has one (bytes, display name), else the
+        // file itself. Either way the runtime only ever reads the file URL —
+        // `spec(for:)` is `Models/` plus the file name by construction.
+        let library = InstalledModelLibrary.shared.models
+        var resolved: [(candidate: ModelCompareCandidate, model: InstalledLocalModel)] = []
+        var skipped: [String] = []
+        for candidate in Self.modelCompareCandidates {
+            guard let url = url(for: candidate) else {
+                writeSelfTest("MODEL_COMPARE \(candidate.displayName): absent (no file)")
+                skipped.append("\(candidate.displayName) (absent)")
+                continue
+            }
+            if let row = library.first(
+                where: { $0.fileURL.lastPathComponent == url.lastPathComponent }
+            ) {
+                resolved.append((candidate, row))
+            } else {
+                let bytes = (try? url.resourceValues(forKeys: [.fileSizeKey]))
+                    .flatMap(\.fileSize).map(Int64.init) ?? 0
+                resolved.append((candidate, InstalledLocalModel(
+                    id: "selftest/" + url.lastPathComponent,
+                    displayName: candidate.displayName,
+                    fileURL: url,
+                    parameterBillions: nil,
+                    quantization: nil,
+                    bytes: bytes,
+                    isBuiltIn: false
+                )))
+            }
+        }
+        guard !resolved.isEmpty else {
+            writeSelfTest("CLEANUP_MODEL_COMPARE_ABSENT: no GGUF in the Models folder")
+            NSApp.terminate(nil)
+            return false
+        }
+
+        let initial = await NotesModelRuntime.shared.activeSpec()
+        var rows: [Row] = []
+        for (candidate, model) in resolved {
+            // Vocabulary-only first: header architecture, tokenizer and
+            // truncation all answer in milliseconds, and a file that cannot
+            // open is skipped before it ever becomes a full-weight load.
+            let probe = await LlamaLoadProbe.probe(model.fileURL)
+            guard probe.verdict == .opens else {
+                let why = probe.detail.map { "\(probe.verdict.rawValue) (\($0))" }
+                    ?? probe.verdict.rawValue
+                writeSelfTest("MODEL_COMPARE \(candidate.displayName): unopenable (\(why))")
+                skipped.append("\(candidate.displayName) (\(why))")
+                continue
+            }
+            writeSelfTest(
+                "--- \(candidate.displayName) (\(SelfTest.byteText(model.bytes)); "
+                    + "\(probe.detail ?? probe.verdict.rawValue)) ---"
+            )
+            await NotesModelRuntime.shared.select(model)
+            let formatter = AppLLMCleanupFormatter(
+                preferences: preferences, fixesGrammar: true
+            )
+            var timings: [Double] = []
+            var failures: [String] = []
+            for testCase in CleanupEvalCases.all {
+                let began = Date()
+                let output = await formatter.format(testCase.input)
+                let seconds = Date().timeIntervalSince(began)
+                timings.append(seconds)
+                let shipped = CleanupEvalCases.shippedText(
+                    input: testCase.input, modelAnswer: output
+                )
+                let caseFailures = CleanupEvalCases.failures(
+                    for: testCase, shipped: shipped, fixesGrammar: true
+                )
+                failures += caseFailures.map { "\(candidate.displayName): \($0)" }
+                writeSelfTest(
+                    "\(testCase.id)\t\(String(format: "%.3f", seconds))s\t"
+                        + (caseFailures.isEmpty ? "ok" : "FAIL \(caseFailures.count)")
+                )
+            }
+            let sorted = timings.sorted()
+            let median = sorted.isEmpty ? 0 : sorted[sorted.count / 2]
+            writeSelfTest(
+                "MODEL_COMPARE \(candidate.displayName): assertions "
+                    + "\(failures.count)/\(CleanupEvalCases.all.count) "
+                    + "median=\(String(format: "%.3f", median))s "
+                    + "max=\(String(format: "%.3f", timings.max() ?? 0))s"
+            )
+            for failure in failures { writeSelfTest("  \(failure)") }
+            rows.append(Row(
+                name: candidate.displayName, bytes: model.bytes,
+                failures: failures, timings: timings
+            ))
+        }
+
+        // Back to what the runtime held. Under the harness that is always the
+        // built-in default — the saved selection is never adopted mid-self-test —
+        // and anything else means another leg in this process moved it, which the
+        // file match still returns to the right place.
+        if let back = resolved.first(where: { $0.model.fileURL == initial.fileURL }) {
+            await NotesModelRuntime.shared.select(back.model)
+        } else {
+            await NotesModelRuntime.shared.select(nil)
+        }
+
+        writeSelfTest("")
+        for row in rows {
+            let sorted = row.timings.sorted()
+            let median = sorted.isEmpty ? 0 : sorted[sorted.count / 2]
+            let medianText = String(format: "%.3f", median)
+            let maxText = String(format: "%.3f", row.timings.max() ?? 0)
+            let line = "MODEL_COMPARE \(row.name): \(SelfTest.byteText(row.bytes)), "
+                + "assertions \(row.failures.count)/\(CleanupEvalCases.all.count), "
+                + "median=\(medianText)s max=\(maxText)s"
+            writeSelfTest(line)
+        }
+        if !skipped.isEmpty {
+            writeSelfTest("MODEL_COMPARE skipped: \(skipped.joined(separator: ", "))")
+        }
+        let medianOf: (Row) -> Double = {
+            let sorted = $0.timings.sorted()
+            return sorted.isEmpty ? 0 : sorted[sorted.count / 2]
+        }
+        if let best = rows.min(by: { $0.failures.count < $1.failures.count }),
+           let fastest = rows.min(by: { medianOf($0) < medianOf($1) }) {
+            writeSelfTest(
+                "CLEANUP_MODEL_COMPARE_SUMMARY: models=\(rows.count) "
+                    + "best-quality=\(best.name) (\(best.failures.count) assertions) "
+                    + "fastest=\(fastest.name) (\(String(format: "%.3f", medianOf(fastest)))s median)"
+            )
+        }
+        writeSelfTest("CLEANUP_MODEL_COMPARE_OK")
+        return true
     }
 
     /// The model's answer with no guard in front of it. nil for engines that have no
@@ -2826,6 +3178,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 text, preferences: preferences, fixesGrammar: true
             )
         case "app-llm", "qwen":
+            return try? await AppLLMCleanupFormatter.generate(
+                text, preferences: preferences, fixesGrammar: true
+            )
+        case "minicpm":
+            // The unguarded MiniCPM answer, pinned to the file: without this case
+            // a rejected answer is indistinguishable from a perfect one, and the
+            // number means nothing (the 28/28 rule).
+            guard MiniCPMModels.isDownloaded else { return nil }
+            await MiniCPMModels.selectPinned()
             return try? await AppLLMCleanupFormatter.generate(
                 text, preferences: preferences, fixesGrammar: true
             )

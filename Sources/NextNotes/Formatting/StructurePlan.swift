@@ -55,19 +55,32 @@ struct StructurePlan: Codable, Sendable, Equatable {
         /// For a list: how many words at the start of each item are only the spoken
         /// marker — "The second thing," is three words of announcement and no content.
         var stripWords: [Int]
+        /// For a list: the exact spoken words announcing each item, quoted verbatim —
+        /// "The second thing,", "Premièrement,". Empty when the item starts straight
+        /// into content, or when the model was not asked (older prompts).
+        ///
+        /// Corroboration evidence only: it never deletes anything. A quote that is not
+        /// found word-for-word in its item's first sentence corroborates nothing, so a
+        /// model cannot invent a list and then invent the announcements for it — the
+        /// announcements have to be the speaker's own words, in whatever language was
+        /// spoken. That is what makes this check language-general with no per-language
+        /// lexicon, where `SpokenStructure.opensAnItem` is English-only by construction.
+        var announcerQuotes: [String]
 
         init(
             kind: Kind,
             from: Int,
             to: Int,
             itemStarts: [Int] = [],
-            stripWords: [Int] = []
+            stripWords: [Int] = [],
+            announcerQuotes: [String] = []
         ) {
             self.kind = kind
             self.from = from
             self.to = to
             self.itemStarts = itemStarts
             self.stripWords = stripWords
+            self.announcerQuotes = announcerQuotes
         }
 
         init(from decoder: any Decoder) throws {
@@ -79,6 +92,7 @@ struct StructurePlan: Codable, Sendable, Equatable {
             // items, and a decoder that throws on it would reject an otherwise good plan.
             itemStarts = try container.decodeIfPresent([Int].self, forKey: .itemStarts) ?? []
             stripWords = try container.decodeIfPresent([Int].self, forKey: .stripWords) ?? []
+            announcerQuotes = try container.decodeIfPresent([String].self, forKey: .announcerQuotes) ?? []
         }
     }
 
@@ -166,6 +180,23 @@ struct StructurePlan: Codable, Sendable, Equatable {
                     + "\(Limits.maxStripWords)"
             }
         }
+        if !block.announcerQuotes.isEmpty {
+            guard block.announcerQuotes.count == starts.count else {
+                return "a list block gave \(block.announcerQuotes.count) announcer quotes for "
+                    + "\(starts.count) items"
+            }
+            // Shape only — whether a quote is really the speaker's words is settled in
+            // `corroborationFailure`, which has the sentences. An announcement is a
+            // fragment by definition: empty quotes nothing, and a quote as long as the
+            // sentence is the sentence, not its announcement.
+            for quote in block.announcerQuotes where !quote.isEmpty {
+                let count = Self.words(in: quote).count
+                guard count >= 1, count <= Limits.maxStripWords else {
+                    return "a list item quoted \(count) announcement words, outside 1…"
+                        + "\(Limits.maxStripWords)"
+                }
+            }
+        }
         return nil
     }
 
@@ -201,8 +232,16 @@ struct StructurePlan: Codable, Sendable, Equatable {
         // have to repeat. Without it the bar is unchanged.
         let promised = sentences.contains { SpokenStructure.announcesAList($0) }
         for block in blocks where block.kind.isList {
-            let announced = block.itemStarts.count { index in
+            let announced = block.itemStarts.enumerated().count { (offset, index) in
                 guard index >= 1, index <= sentences.count else { return false }
+                // The language-general check, first: the model quoted the speaker's own
+                // announcing words, word for word, and they are really in the sentence.
+                // A fabricated announcement cannot pass it, in any language, because the
+                // evidence is extractive rather than a second judgment call.
+                if offset < block.announcerQuotes.count,
+                   Self.quoteVerifies(block.announcerQuotes[offset], against: sentences[index - 1]) {
+                    return true
+                }
                 if SpokenStructure.opensAnItem(sentences[index - 1]) { return true }
                 // Labelled after the fact: "…start the conversation. That's the first
                 // thing." and the item that follows begins with no marker of its own.
@@ -226,6 +265,23 @@ struct StructurePlan: Codable, Sendable, Equatable {
             }
         }
         return nil
+    }
+
+    /// Whether `quote` is really the opening fragment of `sentence`.
+    ///
+    /// Both sides are reduced to lowercase word runs, so casing and punctuation cannot
+    /// break the match; the quote must then appear as a contiguous run of the sentence's
+    /// own words, be at least one word, and be strictly shorter than the sentence. A
+    /// whole-sentence "quote" verifies nothing — it is the item, not its announcement —
+    /// and an empty quote is an item the model says starts straight into content.
+    static func quoteVerifies(_ quote: String, against sentence: String) -> Bool {
+        let quoted = words(in: quote)
+        guard quoted.count >= 1, quoted.count <= Limits.maxStripWords else { return false }
+        let spoken = words(in: sentence)
+        guard quoted.count < spoken.count else { return false }
+        return (0...(spoken.count - quoted.count)).contains { start in
+            spoken[start..<(start + quoted.count)].elementsEqual(quoted)
+        }
     }
 
     /// This plan, with its sentence numbers moved onto a second split of the same speech.
@@ -302,7 +358,8 @@ struct StructurePlan: Codable, Sendable, Equatable {
                 from: start,
                 to: end,
                 itemStarts: starts,
-                stripWords: block.stripWords
+                stripWords: block.stripWords,
+                announcerQuotes: block.announcerQuotes
             ))
             expected = end + 1
         }
@@ -372,7 +429,19 @@ struct StructurePlan: Codable, Sendable, Equatable {
             let end = index + 1 < starts.count ? starts[index + 1] - 1 : block.to
             guard end >= start else { return nil }
             var lines = Array(sentences[(start - 1)...(end - 1)])
-            let strip = index < block.stripWords.count ? block.stripWords[index] : 0
+            // A verified quote outranks the model's count: the quote had to be found
+            // word for word in this very sentence, while the count is an unchecked
+            // number. An unverified quote decides nothing and the count stands.
+            // `dropping` still clamps both, and `saysNothingNew` still asserts the
+            // output, so neither source can delete content.
+            let strip: Int
+            if index < block.announcerQuotes.count,
+               let first = lines.first,
+               Self.quoteVerifies(block.announcerQuotes[index], against: first) {
+                strip = Self.words(in: block.announcerQuotes[index]).count
+            } else {
+                strip = index < block.stripWords.count ? block.stripWords[index] : 0
+            }
             if strip > 0, let first = lines.first {
                 lines[0] = Self.dropping(strip, from: first)
             }
@@ -452,10 +521,15 @@ enum StructurePlanPrompt {
         - "prose": ordinary paragraphs. Use several prose blocks to break a long passage \
         into paragraphs where the subject clearly changes.
         - "numbered": the speaker counted things out loud — "the first thing", "second", \
-        "third", "last but not least", "number one". Give "itemStarts": the sentence number \
-        each item begins on. An item may be several sentences long. A list needs at least \
-        two items.
-        - "bulleted": the speaker listed things without counting them.
+        "third", "last but not least", "number one". Counting in any language counts: \
+        "Premièrement", "Deuxièmement", "d'abord" are announcements too. When an opening \
+        sentence promises several points ("a few things I need to change", "j'ai trois \
+        points") and the sentences after it are those points, that is a list even when \
+        the first point carries no ordinal of its own. Give "itemStarts": the sentence \
+        number each item begins on. An item may be several sentences long. A list needs \
+        at least two items.
+        - "bulleted": the speaker listed things without counting them — parallel items, \
+        possibly introduced by repeats with no ordinals ("d'abord … ensuite … pour finir").
         - "quote": the speaker asked for a quotation.
         - "code": the speaker dictated a command or code.
 
@@ -463,6 +537,12 @@ enum StructurePlanPrompt {
         sentence are only the spoken announcement and not content — "The second thing," is \
         3, "Last but not least" is 4, an item that starts straight into content is 0. Never \
         more than 8.
+
+        "announcerQuotes" gives, for each item, the exact spoken words doing that announcing — \
+        "The second thing,", "Premièrement,", or "" when the item starts straight into \
+        content. Quote the speaker word for word, in whatever language was spoken, and never \
+        more than 8 words: the quote is checked against the sentence, and anything that is \
+        not really there corroborates nothing. An item with no announcement is quoted "".
 
         Rules:
         - Do not use "numbered" or "bulleted" for ordinary prose that merely happens to say \
@@ -521,6 +601,10 @@ enum StructurePlanPrompt {
             ("to", .integer),
             ("itemStarts", .array(.integer, maxItems: StructurePlan.Limits.maxItems)),
             ("stripWords", .array(.integer, maxItems: StructurePlan.Limits.maxItems)),
+            ("announcerQuotes", .array(
+                .string(maxLength: 80),
+                maxItems: StructurePlan.Limits.maxItems
+            )),
         ])
         return GBNFGrammar.json(.object([
             ("blocks", .array(block, maxItems: StructurePlan.Limits.maxBlocks)),

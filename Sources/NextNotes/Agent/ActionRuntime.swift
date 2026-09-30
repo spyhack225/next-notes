@@ -554,12 +554,29 @@ final class ActionOrchestrator {
                 scope: await PermissionScopeResolver.inferredAsync(tool: tool, arguments: intent.arguments),
                 meetingID: routing.meetingID, taskID: routing.taskID,
                 authority: intent.authority,
-                trigger: Self.trigger(for: intent)
+                trigger: Self.trigger(for: intent),
+                origin: origin
             )
             switch decision {
             case .deny(let reason):
                 add(.denied, reason)
                 throw AgentError.permissionDenied(reason)
+            case .askLocal(let request):
+                // IM-12: band 3. Today this is the same local card as `.ask` — every
+                // approval in this build is already a Mac card. IM-13 must NOT satisfy
+                // this from the phone: an iMessage approval for a require-local action
+                // is the destructive-action-by-text-message bug wearing a workflow.
+                guard permissionAlreadyGranted || promptIfNeeded else {
+                    add(.waitingPermission, request.title)
+                    throw AgentError.needsPermission(request.title)
+                }
+                if !permissionAlreadyGranted {
+                    guard await PermissionGate.shared.ask(request) else {
+                        add(.denied, "Permission dismissed")
+                        ToolCallReviewStore.shared.remove(id: request.id)
+                        throw AgentError.permissionDenied("You dismissed \(request.title).")
+                    }
+                }
             case .ask(let request):
                 guard permissionAlreadyGranted || promptIfNeeded else {
                     add(.waitingPermission, request.title)

@@ -163,7 +163,8 @@ enum AppleModelWarmth {
             choice: choice,
             fixesGrammar: fixesGrammar,
             s1Downloaded: S1MiniModels.isDownloaded,
-            appleAvailable: FoundationModelFormatter.isAvailable
+            appleAvailable: FoundationModelFormatter.isAvailable,
+            miniCPMDownloaded: MiniCPMModels.isDownloaded
         ).contains(.warmApple) else { return }
         await warmProcess()
     }
@@ -176,19 +177,22 @@ enum AppleModelWarmth {
 /// loading 484 MB behind that routing is residency for nothing on a 16 GB Mac. Apple's
 /// model warms at launch and after wake whenever it is the engine that will actually run.
 enum LaunchWarmup {
-    enum Action: Hashable { case loadS1Mini, warmApple }
+    enum Action: Hashable { case loadS1Mini, warmApple, loadCleanupModel }
 
     static func plan(
         cleanupEnabled: Bool,
         choice: CleanupEngineChoice,
         fixesGrammar: Bool,
         s1Downloaded: Bool,
-        appleAvailable: Bool
+        appleAvailable: Bool,
+        miniCPMDownloaded: Bool
     ) -> Set<Action> {
         // The decision table. Cleanup off does nothing — a switch that is off must not
         // warm anything. Grammar repair is Apple's work (S1-mini takes no instructions),
         // so `.s1Mini` with it on routes to Apple and S1-mini stays unloaded; loading on
-        // demand later remains the first S1-mini call's own behaviour.
+        // demand later remains the first S1-mini call's own behaviour. MiniCPM loads
+        // when routed regardless of the grammar switch — it takes instructions
+        // either way — and Apple warms beside it as its fallback.
         guard cleanupEnabled else { return [] }
         var actions: Set<Action> = []
         switch choice {
@@ -200,6 +204,14 @@ enum LaunchWarmup {
             } else if s1Downloaded {
                 actions.insert(.loadS1Mini)
             }
+        case .miniCPM:
+            // Apple is the cleanup model's fallback, so it warms either way. The
+            // cleanup model loads too when its file is here: 1.5 GB in the
+            // background at launch so the first dictation does not pay the cold
+            // load. Named for the role, not the file — swapping the model must
+            // not mean chasing its name through the launch table.
+            if appleAvailable { actions.insert(.warmApple) }
+            if miniCPMDownloaded { actions.insert(.loadCleanupModel) }
         }
         return actions
     }

@@ -375,6 +375,15 @@ struct DictationSettingsTab: View {
                 return "S1-mini by Superwhisper requires a one-time download. Fetch it from the "
                     + "Models tab."
             }
+        case .miniCPM:
+            // Plain words, no file names: a person who has never heard of a GGUF
+            // still deserves a true sentence about what happens on their Mac.
+            if MiniCPMModels.isDownloaded {
+                return "MiniCPM 5 cleans up locally and is fast; when it cannot "
+                    + "answer, Apple's on-device model does. No transcript leaves this Mac."
+            }
+            return "MiniCPM 5 is chosen but its model file is not on this Mac yet, "
+                + "so Apple answers instead."
         }
     }
 

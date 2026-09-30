@@ -253,20 +253,39 @@ enum MessagesQueries {
     /// makes a replay ordered: a GUID-keyed cache protects against the same row arriving
     /// twice, and the row id is what makes the *order* stable.
     static func messages(schema: MessagesSchema, joinedToChat: Bool, filteredToChat: Bool) -> String {
-        guard joinedToChat else {
+        guard joinedToChat, let keys = messageJoinKeys(schema) else {
             return "SELECT \(projection(messageColumns, schema)) FROM message AS m "
                 + "WHERE m.ROWID > ? ORDER BY m.ROWID ASC LIMIT ?"
         }
         var sql = "SELECT \(projection(messageColumns, schema)) FROM message AS m "
-            + "JOIN chat_message_join AS j ON j.message_rowid = m.ROWID "
-            + "JOIN chat AS c ON c.ROWID = j.chat_rowid WHERE m.ROWID > ?"
+            + "JOIN chat_message_join AS j ON j.\(keys.message) = m.ROWID "
+            + "JOIN chat AS c ON c.ROWID = j.\(keys.chat) WHERE m.ROWID > ?"
         if filteredToChat { sql += " AND c.guid = ?" }
         return sql + " ORDER BY m.ROWID ASC LIMIT ?"
     }
 
+    /// `chat_message_join`'s (message, chat) key columns, in whichever spelling this
+    /// database uses.
+    ///
+    /// macOS 27 renamed the keys to `message_id`/`chat_id` (measured on this Mac,
+    /// 2026-09-30: `IMESSAGE_PAIR_NOW_JOIN` printed the probed names). The old spelling
+    /// wins when both are present, so a fixture carrying both still reads the SQL the
+    /// self-tests pin.
+    static func messageJoinKeys(_ schema: MessagesSchema) -> (message: String, chat: String)? {
+        if schema.has("chat_message_join", "message_rowid"),
+           schema.has("chat_message_join", "chat_rowid") {
+            return ("message_rowid", "chat_rowid")
+        }
+        if schema.has("chat_message_join", "message_id"),
+           schema.has("chat_message_join", "chat_id") {
+            return ("message_id", "chat_id")
+        }
+        return nil
+    }
+
     /// Whether `chat_message_join` can answer "which chats is this message in".
     static func canJoinMessagesToChats(_ schema: MessagesSchema) -> Bool {
-        schema.has("chat_message_join", "message_rowid") && schema.has("chat_message_join", "chat_rowid")
+        messageJoinKeys(schema) != nil
     }
 
     /// One message by guid.
@@ -341,7 +360,7 @@ enum MessagesQueries {
     /// `chat` plus `participants`, which is a join and not a column.
     static func chatProjection(_ schema: MessagesSchema) -> String {
         var parts = [projection(chatColumns, schema)]
-        parts.append(participantsPresent(schema) ? participantsSQL : "NULL AS participants")
+        parts.append(participantsSQL(schema) ?? "NULL AS participants")
         return parts.joined(separator: ", ")
     }
 
@@ -350,16 +369,38 @@ enum MessagesQueries {
     /// Sorted in `chatRow` rather than here: a `group_concat` over an ordered subquery is
     /// an order SQLite does not promise, and IM-09 has to be able to say it resolved the
     /// same addresses twice.
-    private static var participantsSQL: String {
-        """
+    ///
+    /// Nil when this database cannot answer it — the caller projects nothing and says
+    /// so, which is the same degradation rule the message join uses.
+    private static func participantsSQL(_ schema: MessagesSchema) -> String? {
+        guard let keys = handleJoinKeys(schema),
+              schema.has("handle", "ROWID"),
+              schema.has("handle", "uncanonicalized_id") else { return nil }
+        return """
         (SELECT group_concat(h.uncanonicalized_id, char(10)) FROM chat_handle_join AS hj \
-        JOIN handle AS h ON h.ROWID = hj.handle_rowid WHERE hj.chat_rowid = c.ROWID) AS participants
+        JOIN handle AS h ON h.ROWID = hj.\(keys.handle) WHERE hj.\(keys.chat) = c.ROWID) AS participants
         """
     }
 
+    /// `chat_handle_join`'s (handle, chat) key columns, in whichever spelling this
+    /// database uses. Same rename as the message join, measured on the same Mac on the
+    /// same day — and the same reason IM-01's "participants empty on every chat" reads
+    /// differently now: the probe could not read them, which is not the same as there
+    /// being none.
+    static func handleJoinKeys(_ schema: MessagesSchema) -> (handle: String, chat: String)? {
+        if schema.has("chat_handle_join", "handle_rowid"),
+           schema.has("chat_handle_join", "chat_rowid") {
+            return ("handle_rowid", "chat_rowid")
+        }
+        if schema.has("chat_handle_join", "handle_id"),
+           schema.has("chat_handle_join", "chat_id") {
+            return ("handle_id", "chat_id")
+        }
+        return nil
+    }
+
     static func participantsPresent(_ schema: MessagesSchema) -> Bool {
-        schema.has("chat_handle_join", "handle_rowid")
-            && schema.has("chat_handle_join", "chat_rowid")
+        handleJoinKeys(schema) != nil
             && schema.has("handle", "ROWID")
             && schema.has("handle", "uncanonicalized_id")
     }

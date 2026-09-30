@@ -448,7 +448,7 @@ final class DictationController {
     /// The hold's pre-clean session, or nil when this hold cannot use one. (D-12.)
     ///
     /// Ordinary dictation, cleanup switched on, and the engine the router would use anyway
-    /// being Apple's — the only engine with the budget to be worth running beside a live
+    /// being Apple or MiniCPM — the engines with the budget to be worth running beside a live
     /// recogniser, and the only one whose answer the guard can check. Command Mode and
     /// compare mode get nothing: the first never reaches this formatter, and the second runs
     /// every engine over the same recording and must not be handed a head.
@@ -461,11 +461,11 @@ final class DictationController {
     private func makeIncrementalCleanup() -> IncrementalCleanupSession? {
         guard recordingIntent.kind == .dictation, !isComparing else { return nil }
         let settings = Settings.shared
-        guard settings.cleanupEnabled,
-              CleanupRouter.preferredEngine(
-                  choice: settings.cleanupEngine,
-                  fixesGrammar: settings.cleanupFixesGrammar
-              ) == .apple else { return nil }
+        let engine = CleanupRouter.preferredEngine(
+            choice: settings.cleanupEngine,
+            fixesGrammar: settings.cleanupFixesGrammar
+        )
+        guard settings.cleanupEnabled, engine == .apple || engine == .miniCPM else { return nil }
         let rules: @Sendable (String) -> String = { RuleBasedFormatter().apply($0) }
         if let cleanupPieces {
             return IncrementalCleanupSession(semantic: cleanupPieces().preclean, rules: rules)
@@ -477,7 +477,7 @@ final class DictationController {
             // The same Stage B the router builds: the guard and D-11's clause salvage
             // included, and no trace — a pre-clean runs before this hold's record exists.
             semantic: CleanupRouter.makeSemantic(
-                .apple,
+                engine,
                 preferences: settings.cleanupPreferences,
                 fixesGrammar: settings.cleanupFixesGrammar,
                 target: OutputProfileStore.shared.capturedProfile,

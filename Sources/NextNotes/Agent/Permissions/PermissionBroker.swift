@@ -18,8 +18,19 @@ actor PermissionBroker {
         meetingID: UUID? = nil,
         taskID: String? = nil,
         authority: ActionAuthority? = nil,
-        trigger: ToolCallTrigger = .unattributed
+        trigger: ToolCallTrigger = .unattributed,
+        origin: ActionOriginContext? = nil,
+        remoteAccessSuspended: Bool = false
     ) -> PermissionDecision {
+        // IM-12: a remote turn is the same authority under a smaller budget. The
+        // denied band runs before grants, because a grant names a tool and never a
+        // command — "always allow shell" cannot bless `sudo`.
+        if let origin = origin, origin.isRemote {
+            return authorizeRemote(tool, arguments: arguments, policy: policy, scope: scope,
+                                   meetingID: meetingID, taskID: taskID, authority: authority,
+                                   trigger: trigger, suspended: remoteAccessSuspended)
+        }
+
         if let grant = policy.existingGrant(
             for: tool.id,
             scope: scope,
@@ -35,21 +46,79 @@ actor PermissionBroker {
         }
 
         if !tool.risk.mayAutoRun {
-            let request = PermissionRequest(
-                toolID: tool.id,
-                title: tool.title(for: arguments),
-                detail: tool.preview(for: arguments) ?? tool.description,
-                risk: tool.risk,
-                arguments: arguments,
-                scope: scope,
-                meetingID: meetingID,
-                taskID: taskID,
-                trigger: trigger
-            )
-            return .ask(request)
+            return .ask(makeRequest(tool: tool, arguments: arguments, scope: scope,
+                                    meetingID: meetingID, taskID: taskID, trigger: trigger))
         }
 
         return .deny("\(tool.id) is not allowed to run by itself.")
+    }
+
+    /// IM-12 — the remote branch. Same `.user` authority, four narrower answers.
+    /// Nothing here can widen what a local turn may do: every arm either denies,
+    /// asks, or defers to the same `allowsAutomatically` a local turn gets.
+    /// Standing grants are deliberately not consulted: a grant given at the Mac
+    /// must not silently execute from the phone, so every remote write confirms
+    /// at its band. Switches (`autoRead` and friends) still apply — they are
+    /// policy, not permission.
+    private func authorizeRemote(
+        _ tool: AgentTool,
+        arguments: [String: String],
+        policy: PermissionPolicy,
+        scope: PermissionScope,
+        meetingID: UUID?,
+        taskID: String?,
+        authority: ActionAuthority?,
+        trigger: ToolCallTrigger,
+        suspended: Bool
+    ) -> PermissionDecision {
+        if suspended {
+            return .deny(RemoteAccessPolicy.suspendedDenied)
+        }
+        // A remote turn may not carry review or unattended authority: neither is the
+        // user at the phone.
+        if authority == .memoryReview || authority?.isScheduled == true {
+            return .deny(RemoteAccessPolicy.authorityDenied)
+        }
+        switch RemoteAccessPolicy.band(for: tool, arguments: arguments) {
+        case .deny:
+            if tool.namespace == .shell {
+                return .deny(RemoteAccessPolicy.sudoDenied)
+            }
+            return .deny(RemoteAccessPolicy.privilegedDenied)
+        case .requireLocalMac:
+            return .askLocal(makeRequest(tool: tool, arguments: arguments, scope: scope,
+                                         meetingID: meetingID, taskID: taskID, trigger: trigger))
+        case .confirmInChannel:
+            return .ask(makeRequest(tool: tool, arguments: arguments, scope: scope,
+                                    meetingID: meetingID, taskID: taskID, trigger: trigger))
+        case .autoAllow:
+            if policy.allowsAutomatically(tool, authority: authority) {
+                return .allow
+            }
+            return .ask(makeRequest(tool: tool, arguments: arguments, scope: scope,
+                                    meetingID: meetingID, taskID: taskID, trigger: trigger))
+        }
+    }
+
+    private func makeRequest(
+        tool: AgentTool,
+        arguments: [String: String],
+        scope: PermissionScope,
+        meetingID: UUID?,
+        taskID: String?,
+        trigger: ToolCallTrigger
+    ) -> PermissionRequest {
+        PermissionRequest(
+            toolID: tool.id,
+            title: tool.title(for: arguments),
+            detail: tool.preview(for: arguments) ?? tool.description,
+            risk: tool.risk,
+            arguments: arguments,
+            scope: scope,
+            meetingID: meetingID,
+            taskID: taskID,
+            trigger: trigger
+        )
     }
 }
 

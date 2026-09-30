@@ -31,13 +31,21 @@ actor MessagesSender {
 
     /// Sends text to a participant by handle.
     ///
+    /// The text goes out prefixed with the agent's runtime name (`AgentMessageFormat`),
+    /// because a self-conversation renders both authors identically and the content is
+    /// the only place "who said this" can live. The digest and the dispatch both run
+    /// on the final string, so the ledger and the row-watch agree with what Messages
+    /// received. Approval-time copy (IM-13) must show this same final string: freezing
+    /// one payload and sending another is the duplicate-send bug in a new shape.
+    ///
     /// - Parameters:
-    ///   - text: the message body.
+    ///   - text: the message body, unprefixed.
     ///   - handle: the participant's handle (the user's own number for a self-conversation).
     /// - Returns: the dispatch result, with the pending id for IM-10 to correlate.
     func sendText(_ text: String, toHandle handle: String) async -> OutboundDispatch {
-        // 1. The ledger row, before dispatch. The digest is the text's SHA-256.
-        let digest = OutboundDigest.text(text)
+        let body = AgentMessageFormat.prefixed(text, name: AgentGroundingFacts.assistantName())
+        // 1. The ledger row, before dispatch. The digest is the final text's SHA-256.
+        let digest = OutboundDigest.text(body)
         let decision: OutboundSendDecision
         do {
             decision = try await ledger.recordDispatch(
@@ -53,8 +61,8 @@ actor MessagesSender {
             return .breakerRefused
         }
 
-        // 3. The send.
-        let result = await MessagesAppleEvent.send(text: text, toHandle: handle)
+        // 3. The send, of the same final string the digest covers.
+        let result = await MessagesAppleEvent.send(text: body, toHandle: handle)
         switch result {
         case .sent:
             return .sent

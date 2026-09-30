@@ -12,7 +12,7 @@ import Foundation
 /// a comparison that does not normalise will miss the one that matters. The `+` is
 /// kept because it is what makes an E.164 handle routable, and stripping it would make
 /// a local number look like a short code.
-struct RemoteIdentity: Equatable, Sendable, Codable {
+struct RemoteIdentity: Equatable, Sendable, Codable, Hashable {
     /// The canonical E.164 form: `+` followed by digits. No spaces, no punctuation,
     /// no country-code ambiguity.
     let canonical: String

@@ -255,6 +255,17 @@ struct CleanupRouter: TextFormatter {
         // neither is read again here.
         var precleanedGroups: Int?
         var precleanFallback: String?
+        // MiniCPM answers through the shared runtime, so the pin belongs to the
+        // whole tail rather than to each chunk: pin once here, hand back once at
+        // the end. Per-call restore measured as a cold load before every chunk.
+        // Pre-clean groups below reuse the same pin through the formatter.
+        let miniCPMPrevious: ModelSpec?
+        if engine == .miniCPM, case .semantic = decision.stage {
+            miniCPMPrevious = await NotesModelRuntime.shared.activeSpec()
+            await MiniCPMModels.selectPinned()
+        } else {
+            miniCPMPrevious = nil
+        }
         switch decision.stage {
         case .rules:
             // The pre-cleans are not waited for and not used: this dictation did not need
@@ -425,6 +436,9 @@ struct CleanupRouter: TextFormatter {
         // it was handed.
         laidOut = SpokenStructure.collapsingDoubledMarkers(laidOut)
         trace?.noteOutput(laidOut, seconds: Date().timeIntervalSince(began))
+        if let miniCPMPrevious {
+            await MiniCPMModels.restore(to: miniCPMPrevious)
+        }
         return laidOut
     }
 
@@ -597,6 +611,10 @@ struct CleanupRouter: TextFormatter {
             return .apple
         case .s1Mini:
             return fixesGrammar ? .apple : .s1Mini
+        case .miniCPM:
+            // MiniCPM takes instructions either way: the grammar switch changes
+            // its prompt, never its engine. Apple stays its fallback inside.
+            return .miniCPM
         }
     }
 
@@ -618,7 +636,7 @@ struct CleanupRouter: TextFormatter {
                     warmth: AppleModelWarmth.currentNonisolated()
                 )
             }
-        case .s1Mini, .appLLM:
+        case .s1Mini, .appLLM, .miniCPM:
             // The on-device engine has no separate ceiling; S1-mini's is the larger of the
             // two that do, which is the safe way to be wrong about it.
             return { S1MiniFormatter.timeout(for: $0) }
@@ -636,7 +654,7 @@ struct CleanupRouter: TextFormatter {
         switch engine {
         case .apple:
             return { FoundationModelFormatter.timeout(for: $0, warmth: .warmProcess) }
-        case .s1Mini, .appLLM:
+        case .s1Mini, .appLLM, .miniCPM:
             return nil
         }
     }
@@ -680,6 +698,16 @@ struct CleanupRouter: TextFormatter {
                 target: target,
                 context: context
             )
+        case .miniCPM:
+            // Same gate rule as above: MiniCPM answers through the shared notes
+            // runtime, so it announces nothing. Apple is the fallback inside.
+            return MiniCPMCleanupFormatter(
+                preferences: preferences,
+                fixesGrammar: fixesGrammar,
+                target: target,
+                context: context,
+                trace: trace
+            )
         }
     }
 
@@ -704,7 +732,7 @@ struct CleanupRouter: TextFormatter {
     static func chunkWidth(for engine: CleanupSemanticEngine) -> Int {
         switch engine {
         case .apple: return Self.appleChunkWidth
-        case .s1Mini, .appLLM: return 2
+        case .s1Mini, .appLLM, .miniCPM: return 2
         }
     }
 
@@ -922,6 +950,18 @@ extension CleanupRouter {
         if apple != .apple {
             failures.append("preferredEngine(apple) was \(apple), expected apple")
         }
+        // MiniCPM takes instructions either way: the grammar switch changes its
+        // prompt, and Apple stays its fallback inside the formatter itself.
+        let miniCPM = preferredEngine(choice: .miniCPM, fixesGrammar: true)
+        if miniCPM != .miniCPM {
+            failures.append("preferredEngine(miniCPM, grammar on) was \(miniCPM), expected miniCPM")
+        }
+        let miniCPMPunctuation = preferredEngine(choice: .miniCPM, fixesGrammar: false)
+        if miniCPMPunctuation != .miniCPM {
+            failures.append(
+                "preferredEngine(miniCPM, grammar off) was \(miniCPMPunctuation), expected miniCPM"
+            )
+        }
 
         let onDevice = makeSemantic(
             .appLLM,
@@ -1101,6 +1141,8 @@ extension CleanupRouter {
         failures += await structureThroughRouterFailures()
         failures += await structurePlanFailures()
         failures += CleanupGuard.selfTestFailures()
+        failures += RuleBasedFormatter.selfTestFailures()
+        failures += await MiniCPMCleanupFormatter.selfTestFailures()
         failures += salvageFailures()
         failures += traceFailures()
         failures += await prewarmTraceFailures()
@@ -2039,6 +2081,143 @@ extension CleanupRouter {
         }
         if good.corroborationFailure(sentences: sentences) != nil {
             failures.append("the four items the speaker really announced were not corroborated")
+        }
+
+        // Extractive corroboration: the model quotes the speaker's own announcing
+        // words, and the quote is checked against the sentence — in whatever language
+        // was spoken, with no lexicon. The fixture is French throughout, with no
+        // English opener anywhere, so the legacy check cannot be what accepts it.
+        let french = [
+            "Voici comment je vois la sortie de crise.",
+            "Premièrement, on gèle les embauches jusqu'en janvier.",
+            "Deuxièmement, on reporte le déménagement du bureau.",
+            "Enfin, on prévient les clients avant vendredi.",
+            "C'est tout pour moi.",
+        ]
+        let frenchPlan = StructurePlan(blocks: [
+            .init(kind: .prose, from: 1, to: 1),
+            .init(
+                kind: .numbered, from: 2, to: 4,
+                itemStarts: [2, 3, 4],
+                stripWords: [1, 1, 1],
+                announcerQuotes: ["Premièrement,", "Deuxièmement,", "Enfin,"]
+            ),
+            .init(kind: .prose, from: 5, to: 5),
+        ])
+        if frenchPlan.rejection(sentenceCount: french.count) != nil {
+            failures.append("a well-formed quoted plan was rejected on shape")
+        }
+        if frenchPlan.corroborationFailure(sentences: french) != nil {
+            failures.append("verified French announcements did not corroborate the list")
+        }
+        // The same plan with no quotes must fall back to the English check — and fail
+        // it, because there is no English opener here. This is the assertion that the
+        // quotes did the work above rather than something else.
+        let unquoted = StructurePlan(blocks: [
+            .init(kind: .prose, from: 1, to: 1),
+            .init(kind: .numbered, from: 2, to: 4, itemStarts: [2, 3, 4]),
+            .init(kind: .prose, from: 5, to: 5),
+        ])
+        if unquoted.corroborationFailure(sentences: french) == nil {
+            failures.append("a French list with no quotable announcement was corroborated anyway")
+        }
+        guard let frenchRendered = frenchPlan.rendered(sentences: french, target: markdownApp) else {
+            failures.append("a corroborated quoted plan rendered nothing")
+            return failures
+        }
+        for needle in ["1. On gèle les embauches", "2. On reporte le déménagement", "3. On prévient les clients"]
+        where !frenchRendered.text.contains(needle) {
+            failures.append("the rendered French layout is missing \(needle.debugDescription)")
+        }
+        for needle in ["Premièrement", "Deuxièmement", "Enfin,"] where frenchRendered.text.contains(needle) {
+            failures.append("the rendered French layout kept its announcement \(needle.debugDescription)")
+        }
+        // A fabricated announcement is not the speaker's words, so it verifies against
+        // nothing: two of three quotes invented leaves one corroborated item of three,
+        // below the two the bar asks for.
+        let fabulated = StructurePlan(blocks: [
+            .init(kind: .prose, from: 1, to: 1),
+            .init(
+                kind: .numbered, from: 2, to: 4,
+                itemStarts: [2, 3, 4],
+                announcerQuotes: ["Blah,", "Blah blah,", "Enfin,"]
+            ),
+            .init(kind: .prose, from: 5, to: 5),
+        ])
+        if fabulated.rejection(sentenceCount: french.count) != nil {
+            failures.append("a fabulated-quote plan was rejected on shape instead of evidence")
+        }
+        if fabulated.corroborationFailure(sentences: french) == nil {
+            failures.append("invented announcements corroborated a list")
+        }
+        if fabulated.rendered(sentences: french, target: markdownApp) != nil {
+            failures.append("a list backed by invented announcements was rendered anyway")
+        }
+        // A verified quote outranks the model's own count: the plan below asks to
+        // strip nothing, but the quoted announcements are really there, so they go.
+        let quoteWins = StructurePlan(blocks: [
+            .init(kind: .prose, from: 1, to: 1),
+            .init(
+                kind: .numbered, from: 2, to: 4,
+                itemStarts: [2, 3, 4],
+                stripWords: [0, 0, 0],
+                announcerQuotes: ["Premièrement,", "Deuxièmement,", "Enfin,"]
+            ),
+            .init(kind: .prose, from: 5, to: 5),
+        ])
+        guard let quoteWinsRendered = quoteWins.rendered(sentences: french, target: markdownApp) else {
+            failures.append("a quoted plan with zero strip counts rendered nothing")
+            return failures
+        }
+        for needle in ["1. On gèle les embauches", "3. On prévient les clients"]
+        where !quoteWinsRendered.text.contains(needle) {
+            failures.append(
+                "verified quotes did not outrank zero strip counts: "
+                    + "missing \(needle.debugDescription)"
+            )
+        }
+        // And the reverse: an unverified quote moves no count. The plan below is
+        // accepted the legacy way — English openers — while carrying a fabricated
+        // quote on its first item, so the first item must render whole.
+        let quoteLoses = StructurePlan(blocks: [
+            .init(kind: .prose, from: 1, to: firstItem - 1),
+            .init(
+                kind: .numbered,
+                from: firstItem,
+                to: signOff - 1,
+                itemStarts: [firstItem, secondItem, thirdItem, fourthItem],
+                stripWords: [0, 3, 2, 4],
+                announcerQuotes: ["Blah blah,", "", "", ""]
+            ),
+            .init(kind: .prose, from: signOff, to: sentences.count),
+        ])
+        guard let quoteLosesRendered = quoteLoses.rendered(
+            sentences: sentences, target: markdownApp
+        ) else {
+            failures.append("a legacy-accepted plan with one bad quote rendered nothing")
+            return failures
+        }
+        if !quoteLosesRendered.text.contains("1. Let's see how we can improve the graph") {
+            failures.append("an unverified quote stripped words the count had kept")
+        }
+        // The quote check itself, apart from any plan.
+        let quoteChecks: [(String, String, Bool)] = [
+            ("Premièrement,", french[1], true),
+            ("the second THING", "The second thing, the skills need more room.", true),
+            ("", french[1], false),
+            (french[1], french[1], false),
+            ("Blah blah,", french[1], false),
+            ("les embauches jusqu'en janvier et bien plus encore demain", french[1], false),
+        ]
+        for (quote, sentence, expected) in quoteChecks
+        where StructurePlan.quoteVerifies(quote, against: sentence) != expected {
+            failures.append(
+                "quoteVerifies(\(quote.debugDescription)) was \(!expected), expected \(expected)"
+            )
+        }
+        // Re-mapping carries the quotes with the items they belong to.
+        if frenchPlan.remapped(from: french, to: french) != frenchPlan {
+            failures.append("re-mapping a quoted plan onto the same sentences changed it")
         }
 
         // End to end through the router, which is the only place that can prove the plan
@@ -3046,23 +3225,41 @@ extension CleanupRouter {
             let fixesGrammar: Bool
             let s1Downloaded: Bool
             let appleAvailable: Bool
+            let miniCPMDownloaded: Bool
             let expected: Set<LaunchWarmup.Action>
         }
         let rows: [Row] = [
             // The decision table: what `applicationDidFinishLaunching` must do exactly.
             Row(id: "cleanup off", cleanupEnabled: false, choice: .s1Mini, fixesGrammar: true,
-                s1Downloaded: true, appleAvailable: true, expected: []),
+                s1Downloaded: true, appleAvailable: true, miniCPMDownloaded: true, expected: []),
             Row(id: "s1, grammar off", cleanupEnabled: true, choice: .s1Mini, fixesGrammar: false,
-                s1Downloaded: true, appleAvailable: true, expected: [.loadS1Mini]),
+                s1Downloaded: true, appleAvailable: true, miniCPMDownloaded: true,
+                expected: [.loadS1Mini]),
             Row(id: "s1, grammar on", cleanupEnabled: true, choice: .s1Mini, fixesGrammar: true,
-                s1Downloaded: true, appleAvailable: true, expected: [.warmApple]),
+                s1Downloaded: true, appleAvailable: true, miniCPMDownloaded: true,
+                expected: [.warmApple]),
             Row(id: "apple choice", cleanupEnabled: true, choice: .apple, fixesGrammar: true,
-                s1Downloaded: true, appleAvailable: true, expected: [.warmApple]),
+                s1Downloaded: true, appleAvailable: true, miniCPMDownloaded: true,
+                expected: [.warmApple]),
+            // MiniCPM loads when routed and the file is here; Apple warms beside
+            // it either way as its fallback. Nothing loads for a file that is not.
+            Row(id: "minicpm choice", cleanupEnabled: true, choice: .miniCPM, fixesGrammar: true,
+                s1Downloaded: true, appleAvailable: true, miniCPMDownloaded: true,
+                expected: [.warmApple, .loadCleanupModel]),
+            Row(id: "minicpm, grammar off", cleanupEnabled: true, choice: .miniCPM,
+                fixesGrammar: false, s1Downloaded: true, appleAvailable: true,
+                miniCPMDownloaded: true, expected: [.warmApple, .loadCleanupModel]),
+            Row(id: "minicpm not downloaded", cleanupEnabled: true, choice: .miniCPM,
+                fixesGrammar: true, s1Downloaded: true, appleAvailable: true,
+                miniCPMDownloaded: false, expected: [.warmApple]),
+            Row(id: "minicpm, apple unavailable", cleanupEnabled: true, choice: .miniCPM,
+                fixesGrammar: true, s1Downloaded: true, appleAvailable: false,
+                miniCPMDownloaded: true, expected: [.loadCleanupModel]),
             // The two absence variants.
             Row(id: "s1 not downloaded", cleanupEnabled: true, choice: .s1Mini, fixesGrammar: false,
-                s1Downloaded: false, appleAvailable: true, expected: []),
+                s1Downloaded: false, appleAvailable: true, miniCPMDownloaded: true, expected: []),
             Row(id: "apple unavailable", cleanupEnabled: true, choice: .apple, fixesGrammar: true,
-                s1Downloaded: true, appleAvailable: false, expected: []),
+                s1Downloaded: true, appleAvailable: false, miniCPMDownloaded: true, expected: []),
         ]
         func describe(_ set: Set<LaunchWarmup.Action>) -> String {
             guard !set.isEmpty else { return "[]" }
@@ -3074,11 +3271,32 @@ extension CleanupRouter {
                 choice: row.choice,
                 fixesGrammar: row.fixesGrammar,
                 s1Downloaded: row.s1Downloaded,
-                appleAvailable: row.appleAvailable
+                appleAvailable: row.appleAvailable,
+                miniCPMDownloaded: row.miniCPMDownloaded
             )
             if gave != row.expected {
                 failures.append(
                     "launch warm-up: \(row.id) gave \(describe(gave)), expected \(describe(row.expected))"
+                )
+            }
+        }
+
+        // The residency rule beside the launch table: MiniCPM keeps its weights
+        // only while routed, switched on, and present. Anything else unloads on
+        // the idle timer like every other model.
+        let residency: [(String, CleanupEngineChoice, Bool, Bool, Bool)] = [
+            ("routed and present", .miniCPM, true, true, true),
+            ("cleanup off", .miniCPM, false, true, false),
+            ("another engine", .apple, true, true, false),
+            ("file absent", .miniCPM, true, false, false),
+        ]
+        for (id, choice, enabled, downloaded, expected) in residency {
+            let stays = MiniCPMModels.staysResident(
+                choice: choice, cleanupEnabled: enabled, downloaded: downloaded
+            )
+            if stays != expected {
+                failures.append(
+                    "launch warm-up: residency \(id) was \(stays), expected \(expected)"
                 )
             }
         }
@@ -3135,7 +3353,7 @@ extension CleanupRouter {
     }
 
     private static let leftoverFillers: Set<String> = [
-        "um", "uh", "erm", "uhm", "hmm", "mhm"
+        "um", "uh", "erm", "uhm", "hmm", "mhm", "heu", "euh"
     ]
 
     private static func isDisfluent(_ text: String) -> Bool {

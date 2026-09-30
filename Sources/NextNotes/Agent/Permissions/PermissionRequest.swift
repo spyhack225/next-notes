@@ -85,5 +85,10 @@ struct PermissionRequest: Identifiable, Sendable, Equatable, Codable {
 enum PermissionDecision: Sendable, Equatable {
     case allow
     case ask(PermissionRequest)
+    /// IM-12 — confirmed on the Mac's own card, never over iMessage. The broker
+    /// returns this for band 3 (irreversible, money-shaped, credential-adjacent);
+    /// IM-13 must not satisfy it from the phone. Until IM-13 exists every approval
+    /// is a local card anyway, so the executor treats it exactly like `.ask`.
+    case askLocal(PermissionRequest)
     case deny(String)
 }

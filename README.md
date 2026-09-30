@@ -164,6 +164,25 @@ Restart Next Notes after granting Accessibility. Then hold **Right ⌥** and tal
 
 ### Optional OpenRouter models
 
+**Model ownership direction (2026-09-30; shared-file integration planned):** Meetings, Agent
+and dictation cleanup keep independent model choices. They reuse a single verified
+model file when they select the exact same artifact; different versions or
+quantizations are separate files. Module setup offers only missing files, and turning
+one module off keeps files another module or running job needs. Cloud consent stays
+specific to the workload. Dictation cleanup offers MiniCPM5-2B as a picker row since
+2026-09-30, with Apple guarding and falling back from the original transcript —
+decided by the head-to-head in `Tests/Reports/MODEL-COMPARE-CLEANUP-2026-09-30.md`
+(MiniCPM5-2B 3/42 assertions at 0.59 s median vs Apple 0/42 at 3.03 s, Qwen3-4B 8/42
+at 1.61 s). The current implementation still selects Apple for an unset fresh-install
+preference. The owner's requested direction is MiniCPM as the preferred cleanup
+default when its verified file is available, with Apple providing the no-download
+fallback when it is absent or cannot safely run. Preserve existing explicit choices;
+the cleanup executor must pin that default behavior in its tests. The agent model is untouched by all of this: cleanup pins its own
+file and the agent role resolves exactly as before.
+This direction does not claim the shared-file resolver or module activation gates have shipped.
+The implementation contracts live in the local SHARED-BRAIN and MODULES-ACTIVATION
+roadmaps; the existing runtime's residency limits still apply during migration.
+
 In Settings ▸ Models, enter an OpenRouter API key. It is stored in the macOS Keychain.
 Then choose OpenRouter separately in Settings ▸ Agent and Settings ▸ Meetings. Each model
 picker searches OpenRouter's live catalog and filters by text output, tool support,
@@ -386,6 +405,7 @@ Sources/NextNotes/
 │   ├── TextFormatter.swift         protocol + RuleBasedFormatter
 │   ├── FoundationModelFormatter.swift
 │   ├── S1MiniFormatter.swift       local llama.cpp cleanup
+│   ├── MiniCPMCleanupFormatter.swift MiniCPM5-2B pinned by file, Apple as guard+fallback
 │   ├── FoundationModelCommandProcessor.swift
 │   ├── CleanupInstructions.swift   the cleanup prompt, including the grounding block
 │   ├── SpokenStructure.swift       spoken lists/quotes/code/tables rendered in code, not
@@ -734,7 +754,8 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 #                                         into one PNG — no Screen Recording grant needed
 "$S" --selftest-gws                     # locate `gws`, read its version and auth state
 "$S" --selftest-agent <meeting-dir>     # proposals as JSON; executes nothing
-"$S" --selftest-cleanup [engine]        # rules / apple / s1 / app-llm / chain / all against the eval corpus
+"$S" --selftest-cleanup [engine]        # rules / apple / s1 / app-llm / chain / minicpm / plan /
+#                                         app-llm-compare / all against the eval corpus
 "$S" --selftest-dictation               # every way a hold can go wrong still ends at idle
 "$S" --selftest-dictation-hygiene       # history appends in memory, retention is opt-in, the
 #                                         clipboard survives a copy made during the restore
@@ -1157,7 +1178,9 @@ Both engines feed the same cleanup, dictionary, history, and injection pipeline.
   handles false starts, spoken self-corrections, paragraphing, and list formatting. S1-mini
   by Superwhisper is an embedded open-weight transcript normalizer; Next Notes downloads its
   462 MiB Q4 model once, verifies its SHA-256 digest, and runs it through the bundled
-  llama.cpp runtime with no network request during formatting. Both fall back to the
+  llama.cpp runtime with no network request during formatting. MiniCPM 5 is the third row:
+  a pinned 1.56 GB file that answers cleanup in about half a second, with Apple checking
+  its answer and answering instead when it cannot. Both fall back to the
   deterministic pass when unavailable or unsuccessful.
  - **Cleanup controls** expose five user-facing tone positions, list formatting, and a
    general/email context. S1-mini natively has four controls, so Balanced maps to its

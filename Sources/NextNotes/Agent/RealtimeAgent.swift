@@ -5,6 +5,11 @@ enum AgentUtteranceSource: String, Sendable {
     case voice
     case text
     case meeting
+    /// A turn that arrived over the paired iMessage self-channel (IM-11). A third
+    /// case, never the voice branch: every voice gate in `handle` reads
+    /// `source == .voice`, so a remote turn is answered by text and never spoken
+    /// aloud on the Mac.
+    case iMessage
 }
 
 struct AgentTurn: Sendable {

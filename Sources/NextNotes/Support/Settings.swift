@@ -22,11 +22,13 @@ enum SpeechEngineChoice: String, CaseIterable, Sendable {
 enum CleanupEngineChoice: String, CaseIterable, Sendable {
     case apple
     case s1Mini
+    case miniCPM
 
     var displayName: String {
         switch self {
         case .apple: "Apple Foundation Model"
         case .s1Mini: "S1-mini by Superwhisper"
+        case .miniCPM: "MiniCPM 5"
         }
     }
 }
@@ -361,7 +363,7 @@ final class Settings {
         didSet { defaults.set(cleanupEnabled, forKey: Keys.cleanupEnabled) }
     }
 
-    /// Choose between the two entirely local semantic cleanup engines.
+    /// Choose between the entirely local semantic cleanup engines.
     var cleanupEngine: CleanupEngineChoice {
         didSet { defaults.set(cleanupEngine.rawValue, forKey: Keys.cleanupEngine) }
     }
@@ -378,6 +380,12 @@ final class Settings {
     /// the 28 evaluation cases, Apple returned 19 clean against the app LLM's 14
     /// (Qwen3.5-4B at the time), at a warm median
     /// of 0.686s against 7.41s. See `--selftest-cleanup apple-grammar`.
+    ///
+    /// The 2026-09-30 head-to-head (`--selftest-cleanup app-llm-compare`, 42
+    /// cases) moved the picture: MiniCPM5-2B answers 39 clean at 0.59 s median
+    /// against Apple's 42 at 3.03 s — the speed-for-quality trade, not a sweep.
+    /// MiniCPM is a picker row for that reason; Apple stays the default for the
+    /// reason above it. This switch only names the grammar-capable default path.
     var cleanupFixesGrammar: Bool {
         didSet { defaults.set(cleanupFixesGrammar, forKey: Keys.cleanupFixesGrammar) }
     }
@@ -1233,6 +1241,10 @@ final class Settings {
             ?? PushToTalkKey.rightCommand.rawValue
         commandModeKey = PushToTalkKey(rawValue: commandRaw) ?? .rightCommand
         // Apple by default: no download, no dependency, live text while speaking.
+        // MiniCPM joins the picker but is not the fresh default: it needs a
+        // 1.56 GB file no fresh Mac has, and the Models tab does not offer it
+        // yet — a default nobody can fulfil is a picker row that lies. Picking
+        // it without the file simply runs Apple until the file arrives.
         engine = SpeechEngineChoice(rawValue: defaults.string(forKey: Keys.engine) ?? "") ?? .apple
         cleanupEnabled = defaults.object(forKey: Keys.cleanupEnabled) as? Bool ?? true
         cleanupFixesGrammar = defaults.object(forKey: Keys.cleanupFixesGrammar) as? Bool ?? true

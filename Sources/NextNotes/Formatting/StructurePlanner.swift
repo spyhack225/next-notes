@@ -35,6 +35,9 @@ struct StructurePlanDraft {
 
         @Guide(description: "For numbered or bulleted only: for each item, how many words at the start of its first sentence are only the spoken announcement and not content. 0 when the item starts straight into content, never more than 8. Leave empty for every other kind.")
         var stripWords: [Int]
+
+        @Guide(description: "For numbered or bulleted only: for each item, the exact spoken words announcing it, quoted word for word in whatever language was spoken — 'The second thing,', 'Premièrement,'. Empty string when the item starts straight into content. Never more than 8 words. Leave empty for every other kind.")
+        var announcerQuotes: [String]
     }
 
     @Guide(description: "The blocks, in sentence order, covering every sentence exactly once.")
@@ -49,7 +52,8 @@ extension StructurePlanDraft {
                 from: block.from,
                 to: block.to,
                 itemStarts: block.itemStarts,
-                stripWords: block.stripWords
+                stripWords: block.stripWords,
+                announcerQuotes: block.announcerQuotes
             )
         })
     }

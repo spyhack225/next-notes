@@ -3,10 +3,21 @@ import Foundation
 /// IM-09 — the Apple Event that sends a message, built in-process.
 ///
 /// **In-process, and the reason is the predecessor's own principle.** `osascript` is on
-/// `Shell/ShellExecutor.swift`'s `privilegedPrefixes`, so a send through it would demand
-/// approval on *every message* — which is the "no scripting" principle violated by its
-/// own policy. `NSAppleEventDescriptor` builds the event in-process, and the TCC
-/// Automation grant is a one-time prompt.
+/// `Shell/ShellExecutor.swift`'s `privilegedPrefixes`, so a send through the shell
+/// would demand approval on *every message*. `NSAppleScript` runs in-process under
+/// the one-time Automation grant — the same TCC posture as a raw descriptor, without
+/// a shell in the path.
+///
+/// ## Why AppleScript and not a raw descriptor
+///
+/// The raw-descriptor construction was tried first and measured twice: a hand-built
+/// participant record answers `-1700` on a reply-bearing `get`, and a `send` built
+/// on it dispatches without error and delivers nothing — which a `.noReply` send
+/// cannot report and only the row-watch caught. An AERecord is not an object
+/// specifier, and guessing at its internals per send attempt is how the app spams
+/// its owner. `--imessage-address-probe` asks Messages with reads only, and
+/// `exists participant "<handle>"` resolves while `exists participant id
+/// "<handle>"` does not — so the send below is the by-name form the probe proved.
 ///
 /// ## The dictionary terms, verified by IM-02
 ///
@@ -22,84 +33,50 @@ import Foundation
 /// </command>
 /// ```
 ///
-/// The `code` is `ichtsend` — four characters, and the `to` parameter's code is `TO  `
-/// (with two trailing spaces, which is how Apple pads a four-character code). These are
-/// the terms IM-02 verified, and they were renamed at least once when group chats landed.
-///
 /// ## Addressing a participant, not a chat
 ///
 /// A `chat.guid` is not an address (IM-02's finding). A self-conversation is reachable
-/// only as a **participant** addressed by its handle. So the event's `to` parameter is a
-/// participant reference, and the handle is the user's own number.
+/// only as a **participant** addressed by its handle. So the event sends to the
+/// participant the probe resolved, and the handle is the user's own number.
 enum MessagesAppleEvent {
-    /// The `send` command's Apple Event code. Four characters, verified by IM-02.
-    static let sendCommandCode = FourCharCode("ichtsend")
-    /// The `to` parameter's code. `TO  ` with two trailing spaces, as Apple pads it.
-    static let toParameterCode = FourCharCode("TO  ")
-    /// The `participant` class code.
-    static let participantClassCode = FourCharCode("part")
-
-    /// Builds the Apple Event for a send.
-    ///
-    /// - Parameters:
-    ///   - text: the message body.
-    ///   - handle: the participant's handle (the user's own number for a self-conversation).
-    /// - Returns: the event, or nil when the descriptor cannot be built.
-    static func sendEvent(text: String, toHandle handle: String) -> NSAppleEventDescriptor? {
-        // The target is Messages.app, by its bundle identifier.
-        let target = NSAppleEventDescriptor(bundleIdentifier: "com.apple.MobileSMS")
-
-        // The event: `send` with a `to` parameter.
-        let event = NSAppleEventDescriptor(
-            eventClass: AEEventClass(sendCommandCode.rawValue),
-            eventID: AEEventID(FourCharCode("send").rawValue),
-            targetDescriptor: target,
-            returnID: AEReturnID(kAutoGenerateReturnID),
-            transactionID: AETransactionID(kAnyTransactionID))
-
-        // The direct parameter: the text.
-        event.setParam(NSAppleEventDescriptor(string: text),
-                                forKeyword: AEKeyword(keyDirectObject))
-
-        // The `to` parameter: a participant reference by handle.
-        let participant = NSAppleEventDescriptor(
-            eventClass: AEEventClass(participantClassCode.rawValue),
-            eventID: AEEventID(FourCharCode("part").rawValue),
-            targetDescriptor: nil,
-            returnID: AEReturnID(kAutoGenerateReturnID),
-            transactionID: AETransactionID(kAnyTransactionID))
-        participant.setParam(NSAppleEventDescriptor(string: handle),
-                                      forKeyword: AEKeyword(FourCharCode("ID  ").rawValue))
-        event.setParam(participant, forKeyword: AEKeyword(toParameterCode.rawValue))
-
-        return event
-    }
-
-    /// Sends the event and returns the result.
+    /// Sends the message and returns the result.
     ///
     /// - Returns: `.sent` on success, `.failed(reason)` on failure with a person-readable
     ///   reason — never a raw Apple Event error number.
     static func send(text: String, toHandle handle: String) async -> OutboundDispatchResult {
-        guard let event = sendEvent(text: text, toHandle: handle) else {
-            return .failed(reason: "Next can receive your messages but can't reply yet. Open Next Notes on your Mac to finish Messages permission.")
+        let source = """
+        with timeout of 30 seconds
+        tell application "Messages" to send "\(literal(text))" to participant "\(literal(handle))"
+        end timeout
+        """
+        // Main actor, like `--imessage-send-path`: AppleScript executes on the calling
+        // thread, and the component is not safe to drive from a pool thread. The
+        // `with timeout` bounds the block at 30 seconds either way.
+        let outcome = await MainActor.run { () -> OutboundDispatchResult in
+            var error: NSDictionary?
+            NSAppleScript(source: source)?.executeAndReturnError(&error)
+            guard let error else { return .sent }
+            let number = (error[NSAppleScript.errorNumber] as? Int) ?? 0
+            if number == -1743 {
+                return .failed(reason: "Next can receive your messages but can't reply yet. Open Next Notes on your Mac to finish Messages permission.")
+            }
+            return .failed(reason: "Next couldn't send that just now. Check the conversation before trying again — it may have gone out anyway.")
         }
-        do {
-            _ = try event.sendEvent(options: [.noReply], timeout: 30)
-            return .sent
-        } catch {
-            return .failed(reason: "Next can receive your messages but can't reply yet. Open Next Notes on your Mac to finish Messages permission.")
-        }
+        return outcome
     }
-}
 
-/// FourCharCode is a four-character Apple Event code. A struct rather than a typealias
-/// so the codes are checked at compile time.
-struct FourCharCode: RawRepresentable {
-    let rawValue: UInt32
-    init(_ string: String) {
-        rawValue = string.utf8.reduce(0) { ($0 << 8) | UInt32($1) }
+    /// An AppleScript string literal. Three replacements and no more: a backslash or a
+    /// quote would end the literal (or start an interpolation the owner did not write),
+    /// and a newline cannot sit inside one, so it becomes a `return` concatenation.
+    /// Pure, so the self-test can pin it without Messages, a grant or a send.
+    static func literal(_ value: String) -> String {
+        var out = value.replacingOccurrences(of: "\\", with: "\\\\")
+        out = out.replacingOccurrences(of: "\"", with: "\\\"")
+        out = out.replacingOccurrences(of: "\r\n", with: "\" & return & \"")
+        out = out.replacingOccurrences(of: "\r", with: "\" & return & \"")
+        out = out.replacingOccurrences(of: "\n", with: "\" & return & \"")
+        return out
     }
-    init(rawValue: UInt32) { self.rawValue = rawValue }
 }
 
 /// The result of a send. A typed outcome, never a raw error number.

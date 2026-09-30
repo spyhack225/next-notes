@@ -26,7 +26,7 @@ BLOBBODY="blob:0001"
 
 ALL_CASES="basic-text self-message direct-message group-message sms voice-note \
 voice-note-unlabelled reply reaction edit unsend delayed-attachment-join \
-empty-attributed-body both-paths"
+empty-attributed-body both-paths send-verify"
 
 case_purpose() {
     case $1 in
@@ -58,6 +58,8 @@ case_purpose() {
             printf 'IM-05: text NULL, attributedBody a non-typedstream sentinel' ;;
         both-paths)
             printf 'IM-05: one sentence twice in one chat, text on one row, attributedBody on the other' ;;
+        send-verify)
+            printf 'IM-10: two from-me rows in the self-chat, one sent-but-undelivered, one delivered' ;;
         *) printf '' ;;
     esac
 }
@@ -97,6 +99,25 @@ case_self_message() {
 
     msg ROWID=1 guid=FIXTURE-SELF-0001 handle_id=1 text='FIXTURE-SELF-BODY-1' is_from_me=1
     msg ROWID=2 guid=FIXTURE-SELF-0002 handle_id=1 text='FIXTURE-SELF-BODY-2' is_from_me=0
+
+    chat_message 1 1
+    chat_message 1 2
+}
+
+# IM-10's verification rows: two from-me sends in the self-chat with different
+# delivery states. Row 1 was accepted but never delivered (is_sent=0,
+# is_delivered=0) — it must verify as landed, never delivered. Row 2 carries
+# is_delivered=1 — the only shape that verifies as delivered. Bodies are
+# FIXTURE-* strings, never sentences, like every other case in this file.
+case_send_verify() {
+    handle_row ROWID=1 id=+15550000000 uncanonicalized_id=+15550000000 \
+        person_centric_id=REDACTED-SELF
+    chat_row ROWID=1 guid='iMessage;-;+15550000000' \
+        chat_identifier=+15550000000 display_name=REDACTED-SELF
+    chat_handle 1 1
+
+    msg ROWID=1 guid=FIXTURE-SEND-0001 handle_id=1 text='FIXTURE-SEND-UNDELIVERED' is_from_me=1 is_sent=0 is_delivered=0
+    msg ROWID=2 guid=FIXTURE-SEND-0002 handle_id=1 text='FIXTURE-SEND-DELIVERED' is_from_me=1 is_sent=1 is_delivered=1
 
     chat_message 1 1
     chat_message 1 2

@@ -90,7 +90,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-notes <wav> [--diarize]         --selftest-notes-context
 --selftest-llm-metal
 --selftest-island    --selftest-orb        --selftest-gws
---selftest-agent <meeting-dir>             --selftest-cleanup [engine]
+--selftest-agent <meeting-dir>             --selftest-cleanup [engine|plan|app-llm-compare]
 --selftest-dictation --selftest-calls      --selftest-axreadback
 --selftest-dictation-hygiene
 --selftest-learn     --selftest-context [bundle-id]
@@ -146,7 +146,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-imessage-decode
 --selftest-imessage-watch  --selftest-imessage-class
 --selftest-imessage-loop
---selftest-imessage-pairing
+--selftest-imessage-pairing  --selftest-imessage-format
 --selftest-residency
 --selftest-cleanup-structure               --selftest-commandkey
 --selftest-tool-review                     --selftest-function-calls [engine-dir]
@@ -452,6 +452,61 @@ never a second ledger.** Durable background work (`agent-jobs.sqlite`, a `TaskEv
 heartbeats, retry and crash recovery) extends `TaskBridge` rather than sitting beside it; see
 `07-PHASE-6-DURABLE-JOBS.md`. Before you add a task type, a delivery path, a tool registry or a
 metrics file, grep for the existing one and read what the executor above you concluded about it.
+
+**Model roles are independent; verified model files are shared (owner decision, 2026-09-30).**
+Meetings, Agent and dictation cleanup may use different appropriate models. Do not make
+`meetingNotes` follow `.agent`, merge their cloud model IDs, or change another role when
+selecting a cleanup engine. Keep role choices in `ModelRoleStore` and cleanup's existing
+settings/`CleanupRouter`; use the existing installed library and downloader for all files.
+Reuse one verified copy of the exact artifact across consumers, including a matching MiniCPM
+file already installed under another basename. Filename, family name or parameter count alone
+is not identity; version/quantization and verified bytes must match. Verify/adopt off the turn
+path, never hash gigabytes per turn. Reuse existing download ownership, not a second queue.
+File availability is not proof of quality for a role. Preserve stored user choices and pick
+recommendations from workload-specific evidence. Cloud permission stays scoped to the workload
+and source: an Agent cloud choice does not authorize sending meeting transcripts or dictation.
+
+The owner chose **MiniCPM5-2B cleanup with Apple as its guard and fallback**; that
+picker implementation is recorded on 2026-09-30 (`CleanupEngineChoice.miniCPM`,
+`MiniCPMCleanupFormatter`, `Tests/Reports/MODEL-COMPARE-CLEANUP-2026-09-30.md`).
+On the owner's dev Mac `modelLibrary.activeAgentModelID` additionally points at the
+MiniCPM5-2B file (`openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf`, library row
+hand-added 2026-09-30, previous value `unsloth/Qwen3-4B-Instruct-2507-GGUF/…`):
+one shared file means cleanup never swaps the runtime, so tails stay resident
+instead of reloading per dictation. Qwen stays on disk; switching back is the
+Models tab ("Use for agent turns", trial-gated) or
+`defaults write ai.pivotstudio.nextnotes modelLibrary.activeAgentModelID -string <id>`.
+The "must not rewrite `activeAgentModelID`" rule below binds silent cleanup reuse,
+not an explicit owner switch recorded here. Local agent turns on MiniCPM are
+unmeasured (`--selftest-toolloop-live --quick` is the gate before relying on them);
+the agent role on this Mac is cloud, so nothing local depends on that answer today.
+MiniCPM preloads at launch when routed (`LaunchWarmup.loadCleanupModel`, 5 s delayed,
+self-tests excluded) and keeps residency past the 10-minute idle timer
+(`MiniCPMModels.staysResident`); memory-pressure eviction still wins. The launch action
+and the preload logs name the role (cleanup model), never the file — swapping the model
+means editing the pin, not chasing its name.
+The current unset preference still defaults to Apple; the requested direction prefers
+MiniCPM when its verified artifact is ready and uses Apple without a forced download
+otherwise. Preserve explicit stored choices and verify this with the cleanup executor.
+The report does not prove shared-file adoption or correct ownership under contention.
+Keep deterministic structure,
+dictionary and grounding safeguards. Apple fallback starts from the original transcript;
+total failure preserves grounded text. Reusing MiniCPM must not rewrite `activeAgentModelID`,
+copy its file into a cleanup-specific folder, or add an always-run model pass or new wait.
+Bind the requested model through inference using the existing runtime ownership seam. An
+awaited selection whose swap was deferred is not proof MiniCPM was acquired: fall back
+promptly rather than execute on a different resident file and label it MiniCPM. No unowned
+select/body/restore race, no eviction of a voice lease, no new per-module runtime. Separate
+contexts/residency require capacity evidence under AGENT-OVERHAUL P3-07. Sharing weights
+never shares prompts, history, KV state or permissions; log the actual engine in `usage.jsonl`.
+
+Module download/storage totals use the union of required artifacts, counted once. A module
+disable/delete offer excludes files needed by another enabled consumer, pending work, runtime
+lease or required fallback. Derive consumers from existing stores and work, not a second
+reference-count ledger. The current implementation's one-file/Agent-centric restrictions
+remain a migration constraint, not the product rule. The authoritative implementation plan is
+`roadmap/todo/SHARED-BRAIN/00-README.md` (name/IDs retained; now independent roles/shared files),
+coordinated with `MODULES-ACTIVATION`. Do not describe planned reuse/gates as shipped.
 
 **A prompt rule is only a rule for the engines that read prompts.** Every grammar, list,
 quotation and per-app formatting instruction lived in `CleanupInstructions.system` — and

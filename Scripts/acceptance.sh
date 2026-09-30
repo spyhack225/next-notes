@@ -216,6 +216,9 @@ INTEGRATION_ENTRIES=(
   # the settings round-trip. INTEGRATION — the decision is pure and the store is
   # a temp directory, so no grant, no device and no live database
   "selftest-imessage-pairing|300"
+  # the agent-name prefix that tells a self-conversation's two authors apart
+  # (IM-13's rule, applied early): pure cases, no grant, no pairing, no store
+  "selftest-imessage-format|300"
   # runs.jsonl appends in memory and retention is opt-in (D-15a), and the
   # clipboard restore never overwrites a copy the user just made (D-15b):
   # a temp directory and a private pasteboard, no grant and no model

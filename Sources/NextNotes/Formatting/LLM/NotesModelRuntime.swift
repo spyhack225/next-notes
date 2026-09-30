@@ -1468,9 +1468,25 @@ actor NotesModelRuntime {
     }
 
     /// Frees the weights and the context if nothing has used them for `interval`.
-    func unloadIfIdle(after interval: TimeInterval = NotesModelRuntime.idleUnload) {
+    ///
+    /// MiniCPM5-2B is exempt while it is the routed cleanup engine: evicting it
+    /// after every quiet stretch replays the cold load on the next dictation,
+    /// which is the wait this exemption exists to remove. Use-driven swaps
+    /// still apply, and memory pressure still evicts unconditionally
+    /// (`noteAndShutdown`) — this skips only the idle timer, never a real need.
+    func unloadIfIdle(after interval: TimeInterval = NotesModelRuntime.idleUnload) async {
         guard conversationLeases.isEmpty, activeOperations == 0, model != nil,
               Date().timeIntervalSince(lastUse) >= interval else { return }
+        if spec.fileURL == MiniCPMModels.fileURL {
+            let stays = await MainActor.run {
+                MiniCPMModels.staysResident(
+                    choice: Settings.shared.cleanupEngine,
+                    cleanupEnabled: Settings.shared.cleanupEnabled,
+                    downloaded: MiniCPMModels.isDownloaded
+                )
+            }
+            guard !stays else { return }
+        }
         // P1-28: the reason goes to `metrics.jsonl` as well as the system log. §12 keeps the
         // 10-minute idle unload, and the cost of that limit is only arguable if the unloads it
         // causes are legible.

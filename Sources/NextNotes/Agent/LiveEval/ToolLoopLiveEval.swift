@@ -21,6 +21,7 @@ enum ToolLoopLiveEval {
     static var needleTurnsForTesting = 0
     static var needleCallsForTesting = 0
     static var needleErrorsForTesting = 0
+    static var needleResponseForTesting: ((String, [FunctionCallTool]) async throws -> NeedleResponse)?
 
     struct ResolvedModel {
         let provider: any LLMProvider
@@ -244,20 +245,15 @@ enum ToolLoopLiveEval {
         let shortlist = matched
         SelfTest.diagnostic("TOOLLOOP_LIVE_NEEDLE_TOOLS "
             + shortlist.map(\.id).joined(separator: ","))
-        let tools = shortlist.map { entry in
-            FunctionCallTool(
-                id: entry.id, description: entry.modelDescription,
-                parameters: entry.parameters.map { parameter in
-                    FunctionCallTool.Parameter(
-                        name: parameter.name, description: parameter.description,
-                        isRequired: parameter.isRequired)
-                })
-        }
+        let tools = needleTools(shortlist)
         let started = ContinuousClock.now
         do {
-            let response = try await NeedleRunner.shared.run(
-                input: request, tools: FunctionCallRelevance.wireTools(for: tools),
-                facts: [])
+            let response: NeedleResponse
+            if let override = needleResponseForTesting {
+                response = try await override(request, tools)
+            } else {
+                response = try await NeedleRunner.shared.run(input: request, tools: tools, facts: [])
+            }
             let seconds = started.duration(to: .now).secondsValue
             if response.success == false {
                 needleErrorsForTesting += 1
@@ -265,25 +261,46 @@ enum ToolLoopLiveEval {
                     + (response.errorCode ?? response.error ?? "engine failed"))
                 return nil
             }
-            guard response.validation?.negation != true,
-                  let call = response.functionCalls.first,
-                  shortlist.contains(where: { $0.id == call.name }) else {
+            guard let call = validatedNeedleCall(response, request: request, shortlist: shortlist) else {
                 SelfTest.diagnostic("TOOLLOOP_LIVE_NEEDLE_TURN none \(String(format: "%.3f", seconds))s")
                 return nil
             }
             needleCallsForTesting += 1
-            let flagged = response.ungroundedArguments(for: call.name)
-            let grounded = call.arguments.filter { !flagged.contains($0.key) }
             SelfTest.diagnostic("TOOLLOOP_LIVE_NEEDLE_TURN \(call.name) "
                 + "confidence=\(String(format: "%.3f", response.confidence ?? 0)) "
                 + "\(String(format: "%.3f", seconds))s")
-            return AgentToolCall(name: call.name, arguments: grounded,
-                                 rationale: "Needle first pass", evidence: nil)
+            return call
         } catch {
             needleErrorsForTesting += 1
             SelfTest.diagnostic("TOOLLOOP_LIVE_NEEDLE_ERROR \(error.localizedDescription)")
             return nil
         }
+    }
+
+    /// Separate from the passive meeting watcher's catalogue: this seam is pinned by
+    /// the production-loop regression test without running either model.
+    static func needleTools(_ shortlist: [AgentCapabilityManifest.Entry]) -> [FunctionCallTool] {
+        let tools = shortlist.map { entry in
+            FunctionCallTool(
+                id: entry.id, description: entry.modelDescription,
+                parameters: entry.parameters.map { parameter in
+                    FunctionCallTool.Parameter(name: parameter.name, description: parameter.description,
+                                               isRequired: parameter.isRequired)
+                })
+        }
+        return FunctionCallRelevance.wireTools(for: tools)
+    }
+
+    static func validatedNeedleCall(
+        _ response: NeedleResponse, request: String, shortlist: [AgentCapabilityManifest.Entry]
+    ) -> AgentToolCall? {
+        guard response.validation?.negation != true,
+              let call = response.functionCalls.first,
+              shortlist.contains(where: { $0.id == call.name }) else { return nil }
+        let flagged = response.ungroundedArguments(for: call.name)
+        return AgentToolCall(name: call.name,
+                             arguments: call.arguments.filter { !flagged.contains($0.key) },
+                             rationale: "Needle first pass", evidence: nil)
     }
 
     // MARK: - Model resolution

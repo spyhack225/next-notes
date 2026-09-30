@@ -790,6 +790,133 @@ enum MessagesLedgerSelfTest {
             failures.append("bridge: threw \(error)")
         }
 
+        // MARK: - IM-11: the adapter
+
+        do {
+            let turns = TurnCollector()
+            let adapter = IMessageInteractionAdapter(
+                record: { await turns.record($0) },
+                perform: { await turns.perform($0) })
+            let im11Session = UUID()
+            let im11Chat = "iMessage;-;+15550000000"
+            let directClassification = IMessageClassifier.classify(
+                body: .text("Do the thing", discardedBytes: 0),
+                isFromMe: false, sender: .localNumber, echo: .notOurEcho)
+            let directCandidate = RemoteCandidate(
+                text: "Do the thing", classification: directClassification,
+                envelope: IMessageEnvelope(
+                    rowID: 11, guid: "g11", date: 0, isFromMe: false, service: "iMessage",
+                    body: .text("Do the thing", discardedBytes: 0), source: .textColumn))
+
+            // 5. A candidate is recorded exactly once and performed as `.iMessage` —
+            // and `.iMessage` is not `.voice`. The no-TTS half is structural:
+            // `handle` gates speech on `source == .voice` (the TTS, work, duplicate
+            // and delivery checks), so a turn carrying `.iMessage` cannot speak. The
+            // test pins the adapter's half — the source it hands over — and the
+            // comment pins the other.
+            await check("a candidate is recorded once and performed as .iMessage") {
+                _ = await adapter.adopt(directCandidate, chatGUID: im11Chat, currentSession: im11Session)
+                guard await turns.recorded == ["Do the thing"] else {
+                    return "recorded \(await turns.recorded.count) memory rows"
+                }
+                let performed = await turns.performed
+                guard performed.count == 1 else {
+                    return "performed \(performed.count) turns"
+                }
+                let turn = performed[0]
+                guard turn.source == .iMessage, turn.source != .voice else {
+                    return "the turn did not route as .iMessage"
+                }
+                guard turn.text == "Do the thing", turn.chatGUID == im11Chat,
+                      turn.sessionID == im11Session else {
+                    return "the turn lost its text, chat or session"
+                }
+                return nil
+            }
+
+            // 6. An echo never reaches perform: through a bridge wired to the adapter,
+            // a dispatched send's own row produces no memory row and no turn.
+            let echoTurns = TurnCollector()
+            let echoAdapter = IMessageInteractionAdapter(
+                record: { await echoTurns.record($0) },
+                perform: { await echoTurns.perform($0) })
+            let liveDir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("NextNotesSelfTest-live-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true)
+            try? FileManager.default.createDirectory(at: liveDir, withIntermediateDirectories: true)
+            let liveStore = RemoteIdentityStore(directory: liveDir)
+            try? liveStore.update { $0.localIdentity = "+15551234567" }
+            let liveLedger = OutboundMessageLedger(store: IMessageOutboundStore(root: liveDir))
+            let echoBridge = IMessageBridge(ledger: liveLedger, store: liveStore) { candidate in
+                _ = await echoAdapter.adopt(candidate, chatGUID: im11Chat, currentSession: im11Session)
+            } onCard: { _ in }
+            try await check("an echo never reaches perform") {
+                _ = try await liveLedger.recordDispatch(
+                    chatGUID: im11Chat, conversationID: "conv-11",
+                    textDigest: OutboundDigest.text("IM-11 echo body"))
+                let now = OutboundMessageLedger.appleEpochNow
+                await echoBridge.handle(delivery: MessagesWatcherDelivery(
+                    envelope: IMessageEnvelope(
+                        rowID: 12, guid: "g12", date: now, isFromMe: true, service: "iMessage",
+                        body: .text("IM-11 echo body", discardedBytes: 0), source: .textColumn),
+                    resolution: .noneNeeded,
+                    chatGUID: im11Chat,
+                    senderHandle: "+15550000000"))
+                guard await echoTurns.performed.isEmpty else {
+                    return "an echo performed a turn"
+                }
+                return await echoTurns.recorded.isEmpty ? nil : "an echo wrote a memory row"
+            }
+
+            // 7. A live command through the same wiring performs exactly once, as
+            // `.iMessage` with the sender's words.
+            try await check("a command through bridge and adapter performs once") {
+                await echoBridge.handle(delivery: MessagesWatcherDelivery(
+                    envelope: IMessageEnvelope(
+                        rowID: 13, guid: "g13", date: OutboundMessageLedger.appleEpochNow,
+                        isFromMe: false, service: "iMessage",
+                        body: .text("IM-11 live command", discardedBytes: 0), source: .textColumn),
+                    resolution: .noneNeeded,
+                    chatGUID: "iMessage;-;+15551234567",
+                    senderHandle: "+15551234567"))
+                let performed = await echoTurns.performed
+                guard performed.count == 1, performed[0].text == "IM-11 live command",
+                      performed[0].source == .iMessage else {
+                    return "performed \(performed.count) turns"
+                }
+                return nil
+            }
+
+            // 8. Voice-then-text is the same task: two adopts on one chat in one
+            // session share its id, and a new session rebinds instead of addressing
+            // a session that is over.
+            await check("voice-then-text resolves to the same session") {
+                _ = await adapter.adopt(directCandidate, chatGUID: im11Chat, currentSession: im11Session)
+                let sessions = await turns.performed.map(\.sessionID)
+                guard sessions.count == 2, sessions.allSatisfy({ $0 == im11Session }) else {
+                    return "two turns on one chat left their session"
+                }
+                let next = UUID()
+                _ = await adapter.adopt(directCandidate, chatGUID: im11Chat, currentSession: next)
+                let moved = await turns.performed.map(\.sessionID)
+                return moved.last == next ? nil : "a new session did not rebind the chat"
+            }
+
+            // 9. The mapper is bounded: past the limit every chat still resolves to
+            // the current session rather than failing or growing forever.
+            await check("the mapper stays bounded") {
+                var mapper = IMessageConversationMapper()
+                let session = UUID()
+                for index in 0..<(IMessageConversationMapper.bindingLimit + 8) {
+                    guard mapper.resolve(chatGUID: "chat-\(index)", currentSession: session) == session else {
+                        return "chat-\(index) did not resolve to the session"
+                    }
+                }
+                return nil
+            }
+        } catch {
+            failures.append("adapter: threw \(error)")
+        }
+
         // Blocked first, then the wrong lines, then the marker: `writeSelfTest` writes this in a
         // single call while `print` goes through a buffered stream, so the verdict has to be in
         // the returned string to be the last thing a reader sees.
@@ -813,6 +940,19 @@ enum MessagesLedgerSelfTest {
         var firstCandidateText: String? { candidates.first?.text }
         func addCandidate(_ candidate: RemoteCandidate) { candidates.append(candidate) }
         func addCard(_ notice: IMessageLocalNotice) { cards.append(notice) }
+    }
+
+    /// A thread-safe stand-in for the session and the agent, so the adapter cases
+    /// can assert on what was recorded and what was performed without a model, a
+    /// session or a grant.
+    private actor TurnCollector {
+        private(set) var recorded: [String] = []
+        private(set) var performed: [RemoteAgentTurn] = []
+        func record(_ text: String) { recorded.append(text) }
+        func perform(_ turn: RemoteAgentTurn) -> AgentTurn {
+            performed.append(turn)
+            return AgentTurn(reply: "performed", delegated: false)
+        }
     }
 
     /// A candidate for a row carrying exactly the digest a send recorded, in the paired chat.
