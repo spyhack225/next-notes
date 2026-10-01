@@ -39,6 +39,16 @@ final class MeetingSession {
     private(set) var audioProblem: String?
 
     private let store: MeetingStore
+    private let captureHub: AudioCaptureHub
+    typealias AudioWriterFactory = (URL, @escaping @Sendable (String) -> Void) throws -> MeetingAudioWriter
+    private let writerFactory: AudioWriterFactory?
+    private let diskCapacityForTesting: MeetingDiskCapacity?
+    private(set) var healthWarnings: [MeetingHealthIssue] = []
+    private(set) var liveTranscriptPaused = false
+    private var resourceHealthTask: Task<Void, Never>?
+    private var lastResourceCheck: Date?
+    private var lastWrittenFrames = 0
+    private var lastWriteProgressAt: Date?
     private let systemCapture = SystemAudioCapture()
 
     private var micTranscriber: ChunkedTranscriber?
@@ -117,20 +127,28 @@ final class MeetingSession {
         ) else {
             throw MeetingError.noAudioFormat
         }
+        ModelResidencyPolicy.installPressureObserver()
         startedAt = Date()
         startedHostTime = mach_absolute_time()
         lastSpeechAt = startedAt
         meeting.start = startedAt
         meeting.status = .recording
-        store.save(meeting)
+        persistMeeting()
         wireTracks(outputFormat: format)
         hasBegunCapture = true
         try await startSystemTap(outputFormat: format)
     }
 
-    init(meeting: Meeting, store: MeetingStore = .shared) {
+    init(
+        meeting: Meeting, store: MeetingStore = .shared,
+        captureHub: AudioCaptureHub = .shared, writerFactory: AudioWriterFactory? = nil,
+        diskCapacityForTesting: MeetingDiskCapacity? = nil
+    ) {
         self.meeting = meeting
         self.store = store
+        self.captureHub = captureHub
+        self.writerFactory = writerFactory
+        self.diskCapacityForTesting = SelfTest.isRunning ? diskCapacityForTesting : nil
     }
 
     var isRecording: Bool { meeting.status == .recording }
@@ -183,12 +201,14 @@ final class MeetingSession {
             throw MeetingError.noAudioFormat
         }
 
+        ModelResidencyPolicy.installPressureObserver()
         startedAt = Date()
         startedHostTime = mach_absolute_time()
         lastSpeechAt = startedAt
         meeting.start = startedAt
         meeting.status = .recording
-        store.save(meeting)
+        meeting.captureIntegrity = MeetingCaptureIntegrity()
+        persistMeeting()
 
         // Recorded whenever *something* is going to read it back: diarization reads
         // the system channel, and the M-01 final pass re-transcribes both channels
@@ -199,7 +219,9 @@ final class MeetingSession {
         // `live-only:no-audio` and the pipeline continues on the live transcript,
         // and the problem below says so while it is still true.
         let keep = Settings.shared.meetingsKeepAudio
-        let freeBytes = MeetingStore.freeBytes(at: MeetingStore.root)
+        let capacityAtStart = diskCapacityForTesting ?? MeetingDiskCapacity.current(at: store.directory(for: meeting.id))
+        let freeBytes = capacityAtStart.immediateBytes ?? 0
+        if capacityAtStart.immediateBytes == nil { reportHealthIssue(.storageUnknown) }
         let wantsAudio = Self.shouldWriteAudio(
             keep: keep,
             diarize: Settings.shared.meetingsDiarize,
@@ -208,9 +230,9 @@ final class MeetingSession {
         )
         if !wantsAudio,
            keep || Settings.shared.meetingsDiarize || Settings.shared.meetingsFinalPass {
-            audioProblem = "Your Mac is low on storage. This meeting may not be saved."
-            Log.meeting.info("meeting audio skipped: less than 1 GB free")
-            Notifications.shared.postMeetingStorageProblem(meeting: meeting)
+            audioProblem = "A recording could not be saved. This meeting is using the live transcript."
+            Log.meeting.info("meeting audio skipped: immediate storage headroom unavailable")
+            if capacityAtStart.immediateBytes != nil { reportHealthIssue(.storageLow) }
         }
         if wantsAudio {
             let url = store.directory(for: meeting.id).appendingPathComponent(MeetingStore.audioFile)
@@ -223,23 +245,30 @@ final class MeetingSession {
                 // (a disk filling up mid-recording). It stops at its first error and
                 // reports once through the callback below; the meeting keeps going on
                 // the transcript alone.
-                let audioWriter = try MeetingAudioWriter(url: url, onWriteError: { [weak self] _ in
+                let writeError: @Sendable (String) -> Void = { [weak self] _ in
                     Task { @MainActor in
                         guard let self else { return }
-                        self.audioProblem = "This meeting's recording stopped saving. Check your Mac's storage."
-                        Notifications.shared.postMeetingStorageProblem(meeting: self.meeting)
+                        self.captureDrops.setLiveTranscriptionDeferred(false)
+                        self.liveTranscriptPaused = false
+                        var integrity = self.meeting.captureIntegrity ?? .init()
+                        integrity.markAudioWriteFailure()
+                        self.meeting.captureIntegrity = integrity
+                        self.persistMeeting()
+                        self.reportHealthIssue(.audioWriteFailure)
                     }
-                })
+                }
+                let audioWriter = try writerFactory?(url, writeError)
+                    ?? MeetingAudioWriter(url: url, onWriteError: writeError)
                 writer = audioWriter
                 meeting.audioFileName = MeetingStore.audioFile
                 meeting.audioIsTemporary = !keep
                 // Persist the link before capture starts. A force-quit during recording
                 // leaves audio.caf behind; launch repair must know it belongs here.
-                store.save(meeting)
+                persistMeeting()
             } catch {
                 Log.meeting.error("keep-audio disabled for this meeting: \(error.localizedDescription, privacy: .public)")
                 audioProblem = "This meeting's recording could not start saving. Check your Mac's storage."
-                Notifications.shared.postMeetingStorageProblem(meeting: meeting)
+                reportHealthIssue(.audioWriteFailure)
             }
         }
 
@@ -252,12 +281,13 @@ final class MeetingSession {
             let startedAt = self.startedAt
             let startedHostTime = self.startedHostTime
             let captureDrops = self.captureDrops
-            try AudioCaptureHub.shared.subscribe(
+            try captureHub.subscribe(
                 .meeting,
                 outputFormat: format,
                 onBuffer: { [weak self] chunk in
                     let packet = Self.audioPacket(
                         chunk, startedAt: startedAt, startedHostTime: startedHostTime)
+                    captureDrops.observe(packet, from: .mic, beganAt: startedAt)
                     if let result = micContinuation?.yield(packet),
                        case .dropped(let dropped) = result {
                         if captureDrops.addStreamFrames(dropped.samples.count) {
@@ -288,36 +318,24 @@ final class MeetingSession {
         clock = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
-                self.elapsed = Date().timeIntervalSince(self.startedAt)
+                let now = Date()
+                self.elapsed = now.timeIntervalSince(self.startedAt)
+                self.scheduleResourceHealthCheck(now: now)
                 try? await Task.sleep(for: .milliseconds(200))
             }
         }
 
         // Warming Parakeet after capture is running rather than before means the first
         // seconds of the meeting are already on disk while the model loads.
-        Task.detached(priority: .utility) {
-            try? await TranscriptionQueue.shared.warmUp()
-        }
-
-        // The notes model is warmed here rather than at launch, which is the difference
-        // between paying gigabytes of resident memory for the one hour a meeting is happening
-        // and paying it all day for a meeting that might not. It also has to be here rather
-        // than at the end: `NotesModelRuntime` releases the weights after ten idle minutes,
-        // so warming at launch would usually have unloaded them again by the time a meeting
-        // finished. A meeting that has started is the earliest honest signal that notes are
-        // about to be wanted.
-        if Settings.shared.notesAutoGenerate,
-           // Only the built-in choice loads this runtime: Apple Intelligence, a local
-           // server and the cloud need no warm-up, and warming the GGUF for them would
-           // spend gigabytes and seconds on weights nothing will read.
-           ModelRoleStore.shared.resolution(for: .meetingNotes).effective == .builtIn,
-           // Any installed brain, not only the built-in file — a Mac whose only model
-           // came from the library still deserves the warm start.
-           InstalledModelLibrary.shared.hasUsableModel {
-            Task.detached(priority: .background) {
-                try? await NotesModelRuntime.shared.prepare()
+        if !SelfTest.isRunning {
+            Task.detached(priority: .utility) {
+                try? await TranscriptionQueue.shared.warmUp()
             }
         }
+
+        // Notes are wanted at Stop, not at recording start. Do not speculatively
+        // load a language model beside live ASR for a meeting that may last hours.
+        // An explicit Agent/voice request still uses its existing intent warm-up.
 
         Log.meeting.info("recording \"\(self.meeting.title, privacy: .public)\"")
     }
@@ -338,13 +356,18 @@ final class MeetingSession {
         tapRetry = nil
 
         systemCapture.stop()
+        resourceHealthTask?.cancel()
+        resourceHealthTask = nil
         meeting.end = Date()
+        var integrity = meeting.captureIntegrity ?? .init()
+        integrity.normalEndAt = meeting.end
+        meeting.captureIntegrity = integrity
         meeting.status = .transcribing
-        store.save(meeting)
+        persistMeeting()
         // Removing the hub seat immediately would discard converted mic buffers
         // already queued by the callback. Keep the stream open until that delivery
         // worker has handed over every accepted buffer (bounded to three seconds).
-        let hubDrained = await AudioCaptureHub.shared.unsubscribeAndDrain(.meeting)
+        let hubDrained = await captureHub.unsubscribeAndDrain(.meeting)
         if !hubDrained {
             _ = captureDrops.addHubBuffers(1)
             reportCaptureGap()
@@ -386,23 +409,32 @@ final class MeetingSession {
         systemTranscriber = nil
 
         await writer?.finish()
+        if let saved = writer?.resourceSnapshot() { recordSavedAudioCoverage(saved) }
+        if let saved = await writer?.resourceSnapshot(), saved.writtenFrames > 0 {
+            var integrity = meeting.captureIntegrity ?? .init()
+            integrity.recordCaptured(until: startedAt.addingTimeInterval(Double(saved.writtenFrames) / ChunkedTranscriber.sampleRate))
+            meeting.captureIntegrity = integrity
+            persistMeeting()
+        }
         let writerFailed = await writer?.didFail ?? false
         writer = nil
         let lostCapture = captureDrops.hasLoss
         let hasAudio = audioFileHasContent
-        let recoverDroppedAudio = skippedSeconds > 0.01 && hasAudio && !writerFailed
+        let savedAudioComplete = meeting.captureIntegrity?.hasKnownSavedAudioLoss(on: .mic) != true
+            && meeting.captureIntegrity?.hasKnownSavedAudioLoss(on: .system) != true
+        let recoverDroppedAudio = skippedSeconds > 0.01 && hasAudio && !writerFailed && savedAudioComplete
         if Self.hasUnrecoverableLoss(
             capturedDrop: lostCapture,
             skippedSeconds: skippedSeconds,
-            hasAudio: hasAudio,
+            hasAudio: hasAudio && savedAudioComplete,
             writerFailed: writerFailed,
             hasTranscript: !segments.isEmpty,
             audioProblem: audioProblem != nil
         ) {
             audioProblem = "Some speech could not be saved. This meeting's transcript is incomplete."
             meeting.status = .failed("Some speech could not be saved; the transcript is incomplete.")
-            store.save(meeting)
-            Notifications.shared.postMeetingStorageProblem(meeting: meeting)
+            persistMeeting()
+            reportHealthIssue(.captureGap)
         }
 
         // M-16c: an exit path always writes the file, whatever the throttle had pending.
@@ -426,7 +458,7 @@ final class MeetingSession {
             // over that partial file can pass its 60% word threshold and erase the
             // unsaved tail, so notes use the complete live transcript instead.
             meeting.transcriptPass = "live-only:audio-incomplete"
-            store.save(meeting)
+            persistMeeting()
             meeting = MeetingPipeline.afterDiarizing(meeting, store: store)
         } else if !meeting.status.isFailure {
             meeting = MeetingPipeline.afterTranscribing(
@@ -459,7 +491,9 @@ final class MeetingSession {
 
         tapRetry?.cancel()
         tapRetry = nil
-        AudioCaptureHub.shared.unsubscribe(.meeting)
+        resourceHealthTask?.cancel()
+        resourceHealthTask = nil
+        captureHub.unsubscribe(.meeting)
         systemCapture.stop()
         clock?.cancel()
         clock = nil
@@ -469,6 +503,9 @@ final class MeetingSession {
         systemDrain?.cancel()
 
         meeting.end = Date()
+        var integrity = meeting.captureIntegrity ?? .init()
+        integrity.markInterrupted(at: meeting.end!, lastCapturedAt: integrity.lastCapturedAt)
+        meeting.captureIntegrity = integrity
         switch MeetingStore.resumeAction(
             for: .recording,
             hasTranscript: !segments.isEmpty,
@@ -482,7 +519,7 @@ final class MeetingSession {
         // M-16c: a throttle must never cost a crash-recoverable transcript, and this is
         // the path a SIGTERM takes. Whatever the last write had pending is flushed here.
         flushTranscript()
-        store.save(meeting)
+        persistMeeting()
     }
 
     /// Whether the writer has put anything on disk yet. The pass can only recover speech
@@ -549,6 +586,7 @@ final class MeetingSession {
                         onBuffer: { [weak self] chunk in
                             let packet = Self.audioPacket(
                                 chunk, startedAt: startedAt, startedHostTime: startedHostTime)
+                            captureDrops.observe(packet, from: .system, beganAt: startedAt)
                             if let result = continuation?.yield(packet),
                                case .dropped(let dropped) = result,
                                captureDrops.addStreamFrames(dropped.samples.count) {
@@ -626,11 +664,17 @@ final class MeetingSession {
         let micTranscriber = self.micTranscriber
         let systemTranscriber = self.systemTranscriber
         let writer = self.writer
+        let captureDrops = self.captureDrops
         micDrain = Task.detached(priority: .userInitiated) {
             for await packet in micStream {
                 // Audio on disk is the recovery path if the live model falls behind.
-                await writer?.append(packet.samples, from: .mic, startFrame: packet.startFrame)
-                await micTranscriber?.append(packet.samples)
+                let deferred = captureDrops.isLiveTranscriptionDeferred
+                let saved = await writer?.append(packet.samples, from: .mic, startFrame: packet.startFrame, requireWritten: deferred)
+                if deferred, saved == true {
+                    await micTranscriber?.deferForRecovery(throughSample: packet.startFrame + packet.samples.count)
+                } else {
+                    await micTranscriber?.append(packet.samples)
+                }
             }
         }
         systemDrain = Task.detached(priority: .userInitiated) {
@@ -644,8 +688,13 @@ final class MeetingSession {
                     await systemTranscriber?.advanceOrigin(toSample: packet.startFrame)
                     placedOrigin = true
                 }
-                await writer?.append(packet.samples, from: .system, startFrame: packet.startFrame)
-                await systemTranscriber?.append(packet.samples)
+                let deferred = captureDrops.isLiveTranscriptionDeferred
+                let saved = await writer?.append(packet.samples, from: .system, startFrame: packet.startFrame, requireWritten: deferred)
+                if deferred, saved == true {
+                    await systemTranscriber?.deferForRecovery(throughSample: packet.startFrame + packet.samples.count)
+                } else {
+                    await systemTranscriber?.append(packet.samples)
+                }
             }
         }
     }
@@ -665,6 +714,7 @@ final class MeetingSession {
                 onBuffer: { [weak self] chunk in
                     let packet = Self.audioPacket(
                         chunk, startedAt: startedAt, startedHostTime: startedHostTime)
+                    captureDrops.observe(packet, from: .system, beganAt: startedAt)
                     if let result = continuation?.yield(packet), case .dropped(let dropped) = result {
                         if captureDrops.addStreamFrames(dropped.samples.count) {
                             Task { @MainActor in self?.reportCaptureGap() }
@@ -691,6 +741,7 @@ final class MeetingSession {
                 throw MeetingError.startCancelled
             }
             systemAudioProblem = error.localizedDescription
+            reportHealthIssue(.systemUnavailable)
             Log.systemAudio.error("meeting continues on the microphone alone: \(error.localizedDescription, privacy: .public)")
             beginSystemTapRetry(outputFormat: outputFormat)
         }
@@ -719,9 +770,133 @@ final class MeetingSession {
     }
 
     private func reportCaptureGap() {
-        guard [.recording, .transcribing].contains(meeting.status), audioProblem == nil else { return }
-        audioProblem = "Some speech was missed. This meeting's transcript may have gaps."
-        Notifications.shared.postMeetingStorageProblem(meeting: meeting)
+        guard [.recording, .transcribing].contains(meeting.status) else { return }
+        var integrity = meeting.captureIntegrity ?? .init()
+        integrity.markGap()
+        // This is a cumulative snapshot, not a count to add again on later checks.
+        integrity.missingCaptureFrames = max(integrity.missingCaptureFrames, captureDrops.snapshot.streamFrames)
+        meeting.captureIntegrity = integrity
+        persistMeeting()
+        reportHealthIssue(.captureGap)
+    }
+
+    private func scheduleResourceHealthCheck(now: Date) {
+        guard resourceHealthTask == nil,
+              lastResourceCheck.map({ now.timeIntervalSince($0) >= MeetingResourceHealth.interval }) ?? true
+        else { return }
+        lastResourceCheck = now
+        resourceHealthTask = Task { [weak self] in
+            guard let self else { return }
+            await self.checkResourceHealth(now: now)
+            self.resourceHealthTask = nil
+        }
+    }
+
+    /// Called by the live tick and isolated fixtures. Capacity is queried off the
+    /// MainActor; no capture callback waits on a filesystem or memory query.
+    func checkResourceHealth(
+        now: Date = Date(), capacityForTesting: MeetingDiskCapacity? = nil,
+        criticalForTesting: Bool? = nil
+    ) async {
+        guard meeting.status == .recording else { return }
+        let began = Date()
+        let directory = store.directory(for: meeting.id)
+        let injectedCapacity = SelfTest.isRunning ? (capacityForTesting ?? diskCapacityForTesting) : nil
+        let capacity = await Task.detached(priority: .utility) {
+            injectedCapacity ?? MeetingDiskCapacity.current(at: directory)
+        }.value
+        let saved = writer?.resourceSnapshot()
+        let mic = await micTranscriber?.resourceSnapshot()
+        let system = await systemTranscriber?.resourceSnapshot()
+        guard meeting.status == .recording, !Task.isCancelled else { return }
+        if let saved { recordSavedAudioCoverage(saved) }
+        let progress = captureDrops.snapshot
+        if let saved, saved.writtenFrames > lastWrittenFrames {
+            lastWrittenFrames = saved.writtenFrames
+            lastWriteProgressAt = now
+        }
+        let pressure = ModelResidencyPolicy.pressureSnapshot
+        let critical = criticalForTesting ?? (pressure.level == .critical)
+        let healthyCapture = progress.lastMicAt.map { now.timeIntervalSince($0) < MeetingResourceHealth.interval * 2 } ?? false
+        let free = capacity.immediateBytes
+        let writerRecent = lastWriteProgressAt.map {
+            now.timeIntervalSince($0) < MeetingResourceHealth.stallInterval
+        } ?? false
+        let canRecover = saved.map { !$0.writeFailed && $0.writtenFrames > 0 } ?? false
+        let pause = critical && healthyCapture && canRecover
+            && writerRecent
+            && (free.map { $0 >= Self.minimumFreeBytesForAudio } ?? false)
+        captureDrops.setLiveTranscriptionDeferred(pause)
+        liveTranscriptPaused = pause
+        let input = MeetingHealthInput(
+            now: now, beganAt: startedAt, disk: capacity,
+            memoryIsTight: !pressure.allowsOptionalWork || critical,
+            lastMicAt: progress.lastMicAt, lastSystemAt: progress.lastSystemAt,
+            expectsSystem: systemAudioProblem == nil, writerPresent: saved != nil,
+            writerFailed: saved?.writeFailed ?? false, lastWriteProgressAt: lastWriteProgressAt)
+        let issues = MeetingResourceHealth.issues(input)
+        // Risk warnings clear when the condition does. Actual loss remains persisted.
+        healthWarnings.removeAll { !$0.isCaptureFailure && $0 != .audioWriteFailure
+            && $0 != .savedAudioGap
+            && $0 != .transcriptWriteFailure && $0 != .metadataWriteFailure && !issues.contains($0) }
+        for issue in issues { reportHealthIssue(issue) }
+        var integrity = meeting.captureIntegrity ?? .init()
+        if let saved, saved.writtenFrames > 0 {
+            integrity.recordCaptured(until: startedAt.addingTimeInterval(Double(saved.writtenFrames) / ChunkedTranscriber.sampleRate))
+        }
+        if progress.streamFrames > 0 || progress.hubBuffers > 0 {
+            integrity.markGap()
+            integrity.missingCaptureFrames = max(integrity.missingCaptureFrames, progress.streamFrames)
+        }
+        meeting.captureIntegrity = integrity
+        persistMeeting()
+        // Numeric counts only; model/provider attribution stays in usage.jsonl.
+        let queued = (mic?.queuedBytes ?? 0) + (system?.queuedBytes ?? 0)
+        let active = (mic?.activeBytes ?? 0) + (system?.activeBytes ?? 0)
+        let swap = MeetingResourceHealth.swapBytes()
+        let note = "queuedBytes=\(queued) activeBytes=\(active) writerBytes=\(saved.map { $0.writtenFrames * 4 } ?? 0) freeBytes=\(free ?? -1) swapUsed=\(swap.used.map(String.init) ?? "unknown") swapAvailable=\(swap.available.map(String.init) ?? "unknown") pressure=\(pressure.level.rawValue) missedFrames=\(progress.streamFrames) missedBuffers=\(progress.hubBuffers) paused=\(pause ? 1 : 0)"
+        LatencyTrace.record(.meetingResources, seconds: Date().timeIntervalSince(began), note: note)
+    }
+
+    @discardableResult
+    private func persistMeeting() -> Bool {
+        let saved = store.save(meeting)
+        if !saved { reportHealthIssue(.metadataWriteFailure) }
+        return saved
+    }
+
+    private func recordSavedAudioCoverage(_ saved: MeetingAudioWriter.ResourceSnapshot) {
+        guard saved.missingSavedMicFrames > 0 || saved.missingSavedSystemFrames > 0 else { return }
+        var integrity = meeting.captureIntegrity ?? .init()
+        integrity.missingSavedMicFrames = max(integrity.missingSavedMicFrames ?? 0,
+            Int64(saved.missingSavedMicFrames))
+        integrity.missingSavedSystemFrames = max(integrity.missingSavedSystemFrames ?? 0,
+            Int64(saved.missingSavedSystemFrames))
+        meeting.captureIntegrity = integrity
+        persistMeeting()
+        reportHealthIssue(.savedAudioGap)
+    }
+
+    private func reportHealthIssue(_ issue: MeetingHealthIssue) {
+        if issue == .audioWriteFailure {
+            var integrity = meeting.captureIntegrity ?? .init()
+            integrity.markAudioWriteFailure()
+            meeting.captureIntegrity = integrity
+            persistMeeting()
+        }
+        if issue.isCaptureFailure {
+            var integrity = meeting.captureIntegrity ?? .init()
+            integrity.markGap()
+            meeting.captureIntegrity = integrity
+            persistMeeting()
+        }
+        guard !healthWarnings.contains(issue) else { return }
+        healthWarnings.append(issue)
+        if issue.isCaptureFailure || issue == .audioWriteFailure || issue == .transcriptWriteFailure {
+            audioProblem = issue.message
+        }
+        Notifications.shared.postMeetingProblem(meeting: meeting, issue: issue)
+        LatencyTrace.record(.meetingHealthWarning, seconds: 0, note: "kind=\(issue.rawValue)")
     }
 
     /// Provisional window text for the live UI / `TranscriptBus`. Cleared when a final
@@ -840,13 +1015,16 @@ final class MeetingSession {
         let saved = store.saveTranscript(segments, for: meeting.id)
         trace.end(note: "segments=\(segments.count)")
         transcriptThrottle.recordWrite(at: clock)
+        if saved, let end = segments.map(\.end).max() {
+            var integrity = meeting.captureIntegrity ?? .init()
+            integrity.recordCaptured(until: startedAt.addingTimeInterval(end))
+            meeting.captureIntegrity = integrity
+            persistMeeting()
+        }
         if !saved {
             transcriptThrottle.markPending()
             armTrailingTranscriptWrite()
-            if audioProblem == nil {
-                audioProblem = "This meeting stopped saving. Check your Mac's storage."
-                Notifications.shared.postMeetingStorageProblem(meeting: meeting)
-            }
+            reportHealthIssue(.transcriptWriteFailure)
         }
     }
 
@@ -868,7 +1046,9 @@ final class MeetingSession {
     private func abort(reason: String) async {
         tapRetry?.cancel()
         tapRetry = nil
-        AudioCaptureHub.shared.unsubscribe(.meeting)
+        resourceHealthTask?.cancel()
+        resourceHealthTask = nil
+        captureHub.unsubscribe(.meeting)
         systemCapture.stop()
         clock?.cancel()
         clock = nil
@@ -886,7 +1066,7 @@ final class MeetingSession {
         // M-16c: the third exit path. A start that failed still has a folder, and a
         // segment that reached `add` before the failure is still a crash record.
         flushTranscript()
-        store.save(meeting)
+        persistMeeting()
     }
 }
 
@@ -901,6 +1081,46 @@ private final class MeetingCaptureDrops: @unchecked Sendable {
     private let lock = NSLock()
     private var streamFrames = 0
     private var hubBuffers = 0
+    private var lastMicAt: Date?
+    private var lastSystemAt: Date?
+    private var capturedUntil: Date?
+    private var deferLive = false
+
+    struct Snapshot: Sendable {
+        var streamFrames: Int64
+        var hubBuffers: Int
+        var lastMicAt: Date?
+        var lastSystemAt: Date?
+        var capturedUntil: Date?
+    }
+
+    var snapshot: Snapshot {
+        lock.lock()
+        defer { lock.unlock() }
+        return Snapshot(streamFrames: Int64(streamFrames), hubBuffers: hubBuffers,
+                        lastMicAt: lastMicAt, lastSystemAt: lastSystemAt, capturedUntil: capturedUntil)
+    }
+
+    func observe(_ packet: MeetingAudioPacket, from source: AudioSource, beganAt: Date) {
+        guard !packet.samples.isEmpty else { return }
+        let end = beganAt.addingTimeInterval(Double(packet.startFrame + packet.samples.count) / ChunkedTranscriber.sampleRate)
+        lock.lock()
+        if source == .mic { lastMicAt = Date() } else { lastSystemAt = Date() }
+        capturedUntil = max(capturedUntil ?? end, end)
+        lock.unlock()
+    }
+
+    func setLiveTranscriptionDeferred(_ value: Bool) {
+        lock.lock()
+        deferLive = value
+        lock.unlock()
+    }
+
+    var isLiveTranscriptionDeferred: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return deferLive
+    }
 
     func addStreamFrames(_ frames: Int) -> Bool {
         lock.lock()

@@ -6,6 +6,7 @@ import SwiftUI
 /// because the window's sidebar already owns the app's top-level navigation and nesting a
 /// `NavigationSplitView` inside another one gives up control of both columns' widths.
 struct MeetingsView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var controller = MeetingController.shared
     @State private var store = MeetingStore.shared
     @State private var navigation = NavigationState.shared
@@ -85,7 +86,7 @@ struct MeetingsView: View {
                     : navigation.selectedMeetingID.map(MeetingSelection.meeting)
             }
         }
-        .animation(DS.Motion.standard, value: controller.isRecording)
+        .animation(reduceMotion ? nil : DS.Motion.standard, value: controller.isRecording)
     }
 
     // MARK: - List
@@ -159,16 +160,30 @@ struct MeetingsView: View {
 
             if !upcomingEvents.isEmpty || !upcomingMeetings.isEmpty {
                 Section("Upcoming") {
-                    // Calendar entries are not selectable: there is nothing to show in the
-                    // detail column until one has been recorded, and the row already
-                    // carries both things worth doing with it.
+                    // Before recording there is no meeting detail to open. Once the
+                    // recording has ended, the same calendar row must open its saved
+                    // meeting: the event can remain Upcoming until its end time, and the
+                    // claimed id keeps that meeting out of Past during that interval.
                     ForEach(upcomingEvents) { event in
-                        UpcomingEventRow(
-                            event: event,
-                            meeting: scheduler.meeting(for: event),
-                            willRecord: scheduler.willAutoRecord(event)
-                        )
-                        .selectionDisabled()
+                        let eventMeeting = scheduler.meeting(for: event)
+                        if let eventMeeting,
+                           eventMeeting.status != .scheduled,
+                           eventMeeting.status != .armed,
+                           controller.session?.meeting.id != eventMeeting.id {
+                            UpcomingEventRow(
+                                event: event,
+                                meeting: eventMeeting,
+                                willRecord: scheduler.willAutoRecord(event)
+                            )
+                            .tag(MeetingSelection.meeting(eventMeeting.id))
+                        } else {
+                            UpcomingEventRow(
+                                event: event,
+                                meeting: eventMeeting,
+                                willRecord: scheduler.willAutoRecord(event)
+                            )
+                            .selectionDisabled()
+                        }
                     }
                     ForEach(upcomingMeetings) { meeting in
                         MeetingRow(meeting: meeting)
@@ -197,9 +212,9 @@ struct MeetingsView: View {
         // Meetings move between the three sections as they are armed, recorded and
         // finished. Springing that is what makes a row look like it moved rather than like
         // one disappeared and another appeared somewhere else.
-        .animation(DS.Motion.fluid, value: live?.id)
-        .animation(DS.Motion.fluid, value: past.map(\.id))
-        .animation(DS.Motion.fluid, value: upcomingMeetings.map(\.id))
+        .animation(reduceMotion ? nil : DS.Motion.fluid, value: live?.id)
+        .animation(reduceMotion ? nil : DS.Motion.fluid, value: past.map(\.id))
+        .animation(reduceMotion ? nil : DS.Motion.fluid, value: upcomingMeetings.map(\.id))
         .overlay {
             if isSearching, upcomingEvents.isEmpty, upcomingMeetings.isEmpty, past.isEmpty {
                 ContentUnavailableView.search(text: query)
@@ -304,7 +319,7 @@ struct MeetingsView: View {
     private func delete(_ meeting: Meeting) {
         if selection == .meeting(meeting.id) { selection = nil }
         if navigation.selectedMeetingID == meeting.id { navigation.selectedMeetingID = nil }
-        withAnimation(DS.Motion.standard) { store.delete(meeting) }
+        withAnimation(reduceMotion ? nil : DS.Motion.standard) { store.delete(meeting) }
     }
 }
 
@@ -351,6 +366,10 @@ private struct MeetingRow: View {
                     }
                 }
 
+                if meeting.captureIntegrity?.hasPartialCapture == true, !isLive {
+                    StatusChip(text: "Partial recording", color: DS.Color.warning)
+                }
+
                 if meeting.status != .done, !isLive {
                     StatusChip(text: meeting.status.displayName, color: meeting.status.chipColor)
                 }
@@ -360,12 +379,12 @@ private struct MeetingRow: View {
     }
 }
 
-/// One calendar entry that hasn't been recorded yet.
+/// One calendar entry while it is still on the clock. Its saved meeting stays selectable
+/// here after a recording, until the event ends and the meeting moves to Past.
 ///
-/// Two controls, because there are exactly two questions worth asking about a meeting that
-/// hasn't started: will it record itself, and should it start right now. The toggle writes
-/// a permanent per-event answer, which beats the global switch in either direction; the
-/// button ignores the lead time entirely.
+/// Before capture there are two choices: will it record itself, and should it start right
+/// now? The toggle writes a permanent per-event answer that beats the global switch;
+/// after capture starts these choices disappear rather than pretending they can undo it.
 private struct UpcomingEventRow: View {
     let event: MeetingEvent
     let meeting: Meeting?
@@ -405,20 +424,27 @@ private struct UpcomingEventRow: View {
                         .lineLimit(1)
                 }
 
+                Text(statusDescription)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 if meeting?.status == .armed {
                     StatusChip(text: MeetingStatus.armed.displayName, color: DS.Color.info)
                 }
 
-                HStack(spacing: DS.Space.s) {
-                    Toggle("Record", isOn: recordBinding)
-                        .toggleStyle(.checkbox)
-                        .font(DS.Font.caption)
-                    Spacer(minLength: DS.Space.xs)
-                    Button("Record now") {
-                        Task { await scheduler.recordNow(event) }
+                if canDecideRecording {
+                    HStack(spacing: DS.Space.s) {
+                        Toggle("Record automatically", isOn: recordBinding)
+                            .toggleStyle(.checkbox)
+                            .font(DS.Font.caption)
+                        Spacer(minLength: DS.Space.xs)
+                        Button("Record now") {
+                            Task { await scheduler.recordNow(event) }
+                        }
+                        .buttonStyle(.link)
+                        .disabled(controller.session != nil)
                     }
-                    .buttonStyle(.link)
-                    .disabled(controller.session != nil)
                 }
             }
         }
@@ -426,7 +452,27 @@ private struct UpcomingEventRow: View {
     }
 
     /// Whether this calendar entry is going to become a recording.
-    private var isClaimed: Bool { willRecord || meeting?.status == .armed }
+    private var isClaimed: Bool {
+        canDecideRecording && (willRecord || meeting?.status == .armed)
+    }
+
+    private var canDecideRecording: Bool {
+        meeting == nil || meeting?.status == .scheduled || meeting?.status == .armed
+    }
+
+    private var statusDescription: String {
+        if let meeting, !canDecideRecording {
+            if controller.session?.meeting.id == meeting.id {
+                return controller.isRecording ? "Recording now." : "Finishing this recording."
+            }
+            if meeting.status == .done { return "Recorded. Open notes and actions." }
+            if meeting.status.isFailure { return "Recording needs attention. Open this meeting." }
+            return "Recorded. \(meeting.status.displayName). Open this meeting."
+        }
+        return willRecord
+            ? "Next Notes will record this meeting automatically."
+            : "Automatic recording is off for this meeting."
+    }
 
     /// Writing an explicit answer rather than clearing back to the heuristic: the user
     /// touching this control *is* the answer, and a toggle that silently reverts to

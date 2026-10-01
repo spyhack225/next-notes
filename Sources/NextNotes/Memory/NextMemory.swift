@@ -115,8 +115,7 @@ struct MemoryEntry: Codable, Identifiable, Equatable, Sendable {
     /// Where an imported fact came from — "Grok", "a file", "ChatGPT". Shown beside it in
     /// the list so nobody has to wonder later where a sentence came from.
     ///
-    /// Optional, so Swift's synthesized `init(from:)` decodes it with `decodeIfPresent` and
-    /// a `next-memory.json` written before this field existed still loads.
+    /// Optional so a `next-memory.json` written before this field existed still loads.
     var importedFrom: String?
     /// The one import this entry arrived in, so the whole batch can be undone together.
     var importBatchID: UUID?
@@ -129,13 +128,47 @@ struct MemoryEntry: Codable, Identifiable, Equatable, Sendable {
     /// 0…1. How sure the Agent is, by channel: what you told it outranks what the life map
     /// inferred. Shown as words, never as a number.
     var confidence: Double?
+    /// Historical descriptors, not a persisted live provenance/permission gate.
+    /// Nil means this older or manual row has no recorded provenance.
+    var lineage: MemoryLineage?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, kind, text, source, sessionID, createdAt, updatedAt, supersedes
+        case importedFrom, importBatchID, origin, sourceLabel, confidence, lineage
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        // Defaults are additive only: damaged required identity/content is never invented.
+        func required<T: Decodable>(_ type: T.Type, _ key: CodingKeys) throws -> T {
+            guard let value = try values.decodeIfPresent(type, forKey: key) else {
+                throw DecodingError.keyNotFound(key, .init(codingPath: values.codingPath,
+                                                          debugDescription: "Missing required memory field"))
+            }
+            return value
+        }
+        id = try required(UUID.self, .id)
+        kind = try required(Kind.self, .kind)
+        text = try required(String.self, .text)
+        source = try required(Source.self, .source)
+        sessionID = try values.decodeIfPresent(UUID.self, forKey: .sessionID)
+        createdAt = try required(Date.self, .createdAt)
+        updatedAt = try values.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
+        supersedes = try values.decodeIfPresent(UUID.self, forKey: .supersedes)
+        importedFrom = try values.decodeIfPresent(String.self, forKey: .importedFrom)
+        importBatchID = try values.decodeIfPresent(UUID.self, forKey: .importBatchID)
+        origin = try values.decodeIfPresent(MemoryProvenance.TrustedSource.self, forKey: .origin)
+        sourceLabel = try values.decodeIfPresent(String.self, forKey: .sourceLabel)
+        confidence = try values.decodeIfPresent(Double.self, forKey: .confidence)
+        lineage = try values.decodeIfPresent(MemoryLineage.self, forKey: .lineage)
+    }
 
     init(
         id: UUID = UUID(), kind: Kind, text: String, source: Source, sessionID: UUID? = nil,
         createdAt: Date, updatedAt: Date? = nil, supersedes: UUID? = nil,
         importedFrom: String? = nil, importBatchID: UUID? = nil,
         origin: MemoryProvenance.TrustedSource? = nil, sourceLabel: String? = nil,
-        confidence: Double? = nil
+        confidence: Double? = nil, lineage: MemoryLineage? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -150,6 +183,7 @@ struct MemoryEntry: Codable, Identifiable, Equatable, Sendable {
         self.origin = origin
         self.sourceLabel = sourceLabel
         self.confidence = confidence
+        self.lineage = lineage
     }
 
     /// Where this fact came from, in the words a non-technical person would use:
@@ -287,6 +321,8 @@ final class NextMemory {
     /// Whether the user let a cloud model read the graph (`knowledgeGraphCloudConsent`).
     private let graphCloudConsentProvider: () -> Bool
     private let now: () -> Date
+    /// An unfamiliar schema must remain intact until a build that understands it opens it.
+    private var unsupportedStorageVersion = false
     private static let maxItems = 240
     private static let maxValueLength = 240
 
@@ -318,6 +354,7 @@ final class NextMemory {
     /// Rebuilds only from local activity that already has a stable typed representation.
     /// It is cheap enough to call before an agent turn and does not read raw transcripts.
     func refreshFromActivity() {
+        guard !unsupportedStorageVersion else { return }
         var changed = false
 
         for entry in DictionaryStore.shared.entries where entry.isEnabled {
@@ -609,7 +646,8 @@ final class NextMemory {
     func remember(
         kind: MemoryEntry.Kind, text raw: String, source: MemoryEntry.Source, sessionID: UUID? = nil,
         importedFrom: String? = nil, importBatchID: UUID? = nil,
-        origin: MemoryProvenance.TrustedSource? = nil, sourceLabel: String? = nil
+        origin: MemoryProvenance.TrustedSource? = nil, sourceLabel: String? = nil,
+        lineage: MemoryLineage? = nil
     ) throws -> WriteOutcome {
         if !source.isPersonsOwnWrite, !isEnabled { throw MemoryWriteError.disabled }
         let text = try Self.validated(raw)
@@ -630,7 +668,8 @@ final class NextMemory {
         let date = now()
         let entry = MemoryEntry(kind: kind, text: text, source: source, sessionID: sessionID,
                                 createdAt: date, importedFrom: importedFrom, importBatchID: importBatchID,
-                                origin: origin, sourceLabel: sourceLabel, confidence: origin?.confidence)
+                                origin: origin, sourceLabel: sourceLabel, confidence: origin?.confidence,
+                                lineage: lineage)
         try commit { $0.entries.append(entry) }
         return WriteOutcome(entry: entry, replaced: nil, wasDuplicate: false)
     }
@@ -654,7 +693,8 @@ final class NextMemory {
     @discardableResult
     func update(
         match: String, text raw: String, source: MemoryEntry.Source, sessionID: UUID? = nil,
-        origin: MemoryProvenance.TrustedSource? = nil, sourceLabel: String? = nil
+        origin: MemoryProvenance.TrustedSource? = nil, sourceLabel: String? = nil,
+        lineage: MemoryLineage? = nil
     ) throws -> WriteOutcome {
         if !source.isPersonsOwnWrite, !isEnabled { throw MemoryWriteError.disabled }
         let old = try uniqueEntry(matching: match)
@@ -669,10 +709,15 @@ final class NextMemory {
                                               current: unflaggedEntries(of: old.kind))
         }
         let date = now()
+        var correctionLineage = lineage
+        if let last = correctionLineage?.records.indices.last,
+           correctionLineage?.records[last].entryID == nil {
+            correctionLineage?.records[last].entryID = old.id
+        }
         let replacement = MemoryEntry(kind: old.kind, text: text, source: source, sessionID: sessionID,
                                       createdAt: date, supersedes: old.id,
                                       origin: origin, sourceLabel: sourceLabel,
-                                      confidence: origin?.confidence)
+                                      confidence: origin?.confidence, lineage: correctionLineage)
         try commit { state in
             state.entries.removeAll { $0.id == old.id }
             state.entries.append(replacement)
@@ -1136,7 +1181,7 @@ final class NextMemory {
         return true
     }
 
-    /// Version 2 of `next-memory.json`. Version 1 was a bare array of activity items.
+    /// Version 3 adds optional provenance; version 1 was a bare activity array.
     private struct StoredFile: Codable {
         var version: Int
         var entries: [MemoryEntry]
@@ -1149,17 +1194,32 @@ final class NextMemory {
         guard let fileURL, let data = try? Data(contentsOf: fileURL) else { return }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
+        if let header = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let version = header["version"] as? Int, version != 2 && version != 3 {
+            unsupportedStorageVersion = true
+            Log.agent.error("next-memory.json has an unsupported version; retained without writes")
+            return
+        }
         if let stored = try? decoder.decode(StoredFile.self, from: data) {
             entries = stored.entries
             superseded = stored.superseded
             items = Array(stored.activity.prefix(Self.maxItems))
             listViewedAt = stored.listViewedAt
+            if stored.version == 2 {
+                // Existing descriptors were never recorded: nil remains unknown.
+                do {
+                    try persist()
+                    Log.agent.info("next-memory.json migrated from version 2 to 3")
+                } catch {
+                    Log.agent.error("next-memory.json migration not written: \(error.localizedDescription, privacy: .public)")
+                }
+            }
         } else if let legacy = try? decoder.decode([NextMemoryItem].self, from: data) {
             // Migration: keep every existing activity item, start core memory empty.
             items = Array(legacy.prefix(Self.maxItems))
             do {
                 try persist()
-                Log.agent.info("next-memory.json migrated to version 2 with \(legacy.count) activity items")
+                Log.agent.info("next-memory.json migrated to version 3 with \(legacy.count) activity items")
             } catch {
                 Log.agent.error("next-memory.json migration not written: \(error.localizedDescription, privacy: .public)")
             }
@@ -1179,11 +1239,14 @@ final class NextMemory {
     }
 
     private func persist() throws {
+        guard !unsupportedStorageVersion else {
+            throw MemoryWriteError.storage("This memory file needs a newer version of Next Notes.")
+        }
         guard let fileURL else { return }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let stored = StoredFile(version: 2, entries: entries, superseded: superseded, activity: items,
+        let stored = StoredFile(version: 3, entries: entries, superseded: superseded, activity: items,
                                 listViewedAt: listViewedAt)
         let data = try encoder.encode(stored)
         try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(),

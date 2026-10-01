@@ -25,6 +25,9 @@ final class ToolCallReviewStore {
     /// is re-read on every redraw and rewritten by its own editing sheet, so the store has
     /// to be able to tell "the same proposal again" from "this proposal has changed".
     @ObservationIgnored private var proposalSources: [String: [String: String]] = [:]
+    /// Durable task cards commit genuine field edits before accepting them on screen.
+    /// This is an ephemeral callback into the existing task owner, not another store.
+    @ObservationIgnored private var persistenceHandlers: [String: (ToolCallReview) -> Bool] = [:]
     private static let maximumRetained = 32
 
     private init() {}
@@ -34,9 +37,16 @@ final class ToolCallReviewStore {
     /// Builds the review for a request that is about to be shown, if it has not been built
     /// already. Returns what the card should draw.
     @discardableResult
-    func begin(_ request: PermissionRequest) -> ToolCallReview {
+    func begin(_ request: PermissionRequest, restoredReview: ToolCallReview? = nil) -> ToolCallReview {
+        if let restoredReview, restoredReview.id == request.id, restoredReview.toolID == request.toolID {
+            return store(restoredReview, id: request.id)
+        }
         if let existing = reviews[request.id] { return existing }
         return store(Self.build(request), id: request.id)
+    }
+
+    func setPersistenceHandler(id: String, handler: ((ToolCallReview) -> Bool)?) {
+        persistenceHandlers[id] = handler
     }
 
     @discardableResult
@@ -48,6 +58,7 @@ final class ToolCallReviewStore {
             order.removeFirst()
             reviews[oldest] = nil
             proposalSources[oldest] = nil
+            persistenceHandlers[oldest] = nil
         }
         return review
     }
@@ -163,12 +174,14 @@ final class ToolCallReviewStore {
     func update(id: String, field: String, to value: String) {
         guard var review = reviews[id] else { return }
         review.update(field, to: value)
+        guard persistenceHandlers[id]?(review) ?? true else { return }
         reviews[id] = review
     }
 
     func confirm(id: String, field: String) {
         guard var review = reviews[id] else { return }
         review.confirm(field)
+        guard persistenceHandlers[id]?(review) ?? true else { return }
         reviews[id] = review
     }
 
@@ -187,12 +200,14 @@ final class ToolCallReviewStore {
     func remove(id: String) {
         reviews[id] = nil
         proposalSources[id] = nil
+        persistenceHandlers[id] = nil
         order.removeAll { $0 == id }
     }
 
     func removeAll() {
         reviews = [:]
         proposalSources = [:]
+        persistenceHandlers = [:]
         order = []
     }
 }

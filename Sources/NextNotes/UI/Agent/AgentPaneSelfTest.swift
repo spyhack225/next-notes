@@ -90,6 +90,32 @@ enum AgentPaneSelfTest {
         var failures: [String] = []
         let panes = NavigationState.AgentPane.allCases
 
+        // Exercise the same catalogue lookup the terminal card uses. A failed send or
+        // unclassified multi-step run must never get a blind Retry, and a missing artifact
+        // is not proof that a write did nothing.
+        let failedSend = AgentTask(
+            objective: "Send a follow-up", status: .failed, tool: "workspace.send_email",
+            failure: "The connection ended before I could confirm the result."
+        )
+        let sendRisk = AgentWorkingCard.retryRisk(for: failedSend)
+        let sendCard = FailureCard.forTask(failedSend, retryRisk: sendRisk, retry: {})
+        if sendRisk != .send || sendCard.actions.contains(where: { $0.id == "retry" }) {
+            failures.append("a failed send can be retried without checking the effect")
+        }
+        if sendCard.summary.contains("Nothing was created or sent")
+            || sendCard.undo.contains("nothing to undo") {
+            failures.append("a failed send without an effect receipt claims nothing changed")
+        }
+        let unknownTask = AgentTask(
+            objective: "Finish several steps", status: .failed,
+            failure: "The work stopped."
+        )
+        let unknownRisk = AgentWorkingCard.retryRisk(for: unknownTask)
+        let unknownCard = FailureCard.forTask(unknownTask, retryRisk: unknownRisk, retry: {})
+        if unknownRisk != nil || unknownCard.actions.contains(where: { $0.id == "retry" }) {
+            failures.append("an unclassified failed task offers a blind retry")
+        }
+
         for pane in panes where pane.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             failures.append("\(pane) has no title for the toolbar to draw")
         }

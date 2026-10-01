@@ -143,6 +143,10 @@ enum HumanInputWatch {
     /// then carried on with the next one anyway. Only `carryOn()` and `resetForNewTurn()` clear
     /// it, which are the two things that actually mean "the person said to go on".
     static func beginAction() {
+        // A person's event can arrive after one inspection returns and before the
+        // next tool arms. Decide it against the previous event ledger before clearing
+        // that ledger; otherwise re-arming erases the very input that should yield.
+        _ = mayPostAnotherEvent()
         postedInstants = []
         sawUntaggedInput = false
         lastUntagged = nil
@@ -165,7 +169,10 @@ enum HumanInputWatch {
     /// for the mouse has not finished reaching for it, and re-arming because the agent was
     /// impatient is how two hands end up on one pointer.
     static func mayPostAnotherEvent() -> Bool {
-        guard !state.isPaused else { return false }
+        guard !state.isPaused else {
+            AgentActivityStore.shared.noteHumanYield()
+            return false
+        }
         guard sawUntaggedInput else { return true }
         // A tap with no field (a driver that drops it) still tells us *when*; the ledger says
         // whether the event at that instant was ours.
@@ -174,6 +181,7 @@ enum HumanInputWatch {
             return true
         }
         state = .paused(at: lastUntagged ?? Date())
+        AgentActivityStore.shared.noteHumanYield()
         return false
     }
 
@@ -191,8 +199,8 @@ enum HumanInputWatch {
         postedInstants = []
     }
 
-    /// The person said or pressed "carry on". Takes a **fresh** snapshot and re-plans; it never
-    /// replays coordinates from before the pause, because the window has moved since.
+    /// Clears the input pause. This does not resume a suspended task or replay an action;
+    /// the caller remains responsible for fresh inspection before its next action.
     static func carryOn() {
         state = .driving
         sawUntaggedInput = false
@@ -202,8 +210,7 @@ enum HumanInputWatch {
 
     /// The sentence. One line, and it says what to do rather than what happened.
     static let pausedSentence =
-        "Paused — you\u{2019}re using the Mac. Say \u{201C}carry on\u{201D} or press "
-        + "Carry on when you\u{2019}re done."
+        "Paused — you\u{2019}re using the Mac. Tell me to carry on when you\u{2019}re done."
 
     /// The sentence for a page that wants the person. Same paused state, different reason.
     static func signInSentence(what: String) -> String {

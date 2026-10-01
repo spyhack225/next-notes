@@ -8,12 +8,14 @@ import UniformTypeIdentifiers
 /// transcript is the evidence behind them; the actions are what the meeting asked for, and
 /// they come last because nothing there should be approved before the notes have been read.
 struct MeetingDetailView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let meeting: Meeting
 
     @State private var store = MeetingStore.shared
     @State private var notesService = NotesService.shared
     @State private var diarization = DiarizationService.shared
     @State private var agent = AgentService.shared
+    @State private var contextStore = MeetingContextStore.shared
     @State private var settings = Settings.shared
     @State private var models = LocalModelStore.shared
     @State private var navigation = NavigationState.shared
@@ -22,6 +24,7 @@ struct MeetingDetailView: View {
     @State private var isExporting = false
     @State private var isRenamingSpeakers = false
     @State private var isRenamingMeeting = false
+    @State private var followUpSummary: (message: String, action: String)? = nil
 
     private enum Tab: String, CaseIterable, Identifiable {
         case notes
@@ -71,6 +74,22 @@ struct MeetingDetailView: View {
             // on a meeting that already has notes leaves the previous model's notes on
             // screen, and without a banner the only thing the user sees is the spinner going
             // away and nothing changing.
+            if let summary = meeting.captureSummary {
+                HStack(alignment: .top, spacing: DS.Space.s) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                    VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                        Text(summary)
+                        if let boundary = meeting.captureBoundary {
+                            Text("Saved through \(boundary.formatted(date: .omitted, time: .standard)).")
+                        }
+                    }
+                    Spacer()
+                }
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.warning)
+                .padding(DS.Space.m)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
             if let problem = notesService.problem(for: meeting.id) {
                 ProblemBanner(
                     message: problem,
@@ -104,16 +123,22 @@ struct MeetingDetailView: View {
             if let offer = diarizeOffer {
                 diarizeOfferCard(offer)
             }
+            if tab != .actions, let followUp = followUpSummary {
+                followUpLink(followUp)
+            }
             content
         }
         // The switch between Notes and Transcript is a change of subject, not a redraw:
         // it, the banners and the progress strip all move on the same spring.
-        .animation(DS.Motion.fluid, value: tab)
-        .animation(DS.Motion.fluid, value: isWritingNotes)
-        .animation(DS.Motion.fluid, value: diarization.isRunning(meeting.id))
+        .animation(reduceMotion ? nil : DS.Motion.fluid, value: tab)
+        .animation(reduceMotion ? nil : DS.Motion.fluid, value: isWritingNotes)
+        .animation(reduceMotion ? nil : DS.Motion.fluid, value: diarization.isRunning(meeting.id))
         // Keyed on the revision as well as the meeting: `notes.md` is a file, so a
         // regeneration that rewrites it changes nothing this view observes.
         .task(id: notesKey) { notes = store.notes(for: meeting.id) }
+        // Reconciliation may load the saved meeting context. Do it when a real action or
+        // context revision changes, rather than on every redraw of the notes pane.
+        .task(id: followUpKey) { followUpSummary = currentFollowUpSummary() }
         // A search result that cites a second of this meeting opens the transcript there.
         .onChange(of: transcriptFocus, initial: true) { _, focus in
             if focus != nil { tab = .transcript }
@@ -309,6 +334,59 @@ struct MeetingDetailView: View {
         .labelsHidden()
         .padding(.horizontal, DS.Space.l)
         .padding(.vertical, DS.Space.s)
+    }
+
+    /// Uses the same reconciled rows as the Actions tab. A candidate remains something
+    /// to prepare, a proposal remains a draft to review, and only an action record counts
+    /// as completed. This strip is a doorway to those records, never another approval.
+    private var followUpKey: String {
+        let liveCandidates = contextStore.current?.meetingID == meeting.id
+            ? contextStore.current?.candidateActions.count ?? 0 : 0
+        let actions = (store.meeting(id: meeting.id) ?? meeting).agentActions
+        let completed = actions.count
+        return "\(meeting.id)-\(meeting.status.displayName)-\(agent.revision)-"
+            + "\(agent.isThinking(meeting.id))-\(liveCandidates)-\(completed)"
+    }
+
+    private func currentFollowUpSummary() -> (message: String, action: String)? {
+        let pending = agent.reconciled(for: meeting.id).rowCount
+        if pending > 0 {
+            return (pending == 1 ? "A follow-up needs your review."
+                                 : "\(pending) follow-ups need your review.", "Review follow-ups")
+        }
+        if agent.isThinking(meeting.id) {
+            return ("Checking this meeting for follow-ups…", "View progress")
+        }
+        let records = (store.meeting(id: meeting.id) ?? meeting).agentActions
+        let failed = records.filter { !$0.succeeded }.count
+        if failed > 0 {
+            return (failed == 1 ? "A follow-up needs attention."
+                                : "\(failed) follow-ups need attention.", "See what happened")
+        }
+        let completed = records.count
+        if completed > 0 {
+            return (completed == 1 ? "A follow-up is complete."
+                                   : "\(completed) follow-ups are complete.", "See what happened")
+        }
+        return nil
+    }
+
+    private func followUpLink(_ summary: (message: String, action: String)) -> some View {
+        HStack(spacing: DS.Space.m) {
+            Image(systemName: "arrow.turn.down.right")
+                .foregroundStyle(DS.Color.textSecondary)
+                .accessibilityHidden(true)
+            Text(summary.message)
+                .font(DS.Font.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: DS.Space.s)
+            Button(summary.action) { tab = .actions }
+                .buttonStyle(.bordered)
+        }
+        .padding(.horizontal, DS.Space.l)
+        .padding(.vertical, DS.Space.s)
+        .background(DS.Color.groupedFill)
+        .overlay(alignment: .bottom) { Divider() }
     }
 
     // MARK: - Content

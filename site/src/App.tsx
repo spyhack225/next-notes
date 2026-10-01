@@ -1,9 +1,9 @@
 import { MotionConfig } from "framer-motion";
 import Navbar from "./sections/Navbar";
 import Hero from "./sections/Hero";
+import Mission from "./sections/Mission";
 import HowItWorks from "./sections/HowItWorks";
 import Privacy from "./sections/Privacy";
-import Mission from "./sections/Mission";
 import WhatItDoes from "./sections/WhatItDoes";
 import CTA from "./sections/CTA";
 import Footer from "./sections/Footer";
@@ -17,10 +17,10 @@ export default function App() {
         <Navbar />
         <main>
           <Hero />
-          <HowItWorks />
-          <Privacy />
           <Mission />
           <WhatItDoes />
+          <HowItWorks />
+          <Privacy />
           <CTA />
         </main>
         <Footer />

@@ -139,6 +139,14 @@ actor NotesModelRuntime {
     /// A pressure callback must not free the native context during that gap.
     private var activeOperations = 0
     private var deferredShutdown = false
+    private var deferredUnloadReason: UnloadReason?
+    private let pressureSnapshot: @Sendable () -> ModelResidencyPolicy.PressureSnapshot
+    /// Isolated fixture replaces only the heavy optional load after real lane/admission.
+    private var optionalLoadProbeForTesting: (@Sendable () async -> Void)?
+
+    func setOptionalLoadProbeForTesting(_ probe: (@Sendable () async -> Void)?) {
+        optionalLoadProbeForTesting = probe
+    }
     private var nativeOwner = false
     private var nativeWaiters: [(id: UUID, workClass: WorkClass, continuation: CheckedContinuation<Bool, Never>)] = []
     /// Test-only signal after a real native prefill chunk has decoded.
@@ -188,11 +196,15 @@ actor NotesModelRuntime {
     init(
         spec: ModelSpec,
         gpuLayers: Int32,
-        openFailureSink: (@Sendable (ModelSpec, String) async -> Void)? = nil
+        openFailureSink: (@Sendable (ModelSpec, String) async -> Void)? = nil,
+        pressureSnapshot: @escaping @Sendable () -> ModelResidencyPolicy.PressureSnapshot = {
+            ModelResidencyPolicy.pressureSnapshot
+        }
     ) {
         self.spec = spec
         self.gpuLayers = gpuLayers
         self.openFailureSink = openFailureSink
+        self.pressureSnapshot = pressureSnapshot
     }
 
     var isLoaded: Bool { model != nil }
@@ -402,6 +414,7 @@ actor NotesModelRuntime {
         // A self-test must never pull gigabytes into memory as a side effect of driving
         // the UI or a voice session; the probe is how the contract is exercised instead.
         guard !SelfTest.isRunning || prewarmProbeForTesting != nil else { return }
+        guard pressureSnapshot().allowsOptionalWork else { return }
         guard model == nil, loadTask == nil, !prewarmInFlight else { return }
         prewarmInFlight = true
         defer { prewarmInFlight = false }
@@ -425,7 +438,8 @@ actor NotesModelRuntime {
         // The actor re-entered across the awaits above: a real turn may have loaded or
         // started loading the weights in that window, and a cancelled caller no longer
         // wants them.
-        guard !Task.isCancelled, model == nil, loadTask == nil else { return }
+        guard !Task.isCancelled, model == nil, loadTask == nil,
+              pressureSnapshot().allowsOptionalWork else { return }
 
         if let probe = prewarmProbeForTesting {
             await probe.onPrewarm()
@@ -436,7 +450,7 @@ actor NotesModelRuntime {
         Log.llm.info(
             "model prewarm lane=\(workClass.rawValue, privacy: .public) route=\(route, privacy: .public)")
         do {
-            try await prepareForConversation(workClass: workClass, voice: voice)
+            try await prepareForConversation(workClass: workClass, voice: voice, optional: true)
         } catch {
             Log.llm.info("model prewarm skipped: \(error.localizedDescription, privacy: .public)")
         }
@@ -452,6 +466,31 @@ actor NotesModelRuntime {
         // eviction as a completed answer instead of pinning the weights.
         lastUse = Date()
         scheduleIdleUnload()
+    }
+
+    /// Speculative future work never reloads an evicted model while pressure persists.
+    /// Required notes/cleanup/voice calls retain their existing load behavior.
+    @discardableResult
+    func prepareForOptionalUse() async -> Bool {
+        guard pressureSnapshot().allowsOptionalWork, !Task.isCancelled else { return false }
+        do {
+            try await withBackgroundLane { jobID in
+                try checkOptionalAdmission()
+                try await loadIfNeeded(schedulerJobID: jobID, optional: true)
+            }
+            try checkOptionalAdmission()
+            guard model != nil || optionalLoadProbeForTesting != nil else { return false }
+            lastUse = Date()
+            scheduleIdleUnload()
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private func checkOptionalAdmission() throws {
+        try Task.checkCancellation()
+        guard pressureSnapshot().allowsOptionalWork else { throw CancellationError() }
     }
 
     /// Warm the inference context and its first prefill, not only the weight file.
@@ -472,13 +511,15 @@ actor NotesModelRuntime {
     /// response-header prompt a typed turn no longer sends cost the first reply a whole
     /// prefill — measured 913 tokens decoded before, 1,731 after.
     func prepareForConversation(
-        workClass: WorkClass = .realtimeAgent, voice: Bool = false
+        workClass: WorkClass = .realtimeAgent, voice: Bool = false, optional: Bool = false
     ) async throws {
         try await withLane(workClass) { jobID in
-            try await loadIfNeeded(schedulerJobID: jobID)
+            if optional { try checkOptionalAdmission() }
+            try await loadIfNeeded(schedulerJobID: jobID, optional: optional)
             let system = voice
                 ? RealtimeAgent.voiceRoutingSystem(voice: true)
                 : await RealtimeAgent.typedWarmSystem()
+            if optional { try checkOptionalAdmission() }
             let prefix = ChatTemplate.renderPrefix(family, system: system)
             guard let vocabulary else { throw LlamaError.notLoaded }
             let tokens = try tokenizePrompt(prefix, vocabulary: vocabulary)
@@ -490,7 +531,7 @@ actor NotesModelRuntime {
             // same text again for no reason is the work this prewarm exists to save.
             if !kvTokens.starts(with: tokens) {
                 let context = try ensureContext(promptTokens: tokens.count, maxTokens: 1)
-                _ = try await preparePrefix(tokens, context: context, jobID: jobID)
+                _ = try await preparePrefix(tokens, context: context, jobID: jobID, optional: optional)
             }
         }
         lastUse = Date()
@@ -646,7 +687,7 @@ actor NotesModelRuntime {
     }
 
     /// Keep the already selected on-device model resident while a voice session is open.
-    /// Memory-pressure shutdown can still unload it; a later turn reloads normally.
+    /// Pressure release waits for this lease instead of evicting an interactive owner.
     func beginConversationSession(_ sessionID: UUID) {
         conversationLeases.insert(sessionID)
         idleTask?.cancel()
@@ -659,6 +700,7 @@ actor NotesModelRuntime {
     func endConversationSession(_ sessionID: UUID) {
         conversationLeases.remove(sessionID)
         lastUse = Date()
+        finishDeferredShutdownIfIdle()
         scheduleIdleUnload()
     }
 
@@ -796,7 +838,7 @@ actor NotesModelRuntime {
     /// decoded here and the sampler has the logits of the last prompt position. Returns the
     /// number of prompt tokens the context now holds.
     private func preparePrefix(
-        _ prompt: [llama_token], context: OpaquePointer, jobID: UUID
+        _ prompt: [llama_token], context: OpaquePointer, jobID: UUID, optional: Bool = false
     ) async throws -> Int {
         let began = ContinuousClock.now
         let memory = llama_get_memory(context)
@@ -810,7 +852,8 @@ actor NotesModelRuntime {
         kvTokens = Array(kvTokens.prefix(keep))
         do {
             try await decodePromptWhileScheduled(
-                Array(prompt[keep...]), startPosition: keep, context: context, jobID: jobID)
+                Array(prompt[keep...]), startPosition: keep, context: context, jobID: jobID,
+                optional: optional)
         } catch {
             // The removal and the partial decode leave the cache half-shifted; nothing can
             // reuse it until it is cleared.
@@ -835,7 +878,8 @@ actor NotesModelRuntime {
     /// the suffix, and its KV positions have to land after the entries already there. Logits
     /// are requested for the final token only — the one the sampler reads.
     private func decodePromptWhileScheduled(
-        _ tokens: [llama_token], startPosition: Int = 0, context: OpaquePointer, jobID: UUID
+        _ tokens: [llama_token], startPosition: Int = 0, context: OpaquePointer, jobID: UUID,
+        optional: Bool = false
     ) async throws {
         guard !tokens.isEmpty else { throw LlamaError.decodeFailed }
         let chunk = min(128, Int(Self.batchTokens))
@@ -845,6 +889,7 @@ actor NotesModelRuntime {
         while index < tokens.count {
             await ComputeScheduler.shared.checkpoint(jobID)
             try Task.checkCancellation()
+            if optional { try checkOptionalAdmission() }
             let end = min(index + chunk, tokens.count)
             batch.n_tokens = 0
             for offset in index..<end {
@@ -1133,14 +1178,6 @@ actor NotesModelRuntime {
         defer {
             activeOperations -= 1
             lastUse = Date()
-            if activeOperations == 0 && deferredShutdown {
-                // P1-28: A model chosen while this operation ran; the swap lands here.
-                noteUnload(reason: .switched)
-                shutdownNow()
-                // A model chosen while this operation was running swaps in here, now that
-                // nothing is reading the weights that were just freed.
-                applyPendingSpec()
-            }
         }
         let jobID = await ComputeScheduler.shared.acquireCancellable(workClass)
         guard let jobID else {
@@ -1459,12 +1496,25 @@ actor NotesModelRuntime {
     private func releaseNativeContext() {
         guard !nativeWaiters.isEmpty else {
             nativeOwner = false
+            finishDeferredShutdownIfIdle()
             return
         }
         let next = nativeWaiters.indices.min {
             nativeWaiters[$0].workClass.priority < nativeWaiters[$1].workClass.priority
         }!
         nativeWaiters.remove(at: next).continuation.resume(returning: true)
+    }
+
+    private func finishDeferredShutdownIfIdle() {
+        guard deferredShutdown, activeOperations == 0, !nativeOwner,
+              nativeWaiters.isEmpty, conversationLeases.isEmpty else { return }
+        let reason = deferredUnloadReason ?? .switched
+        if reason == .pressure { _ = releaseUnderPressure() }
+        else {
+            if model != nil { noteUnload(reason: reason) }
+            shutdownNow()
+        }
+        applyPendingSpec()
     }
 
     /// Frees the weights and the context if nothing has used them for `interval`.
@@ -1518,9 +1568,43 @@ actor NotesModelRuntime {
     /// the reason and the release, and the log would carry a reason for something that had not
     /// happened yet.
     func noteAndShutdown(reason: UnloadReason) -> Bool {
+        if reason == .pressure { return releaseUnderPressure() == .released }
         guard model != nil else { return false }
         noteUnload(reason: reason)
         return shutdown()
+    }
+
+    enum PressureReleaseOutcome: String, Sendable { case absent, deferred, released }
+
+    /// The observed native teardown outcome, rather than a planned unload. No memory
+    /// savings are inferred from file size or the process-lifetime RSS high-water mark.
+    func releaseUnderPressure() -> PressureReleaseOutcome {
+        if Self.swapMustWait(
+            activeOperations: activeOperations, loadInFlight: loadTask != nil,
+            nativeOwner: nativeOwner, nativeWaiters: nativeWaiters.count,
+            conversationLeases: conversationLeases.count
+        ) {
+            deferredShutdown = true
+            deferredUnloadReason = .pressure
+            Log.llm.info("residency: notes release deferred operations=\(self.activeOperations) leases=\(self.conversationLeases.count) waiters=\(self.nativeWaiters.count)")
+            return .deferred
+        }
+        let hadAllocations = model != nil || context != nil
+        let before = ProcessSnapshot.current().residentMemoryBytes
+        let began = Date()
+        shutdownNow()
+        let after = ProcessSnapshot.current().residentMemoryBytes
+        let outcome: PressureReleaseOutcome = hadAllocations ? .released : .absent
+        if hadAllocations {
+            // Two RSS samples are observations, not attributable freed native bytes.
+            let rssBefore = before.map(String.init) ?? "unknown"
+            let rssAfter = after.map(String.init) ?? "unknown"
+            MetricsStore.shared.recordAsync(LatencySpan(
+                name: .modelUnload, startedAt: began, endedAt: Date(),
+                durationSeconds: Date().timeIntervalSince(began),
+                note: "reason=pressure outcome=\(outcome.rawValue) rssBefore=\(rssBefore) rssAfter=\(rssAfter)"))
+        }
+        return outcome
     }
 
     /// Why a model was released. Five reasons, because five is what the call sites actually are;
@@ -1543,6 +1627,7 @@ actor NotesModelRuntime {
 
     private func shutdownNow() {
         deferredShutdown = false
+        deferredUnloadReason = nil
         idleTask?.cancel()
         idleTask = nil
         if let runtimeGeneration {
@@ -1645,6 +1730,38 @@ actor NotesModelRuntime {
         _ = await work.result
         let stillDeferred = await runtime.deferredShutdown
         return started && refused && deferred && !stillDeferred
+    }
+
+    /// Pressure reaches the actual native reservation and lease producers without
+    /// loading a real model or touching the shared owner's selected file.
+    static func pressureOwnershipSelfTest() async -> Bool {
+        let runtime = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: 0)
+        let gate = NotesShutdownProbeGate()
+        let lease = UUID()
+        await runtime.beginConversationSession(lease)
+        let work = Task {
+            try? await runtime.withBackgroundLane { _ in await gate.park() }
+        }
+        for _ in 0..<100 {
+            if await gate.started { break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        guard await gate.started else {
+            work.cancel()
+            await gate.release()
+            await runtime.endConversationSession(lease)
+            return false
+        }
+        let outcome = await runtime.releaseUnderPressure()
+        await gate.release()
+        _ = await work.result
+        let retainedLease = await runtime.conversationLeases.contains(lease)
+        let held = await runtime.deferredShutdown
+        let pressureReason = await runtime.deferredUnloadReason == .pressure
+        await runtime.endConversationSession(lease)
+        let cleared = await runtime.deferredShutdown == false
+        let absent = await runtime.releaseUnderPressure() == .absent
+        return outcome == .deferred && retainedLease && held && pressureReason && cleared && absent
     }
 
     // MARK: - Prompt
@@ -1780,7 +1897,13 @@ actor NotesModelRuntime {
         }
     }
 
-    private func loadIfNeeded(schedulerJobID: UUID? = nil) async throws {
+    private func loadIfNeeded(schedulerJobID: UUID? = nil, optional: Bool = false) async throws {
+        if optional { try checkOptionalAdmission() }
+        if optional, let optionalLoadProbeForTesting {
+            await optionalLoadProbeForTesting()
+            try checkOptionalAdmission()
+            return
+        }
         if model != nil, vocabulary != nil { return }
         if Self.refusesToLoadForLaunchDiagnostic() {
             Log.agent.info("model load refused: a launch-time diagnostic is running")
@@ -1799,19 +1922,25 @@ actor NotesModelRuntime {
             let generation = await ModelRuntimeManager.shared.beginLoading(.notes)
             self.setRuntimeGeneration(generation)
             do {
-                try await self.load(schedulerJobID: jobID)
+                try await self.load(schedulerJobID: jobID, optional: optional)
                 loadTrace.end(note: "app_llm")
                 _ = await ModelRuntimeManager.shared.markReady(
                     .notes,
                     generation: generation
                 )
             } catch {
+                if optional, error is CancellationError {
+                    self.deferredShutdown = true
+                    self.deferredUnloadReason = self.pressureSnapshot().allowsOptionalWork
+                        ? .shutdown : .pressure
+                }
                 loadTrace.end(note: "app_llm failed")
                 // A missing download and a file this build cannot open are expected
                 // configuration states, not a wedged GPU/runtime. Leave the owner
                 // retryable, so a later turn can resolve to another provider.
                 let retryable: Bool
-                if let llamaError = error as? LlamaError {
+                if error is CancellationError { retryable = true }
+                else if let llamaError = error as? LlamaError {
                     switch llamaError {
                     case .modelMissing, .modelUnopenable: retryable = true
                     default: retryable = false
@@ -1835,18 +1964,26 @@ actor NotesModelRuntime {
             }
         }
         loadTask = task
-        try await task.value
+        try await withTaskCancellationHandler {
+            try await task.value
+        } onCancel: {
+            // This task belongs to speculative work. Required consumers are never
+            // cancelled by a pressure/admission decision.
+            if optional { task.cancel() }
+        }
     }
 
     private func setRuntimeGeneration(_ generation: UInt64) {
         runtimeGeneration = generation
     }
 
-    private func load(schedulerJobID: UUID? = nil) async throws {
+    private func load(schedulerJobID: UUID? = nil, optional: Bool = false) async throws {
+        if optional { try checkOptionalAdmission() }
         loadAttemptCount += 1
         // The first load of the process adopts whatever the user picked last time, unless
         // something read `activeSpec` earlier and adopted it already.
         await adoptSavedSelectionIfNeeded()
+        if optional { try checkOptionalAdmission() }
         // Nothing is loaded at this point — this is the load — so a choice that was recorded
         // while a generation held the lane can be taken up now, before the file is opened.
         if model == nil { applyPendingSpec() }
@@ -1883,6 +2020,7 @@ actor NotesModelRuntime {
         // together. `loadTask` is already set, so the embedder refuses to load again
         // until this model is gone.
         await EmbeddingRuntime.shared.stopNow()
+        if optional { try checkOptionalAdmission() }
 
         var modelParameters = llama_model_default_params()
         modelParameters.n_gpu_layers = gpuLayers
@@ -1939,6 +2077,7 @@ actor NotesModelRuntime {
         lastUse = Date()
         scheduleIdleUnload()
         let metal = await LlamaBackend.shared.isMetalAvailable && gpuLayers > 0
+        if optional { try checkOptionalAdmission() }
         Log.llm.info("""
             \(self.spec.displayName, privacy: .public) loaded on \
             \(metal ? "GPU" : "CPU", privacy: .public)

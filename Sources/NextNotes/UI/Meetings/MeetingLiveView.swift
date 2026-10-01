@@ -12,6 +12,8 @@ struct MeetingLiveView: View {
     @State private var controller = MeetingController.shared
     @State private var store = MeetingStore.shared
     @State private var isRenamingMeeting = false
+    @State private var followsLatest = true
+    @State private var readerIsScrolling = false
 
     var body: some View {
         base
@@ -98,6 +100,17 @@ struct MeetingLiveView: View {
             // The recording's own file, not the tap: skipped for disk space at start,
             // or stopped by the writer's first write error (M-10). Same shape as the
             // row above, without the settings button — there is no single pane to open.
+            if session.liveTranscriptPaused {
+                Label("Recording continues. Some live transcription may pause.", systemImage: "pause.circle")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.warning)
+            }
+            ForEach(session.healthWarnings.filter { $0.message != session.audioProblem }, id: \.self) { issue in
+                Label(issue.message, systemImage: "exclamationmark.triangle")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let problem = session.audioProblem {
                 HStack(spacing: DS.Space.s) {
                     Image(systemName: "exclamationmark.triangle")
@@ -162,14 +175,47 @@ struct MeetingLiveView: View {
         if session.segments.isEmpty && !hasProvisional {
             waiting
         } else {
-            // Follows the newest line, which is what you want while the meeting runs; the
-            // finished transcript in `MeetingDetailView` doesn't scroll itself.
+            // Follow only while the reader is at the latest line. A new final may arrive
+            // while someone is reading an earlier decision; content growth alone must not
+            // turn that into a request to jump back to the bottom.
             VStack(spacing: 0) {
                 ScrollViewReader { proxy in
-                    TranscriptView(segments: session.segments, speakerNames: session.meeting.speakerNames)
-                        .onChange(of: session.segments.count) { _, _ in
-                            guard let last = session.segments.last else { return }
-                            withAnimation(DS.Motion.standard) { proxy.scrollTo(last.id, anchor: .bottom) }
+                    TranscriptView(
+                        segments: session.segments,
+                        speakerNames: session.meeting.speakerNames,
+                        onLiveScrollPosition: { isNearBottom in
+                            // A final grows the content, too. Only the person's scroll
+                            // changes the choice to follow the latest line.
+                            followsLatest = LiveTranscriptFollow.choice(
+                                current: followsLatest,
+                                readerIsScrolling: readerIsScrolling,
+                                isNearBottom: isNearBottom
+                            )
+                        },
+                        onLiveScrollPhase: { phase, isNearBottom in
+                            if phase == .interacting || phase == .decelerating {
+                                readerIsScrolling = true
+                                followsLatest = isNearBottom
+                            } else if phase == .idle, readerIsScrolling {
+                                readerIsScrolling = false
+                                followsLatest = isNearBottom
+                            }
+                        }
+                    )
+                        .onChange(of: session.segments.count, initial: true) { _, _ in
+                            guard followsLatest, !readerIsScrolling,
+                                  let last = session.segments.last else { return }
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        }
+                        .overlay(alignment: .bottomTrailing) {
+                            if !followsLatest, let last = session.segments.last {
+                                Button("Latest line", systemImage: "arrow.down.to.line") {
+                                    followsLatest = true
+                                    proxy.scrollTo(last.id, anchor: .bottom)
+                                }
+                                .buttonStyle(.bordered)
+                                .padding(DS.Space.m)
+                            }
                         }
                 }
                 if hasProvisional {

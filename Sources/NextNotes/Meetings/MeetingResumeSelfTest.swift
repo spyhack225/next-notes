@@ -122,6 +122,11 @@ enum MeetingResumeSelfTest {
             check("B repaired to diarizing", store.meeting(id: b.id)?.status == .diarizing)
             check("C repaired to summarizing", store.meeting(id: c.id)?.status == .summarizing)
             check("D repaired to failed", store.meeting(id: d.id)?.status.isFailure == true)
+            check("A recording restart retains interruption", store.meeting(id: a.id)?.hasPartialCapture == true)
+            check("orphan recording restart retains interruption", recoveredOrphan?.hasPartialCapture == true)
+            check("B processing restart is not capture loss", store.meeting(id: b.id)?.captureIntegrity == nil)
+            check("C processing restart is not capture loss", store.meeting(id: c.id)?.captureIntegrity == nil)
+            check("D empty interrupted recording retains interruption", store.meeting(id: d.id)?.hasPartialCapture == true)
             for (id, label) in [(a.id, "A"), (b.id, "B")] {
                 let url = store.directory(for: id).appendingPathComponent(MeetingStore.audioFile)
                 check("\(label) audio survives repair", fm.fileExists(atPath: url.path))
@@ -182,6 +187,10 @@ enum MeetingResumeSelfTest {
                 check("\(label) residually inactive", current?.status.isActive == false)
             }
             check("D stayed failed", store.meeting(id: d.id)?.status.isFailure == true)
+            let freshReader = store.freshReaderForTesting()
+            check("A done does not imply full capture", freshReader.meeting(id: a.id)?.hasPartialCapture == true)
+            check("orphan partial marker survived processing", freshReader.meeting(id: orphan.id)?.hasPartialCapture == true)
+            check("B processing resume falsely became partial", freshReader.meeting(id: b.id)?.hasPartialCapture == false)
             for (id, label) in [(a.id, "A"), (b.id, "B")] {
                 let url = store.directory(for: id).appendingPathComponent(MeetingStore.audioFile)
                 check("\(label) temp audio released after notes", !fm.fileExists(atPath: url.path))

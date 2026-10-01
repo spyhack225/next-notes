@@ -40,6 +40,12 @@ enum VoiceLatencySelfTest {
     ]
 
     static func run() async -> Result {
+        // Same flag and actual persistence/consumer seams, without loading a voice model.
+        // This bounded instrumentation proof does not satisfy the file-fed latency gate.
+        if CommandLine.arguments.contains("--voice-latency-instrumentation") {
+            SelfTest.diagnostic("VOICE_LATENCY_INSTRUMENTATION_ONLY: no audio or model latency measured")
+            return finish(await instrumentationProblems())
+        }
         let runs = max(1, Int(SelfTest.value(after: "--voice-latency-runs") ?? "") ?? 5)
         let budget = Double(SelfTest.value(after: "--voice-latency-budget") ?? "")
         let maxStall = Double(SelfTest.value(after: "--voice-latency-max-stall") ?? "") ?? 0.100
@@ -68,11 +74,7 @@ enum VoiceLatencySelfTest {
 
         // --- The table, the absent case, the store and the probe, before any measurement
         // is believed. A run that cannot be trusted to fail is not a measurement. ---
-        wrong += selfTestEmission()
-        wrong += selfTestAbsentStages()
-        wrong += selfTestDiscard()
-        wrong += selfTestUsageRow()
-        wrong += await MainActorStallProbeSelfTest.run()
+        wrong += await instrumentationProblems()
         if !wrong.isEmpty { return finish(wrong) }
 
         VoiceLatencyTimeline.shared.resetForTesting()
@@ -161,6 +163,9 @@ enum VoiceLatencySelfTest {
         let turnsBefore = VoiceLatencyTimeline.shared.closedTurnsForTesting().count
         let prepareBefore = MetricsStore.shared.spans(named: .voiceEOUPrepare).count
 
+        // This mode is command-line deterministic under the harness, exactly as the
+        // actual LocalVoiceFrontend chooses its producer. No preference is changed.
+        let separateRoute = LocalVoiceSplitResponse.isEnabled
         do {
             try await capture.beginFileSession(wav: fixture)
         } catch {
@@ -224,8 +229,9 @@ enum VoiceLatencySelfTest {
             + "spans=\(MetricsStore.shared.spans(named: nil).count) "
             + "turnRows=\(UsageLog.shared.load().filter { $0.pass == "turn" }.count)")
         guard index > 0 else { return RunOutcome(turn: turn, wrong: []) }
-        var wrong = validate(turn: turn, index: index, reply: reply)
-        wrong += validateStore(turn: turn, index: index)
+        var wrong = validate(turn: turn, index: index, reply: reply,
+            committedCount: committed, separateRoute: separateRoute)
+        wrong += validateStore(turn: turn, index: index, separateRoute: separateRoute)
         wrong += validateUsageLog(turn: turn, index: index)
         return RunOutcome(turn: turn, wrong: wrong)
     }
@@ -254,10 +260,14 @@ enum VoiceLatencySelfTest {
     // MARK: - The assertions a counted run must pass
 
     private static func validate(
-        turn: VoiceClosedTurn, index: Int, reply: String
+        turn: VoiceClosedTurn, index: Int, reply: String,
+        committedCount: Int = 1, separateRoute: Bool = true
     ) -> [String] {
         var wrong: [String] = []
-        for stage in VoiceStageSpan.all where stage.required {
+        if committedCount != 1 {
+            wrong.append("run \(index): expected exactly one committed turn, got \(committedCount)")
+        }
+        for stage in VoiceStageSpan.all where stage.isRequired(for: turn, separateRoute: separateRoute) {
             guard turn.seconds(stage.span) != nil else {
                 wrong.append("run \(index): \(stage.span.rawValue) is absent — the stage did "
                     + "not happen, or its mark was never stamped")
@@ -278,15 +288,19 @@ enum VoiceLatencySelfTest {
 
     /// The spans reached the store, not only the in-memory turn. Without this the table
     /// would be a printout of something that was never written anywhere.
-    private static func validateStore(turn: VoiceClosedTurn, index: Int) -> [String] {
+    private static func validateStore(
+        turn: VoiceClosedTurn, index: Int, separateRoute: Bool = true
+    ) -> [String] {
         let stored = MetricsStore.shared.spans(named: nil).filter {
             $0.source == "voice" && $0.correlation?.sessionID == turn.sessionID
+                && $0.correlation?.revision == turn.number
         }
         guard !stored.isEmpty else {
             return ["run \(index): no voice spans reached the metrics store for this turn"]
         }
         return VoiceStageSpan.all.compactMap { stage in
-            guard stage.required, turn.seconds(stage.span) != nil else { return nil }
+            guard stage.isRequired(for: turn, separateRoute: separateRoute),
+                  turn.seconds(stage.span) != nil else { return nil }
             guard !stored.contains(where: { $0.name == stage.span }) else { return nil }
             return "run \(index): \(stage.span.rawValue) was measured but not stored"
         }
@@ -331,6 +345,102 @@ enum VoiceLatencySelfTest {
     }
 
     // MARK: - The pure cases, before any pipeline run
+
+    private static func instrumentationProblems() async -> [String] {
+        var wrong = selfTestEmission()
+        wrong += selfTestZeroStall()
+        wrong += selfTestRequiredStagesAndCount()
+        wrong += selfTestStoreTurnIdentity()
+        wrong += selfTestAbsentStages()
+        wrong += selfTestDiscard()
+        wrong += selfTestUsageRow()
+        wrong += await MainActorStallProbeSelfTest.run()
+        return wrong
+    }
+
+    /// Exercise the same validator and actual timeline as the file-fed consumer. A
+    /// non-speculated split pass cannot lose its lane/route marks and still pass, while
+    /// an actual hit or single-decision mode keeps its documented exception.
+    private static func selfTestRequiredStagesAndCount() -> [String] {
+        var wrong: [String] = []
+        let cases: [(omit: Set<VoiceMark>, hit: Bool, separate: Bool, count: Int, invalid: Bool)] = [
+            ([.schedulerAcquired, .routeDone], false, true, 1, true),
+            ([.schedulerAcquired, .routeDone], true, true, 1, false),
+            ([.routeDone], false, false, 1, false),
+            ([], false, true, 0, true),
+            ([], false, true, 2, true),
+        ]
+        for (index, fixture) in cases.enumerated() {
+            let timeline = VoiceLatencyTimeline()
+            timeline.beginSession(UUID())
+            stampCompleteTurn(timeline, omitting: fixture.omit,
+                speculation: fixture.hit ? "hit headstart=0.1" : "miss reason=no-slot")
+            timeline.mark(.firstAudible)
+            guard let turn = timeline.closedTurnsForTesting().last else {
+                wrong.append("required-stage case \(index): no actual turn was produced")
+                continue
+            }
+            let issues = validate(turn: turn, index: index, reply: "A brief answer",
+                committedCount: fixture.count, separateRoute: fixture.separate)
+            if issues.isEmpty == fixture.invalid {
+                wrong.append("required-stage case \(index): missing stages/count or mode exception was misgraded")
+            }
+        }
+        return wrong
+    }
+
+    /// Rows from an earlier turn in the same session are not evidence this turn was
+    /// persisted. The negative control carries a next revision that was never emitted.
+    private static func selfTestStoreTurnIdentity() -> [String] {
+        let timeline = VoiceLatencyTimeline()
+        timeline.beginSession(UUID())
+        stampCompleteTurn(timeline)
+        timeline.mark(.firstAudible)
+        MetricsStore.shared.flushForTesting()
+        guard let turn = timeline.closedTurnsForTesting().last else {
+            return ["turn-identity case: no actual turn was produced"]
+        }
+        let unstored = VoiceClosedTurn(number: turn.number + 1, sessionID: turn.sessionID,
+            turnID: UUID(), conversationID: turn.conversationID, reason: turn.reason,
+            marks: turn.marks, notes: turn.notes, maxStallNanos: turn.maxStallNanos,
+            stallSite: turn.stallSite, closedAtNanos: turn.closedAtNanos,
+            durations: turn.durations, speculationHit: turn.speculationHit)
+        if validateStore(turn: unstored, index: 1).isEmpty {
+            return ["turn-identity case: an unstored revision borrowed the previous turn's rows"]
+        }
+        return []
+    }
+
+    /// A healthy turn with no late ping is still a measured turn. The original producer
+    /// kept its zero in memory and usage.jsonl but omitted the required metrics row.
+    private static func selfTestZeroStall() -> [String] {
+        let timeline = VoiceLatencyTimeline()
+        let sessionID = UUID()
+        timeline.beginSession(sessionID)
+        stampCompleteTurn(timeline, stallNanos: 0)
+        timeline.mark(.firstAudible)
+        MetricsStore.shared.flushForTesting()
+        UsageLog.shared.flush()
+        guard let turn = timeline.closedTurnsForTesting().last else {
+            return ["zero-stall case: a healthy turn was not recorded"]
+        }
+        var wrong = validateStore(turn: turn, index: 0)
+        let stored = MetricsStore.load(from: MetricsStore.shared.fileURL).filter {
+            $0.name == .voiceMainActorStall && $0.source == "voice"
+                && $0.correlation?.sessionID == sessionID
+                && $0.correlation?.revision == turn.number
+        }
+        if stored.count != 1 || stored.first?.durationSeconds != 0 {
+            wrong.append("zero-stall case: expected one persisted zero-duration stall row")
+        }
+        let summary = UsageLog.shared.load().filter {
+            $0.pass == "turn" && $0.turnID == turn.turnID
+        }
+        if summary.count != 1 || summary.first?.stages?["main_actor_stall"] != 0 {
+            wrong.append("zero-stall case: the usage summary disagrees with the measured zero")
+        }
+        return wrong
+    }
 
     /// A complete turn produces every required stage, in the store as well as in memory.
     private static func selfTestEmission() -> [String] {
@@ -443,7 +553,8 @@ enum VoiceLatencySelfTest {
     /// controller throws away always has.
     private static func stampCompleteTurn(
         _ timeline: VoiceLatencyTimeline, tts: Bool = true, endpoint: Bool = true,
-        turnID: UUID = UUID()
+        turnID: UUID = UUID(), stallNanos: UInt64 = 7_000_000,
+        omitting: Set<VoiceMark> = [], speculation: String = "miss reason=no-slot"
     ) {
         var at = VoiceLatencyTimeline.nowNanos()
         func step(_ gap: UInt64) { at &+= gap }
@@ -466,10 +577,10 @@ enum VoiceLatencySelfTest {
         step(2_000_000)
         timeline.mark(.frontendRequest, at: at)
         step(1_000_000)
-        timeline.mark(.schedulerAcquired, at: at)
-        timeline.note("speculation", "miss reason=no-slot")
+        if !omitting.contains(.schedulerAcquired) { timeline.mark(.schedulerAcquired, at: at) }
+        timeline.note("speculation", speculation)
         step(600_000_000)
-        timeline.mark(.routeDone, at: at)
+        if !omitting.contains(.routeDone) { timeline.mark(.routeDone, at: at) }
         step(400_000_000)
         timeline.mark(.frontendFirstToken, at: at)
         step(1_000_000)
@@ -478,7 +589,7 @@ enum VoiceLatencySelfTest {
             step(250_000_000)
             timeline.mark(.ttsFirstPCM, at: at)
         }
-        timeline.noteStall(nanos: 7_000_000, site: "selftest.stall")
+        timeline.noteStall(nanos: stallNanos, site: "selftest.stall")
     }
 
     // MARK: - Numbers

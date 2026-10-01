@@ -67,6 +67,8 @@ enum SelfTestStoreGuard {
         "modelLibrary.",
         "agent",
         "codex.",
+        "meeting",
+        "notes",
     ]
 
     /// The owner's real stores, right now.
@@ -169,7 +171,9 @@ enum SelfTestHarnessDefaults {
         "NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)"
 
     static let shared: UserDefaults = {
-        guard let defaults = UserDefaults(suiteName: suiteName) else { return .standard }
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            preconditionFailure("Unable to create isolated self-test preferences")
+        }
         if SelfTest.allowsSavedModelSelection {
             copyOwnerSelection(into: defaults)
         }
@@ -186,7 +190,9 @@ enum SelfTestHarnessDefaults {
     /// thread-safe and is not `Sendable`, hence `nonisolated(unsafe)` on the single global
     /// that names it: it is built once, and every write to it happens on the main actor.
     nonisolated(unsafe) static let suite: UserDefaults = {
-        guard let defaults = UserDefaults(suiteName: suiteName) else { return .standard }
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            preconditionFailure("Unable to create isolated self-test preferences")
+        }
         if SelfTest.allowsSavedModelSelection {
             copyOwnerSelection(into: defaults)
         }

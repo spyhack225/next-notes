@@ -372,6 +372,13 @@ final class AudioCaptureHub {
 
     /// Copy the tap buffer, then convert/copy once per consumer. Model work stays
     /// off this thread — callbacks only enqueue.
+    /// Isolated fixtures exercise the real subscription/delivery path without a microphone.
+    /// A live hub refuses injection; no owner capture can be seeded by a test.
+    func feedForTesting(_ buffer: AVAudioPCMBuffer, captureHostTime: UInt64? = nil) {
+        guard probe else { return }
+        fanOut(buffer, captureHostTime: captureHostTime)
+    }
+
     nonisolated private func fanOut(_ buffer: AVAudioPCMBuffer, captureHostTime: UInt64? = nil) {
         lock.lock()
         let snapshot = Array(slots.values)

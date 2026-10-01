@@ -344,23 +344,17 @@ enum ScreenCapture {
 
 // MARK: - VerifyRetry (P1-4)
 
-/// One re-inspect and one retry with the refreshed state, then a sentence in words.
-///
-/// The executor calls this only when the first attempt came back unverified
-/// (`verification == nil`) **and** `risk <= .modify`. Sends and above are never
-/// retried: running a send twice is exactly the failure this exists to prevent.
-///
-/// Both attempts are returned so the caller logs each as a step in the working
-/// surface's list (P1-1): the retry must be visible, not silent.
+/// The existing verification seam: one delivered action, optional fresh observation,
+/// then an honest uncertainty sentence. An unverified result never licenses replay.
+/// Keeping the existing call sites avoids a second action/recovery owner.
 enum VerifyRetry {
     struct Attempt: Sendable {
         var summary: String
         var verification: String?
     }
 
-    /// Run `act` once; on an unverified result with `risk <= .modify`, re-inspect via
-    /// `reinspect` and run `act` exactly once more. Returns every attempt plus the
-    /// user-facing sentence for the mismatch case.
+    /// Run the effect exactly once. A refreshed observation can help explain an
+    /// uncertain result; it cannot establish that the first effect never happened.
     static func run(
         risk: AgentRisk,
         title: String,
@@ -370,19 +364,10 @@ enum VerifyRetry {
         act: () throws -> Attempt
     ) throws -> (attempts: [Attempt], mismatchMessage: String?) {
         let first = try act()
-        guard first.verification == nil, risk <= .modify else {
-            return ([first], nil)
-        }
+        guard first.verification == nil, risk <= .modify else { return ([first], nil) }
         reinspect()
-        let second = try act()
-        guard second.verification == nil else {
-            return ([first, second], nil)
-        }
-        let outcome = second.verification == nil ? "still off" : "ok"
-        let message =
-            "I clicked \(title) expecting \(expected) but saw \(observed()). "
-            + "Re-checked and tried once more — \(outcome)."
-        return ([first, second], message)
+        return ([first], "I clicked \(title), but could not confirm \(expected). I saw \(observed()). "
+            + "It may have changed. Let me look again before another action.")
     }
 }
 
@@ -437,8 +422,8 @@ enum ComputerVisionSelfTest {
         // Step-list wording the surface agent renders.
         check("step line wrong", VisionStepLine.sentScreenshot(1) == "sent 1 screenshot")
 
-        // P1-4 fixture: first miss, then success — exactly two attempts, one success,
-        // and no retry at all for a send.
+        // CU02: retain the original first-miss/second-success scenario. The second
+        // action must never be fired just because the first effect was not observed.
         var calls = 0
         let fixtureResult = try? VerifyRetry.run(
             risk: .modify, title: "C2", expected: "C2 selected",
@@ -455,10 +440,10 @@ enum ComputerVisionSelfTest {
         // No `?? "threw"` fallback: optional chaining already flattens to `String?`, so
         // the default would replace the legitimate nil this very check is about.
         let message = fixtureResult?.mismatchMessage
-        check("first-miss-then-succeed did not take exactly 2 attempts",
-              calls == 2 && attempts.count == 2)
-        check("a recovered retry still reported a mismatch", message == nil)
-        check("a recovered retry lost its verification", attempts.last?.verification != nil)
+        check("an unverified click was replayed",
+              calls == 1 && attempts.count == 1)
+        check("an unverified click lost its honest uncertainty", message?.contains("could not confirm") == true)
+        check("an unverified first click invented a verified effect", attempts.last?.verification == nil)
         var sendCalls = 0
         let sendFixture = try? VerifyRetry.run(
             risk: .send, title: "Pay", expected: "receipt",

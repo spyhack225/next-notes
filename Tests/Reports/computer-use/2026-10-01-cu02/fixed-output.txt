@@ -1,0 +1,18 @@
+CU_AX_UNVERIFIED_ATTEMPTS: 1
+CU_ACTION_CHECK: the AX producer seam never replays an unverified press PASS
+CU_ACK_UNVERIFIED_COUNT: [1,0]
+CU_ACTION_CHECK: acknowledged unverified click fires exactly once PASS
+CU_ACTION_CHECK: unverified click says the result could not be confirmed PASS
+CU_ACTION_CHECK: one observed decision cannot be delivered again without a fresh snapshot PASS
+CU_ACTION_CHECK: a click never repeats on a reordered control PASS
+CU_ACTION_CHECK: duplicate labels cannot retarget a cached control PASS
+CU_ACTION_CHECK: a same-label replacement never inherits a captured node's identity PASS
+CU_ACTION_CHECK: CDP yields before a posted action FAIL
+CU_ACTION_CHECK: CDP rechecks human input after async inspection PASS
+CU_STABLE_CLICK_MS: 10.377458
+CU_ACTION_CHECK: stable bound control receives one verified action PASS
+CU_LATENCY_MS: action samples=[7.475125, 8.599959, 10.259708, 10.425041, 11.76075, 11.807167, 15.367625, 22.668667, 24.094459, 26.617833] p50=11.807167 p95=26.617833
+CU_LATENCY_MS: snapshot_to_action samples=[17.976917, 19.589083, 19.939458, 21.143875, 21.171833, 22.583458, 24.915833, 31.018542, 33.307208, 34.062417] p50=22.583458 p95=34.062417
+CU_ACTION_CHECK: fill cannot retarget a duplicate-label input PASS
+CU_ACTION_WRONG: CDP yields before a posted action
+CU_ACTION_FAILED: 1 actual client failures

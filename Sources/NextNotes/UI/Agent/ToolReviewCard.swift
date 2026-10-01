@@ -27,6 +27,9 @@ struct ToolReviewCard: View {
     @State private var asking: String?
     @State private var spokenAnswer = ""
     @FocusState private var focusedField: String?
+    @FocusState private var focusedDecision: Bool
+    @FocusState private var focusedQuestion: Bool
+    @AccessibilityFocusState private var focusedReview: Bool
 
     /// Read back off the store every time: the answer to "Tell me instead" writes there.
     private var live: ToolCallReview { store.review(id: review.id) ?? review }
@@ -42,8 +45,14 @@ struct ToolReviewCard: View {
         }
         .padding(DS.Space.card)
         .glassSurface()
-        .animation(DS.Motion.fluid, value: live.blockers.count)
-        .animation(DS.Motion.fluid, value: asking)
+        .onAppear {
+            focusedReview = true
+            if live.isReadyToRun {
+                focusedDecision = true
+            } else {
+                focusedQuestion = true
+            }
+        }
     }
 
     // MARK: - Header
@@ -68,6 +77,7 @@ struct ToolReviewCard: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(live.title). \(live.why) \(live.needsSummary ?? "")")
+        .accessibilityFocused($focusedReview)
     }
 
     // MARK: - Fields
@@ -208,6 +218,7 @@ struct ToolReviewCard: View {
                     asking = live.blockers.first?.name
                     focusedField = "ask"
                 }
+                .focused($focusedQuestion)
                 .help("The assistant asks one short question and fills this in.")
             }
             Spacer(minLength: 0)
@@ -219,6 +230,7 @@ struct ToolReviewCard: View {
             Button(approveTitle) { approve() }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
+                .focused($focusedDecision)
                 .disabled(!live.isReadyToRun)
                 .help(live.isReadyToRun
                       ? "Runs exactly what is on this card."

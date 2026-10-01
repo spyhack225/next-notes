@@ -1,0 +1,18 @@
+MEMORY_LINEAGE_LEGACY_SNAPSHOT_BYTES=115
+MEMORY_LINEAGE_WRONG: lineage: checked writer dropped descriptor for channel 0
+MEMORY_LINEAGE_WRONG: lineage: new write lacks empty consolidation descriptor
+MEMORY_LINEAGE_WRONG: lineage: writer did not persist version 3
+MEMORY_LINEAGE_WRONG: lineage: correction lost its recorded parent
+MEMORY_LINEAGE_WRONG: lineage: correction lost old provenance
+MEMORY_LINEAGE_WRONG: lineage: checked writer dropped descriptor for channel 1
+MEMORY_LINEAGE_WRONG: lineage: new write lacks empty consolidation descriptor
+MEMORY_LINEAGE_WRONG: lineage: writer did not persist version 3
+MEMORY_LINEAGE_WRONG: lineage: checked writer dropped descriptor for channel 2
+MEMORY_LINEAGE_WRONG: lineage: new write lacks empty consolidation descriptor
+MEMORY_LINEAGE_WRONG: lineage: writer did not persist version 3
+MEMORY_LINEAGE_WRONG: lineage: checked writer dropped descriptor for channel 3
+MEMORY_LINEAGE_WRONG: lineage: new write lacks empty consolidation descriptor
+MEMORY_LINEAGE_WRONG: lineage: writer did not persist version 3
+MEMORY_LINEAGE_WRONG: lineage: version-2 migration did not write version 3
+MEMORY_LINEAGE_WRONG: lineage: unsupported future history was silently downgraded
+MEMORY_LINEAGE_DRIVER_FAILED: 16 assertion(s)

@@ -17,6 +17,21 @@ import Foundation
 /// writer stops pairing, fills the silent side in, and keeps writing; otherwise a
 /// ninety-minute meeting would sit in memory and then ask for one buffer the size of it.
 actor MeetingAudioWriter {
+    /// Synchronous file boundary. Fixtures may reject an actual write without filling
+    /// the volume; production always uses AVAudioFile's write.
+    typealias Write = @Sendable (AVAudioFile, AVAudioPCMBuffer) throws -> Void
+
+    struct ResourceSnapshot: Sendable {
+        let queuedBytes: Int
+        let queueCapacityBytes: Int
+        let writtenFrames: Int
+        let writeFailed: Bool
+        let writeInFlight: Bool
+        let writeStartedAt: Date?
+        let missingSavedMicFrames: Int
+        let missingSavedSystemFrames: Int
+    }
+
     /// How far one track may run ahead before the other is written off as silent. Five
     /// seconds is far longer than the two callbacks ever drift, and still only 320 KB of
     /// queue. A late-starting tap is aligned by its recording-clock offset, not this bound.
@@ -30,8 +45,9 @@ actor MeetingAudioWriter {
     static let micChannel = 0
     static let systemChannel = 1
 
-    private let file: AVAudioFile
+    private var file: AVAudioFile?
     private let format: AVAudioFormat
+    private let writeBuffer: Write
 
     private var micQueue: [Float] = []
     private var systemQueue: [Float] = []
@@ -43,6 +59,11 @@ actor MeetingAudioWriter {
     /// across subsequent packets, rather than moving the second packet forward.
     private var micNextCaptureFrame: Int?
     private var systemNextCaptureFrame: Int?
+    /// A frame trimmed behind the paired cursor never reached disk. Live ASR may
+    /// still hold that original, so later successful writes cannot restore recovery
+    /// authority for this track. Two bounded facts, not a per-packet history.
+    private var missingSavedMicFrames = 0
+    private var missingSavedSystemFrames = 0
 
     /// Called once, on the first write failure (M-10). The session surfaces the
     /// message; the writer stops trying after it.
@@ -51,9 +72,33 @@ actor MeetingAudioWriter {
     /// Once set, incoming samples are dropped rather than queued — a two-hour
     /// meeting must not grow memory behind a file that can no longer take bytes.
     private var writeError: String?
+    private var writeInFlight = false
+    private var writeStartedAt: Date?
+    /// Native AVAudioFile.write is synchronous and can occupy this actor while
+    /// storage stalls. Its health reader must not queue behind that same write.
+    /// This is one bounded projection of the producer's existing counters; it
+    /// owns no samples, history, timer or persistence.
+    private nonisolated let progress = WriterProgress()
 
     /// A file that failed after being created cannot recover shed live ASR windows.
     var didFail: Bool { writeError != nil }
+
+    /// Content-free retained audio and successful file progress. Sample off the
+    /// callback path; capacity also reports empty arrays retaining their allocation.
+    nonisolated func resourceSnapshot() -> ResourceSnapshot { progress.read() }
+
+    private func publishSnapshot() {
+        progress.publish(ResourceSnapshot(
+            queuedBytes: (micQueue.count + systemQueue.count) * MemoryLayout<Float>.stride,
+            queueCapacityBytes: (micQueue.capacity + systemQueue.capacity) * MemoryLayout<Float>.stride,
+            writtenFrames: writtenFrames,
+            writeFailed: writeError != nil,
+            writeInFlight: writeInFlight,
+            writeStartedAt: writeStartedAt,
+            missingSavedMicFrames: missingSavedMicFrames,
+            missingSavedSystemFrames: missingSavedSystemFrames
+        ))
+    }
 
     /// 16-bit on disk, float in memory: `AVAudioFile` converts on write, and int16 halves
     /// what an hour of meeting costs on a machine with ten gigabytes free.
@@ -63,8 +108,13 @@ actor MeetingAudioWriter {
     ///     creation because the writer is an actor: its state cannot be mutated
     ///     from outside after construction.
     ///   - url: where the stereo file is written.
-    init(url: URL, onWriteError: (@Sendable (String) -> Void)? = nil) throws {
+    init(
+        url: URL,
+        onWriteError: (@Sendable (String) -> Void)? = nil,
+        write: @escaping Write = { file, buffer in try file.write(from: buffer) }
+    ) throws {
         self.onWriteError = onWriteError
+        self.writeBuffer = write
         guard let format = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
             sampleRate: ChunkedTranscriber.sampleRate,
@@ -95,25 +145,42 @@ actor MeetingAudioWriter {
     /// buffers advance from that origin by their sample counts, so callback scheduling
     /// jitter cannot repeatedly insert or remove frames. Existing fixture callers may
     /// omit it and start both tracks at frame zero.
-    func append(_ samples: [Float], from source: AudioSource, startFrame: Int? = nil) {
+    @discardableResult
+    func append(
+        _ samples: [Float], from source: AudioSource, startFrame: Int? = nil,
+        requireWritten: Bool = false
+    ) -> Bool {
+        defer { publishSnapshot() }
         // The file failed once; nothing after that lands anywhere, and saying so
         // again would be noise. The transcript keeps running without the file.
-        guard writeError == nil else { return }
-        guard !samples.isEmpty else { return }
+        guard writeError == nil, file != nil else { return false }
+        guard !samples.isEmpty else {
+            guard requireWritten else { return true }
+            return source == .mic
+                ? missingSavedMicFrames == 0 && micQueue.isEmpty
+                : missingSavedSystemFrames == 0 && systemQueue.isEmpty
+        }
+        let packetEnd: Int
         switch source {
         case .mic:
             let packetStart = micNextCaptureFrame ?? startFrame
+            packetEnd = max(0, packetStart ?? (writtenFrames + micQueue.count)) + samples.count
             micNextCaptureFrame = packetStart.map { $0 + samples.count }
             let aligned = alignedSamples(samples, from: .mic, startFrame: packetStart)
             micQueue.append(contentsOf: aligned)
         case .system:
             let packetStart = systemNextCaptureFrame ?? startFrame
+            packetEnd = max(0, packetStart ?? (writtenFrames + systemQueue.count)) + samples.count
             systemNextCaptureFrame = packetStart.map { $0 + samples.count }
             let aligned = alignedSamples(samples, from: .system, startFrame: packetStart)
             systemQueue.append(contentsOf: aligned)
         }
-        guard writeError == nil else { return }
+        guard writeError == nil else { return false }
         writePairedFrames()
+        guard writeError == nil else { return false }
+        guard requireWritten else { return true }
+        let complete = source == .mic ? missingSavedMicFrames == 0 : missingSavedSystemFrames == 0
+        return complete && writtenFrames >= packetEnd
     }
 
     /// Silence spans a late track's missing beginning. If the other track has already
@@ -141,13 +208,35 @@ actor MeetingAudioWriter {
             return writeError == nil ? samples : []
         }
         let overlap = cursor - target
+        if overlap > 0 {
+            // Count originals actually omitted, not the cursor's full lead: the
+            // same delayed source can remain behind over several packets.
+            let omitted = min(overlap, samples.count)
+            switch source {
+            case .mic:
+                let sum = missingSavedMicFrames.addingReportingOverflow(omitted)
+                missingSavedMicFrames = sum.overflow ? .max : sum.partialValue
+            case .system:
+                let sum = missingSavedSystemFrames.addingReportingOverflow(omitted)
+                missingSavedSystemFrames = sum.overflow ? .max : sum.partialValue
+            }
+        }
         if overlap >= samples.count { return [] }
         return Array(samples.dropFirst(overlap))
     }
 
     /// Flushes the side that ran on longest, padding the other with silence.
     func finish() {
-        guard writeError == nil else { return }
+        defer {
+            // AVAudioFile finalizes its converted tail on close. Accepted frame
+            // counts alone were not proof that a fresh final-pass reader could
+            // see those samples while this actor retained the still-open file.
+            file = nil
+            micQueue.removeAll(keepingCapacity: false)
+            systemQueue.removeAll(keepingCapacity: false)
+            publishSnapshot()
+        }
+        guard writeError == nil, file != nil else { return }
         let remaining = max(micQueue.count, systemQueue.count)
         guard remaining > 0 else { return }
         padQueues(to: remaining)
@@ -188,6 +277,8 @@ actor MeetingAudioWriter {
     ///   the write (M-10: the first refusal stops the caller), rather than letting
     ///   it spin on a chunk that will never be consumed.
     private func writeChunk(frames: Int) -> Bool {
+        publishSnapshot()
+        guard let file else { return false }
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frames)),
               let channels = buffer.floatChannelData
         else {
@@ -205,8 +296,15 @@ actor MeetingAudioWriter {
         micQueue.removeFirst(frames)
         systemQueue.removeFirst(frames)
 
+        writeInFlight = true
+        writeStartedAt = Date()
+        publishSnapshot()
+        defer {
+            writeInFlight = false
+            publishSnapshot()
+        }
         do {
-            try file.write(from: buffer)
+            try writeBuffer(file, buffer)
             writtenFrames += frames
         } catch {
             // The samples were consumed above; no later chunk may queue behind this.
@@ -219,8 +317,37 @@ actor MeetingAudioWriter {
     private func recordWriteFailure(_ message: String) {
         guard writeError == nil else { return }
         writeError = message
+        writeInFlight = false
+        file = nil
+        // The first refusal permanently closes this writer. Retaining an unmatched
+        // track's five-second lead (or a larger currently consumed packet) serves no
+        // recovery purpose and keeps allocation alive during the very pressure that
+        // stopped saving. Incoming audio is already rejected above.
+        micQueue.removeAll(keepingCapacity: false)
+        systemQueue.removeAll(keepingCapacity: false)
+        publishSnapshot()
         Log.meeting.error("audio write failed; stopping the recording file: \(message, privacy: .public)")
         onWriteError?(message)
+    }
+
+    private final class WriterProgress: @unchecked Sendable {
+        private let lock = NSLock()
+        private var value = ResourceSnapshot(
+            queuedBytes: 0, queueCapacityBytes: 0, writtenFrames: 0,
+            writeFailed: false, writeInFlight: false, writeStartedAt: nil,
+            missingSavedMicFrames: 0, missingSavedSystemFrames: 0)
+
+        func read() -> ResourceSnapshot {
+            lock.lock()
+            defer { lock.unlock() }
+            return value
+        }
+
+        func publish(_ snapshot: ResourceSnapshot) {
+            lock.lock()
+            value = snapshot
+            lock.unlock()
+        }
     }
 }
 

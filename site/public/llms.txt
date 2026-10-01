@@ -1,54 +1,44 @@
 # Next Notes
 
-> Dictation, meeting notes and a voice interface for macOS that run entirely on the
-> user's own Mac. Hold a key and speak, and the cleaned-up sentence appears at the
-> cursor in whatever app is already focused. Sit in a meeting and the notes write
-> themselves. Ask the Mac, and it answers on this machine. No account, no
-> subscription, no server, and no bot joining the call.
+> Next Notes is one familiar companion starting on your Mac. It helps you dictate where
+> you work, keep meeting notes, and review proposed follow-ups. "Home helper," "office
+> associate," and "meeting partner" describe moments of help from the same app, not
+> separate assistants. The site's conversations are illustrative examples.
 
-Next Notes is free and open source, and requires macOS 26 on Apple silicon.
+Website: https://next-notes.com/
+Source and product status: https://github.com/spyhack225/next-notes
+Download for Mac: https://github.com/spyhack225/next-notes/releases/latest/download/NextNotes.dmg
+License: https://github.com/spyhack225/next-notes/blob/main/LICENSE
 
-## What it does
+## What is available on Mac
 
-- **Dictation into any app.** Hold one key, speak, release. The text is transcribed and
-  punctuated locally, then inserted where the cursor already was — no window to switch to.
-  It learns the names and jargon you use, so it stops mangling them.
-- **Meeting notes without a bot.** It reads your calendar and starts when the meeting
-  does, after asking. Your microphone and your speaker output are captured as two separate
-  tracks, which is how the transcript attributes who said what without anything joining
-  the call. A movable meeting window keeps notes, next steps, earlier meetings and questions
-  together while recording continues.
-- **Ask the Mac.** ⇧⌘ Space, or say “Hey Next”. Silence ends a turn; Done leaves the
-  conversation. It can inspect the frontmost window, click and type, search files and
-  run a shell command — never sudo — each behind an Approve card unless you already
-  said it may. Longer work can go to a coding agent you already have installed.
-- **Follow-ups it proposes, never sends.** It can draft the follow-up while you talk. It
-  offers; you approve. Nothing is created or sent on its own.
-- **It writes where the work already is.** Calendar, Gmail, Drive and Docs, in your own
-  account, acting as you. MCP servers and Composio are optional and need setup.
+- Push-to-talk dictation: hold a key, speak, release, and the cleaned-up text returns to
+  the app that had focus when you started. Personal dictionary corrections and per-app
+  formatting are available.
+- Meeting recording and notes: with calendar access and recording enabled, Next Notes
+  can notice eligible meetings, record microphone and system audio without a meeting bot,
+  transcribe the conversation, and write notes. The meeting card offers Record now and
+  Skip.
+- One Mac companion: the same Next Notes conversation can answer questions and, with
+  the needed permissions, inspect or act in Mac apps. Its home and office examples start
+  when the person asks; broad autonomous life management is still in development.
+- Proposed follow-ups: when the relevant Google Workspace integration is enabled,
+  Next Notes can draft actions from meeting notes for the person to review and approve.
+  A draft is not a sent message or a completed task.
 
-## How the privacy claim actually works
+## Availability and data handling
 
-This is the part most comparable tools do differently, so it is worth stating precisely:
+- The Mac app requires macOS 26 or later on Apple silicon. The core app needs no
+  account or subscription. It is free and open source under AGPL-3.0-or-later.
+- Speech recognition and meeting notes have local processing options. Optional cloud
+  models and connected services send the information needed for the feature the person
+  chooses; "local by default" is not a claim that no data can ever leave the Mac.
+- The iMessage command channel and agent-initiated phone calls are not available today.
+  A separate Windows dictation app builds and runs its tests in CI, but has not been
+  tested in a real microphone-and-key session on Windows hardware; the Mac meeting and
+  companion features are not in that app.
 
-- **Transcribed on the device.** Apple's on-device speech recogniser, or NVIDIA Parakeet
-  through CoreML. Audio becomes words on the machine it was spoken to.
-- **Summarised on the device.** A local language model (Gemma 4 E4B) reads the transcript
-  and writes the summary, the decisions, and who owes what. It is downloaded once and then
-  runs offline.
-- **Stored on the device.** One folder per meeting under Application Support. Recordings
-  are deleted once the notes are written, unless you ask to keep them.
-- There is no server to send any of it to. There is no account to create.
+## More detail
 
-## Comparable tools
-
-People generally arrive at Next Notes from Wispr Flow (dictation) or Granola (meeting
-notes). The difference that matters is where the work happens: both of those upload audio
-to be processed. Next Notes does not upload anything, which is also why it is limited to
-recent Apple silicon Macs.
-
-## Links
-
-- Site: https://next-notes.com/
-- Download (macOS DMG): https://github.com/spyhack225/next-notes/releases/latest/download/NextNotes.dmg
-- Source and releases: https://github.com/spyhack225/next-notes
+- Product implementation and current limitations: https://github.com/spyhack225/next-notes#readme
+- Source code: https://github.com/spyhack225/next-notes

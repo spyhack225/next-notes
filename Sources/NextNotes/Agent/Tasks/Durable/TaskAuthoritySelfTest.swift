@@ -108,7 +108,7 @@ enum TaskAuthoritySelfTest {
             let original = try rawChildren(f.sql)
             try require(try f.store.load() == rows, "ordered full payload/duplicates changed")
             try require(try rawChildren(f.sql) == original, "import changed raw children/future columns")
-            try require(try f.sql.withConnection { try TaskStore.integer($0, "PRAGMA user_version") } == 2, "schema not upgraded transactionally")
+            try require(try f.sql.withConnection { try TaskStore.integer($0, "PRAGMA user_version") } == 3, "schema not upgraded transactionally")
             try require(try f.sql.integrityProblems().isEmpty, "import integrity failed")
         }
         test("artifact-suffix-preservation") { f in
@@ -406,12 +406,22 @@ enum TaskAuthoritySelfTest {
         }
         for status in [AgentTaskStatus.waitingForInput, .waitingForPermission] {
             test("callback-rejected-\(status.rawValue)") { f in
-                var pending = row(); pending.scheduleID = nil; pending.status = status
+                var pending = row(); pending.scheduleID = nil; pending.status = status; pending.backend = "local"
+                if status == .waitingForInput {
+                    pending.pendingInteraction = .input(TaskInputRequest(id: "original-input", taskID: pending.id,
+                        question: "Which fixture value should I use?", createdAt: pending.createdAt))
+                } else {
+                    pending.pendingInteraction = .permission(request: PermissionRequest(id: "original-permission",
+                        toolID: pending.tool!, title: "Approve original fixture", detail: "Original fixture payload",
+                        risk: .read, arguments: pending.arguments, taskID: pending.id, createdAt: pending.createdAt), origin: nil)
+                }
                 try f.marked([pending]); let manager = AgentTaskManager(store: f.store)
                 try f.sql.withConnection { try TaskStore.exec($0, "CREATE TRIGGER reject_callback BEFORE UPDATE ON task BEGIN SELECT RAISE(ABORT,'fixture'); END") }
                 if status == .waitingForInput { manager.respondInput(taskID: pending.id, text: "Fixture input") }
-                else { manager.respondPermission(taskID: pending.id, approved: true) }
-                try require(manager.task(id: pending.id)?.status == .failed && !manager.consumePermissionApproval(taskID: pending.id), "failed callback queued work or retained token")
+                else { _ = manager.respondRestoredPermission(taskID: pending.id, requestID: "original-permission",
+                    approved: true, arguments: pending.arguments) }
+                try require(manager.task(id: pending.id) == pending && manager.lastPersistenceResult == .sqlFailed
+                    && !manager.consumePermissionApproval(taskID: pending.id), "failed callback changed pending state or retained token")
                 try require(try f.sql.load() == [pending], "failed callback changed durable pending row")
             }
         }
@@ -508,6 +518,9 @@ enum TaskAuthoritySelfTest {
                 createdAt: Date(timeIntervalSince1970: 1_700_000_000), status: .waitingForPermission,
                 tool: "fixture.invalid-read")
             pending.arguments = ["fixture": "value"]
+            pending.pendingInteraction = .permission(request: PermissionRequest(id: "start-original-request",
+                toolID: pending.tool!, title: "Approve original start", detail: "Original fixture payload", risk: .read,
+                arguments: pending.arguments, taskID: pending.id, createdAt: pending.createdAt), origin: nil)
             try start.marked([pending])
             let starter = AgentTaskManager(store: start.store)
             starter.backendEntryForTesting = { throw FixtureError.assertion("rejected start entered backend boundary") }
@@ -518,7 +531,8 @@ enum TaskAuthoritySelfTest {
                         "CREATE TRIGGER reject_start BEFORE UPDATE ON task WHEN new.state='running' BEGIN SELECT RAISE(ABORT,'fixture'); END") }
                 }
             }
-            starter.respondPermission(taskID: pending.id, approved: true)
+            _ = starter.respondRestoredPermission(taskID: pending.id, requestID: "start-original-request",
+                approved: true, arguments: pending.arguments)
             for _ in 0..<100 where starter.task(id: pending.id)?.status == .queued { await Task.yield() }
             try require(starter.task(id: pending.id)?.status == .failed && starter.lastPersistenceResult == .sqlFailed,
                 "failed worker start was not rejected")

@@ -21,10 +21,10 @@
       })();
     </script>
 
-    <title>Next Notes — your Mac is the only agent you need</title>
+    <title>Next Notes for Mac | Dictation, Meeting Notes &amp; Follow-Ups</title>
     <meta
       name="description"
-      content="Your Mac is the only agent you need. It already knows you — your files, your calendar, a model that never leaves the desk. Your default local agent, by voice, end to end, on this machine."
+      content="One companion for Mac dictation, meeting notes, and proposed follow-ups. Speak where you work, stay present in meetings, and review actions before they happen."
     />
     <link rel="canonical" href="https://next-notes.com/" />
 
@@ -34,122 +34,120 @@
     <meta property="og:url" content="https://next-notes.com/" />
     <meta property="og:site_name" content="Next Notes" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Next Notes — your Mac is the only agent you need" />
+    <meta property="og:title" content="Next Notes — be present, keep your promises" />
     <meta
       property="og:description"
-      content="Your Mac is the only agent you need. It already knows you. Everything you say stays local — your default agent, end to end, on this machine."
+      content="One familiar companion on your Mac, helping with family plans, workday replies, and meeting follow-ups."
     />
     <meta property="og:image" content="https://next-notes.com/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Next Notes — your Mac is the only agent you need. It stays with you." />
+    <meta property="og:image:alt" content="Next Notes — be present, keep your promises." />
     <meta property="og:locale" content="en_US" />
 
     <!-- summary_large_image needs an image at least 300px wide; the 256px app icon this
          used to point at failed that minimum, so the card fell back to no image at all. -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Next Notes — your Mac is the only agent you need" />
+    <meta name="twitter:title" content="Next Notes — be present, keep your promises" />
     <meta
       name="twitter:description"
-      content="Your Mac is the only agent you need. It already knows you. Everything you say stays local — your default agent, end to end, on this machine."
+      content="One familiar companion on your Mac, helping with family plans, workday replies, and meeting follow-ups."
     />
     <meta name="twitter:image" content="https://next-notes.com/og-image.png" />
-    <meta name="twitter:image:alt" content="Next Notes — your Mac is the only agent you need. It stays with you." />
+    <meta name="twitter:image:alt" content="Next Notes — be present, keep your promises." />
 
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0b" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
     <link rel="icon" href="./favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/png" href="./icon.png" sizes="256x256" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <style>
+      /* The initial document stays useful until React replaces this matching summary. */
+      .dark body { background: #0a0a0b; }
+      .light body { background: #fff; }
+      #root > .static-fallback { max-width: 72rem; margin: 0 auto; padding: 8rem 2rem 5rem; font: 1.1rem/1.65 system-ui, sans-serif; }
+      #root > .static-fallback h1 { max-width: 13ch; font-size: clamp(3rem, 7vw, 6rem); font-weight: 500; line-height: 1.05; letter-spacing: -.055em; }
+      #root > .static-fallback h2 { margin-top: 3rem; font-size: clamp(1.75rem, 4vw, 2.75rem); font-weight: 500; line-height: 1.15; }
+      #root > .static-fallback p, #root > .static-fallback ul { max-width: 43rem; }
+      #root > .static-fallback li { margin-block: .6rem; }
+      #root > .static-fallback a { color: inherit; text-underline-offset: .2em; }
+      .dark #root > .static-fallback { color: #f5f5f5; background: #0a0a0b; }
+      .light #root > .static-fallback { color: #161616; background: #fff; }
+    </style>
 
-    <!-- Structured data, stated as a fact rather than a claim about a claim: this is a free
-         macOS application. Written into the static HTML rather than injected by React,
-         because the crawlers most likely to read it are the ones that never run the bundle. -->
+    <!-- Static structured data matches the product and its current Mac-first scope. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Next Notes",
-        "url": "https://next-notes.com/",
-        "applicationCategory": "ProductivityApplication",
-        "applicationSubCategory": "Local agent for the Mac",
-        "operatingSystem": "macOS 26 or later, Apple silicon",
-        "isAccessibleForFree": true,
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "description": "Your Mac is the only agent you need. It already knows you — your files, your calendar, a model that never leaves the desk. Your default local agent, by voice, end to end, on this machine.",
-        "featureList": [
-          "Your Mac is the only agent you need — voice control end to end on this machine",
-          "It knows you: memory, dictionary, calendar and files stay local",
-          "On-device speech recognition (Apple Speech or NVIDIA Parakeet via CoreML)",
-          "On-device reasoning with a local language model",
-          "Multi-step inspect, click and type in the frontmost window after approval",
-          "Permissions scoped to an app, site or folder",
-          "A movable meeting window for notes, next steps, past meetings and questions while recording continues",
-          "Meeting audio and notes without a bot joining the call",
-          "Drafted follow-ups that you approve before anything is sent",
-          "A learned dictionary of your own names and jargon"
-        ],
-        "softwareRequirements": "macOS 26, Apple silicon",
-        "downloadUrl": "https://github.com/spyhack225/next-notes/releases/latest/download/NextNotes.dmg",
-        "license": "https://github.com/spyhack225/next-notes",
-        "codeRepository": "https://github.com/spyhack225/next-notes"
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://next-notes.com/#website",
+            "name": "Next Notes",
+            "url": "https://next-notes.com/",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://next-notes.com/#app",
+            "name": "Next Notes",
+            "url": "https://next-notes.com/",
+            "applicationCategory": "BusinessApplication",
+            "applicationSubCategory": "Dictation and meeting notes for Mac",
+            "operatingSystem": "macOS 26 or later on Apple silicon",
+            "softwareRequirements": "macOS 26 or later; Apple silicon Mac",
+            "isAccessibleForFree": true,
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "description": "A Mac companion for dictation, meeting notes, and proposed follow-ups that you review before they are sent.",
+            "featureList": [
+              "Push-to-talk dictation into the app where you were writing",
+              "Automatic meeting recording for eligible calendar events when enabled",
+              "Meeting notes without a bot joining the call",
+              "Optional follow-up proposals for review before sending",
+              "Local speech recognition and local model options"
+            ],
+            "downloadUrl": "https://github.com/spyhack225/next-notes/releases/latest/download/NextNotes.dmg",
+            "license": "https://github.com/spyhack225/next-notes/blob/main/LICENSE",
+            "codeRepository": "https://github.com/spyhack225/next-notes"
+          }
+        ]
       }
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main class="static-fallback">
+        <p>One familiar companion, starting on your Mac</p>
+        <h1>Be present. Keep your promises.</h1>
+        <p>
+          Next Notes helps with a family plan, a reply at work, and the promise you made in a meeting.
+          It is the same companion through each moment. Home helper, office associate, and meeting
+          partner are examples of how it helps, not separate assistants.
+        </p>
+        <p>
+          <a href="https://github.com/spyhack225/next-notes/releases/latest/download/NextNotes.dmg">Download for Mac</a>
+          · Free and open source · Requires macOS 26 on Apple silicon
+        </p>
+        <h2>Help where you already work</h2>
+        <ul>
+          <li><strong>Dictate in your Mac apps.</strong> Hold a key, speak naturally, and your words appear where your cursor was.</li>
+          <li><strong>Ask about your day.</strong> The Mac app can read your calendar when you ask, so you can make a family or work plan.</li>
+          <li><strong>Keep meeting notes.</strong> With calendar recording on, an eligible meeting can be recorded and summarized without a bot joining the call.</li>
+          <li><strong>Review the follow-up.</strong> With connected work apps enabled, Next Notes can propose a next step for your approval.</li>
+        </ul>
+        <h2>Your choices stay visible</h2>
+        <p>
+          Speech and notes can be handled locally on your Mac. Optional cloud models and connected
+          services send the information needed for the feature you choose. Agent-proposed
+          actions that send or change something are shown for review before they happen.
+        </p>
+        <p><a href="https://github.com/spyhack225/next-notes">Read the source and current product status</a></p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
-
-    <!-- The page is a client-rendered React app, so without this the document a crawler
-         receives is an empty div. Search engines render JavaScript; the assistant crawlers
-         this project most wants to be read by largely do not. This is the same claim the
-         rendered page makes, in the markup, for readers that never execute the bundle.
-         The real fix is prerendering the route at build time — this is the honest floor
-         under that, not a substitute for it. -->
-    <noscript>
-      <h1>Next Notes — your Mac is the only agent you need</h1>
-      <p>
-        Your Mac is the only agent you need. It already knows you — your files, your calendar, the names you
-        use, a model that never leaves the desk. Your default local agent, by voice, end to
-        end, on this machine. Everything you say stays here. Requires macOS 26 on Apple
-        silicon. Free and open source.
-      </p>
-      <h2>Everything stays with you</h2>
-      <ul>
-        <li>
-          <strong>It remembers you here.</strong> Your files, your calendar, the names it
-          has learned, the meetings you kept — on this Mac.
-        </li>
-        <li>
-          <strong>It thinks here.</strong> Speech recognition and a local model run on the
-          machine that heard you.
-        </li>
-        <li>
-          <strong>It keeps you here.</strong> One folder per meeting in Application Support.
-          No account, no remote vault.
-        </li>
-        <li>
-          <strong>Stay with the meeting.</strong> Keep notes, next steps, earlier meetings
-          and questions in one movable window while recording continues.
-        </li>
-        <li>
-          <strong>Ask it.</strong> ⇧⌘ Space, push-to-talk, or “Hey Next”. Clicks, files and
-          mail wait on a button you press.
-        </li>
-        <li>
-          Nothing joins your call. There is no server to send any of it to, and no account
-          to create.
-        </li>
-      </ul>
-      <p>
-        <a href="https://github.com/spyhack225/next-notes/releases/latest/download/NextNotes.dmg">Download for Mac</a>
-        ·
-        <a href="https://github.com/spyhack225/next-notes">Source on GitHub</a>
-      </p>
-    </noscript>
   </body>
 </html>

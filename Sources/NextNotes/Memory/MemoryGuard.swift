@@ -6,7 +6,7 @@ import Foundation
 /// memory tools read it, so a model's claim that "the user said this" carries no weight:
 /// what counts is the user's own words this turn and the tool output the turn has seen.
 struct MemoryProvenance: Sendable {
-    enum Origin: String, Sendable {
+    enum Origin: String, Codable, Sendable {
         /// The user's own conversation with the Agent (typed or spoken).
         case userConversation
         /// The background memory review reading what the user said (Part 2, M2).
@@ -102,6 +102,16 @@ struct MemoryProvenance: Sendable {
 ///
 /// Hermes Agent's `threat_patterns.py` is the reference for the pattern set.
 enum MemoryGuard {
+    /// Copy only the descriptor after the existing live provenance checks succeed.
+    /// Persisted records are historical facts; they never replace the live authority gate.
+    static func lineage(from provenance: MemoryProvenance?, at fallbackDate: Date = Date()) -> MemoryLineage? {
+        guard let provenance else { return nil }
+        return MemoryLineage(records: [MemoryProvenanceRecord(
+            source: provenance.origin, trustedSource: provenance.source,
+            sourceLabel: provenance.sourceLabel, occurredAt: provenance.occurredAt ?? fallbackDate,
+            sessionID: provenance.sessionID, confidence: provenance.source.confidence)])
+    }
+
     struct Finding: Equatable, Sendable {
         enum Category: String, Sendable {
             case invisibleUnicode

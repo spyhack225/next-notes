@@ -186,14 +186,17 @@ final class AgentToolSpeechTracker {
             trace.end(note: traceNote("model"), source: traceSource)
             VoiceLatencyTimeline.shared.mark(.frontendFirstToken)
         }
-        guard allowSpeech, maySpeak, AgentCaptureController.shared.isSessionActive else { return }
         let leading = snapshot.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !leading.isEmpty else { return }
         if leading.hasPrefix("<") || leading.hasPrefix("{") { return }
-        if snapshot.contains("<tool_call>") {
+        if snapshot.contains("<tool_call") || snapshot.contains("<use_tools") {
             cancel()
             return
         }
+        // The already-filtered real snapshot reaches the pane on this existing actor
+        // hop. No extra model pass, typing timer or history write is introduced.
+        agent.presentAnswer(snapshot, turn: turn)
+        guard allowSpeech, maySpeak, AgentCaptureController.shared.isSessionActive else { return }
         if !didStreamSpeech {
             agent.beginFirstTTSTrace(for: turn)
             RealtimeAudioSession.shared.beginSpokenReply(turn: agent.voiceFrontendShadowTurn)
@@ -215,6 +218,7 @@ final class AgentToolSpeechTracker {
     }
 
     func cancel() {
+        agent.clearPresentedAnswer(turn: turn)
         if didStreamSpeech, agent.isCurrent(turn), outputGeneration == agent.speechGeneration {
             RealtimeAudioSession.shared.noteUserSpeech()
         }

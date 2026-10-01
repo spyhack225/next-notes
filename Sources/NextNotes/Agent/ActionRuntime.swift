@@ -490,6 +490,10 @@ final class ActionOrchestrator {
         permissionAlreadyGranted: Bool = false,
         allowUnverifiedResult: Bool = false,
         isStillValid: (@MainActor @Sendable () async -> Bool)? = nil,
+        /// IM-12: where the turn came from. Nil (the default every existing caller
+        /// keeps) is local policy as before; a remote origin narrows the broker's
+        /// answers without changing the authority.
+        origin: ActionOriginContext? = nil,
         /// P1-21: how to find out whether a write that never answered actually went out.
         ///
         /// A parameter rather than a call into the Workspace runner from here, because this
@@ -561,23 +565,22 @@ final class ActionOrchestrator {
             case .deny(let reason):
                 add(.denied, reason)
                 throw AgentError.permissionDenied(reason)
-            case .askLocal(let request):
-                // IM-12: band 3. Today this is the same local card as `.ask` — every
-                // approval in this build is already a Mac card. IM-13 must NOT satisfy
-                // this from the phone: an iMessage approval for a require-local action
-                // is the destructive-action-by-text-message bug wearing a workflow.
-                guard permissionAlreadyGranted || promptIfNeeded else {
-                    add(.waitingPermission, request.title)
-                    throw AgentError.needsPermission(request.title)
-                }
-                if !permissionAlreadyGranted {
-                    guard await PermissionGate.shared.ask(request) else {
-                        add(.denied, "Permission dismissed")
-                        ToolCallReviewStore.shared.remove(id: request.id)
-                        throw AgentError.permissionDenied("You dismissed \(request.title).")
+            case .ask(let request), .askLocal(let request):
+                if !permissionAlreadyGranted,
+                   let context = TaskEventJournal.current, context.taskID == request.taskID,
+                   let capture = context.capturePermission {
+                    // Keep the exact producer's request and review, not a title from
+                    // which a restarted manager would have to invent an action.
+                    let review = ToolCallReviewStore.shared.begin(request)
+                    guard capture(request, origin, review) else {
+                        throw AgentError.backendUnavailable("The approval could not be saved. The action was not run.")
                     }
                 }
-            case .ask(let request):
+                // `.askLocal` is IM-12's band 3 (require the Mac's own card). Today
+                // this arm is exactly `.ask` — every approval in this build already is
+                // a Mac card. IM-13 must NOT satisfy an `.askLocal` request from the
+                // phone: an iMessage approval for a require-local action is the
+                // destructive-action-by-text-message bug wearing a workflow.
                 guard permissionAlreadyGranted || promptIfNeeded else {
                     add(.waitingPermission, request.title)
                     throw AgentError.needsPermission(request.title)

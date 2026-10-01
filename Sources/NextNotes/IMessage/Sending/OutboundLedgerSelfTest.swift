@@ -913,6 +913,38 @@ enum MessagesLedgerSelfTest {
                 }
                 return nil
             }
+
+            // 10. IM-15 — a voice note becomes a turn: a `.notText` row whose audio
+            // transcribes performs once, as `.iMessage` carrying the transcript.
+            // The reply is text by the same construction as case 5 — and a nil
+            // transcript leaves the row on the refusal path (case 4's bridge).
+            await check("a voice note performs its transcript") {
+                let voiceTurns = TurnCollector()
+                let voiceAdapter = IMessageInteractionAdapter(
+                    record: { await voiceTurns.record($0) },
+                    perform: { await voiceTurns.perform($0) })
+                let voiceBridge = IMessageBridge(
+                    ledger: liveLedger, store: liveStore,
+                    onCandidate: { candidate in
+                        _ = await voiceAdapter.adopt(candidate, chatGUID: im11Chat, currentSession: im11Session)
+                    },
+                    onCard: { _ in },
+                    voiceNoteText: { _, _ in "transcribed words" })
+                await voiceBridge.handle(delivery: MessagesWatcherDelivery(
+                    envelope: IMessageEnvelope(
+                        rowID: 14, guid: "g14", date: OutboundMessageLedger.appleEpochNow,
+                        isFromMe: false, service: "iMessage",
+                        body: .notText(bundleID: nil, discardedBytes: 0), source: .attributedBody),
+                    resolution: .noneNeeded,
+                    chatGUID: im11Chat,
+                    senderHandle: "+15551234567"))
+                let performed = await voiceTurns.performed
+                guard performed.count == 1, performed[0].text == "transcribed words",
+                      performed[0].source == .iMessage else {
+                    return "a voice note performed \(performed.count) turns"
+                }
+                return nil
+            }
         } catch {
             failures.append("adapter: threw \(error)")
         }

@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// `--selftest-meeting-console` — the meeting panel's table, its wiring, and the rule that
 /// keeps a view file out of literal values.
@@ -52,6 +53,39 @@ enum MeetingConsoleSelfTest {
                 failures.append(text)
             }
         }
+
+        // A live final grows the list's content height. That geometry change is not a
+        // request by the person to stop following; an actual scroll away is. The old
+        // live view unconditionally scrolled on every final, even after a reader moved
+        // back. This policy now controls the production view's geometry callback.
+        expect(LiveTranscriptFollow.choice(current: true, readerIsScrolling: false,
+                                           isNearBottom: false),
+               "a new final cannot switch off live transcript following")
+        expect(!LiveTranscriptFollow.choice(current: true, readerIsScrolling: true,
+                                            isNearBottom: false),
+               "a reader scrolling back leaves the live bottom")
+        expect(!LiveTranscriptFollow.choice(current: false, readerIsScrolling: false,
+                                            isNearBottom: true),
+               "a content or layout change cannot override scrollback")
+        expect(LiveTranscriptFollow.choice(current: false, readerIsScrolling: true,
+                                           isNearBottom: true),
+               "a reader returning to the bottom resumes following")
+        let atBottom = ScrollGeometry(
+            contentOffset: CGPoint(x: 0, y: 800),
+            contentSize: CGSize(width: 400, height: 1000),
+            contentInsets: EdgeInsets(),
+            containerSize: CGSize(width: 400, height: 200)
+        )
+        let backInTranscript = ScrollGeometry(
+            contentOffset: CGPoint(x: 0, y: 500),
+            contentSize: CGSize(width: 400, height: 1000),
+            contentInsets: EdgeInsets(),
+            containerSize: CGSize(width: 400, height: 200)
+        )
+        expect(LiveTranscriptFollow.isNearBottom(atBottom),
+               "the visible last line is close enough to follow")
+        expect(!LiveTranscriptFollow.isNearBottom(backInTranscript),
+               "an earlier visible line is not the bottom")
 
         // MARK: The activity table
 

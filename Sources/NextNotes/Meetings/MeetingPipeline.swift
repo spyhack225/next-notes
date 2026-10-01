@@ -26,6 +26,7 @@ enum MeetingPipeline {
         store: MeetingStore = .shared,
         recoverDroppedAudio: Bool = false
     ) -> Meeting {
+        guard let meeting = store.meeting(id: meeting.id) else { return meeting }
         let hasAudio = store.audioURL(for: meeting).flatMap {
             try? AVAudioFile(forReading: $0).length > 0
         } ?? false
@@ -51,9 +52,9 @@ enum MeetingPipeline {
             var updated = meeting
             if let pass {
                 updated.transcriptPass = pass
-                store.save(updated)
+                guard store.save(updated) else { return meeting }
             }
-            return afterFinalPass(updated, store: store)
+            return afterFinalPass(store.meeting(id: meeting.id) ?? updated, store: store)
         }
     }
 
@@ -78,33 +79,43 @@ enum MeetingPipeline {
     /// pass did not apply. This is today's `afterTranscribing` body: tell the
     /// speakers apart, then write the notes.
     @discardableResult
-    static func afterFinalPass(_ meeting: Meeting, store: MeetingStore = .shared) -> Meeting {
+    static func afterFinalPass(
+        _ meeting: Meeting, store: MeetingStore = .shared,
+        notesService: NotesService = .shared,
+        diarize: (@MainActor (Meeting) -> Void)? = nil
+    ) -> Meeting {
+        guard let meeting = store.meeting(id: meeting.id) else { return meeting }
         guard !store.transcript(for: meeting.id).isEmpty else {
             return finish(meeting, store: store)
         }
         guard shouldDiarize(meeting, store: store) else {
-            return afterDiarizing(meeting, store: store)
+            return afterDiarizing(meeting, store: store, notesService: notesService)
         }
 
         var diarizing = meeting
         diarizing.status = .diarizing
-        store.save(diarizing)
-        DiarizationService.shared.process(diarizing)
-        return diarizing
+        guard store.save(diarizing), let accepted = store.meeting(id: meeting.id) else { return meeting }
+        if let diarize { diarize(accepted) }
+        else { DiarizationService.shared.process(accepted) }
+        return accepted
     }
 
     /// Called once speakers have been identified — or immediately, when they weren't.
     @discardableResult
-    static func afterDiarizing(_ meeting: Meeting, store: MeetingStore = .shared) -> Meeting {
+    static func afterDiarizing(
+        _ meeting: Meeting, store: MeetingStore = .shared,
+        notesService: NotesService = .shared
+    ) -> Meeting {
+        guard let meeting = store.meeting(id: meeting.id) else { return meeting }
         guard Settings.shared.notesAutoGenerate, !store.transcript(for: meeting.id).isEmpty else {
             return finish(meeting, store: store)
         }
 
         var summarizing = meeting
         summarizing.status = .summarizing
-        store.save(summarizing)
-        NotesService.shared.summarize(summarizing, announce: true)
-        return summarizing
+        guard store.save(summarizing), let accepted = store.meeting(id: meeting.id) else { return meeting }
+        notesService.summarize(accepted, announce: store === MeetingStore.shared)
+        return accepted
     }
 
     /// The end of the line: nothing else is going to read this meeting's audio.
@@ -118,7 +129,7 @@ enum MeetingPipeline {
     /// the Actions tab, matching Workspace proposals fold into them, and an invented
     /// summary Doc is dropped before it reaches `proposals.json`.
     private static func finish(_ meeting: Meeting, store: MeetingStore = .shared) -> Meeting {
-        var done = meeting
+        guard var done = store.meeting(id: meeting.id) else { return meeting }
         // With automatic generation off (or no transcript to generate from), NotesService
         // never runs. The person's own lines still need to reach the finished Notes tab.
         if !saveManualNotesIfPresent(for: done.id, store: store), store === MeetingStore.shared {
@@ -127,7 +138,7 @@ enum MeetingPipeline {
         // A recording that had already failed keeps its failure. Reaching the end of the
         // pipeline is not the same as having worked.
         if !done.status.isFailure { done.status = .done }
-        store.save(done)
+        guard store.save(done) else { return meeting }
         // M-10: a temporary recording is scheduled for release 72 hours out rather
         // than deleted here; a kept one follows the unchanged rule.
         store.releaseAudioWhenDue(for: done.id, notesWritten: false)
@@ -159,7 +170,8 @@ enum MeetingPipeline {
     /// The audio is the hard requirement: a meeting recorded before the setting was turned
     /// on, or one whose writer failed, has nothing left to cluster.
     private static func shouldDiarize(_ meeting: Meeting, store: MeetingStore = .shared) -> Bool {
-        Settings.shared.meetingsDiarize && store.audioURL(for: meeting) != nil
+        guard meeting.captureIntegrity?.hasKnownSavedAudioLoss(on: .system) != true else { return false }
+        return Settings.shared.meetingsDiarize && store.audioURL(for: meeting) != nil
     }
 }
 

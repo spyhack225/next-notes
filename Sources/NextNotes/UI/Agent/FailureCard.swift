@@ -66,18 +66,20 @@ struct FailureCard: View {
     @MainActor
     static func forTask(
         _ task: AgentTask,
-        retryRisk: AgentRisk,
+        retryRisk: AgentRisk?,
         retry: @escaping () -> Void,
         openResult: (() -> Void)? = nil
     ) -> FailureCard {
         var actions: [NextAction] = []
         // P1-4 / §8.2: retry is `risk <= .modify` only. A send is never re-offered.
-        if retryRisk <= .modify {
+        if let retryRisk, retryRisk <= .modify {
             actions.append(NextAction(id: "retry", title: "Try again", isProminent: true, run: retry))
         }
         if !task.artifacts.isEmpty, let openResult {
             actions.append(NextAction(id: "open", title: "Open what I made", run: openResult))
         }
+        // The task producer owns effect certainty. Missing result links do not prove
+        // that nothing changed; keep the same truthful summary on every surface.
         return FailureCard(
             summary: task.failureSummary,
             undo: task.failureUndoLine,

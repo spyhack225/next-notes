@@ -32,6 +32,34 @@ enum OnboardingSelfTest {
                "order is welcome → dictation → shortcut → meetings → files → brain → all set")
         expect(OnboardingFlow().total == expectedOrder.count, "seven screens")
 
+        // MARK: A practice field is not a receipt
+        //
+        // The production shortcut screen previously treated any nonempty TextField edit
+        // as successful dictation. Typing these words manually earned “That's it”. The
+        // screen now uses this same receipt consumer, driven by actual delivery outcomes.
+        let staleDeliveryID = UUID()
+        var practice = OnboardingPracticeReceipt()
+        practice.beginObserving(latestDeliveryID: staleDeliveryID)
+        expect(!practice.hasDeliveredWords, "manual practice text alone is not dictation success")
+        practice.beganHold(inPracticeField: true)
+        practice.received(id: staleDeliveryID, text: "My words", inserted: true, fieldText: "My words")
+        expect(!practice.hasDeliveredWords, "a delivery from before practice cannot earn success")
+        practice.received(id: UUID(), text: "My words", inserted: false, fieldText: "My words")
+        expect(!practice.hasDeliveredWords, "clipboard delivery never claims words landed in practice")
+        practice.received(id: UUID(), text: "My words", inserted: true, fieldText: "Manual typing")
+        expect(!practice.hasDeliveredWords, "an insertion outside this field cannot earn practice success")
+        practice.beganHold(inPracticeField: false)
+        practice.received(id: UUID(), text: "My words", inserted: true, fieldText: "My words")
+        expect(!practice.hasDeliveredWords, "a hold begun outside practice cannot earn success")
+        practice.beganHold(inPracticeField: true)
+        practice.received(id: UUID(), text: "   ", inserted: true, fieldText: "My words")
+        expect(!practice.hasDeliveredWords, "an empty insertion is not a first success")
+        let newDeliveryID = UUID()
+        practice.received(id: newDeliveryID, text: "My words", inserted: true, fieldText: "")
+        expect(!practice.hasDeliveredWords, "the receipt waits for the field's actual words")
+        practice.received(id: newDeliveryID, text: "My words", inserted: true, fieldText: "My words")
+        expect(practice.hasDeliveredWords, "new actual insertion and its words earn practice success")
+
         // MARK: Which screens may be passed over
 
         let optional = OnboardingFlow.order.filter(\.isOptional)
@@ -212,6 +240,19 @@ enum OnboardingSelfTest {
         )
         expect(kept.tips.contains { $0.symbol == "folder" },
                "a screen that was answered is worth a tip")
+
+        let manualMeetings = OnboardingOutcome(
+            hasMicrophone: true, hasAccessibility: true, hasCalendar: true,
+            recordsMeetingsAutomatically: false, assistantName: "Ada"
+        )
+        let automaticMeetings = OnboardingOutcome(
+            hasMicrophone: true, hasAccessibility: true, hasCalendar: true,
+            recordsMeetingsAutomatically: true, assistantName: "Ada"
+        )
+        expect(manualMeetings.tips.last?.detail == "Choose Record for a meeting you want notes from.",
+               "calendar grant with automatic recording off asks the person to choose Record")
+        expect(automaticMeetings.tips.last?.detail.contains("skip") == true,
+               "automatic recording on describes the actual skip choice")
 
         // …and the same through the production path, so the skip marks have a reader that
         // is not this file. `OnboardingModel.wasSkipped` had none at all until now.

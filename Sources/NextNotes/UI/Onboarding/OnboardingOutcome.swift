@@ -30,6 +30,8 @@ struct OnboardingOutcome: Equatable, Sendable {
     var skippedFiles = false
     /// The calendar was actually allowed.
     var hasCalendar = false
+    /// A calendar grant supplies the list, not permission to promise automatic recording.
+    var recordsMeetingsAutomatically = false
     /// At least one folder is being looked through.
     var indexesFiles = false
     /// What the user called their assistant.
@@ -48,7 +50,7 @@ struct OnboardingOutcome: Equatable, Sendable {
     }
 
     var subhead: String {
-        if canDictate { return "Three things worth trying first." }
+        if canDictate { return "Start with your words. Keep \(assistantName) close by for the next thing." }
         if isTypingBlocked {
             return "macOS says Next Notes is allowed to type for you, but it still isn't working."
         }
@@ -120,8 +122,10 @@ struct OnboardingOutcome: Equatable, Sendable {
         }
         if hasCalendar, !skippedMeetings {
             return OnboardingTip(
-                title: "Let \(assistantName) sit in on your next meeting",
-                detail: "It starts when the meeting does, and writes the notes afterwards.",
+                title: "Meet \(assistantName) in Meetings",
+                detail: recordsMeetingsAutomatically
+                    ? "Review upcoming meetings and skip any you don't want recorded."
+                    : "Choose Record for a meeting you want notes from.",
                 symbol: "calendar"
             )
         }
@@ -159,6 +163,7 @@ extension OnboardingOutcome {
             skippedMeetings: model.wasSkipped(.meetings),
             skippedFiles: model.wasSkipped(.files),
             hasCalendar: hasCalendar,
+            recordsMeetingsAutomatically: settings.meetingsAutoRecord,
             indexesFiles: folders.isEnabled && !folders.folders.isEmpty,
             assistantName: assistantName,
             holdKeyName: settings.pushToTalkKey.spokenName,

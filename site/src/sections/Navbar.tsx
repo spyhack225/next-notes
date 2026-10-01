@@ -6,9 +6,9 @@ import { DOWNLOAD_URL, REPO_URL } from "../lib/motion";
 import { getTheme, subscribeTheme, toggleTheme, type Theme } from "../lib/theme";
 
 const links = [
-  { label: "How it works", href: "#how-it-works" },
-  { label: "Agent", href: "#agent" },
-  { label: "Privacy", href: "#privacy" },
+  { label: "One companion", href: "#impact" },
+  { label: "A meeting", href: "#how-it-works" },
+  { label: "Your trust", href: "#privacy" },
 ];
 
 export default function Navbar() {
@@ -21,7 +21,7 @@ export default function Navbar() {
       initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="fixed top-0 left-0 right-0 z-50 px-8 md:px-28 py-4"
+      className="fixed top-0 left-0 right-0 z-50 px-6 sm:px-8 md:px-16 lg:px-28 py-4 bg-background/90 backdrop-blur-xl border-b border-border/40"
     >
       <nav className="flex items-center justify-between gap-6">
         <a href="#top" className="flex items-center gap-2.5 shrink-0">

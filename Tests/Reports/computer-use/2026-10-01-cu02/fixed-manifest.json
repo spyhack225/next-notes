@@ -1,0 +1,12 @@
+{
+  "Sources/NextNotes/Computer/BrowserCDPClient.swift": "78562053f773136ee3c3ab9a48ca7a80ab5ae9efe438024c828905698d9150f0",
+  "Sources/NextNotes/Computer/HumanInputWatch.swift": "3edadc95d7b845bc49288bb1606b028b9693eaf48aed71708f4cd26cc3fc2446",
+  "Sources/NextNotes/Computer/SecureFieldRule.swift": "16ff8badf36c297f304e483acd2bdcb8f7ceb199fab1bfb0b13e00ba631219f7",
+  "Sources/NextNotes/Computer/BrowserActionValiditySelfTest.swift": "8b6f9d8eb07b60eb6a0756e83351e5689f523d25f4b6493c72f06d42c092a952",
+  "Sources/NextNotes/Agent/Tools/AgentTool.swift": "3bad1fecbfb17cf45737eb0c51f6fe8ebf4589b79084e5a102f94849b3eae51f",
+  "Sources/NextNotes/Agent/Tools/ShellTools.swift": "3ad8e5c4f306f8563a244dae732598aff479511748bf7d03e39b79bf2a958aa0",
+  "Sources/NextNotes/Agent/WorkspaceTools.swift": "54f4f31df313cf1d1efa56810953302bae225cddb299a68c6d63de364094d6c0",
+  "Sources/NextNotes/Agent/AgentModels.swift": "e62bc2a7db301cbe1222ea43c4b64e22ffed7a2df1886d321ca7a7d4c94a4e2a",
+  "Sources/NextNotes/Core/DictationController.swift": "87efda730e7f97615e8c315392f729d6284615aa16bf8dbe171c69143d3a358f",
+  "Sources/NextNotes/Computer/ScreenCapture.swift": "c05dd39ddb60cc47fd36a46d84453847110ee2b94664055110118c3400777e55"
+}

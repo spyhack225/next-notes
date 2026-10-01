@@ -62,4 +62,19 @@ final class RemoteIdentityStore: @unchecked Sendable {
 
     /// Whether the feature is paired and enabled.
     var isPaired: Bool { configuration.isPaired }
+
+    /// IM-12 — suspends remote processing. Callable from any path, including a
+    /// "stop remote access" message: stopping must always work, especially from
+    /// the phone.
+    func suspendRemoteAccess() throws {
+        try update { $0.remoteAccessSuspended = true }
+    }
+
+    /// IM-12 — resumes remote processing. LOCAL ONLY: re-enabling needs local
+    /// confirmation, so only Settings UI (IM-17) calls this — never the message
+    /// path, never the turn pipeline. A remote turn must not widen its own
+    /// authority, and this is the function where that rule lives.
+    func resumeRemoteAccessLocally() throws {
+        try update { $0.remoteAccessSuspended = false }
+    }
 }

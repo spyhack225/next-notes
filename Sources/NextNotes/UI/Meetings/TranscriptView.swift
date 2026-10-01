@@ -5,6 +5,7 @@ import SwiftUI
 /// The timestamp column is a fixed width so the speaker labels line up down the page — a
 /// transcript is read by scanning that column, and ragged offsets make it unreadable.
 struct TranscriptView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let segments: [TranscriptSegment]
     var speakerNames: [String: String] = [:]
     /// A second a search result jumped to: scrolled into view and marked.
@@ -12,6 +13,11 @@ struct TranscriptView: View {
     /// Called once the jump has scrolled, so the owner can clear the focus and a later visit
     /// to the meeting does not jump again.
     var onFocusHandled: (() -> Void)? = nil
+    /// The live owner may follow the last line until the person scrolls away. These
+    /// callbacks attach to this List itself, so the reading position is measured from
+    /// the actual scroll surface. Finished transcripts pass neither callback.
+    var onLiveScrollPosition: ((Bool) -> Void)? = nil
+    var onLiveScrollPhase: ((ScrollPhase, Bool) -> Void)? = nil
     /// The row the jump marked. Kept here so it stays marked after the focus is cleared.
     @State private var highlightedID: UUID?
 
@@ -26,12 +32,20 @@ struct TranscriptView: View {
             }
             .listStyle(.inset)
             .textSelection(.enabled)
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                LiveTranscriptFollow.isNearBottom(geometry)
+            } action: { _, isNearBottom in
+                onLiveScrollPosition?(isNearBottom)
+            }
+            .onScrollPhaseChange { _, phase, context in
+                onLiveScrollPhase?(phase, LiveTranscriptFollow.isNearBottom(context.geometry))
+            }
             .onChange(of: focus, initial: true) { _, _ in
                 guard let id = focusedSegmentID else { return }
                 highlightedID = id
                 // After the list has laid out, or the scroll lands on rows that do not exist yet.
                 Task { @MainActor in
-                    withAnimation(DS.Motion.standard) { proxy.scrollTo(id, anchor: .top) }
+                    withAnimation(reduceMotion ? nil : DS.Motion.standard) { proxy.scrollTo(id, anchor: .top) }
                     onFocusHandled?()
                 }
             }
@@ -57,6 +71,18 @@ struct TranscriptView: View {
     private func color(for segment: TranscriptSegment) -> Color {
         guard segment.source != .mic else { return DS.Color.accent }
         return DS.Color.speaker(named: segment.displaySpeaker)
+    }
+}
+
+/// The measured position of the transcript List, used only to decide whether a reader
+/// wants to keep following live finals. A final also grows content, but is not a gesture.
+enum LiveTranscriptFollow {
+    static func isNearBottom(_ geometry: ScrollGeometry) -> Bool {
+        geometry.contentSize.height - geometry.visibleRect.maxY <= DS.Space.xl
+    }
+
+    static func choice(current: Bool, readerIsScrolling: Bool, isNearBottom: Bool) -> Bool {
+        readerIsScrolling ? isNearBottom : current
     }
 }
 

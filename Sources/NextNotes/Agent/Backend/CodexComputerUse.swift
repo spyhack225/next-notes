@@ -353,7 +353,7 @@ enum CodexComputerUse {
         switch decision {
         case .allow: return true
         case .deny: return false
-        case .ask(let request): return await PermissionGate.shared.ask(request)
+        case .ask(let request), .askLocal(let request): return await PermissionGate.shared.ask(request)
         }
     }
 

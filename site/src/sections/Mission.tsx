@@ -1,15 +1,14 @@
 import { useRef } from "react";
-import { motion, useScroll, useTransform, type MotionValue } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } from "framer-motion";
 import Orb from "../components/Orb";
 
 const PARAGRAPH_ONE =
-  "Most of what you need an agent for is already on the machine in front of you. Your files. Your calendar. The names you say every day. A model that can run without leaving the desk.";
+  "Be there for pickup. Be in the meeting. Be the person who follows through.";
 
 const PARAGRAPH_TWO =
-  "Hold a key. Ask it the rest. It knows you — and everything you say stays here.";
+  "One familiar companion on your Mac carries the details so you can give more of yourself to the life you are building.";
 
-/** The words carrying the argument stay white; everything else settles a shade back. */
-const HIGHLIGHTS = new Set(["already", "machine", "files", "calendar", "names", "knows", "stays"]);
+const HIGHLIGHTS = new Set(["pickup", "meeting", "follows", "through"]);
 
 const strip = (word: string) => word.replace(/[^A-Za-z-]/g, "").toLowerCase();
 
@@ -25,11 +24,12 @@ function Word({
   highlighted: boolean;
 }) {
   const opacity = useTransform(progress, range, [0.15, 1]);
+  const reducedMotion = useReducedMotion();
   return (
     <span className="relative inline-block mr-word">
       <motion.span
         className={`mission-word ${highlighted ? "text-foreground" : "text-hero-subtitle"}`}
-        style={{ "--word-reveal": opacity } as React.CSSProperties}
+        style={{ "--word-reveal": reducedMotion ? 1 : opacity } as React.CSSProperties}
       >
         {word}
       </motion.span>
@@ -77,25 +77,24 @@ export default function Mission() {
   });
 
   return (
-    <section ref={ref} className="pt-0 pb-32 md:pb-44 px-8 md:px-28 relative overflow-hidden">
+    <section ref={ref} className="pt-16 md:pt-24 pb-32 md:pb-44 px-6 sm:px-8 md:px-16 lg:px-28 relative overflow-hidden border-t border-border/40">
       <div
         className="flex justify-center pointer-events-none select-none"
         aria-hidden="true"
       >
-        {/* Present and idle — waiting on you, on purpose. */}
         <div className="scale-75 sm:scale-90 md:scale-100">
-          <Orb state="breathing" size={420} />
+          <Orb state="breathing" size={300} />
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto text-center mt-4">
+      <div className="max-w-5xl mx-auto text-center mt-6">
         <RevealParagraph
           text={PARAGRAPH_ONE}
           progress={scrollYProgress}
           start={0}
           end={0.7}
           highlight
-          className="text-2xl md:text-4xl lg:text-5xl font-medium tracking-headline leading-reveal"
+          className="text-3xl md:text-5xl lg:text-6xl font-medium tracking-headline leading-reveal"
         />
         <RevealParagraph
           text={PARAGRAPH_TWO}

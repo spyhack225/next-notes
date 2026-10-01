@@ -157,6 +157,11 @@ struct UsageSection: View {
             UsageFeature.meetingNeedle.rawValue: .meetings,
             UsageFeature.dictationASR.rawValue: .dictation,
             UsageFeature.dictationCleanup.rawValue: .dictation,
+            // IM-17d: remote turns group with other work, not with local turns —
+            // mixing them would let a phone turn move a Mac turn's numbers. No
+            // fifth group: that is a wider change to everyone's history table.
+            UsageFeature.agentIMessage.rawValue: .other,
+            UsageFeature.imessageEvent.rawValue: .other,
         ]
     }
 

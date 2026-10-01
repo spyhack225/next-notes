@@ -238,8 +238,11 @@ enum AgentToolExecutor {
                 // here is execution time and never the wait for a person.
                 ToolExecutionTimer.current?.begin()
                 defer { ToolExecutionTimer.current?.end() }
-                let result = try await perform(tool, arguments: prepared.executionPlan.arguments,
-                                               taskID: taskID, authority: actionAuthority)
+                let presentation = AgentActivityStore.shared.presentationBinding(taskID: taskID)
+                let result = try await AgentWorkPresentationScope.$binding.withValue(presentation) {
+                    try await perform(tool, arguments: prepared.executionPlan.arguments,
+                                      taskID: taskID, authority: actionAuthority)
+                }
                 backingReturned = true
                 // P1-5: a run's artifacts — the reference and the link — ride with the
                 // task id so `AgentTaskManager.execute` can fold them into the result

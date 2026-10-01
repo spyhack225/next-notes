@@ -191,6 +191,91 @@ enum MeetingTitleSource: String, Codable, Sendable {
     case user
 }
 
+/// Capture facts are independent of processing: writing notes cannot establish that
+/// a whole meeting was recorded. Constant-sized metadata, never a second timeline.
+enum MeetingCaptureInterruptionReason: String, Codable, Sendable {
+    case unknown
+    case captureFailure
+    case audioWriteFailure
+}
+
+struct MeetingCaptureIntegrity: Codable, Sendable, Equatable {
+    /// Audio progress established by the producer, or persisted transcript evidence
+    /// for an older recording. Never a file's modification time.
+    var lastCapturedAt: Date?
+    var normalEndAt: Date?
+    var interruptedAt: Date?
+    var interruptionReason: MeetingCaptureInterruptionReason?
+    /// A delivery gap may have an unknown number of frames.
+    var captureGap = false
+    var missingCaptureFrames: Int64 = 0
+    var audioWriteFailed = false
+    /// Originals delivered to live ASR but trimmed behind the saved file cursor.
+    /// Optional for records written before this measurement existed.
+    var missingSavedMicFrames: Int64?
+    var missingSavedSystemFrames: Int64?
+
+    func hasKnownSavedAudioLoss(on source: AudioSource) -> Bool {
+        audioWriteFailed || (source == .mic ? missingSavedMicFrames ?? 0
+            : missingSavedSystemFrames ?? 0) > 0
+    }
+
+    var hasPartialCapture: Bool {
+        interruptedAt != nil || captureGap || missingCaptureFrames > 0 || audioWriteFailed
+            || (missingSavedMicFrames ?? 0) > 0 || (missingSavedSystemFrames ?? 0) > 0
+    }
+
+    mutating func recordCaptured(until date: Date) {
+        lastCapturedAt = max(lastCapturedAt ?? date, date)
+    }
+
+    mutating func markInterrupted(
+        at date: Date = Date(), lastCapturedAt boundary: Date? = nil,
+        reason: MeetingCaptureInterruptionReason = .unknown
+    ) {
+        if let boundary { recordCaptured(until: boundary) }
+        interruptedAt = min(interruptedAt ?? date, date)
+        if interruptionReason == nil || interruptionReason == .unknown {
+            interruptionReason = reason
+        }
+    }
+
+    mutating func markGap(missingFrames: Int64? = nil) {
+        captureGap = true
+        if let missingFrames, missingFrames > 0 {
+            let (sum, overflow) = missingCaptureFrames.addingReportingOverflow(missingFrames)
+            missingCaptureFrames = overflow ? .max : sum
+        }
+    }
+
+    mutating func markAudioWriteFailure() { audioWriteFailed = true }
+
+    /// Multiple existing producers save whole Meeting values. Facts cannot be
+    /// erased by an older pipeline value, regeneration, or a later normal Stop.
+    /// Counts are cumulative snapshots, so merging takes max rather than adding.
+    func merged(preserving stored: Self?) -> Self {
+        guard let stored else { return self }
+        var result = self
+        if let date = stored.lastCapturedAt { result.recordCaptured(until: date) }
+        if let date = stored.normalEndAt {
+            result.normalEndAt = max(result.normalEndAt ?? date, date)
+        }
+        if let date = stored.interruptedAt {
+            result.markInterrupted(at: date, reason: stored.interruptionReason ?? .unknown)
+        }
+        result.captureGap = captureGap || stored.captureGap
+        result.missingCaptureFrames = max(missingCaptureFrames, stored.missingCaptureFrames)
+        result.audioWriteFailed = audioWriteFailed || stored.audioWriteFailed
+        if missingSavedMicFrames != nil || stored.missingSavedMicFrames != nil {
+            result.missingSavedMicFrames = max(missingSavedMicFrames ?? 0, stored.missingSavedMicFrames ?? 0)
+        }
+        if missingSavedSystemFrames != nil || stored.missingSavedSystemFrames != nil {
+            result.missingSavedSystemFrames = max(missingSavedSystemFrames ?? 0, stored.missingSavedSystemFrames ?? 0)
+        }
+        return result
+    }
+}
+
 /// One meeting: what it was, when, and what came out of it.
 ///
 /// The heavy parts — transcript, notes, audio — live in sibling files rather than in this
@@ -225,6 +310,8 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
     var calendarName: String?
 
     var status: MeetingStatus = .scheduled
+    /// Nil on older rows means capture completeness is unknown, not verified.
+    var captureIntegrity: MeetingCaptureIntegrity?
     /// Present only when `Settings.meetingsKeepAudio` was on for this recording.
     var audioFileName: String?
     /// Whether this recording exists only so the speakers could be told apart.
@@ -312,6 +399,21 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         return end.timeIntervalSince(start)
     }
 
+    var hasPartialCapture: Bool { captureIntegrity?.hasPartialCapture == true }
+
+    /// The supported boundary can be earlier than when an interruption was noticed.
+    var captureBoundary: Date? { captureIntegrity?.lastCapturedAt }
+
+    var captureSummary: String? {
+        guard hasPartialCapture else { return nil }
+        if captureIntegrity?.interruptedAt != nil {
+            return status == .done
+                ? "Recording interrupted — saved portion recovered"
+                : "Recording interrupted"
+        }
+        return "Some audio was missed — this meeting is incomplete"
+    }
+
     init(
         id: UUID = UUID(),
         title: String,
@@ -325,6 +427,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         conferenceURL: URL? = nil,
         calendarName: String? = nil,
         status: MeetingStatus = .scheduled,
+        captureIntegrity: MeetingCaptureIntegrity? = nil,
         audioFileName: String? = nil,
         audioIsTemporary: Bool? = nil,
         audioReleaseAfter: Date? = nil,
@@ -345,6 +448,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         self.conferenceURL = conferenceURL
         self.calendarName = calendarName
         self.status = status
+        self.captureIntegrity = captureIntegrity
         self.audioFileName = audioFileName
         self.audioIsTemporary = audioIsTemporary
         self.audioReleaseAfter = audioReleaseAfter
@@ -376,6 +480,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         conferenceURL = try container.decodeIfPresent(URL.self, forKey: .conferenceURL)
         calendarName = try container.decodeIfPresent(String.self, forKey: .calendarName)
         status = try container.decodeIfPresent(MeetingStatus.self, forKey: .status) ?? .scheduled
+        captureIntegrity = try container.decodeIfPresent(MeetingCaptureIntegrity.self, forKey: .captureIntegrity)
         audioFileName = try container.decodeIfPresent(String.self, forKey: .audioFileName)
         audioIsTemporary = try container.decodeIfPresent(Bool.self, forKey: .audioIsTemporary)
         audioReleaseAfter = try container.decodeIfPresent(Date.self, forKey: .audioReleaseAfter)

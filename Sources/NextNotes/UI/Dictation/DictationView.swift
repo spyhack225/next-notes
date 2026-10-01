@@ -12,6 +12,8 @@ import SwiftUI
 struct DictationView: View {
     @Bindable var controller: DictationController
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var store = RunStore.shared
     @State private var settings = Settings.shared
     @State private var query = ""
@@ -51,7 +53,11 @@ struct DictationView: View {
         }
     }
 
-    private var isRecording: Bool { controller.state.isActive }
+    private var canStopRecording: Bool {
+        controller.state == .starting || controller.state == .listening
+    }
+
+    private var isFinishing: Bool { controller.state == .finishing }
 
     /// What the list is actually filtered on, and what the "no results" message quotes back.
     /// One property so the two can never disagree about what was searched for.
@@ -74,6 +80,7 @@ struct DictationView: View {
 
             DictationStatusBand(
                 state: controller.state,
+                isCapturingAudio: controller.isCapturingAudio,
                 elapsed: elapsed,
                 holdKey: settings.pushToTalkKey.displayName,
                 // The empty state below is already drawing the screen's orb, and it is
@@ -81,6 +88,21 @@ struct DictationView: View {
                 showsOrb: !runs.isEmpty
             )
             Divider()
+
+            if case .error = controller.state, !store.runs.isEmpty {
+                HStack(spacing: DS.Space.m) {
+                    Text("If your words were saved, select the recording below and choose Copy.")
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.textSecondary)
+                    Spacer(minLength: DS.Space.m)
+                    if !trimmedQuery.isEmpty {
+                        Button("Show recordings") { query = "" }
+                            .buttonStyle(.link)
+                    }
+                }
+                .padding(.horizontal, DS.Space.l)
+                .padding(.vertical, DS.Space.s)
+            }
 
             if runs.isEmpty {
                 emptyState
@@ -160,20 +182,22 @@ struct DictationView: View {
 
     private var recordButton: some View {
         Button {
-            if isRecording {
+            if canStopRecording {
                 controller.stopButtonRecording()
-            } else {
+            } else if !isFinishing {
                 controller.startButtonRecording()
             }
         } label: {
             Label(
-                isRecording ? "Stop" : "Record",
-                systemImage: isRecording ? "stop.fill" : "record.circle"
+                isFinishing ? "Finishing…" : canStopRecording ? "Stop" : "Record",
+                systemImage: canStopRecording ? "stop.fill" : "record.circle"
             )
         }
         .buttonStyle(.borderedProminent)
-        .tint(isRecording ? DS.Color.record : DS.Color.accent)
-        .help(isRecording ? "Stop recording" : "Record without holding the key")
+        .tint(controller.isCapturingAudio ? DS.Color.record : DS.Color.accent)
+        .disabled(isFinishing)
+        .help(isFinishing ? "Preparing your text" : canStopRecording
+            ? "Stop recording" : "Record without holding the key")
     }
 
     private var transcriptionList: some View {
@@ -209,9 +233,8 @@ struct DictationView: View {
         }
         // The Delete key is what a list of things is expected to answer to.
         .onDeleteCommand { requestDelete(selection) }
-        // A new transcription arrives at the moment the key is released, which is the one
-        // moment the user is watching this list. It should slide in rather than appear.
-        .animation(DS.Motion.fluid, value: runs.map(\.id))
+        // Respect a reader's motion preference while the native list receives a new row.
+        .animation(reduceMotion ? nil : DS.Motion.fluid, value: runs.map(\.id))
     }
 
     // MARK: - Correcting
@@ -268,13 +291,44 @@ struct DictationView: View {
         return "\(selection.count) of \(store.runs.count) selected"
     }
 
-    /// Both empty states are *stages* rather than absences — nothing said yet, and nothing
-    /// found — so each takes the orb for its own cause: `listening` is the invitation to
-    /// speak, `searching` repeats the word the user already typed. A grey SF Symbol here
-    /// would say the screen is broken.
+    /// An empty list follows the actual hold while one is active, so it cannot keep saying
+    /// "No recordings" beside a live microphone. With no hold, an untouched list invites
+    /// speech and a filtered list reports the search; a stopped hold shows its real error.
+    private var activeEmptyMessage: String {
+        trimmedQuery.isEmpty
+            ? "Your recording will appear here."
+            : "Clear search to see new recordings."
+    }
+
     @ViewBuilder
     private var emptyState: some View {
-        if store.runs.isEmpty {
+        if case .error(let message) = controller.state, store.runs.isEmpty {
+            ContentUnavailableView(
+                "No recording saved",
+                systemImage: "exclamationmark.triangle",
+                description: Text(message)
+            )
+        } else if controller.state == .starting {
+            OrbUnavailableView(
+                controller.isCapturingAudio ? .listening : .working,
+                title: controller.isCapturingAudio ? "Listening…" : "Getting ready…",
+                message: activeEmptyMessage
+            )
+        } else if controller.state == .listening {
+            OrbUnavailableView(
+                .listening,
+                title: "Listening…",
+                message: activeEmptyMessage
+            )
+        } else if controller.state == .finishing {
+            OrbUnavailableView(
+                .working,
+                title: "Finishing your words…",
+                message: trimmedQuery.isEmpty
+                    ? "Your recording will appear here when the text is ready."
+                    : activeEmptyMessage
+            )
+        } else if store.runs.isEmpty {
             OrbUnavailableView(
                 .listening,
                 title: "No recordings",

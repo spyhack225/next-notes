@@ -1,4 +1,5 @@
 import Foundation
+import FluidAudio
 
 /// The one place the post-Stop final transcription pass runs (M-01).
 ///
@@ -18,7 +19,20 @@ final class FinalTranscriptService {
 
     private var tasks: [UUID: Task<Void, Never>] = [:]
 
-    private init() {}
+    private let transcribe: @Sendable ([Float]) async throws -> ASRResult
+    private let afterFinalPass: @MainActor (Meeting, MeetingStore) -> Void
+
+    init(
+        transcribe: @escaping @Sendable ([Float]) async throws -> ASRResult = {
+            try await TranscriptionQueue.shared.transcribe($0, lane: .background)
+        },
+        afterFinalPass: @escaping @MainActor (Meeting, MeetingStore) -> Void = {
+            _ = MeetingPipeline.afterFinalPass($0, store: $1)
+        }
+    ) {
+        self.transcribe = transcribe
+        self.afterFinalPass = afterFinalPass
+    }
 
     func isRunning(_ id: UUID) -> Bool { tasks[id] != nil }
 
@@ -46,7 +60,7 @@ final class FinalTranscriptService {
         guard let audio = store.audioURL(for: meeting) else {
             meeting.transcriptPass = "live-only:no-audio"
             store.save(meeting)
-            _ = MeetingPipeline.afterFinalPass(meeting, store: store)
+            afterFinalPass(meeting, store)
             return
         }
         let began = Date()
@@ -62,6 +76,13 @@ final class FinalTranscriptService {
                 try Task.checkCancellation()
                 // A deleted meeting stays deleted: no write below may re-create it.
                 guard store.meeting(id: id) != nil else { return }
+                // The writer can trim a delayed track after padding the saved file.
+                // Its live originals still reached ASR. A word-count threshold cannot
+                // prove that this partial recording can replace those originals.
+                if store.meeting(id: id)?.captureIntegrity?.hasKnownSavedAudioLoss(on: source) == true,
+                   live.contains(where: { $0.source == source }) {
+                    continue
+                }
                 let samples = try AudioConversion.samples(
                     fromFileAt: audio,
                     sampleRate: ChunkedTranscriber.sampleRate,
@@ -69,10 +90,8 @@ final class FinalTranscriptService {
                 )
                 trackSeconds = Double(samples.count) / ChunkedTranscriber.sampleRate
                 let track = try await MeetingFinalPass.transcribeTrack(
-                    samples, source: source
-                ) { window in
-                    try await TranscriptionQueue.shared.transcribe(window, lane: .background)
-                }
+                    samples, source: source, transcribe: transcribe
+                )
                 windows += track.windows.count
                 finalsByTrack[source] = track.segments
             }
@@ -83,7 +102,9 @@ final class FinalTranscriptService {
             for source in [AudioSource.mic, .system] as [AudioSource] {
                 let final = finalsByTrack[source] ?? []
                 let trackLive = live.filter { $0.source == source }
-                let ok = MeetingFinalPass.accept(final: final, live: trackLive, source: source)
+                let knownLoss = store.meeting(id: id)?.captureIntegrity?.hasKnownSavedAudioLoss(on: source) == true
+                let ok = (trackLive.isEmpty || !knownLoss)
+                    && MeetingFinalPass.accept(final: final, live: trackLive, source: source)
                 accepted[source] = ok
                 combined.append(contentsOf: ok ? final : trackLive)
             }
@@ -92,6 +113,10 @@ final class FinalTranscriptService {
             store.saveLiveTranscript(live, for: id)
             store.saveTranscript(merged, for: id)
             let allAccepted = accepted.values.allSatisfy { $0 }
+            // Track inference awaited while the person could rename this meeting or
+            // its capture producer could report a late failure. Save today's row.
+            guard let current = store.meeting(id: id) else { return }
+            meeting = current
             meeting.transcriptPass = allAccepted ? "long-window" : "live-only:rejected"
             store.save(meeting)
 
@@ -112,7 +137,7 @@ final class FinalTranscriptService {
                 (rtf \(String(format: "%.4f", rtf), privacy: .public), \
                 \(windows, privacy: .public) windows, accepted \(acceptedNote, privacy: .public)
                 """)
-            _ = MeetingPipeline.afterFinalPass(store.meeting(id: id) ?? meeting, store: store)
+            afterFinalPass(store.meeting(id: id) ?? meeting, store)
         } catch is CancellationError {
             keepLive(id: id, pass: "live-only:failed", store: store)
         } catch {
@@ -130,6 +155,6 @@ final class FinalTranscriptService {
             meeting.status = .failed("The recording could not be transcribed.")
         }
         store.save(meeting)
-        _ = MeetingPipeline.afterFinalPass(meeting, store: store)
+        afterFinalPass(meeting, store)
     }
 }

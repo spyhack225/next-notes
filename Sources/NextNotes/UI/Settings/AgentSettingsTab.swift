@@ -26,6 +26,7 @@ struct AgentSettingsTab: View {
             RemindersSection()
             KnowledgeSection()
             MessagesAccessSection()
+            IMessageSettingsSection()
         }
         .onAppear { models.refresh() }
         .onDisappear {

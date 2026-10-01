@@ -109,7 +109,8 @@ enum MemoryToolExecutor {
             let text = try checkedText(argument("text"), provenance: provenance, store: store)
             let outcome = try store.remember(kind: kind, text: text, source: source(provenance),
                                              sessionID: provenance?.sessionID,
-                                             origin: provenance?.source, sourceLabel: provenance?.sourceLabel)
+                                             origin: provenance?.source, sourceLabel: provenance?.sourceLabel,
+                                             lineage: MemoryGuard.lineage(from: provenance))
             return result(for: outcome, action: outcome.wasDuplicate ? .alreadyKnown : .saved, store: store)
 
         case "update":
@@ -122,7 +123,8 @@ enum MemoryToolExecutor {
             }
             let outcome = try store.update(match: argument("match"), text: text, source: source(provenance),
                                            sessionID: provenance?.sessionID,
-                                           origin: provenance?.source, sourceLabel: provenance?.sourceLabel)
+                                           origin: provenance?.source, sourceLabel: provenance?.sourceLabel,
+                                           lineage: MemoryGuard.lineage(from: provenance))
             return result(for: outcome, action: outcome.wasDuplicate ? .alreadyKnown : .updated, store: store)
 
         case "forget":

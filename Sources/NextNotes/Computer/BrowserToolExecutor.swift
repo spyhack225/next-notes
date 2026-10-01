@@ -152,6 +152,14 @@ enum BrowserToolExecutor {
             return "\(name) is not a browser. stub tree, 0 names. No elements were invented."
         }
         let body = AccessibilitySnapshot.capture(processID: app.processIdentifier, limit: 80)
+        defer {
+            let window = AccessibilitySnapshot.lastSnapshot.split(separator: "\n")
+                .first(where: { $0.hasPrefix("Window: ") })
+                .map { String($0.dropFirst("Window: ".count)) }
+            AgentActivityStore.shared.noteWindow(
+                [app.localizedName ?? "The browser", window].compactMap { $0 }.joined(separator: " · ")
+            )
+        }
         guard AccessibilitySnapshot.isStub(body) else { return body }
         // Chromium builds its tree only once somebody asks, and a stub is the walk that
         // asked too early. One nudge — the attribute VoiceOver's clients use — and the
@@ -195,7 +203,9 @@ enum BrowserToolExecutor {
             )
         }
         let image = try ScreenCapture.captureFocusedWindowSync()
-        ScreenshotStore.store(image, for: "browser.screenshot:ax")
+        ComputerToolExecutor.publishCapture(
+            image, for: "browser.screenshot:ax", summary: "Focused window in \(app.localizedName ?? "the browser")"
+        )
         return AgentToolResult(
             summary: "Screenshot of \(app.localizedName ?? "the browser") "
                 + "(\(image.pixelWidth)x\(image.pixelHeight), memory-only, never stored). "
@@ -587,7 +597,8 @@ enum SeatGridSelfTest {
               ScreenshotPolicy.isNeeded(
                 snapshotSummary: "stub tree, 0 names. No elements were invented.", reason: nil))
 
-        // Click → verify: first miss, then success — exactly two attempts, one success.
+        // CU02: the same first-miss/second-success fixture must not fire the second
+        // effect merely because the first press's postcondition was not observed.
         var calls = 0
         let retry = try? VerifyRetry.run(
             risk: .modify, title: "C2", expected: "C2 selected",
@@ -600,8 +611,9 @@ enum SeatGridSelfTest {
                 )
             }
         )
-        check("D5 click did not take exactly 2 attempts",
-              calls == 2 && retry?.attempts.count == 2 && retry?.attempts.last?.verification != nil)
+        check("D5 replayed an unverified click",
+              calls == 1 && retry?.attempts.count == 1 && retry?.attempts.last?.verification == nil
+                  && retry?.mismatchMessage?.contains("could not confirm") == true)
 
         // Cap-check: $33.50 inside the $40 cap passes; $45.00 does not.
         check("in-cap purchase refused",

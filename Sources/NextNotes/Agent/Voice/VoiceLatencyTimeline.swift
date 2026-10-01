@@ -87,6 +87,19 @@ struct VoiceStageSpan: Sendable {
         VoiceStageSpan(span: .voiceSpeculation, kind: .marker, required: true, inTurnSummary: false),
     ]
 
+    /// The split route/answer producer must stamp its intermediate boundaries. A
+    /// speculation hit already completed them off the counted path; single-decision
+    /// probes have no separate route. Neither exception excuses ordinary missing stages.
+    func isRequired(for turn: VoiceClosedTurn, separateRoute: Bool) -> Bool {
+        if required { return true }
+        guard !turn.speculationHit else { return false }
+        switch span {
+        case .voiceRequestToLane: return true
+        case .voiceRoute, .voiceRouteToFirstToken: return separateRoute
+        default: return false
+        }
+    }
+
     /// Spans only a barge test produces. Kept out of `all` so a plain latency run does
     /// not report three absent rows as three failures.
     static let barge: [VoiceStageSpan] = [
@@ -251,10 +264,9 @@ final class VoiceLatencyTimeline: @unchecked Sendable {
         var toClose: OpenTurn?
         var bargeTarget: VoiceClosedTurn?
         lock.lock()
-        // One unlock, whatever happens: this lock is also taken by the capture lane and by
-        // FluidAudio's callback thread, so a path that returned holding it would hang a
-        // voice turn and every later mark with it.
-        defer { lock.unlock() }
+        // Every switch branch reaches the one unlock below. Emission stays outside the
+        // critical section; a deferred second unlock would release a lock this stamp no
+        // longer owns (or one another capture/model thread has acquired in the meantime).
         switch mark {
         case .voiceOnset:
             if open != nil, open?.marks[.endpoint] != nil {
@@ -402,10 +414,12 @@ final class VoiceLatencyTimeline: @unchecked Sendable {
         var stages = VoiceStageSpan.all
         if turn.marks[.bargeOnset] != nil { stages += VoiceStageSpan.barge }
         for stage in stages {
-            guard let built = Self.span(for: stage, turn: turn, correlation: correlation,
-                note: note) else { continue }
-            // Sampled on the writer, not by whoever happened to end the stage.
-            MetricsStore.shared.recordAsync { built }
+            // Build on the existing writer: LatencySpan samples ProcessSnapshot in its
+            // initializer. Building it here would run that work on the capture/main actor
+            // even though the completed row is handed to recordAsync afterward.
+            MetricsStore.shared.recordAsync {
+                Self.span(for: stage, turn: turn, correlation: correlation, note: note)
+            }
         }
         UsageLog.shared.record(Self.turnRow(turn))
         lock.lock()
@@ -431,9 +445,9 @@ final class VoiceLatencyTimeline: @unchecked Sendable {
         let correlation = LatencyCorrelation(
             sessionID: turn.sessionID, workID: nil, revision: turn.number)
         for stage in VoiceStageSpan.barge {
-            guard let built = Self.span(for: stage, turn: extended, correlation: correlation,
-                note: "barge") else { continue }
-            MetricsStore.shared.recordAsync { built }
+            MetricsStore.shared.recordAsync {
+                Self.span(for: stage, turn: extended, correlation: correlation, note: "barge")
+            }
         }
     }
 
@@ -525,7 +539,9 @@ final class VoiceLatencyTimeline: @unchecked Sendable {
                 source: "voice"
             )
         case .stall:
-            guard turn.maxStallNanos > 0 else { return nil }
+            // No late ping is the measured zero, which must reach the store just as the
+            // in-memory duration and the usage summary do. Dropping it makes a healthy
+            // turn fail the required-stage consumer and loses the normal baseline.
             let ended = turn.marks[.firstAudible]?.wall
                 ?? turn.marks[.endpoint]?.wall
                 ?? Date()

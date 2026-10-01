@@ -9,6 +9,7 @@ struct RecordingIndicator: View {
     var compact = false
     var label: String?
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isPulsing = false
 
     var body: some View {
@@ -16,10 +17,10 @@ struct RecordingIndicator: View {
             Circle()
                 .fill(DS.Color.record)
                 .frame(width: dotSize, height: dotSize)
-                .opacity(isPulsing ? DS.Opacity.recordPulseLow : 1)
-                .onAppear {
-                    withAnimation(DS.Motion.recordPulse) { isPulsing = true }
-                }
+                .opacity(reduceMotion ? 1 : (isPulsing ? DS.Opacity.recordPulseLow : 1))
+                .animation(reduceMotion ? nil : DS.Motion.recordPulse, value: isPulsing)
+                .onAppear { isPulsing = !reduceMotion }
+                .onChange(of: reduceMotion) { _, reduced in isPulsing = !reduced }
 
             if let label {
                 Text(label)
@@ -34,8 +35,8 @@ struct RecordingIndicator: View {
                     // The digits roll rather than cut. This counter is often the only thing
                     // moving on screen — in the sidebar, the menu bar and the island — and a
                     // number that snaps between values reads as a redraw rather than a clock.
-                    .contentTransition(.numericText())
-                    .animation(DS.Motion.standard, value: elapsed)
+                    .contentTransition(reduceMotion ? .identity : .numericText())
+                    .animation(reduceMotion ? nil : DS.Motion.standard, value: elapsed)
             }
         }
         .accessibilityElement(children: .combine)

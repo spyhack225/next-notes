@@ -11,9 +11,19 @@ final class PermissionGate {
     static let shared = PermissionGate()
 
     private(set) var pending: PermissionRequest?
-    private var waiter: CheckedContinuation<Bool, Never>?
-    private var queued: [(PermissionRequest, CheckedContinuation<Bool, Never>)] = []
+    private struct WaitingApproval {
+        let request: PermissionRequest
+        var continuation: CheckedContinuation<Bool, Never>?
+        var restoredDecision: ((Bool, [String: String]) -> Bool)?
+        var review: ToolCallReview?
+    }
+    private var waiting: WaitingApproval?
+    private var queued: [WaitingApproval] = []
     var queuedCount: Int { queued.count }
+    /// A restored decision authorizes one exact retry, never a new standing grant.
+    var pendingAllowsStandingGrant: Bool {
+        pending != nil && waiting?.restoredDecision == nil
+    }
     /// How many times anything has asked. `--selftest-routine-authority` checks an unattended
     /// run leaves it unchanged: nobody is there to answer.
     private(set) var askCount = 0
@@ -38,8 +48,9 @@ final class PermissionGate {
                     context.record(TaskJournalEventDraft(taskID: context.taskID,
                         kind: .permissionRequested, attempt: context.attempt))
                 }
-                if waiter == nil { present(request, continuation: continuation) }
-                else { queued.append((request, continuation)) }
+                let entry = WaitingApproval(request: request, continuation: continuation)
+                if pending == nil { present(entry) }
+                else { queued.append(entry) }
             }
         } onCancel: {
             Task { @MainActor in
@@ -55,14 +66,29 @@ final class PermissionGate {
         return approved
     }
 
-    private func present(_ request: PermissionRequest,
-                         continuation: CheckedContinuation<Bool, Never>) {
+    /// Restored cards have no suspended worker to resume. Their actual owner must
+    /// commit a decision before the visible card can disappear or a grant can exist.
+    @discardableResult
+    func restore(_ request: PermissionRequest, review: ToolCallReview? = nil,
+                 onReviewChange: ((ToolCallReview) -> Bool)? = nil,
+                 onDecision: @escaping (Bool, [String: String]) -> Bool) -> Bool {
+        guard request.taskID != nil,
+              review == nil || (review?.id == request.id && review?.toolID == request.toolID) else { return false }
+        if pending?.id == request.id || queued.contains(where: { $0.request.id == request.id }) { return true }
+        ToolCallReviewStore.shared.setPersistenceHandler(id: request.id, handler: onReviewChange)
+        let entry = WaitingApproval(request: request, restoredDecision: onDecision, review: review)
+        if pending == nil { present(entry) } else { queued.append(entry) }
+        return true
+    }
+
+    private func present(_ entry: WaitingApproval) {
+        let request = entry.request
         pending = request
-        waiter = continuation
+        waiting = entry
         // The review is built before the card is raised, so the island's first frame
         // already knows whether anything is missing. A card that says "Approve" for two
         // seconds and then changes its mind has already been pressed.
-        ToolCallReviewStore.shared.begin(request)
+        ToolCallReviewStore.shared.begin(request, restoredReview: entry.review)
         raiseIsland(for: request)
         // P1-29: a card that was **shown** is a moment the audit could not see, so "did the
         // person ever get asked?" had no answer in any log. The tool id and the request id,
@@ -112,9 +138,9 @@ final class PermissionGate {
     }
 
     private func advance() {
-        guard waiter == nil, !queued.isEmpty else { return }
+        guard pending == nil, !queued.isEmpty else { return }
         let next = queued.removeFirst()
-        present(next.0, continuation: next.1)
+        present(next)
     }
 
     /// Returns true when this id was ours, so the island handler can stop.
@@ -126,6 +152,12 @@ final class PermissionGate {
         scope: PermissionScope? = nil
     ) -> Bool {
         guard pending?.id == id else { return false }
+        if approved, waiting?.restoredDecision != nil, duration != .once {
+            // Refuse the unsupported promise before committing or dispatching anything.
+            // Hiding the duration picker alone would leave programmatic callers unsafe.
+            if let pending { raiseIsland(for: pending) }
+            return false
+        }
         let review = ToolCallReviewStore.shared.review(id: id)
         // The last gate, and the one that cannot be got round by a view drawing the button
         // anyway: an approval for a call that is still missing a required value, or that
@@ -138,10 +170,25 @@ final class PermissionGate {
             raiseIsland(for: stillPending)
             return false
         }
+        if let decision = waiting?.restoredDecision, let request = pending {
+            // Preserve pinned/internal arguments that are deliberately absent from the
+            // editable fields. Only the real review can replace visible values.
+            let arguments = review?.executionArguments(mergedOver: request.arguments) ?? request.arguments
+            guard decision(approved, arguments) else {
+                raiseIsland(for: request)
+                return false
+            }
+        }
         let request = pending
+        let wasRestored = waiting?.restoredDecision != nil
+        if wasRestored {
+            // The durable owner has accepted the decision. Keep execution values until
+            // the executor consumes them, but this card can no longer persist edits.
+            ToolCallReviewStore.shared.setPersistenceHandler(id: id, handler: nil)
+        }
         pending = nil
-        waiter?.resume(returning: approved)
-        waiter = nil
+        waiting?.continuation?.resume(returning: approved)
+        waiting = nil
         IslandState.shared.dismissNotice()
         if let review {
             AgentAuditLog.shared.record(
@@ -160,7 +207,7 @@ final class PermissionGate {
         // The values the executor reads back are kept until it has read them; the caller
         // clears the review when the action has been fired or has failed.
         if !approved { ToolCallReviewStore.shared.remove(id: id) }
-        if approved, let request {
+        if approved, !wasRestored, let request {
             PermissionGrantStore.shared.add(
                 PermissionGrant(
                     toolID: request.toolID,
@@ -179,22 +226,31 @@ final class PermissionGate {
     /// Explicit global stop releases every approval waiter. Ordinary voice
     /// interruption does not call this; a task correction uses its own id.
     func cancelPending() {
-        let shadowRequestID = pending?.id
-        // P1-29: a card that went away unanswered is the other moment with no trace. Recorded
-        // here rather than at each caller, because "cancelled" has five entry points
-        // (`cancelPending()`, the task id, the request id, `cancelMatching`, ACP's cancel) and
-        // a row at each is four rows that can be forgotten.
-        noteCancelled(count: queued.count + (pending == nil ? 0 : 1))
+        cancelMatching { _ in true }
+        // Preserve the global stop's existing notice dismissal when no card remains.
+        if pending == nil { IslandState.shared.dismissNotice() }
+    }
+
+    /// The manager uses this read-only seam to keep queued restored cards on the same
+    /// durable decision path as the visible card.
+    func hasRestoredRequest(taskID: String) -> Bool {
+        (waiting.map { $0.request.taskID == taskID && $0.restoredDecision != nil } ?? false)
+            || queued.contains { $0.request.taskID == taskID && $0.restoredDecision != nil }
+    }
+
+    /// Simulate process loss in the isolated installed restart fixture. A restart drops
+    /// ephemeral waiters/cards; it does not manufacture a durable approval or denial.
+    func resetForRestartTesting() {
+        guard SelfTest.isRunning else { return }
         let abandoned = queued
-        queued.removeAll()
-        for (request, _) in abandoned { ToolCallReviewStore.shared.remove(id: request.id) }
-        if let pending { ToolCallReviewStore.shared.remove(id: pending.id) }
+        let active = waiting
+        queued = []
         pending = nil
-        waiter?.resume(returning: false)
-        waiter = nil
-        for (_, continuation) in abandoned { continuation.resume(returning: false) }
+        waiting = nil
+        ToolCallReviewStore.shared.removeAll()
+        active?.continuation?.resume(returning: false)
+        for entry in abandoned { entry.continuation?.resume(returning: false) }
         IslandState.shared.dismissNotice()
-        if let shadowRequestID { VoiceSession.shared.send(.approvalResolved(requestID: shadowRequestID)) }
     }
 
     func cancelPending(taskID: String) {
@@ -215,24 +271,45 @@ final class PermissionGate {
             detail: "\(count) request(s) went unanswered.")
     }
 
+    /// Cancellation is a denied decision for a restored card. Its durable owner must
+    /// accept that decision before either the review or its persistence handler is removed.
+    private func canCancel(_ entry: WaitingApproval) -> Bool {
+        guard let decision = entry.restoredDecision else { return true }
+        let review = ToolCallReviewStore.shared.review(id: entry.request.id) ?? entry.review
+        let arguments = review?.executionArguments(mergedOver: entry.request.arguments)
+            ?? entry.request.arguments
+        return decision(false, arguments)
+    }
+
     private func cancelMatching(_ matches: (PermissionRequest) -> Bool) {
-        let shadowRequestID = pending.flatMap { matches($0) ? $0.id : nil }
-        noteCancelled(count: queued.filter { matches($0.0) }.count
-            + (pending.map { matches($0) ? 1 : 0 } ?? 0))
-        let removed = queued.filter { matches($0.0) }
-        queued.removeAll { matches($0.0) }
-        for (request, continuation) in removed {
-            ToolCallReviewStore.shared.remove(id: request.id)
-            continuation.resume(returning: false)
+        var cancelledCount = 0
+        var retained: [WaitingApproval] = []
+        for entry in queued {
+            guard matches(entry.request), canCancel(entry) else {
+                retained.append(entry)
+                continue
+            }
+            ToolCallReviewStore.shared.remove(id: entry.request.id)
+            entry.continuation?.resume(returning: false)
+            cancelledCount += 1
         }
-        if let pending, matches(pending) {
-            ToolCallReviewStore.shared.remove(id: pending.id)
-            self.pending = nil
-            waiter?.resume(returning: false)
-            waiter = nil
-            IslandState.shared.dismissNotice()
+        queued = retained
+        if let pending, matches(pending), let waiting {
+            if canCancel(waiting) {
+                ToolCallReviewStore.shared.remove(id: pending.id)
+                self.pending = nil
+                waiting.continuation?.resume(returning: false)
+                self.waiting = nil
+                IslandState.shared.dismissNotice()
+                VoiceSession.shared.send(.approvalResolved(requestID: pending.id))
+                cancelledCount += 1
+            } else {
+                // A rejected primary commit leaves the exact request and editable review
+                // live, with its persistence handler available for the next attempt.
+                raiseIsland(for: pending)
+            }
         }
-        if let shadowRequestID { VoiceSession.shared.send(.approvalResolved(requestID: shadowRequestID)) }
+        noteCancelled(count: cancelledCount)
         advance()
     }
 }

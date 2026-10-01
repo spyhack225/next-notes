@@ -43,6 +43,8 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
     // of how many writes a meeting really made — the note carries the segment count
     // each one put on disk. Counters, like the rows above: no text, no title.
     case meetingTranscriptWrite = "meeting.transcript_write"
+    case meetingResources = "meeting.resources"
+    case meetingHealthWarning = "meeting.health_warning"
 
     // Agent — §35
     case agentWakeToListeningUI = "agent.wake_to_listening_ui"
@@ -122,7 +124,8 @@ enum LatencySpanID: String, Codable, Sendable, CaseIterable, Hashable {
         case .meetingSpeechToPartial, .meetingSpeechToFinal, .meetingTranscriptToContext,
              .meetingActionPhraseToCandidate, .meetingCandidateToCard,
              .meetingDrain, .meetingFinalPass, .meetingDiarize,
-             .meetingNotes, .meetingWindowsDropped, .meetingTranscriptWrite:
+             .meetingNotes, .meetingWindowsDropped, .meetingTranscriptWrite,
+             .meetingResources, .meetingHealthWarning:
             return .meeting
         case .agentWakeToListeningUI, .agentSpeechEndToTranscript,
              .agentTranscriptToFirstToken, .agentFirstTokenToFirstTTS,
@@ -245,6 +248,11 @@ struct ProcessSnapshot: Codable, Sendable, Equatable {
     var hostUptime: TimeInterval
     var residentMemoryBytes: UInt64?
     var peakResidentMemoryBytes: UInt64?
+    /// Total process physical footprint, distinct from RSS. This cannot identify
+    /// individual native/Metal allocations; absent on query failure.
+    var physicalFootprintBytes: UInt64? = nil
+    var interruptWakeups: UInt64? = nil
+    var platformIdleWakeups: UInt64? = nil
     var userCPUSeconds: Double?
     var systemCPUSeconds: Double?
 
@@ -259,7 +267,21 @@ struct ProcessSnapshot: Codable, Sendable, Equatable {
                 task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
             }
         }
+        var vm = task_vm_info_data_t()
+        var vmCount = mach_msg_type_number_t(MemoryLayout.size(ofValue: vm) / MemoryLayout<integer_t>.size)
+        let vmStatus = withUnsafeMutablePointer(to: &vm) { pointer in
+            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(vmCount)) {
+                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &vmCount)
+            }
+        }
         var usage = rusage()
+        var power = task_power_info_data_t()
+        var powerCount = mach_msg_type_number_t(MemoryLayout.size(ofValue: power) / MemoryLayout<integer_t>.size)
+        let powerStatus = withUnsafeMutablePointer(to: &power) { pointer in
+            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(powerCount)) {
+                task_info(mach_task_self_, task_flavor_t(TASK_POWER_INFO), $0, &powerCount)
+            }
+        }
         let usageStatus = getrusage(RUSAGE_SELF, &usage)
         func seconds(_ value: timeval) -> Double {
             Double(value.tv_sec) + Double(value.tv_usec) / 1_000_000
@@ -273,6 +295,9 @@ struct ProcessSnapshot: Codable, Sendable, Equatable {
             hostUptime: info.systemUptime,
             residentMemoryBytes: taskStatus == KERN_SUCCESS ? UInt64(task.resident_size) : nil,
             peakResidentMemoryBytes: usageStatus == 0 ? UInt64(usage.ru_maxrss) : nil,
+            physicalFootprintBytes: vmStatus == KERN_SUCCESS ? UInt64(vm.phys_footprint) : nil,
+            interruptWakeups: powerStatus == KERN_SUCCESS ? power.task_interrupt_wakeups : nil,
+            platformIdleWakeups: powerStatus == KERN_SUCCESS ? power.task_platform_idle_wakeups : nil,
             userCPUSeconds: usageStatus == 0 ? seconds(usage.ru_utime) : nil,
             systemCPUSeconds: usageStatus == 0 ? seconds(usage.ru_stime) : nil
         )
@@ -466,6 +491,9 @@ struct LatencyTrace: Sendable {
             failures.append("process CPU time was not sampled")
         }
 
+        // Production persists asynchronously. Wait before checking the ring as
+        // well as the file: both are populated by the same writer operation.
+        store.flushForTesting()
         if store.span(id: span.id) == nil {
             failures.append("fake span \(span.id.uuidString) missing from the in-memory ring")
         }
@@ -473,9 +501,6 @@ struct LatencyTrace: Sendable {
             failures.append("fake span note \(marker) missing from the in-memory ring")
         }
 
-        // The writer is a queue, so a reader must wait for it. Without this the
-        // file is read before the row lands and a healthy store looks empty.
-        store.flushForTesting()
         let fileURL = store.fileURL
         guard let data = try? Data(contentsOf: fileURL), !data.isEmpty else {
             failures.append("metrics.jsonl was not written")
@@ -533,11 +558,14 @@ struct LatencyTrace: Sendable {
         // P2-01 added the voice stages: every one of them must be reachable by
         // name, in the agent pipeline, or the voice self-test cannot fail on a
         // stage that never happened.
+        var stagedSpans: [LatencySpan] = []
         for id in [
             LatencySpanID.meetingDrain, .meetingFinalPass, .meetingDiarize,
             .meetingNotes, .meetingWindowsDropped, .meetingTranscriptWrite,
         ] as [LatencySpanID] {
             let staged = LatencyTrace.record(id, seconds: 0.01, note: "m16a", store: store)
+            stagedSpans.append(staged)
+            store.flushForTesting()
             if staged.pipeline != .meeting {
                 failures.append("\(id.rawValue) is not in the meeting pipeline")
             }
@@ -549,6 +577,8 @@ struct LatencyTrace: Sendable {
         for id in VoiceStageSpan.all.map(\.span) {
             let staged = LatencyTrace.record(id, seconds: 0.01, note: "p201",
                 source: "voice", store: store)
+            stagedSpans.append(staged)
+            store.flushForTesting()
             if staged.pipeline != .agent {
                 failures.append("\(id.rawValue) is not in the agent pipeline")
             }
@@ -557,6 +587,20 @@ struct LatencyTrace: Sendable {
             }
             if store.spans(named: id).isEmpty {
                 failures.append("\(id.rawValue) missing from the isolated store")
+            }
+        }
+
+        // A present in-memory row alone does not prove the append survived.
+        // JSON's ISO8601 dates have second precision, so compare the persisted
+        // identity and stage fields rather than subsecond dates.
+        let stagedFromDisk = MetricsStore.load(from: fileURL)
+        for staged in stagedSpans {
+            guard let saved = stagedFromDisk.first(where: { $0.id == staged.id }),
+                  saved.name == staged.name, saved.pipeline == staged.pipeline,
+                  saved.source == staged.source, saved.note == staged.note,
+                  saved.durationSeconds == staged.durationSeconds else {
+                failures.append("\(staged.name.rawValue) did not round-trip through metrics.jsonl")
+                continue
             }
         }
 

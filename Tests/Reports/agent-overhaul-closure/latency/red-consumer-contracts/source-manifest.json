@@ -1,0 +1,9 @@
+{
+  "Agent/Voice/VoiceLatencyTimeline.swift": "986c508c9db8269cf65b6231ad0ba57cb0030b94b13180f83b9a820de4defc22",
+  "Support/MetricsStore.swift": "a189130ef97c11b5f1fd37d4da7484548553ec556a8132799e15c6dafbd16ffc",
+  "Support/Usage/UsageLog.swift": "9f67266e50f9cf29a8b64795ba76d1f6d95edc2e975515ea663e3f9c3baaf2a6",
+  "Support/Usage/UsageRecord.swift": "c5f85686e9af6a28859c76a9d2c651f4b833c6de538df2f6c6dddf3b760f9d3a",
+  "Support/LatencyTrace.swift": "aa5687780e5554ffa80b2cb05b06d531f6178dec67944a1f7a70c7e24f488d10",
+  "Agent/Voice/MainActorStallProbe.swift": "08db5a9f531d8cfb7219ab95cd55a72329f11c412469c0d4e81b7a70f0fc5fd1",
+  "Agent/Voice/VoiceLatencySelfTest.swift": "97ae0fb05e1e3b208f0d42faf391456ed271305a52d7df7d736faf8831548e42"
+}

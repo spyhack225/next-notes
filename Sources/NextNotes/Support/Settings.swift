@@ -814,6 +814,13 @@ final class Settings {
         didSet { defaults.set(agentEnabled, forKey: Keys.agentEnabled) }
     }
 
+    /// Talking to the assistant from Messages. Off until the setup sheet
+    /// connects: the flip opens setup and the switch itself only reads as on
+    /// once pairing and the confirmation send are both observed.
+    var imessageEnabled: Bool {
+        didSet { defaults.set(imessageEnabled, forKey: Keys.imessageEnabled) }
+    }
+
     /// Let the agent run read-only tools by itself while it plans.
     ///
     /// On by default, and it is the one thing the agent does without being asked: searching
@@ -1138,7 +1145,48 @@ final class Settings {
         autoSendApps = apps
     }
 
-    private let defaults = UserDefaults.standard
+    private let defaults = SelfTest.isRunning ? SelfTestHarnessDefaults.suite : UserDefaults.standard
+
+    /// Check ownership before a fixture changes any preference.
+    var usesHarnessPreferencesForTesting: Bool {
+        SelfTest.isRunning && defaults === SelfTestHarnessDefaults.suite
+            && defaults !== UserDefaults.standard
+    }
+
+    /// Exercise the actual settings writers and a fresh reader of their domain.
+    /// Refuse before writing if a harness accidentally selected the owner's domain.
+    func harnessPreferenceFailures() -> [String] {
+        guard usesHarnessPreferencesForTesting else {
+            return ["Settings does not use isolated harness preferences"]
+        }
+        let ownerBefore = UserDefaults.standard.dictionaryRepresentation() as NSDictionary
+        let savedKeep = meetingsKeepAudio
+        let savedFinal = meetingsFinalPass
+        let savedNotes = notesAutoGenerate
+        defer {
+            meetingsKeepAudio = savedKeep
+            meetingsFinalPass = savedFinal
+            notesAutoGenerate = savedNotes
+        }
+        meetingsKeepAudio.toggle()
+        meetingsFinalPass.toggle()
+        notesAutoGenerate.toggle()
+        guard let reader = UserDefaults(suiteName: SelfTestHarnessDefaults.suiteName) else {
+            return ["Isolated preference reader unavailable"]
+        }
+        var failures: [String] = []
+        for (key, expected) in [
+            (Keys.meetingsKeepAudio, meetingsKeepAudio),
+            (Keys.meetingsFinalPass, meetingsFinalPass),
+            (Keys.notesAutoGenerate, notesAutoGenerate),
+        ] where reader.object(forKey: key) == nil || reader.bool(forKey: key) != expected {
+            failures.append("Isolated preference did not reach fresh reader: \(key)")
+        }
+        if !ownerBefore.isEqual(to: UserDefaults.standard.dictionaryRepresentation()) {
+            failures.append("Settings writes changed owner preferences")
+        }
+        return failures
+    }
 
     private enum Keys {
         static let moduleDictationEnabled = "moduleDictationEnabled"
@@ -1197,6 +1245,7 @@ final class Settings {
         static let googleClientSecret = "googleClientSecret"
         static let googleCalendarIDs = "googleCalendarIDs"
         static let agentEnabled = "agentEnabled"
+        static let imessageEnabled = "imessageEnabled"
         static let agentAutoRunReadTools = "agentAutoRunReadTools"
         static let agentLiveDuringMeeting = "agentLiveDuringMeeting"
         static let voiceWakeEnabled = "voiceWakeEnabled"
@@ -1368,6 +1417,7 @@ final class Settings {
         googleClientSecret = defaults.string(forKey: Keys.googleClientSecret) ?? ""
         googleCalendarIDs = defaults.stringArray(forKey: Keys.googleCalendarIDs) ?? []
         agentEnabled = Self.initialModuleEnabled(.assistant, from: defaults)
+        imessageEnabled = defaults.object(forKey: Keys.imessageEnabled) as? Bool ?? false
         agentAutoRunReadTools = defaults.object(forKey: Keys.agentAutoRunReadTools) as? Bool ?? true
         agentLiveDuringMeeting = defaults.object(forKey: Keys.agentLiveDuringMeeting) as? Bool ?? false
         voiceWakeEnabled = defaults.object(forKey: Keys.voiceWakeEnabled) as? Bool ?? false

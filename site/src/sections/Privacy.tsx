@@ -1,71 +1,30 @@
 import { motion } from "framer-motion";
 import Orb from "../components/Orb";
-import type { OrbState } from "../components/orbGeometry";
 import { fadeUp } from "../lib/motion";
-
-/**
- * One orb per place, in the app's own vocabulary: it remembers you, thinks beside you,
- * and keeps what you said where it started — on your Mac.
- */
-const places: { title: string; body: string; orb: OrbState }[] = [
-  {
-    orb: "shaping",
-    title: "It remembers you here",
-    body: "Your files, your calendar, the names it has learned, the meetings you kept. The context an agent needs already lives on this Mac — and it stays there.",
-  },
-  {
-    orb: "composing",
-    title: "It thinks here",
-    body: "Speech recognition and a local model run on the machine that heard you. The listening, the writing and the deciding never leave the desk.",
-  },
-  {
-    orb: "working",
-    title: "It keeps you here",
-    body: "One folder per meeting in Application Support. Recordings go when the notes are done, unless you ask to keep them. No account. No remote vault.",
-  },
-];
 
 export default function Privacy() {
   return (
-    <section id="privacy" className="pt-52 md:pt-64 pb-6 md:pb-9 px-8 md:px-28">
-      <div className="max-w-6xl mx-auto">
-        <motion.h2
-          {...fadeUp(0)}
-          className="text-5xl md:text-7xl lg:text-8xl font-medium tracking-display text-center leading-display"
-        >
-          Every other tool{" "}
-          <span className="font-serif italic font-normal">waits for you.</span>
-        </motion.h2>
-
-        <motion.p
-          {...fadeUp(0.12)}
-          className="text-muted-foreground text-lg max-w-2xl mx-auto mb-24 mt-7 text-center leading-relaxed"
-        >
-          This one does the opposite. It's your Mac into a proactive agent — it already has your memory,
-          your storage, a model that runs beside you. Everything you say stays local. No
-          account, no subscription, and no bot joining your call to take notes on everyone
-          else&apos;s behalf.
-        </motion.p>
-
-        <div className="grid md:grid-cols-3 gap-12 md:gap-8 mb-20">
-          {places.map((place, i) => (
-            <motion.div
-              key={place.title}
-              {...fadeUp(0.1 * i)}
-              className="flex flex-col items-center text-center"
-            >
-              <Orb state={place.orb} size={120} />
-              <h3 className="font-semibold text-base mt-6">{place.title}</h3>
-              <p className="text-muted-foreground text-sm mt-3 max-w-xs leading-relaxed">
-                {place.body}
-              </p>
-            </motion.div>
-          ))}
+    <section id="privacy" className="relative overflow-hidden px-6 sm:px-8 md:px-16 lg:px-28 py-28 md:py-40 border-t border-border/40 scroll-mt-16">
+      <div className="max-w-7xl mx-auto grid xl:grid-cols-2 gap-12 xl:gap-24 items-center">
+        <motion.div {...fadeUp(0)} className="relative flex justify-center items-center min-h-80" aria-hidden="true">
+          <Orb state="breathing" size={310} />
+        </motion.div>
+        <div>
+          <motion.p {...fadeUp(0)} className="text-xs uppercase tracking-eyebrow text-muted-foreground">Help you can see and trust</motion.p>
+          <motion.h2 {...fadeUp(0.1)} className="text-4xl sm:text-5xl lg:text-6xl tracking-section leading-section mt-6">
+            Your life is personal. <span className="font-serif italic">The help should be, too.</span>
+          </motion.h2>
+          <motion.p {...fadeUp(0.18)} className="text-lg leading-relaxed text-muted-foreground mt-7">
+            Next Notes can learn the names you use and help with the plans on your calendar. Your speech and meeting notes are handled on your Mac by default, with no account to create and no extra guest joining your calls.
+          </motion.p>
+          <motion.p {...fadeUp(0.26)} className="text-base leading-relaxed text-muted-foreground mt-5">
+            See what it worked on in Activity. When it proposes a message or a calendar change, you can review the exact action before it happens.
+          </motion.p>
+          <motion.div {...fadeUp(0.34)} className="mt-9 pt-6 border-t border-border/60 grid sm:grid-cols-2 gap-6 text-sm">
+            <p><span className="block text-foreground font-medium mb-2">Look back at the work.</span><span className="text-muted-foreground">Activity shows what Next Notes has been doing for you.</span></p>
+            <p><span className="block text-foreground font-medium mb-2">Have the last word.</span><span className="text-muted-foreground">A proposed message or change waits for your approval.</span></p>
+          </motion.div>
         </div>
-
-        <motion.p {...fadeUp(0.1)} className="text-muted-foreground text-sm text-center">
-          There is no server to send it to.
-        </motion.p>
       </div>
     </section>
   );

@@ -241,6 +241,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // closed is delivered the instant the app launches, and a delegate installed after
         // that never sees it.
         Notifications.shared.configure()
+        if !SelfTest.isRunning { ModelResidencyPolicy.installPressureObserver() }
 
         // A diagnostic, not a self-test: it reads the live stores, which the self-test
         // harness deliberately replaces with empty ones. Runs before `runRequestedSelfTest`
@@ -333,6 +334,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // grant for the send and Full Disk Access for the watch, so `--via-open`.
         if CommandLine.arguments.contains(IMessageSendTest.flag) {
             runIMessageSendTest()
+            return
+        }
+
+        // NextNotes-iMessage IM-17f: `--imessage-report`, the honest diagnostic.
+        // Reads the real outbound ledger, the real chat.db and the real usage
+        // history — so it runs here, before `runRequestedSelfTest`, with
+        // `SelfTest.isRunning` still false. `writeSelfTest` honours
+        // `--selftest-out`, so a LaunchServices launch with no stdout still
+        // leaves its rows in a file.
+        if CommandLine.arguments.contains("--imessage-report") {
+            runIMessageReport()
             return
         }
 
@@ -501,6 +513,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // it must not find a meeting that claims to be live.
         let resumePlan = MeetingStore.shared.repairInterruptedMeetings()
         if !SelfTest.isRunning {
+            for (id, _) in resumePlan {
+                if let meeting = MeetingStore.shared.meeting(id: id), meeting.captureSummary != nil {
+                    Notifications.shared.postMeetingRecovery(meeting: meeting)
+                }
+            }
             Task { @MainActor in
                 await MeetingResumer(
                     store: .shared,
@@ -527,6 +544,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // registers a notification observer and the island's decision handler, and both of
         // those have to exist before a proposal from a previous session is delivered.
         AgentService.shared.start()
+        AgentTaskManager.shared.restorePendingInteractions()
         // After the agent, because the watcher hands its proposals to the approval card the
         // agent's `start()` has just wired up, and a card raised before that handler exists
         // is a card whose buttons do nothing.
@@ -1103,6 +1121,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-task-restoration") {
+            Task { @MainActor in
+                writeSelfTest(await TaskRestorationProductionSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-agent-presentation") {
+            Task { @MainActor in
+                SelfTest.failed = !(await AgentPresentationSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-experience-sheet") {
+            Task { @MainActor in
+                guard let directory = SelfTest.value(after: "--selftest-experience-sheet") else {
+                    writeSelfTest("EXPERIENCE_SHEET_FAILED: an output folder is required")
+                    NSApp.terminate(nil)
+                    return
+                }
+                SelfTest.failed = !ExperienceSheet.write(to: directory)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-voice-session-reducer") {
             Task { @MainActor in
                 if !(await VoiceSessionReducerSelfTest.run(tracePath: SelfTest.value(after: "--selftest-voice-session-reducer"))) { SelfTest.failed = true }
@@ -1447,6 +1491,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 + error.localizedDescription
                         )
                     }
+                    failures.append(contentsOf: await BrowserActionValiditySelfTest.failures(
+                        host: "127.0.0.1", port: port, target: fixtureTarget))
                 } catch {
                     failures.append(error.localizedDescription)
                 }
@@ -1487,6 +1533,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-meeting-finals") {
             runMeetingFinalsSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-meeting-integrity") {
+            Task { @MainActor in
+                if let stage = arguments.firstIndex(of: "--meeting-integrity-process") {
+                    if arguments.count > stage + 2 {
+                        SelfTest.failed = !(await MeetingIntegritySelfTest.runProcessStage(
+                            arguments[stage + 1], root: URL(fileURLWithPath: arguments[stage + 2]),
+                            log: { writeSelfTest($0) }))
+                    } else {
+                        writeSelfTest("MEETING_INTEGRITY_FAILED: incomplete process fixture arguments")
+                        SelfTest.failed = true
+                    }
+                } else {
+                    SelfTest.failed = !(await MeetingIntegritySelfTest.run { writeSelfTest($0) })
+                }
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-resource-policy") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MeetingResourcePolicySelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-resources") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MeetingResourceSelfTest.run { writeSelfTest($0) })
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-resources-live") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MeetingResourceLiveProbe.run { writeSelfTest($0) })
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-health") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MeetingHealthSelfTest.run { writeSelfTest($0) })
+                NSApp.terminate(nil)
+            }
             return true
         }
         if arguments.contains("--selftest-meeting-resume") {
@@ -2258,6 +2350,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
 
+        // NextNotes-iMessage IM-12: remote authority. The broker under a remote
+        // origin, the suspension and pairing gates, and the authority decoding the
+        // context was added beside. No grant, no pairing, no model.
+        if arguments.contains("--selftest-imessage-authority") {
+            Task { @MainActor in
+                writeSelfTest(await IMessageAuthoritySelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+
+        // NextNotes-iMessage IM-13: approval over iMessage. Offers, expiry,
+        // matching, firing-payload equality and the receipt linkage. No grant, no
+        // pairing, no model, no live database.
+        if arguments.contains("--selftest-imessage-approval") {
+            Task { @MainActor in
+                writeSelfTest(await IMessageApprovalSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+
+        // NextNotes-iMessage IM-14: inbound attachments. Copy-out, bounds, path
+        // safety and the untrusted marking. Temp files only — no grant, no live
+        // database, no model.
+        if arguments.contains("--selftest-imessage-attachment") {
+            Task { @MainActor in
+                writeSelfTest(await IMessageAttachmentSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+
+        // NextNotes-iMessage IM-17a: the consent decision as a pure value. No
+        // grant, no pairing, no model, no store.
+        if arguments.contains("--selftest-imessage-consent") {
+            Task { @MainActor in
+                writeSelfTest(IMessageConsentSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+
+        // NextNotes-iMessage IM-17e: the canary over decode outcomes. Pure counts
+        // and a clock — no grant, no store, no notification posted.
+        if arguments.contains("--selftest-imessage-observe") {
+            Task { @MainActor in
+                writeSelfTest(IMessageObserveSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+
         // Reached only when a `--selftest-…` flag was given that no branch above claimed —
         // in practice one whose required argument was left off, since `value(after:)`
         // returns nil for a trailing flag. Falling through to `return false` would launch
@@ -2307,6 +2452,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             let text = SelfTest.value(after: IMessageSendTest.flag) ?? ""
             for line in await IMessageSendTest.run(text: text) { writeSelfTest(line) }
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// `--imessage-report [--imessage-days N] [--imessage-chat <guid>]`: counts,
+    /// states and durations from the real stores. A diagnostic over live data,
+    /// so it runs before `runRequestedSelfTest`. A guid accepted for scoping is
+    /// validated and counted over, never printed back.
+    private func runIMessageReport() {
+        Task { @MainActor in
+            let days = Int(SelfTest.value(after: "--imessage-days") ?? "") ?? IMessageReport.defaultDays
+            let chat = SelfTest.value(after: "--imessage-chat")
+            let report = await IMessageReportReader.read(days: days, chatGUID: chat)
+            for line in report.lines { writeSelfTest(line) }
             NSApp.terminate(nil)
         }
     }
@@ -6447,6 +6606,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func runSettingsSelfTest() {
         Task { @MainActor in
             var failures = SettingsTab.catalogFailures()
+            failures.append(contentsOf: Settings.shared.harnessPreferenceFailures())
             failures.append(contentsOf: SettingsTab.renderFailures(controller: controller))
             for tab in SettingsTab.allCases {
                 let titleSpaces = SettingsTab.spaceCount(in: tab.title)
@@ -8061,6 +8221,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 } else {
                     failures.append("filesystem search tool missing from catalogue")
                 }
+                // IM-17f: the consumer pane's iMessage strings are exactly these
+                // two — the connected title and a 2-minute recency line.
+                check(
+                    "imessage status strings are exactly the two",
+                    IMessageStatus.connectedTitle == "iMessage · Connected"
+                        && IMessageStatus.lastRequestLine(
+                            lastRequest: Date(timeIntervalSince1970: 1_800_000_000),
+                            now: Date(timeIntervalSince1970: 1_800_000_120))
+                            == "Last request · 2 min ago"
+                )
                 check(
                     "activity leaked chain-of-thought",
                     titles.allSatisfy { AgentActivityProjector.isPublic($0) }

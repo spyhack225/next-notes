@@ -20,19 +20,33 @@ import Dispatch
 ///
 /// ## Wired, soft
 ///
-/// - A `DispatchSource` memory-pressure observer calls `shutdown()` on the
-///   notes runtime and `unload()` on the diarizer, in that order. It does
-///   not unload Parakeet or the wake spotter.
+/// - A `DispatchSource` pressure observer maintains synchronous admission state,
+///   releases idle notes allocations and drops the diarizer owner's references.
+///   Native work, queued requests and voice leases defer notes release.
+/// - Speculative loads recheck admission after waits and before native allocation.
 ///
 /// ## Aspirational (not claimed, not enforced)
 ///
 /// - Preferring ANE vs GPU for a given `WorkClass` (see `preferredDevice`).
 /// - Unloading Parakeet under extreme pressure once no dictation / meeting
 ///   ASR session needs it.
-/// - Measuring freed bytes after an unload.
+/// - Attributing freed native/Metal bytes after an unload (two RSS observations
+///   and synchronous pointer teardown are narrower evidence).
 ///
 /// Windows is out of scope.
 enum ModelResidencyPolicy: Sendable {
+
+    enum PressureLevel: String, Sendable { case normal, warning, critical }
+
+    struct PressureSnapshot: Sendable, Equatable {
+        let level: PressureLevel
+        let generation: UInt64
+        let changedAt: Date
+        var allowsOptionalWork: Bool { level == .normal }
+    }
+
+    /// A cheap observation, never a gate on an interactive turn or audio callback.
+    static var pressureSnapshot: PressureSnapshot { ModelResidencyGuardian.shared.snapshot }
 
     /// Models the product treats as always-warm while the feature is on.
     /// Pressure unload must not touch these when sessions still need them.
@@ -103,9 +117,23 @@ final class ModelResidencyGuardian: @unchecked Sendable {
     private let lock = NSLock()
     private var source: DispatchSourceMemoryPressure?
     private var started = false
+    private var pressure = ModelResidencyPolicy.PressureSnapshot(
+        level: .normal, generation: 0, changedAt: Date())
+    private var releaseInFlight = false
+    private let releaseForTesting: (@Sendable () async -> Void)?
 
-    /// Idempotent. Warning and critical both run the same unload plan;
-    /// normal is ignored (the kernel already recovered).
+    init(releaseForTesting: (@Sendable () async -> Void)? = nil) {
+        self.releaseForTesting = releaseForTesting
+    }
+
+    var snapshot: ModelResidencyPolicy.PressureSnapshot {
+        lock.lock()
+        defer { lock.unlock() }
+        return pressure
+    }
+
+    /// Install before optional loads, not only after the first model is opened.
+    /// Normal events reopen admission; no timer guesses that pressure has ended.
     func startIfNeeded() {
         lock.lock()
         defer { lock.unlock() }
@@ -113,18 +141,49 @@ final class ModelResidencyGuardian: @unchecked Sendable {
         started = true
 
         let src = DispatchSource.makeMemoryPressureSource(
-            eventMask: [.warning, .critical],
+            eventMask: [.normal, .warning, .critical],
             queue: DispatchQueue.global(qos: .utility)
         )
         src.setEventHandler { [weak self] in
             guard let self else { return }
             let data = src.data
-            guard data.contains(.warning) || data.contains(.critical) else { return }
-            Task { await self.applyLivePressure() }
+            let level: ModelResidencyPolicy.PressureLevel = data.contains(.critical)
+                ? .critical : data.contains(.warning) ? .warning : .normal
+            self.receive(level)
         }
         src.resume()
         source = src
         Log.llm.info("residency: memory-pressure observer installed")
+    }
+
+    /// The source and isolated fixtures use the same transition/admission producer.
+    /// Update synchronously before the unload task gets a chance to suspend.
+    func receive(_ level: ModelResidencyPolicy.PressureLevel) {
+        let shouldRelease = updatePressure(level)
+        guard shouldRelease else { return }
+        Task {
+            if let releaseForTesting { await releaseForTesting() }
+            else { await applyLivePressure() }
+            finishRelease()
+        }
+    }
+
+    private func updatePressure(_ level: ModelResidencyPolicy.PressureLevel) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        if pressure.level != level {
+            pressure = .init(level: level, generation: pressure.generation &+ 1, changedAt: Date())
+            Log.llm.info("residency: pressure=\(level.rawValue, privacy: .public)")
+        }
+        guard level != .normal, !releaseInFlight else { return false }
+        releaseInFlight = true
+        return true
+    }
+
+    private func finishRelease() {
+        lock.lock()
+        releaseInFlight = false
+        lock.unlock()
     }
 
     /// Live path: notes, then diarization. Never wake, never Parakeet.
@@ -134,16 +193,18 @@ final class ModelResidencyGuardian: @unchecked Sendable {
     /// still refuse to unload them; cold-starting KWS mid-meeting is worse
     /// than keeping ~tens of MB.
     func applyLivePressure() async {
+        guard !snapshot.allowsOptionalWork else { return }
+        let pressureObservedAt = snapshot.changedAt
         // The embedders are a batch backfill's, never a live path's: they go first.
         await EmbeddingRuntime.shared.stopNow()
         StaticEmbedder.shared.unload()
-        await MainActor.run { KnowledgeIndexer.shared.vectorIndex.purge() }
         let plan = ModelResidencyPolicy.unloadOrder(
             resident: [.notes, .diarization, .asr, .wake],
             wakeNeeded: true,
             asrNeeded: true
         )
         for model in plan {
+            guard !snapshot.allowsOptionalWork else { return }
             switch model {
             case .notes:
                 // P1-28: the reason, on the unload row. Memory pressure was the one cause
@@ -153,26 +214,28 @@ final class ModelResidencyGuardian: @unchecked Sendable {
                 // `noteUnload` is actor-isolated with the rest of the runtime, so it is awaited
                 // rather than called: an unawaited call is a compile error here, which is the
                 // right outcome for a fire-and-forget write to the latency log.
-                let unloaded = await NotesModelRuntime.shared.noteAndShutdown(reason: .pressure)
+                let outcome = await NotesModelRuntime.shared.releaseUnderPressure()
                 // `shutdown()` records the unload with the runtime generation it
                 // actually released. Do not follow it with an unguarded registry
                 // write: a replacement load may begin while the actor is suspended,
                 // and a nil-generation mark would incorrectly turn that newer
                 // `.loading`/`.ready` entry back into `.unloaded`.
-                if unloaded {
-                    Log.llm.info("residency: unloaded notes under memory pressure")
-                } else {
-                    Log.llm.info("residency: notes unload deferred until generation completes")
-                }
+                let actionMilliseconds = Int(Date().timeIntervalSince(pressureObservedAt) * 1_000)
+                Log.llm.info("residency: notes pressure release=\(outcome.rawValue, privacy: .public) action_ms=\(actionMilliseconds)")
             case .diarization:
                 await MeetingDiarizer.shared.unload()
                 _ = await ModelRuntimeManager.shared.markUnloaded(.diarization)
-                Log.meeting.info("residency: unloaded diarizer under memory pressure")
+                // An active pass can retain its own CoreML references. Dropping this
+                // owner's references does not prove native allocations were reclaimed.
+                Log.meeting.info("residency: diarizer owner release requested under memory pressure")
             case .asr, .wake:
                 // Unreachable while wakeNeeded/asrNeeded stay true; kept for exhaustiveness.
                 break
             }
         }
+        // UI scheduling can be delayed under load. It must not postpone releasing
+        // the native model owners above just to purge this derived search cache.
+        await MainActor.run { KnowledgeIndexer.shared.vectorIndex.purge() }
     }
 }
 

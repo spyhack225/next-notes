@@ -36,6 +36,7 @@ final class AgentTaskManager {
             }
             return
         }
+        let loadedTasks = tasks
         let now = Date()
         var events: [TaskJournalEventDraft] = []
         for index in tasks.indices {
@@ -62,7 +63,17 @@ final class AgentTaskManager {
             }
             events += transitionEvents(from: before, to: tasks[index], kinds: [])
         }
-        if !events.isEmpty { persist(events: events) }
+        if !events.isEmpty {
+            let committed = persist(events: events)
+            if !committed.primaryCommitted {
+                // A planned launch decision is not committed state. Refuse dispatch
+                // until a fresh load can commit it, preserving the saved snapshots.
+                for before in loadedTasks {
+                    if let index = tasks.firstIndex(where: { $0.id == before.id }) { tasks[index] = before }
+                }
+                historyReadFailure = committed.diagnostic
+            }
+        }
     }
 
     func task(id: String) -> AgentTask? {
@@ -168,18 +179,32 @@ final class AgentTaskManager {
 
     func cancel(_ id: String) {
         guard historyReadFailure == nil else { return }
+        if PermissionGate.shared.hasRestoredRequest(taskID: id) {
+            // This may be the visible card or a queued card. Its owner commits the
+            // denied decision before the gate removes anything from either surface.
+            PermissionGate.shared.cancelPending(taskID: id)
+            guard let committed = task(id: id), committed.status == .cancelled,
+                  committed.pendingInteraction == nil else { return }
+            approvedCompatibilityTaskIDs.remove(id)
+            approvedTaskIDs.remove(id)
+            AgentActivityStore.shared.finish(taskID: id, title: "Cancelled")
+            return
+        }
         if let uuid = UUID(uuidString: id),
            VoiceConversationCoordinator.shared.jobs.contains(where: { $0.id == uuid && $0.status == "running" }) {
             VoiceConversationCoordinator.shared.cancel(uuid)
             return
         }
+        let admitted = update(id) { task in
+            task.status = .cancelled
+            task.progress = "Cancelled"
+            task.pendingInteraction = nil
+        }
+        guard admitted.primaryCommitted else { return }
         running[id]?.cancel()
         running[id] = nil
         approvedCompatibilityTaskIDs.remove(id)
-        update(id) { task in
-            task.status = .cancelled
-            task.progress = "Cancelled"
-        }
+        approvedTaskIDs.remove(id)
         AgentActivityStore.shared.finish(taskID: id, title: "Cancelled")
     }
 
@@ -204,27 +229,133 @@ final class AgentTaskManager {
     }
 
     func respondPermission(taskID: String, approved: Bool, duration: PermissionDuration = .once) {
-        guard historyReadFailure == nil else { return }
-        guard var task = task(id: taskID), task.status == .waitingForPermission,
-              let tool = task.tool else { return }
+        guard historyReadFailure == nil, let task = task(id: taskID),
+              task.status == .waitingForPermission,
+              case .permission(let request, _, _) = task.pendingInteraction else { return }
+        // Restored approvals promise one exact retry. Do not silently turn a requested
+        // standing grant into "once" or bypass the review/primary-commit gate.
+        if approved, duration != .once { return }
+        restorePendingInteractions()
+        guard PermissionGate.shared.hasRestoredRequest(taskID: taskID) else { return }
         if approved {
-            task.status = .queued
-            let admitted = updateRecord(task, kinds: [.permissionApproved])
-            guard admitted.primaryCommitted else { rejectStart(taskID, result: admitted); return }
-            // The durable approval transition must commit before a new reusable grant.
-            PermissionGrantStore.shared.add(PermissionGrant(
-                toolID: tool, duration: duration, meetingID: task.meetingID, taskID: taskID
-            ))
-            approvedTaskIDs.insert(taskID)
-            running[taskID] = Task { @MainActor [weak self] in
-                await self?.execute(taskID)
-            }
+            _ = PermissionGate.shared.respond(id: request.id, approved: true, duration: duration)
         } else {
-            update(taskID, kinds: [.permissionDenied]) { item in
+            PermissionGate.shared.cancelPending(taskID: taskID)
+        }
+    }
+
+    /// Called by the original task-bound producer before it leaves its permission
+    /// request behind. A title alone cannot restore what the person was asked to approve.
+    @discardableResult
+    func parkPermission(_ request: PermissionRequest, origin: ActionOriginContext? = nil, review: ToolCallReview? = nil) -> Bool {
+        guard historyReadFailure == nil, let id = request.taskID,
+              let task = task(id: id), task.status == .running,
+              request.toolID == task.tool, task.backend == AgentBackendKind.local.rawValue,
+              isTypedOwner(task), origin?.isRemote != true,
+              review == nil || (review?.id == request.id && review?.toolID == request.toolID) else { return false }
+        return update(id) { item in
+            item.pendingInteraction = .permission(request: request, origin: origin, review: review)
+            item.status = .waitingForPermission
+            item.progress = request.title
+        }.primaryCommitted
+    }
+
+    /// Edits and confirmations are persisted by their existing review producer before
+    /// it accepts a new visible value. A failed primary save leaves the old review intact.
+    @discardableResult
+    func persistPendingReview(taskID: String, requestID: String, review: ToolCallReview) -> Bool {
+        guard historyReadFailure == nil, let task = task(id: taskID),
+              task.status == .waitingForPermission, isTypedOwner(task),
+              case .permission(let request, let origin, _) = task.pendingInteraction,
+              request.id == requestID, review.id == requestID, request.taskID == taskID,
+              review.toolID == request.toolID else { return false }
+        return update(taskID) { item in
+            item.pendingInteraction = .permission(request: request, origin: origin, review: review)
+        }.primaryCommitted
+    }
+
+    /// An actual worker question, retained as a question rather than invented from
+    /// the objective after a restart. A saved request does not start a replacement worker.
+    @discardableResult
+    func requestInput(taskID: String, question: String) -> Bool {
+        guard historyReadFailure == nil, let task = task(id: taskID), task.status == .running,
+              isTypedOwner(task), !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        let request = TaskInputRequest(taskID: taskID, question: question)
+        return update(taskID) { item in
+            item.pendingInteraction = .input(request)
+            item.status = .waitingForInput
+            item.progress = question
+        }.primaryCommitted
+    }
+
+    /// Existing UI consumers can draw these exact requests and send the matching id
+    /// back. Legacy title-only records deliberately supply no invented question.
+    var pendingInputs: [TaskInputRequest] {
+        guard historyReadFailure == nil else { return [] }
+        return tasks.compactMap { task in
+            guard task.status == .waitingForInput, isTypedOwner(task),
+                  case .input(let request) = task.pendingInteraction,
+                  request.taskID == task.id else { return nil }
+            return request
+        }
+    }
+
+    /// Called after application services are ready. The existing gate and review
+    /// store remain the single card owner; no continuation from the old process survives.
+    func restorePendingInteractions() {
+        guard historyReadFailure == nil else { return }
+        for task in tasks where task.status == .waitingForPermission {
+            guard isTypedOwner(task), task.backend == AgentBackendKind.local.rawValue,
+                  case .permission(let request, let origin, let review) = task.pendingInteraction,
+                  request.taskID == task.id, request.toolID == task.tool,
+                  origin?.isRemote != true else { continue }
+            PermissionGate.shared.restore(request, review: review, onReviewChange: { [weak self] edited in
+                self?.persistPendingReview(taskID: task.id, requestID: request.id, review: edited) ?? false
+            }, onDecision: { [weak self] approved, arguments in
+                self?.respondRestoredPermission(taskID: task.id, requestID: request.id,
+                    approved: approved, arguments: arguments) ?? false
+            })
+        }
+    }
+
+    /// The card may dismiss itself only after this primary transition commits. A
+    /// rejected save retains the original card and supplies no one-shot token.
+    @discardableResult
+    func respondRestoredPermission(taskID: String, requestID: String, approved: Bool,
+                                   arguments: [String: String]) -> Bool {
+        guard historyReadFailure == nil, let task = task(id: taskID),
+              task.status == .waitingForPermission, isTypedOwner(task),
+              task.backend == AgentBackendKind.local.rawValue,
+              case .permission(let request, let origin, let review) = task.pendingInteraction,
+              request.id == requestID, request.taskID == taskID,
+              request.toolID == task.tool, origin?.isRemote != true else { return false }
+        let exactArguments = review?.executionArguments(mergedOver: request.arguments) ?? request.arguments
+        guard !approved || arguments == exactArguments else { return false }
+        let admitted = update(taskID, kinds: [approved ? .permissionApproved : .permissionDenied]) { item in
+            if approved {
+                // Preserve all authorization pins that do not appear as editable fields.
+                item.arguments = arguments.filter { !$0.key.hasPrefix("_") }
+                for (key, value) in request.arguments where key.hasPrefix("_") {
+                    item.arguments[key] = value
+                }
+                item.status = .queued
+                item.progress = "Ready"
+            } else {
                 item.status = .cancelled
                 item.failure = "Permission denied."
+                item.pendingInteraction = nil
             }
         }
+        guard admitted.primaryCommitted else { return false }
+        if approved {
+            approvedTaskIDs.insert(taskID)
+            running[taskID] = Task { @MainActor [weak self] in await self?.execute(taskID) }
+        }
+        return true
+    }
+
+    private func isTypedOwner(_ task: AgentTask) -> Bool {
+        ["user", "text", "selftest"].contains(task.source) && task.scheduleID == nil
     }
 
     /// Consumed by the local backend immediately before the exact approved retry fires.
@@ -236,16 +367,20 @@ final class AgentTaskManager {
         approvedTaskIDs.remove(taskID) != nil
     }
 
-    func respondInput(taskID: String, text: String) {
-        guard historyReadFailure == nil else { return }
-        guard var task = task(id: taskID), task.status == .waitingForInput else { return }
+    @discardableResult
+    func respondInput(taskID: String, text: String, requestID: String? = nil) -> Bool {
+        guard historyReadFailure == nil,
+              var task = task(id: taskID), task.status == .waitingForInput,
+              isTypedOwner(task), task.backend == AgentBackendKind.local.rawValue,
+              case .input(let request) = task.pendingInteraction,
+              request.taskID == taskID, requestID == nil || requestID == request.id else { return false }
         task.arguments["input"] = text
         task.status = .queued
+        task.pendingInteraction = nil
         let admitted = updateRecord(task, kinds: [.inputProvided])
-        guard admitted.primaryCommitted else { rejectStart(taskID, result: admitted); return }
-        running[taskID] = Task { @MainActor [weak self] in
-            await self?.execute(taskID)
-        }
+        guard admitted.primaryCommitted else { return false }
+        running[taskID] = Task { @MainActor [weak self] in await self?.execute(taskID) }
+        return true
     }
 
     private func execute(_ id: String) async {
@@ -283,6 +418,7 @@ final class AgentTaskManager {
                 item.result = outcome.result
                 item.artifacts = outcome.artifacts + captured.filter { !outcome.artifacts.contains($0) }
                 item.failure = outcome.failure
+                item.pendingInteraction = nil
             }
             if projectsActivity { AgentActivityStore.shared.finish(
                 taskID: id,
@@ -322,12 +458,8 @@ final class AgentTaskManager {
                     item.status = .waitingForPermission
                     item.progress = title
                 }
-                if projectsActivity { IslandState.shared.propose(IslandProposal(
-                    id: id,
-                    title: title,
-                    detail: task.objective,
-                    meetingID: task.meetingID
-                )) }
+                restorePendingInteractions()
+                running[id] = nil
                 return
             }
             update(id) { item in
@@ -352,7 +484,9 @@ final class AgentTaskManager {
         guard let index = tasks.firstIndex(where: { $0.id == id }) else { return .loadFailed }
         let before = tasks[index]
         mutate(&tasks[index])
-        return persist(events: transitionEvents(from: before, to: tasks[index], kinds: kinds))
+        let result = persist(events: transitionEvents(from: before, to: tasks[index], kinds: kinds))
+        if !result.primaryCommitted { tasks[index] = before }
+        return result
     }
 
     @discardableResult
@@ -409,10 +543,25 @@ final class AgentTaskManager {
 
     func journalContext(taskID: String) -> TaskJournalContext? {
         guard let task = task(id: taskID) else { return nil }
+        let origin: ActionOriginContext?
+        if case .permission(_, let savedOrigin, _) = task.pendingInteraction { origin = savedOrigin }
+        else { origin = nil }
+        let capture: (@MainActor @Sendable (PermissionRequest, ActionOriginContext?, ToolCallReview?) -> Bool)?
+        if isTypedOwner(task), task.backend == AgentBackendKind.local.rawValue, task.tool != nil {
+            capture = { [weak self] request, origin, review in
+                guard request.taskID == taskID, let self, let current = self.task(id: taskID) else { return false }
+                // A nested or independently owned request keeps its existing caller;
+                // this hook supplies no storage/recovery proof for that operation.
+                guard request.toolID == current.tool, origin?.isRemote != true else { return true }
+                return self.parkPermission(request, origin: origin, review: review)
+            }
+        } else { capture = nil }
         return TaskJournalContext(taskID: taskID, attempt: task.durability?.attempt ?? 0, record: { [weak self] event in
             guard event.taskID == taskID, self?.task(id: taskID) != nil else { return }
             self?.persist(events: [event])
-        })
+        }, capturePermission: capture, consumePermissionApproval: { [weak self] in
+            self?.consumePermissionApproval(taskID: taskID) ?? false
+        }, restoredOrigin: origin)
     }
 
     @discardableResult

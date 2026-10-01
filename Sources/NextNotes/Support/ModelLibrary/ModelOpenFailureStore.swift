@@ -115,5 +115,6 @@ extension SelfTest {
     static var allowsSavedModelSelection: Bool {
         requested == "--selftest-agent-answers" || requested == "--selftest-llm-metal"
             || requested == "--selftest-native-tools"
+            || requested == "--selftest-meeting-resources-live"
     }
 }

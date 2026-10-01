@@ -44,6 +44,13 @@ enum IMessagePairNow {
 
     /// Pairs on the newest "Hi Next" twin. One string per line, marker last.
     static func run() async -> [String] {
+        // Pairing is a local act (`RemoteAccessPolicy.mayEnterPairing`): this flag
+        // runs in a local process, so the origin is nil and the gate is open. The
+        // call exists so a future remote trigger has a gate to fail rather than a
+        // path that silently pairs.
+        guard RemoteAccessPolicy.mayEnterPairing(origin: nil) else {
+            return ["IMESSAGE_PAIR_NOW_FAILED: pairing needs the Mac — it cannot start from a message"]
+        }
         let store = RemoteIdentityStore(directory: AppIdentity.applicationSupportDirectory)
         if store.configuration.isPaired {
             return ["IMESSAGE_PAIR_NOW_OK: already paired — the confirmation reply still needs your approval"]

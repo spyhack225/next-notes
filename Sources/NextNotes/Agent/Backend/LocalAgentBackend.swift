@@ -23,7 +23,10 @@ struct LocalAgentBackend: AgentBackend {
             )
         }
         let permissionAlreadyGranted = await MainActor.run {
-            AgentTaskManager.shared.consumePermissionApproval(taskID: task.id)
+            if let context = TaskEventJournal.current, context.taskID == task.id {
+                return context.consumePermissionApproval?() ?? false
+            }
+            return AgentTaskManager.shared.consumePermissionApproval(taskID: task.id)
         }
         let result = try await AgentToolExecutor.run(
             tool,

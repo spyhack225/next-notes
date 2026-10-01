@@ -5,7 +5,7 @@ import Foundation
 /// M1–M5), the summary and report (P0-20d, R1–R3), the dictation builder (P0-20c, D1–D2),
 /// the hold outcome and refused-press rows (D-01b, D3) and the exit cases (P0-20e,
 /// E1–E4), plus the meeting model passes M-16b wired behind P0-20b's writer (M6 collapse
-/// rows, M7 the live reconcile pass).
+/// rows, M7 the live reconcile pass) and the iMessage transport rows (IM-17d, IM).
 ///
 /// Final marker: `USAGE_LOG_OK: <n> cases` / `USAGE_LOG_FAILED: <n> problem(s)`, with one
 /// `USAGE_LOG_WRONG: <case>: <reason>` line per failure. The marker name never changes; a
@@ -31,8 +31,8 @@ import Foundation
 /// `dictationRows` writes rows and E3 fails until the guard knows the file, so the red run
 /// is the missing dictation seam plus the missing guard entry.
 enum UsageLogSelfTest {
-    /// How many cases a green run reports: U1–U7, M1–M7, D1–D3, R1–R3 and E1–E4.
-    private static let caseCount = 25
+    /// How many cases a green run reports: U1–U7, M1–M7, D1–D3, IM, R1–R3 and E1–E4.
+    private static let caseCount = 26
 
     /// `run()` is async so E1 can await the real main-actor agent path: the old synchronous
     /// runner blocked the main actor on a semaphore while its cases ran, which no
@@ -88,6 +88,10 @@ enum UsageLogSelfTest {
             let d3 = checkD3()
             failures += labelled("D3", d3.problems)
             rows += d3.rows
+
+            let im = checkIMessage()
+            failures += labelled("IM", im.problems)
+            rows += im.rows
 
             failures += labelled("E2", checkE2(rows: rows))
             failures += labelled("E3", checkE3(before: realBefore))
@@ -1230,6 +1234,111 @@ enum UsageLogSelfTest {
             problems.append("the summary produced \(summary.count) row(s), expected 3")
         }
         return CaseOutcome(problems: problems, rows: e1Rows)
+    }
+
+    /// IM: the iMessage transport rows (IM-17d). Every row below comes out of
+    /// `IMessageUsage` — the only writer — so these cases pin the builder, not
+    /// the log: what cannot be built cannot leak.
+    private static func checkIMessage() -> CaseOutcome {
+        var problems: [String] = []
+        var rows: [UsageRecord] = []
+
+        // The hostile strings: synthetic prose shaped like the third-party offer
+        // `sanitise` is blind to, an Apple chat guid, and a phone number. None of
+        // them has a parameter to enter through — the scan below is the proof.
+        let promo = "a limited-time offer just for you, claim your reward now"
+        let guid = "iMessage;-;+15550000001"
+        let digits = "+15550000001"
+
+        // IM1: one row per pass, each round-tripping with only whitelisted keys.
+        var built: [UsageRecord] = []
+        for pass in IMessagePass.allCases {
+            let counts: [IMessageCount: Int] = pass.permittedCounts
+                .sorted { $0.rawValue < $1.rawValue }
+                .enumerated()
+                .reduce(into: [:]) { $0[$1.element] = $1.offset + 1 }
+            guard let row = IMessageUsage.event(
+                pass: pass, counts: counts,
+                stages: [.syncToAgent: 0.5, .dispatchToVerify: 1.5, .verifyToReceipt: 0.25],
+                turnID: UUID(), conversationID: UUID(), workID: UUID(),
+                totalMs: 2_250, errorClass: .parse) else {
+                problems.append("\(pass.rawValue) refused its own permitted counts")
+                continue
+            }
+            built.append(row)
+        }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.sortedKeys]
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        for row in built {
+            guard let data = try? encoder.encode(row),
+                  let back = try? decoder.decode(UsageRecord.self, from: data) else {
+                problems.append("\(row.pass) did not round-trip")
+                continue
+            }
+            if back.feature != row.feature || back.pass != row.pass
+                || back.provider != row.provider || back.modelID != row.modelID
+                || back.counts != row.counts || back.stages != row.stages
+                || back.errorClass != row.errorClass
+                || abs(back.ts.timeIntervalSince(row.ts)) > 1 {
+                problems.append("\(row.pass) lost a field in the round trip")
+            }
+            guard let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                problems.append("\(row.pass) is not a JSON object")
+                continue
+            }
+            let allowed: Set<String> = [
+                "v", "id", "ts", "feature", "pass", "provider", "modelID", "locality",
+                "totalMs", "counts", "stages", "turnID", "conversationID", "workID",
+                "errorClass",
+            ]
+            for key in dict.keys where !allowed.contains(key) {
+                problems.append("\(row.pass) carries an unwhitelisted key: \(key)")
+            }
+        }
+        rows += built
+
+        // IM2: `errorMessage` is absent on every iMessage row, error class or not.
+        for row in built where row.errorMessage != nil {
+            problems.append("\(row.pass) carries an errorMessage")
+        }
+
+        // IM3: the hostile strings are absent from every encoded row. They have no
+        // parameter to enter through — prose, a guid and a number, none of which
+        // any builder argument accepts — so this scan pins the API surface, not
+        // just today's rows.
+        for row in built {
+            guard let data = try? encoder.encode(row),
+                  let text = String(data: data, encoding: .utf8) else {
+                problems.append("\(row.pass) did not encode")
+                continue
+            }
+            for hostile in [promo, guid, digits] where text.contains(hostile) {
+                problems.append("\(row.pass) leaks hostile content")
+            }
+        }
+
+        // IM4: a count outside its pass table refuses the whole row — never a
+        // half-written one — and both features group under Other work, never raw.
+        if IMessageUsage.event(pass: .inbound, counts: [.sent: 1], totalMs: 1) != nil {
+            problems.append("an outbound count on the inbound table built a row")
+        }
+        for feature in [UsageFeature.agentIMessage, .imessageEvent] {
+            guard UsageSection.GroupKind.of(feature.rawValue) == .other else {
+                problems.append("\(feature.rawValue) does not group under Other work")
+                continue
+            }
+        }
+        let summary = UsageSummary.compute(rows: built, since: .distantPast)
+        for text in UsageSection.visibleStrings(for: summary) {
+            for feature in [UsageFeature.agentIMessage, .imessageEvent] where text.contains(feature.rawValue) {
+                problems.append("a visible string shows the raw feature id \(feature.rawValue)")
+            }
+        }
+
+        return CaseOutcome(problems: problems, rows: rows)
     }
 
     /// E2: every row the feature legs wrote is scanned for the twelve sentinel strings

@@ -211,6 +211,9 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-imessage-watch  --selftest-imessage-class
 --selftest-imessage-loop
 --selftest-imessage-pairing  --selftest-imessage-format
+--selftest-imessage-authority  --selftest-imessage-approval
+--selftest-imessage-attachment  --selftest-imessage-consent
+--selftest-imessage-observe
 --selftest-residency
 --selftest-cleanup-structure               --selftest-commandkey
 --selftest-tool-review                     --selftest-function-calls [engine-dir]
@@ -306,7 +309,9 @@ file name, address, subject or URL (`UsageLog.sanitise` strips quoted content, a
 URLs, paths and long digit runs from an error message before it is written). Read it with
 `--usage-report [--usage-days N] [--usage-feature <prefix>]`, a read-only diagnostic rather
 than a `--selftest-*` flag because the harness swaps in an empty temp store — the same trap
-`--notes-context-live` documents. `--selftest-usage-log` pins the isolation: under the
+`--notes-context-live` documents. App-generated ids (turn, conversation, work) join a row to a
+job; Apple's ids never reach one — a chat or message GUID holds the owner's own number, so
+`--selftest-usage-log` scans every iMessage row for one. `--selftest-usage-log` pins the isolation: under the
 harness `UsageLog.shared` writes to `NextNotesSelfTest-<pid>` in the temporary directory,
 so no run can append to the owner's history, and `--selftest-store-isolation` watches the
 real `usage.jsonl` beside the other stores. It rotates at 8 MB to `usage.1.jsonl` (about

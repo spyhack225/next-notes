@@ -156,7 +156,7 @@ actor ACPSession {
                 return ["optionId": reject]
             case .allow:
                 return ["optionId": allow]
-            case .ask(let request):
+            case .ask(let request), .askLocal(let request):
                 let approved = await PermissionGate.shared.ask(request)
                 return ["optionId": approved ? allow : reject]
             }

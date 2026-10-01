@@ -7,6 +7,7 @@ import SwiftUI
 /// a fade implies one window changing its mind about what it is asking, which is what this
 /// is.
 struct OnboardingFlowView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let controller: DictationController
     /// Closes the window. Progress is already on disk by then — every transition writes —
     /// so this is genuinely "come back later", not "start again".
@@ -52,7 +53,7 @@ struct OnboardingFlowView: View {
         // The landing page's mark, at watermark strength, behind everything. One slow
         // breathing ring: the app is present and idle, which is exactly true here.
         .orbBackdrop(.breathing, opacity: DS.Opacity.orbWatermark)
-        .animation(DS.Motion.reveal, value: model.step)
+        .animation(reduceMotion ? nil : DS.Motion.reveal, value: model.step)
         .onAppear { furthest = max(furthest, model.flow.index) }
         // Escape closes the window. It never loses anything, because there is nothing held
         // only in memory to lose.

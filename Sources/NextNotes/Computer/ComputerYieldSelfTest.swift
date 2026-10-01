@@ -36,6 +36,75 @@ enum ComputerYieldSelfTest {
         }
         defer { grantFreeCountStorage = checks }
 
+        // UX06: the original two-task failure used a last-write-wins vision key as
+        // the working card's image. Drive the actual capture publisher, then the card's
+        // actual selector. No screen, grant, model or owner history is needed here.
+        let activity = AgentActivityStore.shared
+        activity.resetForSelfTest()
+        let taskA = AgentTask(objective: "First window", source: "selftest")
+        let taskB = AgentTask(objective: "Second window", source: "selftest")
+        let imageA = LLMImage(data: Data([1]), mimeType: "image/jpeg", thumbnail: Data([11]), pixelWidth: 1, pixelHeight: 1)
+        let imageB = LLMImage(data: Data([2]), mimeType: "image/jpeg", thumbnail: Data([22]), pixelWidth: 1, pixelHeight: 1)
+        let key = "computer.screenshot"
+        activity.begin(task: taskA, title: taskA.objective)
+        activity.update(taskID: taskA.id, kind: .reading, title: "Looking at the first window")
+        let bindingA = activity.presentationBinding(taskID: taskA.id)
+        AgentWorkPresentationScope.$binding.withValue(bindingA) {
+            ComputerToolExecutor.publishCapture(imageA, for: key, summary: "First window")
+        }
+        activity.begin(task: taskB, title: taskB.objective)
+        activity.update(taskID: taskB.id, kind: .reading, title: "Looking at the second window")
+        let bindingB = activity.presentationBinding(taskID: taskB.id)
+        AgentWorkPresentationScope.$binding.withValue(bindingB) {
+            ComputerToolExecutor.publishCapture(imageB, for: key, summary: "Second window")
+        }
+        check("the original shared-slot fixture was not reproduced",
+              ScreenshotStore.peek(for: key)?.thumbnail == imageB.thumbnail)
+        check("the first task showed the second task's capture",
+              AgentWorkingCard.currentPreview(taskID: taskA.id, in: activity)?.thumbnail == imageA.thumbnail)
+        check("the second task did not show its own capture",
+              AgentWorkingCard.currentPreview(taskID: taskB.id, in: activity)?.thumbnail == imageB.thumbnail)
+        _ = ScreenshotStore.take(for: key)
+        check("consuming the vision capture erased the working card's preview",
+              AgentWorkingCard.currentPreview(taskID: taskA.id, in: activity)?.thumbnail == imageA.thumbnail)
+        ComputerToolExecutor.publishCapture(imageB, for: key, summary: "Unbound window")
+        check("an unbound capture leaked into an active task",
+              AgentWorkingCard.currentPreview(taskID: taskA.id, in: activity)?.summary == "First window"
+              && AgentWorkingCard.currentPreview(taskID: taskB.id, in: activity)?.summary == "Second window")
+        activity.update(taskID: taskA.id, kind: .reading, title: "Looking again")
+        check("a new step retained the old window image",
+              AgentWorkingCard.currentPreview(taskID: taskA.id, in: activity) == nil
+              && activity.steps(taskID: taskA.id).first?.preview == nil)
+        AgentWorkPresentationScope.$binding.withValue(bindingA) {
+            ComputerToolExecutor.publishCapture(imageA, for: key, summary: "Late capture")
+        }
+        check("a late capture from an older step reached a newer step",
+              AgentWorkingCard.currentPreview(taskID: taskA.id, in: activity) == nil)
+        let freshA = activity.presentationBinding(taskID: taskA.id)
+        AgentWorkPresentationScope.$binding.withValue(freshA) {
+            activity.noteWindow("First window, updated")
+            HumanInputWatch.stop()
+            HumanInputWatch.notePauseForTesting(at: Date())
+            if let click = AgentToolRegistry.shared.tool(named: "computer.click") {
+                let result = try? ComputerToolExecutor.run(click, arguments: ["id": "1"])
+                check("the actual backing did not yield before posting its next action",
+                      result?.summary == HumanInputWatch.pausedSentence && HumanInputWatch.postedSinceActionBegan == 0)
+            } else { check("the click backing fixture was absent", false) }
+        }
+        check("the producer's actual human pause did not reach the task's card",
+              AgentWorkingCard.currentPreview(taskID: taskA.id, in: activity)?.isYielded == true)
+        check("the first task's pause appeared on another task's card",
+              AgentWorkingCard.currentPreview(taskID: taskB.id, in: activity)?.isYielded == false)
+        activity.finish(taskID: taskA.id, title: "Finished")
+        check("a finished task retained a window preview",
+              activity.steps(taskID: taskA.id).last?.preview == nil)
+        check("a finished task could bind another window observation",
+              activity.presentationBinding(taskID: taskA.id) == nil)
+        _ = ScreenshotStore.take(for: key)
+        activity.resetForSelfTest()
+        check("the reset retained preview state", activity.taskSteps.isEmpty)
+        HumanInputWatch.stop()
+
         // The tag: one constant, and a value that reads as something.
         check("the agent event tag is not zero, or an untagged field would compare equal",
               HumanInputWatch.agentEventTag != 0)
@@ -64,6 +133,13 @@ enum ComputerYieldSelfTest {
         check("a pause is reported as paused", HumanInputWatch.current.isPaused)
         check("a pause stays a pause while the person keeps working",
               HumanInputWatch.mayPostAnotherEvent() == false)
+        // Also preserve an event that has arrived but has not yet been latched as a
+        // pause. The old beginAction cleared this before consulting the event ledger.
+        HumanInputWatch.resetForNewTurn()
+        HumanInputWatch.notePauseForTesting(at: Date())
+        HumanInputWatch.arm(toolName: "click")
+        check("arming an action erased pending human input", !HumanInputWatch.mayPostAnotherEvent())
+        check("arming did not latch the person's pending input", HumanInputWatch.current.isPaused)
         // And across an action boundary, which is where the first version cleared it and the
         // agent resumed by itself on its next call.
         HumanInputWatch.endAction()

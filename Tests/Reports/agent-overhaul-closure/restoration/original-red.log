@@ -1,0 +1,3 @@
+TASK_RESTORATION_WRONG: original primary projection discarded the exact pending permission payload
+TASK_RESTORATION_WRONG: original manager retained waiting approval but invoked no actual card consumer
+TASK_RESTORATION_FAILED: 2 assertions

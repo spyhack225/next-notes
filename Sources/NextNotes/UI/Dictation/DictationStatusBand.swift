@@ -14,9 +14,13 @@ import SwiftUI
 ///
 /// The dotted field behind it is the landing page's texture, faded from the top so the band
 /// settles into the list rather than sitting on it as a panel. It is drawn once and never
-/// animates; the only moving things here are the orb, the dot and the needle.
+/// animates; only the real work orb and recording dot move here.
 struct DictationStatusBand: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let state: DictationController.State
+    /// The pre-roll can already be recording while the speech engine is still starting.
+    /// `state == .starting` alone cannot answer whether the microphone is open.
+    let isCapturingAudio: Bool
     /// Seconds since the hold began. Owned by the view above, because the key works from
     /// every section and a recording can therefore already be running when this appears.
     let elapsed: TimeInterval
@@ -31,7 +35,12 @@ struct DictationStatusBand: View {
 
     var body: some View {
         HStack(spacing: DS.Space.l) {
-            if showsOrb {
+            if showsOrb, isError {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(DS.Font.title3)
+                    .foregroundStyle(DS.Color.warning)
+                    .accessibilityHidden(true)
+            } else if showsOrb {
                 ThinkingOrb(state: orb, size: DS.Size.orbSmall, isAnimated: state.isActive)
                     .accessibilityHidden(true)
             }
@@ -41,7 +50,7 @@ struct DictationStatusBand: View {
                 Text(detail)
                     .font(DS.Font.caption)
                     .foregroundStyle(isError ? DS.Color.warning : DS.Color.textSecondary)
-                    .lineLimit(1)
+                    .lineLimit(isError ? 3 : 1)
                     .truncationMode(.tail)
             }
 
@@ -54,10 +63,10 @@ struct DictationStatusBand: View {
         .dottedField(opacity: DS.Opacity.fieldFaint, fade: .top)
         // Only the words cross-fade. The orb and the dot each run their own clock, and a
         // transition laid over both would fight them.
-        .animation(DS.Motion.reveal, value: state)
+        .animation(reduceMotion ? nil : DS.Motion.reveal, value: state)
     }
 
-    private var isRecording: Bool { state == .listening }
+    private var isRecording: Bool { state == .listening || isCapturingAudio }
 
     private var isError: Bool {
         if case .error = state { return true }
@@ -81,13 +90,13 @@ struct DictationStatusBand: View {
     /// same controller state — the two are looking at one state machine, so a screen that
     /// named it differently would make the orb mean two things.
     ///
-    /// `.starting` has no row of its own: on a cold Parakeet it is a model loading, which
-    /// argues for `shaping`, but the HUD calls it `working` and consistency between two
-    /// surfaces watching the same state matters more than the finer word.
+    /// Startup uses `listening` once pre-roll is actually capturing, even before the
+    /// speech engine leaves `.starting`. Both this band and the HUD read the same bit.
     private var orb: OrbGeometry.State {
         switch state {
         case .listening: .listening
-        case .starting, .finishing: .working
+        case .starting: isCapturingAudio ? .listening : .working
+        case .finishing: .working
         case .idle, .error: .breathing
         }
     }
@@ -95,11 +104,11 @@ struct DictationStatusBand: View {
     private var title: String {
         switch state {
         case .idle: "Ready"
-        // Not "Listening": the microphone is not open yet, and on a cold engine that is
-        // eleven seconds of this band claiming to hear you.
-        case .starting: "Getting ready…"
+        // The pre-roll can open the microphone before the engine leaves `.starting`.
+        // Name the capture that is actually happening, not just the engine stage.
+        case .starting: isCapturingAudio ? "Recording" : "Getting ready…"
         case .listening: "Recording"
-        case .finishing: "Transcribing…"
+        case .finishing: "Finishing your words…"
         case .error: "Dictation failed"
         }
     }
@@ -107,9 +116,13 @@ struct DictationStatusBand: View {
     private var detail: String {
         switch state {
         case .idle: "Hold \(holdKey), or press Record."
-        case .starting: "Opening the microphone."
+        case .starting: isCapturingAudio
+            ? "Release \(holdKey), or press Stop."
+            : "Opening the microphone."
         case .listening: "Release \(holdKey), or press Stop."
-        case .finishing: "Turning what you said into text."
+        // `.finishing` also covers cleanup and insertion. There is no public substage
+        // event here, so this line must not claim that transcription is still underway.
+        case .finishing: "Preparing the text for your app."
         case .error(let message): message
         }
     }

@@ -1,0 +1,4 @@
+LATENCY_INSTRUMENTATION_STALL rows=0 memory=0.0
+LATENCY_INSTRUMENTATION_WRONG: run 1: voice.main_actor_stall was measured but not stored
+LATENCY_INSTRUMENTATION_WRONG: healthy zero-stall turn must persist exactly one zero-duration stall row
+LATENCY_INSTRUMENTATION_FAILED: 2

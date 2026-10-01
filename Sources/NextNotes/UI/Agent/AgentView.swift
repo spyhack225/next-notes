@@ -3,6 +3,7 @@ import SwiftUI
 /// The persistent agent: conversation, running tasks and the audit log — and, in their own
 /// panes, Ideas, Goals, Reminders, Activity and About (identity, SOUL, MEMORY).
 struct AgentView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var navigation = NavigationState.shared
     @State private var session = AgentSession.shared
     @State private var agent = RealtimeAgent.shared
@@ -20,6 +21,10 @@ struct AgentView: View {
     /// the window closes, which is what a draft should do.
     @SceneStorage("agentDraft") private var draft = ""
     @State private var showsRecentTasks = false
+    @State private var inputAnswers: [String: String] = [:]
+    @State private var isReadingLatest = true
+    @State private var readerIsScrolling = false
+    @State private var hasNewerUpdates = false
     /// P1-20: the composer's own rows. View state on purpose — see `ComposerNotice`.
     @State private var notices: [ComposerNotice] = []
     /// Whether the trailing inspector is open. A layout preference, so it is persisted
@@ -34,6 +39,7 @@ struct AgentView: View {
                 || $0.status == .waitingForPermission
                 || $0.status == .waitingForCompatibilityCLI
                 || $0.status == .waitingForInput
+                || $0.status == .recovering
         }
     }
     private var recentTasks: [AgentTask] {
@@ -67,7 +73,7 @@ struct AgentView: View {
     /// The conversation is the source of truth for speech; audit requests and replies
     /// duplicate those rows. Only action events are interleaved with the messages.
     private var timeline: [TimelineItem] {
-        let messages = Array(session.messages.suffix(40))
+        let messages = Self.presentedMessages(session.messages, responding: agent.respondingMessage)
         let start = messages.first?.at ?? .distantPast
         let requests = audit.entries.filter { $0.kind == .request && $0.at >= start }
         let speech = messages.map { message -> TimelineItem in
@@ -89,6 +95,17 @@ struct AgentView: View {
             if $0.at == $1.at { return $0.id < $1.id }
             return $0.at < $1.at
         }
+    }
+
+    /// The draft uses the committed row's identity, but is never saved or fed back to
+    /// the model. Keeping this mapping shared makes duplicate-row regressions testable.
+    static func presentedMessages(_ messages: [AgentSession.Message],
+                                  responding: AgentSession.Message?) -> [AgentSession.Message] {
+        var shown = Array(messages.suffix(40))
+        if let responding, !shown.contains(where: { $0.id == responding.id }) {
+            shown.append(responding)
+        }
+        return shown
     }
 
     /// Visible strings for this screen. Named so `--selftest-settings` can prove they
@@ -210,6 +227,15 @@ struct AgentView: View {
                     // pressed from the top of a conversation.
                     Text("Conversation")
                         .font(DS.Font.sectionLabel)
+                    if tasks.historyReadFailure != nil {
+                        Text("I couldn’t open your saved work. Your history has been kept, and new work is paused.")
+                            .font(DS.Font.callout)
+                            .foregroundStyle(DS.Color.textSecondary)
+                    } else if let warning = tasks.lastPersistenceResult?.diagnostic {
+                        Text(warning)
+                            .font(DS.Font.callout)
+                            .foregroundStyle(DS.Color.textSecondary)
+                    }
                     if isEmpty {
                         VStack(alignment: .leading, spacing: DS.Space.l) {
                             Image(systemName: "sparkles")
@@ -258,21 +284,31 @@ struct AgentView: View {
                             // row, which carries their own buttons.
                             if task.status == .running || task.status == .queued
                                 || task.status == .waitingForPermission {
-                                AgentWorkingCard(task: task) { tasks.cancel(task.id) }
+                                AgentWorkingCard(task: task, stop: { tasks.cancel(task.id) },
+                                                 animatesActivity: !agent.isThinking && task.id == activeTasks.first?.id)
                             } else {
                                 taskRow(task)
                             }
                         }
                     }
-                    if !recentTasks.isEmpty {
-                        DisclosureGroup("Recent activity (\(recentTasks.count))", isExpanded: $showsRecentTasks) {
+                    if let latest = recentTasks.first {
+                        Text("Latest result").font(DS.Font.sectionLabel)
+                        AgentWorkingCard(task: latest) { tasks.cancel(latest.id) }
+                    }
+                    if recentTasks.count > 1 {
+                        DisclosureGroup("Earlier activity (\(recentTasks.count - 1))", isExpanded: $showsRecentTasks) {
                             VStack(alignment: .leading, spacing: DS.Space.s) {
-                                ForEach(recentTasks) { task in taskRow(task) }
+                                ForEach(Array(recentTasks.dropFirst())) { task in
+                                    AgentWorkingCard(task: task) { tasks.cancel(task.id) }
+                                }
                             }
                             .padding(.top, DS.Space.s)
                         }
                         .font(DS.Font.callout)
                     }
+                    // Keep a full review inside the scroll so expanded fields remain
+                    // reachable in a small window. Task-owned reviews stay inline.
+                    if let pending = gate.pending, !isShownInline(pending) { permissionCard(pending) }
                     Color.clear.frame(height: DS.Space.xs).id("conversation-bottom")
                 }
                 .padding(DS.Space.page)
@@ -280,26 +316,58 @@ struct AgentView: View {
                 .frame(maxWidth: .infinity)
             }
             .defaultScrollAnchor(isEmpty ? .top : .bottom)
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentOffset.y + geometry.containerSize.height
+                    >= geometry.contentSize.height - DS.Space.m
+            } action: { _, atBottom in
+                if atBottom {
+                    isReadingLatest = true
+                    hasNewerUpdates = false
+                } else if readerIsScrolling {
+                    // Content growing while the reader was already at the bottom must
+                    // not be mistaken for a gesture to scroll away from the latest turn.
+                    isReadingLatest = false
+                }
+            }
+            .onScrollPhaseChange { _, phase in
+                readerIsScrolling = phase == .interacting || phase == .decelerating
+            }
             .onAppear {
-                guard !isEmpty else { return }
+                guard !isEmpty, isReadingLatest else { return }
                 Task { @MainActor in
                     await Task.yield()
                     proxy.scrollTo("conversation-bottom", anchor: .bottom)
                 }
             }
             .onChange(of: session.messages.last?.id) { _, _ in
-                withAnimation(DS.Motion.standard) { proxy.scrollTo("conversation-bottom", anchor: .bottom) }
+                followLatest(proxy)
+            }
+            .onChange(of: agent.respondingMessage?.text) { _, _ in
+                // Streaming text changes layout without a repeated scroll animation.
+                if isReadingLatest {
+                    proxy.scrollTo("conversation-bottom", anchor: .bottom)
+                } else {
+                    hasNewerUpdates = true
+                }
             }
             .onChange(of: audit.entries.first?.id) { _, _ in
-                withAnimation(DS.Motion.standard) { proxy.scrollTo("conversation-bottom", anchor: .bottom) }
+                followLatest(proxy)
             }
-        }
-        .safeAreaInset(edge: .bottom) {
+            .onChange(of: activityStore.activities.first?.id) { _, _ in
+                followLatest(proxy)
+            }
+            .safeAreaInset(edge: .bottom) {
             VStack(spacing: DS.Space.s) {
-                // A request that belongs to a live run is drawn inline by that run's
-                // working card, one screen above. Drawing it here too would ask the same
-                // question twice, and answering one would leave the other on screen.
-                if let pending = gate.pending, !isShownInline(pending) { permissionCard(pending) }
+                if hasNewerUpdates {
+                    Button("Latest update", systemImage: "arrow.down") {
+                        withAnimation(reduceMotion ? nil : DS.Motion.standard) {
+                            proxy.scrollTo("conversation-bottom", anchor: .bottom)
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .accessibilityHint("Jump to the newest conversation update")
+                }
                 if let acp = acpGate.pending { acpConfirmCard(acp) }
                 if let caption = answeringModelCaption {
                     // P0-03: the pane says which model answered, so a turn that fell back
@@ -336,6 +404,17 @@ struct AgentView: View {
             .frame(maxWidth: DS.Size.agentChatMaxWidth)
             .frame(maxWidth: .infinity)
             .background(DS.Color.window)
+            }
+        }
+    }
+
+    private func followLatest(_ proxy: ScrollViewProxy) {
+        if isReadingLatest {
+            withAnimation(reduceMotion ? nil : DS.Motion.standard) {
+                proxy.scrollTo("conversation-bottom", anchor: .bottom)
+            }
+        } else {
+            hasNewerUpdates = true
         }
     }
 
@@ -369,7 +448,7 @@ struct AgentView: View {
             dismiss: {
                 PermissionGate.shared.respond(id: request.id, approved: false)
             },
-            alwaysAllow: request.scope.kind == .any ? nil : {
+            alwaysAllow: !gate.pendingAllowsStandingGrant || request.scope.kind == .any ? nil : {
                 PermissionGate.shared.respond(
                     id: request.id,
                     approved: true,
@@ -453,6 +532,9 @@ struct AgentView: View {
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(agent.respondingMessage?.id == message.id
+                            ? "\(identity.name) is responding. \(message.text)"
+                            : "\(isUser ? "You" : identity.name). \(message.text)")
     }
 
     private func eventRow(_ entry: AgentAuditEntry) -> some View {
@@ -537,12 +619,39 @@ struct AgentView: View {
                 }
                 if let result = task.result { Text(result).font(DS.Font.callout).textSelection(.enabled) }
                 if task.status == .waitingForCompatibilityCLI { compatibilityCLICard(for: task) }
-                if task.status == .running { Button("Cancel") { tasks.cancel(task.id) } }
+                if let request = tasks.pendingInputs.first(where: { $0.taskID == task.id }) {
+                    inputCard(request)
+                }
+                if task.status == .running || task.status == .recovering {
+                    Button("Cancel") { tasks.cancel(task.id) }
+                }
             }
         }
         .padding(DS.Space.cardTight)
         .frame(maxWidth: DS.Size.agentEventMaxWidth, alignment: .leading)
         .glassSurface(cornerRadius: DS.Radius.card)
+    }
+
+    private func inputCard(_ request: TaskInputRequest) -> some View {
+        VStack(alignment: .leading, spacing: DS.Space.s) {
+            Text(request.question).font(DS.Font.callout)
+            TextField("Your answer", text: Binding(
+                get: { inputAnswers[request.id] ?? "" },
+                set: { inputAnswers[request.id] = $0 }), axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityLabel(request.question)
+            HStack {
+                Button("Cancel") { tasks.cancel(request.taskID) }
+                Button("Continue") {
+                    if tasks.respondInput(taskID: request.taskID,
+                                          text: inputAnswers[request.id] ?? "", requestID: request.id) {
+                        inputAnswers.removeValue(forKey: request.id)
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled((inputAnswers[request.id] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
     }
 
     private func compatibilityCLICard(for task: AgentTask) -> some View {

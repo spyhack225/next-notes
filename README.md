@@ -1,15 +1,31 @@
 # Next Notes
 
-Your Mac is the only agent you need. Hold a key, talk, release — cleaned-up text lands in the app you were
-already in. Meetings record themselves. ⇧⌘ Space asks the same machine to click, search
-or follow through. A Wispr Flow-shaped native app with on-device defaults and optional cloud models.
+**Be present. Keep your promises.**
 
-![Next Notes turning a spoken false start into a finished sentence](site/public/demo-dictation.gif)
+Next Notes is one familiar companion that starts on your Mac. Its macOS app brings
+voice dictation and meeting notes into the day you're already living. It helps you
+speak a reply without leaving the app you're in, keep track of a meeting, and prepare
+the next step for your review. At home it can help with a calendar question. At work
+it can put your spoken words where your cursor is. In a meeting it can capture what
+was said and propose a follow-up. **Home helper, office associate and meeting partner
+are roles for the same Next Notes, not separate assistants.**
+
+The Mac app is in daily use; dictation is its most exercised path. The broader agent
+is still being made reliable: continuous history across every moment, dependable
+end-to-end actions and proactive follow-through remain roadmap work. See
+[what exists today](#what-exists-today) and
+[what is not built yet](#not-built-yet).
+
+![Illustrated Next Notes website demo showing the same Mac companion as home helper, office associate, and meeting partner](site/public/demo-companion.gif)
+
+*Illustrated website walkthrough; the Mac app's real screens and results depend on the task and permissions.*
 
 **Free software, [AGPL-3.0-or-later](LICENSE).** Read it, build it, fork it — modified
 versions stay open, including ones run as a service. See [License](#license).
 
-**Status:** the macOS app is in daily use. It supports Apple and Parakeet transcription,
+## What exists today
+
+The macOS app supports Apple and Parakeet transcription,
 deterministic or on-device LLM cleanup, per-app output formatting, personal dictionary bias
 and corrections, and an opt-in voice Command Mode for editing selected text. Dictated text
 returns to the app it was started in, even if you switch away while the model is still

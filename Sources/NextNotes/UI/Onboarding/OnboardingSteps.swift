@@ -24,16 +24,16 @@ struct OnboardingWelcomeStep: View {
     var body: some View {
         OnboardingScreen(
             symbol: "waveform",
-            headline: "Talk, and Next Notes types it",
-            subhead: "Hold one key anywhere on your Mac, say what you mean, and the words "
-                + "land in whatever you were writing in.",
+            headline: "A familiar companion, right on your Mac",
+            subhead: "Start by speaking your words into any app. Give your companion a name, "
+                + "then choose what it can help with.",
             primaryTitle: "Get started",
             primary: commit
         ) {
             OnboardingCard {
                 HStack(alignment: .center, spacing: DS.Space.m) {
                     VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                        Text("What would you like to call it?")
+                        Text("What would you like to call your companion?")
                             .font(DS.Font.subheadline.weight(.semibold))
                         Text("You can change this whenever you like.")
                             .font(DS.Font.caption)
@@ -45,7 +45,7 @@ struct OnboardingWelcomeStep: View {
                         .frame(width: DS.Size.settingsFieldWidth / 2)
                         .focused($isNameFocused)
                         .onSubmit(commit)
-                        .accessibilityLabel("Assistant's name")
+                        .accessibilityLabel("Companion's name")
                 }
                 .padding(.horizontal, DS.Space.m)
                 .padding(.vertical, DS.Space.s)
@@ -71,7 +71,7 @@ struct OnboardingWelcomeStep: View {
                     Button("Generate", systemImage: "dice", action: generate)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
-                        .accessibilityHint("Makes a new look for your assistant")
+                        .accessibilityHint("Makes a new look for your companion")
                 }
                 .padding(.horizontal, DS.Space.m)
                 .padding(.vertical, DS.Space.s)
@@ -241,9 +241,11 @@ struct OnboardingShortcutStep: View {
     let controller: DictationController
     let onContinue: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var settings = Settings.shared
     @State private var trial = ""
-    @State private var didHearSomething = false
+    @State private var practice = OnboardingPracticeReceipt()
     @FocusState private var isTrialFocused: Bool
 
     var body: some View {
@@ -296,8 +298,8 @@ struct OnboardingShortcutStep: View {
                             Text("Try it now")
                                 .font(DS.Font.subheadline.weight(.semibold))
                             Spacer()
-                            if didHearSomething {
-                                Label("That's it", systemImage: "checkmark.circle.fill")
+                            if practice.hasDeliveredWords {
+                                Label("Your words landed here", systemImage: "checkmark.circle.fill")
                                     .font(DS.Font.caption)
                                     .foregroundStyle(DS.Color.success)
                             } else if controller.state.isActive {
@@ -325,13 +327,8 @@ struct OnboardingShortcutStep: View {
                     .padding(.vertical, DS.Space.s)
                 }
             }
-            .onChange(of: trial) { _, new in
-                if !new.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    didHearSomething = true
-                }
-            }
             .onAppear { isTrialFocused = canTry }
-            .animation(DS.Motion.standard, value: didHearSomething)
+            .animation(reduceMotion ? nil : DS.Motion.standard, value: practice.hasDeliveredWords)
         }
     }
 
@@ -367,6 +364,33 @@ struct OnboardingShortcutStep: View {
                 }
             }
         )
+    }
+}
+
+/// A practice success needs both a real delivery receipt and the words in this field.
+/// Manual typing, an old receipt, clipboard delivery and a hold begun elsewhere cannot
+/// produce a congratulation. The controller's actual insertion outcome supplies the receipt;
+/// neither dictation history nor the usage log is evidence that the words arrived here.
+struct OnboardingPracticeReceipt: Equatable {
+    private(set) var hasDeliveredWords = false
+    private var baselineDeliveryID: UUID?
+    private var holdBeganInPractice = false
+
+    mutating func beginObserving(latestDeliveryID: UUID?) {
+        baselineDeliveryID = latestDeliveryID
+    }
+
+    mutating func beganHold(inPracticeField: Bool) {
+        holdBeganInPractice = inPracticeField
+    }
+
+    mutating func received(
+        id: UUID, text: String, inserted: Bool, fieldText: String
+    ) {
+        let words = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard id != baselineDeliveryID, holdBeganInPractice, inserted,
+              !words.isEmpty, fieldText.contains(words) else { return }
+        hasDeliveredWords = true
     }
 }
 
@@ -572,6 +596,8 @@ struct OnboardingFilesStep: View {
 struct OnboardingBrainStep: View {
     let onContinue: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var models = LocalModelStore.shared
     /// Free space. Re-read while the screen is up, because "free some space and Next Notes
     /// will pick this up" is only true if something is actually looking — a user who empties
@@ -615,7 +641,7 @@ struct OnboardingBrainStep: View {
             }
         }
         .task { await watch() }
-        .animation(DS.Motion.standard, value: statusLine)
+        .animation(reduceMotion ? nil : DS.Motion.standard, value: statusLine)
     }
 
     private var headline: String {
@@ -747,6 +773,8 @@ struct OnboardingAllSetStep: View {
     let model: OnboardingModel
     let onDone: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var settings = Settings.shared
     @State private var problem: String?
     @State private var hasMicrophone = Permissions.hasMicrophone
@@ -797,7 +825,7 @@ struct OnboardingAllSetStep: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             refresh()
         }
-        .animation(DS.Motion.standard, value: outcome)
+        .animation(reduceMotion ? nil : DS.Motion.standard, value: outcome)
     }
 
     /// What setup actually achieved, read rather than assumed. The old version of this

@@ -101,7 +101,7 @@ final class TaskStore: @unchecked Sendable {
             guard try Self.integer(handle, "PRAGMA foreign_keys") == 1 else { throw TaskStoreError.foreignKeysOff }
             // Reject unsupported/corrupt files before changing their persistent journal mode.
             let version = try Self.integer(handle, "PRAGMA user_version")
-            guard version == 0 || version == 1 || version == TaskStoreSchema.version else { throw TaskStoreError.unsupportedVersion(version) }
+            guard (0...TaskStoreSchema.version).contains(version) else { throw TaskStoreError.unsupportedVersion(version) }
             try TaskStoreSchema.install(on: handle)
             try Self.exec(handle, "PRAGMA journal_mode = WAL")
             guard try Self.stringColumn(handle, "PRAGMA journal_mode") == ["wal"] else {
@@ -131,6 +131,18 @@ final class TaskStore: @unchecked Sendable {
     static func validate(_ tasks: [AgentTask]) throws {
         guard Set(tasks.map(\.id)).count == tasks.count, tasks.allSatisfy({ task in
             guard !task.id.isEmpty, task.createdAt.timeIntervalSince1970.isFinite else { return false }
+            switch task.pendingInteraction {
+            case .permission(let request, _, let review):
+                guard !request.id.isEmpty, !request.toolID.isEmpty,
+                      request.taskID == task.id, request.toolID == task.tool,
+                      request.createdAt.timeIntervalSince1970.isFinite,
+                      review == nil || (review?.id == request.id && review?.toolID == request.toolID) else { return false }
+            case .input(let request):
+                guard !request.id.isEmpty, request.taskID == task.id,
+                      !request.question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                      request.createdAt.timeIntervalSince1970.isFinite else { return false }
+            case nil: break
+            }
             guard let d = task.durability else { return true }
             return d.attempt >= 0 && d.retryCount >= 0 && d.maxRetries >= 0
                 && [d.heartbeatAt, d.lastProgressAt, d.attemptStartedAt].compactMap { $0 }
@@ -283,7 +295,7 @@ final class TaskStore: @unchecked Sendable {
                 if freshlyCreated {
                     try Self.exec(db, TaskStoreSchema.sql)
                     try Self.exec(db, TaskStoreSchema.authoritySQL)
-                    try Self.exec(db, "PRAGMA user_version=2")
+                    try Self.exec(db, "PRAGMA user_version=\(TaskStoreSchema.version)")
                 } else {
                     guard try Self.authority(in: db) == nil else { throw TaskStoreError.authorityConflict }
                     try Self.importConflicts(tasks, in: db)
@@ -316,6 +328,7 @@ final class TaskStore: @unchecked Sendable {
                 try Self.validateOpenedFile(db)
                 guard try fileIdentity() == probe.identity,
                       try Self.authority(in: db) == before else { throw TaskStoreError.authorityConflict }
+                try TaskStoreSchema.installPendingInteractions(on: db)
                 try Self.writeRows(tasks, to: db, preservingChildren: false)
                 try TaskEventJournal.append(events, to: db)
                 try TaskEventJournal.compact(in: db, now: Date())
@@ -332,6 +345,7 @@ final class TaskStore: @unchecked Sendable {
     /// retained identities without deleting their event/dependency rows. No second owner.
     func replaceSnapshot(_ tasks: [AgentTask], failFast: Bool = false,
                          events: [TaskJournalEventDraft] = [], now: Date = Date()) throws {
+        try Self.validate(tasks)
         guard Set(tasks.map(\.id)).count == tasks.count,
               tasks.allSatisfy({ $0.createdAt.timeIntervalSince1970.isFinite }),
               events.allSatisfy({ event in tasks.contains { $0.id == event.taskID } }) else {
@@ -347,6 +361,7 @@ final class TaskStore: @unchecked Sendable {
         if failFast { sqlite3_busy_timeout(db, 0) }
         defer { if failFast { sqlite3_busy_timeout(db, 2_000) } }
             try Self.transaction(db) {
+                try TaskStoreSchema.installPendingInteractions(on: db)
                 try Self.writeRows(tasks, to: db, preservingChildren: false)
                 try TaskEventJournal.append(events, to: db)
                 try TaskEventJournal.compact(in: db, now: now)
@@ -370,7 +385,8 @@ final class TaskStore: @unchecked Sendable {
                 .optionalText(task.compatibilityDirectory), .optionalText(task.scheduleID?.uuidString),
                 .integer(Int64(position)), .real(task.createdAt.timeIntervalSince1970),
                 .optionalText(task.result), .optionalText(task.failure),
-                .optionalText(try task.durability.map(Self.json))
+                .optionalText(try task.durability.map(Self.json)),
+                .optionalText(try task.pendingInteraction.map(Self.json))
             ]
             try Self.run(db, Self.upsert, values)
             for (ordinal, path) in task.artifacts.enumerated() {
@@ -402,7 +418,9 @@ final class TaskStore: @unchecked Sendable {
     }
 
     private static func readRows(from db: OpaquePointer) throws -> [AgentTask] {
-            let statement = try Self.prepare(db, "SELECT \(Self.columns) FROM task ORDER BY sort_order,id")
+            let pendingColumn = try TaskStore.integer(db, "PRAGMA user_version") >= 3
+                ? "pending_interaction" : "NULL"
+            let statement = try Self.prepare(db, "SELECT \(Self.columns),\(pendingColumn) FROM task ORDER BY sort_order,id")
             defer { sqlite3_finalize(statement) }
             var tasks: [AgentTask] = []
             var code = sqlite3_step(statement)
@@ -443,7 +461,8 @@ final class TaskStore: @unchecked Sendable {
                     failure: try Self.text(statement, 18), acpCLI: try required(10),
                     compatibilityCommand: try Self.text(statement, 11), compatibilityCLI: try Self.text(statement, 12),
                     compatibilityDirectory: try Self.text(statement, 13), scheduleID: try Self.uuid(Self.text(statement, 14)),
-                    durability: try Self.text(statement, 19).map { try Self.decode(TaskDurability.self, $0) })
+                    durability: try Self.text(statement, 19).map { try Self.decode(TaskDurability.self, $0) },
+                    pendingInteraction: try Self.text(statement, 20).map { try Self.decode(TaskPendingInteraction.self, $0) })
                 tasks.append(task)
                 code = sqlite3_step(statement)
             }
@@ -476,7 +495,7 @@ final class TaskStore: @unchecked Sendable {
         schedule_id,sort_order,created_at,result,failure,durability
         """
     private static let upsert = """
-        INSERT INTO task(\(columns)) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        INSERT INTO task(\(columns),pending_interaction) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ON CONFLICT(id) DO UPDATE SET
           state=excluded.state,source=excluded.source,backend=excluded.backend,
           objective=excluded.objective,progress=excluded.progress,
@@ -485,7 +504,7 @@ final class TaskStore: @unchecked Sendable {
           compatibility_command=excluded.compatibility_command,compatibility_cli=excluded.compatibility_cli,
           compatibility_directory=excluded.compatibility_directory,schedule_id=excluded.schedule_id,
           sort_order=excluded.sort_order,created_at=excluded.created_at,result=excluded.result,
-          failure=excluded.failure,durability=excluded.durability
+          failure=excluded.failure,durability=excluded.durability,pending_interaction=excluded.pending_interaction
         """
 
     private static func json<T: Encodable>(_ value: T) throws -> String {

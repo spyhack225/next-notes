@@ -1,6 +1,25 @@
 import Foundation
 import Observation
 
+/// The tool executor binds the run and exact step before entering a backing. The binding
+/// survives async browser work; a late capture cannot attach itself to a newer step.
+/// It carries identity only, never another ledger or execution owner.
+enum AgentWorkPresentationScope {
+    struct Binding: Sendable, Equatable {
+        let taskID: String
+        let stepID: String
+    }
+    @TaskLocal static var binding: Binding?
+}
+
+/// Memory-only context reported by the actual computer backing. Only the newest step
+/// keeps it, so a history row neither retains window pixels nor looks live after finish.
+struct AgentWorkPreview: Sendable, Equatable {
+    var summary: String
+    var thumbnail: Data? = nil
+    var isYielded = false
+}
+
 /// One row of a run's step list (P1-1). `title` is a consumer step title — what the
 /// `AgentActivityProjector` produced — never a tool id and never chain-of-thought.
 struct AgentStep: Identifiable, Sendable, Equatable {
@@ -12,6 +31,7 @@ struct AgentStep: Identifiable, Sendable, Equatable {
     /// step rather than read from the store's live state so a working card shows *its* run
     /// — two tasks can overlap, and the newest is not always the one on screen.
     var avatar: AgentAvatarState?
+    var preview: AgentWorkPreview? = nil
 
     init(
         id: String = UUID().uuidString,
@@ -67,7 +87,10 @@ final class AgentActivityStore {
     ) {
         append(AgentActivity(taskID: taskID, kind: kind, title: title, detail: detail))
         var steps = taskSteps[taskID] ?? []
-        if !steps.isEmpty { steps[steps.count - 1].isCompleted = true }
+        if !steps.isEmpty {
+            steps[steps.count - 1].isCompleted = true
+            steps[steps.count - 1].preview = nil
+        }
         let state = avatar ?? AgentAvatarState(activity: kind)
         steps.append(AgentStep(title: title, detail: detail, avatar: state))
         taskSteps[taskID] = steps
@@ -78,10 +101,44 @@ final class AgentActivityStore {
         append(AgentActivity(taskID: taskID, kind: .completed, title: title))
         if var steps = taskSteps[taskID], !steps.isEmpty {
             steps[steps.count - 1].isCompleted = true
+            steps[steps.count - 1].preview = nil
             taskSteps[taskID] = steps
         }
         if activeTaskID == taskID { activeTaskID = nil }
         liveAvatarState = nil
+    }
+
+    /// Only explicitly bound tasks with a live step can receive window context. Never
+    /// fall back to activeTaskID: a second run may have become active during capture.
+    func presentationBinding(taskID: String?) -> AgentWorkPresentationScope.Binding? {
+        guard let taskID, !taskID.isEmpty,
+              let step = taskSteps[taskID]?.last, !step.isCompleted else { return nil }
+        return .init(taskID: taskID, stepID: step.id)
+    }
+
+    func noteWindow(
+        _ summary: String, thumbnail: Data? = nil,
+        binding: AgentWorkPresentationScope.Binding? = AgentWorkPresentationScope.binding
+    ) {
+        guard let binding, var steps = taskSteps[binding.taskID],
+              let last = steps.last, last.id == binding.stepID, !last.isCompleted else { return }
+        // A later inspection replaces a previous image: the tree is the current context,
+        // and the old screenshot is not evidence about this new observation.
+        steps[steps.count - 1].preview = .init(summary: summary, thumbnail: thumbnail)
+        taskSteps[binding.taskID] = steps
+    }
+
+    func noteHumanYield(
+        binding: AgentWorkPresentationScope.Binding? = AgentWorkPresentationScope.binding
+    ) {
+        guard let binding, var steps = taskSteps[binding.taskID],
+              let last = steps.last, last.id == binding.stepID, !last.isCompleted else { return }
+        var preview = last.preview ?? .init(summary: "Paused while you’re using your Mac.")
+        preview.isYielded = true
+        // The person is changing the window; its last image is no longer live context.
+        preview.thumbnail = nil
+        steps[steps.count - 1].preview = preview
+        taskSteps[binding.taskID] = steps
     }
 
     func append(_ activity: AgentActivity) {

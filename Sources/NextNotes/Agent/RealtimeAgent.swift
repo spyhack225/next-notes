@@ -41,6 +41,22 @@ final class RealtimeAgent {
     private(set) var lastReply = ""
     private(set) var isThinking = false
     private(set) var progressTitle = "Thinking…"
+    /// A real model snapshot for the current typed turn. It is presentation only: it
+    /// never enters saved history or model context until `finish` commits the answer.
+    private(set) var respondingMessage: AgentSession.Message?
+
+    func presentAnswer(_ snapshot: String, turn: Int) {
+        guard isCurrent(turn), isThinking, currentTurnSource == .text,
+              !isVoiceWorker, !snapshot.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        respondingMessage = AgentSession.Message(
+            id: currentTurnID, role: "assistant", text: snapshot,
+            at: respondingMessage?.at ?? Date(), source: "text")
+    }
+
+    func clearPresentedAnswer(turn: Int) {
+        guard isCurrent(turn) else { return }
+        respondingMessage = nil
+    }
     private(set) var harnessLine = ""
     /// Which model answered the most recent turn, so the pane can say it.
     ///
@@ -315,6 +331,7 @@ final class RealtimeAgent {
         generation += 1
         let mine = generation
         currentTurnSource = source
+        respondingMessage = nil
         Log.agent.info("realtime · heard \(text, privacy: .public)")
         // Utterance arrives already transcribed; clock transcript → first reply text.
         let replyTrace = LatencyTrace.start(.agentTranscriptToFirstToken)
@@ -530,6 +547,7 @@ final class RealtimeAgent {
         RealtimeAudioSession.shared.noteUserSpeech()
         finishFirstTTSTrace(note: "cancelled")
         generation += 1
+        respondingMessage = nil
         voiceWork = nil
         voiceInputActive = false
         speechGeneration += 1
@@ -564,6 +582,7 @@ final class RealtimeAgent {
         }
         guard isThinking else { return }
         generation += 1
+        respondingMessage = nil
         voiceWork = nil
         voiceInputActive = false
         speechGeneration += 1
@@ -777,12 +796,15 @@ final class RealtimeAgent {
         _ reply: String, speak: Bool = true,
         spokenReply: String? = nil, contextKind: String? = nil, unscrubbed: String? = nil
     ) {
+        let presented = respondingMessage
+        respondingMessage = nil
         lastReply = reply
         isThinking = false
         progressTitle = ""
         let messageID = AgentSession.shared.recordAssistant(
             reply, contextKind: contextKind,
-            source: currentTurnSource == .voice ? .voice : nil)
+            source: currentTurnSource == .voice ? .voice : nil,
+            messageID: presented?.id, at: presented?.at)
         // The audit log is internal, so the model's id may appear here (P0-20a). The pane
         // still shows `answeringModel.name`.
         AgentAuditLog.shared.record(
@@ -1288,10 +1310,12 @@ final class AgentSession {
 
     @discardableResult
     func recordAssistant(_ text: String, contextKind: String? = nil,
-                         source: AgentUtteranceSource? = nil) -> UUID {
+                         source: AgentUtteranceSource? = nil,
+                         messageID: UUID? = nil, at: Date? = nil) -> UUID {
         let message = Message(
+            id: messageID ?? UUID(),
             role: "assistant", text: String(text.prefix(Self.maxStoredCharacters)),
-            contextKind: contextKind, source: source?.rawValue,
+            contextKind: contextKind, at: at ?? Date(), source: source?.rawValue,
             speechDelivery: source == .voice ? VoiceSpeechDelivery() : nil)
         append(message)
         // Only after an answer to the user, not a background task's announcement.

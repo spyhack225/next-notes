@@ -72,8 +72,11 @@ final class MetricsStore: @unchecked Sendable {
 
     /// Enqueues a span that has not been built yet, so the process snapshot is
     /// sampled on the writer rather than by the actor that ended the stage.
-    func recordAsync(_ makeSpan: @escaping @Sendable () -> LatencySpan) {
-        writer.async { [weak self] in self?.record(makeSpan()) }
+    func recordAsync(_ makeSpan: @escaping @Sendable () -> LatencySpan?) {
+        writer.async { [weak self] in
+            guard let self, let span = makeSpan() else { return }
+            self.record(span)
+        }
     }
 
     /// Waits for every queued write. Self-tests and shutdown only; the hot path

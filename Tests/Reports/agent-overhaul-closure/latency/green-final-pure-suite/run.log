@@ -1,0 +1,8 @@
+LATENCY_INSTRUMENTATION_STALL rows=1 memory=0.0
+LATENCY_CONTRACT omit=["route_done", "scheduler_acquired"] hit=false separate=true count=1 errors=3
+LATENCY_CONTRACT omit=["route_done", "scheduler_acquired"] hit=true separate=true count=1 errors=0
+LATENCY_CONTRACT omit=["route_done"] hit=false separate=false count=1 errors=0
+LATENCY_CONTRACT omit=[] hit=false separate=true count=0 errors=1
+LATENCY_CONTRACT omit=[] hit=false separate=true count=2 errors=1
+LATENCY_CONTRACT unstored_revision=2 errors=1
+LATENCY_INSTRUMENTATION_OK

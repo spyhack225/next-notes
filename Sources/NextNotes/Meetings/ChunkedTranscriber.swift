@@ -32,6 +32,16 @@ import Foundation
 /// `meeting.windows_dropped` span), because the final pass re-reads `audio.caf` and covers
 /// exactly what the live tier skipped.
 actor ChunkedTranscriber {
+    struct ResourceSnapshot: Sendable {
+        let queuedBytes: Int
+        let queuedCapacityBytes: Int
+        let bufferBytes: Int
+        let bufferCapacityBytes: Int
+        let activeBytes: Int
+        let activeCapacityBytes: Int
+        let droppedSeconds: Double
+    }
+
     typealias SegmentHandler = @Sendable (TranscriptSegment) async -> Void
     typealias ProvisionalHandler = @Sendable (TranscriptEvent) async -> Void
 
@@ -152,6 +162,11 @@ actor ChunkedTranscriber {
     private var queue: [QueuedWindow] = []
     /// Sum of the queued windows' sample counts — the backlog the seconds rule bounds.
     private var queuedSamples = 0
+    /// Diagnostic accounting for batches retained across the external model await.
+    /// Counts stay until that call returns even if cancel invalidates its generation.
+    private var activeSamples = 0
+    private var activeCapacitySamples = 0
+    private var activeGeneration: Int?
     /// The one drain task for this track. Nil when nothing is queued or draining.
     private var drainTask: Task<Void, Never>?
     private var generation = 0
@@ -163,6 +178,19 @@ actor ChunkedTranscriber {
     /// Seconds of this track's audio the live tier skipped. Nothing more than a counter:
     /// the final pass re-reads `audio.caf` and covers what this reports.
     var droppedAudioSeconds: Double { Double(droppedSamples) / Self.sampleRate }
+
+    func resourceSnapshot() -> ResourceSnapshot {
+        let stride = MemoryLayout<Float>.stride
+        return ResourceSnapshot(
+            queuedBytes: queuedSamples * stride,
+            queuedCapacityBytes: queue.reduce(0) { $0 + $1.samples.capacity } * stride,
+            bufferBytes: buffer.count * stride,
+            bufferCapacityBytes: buffer.capacity * stride,
+            activeBytes: activeSamples * stride,
+            activeCapacityBytes: activeCapacitySamples * stride,
+            droppedSeconds: droppedAudioSeconds
+        )
+    }
 
     init(
         source: AudioSource,
@@ -225,7 +253,9 @@ actor ChunkedTranscriber {
             scanned = 0
             silenceRun = 0
         }
-        await drainTask?.value
+        // A pressure-held generation may finish and hand the sole drain slot to
+        // resumed windows. Stop must join that successor as well.
+        while let drainTask { await drainTask.value }
         // P0-20b: one `meeting.transcribe` row per track, assembled from the window
         // outcomes `transcribe(window:…)` noted while the queue drained.
         if let row = await MeetingTranscribeTally.shared.drain(meetingID: meetingID, source: source) {
@@ -238,11 +268,29 @@ actor ChunkedTranscriber {
     func cancel() {
         generation &+= 1
         drainTask?.cancel()
-        drainTask = nil
+        // A cancelled native call may still own its input until it returns. Keep
+        // the drain slot so a resumed append cannot start a second model call.
         queue.removeAll(keepingCapacity: false)
         queuedSamples = 0
         buffer.removeAll(keepingCapacity: false)
         bufferOrigin = 0
+        scanned = 0
+        silenceRun = 0
+    }
+
+    /// Saved audio, rather than a live RAM backlog, owns recovery under pressure.
+    /// The session calls this only after the writer accepted the packet. Any active
+    /// model call may finish safely, but its now-stale result cannot publish. Holding
+    /// the existing drain slot until it returns prevents a resumed feed racing it.
+    func deferForRecovery(throughSample endSample: Int) {
+        let skippedIncoming = max(0, endSample - (bufferOrigin + buffer.count))
+        let abandonedActive = activeGeneration == generation ? activeSamples : 0
+        droppedSamples += queuedSamples + buffer.count + abandonedActive + skippedIncoming
+        generation &+= 1
+        bufferOrigin = max(bufferOrigin + buffer.count, endSample)
+        queue.removeAll(keepingCapacity: false)
+        queuedSamples = 0
+        buffer.removeAll(keepingCapacity: false)
         scanned = 0
         silenceRun = 0
     }
@@ -338,10 +386,13 @@ actor ChunkedTranscriber {
         }
         queue.append(QueuedWindow(startSample: bufferOrigin, samples: window))
         queuedSamples += window.count
-        if drainTask == nil {
-            let generation = self.generation
-            drainTask = Task { await self.drain(generation: generation) }
-        }
+        startDrainIfNeeded()
+    }
+
+    private func startDrainIfNeeded() {
+        guard drainTask == nil, !queue.isEmpty else { return }
+        let generation = self.generation
+        drainTask = Task { await self.drain(generation: generation) }
     }
 
     /// The single drain task (M-07): merges adjacent queued windows into one batch of up
@@ -356,7 +407,10 @@ actor ChunkedTranscriber {
     /// batch exactly as they read a single window. Nothing merges across a `flush()`: the
     /// tail joins the queue and drains like any other window.
     private func drain(generation gen: Int) async {
-        defer { if self.generation == gen { self.drainTask = nil } }
+        defer {
+            self.drainTask = nil
+            self.startDrainIfNeeded()
+        }
         let shouldContinue: @Sendable () async -> Bool = { [weak self] in
             guard let self else { return false }
             return await self.isCurrent(gen)
@@ -371,6 +425,11 @@ actor ChunkedTranscriber {
                 queuedSamples -= next.samples.count
                 queue.removeFirst()
             }
+            let batchSamples = batch.samples.count
+            let batchCapacity = batch.samples.capacity
+            activeSamples += batchSamples
+            activeCapacitySamples += batchCapacity
+            activeGeneration = gen
             await Self.transcribeWindow(
                 window: batch.samples,
                 start: Double(batch.startSample) / Self.sampleRate,
@@ -382,6 +441,9 @@ actor ChunkedTranscriber {
                 transcribe: transcribe,
                 shouldContinue: shouldContinue
             )
+            activeSamples -= batchSamples
+            activeCapacitySamples -= batchCapacity
+            activeGeneration = nil
         }
     }
 

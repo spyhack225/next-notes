@@ -90,6 +90,28 @@ final class MeetingStore {
         return MeetingStore(root: url)
     }
 
+    /// Separate harness processes may reopen the same generated fixture. Resolve
+    /// links and require a direct temporary UUID directory before creating it.
+    static func isolated(at url: URL) throws -> MeetingStore {
+        let root = url.standardizedFileURL.resolvingSymlinksInPath()
+        let temporary = FileManager.default.temporaryDirectory
+            .standardizedFileURL.resolvingSymlinksInPath()
+        let prefix = "NextNotesMeetingResumeTest-"
+        guard SelfTest.isRunning,
+              root.deletingLastPathComponent() == temporary,
+              root.lastPathComponent.hasPrefix(prefix),
+              UUID(uuidString: String(root.lastPathComponent.dropFirst(prefix.count))) != nil
+        else { throw CocoaError(.fileWriteNoPermission) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        return MeetingStore(root: root)
+    }
+
+    /// A new reader/cache at the same isolated disk store, never the owner store.
+    func freshReaderForTesting() -> MeetingStore {
+        precondition(root.lastPathComponent.hasPrefix("NextNotesMeetingResumeTest-"))
+        return MeetingStore(root: root)
+    }
+
     private init(root: URL = MeetingStore.root) {
         self.root = root
         reload()
@@ -121,7 +143,7 @@ final class MeetingStore {
     /// when that stage finishes, through the unchanged `releaseAudio` rule — never
     /// in repair. Called once at launch, before the scheduler starts.
     @discardableResult
-    func repairInterruptedMeetings() -> [(UUID, ResumeAction)] {
+    func repairInterruptedMeetings(now: Date = Date()) -> [(UUID, ResumeAction)] {
         var plan: [(UUID, ResumeAction)] = []
         var interruptedExtractions: [UUID] = []
         for meeting in meetings where meeting.status.isActive {
@@ -154,30 +176,27 @@ final class MeetingStore {
                 repaired.status = .summarizing
             case .extractAgain:
                 repaired.status = .done
-                interruptedExtractions.append(meeting.id)
             case .fail(let message):
                 repaired.status = .failed(message)
             case .none:
                 continue
             }
-            let lastTranscriptEnd = transcript(for: meeting.id).map(\.end).max()
+            let lastTranscriptEnd = transcript(for: meeting.id).map(\.end)
+                .filter { $0.isFinite && $0 >= 0 }.max()
                 .map { meeting.start.addingTimeInterval($0) }
-            let lastAudioWrite = audioURL(for: repaired).flatMap {
-                try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
-            }
-            let lastCaptured = [lastTranscriptEnd, lastAudioWrite].compactMap { $0 }.max()
             if meeting.status == .recording {
-                // An armed calendar row still carries its scheduled end at the instant
-                // of a crash. Show the last captured moment, not a duration the app
-                // never recorded.
-                repaired.end = lastCaptured ?? Date()
-            } else if repaired.end == nil ||
-                        (lastCaptured.map { repaired.end! > $0.addingTimeInterval(60) } ?? false) {
-                // Also repairs a row that an older launch moved to `.transcribing`
-                // without replacing the scheduled end.
-                repaired.end = lastCaptured ?? Date()
+                var integrity = repaired.captureIntegrity ?? MeetingCaptureIntegrity()
+                // New recordings persist actual sample progress. For older rows,
+                // transcript evidence is a lower bound; audio mtime is not capture.
+                let boundary = integrity.lastCapturedAt ?? lastTranscriptEnd
+                integrity.markInterrupted(at: now, lastCapturedAt: boundary)
+                repaired.captureIntegrity = integrity
+                // Calendar end and restart time cannot prove a recording duration.
+                repaired.end = boundary
             }
-            save(repaired)
+            // Do not dispatch recovery on the strength of an unsaved repair.
+            guard save(repaired) else { continue }
+            if action == .extractAgain { interruptedExtractions.append(meeting.id) }
             plan.append((meeting.id, action))
             Log.meeting.info("repaired interrupted meeting \"\(meeting.title, privacy: .public)\"")
         }
@@ -245,10 +264,14 @@ final class MeetingStore {
     /// The list is patched rather than re-enumerated: this runs on every state transition
     /// of a live recording, and re-reading every meeting's JSON to learn one status is the
     /// kind of thing that only shows up as jank once a user has a few hundred of them.
-    func save(_ meeting: Meeting) {
+    @discardableResult
+    func save(_ meeting: Meeting) -> Bool {
         let directory = directory(for: meeting.id)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         var stamped = meeting
+        if let stored = self.meeting(id: meeting.id)?.captureIntegrity {
+            stamped.captureIntegrity = (stamped.captureIntegrity ?? stored).merged(preserving: stored)
+        }
         // M1-a: a calendar link implies a calendar title. An `.auto` placeholder saved
         // with an event id becomes `.calendar` here, so the scheduler — which this file
         // owns and `MeetingScheduler` does not need to touch — still records the link.
@@ -263,7 +286,9 @@ final class MeetingStore {
            stored.title == stamped.title {
             stamped.titleSource = .user
         }
-        write(stamped, to: directory.appendingPathComponent(Self.recordFile))
+        guard write(stamped, to: directory.appendingPathComponent(Self.recordFile)) else {
+            return false
+        }
 
         if let index = meetings.firstIndex(where: { $0.id == stamped.id }) {
             meetings[index] = stamped
@@ -273,6 +298,7 @@ final class MeetingStore {
         }
         // A finished meeting's speaker names or status changed what its chunks say.
         if !stamped.status.isActive { KnowledgeIndexer.shared.meetingChanged(stamped.id) }
+        return true
     }
 
     /// Changes the name a person sees in the list. Empty after trimming is refused, so a
@@ -548,11 +574,11 @@ final class MeetingStore {
     /// and temporary audio is released at once instead of kept for the window.
     nonisolated static let minimumFreeBytesForRetention: Int64 = 5_000_000_000
 
-    /// Free bytes available for important usage on the volume holding `url`.
+    /// Immediately writable bytes on the volume holding `url`, without a slow
+    /// reclaimable-capacity query on the scheduler's main-actor tick.
     /// `.max` when unknowable: a missing answer must never delete a recording.
     nonisolated static func freeBytes(at url: URL) -> Int64 {
-        (try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))
-            .flatMap(\.volumeAvailableCapacityForImportantUsage) ?? .max
+        MeetingDiskCapacity.current(at: url).immediateBytes ?? .max
     }
 
     /// Ends the pipeline's use of a recording the way M-10 says: a temporary file is

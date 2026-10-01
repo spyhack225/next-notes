@@ -285,6 +285,31 @@ actor MessagesDatabase {
         }
     }
 
+    /// Every attachment joined to one `message.ROWID`, ordered by the
+    /// attachment's own `ROWID`.
+    ///
+    /// Throws when this database cannot answer (the join tables absent) rather
+    /// than answering empty: an empty answer would read as "no attachments" and
+    /// a copier would report success having copied nothing.
+    func attachmentRows(messageRowID: Int64) throws -> [MessagesAttachment] {
+        guard MessagesQueries.canReadAttachments(schema) else {
+            throw OpenError.unreadable(reason: "message_attachment_join is missing, so one message's "
+                                              + "attachments cannot be told from every message's")
+        }
+        let sql = MessagesQueries.attachments(schema: schema)
+        let statement = try prepare(sql)
+        defer { sqlite3_finalize(statement) }
+        sqlite3_bind_int64(statement, 1, messageRowID)
+        var rows: [MessagesAttachment] = []
+        while true {
+            switch sqlite3_step(statement) {
+            case SQLITE_ROW: rows.append(MessagesQueries.attachmentRow(statement))
+            case SQLITE_DONE: return rows
+            default: throw stepError(statement, sql)
+            }
+        }
+    }
+
     /// How many messages one pass reads. Bounded so a first pass over a long history
     /// cannot hold the actor while it walks every row; IM-06 drains it on the next pass.
     static let defaultPage = 200

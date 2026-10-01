@@ -62,6 +62,7 @@ struct ActivityView: View {
     private var rail: some View {
         VStack(alignment: .leading, spacing: DS.Space.xl) {
             heartbeat
+            IMessageStatusRow()
             if !approvedHistory.isEmpty || !grants.grants.isEmpty { ledger }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

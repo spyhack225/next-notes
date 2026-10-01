@@ -3,94 +3,68 @@ import Orb from "../components/Orb";
 import type { OrbState } from "../components/orbGeometry";
 import { fadeUp } from "../lib/motion";
 
-/**
- * The sequence, told as what you stop having to do — and what “it” starts doing for you.
- *
- * Same personal register as the original page: short sentences, you / it, the chore named
- * first. The agent positioning lives underneath, not as a positioning deck.
- */
-const STEPS: {
-  n: string;
-  orb: OrbState;
-  value: string;
-  body: string;
-  detail: string;
-}[] = [
+const moments: { time: string; title: string; body: string; orb: OrbState }[] = [
   {
-    n: "01",
-    orb: "breathing",
-    value: "You stop teaching a stranger",
-    body: "Your Mac already has your files, your calendar, the jargon you actually use. The best agent does not need a new home — it needs to live where you already are.",
-    detail: "Memory, storage and a local model — already on the machine in front of you.",
-  },
-  {
-    n: "02",
-    orb: "listening",
-    value: "You stop typing everything",
-    body: "Hold a key. Say the thing. Ask it the next thing. Voice is how you reach an agent that already sits at your desk — and everything you say stays here.",
-    detail: "⇧⌘ Space, push-to-talk, or “Hey Next”. Silence ends a turn; Done leaves.",
-  },
-  {
-    n: "03",
+    time: "Before the call",
+    title: "The meeting is already on its radar.",
+    body: "When an eligible meeting comes up on your calendar, Next Notes gets ready. You can record now or skip it.",
     orb: "searching",
-    value: "You stop driving the Mac by hand",
-    body: "Ask what’s on the calendar, what was just decided, or to click the button in front of you. It can look, then act, in more than one step. A yes can be scoped to an app, a site or a folder.",
-    detail: "Inspect, click, type, open a file, run a command. Never sudo. Never a blanket yes.",
   },
   {
-    n: "04",
+    time: "During the call",
+    title: "You can stay in the conversation.",
+    body: "With recording on, you can listen, ask questions, and respond to the people in the room instead of trying to write everything down.",
+    orb: "listening",
+  },
+  {
+    time: "When it ends",
+    title: "The details are there when you need them.",
+    body: "When automatic notes are on, Next Notes writes what was decided and who owes what. Open the meeting later and pick up where you left off.",
+    orb: "weaving",
+  },
+  {
+    time: "Before anything goes out",
+    title: "The follow-up is yours to send.",
+    body: "If follow-up suggestions are on, Next Notes can prepare a message from the meeting. Read it, edit it, and approve it before anything goes out.",
     orb: "composing",
-    value: "You stop repeating yourself",
-    body: "It keeps the thread — the meeting you were in, the name it learned last week, the draft you almost sent. During a meeting, one window holds your notes, next steps, earlier meetings and questions while recording carries on.",
-    detail: "One folder per meeting. A dictionary of your names. Follow-ups that wait on you.",
-  },
-  {
-    n: "05",
-    orb: "connecting",
-    value: "You stop chasing the follow-up",
-    body: "When you approve, it writes the doc, puts the event on Calendar and sends the mail — as you. Nothing is created or sent on its own.",
-    detail: "Gmail, Calendar, Drive and Docs — your account, your say.",
   },
 ];
 
 export default function HowItWorks() {
   return (
-    <section
-      id="how-it-works"
-      className="py-32 md:py-44 px-8 md:px-28 border-t border-border/30 scroll-mt-28"
-    >
-      <div className="max-w-6xl mx-auto">
-        <motion.p
-          {...fadeUp(0)}
-          className="text-xs tracking-eyebrow uppercase text-muted-foreground text-center"
-        >
-          How it works
-        </motion.p>
-
-        <motion.h2
-          {...fadeUp(0.1)}
-          className="text-4xl md:text-6xl font-medium tracking-section text-center mt-6 leading-section"
-        >
-          What you no longer{" "}
-          <span className="font-serif italic font-normal">have to do.</span>
-        </motion.h2>
-
-        <div className="mt-20 grid gap-12 md:gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {STEPS.map((s, i) => (
-            <motion.div key={s.n} {...fadeUp(0.15 + i * 0.08)} className="flex flex-col">
-              <div className="flex items-center gap-3 mb-6">
-                <Orb state={s.orb} size={64} />
-                <span className="text-xs tabular-nums tracking-step text-muted-foreground">
-                  {s.n}
-                </span>
+    <section id="how-it-works" className="px-6 sm:px-8 md:px-16 lg:px-28 py-28 md:py-40 border-t border-border/40 scroll-mt-16">
+      <div className="max-w-7xl mx-auto grid xl:grid-cols-12 gap-14 xl:gap-20">
+        <motion.div {...fadeUp(0)} className="xl:col-span-5 xl:sticky xl:top-36 self-start">
+          <p className="text-xs uppercase tracking-eyebrow text-muted-foreground">A meeting, from start to follow-up</p>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl tracking-section leading-section mt-6">
+            It keeps the thread. <span className="font-serif italic">You keep your attention.</span>
+          </h2>
+          <p className="text-lg text-muted-foreground leading-relaxed mt-7 max-w-lg">
+            Turn on calendar meeting recording, and Next Notes can get ready for an upcoming call. When it ends, the decisions are written down and a follow-up can be waiting for your review.
+          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed mt-5 max-w-lg">
+            This is the same Next Notes you ask about family plans or speak to while working in another app. Meeting help is where it currently moves first; for the rest of your day, just ask.
+          </p>
+        </motion.div>
+        <div className="xl:col-span-7 border-l border-border/70 ml-5 sm:ml-7">
+          {moments.map((moment, index) => (
+            <motion.div {...fadeUp(index * 0.1)} key={moment.title} className="relative pl-10 sm:pl-14 pb-20 last:pb-0">
+              <div className="absolute -left-6 top-0 bg-background rounded-full p-2">
+                <Orb state={moment.orb} size={33} />
               </div>
-
-              <h3 className="font-semibold text-lg tracking-title">{s.value}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed mt-3">{s.body}</p>
-
-              <p className="text-muted-foreground/60 text-xs leading-relaxed mt-4 pt-4 border-t border-border/40">
-                {s.detail}
-              </p>
+              <span className="text-xs text-muted-foreground uppercase tracking-caption">{moment.time}</span>
+              <h3 className="text-2xl sm:text-3xl tracking-title mt-4">{moment.title}</h3>
+              <p className="text-muted-foreground leading-relaxed mt-4 max-w-xl">{moment.body}</p>
+              {index === 3 && (
+                <div className="liquid-glass rounded-2xl border border-border/40 p-5 sm:p-6 mt-8 max-w-md">
+                  <p className="text-xs text-muted-foreground uppercase tracking-caption">The promise, carried through</p>
+                  <p className="text-sm leading-relaxed mt-3">Hi Maya, here&apos;s the deck we discussed. I&apos;ve included the next steps from today&apos;s meeting, too.</p>
+                  <div className="flex gap-2 mt-5 text-xs">
+                    <span className="rounded-full bg-foreground text-background px-4 py-2">Approve</span>
+                    <span className="rounded-full border border-border px-4 py-2">Edit first</span>
+                  </div>
+                </div>
+              )}
             </motion.div>
           ))}
         </div>

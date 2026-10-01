@@ -13,6 +13,7 @@ struct IslandView: View {
     @Bindable var state: IslandState
     let metrics: IslandGeometry.Metrics
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var namespace
 
     var body: some View {
@@ -21,12 +22,12 @@ struct IslandView: View {
             // Top-anchored inside the panel, which is always the expanded bounds: the
             // island hangs from the top edge of the screen and grows downwards.
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .animation(expansion, value: state.isExpanded)
+            .animation(reduceMotion ? nil : expansion, value: state.isExpanded)
             // A question arrives with a little bounce and a readout simply changes: the
             // island is at the top of the screen either way, and only one of the two is
             // asking to be looked at.
             .animation(
-                state.kind.demandsAttention ? DS.Motion.bouncy : DS.Motion.fluid,
+                reduceMotion ? nil : state.kind.demandsAttention ? DS.Motion.bouncy : DS.Motion.fluid,
                 value: state.kind.identity
             )
             .opacity(state.kind.isHidden ? 0 : 1)
@@ -46,26 +47,34 @@ struct IslandView: View {
 
     // MARK: - The card
 
+    @ViewBuilder
     private var card: some View {
+        if reduceMotion {
+            cardContent
+        } else {
+            // The keyed arrival is only decorative. When motion is reduced, the same
+            // content appears at its final size without running a second animation.
+            cardContent
+                .keyframeAnimator(
+                    initialValue: CGFloat(1),
+                    trigger: state.isExpanded
+                ) { view, scale in
+                    view.scaleEffect(x: 1, y: scale, anchor: .top)
+                } keyframes: { _ in
+                    KeyframeTrack {
+                        CubicKeyframe(DS.Scale.islandArrive, duration: DS.Motion.islandExpandDuration / 4)
+                        SpringKeyframe(DS.Scale.islandOvershoot, duration: DS.Motion.islandExpandDuration / 2)
+                        SpringKeyframe(1, duration: DS.Motion.islandExpandDuration / 4)
+                    }
+                }
+        }
+    }
+
+    private var cardContent: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background { substrate }
             .clipShape(shape)
-            // The card grows out of the notch rather than fading in on top of it: keyed
-            // rather than sprung, so the arrival, the overshoot and the settle can each be
-            // given their own share of the same duration.
-            .keyframeAnimator(
-                initialValue: CGFloat(1),
-                trigger: state.isExpanded
-            ) { view, scale in
-                view.scaleEffect(x: 1, y: scale, anchor: .top)
-            } keyframes: { _ in
-                KeyframeTrack {
-                    CubicKeyframe(DS.Scale.islandArrive, duration: DS.Motion.islandExpandDuration / 4)
-                    SpringKeyframe(DS.Scale.islandOvershoot, duration: DS.Motion.islandExpandDuration / 2)
-                    SpringKeyframe(1, duration: DS.Motion.islandExpandDuration / 4)
-                }
-            }
     }
 
     /// Black and opaque against the bezel, glass when it is floating over a window.
@@ -81,7 +90,7 @@ struct IslandView: View {
             GlassEffectContainer {
                 shape
                     .fill(.clear)
-                    .glassEffect(DS.Material.hudGlass, in: shape)
+                    .glassSurface(in: shape, glass: DS.Material.hudGlass)
             }
         }
     }
@@ -204,8 +213,15 @@ struct IslandView: View {
             // Without `Equatable`, a VU tick would rebuild this wrapper and tear down
             // the `TimelineView` inside `ThinkingOrb` — a blank badge, several times a
             // second, which is the "animation is missing" half of the island report.
-            IslandWorkMark(orb: orb, ink: ink)
+            IslandWorkMark(
+                orb: orb,
+                ink: ink,
+                isAnimated: !isPendingApproval
+            )
                 .equatable()
+                // The collapsed waiting count already says what needs attention.
+                // Reading the still breathing orb as "idle" would contradict it.
+                .accessibilityHidden(isPendingApproval)
         } else {
             switch state.kind {
             case .meetingArmed, .callQuestion:
@@ -225,6 +241,13 @@ struct IslandView: View {
             .font(DS.Font.title3)
             .foregroundStyle(ink)
             .frame(width: DS.Size.orbInline, height: DS.Size.orbInline)
+    }
+
+    /// An unanswered approval is waiting on the person, not doing work. The notice may
+    /// expire, but the persistent badge must stay still until somebody answers it.
+    private var isPendingApproval: Bool {
+        if case .pendingApproval = state.kind { return true }
+        return false
     }
 
     private static let badgeID = "island.badge"
@@ -383,6 +406,18 @@ struct IslandView: View {
                 counter(elapsed)
                 track("You", level: micLevel)
                 track("Others", level: systemLevel)
+                if let session = MeetingController.shared.session {
+                    if session.liveTranscriptPaused {
+                        Text("Some live transcription may pause")
+                            .foregroundStyle(DS.Color.warning)
+                    }
+                    if let issue = session.healthWarnings.last {
+                        Text(issue.message)
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.warning)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
 
         case .meetingArmed(let event), .callQuestion(let event):
@@ -573,9 +608,10 @@ struct IslandView: View {
 private struct IslandWorkMark: View, Equatable {
     let orb: OrbGeometry.State
     let ink: Color
+    let isAnimated: Bool
 
     var body: some View {
-        ThinkingOrb(state: orb, ink: ink)
+        ThinkingOrb(state: orb, ink: ink, isAnimated: isAnimated)
     }
 }
 

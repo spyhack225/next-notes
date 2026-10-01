@@ -219,6 +219,11 @@ enum ComputerToolExecutor {
         let snapshot = wantsFull
             ? AccessibilitySnapshot.capture(processID: app.processIdentifier, limit: inspectLimit)
             : AccessibilitySnapshot.captureCompact(processID: app.processIdentifier, limit: inspectLimit)
+        let window = snapshot.split(separator: "\n").first(where: { $0.hasPrefix("Window: ") })
+            .map { String($0.dropFirst("Window: ".count)) }
+        AgentActivityStore.shared.noteWindow(
+            [app.localizedName ?? "The app", window].compactMap { $0 }.joined(separator: " · ")
+        )
         if AccessibilitySnapshot.isStub(snapshot) {
             return "\(app.localizedName ?? "The app"): \(snapshot)"
         }
@@ -239,12 +244,24 @@ enum ComputerToolExecutor {
             )
         }
         let image = try ScreenCapture.captureFocusedWindowSync()
-        ScreenshotStore.store(image, for: "computer.screenshot")
+        publishCapture(
+            image, for: "computer.screenshot",
+            summary: "Focused window in \(NSWorkspace.shared.frontmostApplication?.localizedName ?? "the app")"
+        )
         return AgentToolResult(
             summary: "Screenshot of the focused window "
                 + "(\(image.pixelWidth)x\(image.pixelHeight), memory-only, never stored). "
                 + "Parked for a vision call; uploading it needs per-run consent."
         )
+    }
+
+    /// Every actual screenshot backing uses this handoff. The vision slot remains the
+    /// original consume-on-read store; the working card receives only its small preview,
+    /// bound to this exact task step. Publishing never captures, uploads or writes pixels.
+    @MainActor
+    static func publishCapture(_ image: LLMImage, for key: String, summary: String) {
+        ScreenshotStore.store(image, for: key)
+        AgentActivityStore.shared.noteWindow(summary, thumbnail: image.thumbnail)
     }
 
     @MainActor
@@ -406,17 +423,21 @@ enum ComputerToolExecutor {
                 after.localizedCaseInsensitiveContains($0)
             } ?? false
             return VerifyRetry.Attempt(
-                summary: "Clicked element \(id).",
+                summary: "Clicked the control.",
                 verification: changed && expectedObserved
                     ? "Computer window reached the expected post-click state" : nil
             )
         }
-        // No stated postcondition, no retry: there is nothing to check a second attempt
-        // against, and re-pressing a control (a toggle, a submit) can undo the first
-        // press. The single attempt keeps the previous contract exactly.
+        // Whether or not a postcondition is stated, one requested press is one
+        // delivered effect. Missing readback never licenses a second press.
         guard let expectation else {
             let single = try attempt()
-            return AgentToolResult(summary: single.summary, verification: single.verification)
+            return AgentToolResult(
+                summary: single.verification == nil
+                    ? "I clicked the control, but could not confirm the result. It may have changed. Let me look again before another action."
+                    : single.summary,
+                verification: single.verification, outcomeUnknown: single.verification == nil
+            )
         }
         let (attempts, mismatch) = try VerifyRetry.run(
             risk: .modify,
@@ -433,7 +454,8 @@ enum ComputerToolExecutor {
         if let mismatch { lines.append(mismatch) }
         return AgentToolResult(
             summary: lines.joined(separator: "\n"),
-            verification: attempts.last?.verification
+            verification: attempts.last?.verification,
+            outcomeUnknown: attempts.last?.verification == nil
         )
     }
 

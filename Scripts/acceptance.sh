@@ -110,6 +110,10 @@ CORE_ENTRIES=(
   # interrupted meetings resume at their stage (M-08). A lost meeting is a
   # release blocker, so this is CORE
   "selftest-meeting-resume|300"
+  "selftest-meeting-integrity|300"
+  "selftest-meeting-health|300"
+  "selftest-meeting-resource-policy|300"
+  "selftest-meeting-resources|300"
   # tool loop
   "selftest-toolloop|300"
   # computer use — inspect/click/type on an owned window. Needs Accessibility, so
@@ -121,6 +125,9 @@ CORE_ENTRIES=(
   # the outbound ledger and the loop breaker (IM-08b). CORE: replying to a message
   # Next Notes itself sent is the failure the ledger exists to prevent
   "selftest-imessage-loop|300"
+  # remote approval (IM-13): one exact action, once, payload frozen. CORE: an
+  # approval that fires the wrong payload is a send the user never approved
+  "selftest-imessage-approval|300"
   # ACP and MCP fixtures
   "selftest-acp|300"
   "selftest-mcp|300"
@@ -147,6 +154,8 @@ INTEGRATION_ENTRIES=(
   "selftest-task-durability|300"
   "selftest-task-recovery|300"
   "selftest-task-authority|300"
+  "selftest-task-restoration|300"
+  "selftest-agent-presentation|300"
   "selftest-digest|300"
   "selftest-podcast|300"
   "selftest-guided|300"
@@ -198,6 +207,8 @@ INTEGRATION_ENTRIES=(
   # live transcription backlog bounded by audio seconds, windows merged (M-07):
   # a fake transcriber behind the queue, no model and no fixtures
   "selftest-meeting-backlog|300"
+  # Native measurements refuse insufficient headroom or missing installed models.
+  "selftest-meeting-resources-live|900"
   # late system-audio tap join (M-09): injected capture and transcriber over an
   # isolated store; no microphone, no real tap, no model, no fixtures
   "selftest-meeting-tap-retry|120"
@@ -222,6 +233,18 @@ INTEGRATION_ENTRIES=(
   # the agent-name prefix that tells a self-conversation's two authors apart
   # (IM-13's rule, applied early): pure cases, no grant, no pairing, no store
   "selftest-imessage-format|300"
+  # remote authority (IM-12): the broker's four bands, suspension, the pairing
+  # gate and the authority decoding — all without a grant, a model or a turn
+  "selftest-imessage-authority|300"
+  # inbound attachments (IM-14): copy-out, bounds, symlink safety and the
+  # untrusted marking — temp files only, no grant and no live database
+  "selftest-imessage-attachment|300"
+  # the consent decision as a pure value (IM-17a): the four steps, refusals,
+  # the remote-origin refusal and the copy rule — no grant and no store
+  "selftest-imessage-consent|300"
+  # the canary over decode outcomes (IM-17e): what counts, the threshold, the
+  # cooldown and the copy lint — pure, no grant and no notification posted
+  "selftest-imessage-observe|300"
   # runs.jsonl appends in memory and retention is opt-in (D-15a), and the
   # clipboard restore never overwrites a copy the user just made (D-15b):
   # a temp directory and a private pasteboard, no grant and no model

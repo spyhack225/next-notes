@@ -28,9 +28,16 @@ final class NotesService {
     @ObservationIgnored private var stoppedByWatchdog: Set<UUID> = []
 
     private let store: MeetingStore
+    private let providerResolver: (@MainActor (LLMProviderID?) async -> (any LLMProvider)?)?
 
-    init(store: MeetingStore = .shared) {
+    /// Instance-local fixture substitution leaves every production generation/save
+    /// step intact; no global provider override or owner model choice is changed.
+    init(
+        store: MeetingStore = .shared,
+        providerResolver: (@MainActor (LLMProviderID?) async -> (any LLMProvider)?)? = nil
+    ) {
         self.store = store
+        self.providerResolver = providerResolver
     }
 
     func step(for id: UUID) -> NotesGenerator.Step? { steps[id] }
@@ -79,7 +86,9 @@ final class NotesService {
         // If a specific provider is preferred (e.g., from Regenerate button), use that.
         // Otherwise, use the model configured for the meeting notes role.
         let provider: (any LLMProvider)?
-        if let preferred {
+        if let providerResolver {
+            provider = await providerResolver(preferred)
+        } else if let preferred {
             provider = await LLMProviders.resolve(preferring: preferred)
         } else {
             provider = await ModelRoleStore.shared.provider(for: .meetingNotes)

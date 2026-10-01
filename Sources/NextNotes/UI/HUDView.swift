@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The floating capsule shown while you hold the key.
+/// The floating capsule shown through a hold, its finishing work, or a brief error.
 ///
 /// It has one job: prove the app heard you. A red dot says recording, a bar says the level
 /// is real, and the transcript says what it got — nothing else earns the space, because
@@ -26,9 +26,31 @@ struct HUDView: View {
                 level: controller.level,
                 transcript: controller.transcript
             )
+        } else if case .error(let message) = controller.state {
+            errorCapsule(message)
         } else {
             dictationCapsule
         }
+    }
+
+    /// A stopped hold needs its explanation, not a still work orb and an empty meter.
+    /// In particular the clipboard rescue sentence must fit before the error clears.
+    private func errorCapsule(_ message: String) -> some View {
+        HStack(spacing: DS.Space.m) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(DS.Font.title3)
+                .foregroundStyle(DS.Color.warning)
+                .accessibilityHidden(true)
+            Text(message)
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.text)
+                .lineLimit(3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, DS.Space.l)
+        .padding(.vertical, DS.Space.m)
+        .frame(width: DS.Size.hud.width, height: DS.Size.hud.height)
+        .glassSurface(cornerRadius: DS.Radius.hud, glass: DS.Material.hudGlass)
     }
 
     private var dictationCapsule: some View {
@@ -38,27 +60,35 @@ struct HUDView: View {
             // different questions, which is why the orb is added beside these rather than
             // in place of them: an orb animates on a clock, so it would keep dancing over a
             // muted input and answer "is it hearing me?" with a confident yes.
-            ThinkingOrb(state: orb, isAnimated: isRecording)
+            ThinkingOrb(state: orb, isAnimated: controller.state.isActive)
 
             VStack(alignment: .leading, spacing: DS.Space.s) {
-                RecordingIndicator(compact: true, label: nil)
-                    .opacity(isRecording ? 1 : DS.Opacity.recordIdle)
+                if isRecording {
+                    RecordingIndicator(compact: true, label: nil)
+                }
                 LevelBar(level: controller.level, isActive: isRecording)
                     .frame(width: DS.Size.hudBarWidth)
             }
 
-            Text(label)
-                .font(DS.Font.callout)
-                .foregroundStyle(isError ? DS.Color.warning : DS.Color.text)
-                .lineLimit(2)
-                .truncationMode(.head)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .animation(DS.Motion.standard, value: controller.transcript)
+            VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                Text(status)
+                    .font(DS.Font.callout)
+                    .foregroundStyle(DS.Color.text)
+                    .lineLimit(1)
+                if !controller.transcript.isEmpty {
+                    Text(controller.transcript)
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.textSecondary)
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, DS.Space.l)
         .padding(.vertical, DS.Space.m)
         .frame(width: DS.Size.hud.width, height: DS.Size.hud.height)
-        .glassEffect(DS.Material.hudGlass, in: .rect(cornerRadius: DS.Radius.hud))
+        .glassSurface(cornerRadius: DS.Radius.hud, glass: DS.Material.hudGlass)
     }
 
     /// Which orb the capsule shows. While listening the orb stays `listening` even when
@@ -69,22 +99,16 @@ struct HUDView: View {
         controller.state == .listening || controller.isCapturingAudio ? .listening : .working
     }
 
-    private var isError: Bool {
-        if case .error = controller.state { return true }
-        return false
-    }
-
-    private var label: String {
+    private var status: String {
         switch controller.state {
         // "Getting ready…" only while the pre-roll has not opened the mic yet. Once it
         // runs (D-02) the hold is capturing, so it reads as listening instead of setup.
-        case .starting: controller.isCapturingAudio
-            ? (controller.transcript.isEmpty ? "Listening…" : controller.transcript)
-            : "Getting ready…"
-        case .listening: controller.transcript.isEmpty ? "Listening…" : controller.transcript
-        // Prefer live / stabilized text when the engine already filled it during the hold.
-        case .finishing: controller.transcript.isEmpty ? "Transcribing…" : controller.transcript
-        case .error(let message): message
+        case .starting: controller.isCapturingAudio ? "Listening…" : "Getting ready…"
+        case .listening: "Listening…"
+        // The controller's `.finishing` includes transcription, cleanup and insertion.
+        // A narrower label would claim a substage that the HUD cannot observe.
+        case .finishing: "Finishing…"
+        case .error: ""
         case .idle: ""
         }
     }

@@ -4,7 +4,7 @@ import SwiftUI
 /// The "agent is working" surface (P1-1) — the pane's half.
 ///
 /// Above the composer while a task runs: a status pill with Stop, a live view of the
-/// window being driven (the AX summary text until a screenshot is available), the step
+/// current operation reported by the run, the step
 /// list with ✓ / ◐ rows that expand into the arguments that would run, the approval
 /// card inline the moment one belongs to this task, and on completion a terminal result
 /// card carrying the result and its artifact links. The persistent AI disclaimer is the
@@ -15,7 +15,9 @@ import SwiftUI
 struct AgentWorkingCard: View {
     let task: AgentTask
     let stop: () -> Void
+    var animatesActivity = true
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var store = AgentActivityStore.shared
     @State private var identity = AgentIdentityStore.shared
     @State private var gate = PermissionGate.shared
@@ -26,8 +28,33 @@ struct AgentWorkingCard: View {
         store.steps(taskID: task.id)
     }
 
+    /// Reads the same task-scoped step in the preview and in the fixture below.
+    static func currentStep(taskID: String, in store: AgentActivityStore) -> AgentStep? {
+        store.steps(taskID: taskID).last
+    }
+
+    static func currentPreview(taskID: String, in store: AgentActivityStore) -> AgentWorkPreview? {
+        let step = currentStep(taskID: taskID, in: store)
+        return step?.isCompleted == false ? step?.preview : nil
+    }
+
+    private var currentPreview: AgentWorkPreview? {
+        Self.currentPreview(taskID: task.id, in: store)
+    }
+
+    private var currentStep: AgentStep? {
+        Self.currentStep(taskID: task.id, in: store)
+    }
+
     private var isRunning: Bool {
         task.status == .running || task.status == .queued || task.status == .waitingForPermission
+    }
+
+    /// A persisted task may name a direct tool, or a multi-step backend with no single
+    /// tool. Only the catalogue can establish the former's risk; the latter gets no Retry.
+    static func retryRisk(for task: AgentTask) -> AgentRisk? {
+        guard let tool = task.tool else { return nil }
+        return AgentToolRegistry.shared.tool(named: tool)?.risk
     }
 
     /// The approval card belongs here when the pending request names this task.
@@ -55,7 +82,7 @@ struct AgentWorkingCard: View {
                             )
                         },
                         dismiss: { gate.respond(id: inlineReview.id, approved: false) },
-                        alwaysAllow: gate.pending?.scope.kind == .any ? nil : {
+                        alwaysAllow: !gate.pendingAllowsStandingGrant || gate.pending?.scope.kind == .any ? nil : {
                             gate.respond(
                                 id: inlineReview.id,
                                 approved: true,
@@ -85,15 +112,16 @@ struct AgentWorkingCard: View {
                 // place a run is explained, and two marks saying "running" is one too many.
                 AgentAvatarView(
                     config: identity.avatar,
-                    state: steps.last?.avatar ?? store.liveAvatarState ?? .thinking,
-                    size: DS.Size.agentAvatar
+                    state: currentPreview?.isYielded == true ? .waiting : steps.last?.avatar ?? .thinking,
+                    size: DS.Size.agentAvatar,
+                    frozenAt: animatesActivity ? nil : AgentAvatarChoreography.stillFrame
                 )
             } else {
                 Circle()
                     .fill(DS.Color.textSecondary)
                     .frame(width: DS.Size.orbBadge * 0.35, height: DS.Size.orbBadge * 0.35)
             }
-            Text(isRunning ? "Working · \(task.objective)" : task.status.humanState)
+            Text(isRunning ? "\(currentPreview?.isYielded == true ? "Paused" : "Working") · \(task.objective)" : task.status.humanState)
                 .font(DS.Font.headline)
                 .lineLimit(1)
             Spacer(minLength: 0)
@@ -102,7 +130,7 @@ struct AgentWorkingCard: View {
                     .font(DS.Font.counterSmall)
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.textSecondary)
-                    .contentTransition(.numericText())
+                    .contentTransition(reduceMotion ? .identity : .numericText())
             }
             if isRunning {
                 Button("Stop", action: stop)
@@ -119,68 +147,47 @@ struct AgentWorkingCard: View {
 
     // MARK: - Live view
 
-    /// The "Browsing" window of the competitor's UI: what the run is looking at. A
-    /// screenshot lands here when one was captured (P1-2) — memory only, never written
-    /// anywhere — and until then this is the AX summary text of the window being driven.
-    /// Never a machine room (§8.3 exposure discipline: no CLI output, no schemas, no file
-    /// paths).
+    /// Context arrives from the backing with the task and step captured at tool entry.
+    /// The UI never polls the shared vision image slot or guesses from model output.
     private var liveView: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                if let screenshot = liveScreenshot, let image = NSImage(data: screenshot.data) {
-                    Image(nsImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: .infinity, maxHeight: DS.Size.messagePreviewHeight)
-                        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.glassSmall))
-                        .accessibilityLabel("A picture of the window I am working in")
-                    Text("A picture of the window I’m working in. It is not saved.")
+            VStack(alignment: .leading, spacing: DS.Space.xs) {
+                Text(currentPreview?.isYielded == true ? "You have the Mac" : "Current step")
+                    .font(DS.Font.sectionLabel)
+                    .foregroundStyle(DS.Color.textSecondary)
+                if currentPreview?.isYielded == true {
+                    Text("Paused while you’re using your Mac.")
+                        .font(DS.Font.callout)
+                    Text("Tell me what to do next when you’re ready.")
                         .font(DS.Font.caption)
                         .foregroundStyle(DS.Color.textSecondary)
-                } else if let summary = axSummaryText {
-                    Text(summary)
-                        .font(DS.Font.caption)
-                        .foregroundStyle(DS.Color.textSecondary)
-                        .lineLimit(4)
-                        .textSelection(.enabled)
+                } else if let step = currentStep {
+                    Text(step.title)
+                        .font(DS.Font.callout)
+                    if let preview = currentPreview {
+                        if let data = preview.thumbnail, let image = NSImage(data: data) {
+                            Image(nsImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: DS.Size.messagePreviewHeight)
+                                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+                                .accessibilityHidden(true)
+                        }
+                        Text(preview.summary)
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 } else {
-                    Text("Working in the front window\u{2026}")
-                        .font(DS.Font.caption)
+                    Text("Getting started…")
+                        .font(DS.Font.callout)
                         .foregroundStyle(DS.Color.textSecondary)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: DS.Size.messagePreviewHeight / 2, alignment: .leading)
+            .animation(reduceMotion ? nil : DS.Motion.standard, value: currentPreview)
         }
-    }
-
-    /// The last capture this run parked for the live view.
-    ///
-    /// The fixed keys are the ones the computer and the accessibility browser paths use.
-    /// The CDP path parks under `browser.screenshot:<targetId>`; when the run's own
-    /// arguments name a target, that key is checked too. `ScreenshotStore` is memory-only
-    /// with no key enumeration, so a capture whose target was resolved internally reaches
-    /// the live view only through the fixed keys.
-    private var liveScreenshot: LLMImage? {
-        for key in screenshotKeys {
-            if let image = ScreenshotStore.peek(for: key) { return image }
-        }
-        return nil
-    }
-
-    private var screenshotKeys: [String] {
-        var keys = ["computer.screenshot", "browser.screenshot:ax"]
-        for name in ["targetId", "target_id", "browserTargetId", "cdpTargetId"] {
-            if let target = task.arguments[name], !target.isEmpty {
-                keys.append("browser.screenshot:\(target)")
-            }
-        }
-        return keys
-    }
-
-    /// The most recent step that carries a description of what it saw — the AX summary
-    /// text. Steps without one leave the placeholder.
-    private var axSummaryText: String? {
-        steps.last(where: { !$0.detail.isEmpty })?.detail
     }
 
     // MARK: - Steps
@@ -233,7 +240,9 @@ struct AgentWorkingCard: View {
             if task.status == .failed, task.failure != nil {
                 FailureCard.forTask(
                     task,
-                    retryRisk: .modify,
+                    // An ACP/multi-step task has no single tool risk. No retry is offered
+                    // until the existing task record can prove it is safe to repeat.
+                    retryRisk: Self.retryRisk(for: task),
                     retry: {
                         AgentTaskManager.shared.submit(
                             objective: task.objective,
@@ -374,6 +383,17 @@ extension AgentWorkingCard {
         store.finish(taskID: task.id, title: "Done")
         if store.inProgressStepCount != 0 {
             failures.append("a finished run left \(store.inProgressStepCount) steps in progress")
+        }
+        let other = AgentTask(objective: "A different window", source: "selftest")
+        store.begin(task: other, title: other.objective)
+        store.update(taskID: other.id, kind: .reading, title: "Looking at the other window")
+        if Self.currentStep(taskID: task.id, in: store)?.title
+            != "Checking the price against your $40 cap…" {
+            failures.append("the first task's preview followed another run's newer step")
+        }
+        if Self.currentStep(taskID: other.id, in: store)?.title
+            != "Looking at the other window" {
+            failures.append("the second task's preview did not use its own step")
         }
         store.resetForSelfTest()
         return failures

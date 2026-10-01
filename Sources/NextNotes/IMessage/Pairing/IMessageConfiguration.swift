@@ -33,6 +33,19 @@ struct IMessageConfiguration: Equatable, Sendable, Codable {
     var chatHandleCache: String?
     /// The last time a remote command was accepted, for the UI's "Last request · 2 min ago".
     var lastInboundCommandAt: TimeInterval?
+    /// IM-12 — "stop remote access" latched here. Processing (turns) and tools (the
+    /// broker's remote branch) both refuse while set. `decodeIfPresent`, like every
+    /// other field: an older file reads as unpaused.
+    var remoteAccessSuspended: Bool = false
+    /// IM-17e — the canary's 24-hour window: rows considered and rows unreadable.
+    /// Updated by the hosted watcher as it reads (IM-16); until then zeros, which
+    /// the row renders without a note. Same file, because a second store for
+    /// three numbers is the ledger this roadmap refuses to add twice.
+    var canarySeen: Int = 0
+    var canaryUnreadable: Int = 0
+    /// Unix timestamp opening the window the two counts cover. Nil (never opened)
+    /// reads as zero counts.
+    var canaryWindowStartedAt: TimeInterval?
 
     init() {}
 
@@ -46,6 +59,10 @@ struct IMessageConfiguration: Equatable, Sendable, Codable {
         remotePolicyVersion = try container.decodeIfPresent(Int.self, forKey: .remotePolicyVersion) ?? 1
         chatHandleCache = try container.decodeIfPresent(String.self, forKey: .chatHandleCache)
         lastInboundCommandAt = try container.decodeIfPresent(TimeInterval.self, forKey: .lastInboundCommandAt)
+        remoteAccessSuspended = try container.decodeIfPresent(Bool.self, forKey: .remoteAccessSuspended) ?? false
+        canarySeen = try container.decodeIfPresent(Int.self, forKey: .canarySeen) ?? 0
+        canaryUnreadable = try container.decodeIfPresent(Int.self, forKey: .canaryUnreadable) ?? 0
+        canaryWindowStartedAt = try container.decodeIfPresent(TimeInterval.self, forKey: .canaryWindowStartedAt)
     }
 
     /// Whether the feature is paired and enabled. Both must be true: an unpaired feature

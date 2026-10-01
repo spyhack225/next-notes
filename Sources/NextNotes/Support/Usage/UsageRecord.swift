@@ -122,6 +122,13 @@ enum UsageFeature: String, Codable, Sendable, CaseIterable {
     case dictationPressRefused = "dictation.press_refused"
     case memoryReview = "memory.review"
     case knowledgeAsk = "knowledge.ask"
+    /// IM-17d — the pass row for a remote turn: provider, model and locality are
+    /// the real ones, and the transport facts ride in `counts`. A remote turn is
+    /// neither `agent.typed` nor `agent.voice`.
+    case agentIMessage = "agent.imessage"
+    /// IM-17d — an iMessage transport event that ran no model: provider `rules`,
+    /// model `none`, token fields `nil`.
+    case imessageEvent = "imessage.event"
 }
 
 /// The model or engine that produced a pass.

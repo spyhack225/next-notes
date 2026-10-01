@@ -89,8 +89,9 @@ enum TaskRecoverySelfTest {
                         try TaskStore.exec(db, "BEGIN IMMEDIATE")
                         defer { try? TaskStore.exec(db, "ROLLBACK") }
                         let held = AgentTaskManager(store: persisted)
-                        check(held.task(id: interrupted.id)?.status == .recovering && held.lastPersistenceResult == .sqlFailed,
-                            "restart primary contention was invisible")
+                        check(held.task(id: interrupted.id) == interrupted && held.lastPersistenceResult == .sqlFailed
+                            && held.historyReadFailure != nil && held.backendStartsForTesting == 0,
+                            "restart primary contention exposed an uncommitted held state or allowed dispatch")
                         // Read through the other connection; writer's connection lock is
                         // intentionally held by this failure-injection closure.
                         check(try persisted.load() == [interrupted] && sql.load() == [interrupted]

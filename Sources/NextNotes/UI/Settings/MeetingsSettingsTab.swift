@@ -56,12 +56,11 @@ struct MeetingsSettingsTab: View {
             } header: {
                 Text("Recording")
             } footer: {
-                SettingsNote(text: "Two channels are recorded: your microphone on the left, "
-                             + "everything the Mac plays on the right. About 230 MB per hour "
-                             + "— off by default because the transcript is what the notes are "
-                             + "written from. A meeting that is going to have its speakers "
-                             + "identified records audio either way, and throws it away "
-                             + "afterwards unless it is being kept.")
+                SettingsNote(text: "Audio uses about 230 MB per hour. Keeping it is off by default. "
+                             + "Identifying speakers or re-checking the transcript still needs a temporary recording. "
+                             + "That recording stays for up to three days after processing, "
+                             + "and may be removed sooner when storage is low. Audio you choose to keep "
+                             + "follows the delete-after-notes choice above.")
             }
 
             Section {
@@ -117,7 +116,7 @@ struct MeetingsSettingsTab: View {
                                  + "the conversation.")
                     SettingsNote(text: "Listens to the recording again once the meeting ends, "
                                  + "which fixes words the live transcript got wrong. Keeps a "
-                                 + "temporary recording until the notes are written.")
+                                 + "temporary recording for up to three days after processing, or less when storage is low.")
                 }
             }
 

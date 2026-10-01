@@ -233,7 +233,9 @@ final class Notifications {
     func postNotesReady(meeting: Meeting, model: String?) {
         let content = UNMutableNotificationContent()
         content.title = meeting.title
-        content.body = model.map { "Notes written by \($0)." } ?? "Notes are ready."
+        content.body = meeting.captureIntegrity?.hasPartialCapture == true
+            ? "Partial notes are ready. Some meeting audio may be missing."
+            : (model.map { "Notes written by \($0)." } ?? "Notes are ready.")
         content.categoryIdentifier = Category.notesReady
         content.userInfo = [UserInfoKey.meetingID: meeting.id.uuidString]
         post(content, identifier: "meeting-notes-\(meeting.id.uuidString)")
@@ -242,12 +244,51 @@ final class Notifications {
     /// A recording or transcript write failed while the person is likely in another app.
     /// One notification per meeting replaces repeats from subsequent failed writes.
     func postMeetingStorageProblem(meeting: Meeting) {
+        postMeetingProblem(meeting: meeting, issue: .audioWriteFailure)
+    }
+
+    /// Fixture transport replaces delivery only, preserving actual session routing
+    /// and content. A denied notification never owns the in-app warning state.
+    var meetingProblemPostForTesting: ((Meeting, MeetingHealthIssue, UNNotificationContent) -> Void)?
+
+    static func meetingProblemContent(meeting: Meeting, issue: MeetingHealthIssue) -> UNMutableNotificationContent {
         let content = UNMutableNotificationContent()
-        content.title = "Meeting may not be saved"
-        content.body = "Check your Mac's storage and see what Next Notes captured."
+        content.title = issue.isCaptureFailure ? "Some meeting audio is missing" : "Meeting needs attention"
+        content.body = issue.message
         content.userInfo = [UserInfoKey.meetingID: meeting.id.uuidString]
         content.sound = .default
-        post(content, identifier: "meeting-storage-\(meeting.id.uuidString)")
+        return content
+    }
+
+    func postMeetingProblem(meeting: Meeting, issue: MeetingHealthIssue) {
+        let content = Self.meetingProblemContent(meeting: meeting, issue: issue)
+        if SelfTest.isRunning {
+            meetingProblemPostForTesting?(meeting, issue, content)
+            return
+        }
+        post(content, identifier: "meeting-problem-\(meeting.id.uuidString)")
+    }
+
+    func postMeetingRecovery(meeting: Meeting) {
+        guard let summary = meeting.captureSummary else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Meeting recording was interrupted"
+        content.body = summary
+        content.userInfo = [UserInfoKey.meetingID: meeting.id.uuidString]
+        post(content, identifier: "meeting-problem-\(meeting.id.uuidString)")
+    }
+
+    /// IM-17e — the canary fired: the decoder is breaking on the paired chat.
+    /// No button: nothing the person can press helps until the app is updated,
+    /// and the copy says so. One stable identifier, so a second firing inside
+    /// the cooldown replaces rather than stacks. The caller enforces the
+    /// once-per-24-hours rule through `IMessageCanary.shouldNotify`.
+    func postUnreadableMessages() {
+        let content = UNMutableNotificationContent()
+        content.title = IMessageCanaryCopy.notificationTitle
+        content.body = IMessageCanaryCopy.notificationBody
+        content.sound = .default
+        post(content, identifier: "imessage-unreadable")
     }
 
     /// "Next Notes would like to send this", with Approve / Dismiss.

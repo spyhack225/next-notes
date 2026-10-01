@@ -58,6 +58,8 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
     var scheduleID: UUID?
     /// Absent on older history. Storage alone never grants recovery or retry authority.
     var durability: TaskDurability?
+    /// Exact unanswered payload, written by its producer before a card is raised.
+    var pendingInteraction: TaskPendingInteraction?
 
     static let scheduledSource = "scheduled"
 
@@ -89,10 +91,12 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         compatibilityCLI: String? = nil,
         compatibilityDirectory: String? = nil,
         scheduleID: UUID? = nil,
-        durability: TaskDurability? = nil
+        durability: TaskDurability? = nil,
+        pendingInteraction: TaskPendingInteraction? = nil
     ) {
         self.scheduleID = scheduleID
         self.durability = durability
+        self.pendingInteraction = pendingInteraction
         self.id = id
         self.objective = objective
         self.source = source
@@ -116,7 +120,7 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
     enum CodingKeys: String, CodingKey {
         case id, objective, source, createdAt, contextReferences, status, progress
         case result, artifacts, tool, arguments, meetingID, backend, failure, acpCLI
-        case compatibilityCommand, compatibilityCLI, compatibilityDirectory, scheduleID, durability
+        case compatibilityCommand, compatibilityCLI, compatibilityDirectory, scheduleID, durability, pendingInteraction
     }
 
     init(from decoder: Decoder) throws {
@@ -141,6 +145,7 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         compatibilityDirectory = try container.decodeIfPresent(String.self, forKey: .compatibilityDirectory)
         scheduleID = try container.decodeIfPresent(UUID.self, forKey: .scheduleID)
         durability = try container.decodeIfPresent(TaskDurability.self, forKey: .durability)
+        pendingInteraction = try container.decodeIfPresent(TaskPendingInteraction.self, forKey: .pendingInteraction)
     }
 }
 
@@ -163,5 +168,27 @@ extension AgentTask {
     /// No undo outcome is inferred from the artifact list.
     var failureUndoLine: String {
         "Review any changes before trying again."
+    }
+}
+
+/// The existing permission value retains its exact tool, arguments, scope, trigger
+/// and identity. The task's source remains the origin owner; a snapshot is never a
+/// grant or proof that an interrupted worker can be reattached.
+enum TaskPendingInteraction: Codable, Equatable, Sendable {
+    case permission(request: PermissionRequest, origin: ActionOriginContext?, review: ToolCallReview? = nil)
+    case input(TaskInputRequest)
+}
+
+struct TaskInputRequest: Identifiable, Codable, Equatable, Sendable {
+    let id: String
+    let taskID: String
+    let question: String
+    let createdAt: Date
+
+    init(id: String = UUID().uuidString, taskID: String, question: String, createdAt: Date = Date()) {
+        self.id = id
+        self.taskID = taskID
+        self.question = question
+        self.createdAt = createdAt
     }
 }

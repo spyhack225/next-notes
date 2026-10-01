@@ -26,8 +26,49 @@ enum UIStringsLint {
         }
         let offenders = scan(directory: directory)
         for offender in offenders { print("UI_STRINGS_WRONG: \(offender)") }
-        print(offenders.isEmpty ? "UI_STRINGS_OK" : "UI_STRINGS_FAILED")
-        return offenders.isEmpty
+        // Structural claims fail the same verdict: an unwired feature and a
+        // banned word are both a red suite. The lines above already proved the
+        // reference case fires on an unregistered section.
+        let structural = structureProblems(in: directory)
+        for problem in structural {
+            print("UI_STRINGS_WRONG: \(problem)")
+        }
+        let failed = !offenders.isEmpty || !structural.isEmpty
+        print(failed ? "UI_STRINGS_FAILED" : "UI_STRINGS_OK")
+        return !failed
+    }
+
+    /// Structural claims about the iMessage UI, checked alongside the literals
+    /// because they are the same kind of file-tree fact: the two views live
+    /// inside `UI/` (so this lint sees their strings), and the Agent tab
+    /// references the section (so the feature cannot ship unwired). A finished
+    /// feature with no call site looks exactly like a working one — these lines
+    /// are what fail until the one-line registration lands.
+    static func structureProblems(in directory: URL) -> [String] {
+        var problems: [String] = []
+        let section = directory
+            .appendingPathComponent("Settings/IMessageSettingsSection.swift")
+        let sheet = directory
+            .appendingPathComponent("Onboarding/IMessageSetupSheet.swift")
+        for file in [section, sheet] {
+            guard FileManager.default.fileExists(atPath: file.path) else {
+                problems.append("\(file.lastPathComponent) is not inside UI/")
+                continue
+            }
+            guard (try? String(contentsOf: file, encoding: .utf8)) != nil else {
+                problems.append("\(file.lastPathComponent) is unreadable")
+                continue
+            }
+        }
+        let tab = directory.appendingPathComponent("Settings/AgentSettingsTab.swift")
+        if let source = try? String(contentsOf: tab, encoding: .utf8) {
+            if !source.contains("IMessageSettingsSection()") {
+                problems.append("AgentSettingsTab does not reference IMessageSettingsSection()")
+            }
+        } else {
+            problems.append("AgentSettingsTab.swift is unreadable")
+        }
+        return problems
     }
 
     /// Every offending literal, as `<path>:<line>: <literal>`. Pure file I/O.
