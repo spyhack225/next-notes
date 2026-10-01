@@ -23,10 +23,17 @@ pass. Removing the actual post-wait revision check fails on stale action fire.
 Core remains 16/18: wake accuracy and varying dictation capture/retry failures
 are unresolved. No model/default, numeric gate or phase exit is promoted.
 
-P6-03's actual-manager event journal and P3-06a's shadow reducer/producer hooks
-are now active, with disjoint owners. The journal worker owns the existing
-manager/store plus narrow Executor final-fire fact hooks; the shadow worker
-owns capture/coordinator/audio identities and factual PermissionGate hooks.
+P6-03 is committed as `1c68d3e`: 37 installed actual store/manager/backend/tool/
+approval cases, related regressions and owner isolation pass. Events are factual
+bounded metadata, atomic with their SQL snapshot. JSON remains read authority;
+ACP/scheduled context coverage and real attempts/leases/receipts remain open.
+Current CORE16/18 fails wake and computer focus (LaunchServices also fails focus);
+dictation passed this run, earlier intermittent failures remain unresolved.
+
+P6-04a strict migration/read-authority and held launch decisions are now active.
+Unknown/unbound work must never auto-run; pending-card plans need actual routing
+proof. P3-06a focused capture/stream evidence is green, but wider floor/output
+shadow disagreements remain under repair. Legacy controllers still own behavior.
 Root serializes registry changes, installed verification and roadmap updates.
 TaskBridge and OutputScheduler remain subsequent contracts. AgentCapabilityManifest already exists. Remote TaskOrigin
 must reuse ActionOriginContext and preserve message/session/transport identity;
