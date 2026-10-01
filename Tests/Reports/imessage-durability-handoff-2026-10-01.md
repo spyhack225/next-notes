@@ -30,7 +30,10 @@ ACP/scheduled context coverage and real attempts/leases/receipts remain open.
 Current CORE16/18 fails wake and computer focus (LaunchServices also fails focus);
 dictation passed this run, earlier intermittent failures remain unresolved.
 
-P6-04a strict migration/read-authority and held launch decisions are now active.
+P6-04a-1 is committed `6f50e07`: held restarts, strict damaged-history rejection,
+stale-response guards and actual truthful failed delegation pass56cases plus12
+related flags and isolation21files/23defaults. P6-04a-2 SQL authority migration
+is now active; JSON remains current read authority.
 Unknown/unbound work must never auto-run; pending-card plans need actual routing
 proof. P3-06a bounded foundation is committed `5ecc7e6`: scripted capture/output and
 related comparisons show zero observed disagreements; ordered replay exits0 and
