@@ -1,0 +1,4 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-resume --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/durable-tasks/2026-10-01-p6-01/core/selftest-meeting-resume.out
+2026-10-01 01:56:39.890 NextNotes[31802:1040785] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_RESUME_THROTTLE: 4 write(s) for 100 segments, flushed to 100; a trailing write inside the interval, cancelled by the exit
+MEETING_RESUME_OK: 4/4 resumable meetings reached .done with notes; no temp audio released early; 4 write(s) for 100 segments, flushed to 100; a trailing write inside the interval, cancelled by the exit

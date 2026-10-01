@@ -1,0 +1,6 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-imessage-watch --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/durable-tasks/2026-10-01-p6-01/core/selftest-imessage-watch.out
+2026-10-01 01:56:58.785 NextNotes[31886:1041572] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+IMESSAGE_WATCH_MEASURED: settling: 3 waits × 0.25 seconds = 750ms of virtual time, then resolved with 1 attachment
+IMESSAGE_WATCH_MEASURED: per_message_deadline: rows 2 and 3 delivered at 12ms, row 1 (never settles) at 2043ms, budget 8 × 250ms = 2000ms
+IMESSAGE_WATCH_MEASURED: idle: 1511ms armed and silent, passes 0, attachment queries 0
+IMESSAGE_WATCH_OK: 15 cases

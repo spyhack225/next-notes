@@ -15,9 +15,11 @@ final class AgentTaskManager {
     /// A separate, in-memory one-shot token for the weaker ACP compatibility path.
     /// It is never persisted or represented as a permission grant.
     @ObservationIgnored private var approvedCompatibilityTaskIDs: Set<String> = []
+    @ObservationIgnored private let store: AgentTaskStore
 
-    private init() {
-        tasks = AgentTaskStore.shared.load().map { task in
+    init(store: AgentTaskStore = .shared) {
+        self.store = store
+        tasks = store.load().map { task in
             var task = task
             if task.status == .running || task.status == .queued {
                 task.status = .failed
@@ -290,7 +292,7 @@ final class AgentTaskManager {
 
     private func persist() {
         guard !SelfTest.isRunning else { return }
-        AgentTaskStore.shared.save(tasks)
+        store.save(tasks)
     }
 
     /// Folds whatever the ledger holds for this run onto the task's artifact list.

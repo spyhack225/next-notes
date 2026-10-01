@@ -144,6 +144,7 @@ INTEGRATION_ENTRIES=(
   # routines / schedule
   "selftest-schedule|300"
   "selftest-routine-authority|300"
+  "selftest-task-durability|300"
   "selftest-digest|300"
   "selftest-podcast|300"
   "selftest-guided|300"

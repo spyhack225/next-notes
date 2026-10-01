@@ -10,12 +10,21 @@ final class AgentTaskStore {
         AppIdentity.applicationSupportDirectory.appendingPathComponent("agent-tasks.json")
     }
 
-    private init() {}
+    /// A fixture supplies its exact file before seeding. Nil retains the shared store's
+    /// existing path resolution; an injected URL never falls back to the owner's file.
+    private let injectedFileURL: URL?
+
+    init(fileURL: URL? = nil) {
+        injectedFileURL = fileURL
+    }
+
+    /// Read-only location lets an isolated fixture verify its binding before seeding.
+    var storageURL: URL { injectedFileURL ?? Self.fileURL }
 
     func load() -> [AgentTask] {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        guard let data = try? Data(contentsOf: Self.fileURL) else { return [] }
+        guard let data = try? Data(contentsOf: storageURL) else { return [] }
         return (try? decoder.decode([AgentTask].self, from: data)) ?? []
     }
 
@@ -24,6 +33,6 @@ final class AgentTaskStore {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(tasks) else { return }
-        try? data.write(to: Self.fileURL, options: .atomic)
+        try? data.write(to: storageURL, options: .atomic)
     }
 }

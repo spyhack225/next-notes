@@ -154,6 +154,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-dictation-hygiene
 --selftest-learn     --selftest-context [bundle-id]
 --selftest-tools     --selftest-wake       --selftest-tasks
+--selftest-task-durability
 --selftest-persona   --selftest-memory     --selftest-schedule
 --selftest-routine-authority
 --selftest-index     --selftest-search [query] [--gold <path>]
@@ -231,6 +232,12 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-native-tools
 --selftest-now-block
 ```
+
+`--selftest-task-durability` starts with P6-01's isolated restart baseline: the real
+JSON store round-trips into a fresh manager, running/queued records become failed,
+and a retained permission record supplies no live approval token. This characterizes
+current behavior; it does not prove recovery or authorize an iMessage production host.
+Later Phase 6 tasks extend the same flag as durability lands.
 
 `usage.jsonl` is the one local record of which model or engine ran each pass — Agent,
 Meetings and Dictation — with its provider, model, locality, timing, counts, tools and

@@ -1,0 +1,5 @@
+  DICTATION_NOTE: pre-roll fed 33444 frames of ~40000 with a 1.5 s start
+  DICTATION_WRONG: a transcribe timeout kept nothing for retry
+  DICTATION_WRONG: the wedged finish's outcome was failed(NextNotes.DictationHoldResult.Cause.noAudio), expected failed(transcribeTimeout)
+  DICTATION_WRONG: key-down to capture took 0.47692298889160156s with a 1.5 s start
+DICTATION_FAILED: 3 problem(s)

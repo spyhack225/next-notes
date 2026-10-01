@@ -1082,6 +1082,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-task-durability") {
+            writeSelfTest(TaskStoreSelfTest.run())
+            NSApp.terminate(nil)
+            return true
+        }
         if arguments.contains("--selftest-tasks") {
             runTasksSelfTest()
             return true
