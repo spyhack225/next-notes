@@ -1,0 +1,5 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-resume -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-core/selftest-meeting-resume.out
+2026-10-01 05:42:44.275 NextNotes[56834:1348213] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+MEETING_RESUME_THROTTLE: 4 write(s) for 100 segments, flushed to 100; a trailing write inside the interval, cancelled by the exit
+MEETING_RESUME_OK: 4/4 resumable meetings reached .done with notes; no temp audio released early; 4 write(s) for 100 segments, flushed to 100; a trailing write inside the interval, cancelled by the exit
+2026-10-01 05:42:58.192 NextNotes[56834:1348213] NSQuitAlwaysKeepsWindows=NO

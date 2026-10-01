@@ -14,6 +14,7 @@ final class VoiceConversationCoordinator {
         let id: UUID
         let work: VoiceConversationWork
         let worker: RealtimeAgent
+        let originSessionID: UUID?
         var status = "running"
         var result = ""
         var task: Task<Void, Never>?
@@ -30,6 +31,12 @@ final class VoiceConversationCoordinator {
     private var responseTask: Task<AgentTurn, Never>?
     private var responseID = UUID()
     private var inputEpoch: UInt64 = 0
+    private var voiceShadowTurns: [UInt64: TurnID] = [:]
+    private var voiceShadowResponse: (id: UUID, turn: TurnID)?
+    var voiceShadowResponseTurn: TurnID? {
+        guard let response = voiceShadowResponse, response.id == responseID else { return nil }
+        return response.turn
+    }
     private var provisionalText = ""
     private var preparationEpoch: UInt64 = 0
     private var preparationTask: Task<Void, Never>?
@@ -56,6 +63,10 @@ final class VoiceConversationCoordinator {
     /// pulling gigabytes into memory. Nil in production.
     var prewarmObserverForTesting: (@MainActor () -> Void)?
     var hasActiveWork: Bool { jobs.contains { $0.status == "running" } }
+    func voiceShadowOwnsTask(_ id: String?) -> Bool {
+        guard let id, let session = AgentCaptureController.shared.sessionID else { return false }
+        return jobs.contains { $0.id.uuidString == id && $0.originSessionID == session }
+    }
 
     /// A tool-shaped request the frontend answered instead of delegating (P0-6), or a
     /// question a finished worker asked (P1-07). A bare acknowledgment ("yes", "use them",
@@ -206,6 +217,12 @@ final class VoiceConversationCoordinator {
     func inputActivityStarted() {
         inputEpoch &+= 1
         inputPending = true
+        let shadow = VoiceSession.shared
+        let turn = AgentCaptureController.shared.voiceShadowCurrentTurn ?? shadow.beginTurnIfNeeded()
+        voiceShadowTurns[inputEpoch] = turn
+        if AgentCaptureController.shared.heardSpeechForTesting || RealtimeAgent.shared.voiceInputActive { shadow.noteFloorProducer() }
+        else { shadow.noteBareBarrierActivity() }
+        shadow.send(.inputActivity(turn))
     }
 
     func speechStarted() {
@@ -213,6 +230,19 @@ final class VoiceConversationCoordinator {
         inputPending = true
         responseTask?.cancel()
         responseID = UUID()
+        let shadow = VoiceSession.shared
+        let turn = AgentCaptureController.shared.voiceShadowCurrentTurn ?? shadow.beginTurnIfNeeded()
+        voiceShadowTurns[inputEpoch] = turn
+        shadow.noteFloorProducer()
+        shadow.interrupt(.committed(turn))
+        shadow.send(.inputActivity(turn))
+    }
+
+    /// Observe the existing control floor ending, independently of route
+    /// classification. The epoch mapping belongs to the input producer.
+    func speechEnded() {
+        guard let turn = voiceShadowTurns[inputEpoch] else { return }
+        VoiceSession.shared.send(.inputEnded(turn))
     }
 
     /// Load the tool-planning model once a turn has actually routed to work.
@@ -253,6 +283,7 @@ final class VoiceConversationCoordinator {
         // P0-07: the user withdrew the input, so nothing is left unclassified:
         // a held effect may commit again.
         effectHoldEpoch = nil
+        VoiceSession.shared.send(.inputWithdrawn)
     }
 
     private func resolveInput(epoch: UInt64) {
@@ -270,9 +301,10 @@ final class VoiceConversationCoordinator {
         resolveClassified(epoch: epoch)
     }
 
-    private func resolveClassified(epoch: UInt64) {
+    private func resolveClassified(epoch: UInt64, decision: FrontendDecision = .answer) {
         resolveInput(epoch: epoch)
         if let hold = effectHoldEpoch, epoch > hold { effectHoldEpoch = nil }
+        if let turn = voiceShadowTurns[epoch] { VoiceSession.shared.send(.decisionMade(turn, decision)) }
     }
 
     func closeSession() {
@@ -287,6 +319,9 @@ final class VoiceConversationCoordinator {
         inputPending = false
         // P0-07: a closed session has no unclassified input to protect.
         effectHoldEpoch = nil
+        if let response = voiceShadowResponse { VoiceSession.shared.send(.responseEnded(response.turn, .cancelled)) }
+        voiceShadowResponse = nil
+        VoiceSession.shared.send(.inputWithdrawn)
         // Background objectives remain in the task list and keep their owners.
     }
 
@@ -344,9 +379,16 @@ final class VoiceConversationCoordinator {
         AgentSession.shared.recordUser(text, source: .voice)
         AgentAuditLog.shared.record(kind: .request, title: text,
                                    detail: "voice hesitation; awaiting continuation")
+        let shadow = VoiceSession.shared
+        let turn = AgentCaptureController.shared.voiceShadowCurrentTurn ?? shadow.beginTurnIfNeeded()
+        voiceShadowTurns[inputEpoch] = turn
+        if AgentCaptureController.shared.voiceShadowHasFloor || RealtimeAgent.shared.voiceInputActive { shadow.noteFloorProducer() }
+        else { shadow.noteBareBarrierActivity() }
+        shadow.send(.inputActivity(turn))
+        shadow.send(.hesitation(turn, text: text))
     }
 
-    func handle(_ raw: String) async -> AgentTurn {
+    func handle(_ raw: String, turn shadowTurn: TurnID? = nil) async -> AgentTurn {
         // The user's own dictionary rewrites what dictation inserts; the Agent's ear had
         // never been given it. `dictionary.txt` on this Mac maps "Quentin 2.5" to
         // "Qwen3.5" and "Sergeant William Kedu" to "Serge William Kadjo" — names the
@@ -370,6 +412,13 @@ final class VoiceConversationCoordinator {
         inputPending = true
         inputEpoch &+= 1
         let epoch = inputEpoch
+        let identity = shadowTurn ?? VoiceSession.shared.beginTurnIfNeeded()
+        voiceShadowTurns[epoch] = identity
+        if voiceShadowTurns.count > 256 {
+            for old in voiceShadowTurns.keys.sorted().prefix(128) { voiceShadowTurns.removeValue(forKey: old) }
+        }
+        voiceShadowResponse = (id, identity)
+        VoiceSession.shared.send(.committed(identity, text: text))
         // A committed turn, not a partial: the watcher raises a card, and a card built from
         // a provisional is a card about words the user did not finish saying.
         FunctionCallWatcher.shared.noteUserTurn(text)
@@ -384,7 +433,16 @@ final class VoiceConversationCoordinator {
 
     private func respond(_ text: String, id: UUID, inputEpoch: UInt64, commitRevision: UInt64) async -> AgentTurn {
         let agent = RealtimeAgent.shared
-        let turn = agent.beginVoiceFrontend()
+        let identity = voiceShadowTurns[inputEpoch]
+        let turn = agent.beginVoiceFrontend(voiceTurn: identity)
+        defer {
+            if let identity {
+                let outcome: ResponseOutcome = responseID != id || Task.isCancelled ? .cancelled
+                    : lastFailure.map { .failed(code: $0.code.rawValue) } ?? .answered
+                if voiceShadowResponse?.id == id { voiceShadowResponse = nil }
+                VoiceSession.shared.send(.responseEnded(identity, outcome))
+            }
+        }
         // One id per voice turn (P0-20a). Installed as a task-local around the frontend
         // stream, so its route and answer passes write their rows with it.
         let usageTurnID = UUID()
@@ -406,7 +464,7 @@ final class VoiceConversationCoordinator {
         if VoiceTurnPolicy.isExplicitWorkCancellation(text), active.count == 1 {
             cancelResponsePreparation()
             cancel(active[0].id)
-            resolveClassified(epoch: inputEpoch)
+            resolveClassified(epoch: inputEpoch, decision: .cancel(TaskID(active[0].id)))
             return agent.finishVoiceFrontend("I stopped that task.", turn: turn, streamed: false)
         }
         // A turn that only supplies a name is an answer, not a new subject. Left to the
@@ -419,11 +477,11 @@ final class VoiceConversationCoordinator {
                 // paraphrase here would be one more guess between the two.
                 job.work.append(text)
                 PermissionGate.shared.cancelPending(taskID: job.work.id.uuidString)
-                resolveClassified(epoch: inputEpoch)
+                resolveClassified(epoch: inputEpoch, decision: .revise(TaskID(job.work.id), text: text))
                 return agent.finishVoiceFrontend("Got it — “\(named)”.", turn: turn, streamed: false)
             }
             if let last = jobs.last, AgentEntityResolver.askedForAName(last.result) {
-                resolveClassified(epoch: inputEpoch)
+                resolveClassified(epoch: inputEpoch, decision: .spawn(objective: "open \(named)", userWords: text, backend: nil))
                 submit("open \(named)")
                 return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
             }
@@ -445,7 +503,7 @@ final class VoiceConversationCoordinator {
             AgentAuditLog.shared.record(kind: .request, title: pending.requestText,
                 detail: "pending_ack → newWork (\(pending.origin.rawValue); heard: "
                     + "\(String(text.prefix(80))))")
-            resolveClassified(epoch: inputEpoch)
+            resolveClassified(epoch: inputEpoch, decision: .spawn(objective: objective, userWords: text, backend: nil))
             prewarmWorkerModel()
             submit(objective)
             return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
@@ -461,7 +519,7 @@ final class VoiceConversationCoordinator {
         if let route = toolShapeRoute(text, allowedIDs: allowedIDs) {
             AgentAuditLog.shared.record(kind: .request, title: text,
                 detail: "tool_shape_route(\(route.route)) → newWork; planner keeps the decision")
-            resolveClassified(epoch: inputEpoch)
+            resolveClassified(epoch: inputEpoch, decision: .spawn(objective: route.text, userWords: text, backend: nil))
             prewarmWorkerModel()
             submit(route.text)
             return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
@@ -476,7 +534,7 @@ final class VoiceConversationCoordinator {
             in: text, readyIntents: Set(voiceManifest.allowed.map(\.intent))) {
             AgentAuditLog.shared.record(kind: .request, title: text,
                 detail: "question_route(\(intent.rawValue)) → newWork; the planner reads the real data")
-            resolveClassified(epoch: inputEpoch)
+            resolveClassified(epoch: inputEpoch, decision: .spawn(objective: text, userWords: text, backend: nil))
             prewarmWorkerModel()
             submit(text)
             return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
@@ -498,7 +556,7 @@ final class VoiceConversationCoordinator {
                match.score >= AgentEntityResolver.confidentThreshold {
                 AgentAuditLog.shared.record(kind: .request, title: text,
                     detail: "garble_resolve → open \(match.hit.name)")
-                resolveClassified(epoch: inputEpoch)
+                resolveClassified(epoch: inputEpoch, decision: .spawn(objective: "open \(match.hit.name)", userWords: text, backend: nil))
                 submit("open \(match.hit.name)")
                 return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
             }
@@ -629,7 +687,7 @@ final class VoiceConversationCoordinator {
                     tracker.cancel()
                     // The turn is classified — it routed to work — so it also supersedes the
                     // effect hold an earlier unclassified failure left behind (P0-07).
-                    resolveClassified(epoch: inputEpoch)
+                    resolveClassified(epoch: inputEpoch, decision: .spawn(objective: text, userWords: text, backend: nil))
                     prewarmWorkerModel()
                     submit(text)
                     return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
@@ -649,7 +707,7 @@ final class VoiceConversationCoordinator {
                 return agent.finishVoiceFrontend(assembled, turn: turn, streamed: tracker.didStreamSpeech)
             case .capabilities:
                 tracker.cancel()
-                resolveClassified(epoch: inputEpoch)
+                resolveClassified(epoch: inputEpoch, decision: .capabilities)
                 return agent.finishVoiceFrontend(VoiceCapabilitySnapshot.current().spokenSummary,
                                                  turn: turn, streamed: false)
             case .newWork:
@@ -660,7 +718,7 @@ final class VoiceConversationCoordinator {
                     return agent.finishVoiceFrontend("The voice test requested a tool, so it was stopped.",
                                                      turn: turn, streamed: false)
                 }
-                resolveClassified(epoch: inputEpoch)
+                resolveClassified(epoch: inputEpoch, decision: .spawn(objective: text, userWords: text, backend: nil))
                 prewarmWorkerModel()
                 submit(text)
                 return agent.finishVoiceFrontend("I'm on it.", turn: turn, streamed: false)
@@ -674,13 +732,13 @@ final class VoiceConversationCoordinator {
                 let work = indexed[index - 1].work
                 work.append(text)
                 PermissionGate.shared.cancelPending(taskID: work.id.uuidString)
-                resolveClassified(epoch: inputEpoch)
+                resolveClassified(epoch: inputEpoch, decision: .revise(TaskID(work.id), text: text))
                 return agent.finishVoiceFrontend("Got it. I'll use that correction.", turn: turn, streamed: false)
             case .cancel(let index):
                 tracker.cancel()
                 guard indexed.indices.contains(index - 1) else { break }
                 cancel(indexed[index - 1].id)
-                resolveClassified(epoch: inputEpoch)
+                resolveClassified(epoch: inputEpoch, decision: .cancel(TaskID(indexed[index - 1].id)))
                 return agent.finishVoiceFrontend("I stopped that task.", turn: turn, streamed: false)
             case .failure(let failure):
                 return finishFailure(failure, id: id, inputEpoch: inputEpoch, turn: turn, tracker: tracker)
@@ -853,8 +911,13 @@ final class VoiceConversationCoordinator {
         let worker = RealtimeAgent(voiceWorker: work)
         worker.localModelProviderForTesting = workerProviderForTesting
         let id = work.id
-        jobs.append(Job(id: id, work: work, worker: worker))
+        let session = AgentCaptureController.shared.sessionID
+        jobs.append(Job(id: id, work: work, worker: worker, originSessionID: session))
         AgentTaskManager.shared.beginVoiceObjective(id: id, objective: text)
+        if let session, let turn = voiceShadowResponse?.turn {
+            VoiceSession.shared.send(.task(.accepted(TaskID(id), title: text,
+                origin: .voice(sessionID: session, turn: turn))))
+        }
         let task = Task { @MainActor in
             let result = if let workerForTesting {
                 await workerForTesting(work)
@@ -867,6 +930,7 @@ final class VoiceConversationCoordinator {
             self.jobs[index].status = "finished"
             self.jobs[index].task = nil
             AgentTaskManager.shared.finishVoiceObjective(id: id, result: result)
+            VoiceSession.shared.send(.task(.completed(TaskID(id), result: result, artifacts: [])))
             // P1-07: a worker that ends on a question asked the person something, and the
             // answer is a word ("okay"), not another objective. Without this the "okay" fell
             // through to the noise gate — "Sorry — I didn't catch that." — and the reminder
@@ -891,6 +955,7 @@ final class VoiceConversationCoordinator {
         jobs[index].status = "cancelled"
         PermissionGate.shared.cancelPending(taskID: id.uuidString)
         AgentTaskManager.shared.cancelVoiceObjective(id: id)
+        VoiceSession.shared.send(.task(.cancelled(TaskID(id))))
     }
 
     func resetForTesting() {

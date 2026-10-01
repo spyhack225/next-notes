@@ -1,0 +1,5 @@
+VOICE_SESSION_REDUCER_WRONG: T1/11: expected [], got [reducer.VoiceCommand.setEffectsHeld(true), reducer.VoiceCommand.startResponse(turn#1, text: "Duplicate"), reducer.VoiceCommand.publishIsland(reducer.IslandProjection.thinking)]
+VOICE_SESSION_REDUCER_WRONG: T1/11: INV2 duplicate response
+VOICE_SESSION_REDUCER_WRONG: T3/7: expected [], got [reducer.VoiceCommand.startResponse(turn#2, text: "Duplicate")]
+VOICE_SESSION_REDUCER_WRONG: T3/7: INV2 duplicate response
+VOICE_SESSION_REDUCER_FAILED: T1/11: expected [], got [reducer.VoiceCommand.setEffectsHeld(true), reducer.VoiceCommand.startResponse(turn#1, text: "Duplicate"), reducer.VoiceCommand.publishIsland(reducer.IslandProjection.thinking)]

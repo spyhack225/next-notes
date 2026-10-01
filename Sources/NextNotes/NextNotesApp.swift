@@ -1089,6 +1089,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-voice-session-reducer") {
+            Task { @MainActor in
+                if !(await VoiceSessionReducerSelfTest.run(tracePath: SelfTest.value(after: "--selftest-voice-session-reducer"))) { SelfTest.failed = true }
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-voice-duplex-work") {
             Task { @MainActor in
                 SelfTest.failed = !(await VoiceDuplexWorkSelfTest.run())

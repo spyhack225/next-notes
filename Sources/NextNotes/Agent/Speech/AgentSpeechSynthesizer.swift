@@ -71,6 +71,18 @@ final class AgentSpeechSynthesizer {
     /// Monotonic output generation. A delegate callback from an interrupted
     /// utterance carries its old token and cannot close a new reply's span.
     private(set) var outputGeneration: UInt64 = 0
+    struct VoiceLifecycleSnapshot {
+        let generation: UInt64
+        let hasClause: Bool
+        let rendered: Bool
+        let paused: Bool
+    }
+    var voiceLifecycleSnapshot: VoiceLifecycleSnapshot {
+        .init(generation: outputGeneration, hasClause: currentClause != nil,
+              rendered: currentClauseRendered, paused: isPausedForListening)
+    }
+    /// Observes only after clearing/advancing a clause; never controls playback.
+    var onVoiceLifecycleSettled: (() -> Void)?
     private var playbackTokenCounter: UInt64 = 0
     private(set) var currentPlaybackToken: UInt64 = 0
 
@@ -233,6 +245,7 @@ final class AgentSpeechSynthesizer {
         onFirstAudio = nil
         if hadPendingAudio { onFirstAudioCancelled?() }
         backing.stop()
+        onVoiceLifecycleSettled?()
     }
 
     /// Suspends the rendered player without invalidating the clause token,
@@ -350,6 +363,7 @@ final class AgentSpeechSynthesizer {
         currentClause = nil
         currentClauseRendered = false
         advanceQueue()
+        onVoiceLifecycleSettled?()
     }
 
     /// Self-test seam for a fake backing. The token is explicit so the probe
@@ -942,6 +956,13 @@ final class RecordingSpeechBacking: AgentSpeechBacking {
         guard speaking, paused else { return }
         paused = false
         resumeCount += 1
+    }
+
+    /// A backing has stopped speaking before it reports natural completion.
+    /// Keep that fixture fact distinct from a user stop and its stop counter.
+    func finishNaturallyForTesting() {
+        speaking = false
+        paused = false
     }
 
     func stop() {

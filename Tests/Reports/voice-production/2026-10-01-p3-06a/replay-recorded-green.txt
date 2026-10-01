@@ -1,0 +1,8 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-session-reducer --record-voice-trace /tmp/nextnotes-voice-replay-9abbd8b2-1fa1-4911-ae42-2a545ba203e1/recorded.jsonl
+2026-10-01 05:17:48.294 NextNotes[55102:1317690] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_SESSION_REDUCER_PURE: traces=10 failures=0
+VOICE_CONVERSATION_HELD: after_read=false status=running revision=0 effects=0
+VOICE_CONVERSATION_HELD: after_read=true status=running revision=0 effects=0
+VOICE_CONVERSATION_OK
+VOICE_SESSION_SHADOW: events=121 divergences=0 coverage=["floor": 40, "effectsHeld": 40, "output": 40, "turnPending": 40] output_present=18 unavailable=[:]
+VOICE_SESSION_REDUCER_OK: 10 traces and actual capture/output producers

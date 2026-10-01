@@ -1,0 +1,85 @@
+{
+  "temporaryTraceDirectory": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-p3-final-lsgm6uye",
+  "runs": [
+    {
+      "name": "wake-isolated-recorded",
+      "exit": 0,
+      "expected": 0
+    },
+    {
+      "name": "wake-isolated-replay",
+      "exit": 0,
+      "expected": 0
+    },
+    {
+      "name": "wake-isolated-missing",
+      "exit": 1,
+      "expected": 1
+    },
+    {
+      "name": "wake-isolated-empty",
+      "exit": 1,
+      "expected": 1
+    },
+    {
+      "name": "wake-isolated-negative",
+      "exit": 1,
+      "expected": 1
+    },
+    {
+      "name": "wake-isolated-backwards",
+      "exit": 1,
+      "expected": 1
+    },
+    {
+      "name": "wake-isolated-refusal",
+      "exit": 1,
+      "expected": 1
+    },
+    {
+      "name": "wake-isolated-concurrent-voice",
+      "exit": 0,
+      "expected": 0
+    },
+    {
+      "name": "wake-isolated-voice-work-lifecycle",
+      "exit": 0,
+      "expected": 0
+    },
+    {
+      "name": "wake-isolated-voice-duplex-work",
+      "exit": 0,
+      "expected": 0
+    },
+    {
+      "name": "wake-isolated-voice-conversation",
+      "exit": 0,
+      "expected": 0
+    },
+    {
+      "name": "wake-isolated-voice-turn-routing",
+      "exit": 0,
+      "expected": 0
+    },
+    {
+      "name": "wake-isolated-task-durability",
+      "exit": 0,
+      "expected": 0
+    },
+    {
+      "name": "wake-isolated-voice-turns",
+      "exit": 0,
+      "expected": 0
+    },
+    {
+      "name": "wake-isolated-voice-delivery",
+      "exit": 0,
+      "expected": 0
+    },
+    {
+      "name": "wake-isolated-realtime",
+      "exit": 0,
+      "expected": 0
+    }
+  ]
+}

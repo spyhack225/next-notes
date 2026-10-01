@@ -188,6 +188,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-voice-conversation --selftest-voice-local
 --selftest-voice-turns --selftest-voice-work-lifecycle --selftest-voice-delivery
 --selftest-voice-duplex-work
+--selftest-voice-session-reducer
 --selftest-playback-ledger --selftest-voice-scheduling
 --selftest-concurrent-voice --selftest-voice-frontend --selftest-voice-eou <wav>
 --selftest-acoustic-replay --selftest-acoustic-speech <far-wav> <near-wav>
@@ -255,6 +256,18 @@ denial. Unbound or mismatched task IDs emit no attributed tool facts. Receipt-aw
 JSON remains read authority. Attempt zero is unbound; ACP/scheduled provenance,
 real leases/receipts and recovery remain open. Synchronous full-history saves
 have no large-history latency proof; fail-fast contention is a narrower claim.
+
+`--selftest-voice-session-reducer` verifies ten pure traces (the original nine
+plus speech-ended identity/hold guards), then actual capture, approval and streamed
+playback with scripted models and a recording backing. `VoiceSession` remains a
+shadow observer: no commands execute, no live timer or new audio owner is added.
+The installed focused flow compares floor, pending turn, effect hold and output;
+concurrent/lifecycle/duplex fixtures additionally require nonzero samples, actual
+output presence and zero divergences. Bare coordinator floor samples can be
+unavailable and are counted explicitly; that is not all-field equivalence.
+Full physical pipeline/replay coverage and the ownership switch remain open.
+Trace recording is harness-only and refuses Application Support paths; refusal
+must fail the flag and leave the owner path unwritten.
 
 `usage.jsonl` is the one local record of which model or engine ran each pass — Agent,
 Meetings and Dictation — with its provider, model, locality, timing, counts, tools and

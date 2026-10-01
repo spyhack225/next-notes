@@ -4,6 +4,8 @@ import Foundation
 enum VoiceDuplexWorkSelfTest {
     @MainActor
     static func run() async -> Bool {
+        let shadow = VoiceSession.shared
+        shadow.resetDiagnosticsForTesting()
         let conversation = VoiceConversationCoordinator.shared
         let capture = AgentCaptureController.shared
         let agent = RealtimeAgent.shared
@@ -57,7 +59,7 @@ enum VoiceDuplexWorkSelfTest {
             return await probe.frontend()
         }
         let objectiveStarted = ContinuousClock.now
-        _ = await agent.handle("Check the frontmost app and its running sessions, then press escape in the front window.", source: .voice)
+        _ = await speak("Check the frontmost app and its running sessions, then press escape in the front window.")
         print("VOICE_DUPLEX_WORK_SETUP: jobs=\(conversation.jobs.count) status=\(conversation.jobs.first?.status ?? "absent")")
         check(await eventually { await probe.rounds >= 1 }, "real worker never began round one")
 
@@ -123,7 +125,7 @@ enum VoiceDuplexWorkSelfTest {
             }
             return await failureProbe.frontend()
         }
-        _ = await agent.handle("Inspect the frontmost app and its running sessions.", source: .voice)
+        _ = await speak("Inspect the frontmost app and its running sessions.")
         check(await eventually { await failureProbe.rounds == 1 }, "A4 actual worker never parked")
         conversation.responseDeadlineForTesting = .milliseconds(150)
         let failed = Task { @MainActor in await measuredHandle("Tell me a little poem.", probe: failureProbe) }
@@ -302,6 +304,12 @@ enum VoiceDuplexWorkSelfTest {
         conversation.closeSession()
         let closedResult = await withBoundedWait(.milliseconds(200)) { await closed.value }
         check(closedResult == true, "session close did not resume remaining effect waiter")
+        await Task.yield()
+        shadow.printDiagnostics()
+        check(shadow.divergenceCount == 0, "shadow producer divergence")
+        check(["effectsHeld", "turnPending", "output"].allSatisfy { shadow.comparisonCounts[$0, default: 0] > 0 },
+              "shadow sampler lacked covered fields")
+        check(shadow.outputPresenceComparisonCount > 0, "shadow output presence coverage absent")
         for failure in failures { print("VOICE_DUPLEX_WORK_WRONG: \(failure)") }
         print(failures.isEmpty ? "VOICE_DUPLEX_WORK_OK" : "VOICE_DUPLEX_WORK_FAILED")
         return failures.isEmpty
@@ -310,7 +318,17 @@ enum VoiceDuplexWorkSelfTest {
     @MainActor
     private static func measuredHandle(_ text: String, probe: DuplexWorkProbe) async -> AgentTurn {
         await probe.noteHandle(.now)
-        return await RealtimeAgent.shared.handle(text, source: .voice)
+        return await speak(text)
+    }
+
+    /// Mirror the capture commit's existing control lifecycle. A direct
+    /// frontend handle alone does not own interruption of prior playback.
+    @MainActor
+    private static func speak(_ text: String) async -> AgentTurn {
+        let agent = RealtimeAgent.shared
+        agent.userSpeechStarted()
+        agent.userSpeechEnded()
+        return await agent.handle(text, source: .voice)
     }
 
     @MainActor

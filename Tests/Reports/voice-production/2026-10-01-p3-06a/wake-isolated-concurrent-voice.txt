@@ -1,0 +1,6 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-concurrent-voice -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO
+2026-10-01 05:40:54.170 NextNotes[56242:1343302] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+CONCURRENT_VOICE_OK
+2026-10-01 05:40:55.708 NextNotes[56242:1343302] NSQuitAlwaysKeepsWindows=NO
+VOICE_SESSION_SHADOW: events=106 divergences=0 coverage=["output": 37, "turnPending": 37, "floor": 33, "effectsHeld": 37] output_present=17 unavailable=["floor": 4]
+CONCURRENT_VOICE_OK

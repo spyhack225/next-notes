@@ -73,6 +73,9 @@ final class PermissionGate {
             detail: "Waiting for a person.",
             toolID: request.toolID, taskID: request.taskID,
             triggerQuote: request.trigger.quote)
+        if VoiceConversationCoordinator.shared.voiceShadowOwnsTask(request.taskID), let task = request.taskID {
+            VoiceSession.shared.send(.approvalPending(requestID: request.id, task: TaskID(task)))
+        }
     }
 
     /// Puts the island card up from the current state of the review, so the two never
@@ -168,6 +171,7 @@ final class PermissionGate {
                 )
             )
         }
+        if let request { VoiceSession.shared.send(.approvalResolved(requestID: request.id)) }
         advance()
         return true
     }
@@ -175,6 +179,7 @@ final class PermissionGate {
     /// Explicit global stop releases every approval waiter. Ordinary voice
     /// interruption does not call this; a task correction uses its own id.
     func cancelPending() {
+        let shadowRequestID = pending?.id
         // P1-29: a card that went away unanswered is the other moment with no trace. Recorded
         // here rather than at each caller, because "cancelled" has five entry points
         // (`cancelPending()`, the task id, the request id, `cancelMatching`, ACP's cancel) and
@@ -189,6 +194,7 @@ final class PermissionGate {
         waiter = nil
         for (_, continuation) in abandoned { continuation.resume(returning: false) }
         IslandState.shared.dismissNotice()
+        if let shadowRequestID { VoiceSession.shared.send(.approvalResolved(requestID: shadowRequestID)) }
     }
 
     func cancelPending(taskID: String) {
@@ -210,6 +216,7 @@ final class PermissionGate {
     }
 
     private func cancelMatching(_ matches: (PermissionRequest) -> Bool) {
+        let shadowRequestID = pending.flatMap { matches($0) ? $0.id : nil }
         noteCancelled(count: queued.filter { matches($0.0) }.count
             + (pending.map { matches($0) ? 1 : 0 } ?? 0))
         let removed = queued.filter { matches($0.0) }
@@ -225,6 +232,7 @@ final class PermissionGate {
             waiter = nil
             IslandState.shared.dismissNotice()
         }
+        if let shadowRequestID { VoiceSession.shared.send(.approvalResolved(requestID: shadowRequestID)) }
         advance()
     }
 }

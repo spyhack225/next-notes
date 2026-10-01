@@ -1,0 +1,5 @@
+WAKE_LIVE_FIXTURES_MISSING: no manifest.json under Tests/Fixtures/wake (run from the repo root, or pass a fixture directory: --selftest-wake-live <dir>)
+WAKE_HIT 0/0
+WAKE_FALSE 0/0
+WAKE_HIT_RATE 0.00
+WAKE_LIVE_FAILED: no fixture set

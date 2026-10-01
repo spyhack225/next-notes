@@ -1,0 +1,4 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-action-runtime -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-core/selftest-action-runtime.out
+2026-10-01 05:42:40.591 NextNotes[56780:1347850] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+ACTION_RUNTIME_OK
+2026-10-01 05:42:41.805 NextNotes[56780:1347850] NSQuitAlwaysKeepsWindows=NO

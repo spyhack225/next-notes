@@ -1,0 +1,4 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-delivery -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO
+2026-10-01 05:41:14.117 NextNotes[56344:1344416] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+2026-10-01 05:41:14.384 NextNotes[56344:1344416] NSQuitAlwaysKeepsWindows=NO
+VOICE_DELIVERY_OK

@@ -5,6 +5,8 @@ import Foundation
 enum VoiceWorkLifecycleSelfTest {
     @MainActor
     static func run() async -> Bool {
+        let shadow = VoiceSession.shared
+        shadow.resetDiagnosticsForTesting()
         let agent = RealtimeAgent.shared
         let capture = AgentCaptureController.shared
         let conversation = VoiceConversationCoordinator.shared
@@ -12,6 +14,11 @@ enum VoiceWorkLifecycleSelfTest {
         let recorder = RecordingSpeechBacking()
         var failures: [String] = []
         func check(_ value: Bool, _ message: String) { if !value { failures.append(message) } }
+        func speak(_ text: String) async -> AgentTurn {
+            agent.userSpeechStarted()
+            agent.userSpeechEnded()
+            return await agent.handle(text, source: .voice)
+        }
         speech.useTestingBacking(recorder)
         let oldExecutor = AgentToolExecutor.fakeForTesting
         AgentToolExecutor.fakeForTesting = { _, _ in AgentToolResult(summary: "Nothing is frontmost.") }
@@ -35,7 +42,7 @@ enum VoiceWorkLifecycleSelfTest {
             return AsyncThrowingStream { $0.yield(response); $0.finish() }
         }
         await state.parkNext(answer: "The objective remains active.")
-        _ = await agent.handle("Check the active app and its running sessions.", source: .voice)
+        _ = await speak("Check the active app and its running sessions.")
         for _ in 0..<200 {
             if await state.isParked { break }
             try? await Task.sleep(for: .milliseconds(5))
@@ -45,9 +52,7 @@ enum VoiceWorkLifecycleSelfTest {
         // A deliberately incompatible *typed* override must not reroute voice. It does
         // not supply the voice reply; this assertion catches the old routing producer.
         agent.localModelProviderForTesting = VoiceWorkLifecycleProvider(state: VoiceWorkLifecycleProbe())
-        agent.userSpeechStarted()
-        agent.userSpeechEnded()
-        let side = await agent.handle("What is a haiku?", source: .voice)
+        let side = await speak("What is a haiku?")
         agent.localModelProviderForTesting = nil
         check(side.reply == "A haiku is a short poem.", "typed provider override rerouted voice away from coordinator")
         check(original != nil && conversation.jobs.first?.status == "running"
@@ -80,7 +85,7 @@ enum VoiceWorkLifecycleSelfTest {
         conversation.streamForTesting = { _, _ in
             AsyncThrowingStream { $0.yield("<use_tools/>"); $0.finish() }
         }
-        _ = await agent.handle("Inspect the frontmost app.", source: .voice)
+        _ = await speak("Inspect the frontmost app.")
         for _ in 0..<200 {
             if await stalled.parked { break }
             try? await Task.sleep(for: .milliseconds(5))
@@ -121,6 +126,12 @@ enum VoiceWorkLifecycleSelfTest {
 
         failures.append(contentsOf: await runRevisionCases(check: { _ in }))
 
+        await Task.yield()
+        shadow.printDiagnostics()
+        check(shadow.divergenceCount == 0, "shadow producer divergence")
+        check(["effectsHeld", "turnPending", "output"].allSatisfy { shadow.comparisonCounts[$0, default: 0] > 0 },
+              "shadow sampler lacked covered fields")
+        check(shadow.outputPresenceComparisonCount > 0, "shadow output presence coverage absent")
         for failure in failures { print("VOICE_WORK_LIFECYCLE_WRONG: \(failure)") }
         print(failures.isEmpty ? "VOICE_WORK_LIFECYCLE_OK" : "VOICE_WORK_LIFECYCLE_FAILED")
         return failures.isEmpty

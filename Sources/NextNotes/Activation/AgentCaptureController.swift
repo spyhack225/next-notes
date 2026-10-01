@@ -206,6 +206,22 @@ final class AgentCaptureController {
     /// not wait for a previous tool. Never installed during normal operation.
     @ObservationIgnored var turnHandlerForTesting: (@MainActor (String) async -> Void)?
     private var heardSpeech = false
+    private var voiceShadowTurn: TurnID?
+    private(set) var voiceShadowQueuedTurn: TurnID?
+    var voiceShadowQueuedObserverForTesting: (@MainActor () -> Void)?
+    var voiceShadowCurrentTurn: TurnID? { voiceShadowTurn }
+    var heardSpeechForTesting: Bool { heardSpeech }
+    var voiceShadowHasFloor: Bool {
+        isSessionActive && ((heardSpeech && (acousticFloorHeldForTurn || !lastPreparedPartial.isEmpty))
+            || VoiceTurnPolicy.isHesitation(lastEmittedRequest))
+            && VoiceConversationCoordinator.shared.inputPending
+    }
+    private func shadowTurnIfNeeded() -> TurnID {
+        if let voiceShadowTurn { return voiceShadowTurn }
+        let turn = VoiceSession.shared.beginTurnIfNeeded()
+        voiceShadowTurn = turn
+        return turn
+    }
     /// A short backchannel only has its conversational meaning if it began
     /// while assistant audio was playing. Playback can finish before endpoint.
     private var overlappedAssistantSpeech = false
@@ -239,6 +255,7 @@ final class AgentCaptureController {
         if isSessionActive { return }
         let captureID = UUID()
         captureSessionID = captureID
+        voiceShadowQueuedTurn = nil
         // P2-01: a voice session is the only window in which a main-actor stall delays
         // anything a person is waiting on, so the probe lives exactly here.
         MainActorStallProbe.shared.start()
@@ -286,6 +303,7 @@ final class AgentCaptureController {
         localOwnsPartial = false
         deferFrontendForEOU = false
         resetTurn()
+        VoiceSession.shared.send(.sessionOpened(sessionID: captureID))
         turnDetectorReady = false
         modelEOUAt = nil
         eouDroppedChunks = 0
@@ -376,6 +394,7 @@ final class AgentCaptureController {
     func endSession(source: EndpointSource = .done) async {
         guard isSessionActive else { return }
         isSessionActive = false
+        voiceShadowQueuedTurn = nil
         captureSessionID = nil
         VoiceConversationCoordinator.shared.closeSession()
         await LocalVoiceFrontend.shared.clearStagedTurn()
@@ -400,6 +419,8 @@ final class AgentCaptureController {
         }
         lastEndpoint = source
         RealtimeAudioSession.shared.end()
+        let shadowReason: VoiceSessionCloseReason = source == .idle ? .idle : (source == .disowned ? .notAddressed : .done)
+        VoiceSession.shared.send(.sessionClosed(shadowReason))
         VoiceAnnouncementQueue.shared.clear()
         stopVAD()
         VoiceLatencyTimeline.shared.endSession()
@@ -982,6 +1003,8 @@ final class AgentCaptureController {
     }
 
     private func noteLevel(_ level: Float, nearCandidate: Bool = false) {
+        let shadowFloorBefore = voiceShadowHasFloor
+        defer { if voiceShadowHasFloor != shadowFloorBefore { VoiceSession.shared.producerDidSettle() } }
         inputLevel = level
         guard isSessionActive else { return }
         if level >= Limits.speechLevel {
@@ -995,6 +1018,7 @@ final class AgentCaptureController {
                (!RealtimeAudioSession.shared.isSpeaking || nearCandidate) {
                 if !acousticFloorHeldForTurn {
                     acousticFloorHeldForTurn = true
+                    _ = shadowTurnIfNeeded()
                     // Pause new worker effects as soon as sustained near speech
                     // is plausible. Only novel words may stop spoken output.
                     VoiceConversationCoordinator.shared.inputActivityStarted()
@@ -1208,6 +1232,8 @@ final class AgentCaptureController {
     private enum PartialSource { case apple, local, selected }
 
     private func considerSpeechInterruption(_ userTurn: String, source: PartialSource = .selected) {
+        let shadowFloorBefore = voiceShadowHasFloor
+        defer { if voiceShadowHasFloor != shadowFloorBefore { VoiceSession.shared.producerDidSettle() } }
         // A standalone hesitation is conversational timing, not a barge-in.
         // Keep it available for endpoint delivery, but do not let its two
         // letters stop playback or mark the turn as overlapping speech.
@@ -1248,6 +1274,7 @@ final class AgentCaptureController {
             if !acousticFloorHeldForTurn {
                 echoProbeDiagnostic("provisional hold text=\(userTurn) source=\(source)")
                 acousticFloorHeldForTurn = true
+                _ = shadowTurnIfNeeded()
                 VoiceConversationCoordinator.shared.inputActivityStarted()
             }
             if let captureID = captureSessionID {
@@ -1277,11 +1304,21 @@ final class AgentCaptureController {
             ? trimmed : ""
         guard candidate != lastPreparedPartial else { return }
         lastPreparedPartial = candidate
+        if !candidate.isEmpty {
+            VoiceSession.shared.noteFloorProducer()
+            VoiceSession.shared.send(.partial(shadowTurnIfNeeded(), text: candidate, stable: true))
+        }
         VoiceConversationCoordinator.shared.prepareResponseIfUseful(candidate)
     }
 
     @discardableResult
     private func tick(force: Bool) async -> Bool {
+        defer {
+            if isSessionActive {
+                VoiceSession.shared.send(.timer(.quietWindow))
+                VoiceSession.shared.send(.timer(.idleCheck))
+            }
+        }
         guard !tickInFlight else { return false }
         tickInFlight = true
         defer { tickInFlight = false }
@@ -1311,6 +1348,7 @@ final class AgentCaptureController {
                 echoProbeDiagnostic("discard wordlessEndpoint=\(wordlessEndpoint)")
                 Log.agent.info("realtime · discarded speech activity without usable words")
                 commitRawTurn()
+                VoiceSession.shared.send(.inputDiscarded(shadowTurnIfNeeded(), .noWords))
                 resumeListeningAfterDiscard()
                 RealtimeAgent.shared.discardVoiceInput()
                 await LocalVoiceFrontend.shared.clearStagedTurn()
@@ -1326,6 +1364,7 @@ final class AgentCaptureController {
                     whileAssistantSpeaking: overlappedAssistantSpeech) {
                     Log.agent.info("realtime · absorbed conversational acknowledgment")
                     commitRawTurn()
+                    VoiceSession.shared.send(.inputDiscarded(shadowTurnIfNeeded(), .backchannel))
                     resumeListeningAfterDiscard()
                     RealtimeAgent.shared.discardVoiceInput()
                     await LocalVoiceFrontend.shared.clearStagedTurn()
@@ -1347,6 +1386,7 @@ final class AgentCaptureController {
                     }
                     Log.agent.info("realtime · ignored repeated in-flight request")
                     commitRawTurn()
+                    VoiceSession.shared.send(.inputDiscarded(shadowTurnIfNeeded(), .inFlightRepeat))
                     resumeListeningAfterDiscard()
                     RealtimeAgent.shared.discardVoiceInput()
                     await LocalVoiceFrontend.shared.clearStagedTurn()
@@ -1357,6 +1397,7 @@ final class AgentCaptureController {
                 if RealtimeAudioSession.shared.isLikelyPlaybackEcho(text) {
                     Log.agent.info("realtime · discarded playback echo")
                     commitRawTurn()
+                    VoiceSession.shared.send(.inputDiscarded(shadowTurnIfNeeded(), .playbackEcho))
                     resumeListeningAfterDiscard()
                     RealtimeAgent.shared.discardVoiceInput()
                     await LocalVoiceFrontend.shared.clearStagedTurn()
@@ -1367,6 +1408,7 @@ final class AgentCaptureController {
                 if Self.isCommittedTranscriptRevision(text, committed: committedPrefix) {
                     Log.agent.info("realtime · discarded revised transcript")
                     commitRawTurn()
+                    VoiceSession.shared.send(.inputDiscarded(shadowTurnIfNeeded(), .revisedTranscript))
                     resumeListeningAfterDiscard()
                     RealtimeAgent.shared.discardVoiceInput()
                     await LocalVoiceFrontend.shared.clearStagedTurn()
@@ -1377,6 +1419,7 @@ final class AgentCaptureController {
                 if Self.isGoodbye(text) {
                     isSessionActive = false
                     VoiceConversationCoordinator.shared.closeSession()
+                    VoiceSession.shared.send(.sessionClosed(.goodbye))
                     await LocalVoiceFrontend.shared.clearStagedTurn()
                     RealtimeAudioSession.shared.end()
                     VoiceAnnouncementQueue.shared.clear()
@@ -1413,6 +1456,7 @@ final class AgentCaptureController {
         source: EndpointSource,
         continueSession: Bool
     ) async {
+        let shadowTurn = shadowTurnIfNeeded()
         // P2-01: the turn's endpoint. The source is part of the measurement, because a VAD
         // fallback and a confirmed model EOU are two different latencies wearing one name.
         VoiceLatencyTimeline.shared.mark(.endpoint)
@@ -1432,6 +1476,8 @@ final class AgentCaptureController {
         // reaches this path and therefore cannot destroy a reply that later
         // turns out to be playback echo.
         if !(continueSession && VoiceTurnPolicy.isHesitation(text)) {
+            VoiceSession.shared.interrupt(.committed(shadowTurn))
+            VoiceSession.shared.send(.committed(shadowTurn, text: text))
             RealtimeAgent.shared.userSpeechStarted()
         }
         // The acoustic floor ended. Keep the coordinator's inputPending effect
@@ -1459,6 +1505,8 @@ final class AgentCaptureController {
         // Keep the testing sink on this path so the self-test proves delivery
         // without writing user history or invoking a model.
         if continueSession, VoiceTurnPolicy.isHesitation(text) {
+            VoiceSession.shared.send(.inputActivity(shadowTurn))
+            VoiceSession.shared.send(.hesitation(shadowTurn, text: text))
             if let testHandler = turnHandlerForTesting {
                 await testHandler(text)
             } else {
@@ -1478,23 +1526,27 @@ final class AgentCaptureController {
             // `startVAD` awaits `tick`. Awaiting a tool here would prevent the
             // next utterance from reaching another endpoint until that tool
             // returned (up to twenty seconds). Own the reply separately.
+            voiceShadowQueuedTurn = shadowTurn
+            if SelfTest.isRunning { voiceShadowQueuedObserverForTesting?() }
             activeTurnTask = Task { @MainActor [weak self] in
+                self?.voiceShadowQueuedTurn = nil
                 if let testHandler = self?.turnHandlerForTesting {
                     await testHandler(text)
                 } else {
-                    _ = await RealtimeAgent.shared.handle(text, source: .voice)
+                    _ = await RealtimeAgent.shared.handle(text, source: .voice, turn: shadowTurn)
                 }
                 guard let self, self.turnGeneration == generation, self.isSessionActive else {
                     return
                 }
                 self.activeTurnTask = nil
+                VoiceSession.shared.producerDidSettle()
                 self.lastActivityAt = Date()
                 ActivationController.shared.markListening()
                 IslandState.shared.showAgentListening(transcript: "", level: 0)
             }
             return
         }
-        _ = await RealtimeAgent.shared.handle(text, source: .voice)
+        _ = await RealtimeAgent.shared.handle(text, source: .voice, turn: shadowTurn)
         lastActivityAt = Date()
     }
 
@@ -1766,6 +1818,7 @@ final class AgentCaptureController {
     }
 
     private func resetTurn() {
+        voiceShadowTurn = nil
         appleEchoRecognition = .init()
         localEchoRecognition = .init()
         wordlessModelEOU = false

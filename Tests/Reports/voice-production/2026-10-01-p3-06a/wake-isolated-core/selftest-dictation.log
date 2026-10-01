@@ -1,0 +1,4 @@
+run-selftest: open -n /Applications/Next Notes.app --args --selftest-dictation -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-core/selftest-dictation.out
+  DICTATION_NOTE: pre-roll fed 39801 frames of ~40000 with a 1.5 s start
+  DICTATION_NOTE: key-down to capture 0.0786980390548706s with a 1.5 s start
+DICTATION_OK: every hold came back to idle

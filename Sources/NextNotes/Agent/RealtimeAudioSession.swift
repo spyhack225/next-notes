@@ -75,6 +75,19 @@ final class RealtimeAudioSession {
         var lastNearAt: Date
     }
     private var listeningHold: ListeningHold?
+    private var voiceShadowOutput: (id: OutputID, kind: OutputKind, generation: UInt64)?
+    private var voiceShadowOutputAnnounced = false
+    private var voiceShadowHeard = false
+    /// Factual streamed-reply lifecycle, distinct from a gap between clauses.
+    private var voiceShadowStreamOpen = false
+    var voiceShadowOutputSnapshot: VoiceSessionState.Output? {
+        let actual = AgentSpeechSynthesizer.shared.voiceLifecycleSnapshot
+        guard let output = voiceShadowOutput, actual.generation == output.generation,
+              actual.hasClause || (voiceShadowStreamOpen && voiceShadowOutputAnnounced) else { return nil }
+        return .init(id: output.id, kind: output.kind,
+            status: actual.paused ? .paused : (voiceShadowHeard || actual.rendered ? .playing : .queued),
+            heard: voiceShadowHeard || actual.rendered)
+    }
     private static let listeningQuietRelease: TimeInterval = 0.25
     private static let listeningMaximumUnrecognizedHold: TimeInterval = 2.5
 
@@ -129,6 +142,7 @@ final class RealtimeAudioSession {
             self?.receivePlaybackEvent(event)
             VoicePlaybackDelivery.shared.receive(event)
         }
+        AgentSpeechSynthesizer.shared.onVoiceLifecycleSettled = { [weak self] in self?.voiceShadowPlaybackSettled() }
         isActive = true
         isSpeaking = false
         phase = .listening
@@ -158,9 +172,15 @@ final class RealtimeAudioSession {
 
     /// Start a streamed spoken reply. Clears any prior utterance.
     /// Call `appendSpokenReply` as text grows, then `finalizeSpokenReply`.
-    func beginSpokenReply() {
+    func beginSpokenReply(turn: TurnID? = nil) {
         listeningHold = nil
         speechBuffer.begin()
+        let identity = turn ?? RealtimeAgent.shared.voiceFrontendShadowTurn
+        let kind: OutputKind = identity.map { turn == nil ? .fixed($0) : .answer($0) } ?? .delivery([])
+        voiceShadowOutput = (VoiceIDMint.shared.nextOutput(), kind, AgentSpeechSynthesizer.shared.outputGeneration)
+        voiceShadowOutputAnnounced = false
+        voiceShadowHeard = false
+        voiceShadowStreamOpen = true
         applySpeakingVolumeIfActive()
     }
 
@@ -175,7 +195,9 @@ final class RealtimeAudioSession {
     /// full-string `appendSpokenReply`.
     func finalizeSpokenReply() {
         speechBuffer.finalize()
+        voiceShadowStreamOpen = false
         noteEnqueueIfNeeded()
+        voiceShadowPlaybackSettled()
     }
 
     /// Speak a finished reply without blocking. Routes through the streaming
@@ -385,6 +407,23 @@ final class RealtimeAudioSession {
     /// Learn echo text only after the backing reports that this clause began
     /// rendering. Queued text has no acoustic evidence and is never recorded.
     private func receivePlaybackEvent(_ event: AgentSpeechSynthesizer.PlaybackEvent) {
+        if let output = voiceShadowOutput,
+           output.generation == AgentSpeechSynthesizer.shared.outputGeneration {
+            switch event {
+            case .enqueued:
+                if !voiceShadowOutputAnnounced {
+                    voiceShadowOutputAnnounced = true
+                    if case .answer(let turn) = output.kind { VoiceSession.shared.send(.responseStarted(turn, output.id)) }
+                    else { VoiceSession.shared.send(.outputQueued(output.id, output.kind)) }
+                }
+            case .began: VoiceSession.shared.send(.playback(output.id, .began))
+            case .startAcknowledged:
+                voiceShadowHeard = true
+                VoiceSession.shared.send(.playback(output.id, .firstAudio))
+            case .completed: VoiceSession.shared.send(.playback(output.id, .clauseCompleted))
+            case .interrupted: break // observe the complete stop, not its per-clause callbacks
+            }
+        }
         switch event {
         case .startAcknowledged(let text):
             recentOutputs.append(OutputReference(text: text, at: Date(), active: true))
@@ -398,6 +437,17 @@ final class RealtimeAudioSession {
         case .began, .enqueued, .interrupted(_, wasRendered: false):
             break
         }
+    }
+
+    private func voiceShadowPlaybackSettled() {
+        guard let output = voiceShadowOutput, voiceShadowOutputAnnounced else { return }
+        let actual = AgentSpeechSynthesizer.shared.voiceLifecycleSnapshot
+        if actual.generation != output.generation || (!actual.hasClause && !voiceShadowStreamOpen) {
+            voiceShadowOutput = nil
+            voiceShadowOutputAnnounced = false
+            VoiceSession.shared.send(.playback(output.id,
+                actual.generation == output.generation ? .finished : .interrupted(byUser: RealtimeAgent.shared.voiceInputActive)))
+        } else { VoiceSession.shared.producerDidSettle() }
     }
 
     private func finishPlaybackReference(_ text: String) {
@@ -464,6 +514,7 @@ final class RealtimeAudioSession {
             outputGeneration: synth.outputGeneration, beganAt: now, lastNearAt: now)
         lastListeningPauseAt = Date()
         VoiceLatencyTimeline.shared.mark(.bargePause)
+        VoiceSession.shared.interrupt(.provisional(VoiceSession.shared.beginTurnIfNeeded()))
         return true
     }
 
@@ -478,6 +529,7 @@ final class RealtimeAudioSession {
         guard synth.outputGeneration == hold.outputGeneration,
               synth.isPausedForListening else { return false }
         synth.resumeAfterListening()
+        VoiceSession.shared.producerDidSettle()
         return !synth.isPausedForListening
     }
 
@@ -516,6 +568,7 @@ final class RealtimeAudioSession {
 
     private func stopOutput() {
         listeningHold = nil
+        voiceShadowStreamOpen = false
         speechBuffer.cancel()
         AgentSpeechSynthesizer.shared.stop()
         isSpeaking = false

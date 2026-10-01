@@ -1,0 +1,11 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-session-reducer --record-voice-trace /Users/sergekadjo/Library/Application Support/NextNotesP3TraceRefusal-final.jsonl -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO
+2026-10-01 05:40:52.629 NextNotes[56228:1343103] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+2026-10-01 05:40:53.477 NextNotes[56228:1343103] NSQuitAlwaysKeepsWindows=NO
+VOICE_SESSION_REDUCER_PURE: traces=10 failures=0
+VOICE_SESSION_TRACE_REFUSED: trace path is inside Application Support
+VOICE_CONVERSATION_HELD: after_read=false status=running revision=0 effects=0
+VOICE_CONVERSATION_HELD: after_read=true status=running revision=0 effects=0
+VOICE_CONVERSATION_OK
+VOICE_SESSION_WAKE_ISOLATION: skipped=7 listening=false subscribed=false
+VOICE_SESSION_SHADOW: events=121 divergences=0 coverage=["floor": 40, "output": 40, "effectsHeld": 40, "turnPending": 40] output_present=18 unavailable=[:]
+VOICE_SESSION_REDUCER_FAILED: integration

@@ -1,0 +1,6 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-concurrent-voice
+2026-10-01 04:45:13.956 NextNotes[49213:1255176] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+CONCURRENT_VOICE_OK
+VOICE_SESSION_DIVERGENCE: field=floor event=playback reducer=true legacy=false
+VOICE_SESSION_DIVERGENCE: field=output event=committed reducer=nil legacy=Optional(NextNotes.VoiceSessionState.Output(id: output#10, kind: NextNotes.OutputKind.answer(turn#11), status: NextNotes.VoiceSessionState.Output.Status.queued, heard: false))
+CONCURRENT_VOICE_OK

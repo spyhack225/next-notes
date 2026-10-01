@@ -1,0 +1,24 @@
+acceptance: logs in /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-core
+== CORE ==
+  --selftest-dictation                     PASS  44s
+  --selftest-capture                       PASS  2s
+  --selftest-stream                        PASS  1s
+  --selftest-wake-live                     SKIP  1s
+  --selftest-voice-conversation            PASS  1s
+  --selftest-acoustic-replay               PASS  8s
+  --selftest-duplex                        PASS  1s
+  --selftest-action-runtime                PASS  1s
+  --selftest-activity                      PASS  1s
+  --selftest-meeting-live                  PASS  1s
+  --selftest-meeting-resume                PASS  15s
+  --selftest-toolloop                      PASS  0s
+  --selftest-computer                      FAIL  2s
+  --selftest-imessage-watch                PASS  8s
+  --selftest-imessage-loop                 PASS  0s
+  --selftest-imessage-approval             PASS  1s
+  --selftest-acp                           PASS  1s
+  --selftest-mcp                           PASS  1s
+CORE         16/18 PASS  (1 skipped)
+
+SKIP  core         --selftest-wake-live                 WAKE_LIVE_FIXTURES_MISSING: no manifest.json under Tests/Fixtures/wake (run from the repo root, or pass a fixture directory: --selftest-wake-live <dir>)
+FAIL  core         --selftest-computer                  COMPUTER_FAILED: inspect did not see the self-test OK button

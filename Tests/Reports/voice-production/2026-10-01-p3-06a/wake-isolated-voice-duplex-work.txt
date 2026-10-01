@@ -1,0 +1,11 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-duplex-work -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO
+2026-10-01 05:41:04.118 NextNotes[56277:1343721] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+2026-10-01 05:41:05.357 NextNotes[56277:1343721] NSQuitAlwaysKeepsWindows=NO
+VOICE_DUPLEX_WORK_SETUP: jobs=1 status=running
+VOICE_DUPLEX_WORK_OVERLAP: rounds=3 input_pending=false
+VOICE_DUPLEX_WORK_EFFECTS: tab@1
+VOICE_DUPLEX_WORK_TIMING: handle_ms=[33, 29, 29] overlap_starts=2 failure_resume_ms=4
+VOICE_DUPLEX_WORK_NATIVE: model_ms=22 floor_ms=101
+VOICE_DUPLEX_WORK_MEMORY: effects=1 rounds=2
+VOICE_SESSION_SHADOW: events=61 divergences=0 coverage=["effectsHeld": 27, "floor": 24, "output": 27, "turnPending": 27] output_present=20 unavailable=["floor": 3]
+VOICE_DUPLEX_WORK_OK

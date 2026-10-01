@@ -1,0 +1,1 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-session-reducer --record-voice-trace /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-p3-final-7dcz751y/recorded.jsonl

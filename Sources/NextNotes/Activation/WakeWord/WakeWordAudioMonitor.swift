@@ -71,6 +71,7 @@ final class WakeWordAudioMonitor {
     /// Legacy latch. Always zero: mic exclusivity lives on `AudioCaptureHub`, and
     /// `beginHold()` no longer stops wake (meetings need KWS alive).
     private(set) var holders = 0
+    private(set) var harnessSyncSkipCount = 0
 
     /// How often the watchdog re-checks that the microphone seat is really there.
     static let watchdogInterval: TimeInterval = 5
@@ -129,6 +130,12 @@ final class WakeWordAudioMonitor {
     // MARK: - Lifecycle
 
     func sync() {
+        // Scripted session teardown must not load the live keyword model,
+        // rewrite its keywords or subscribe to the owner's microphone.
+        if SelfTest.isRunning {
+            harnessSyncSkipCount += 1
+            return
+        }
         let settings = Settings.shared
         let configuration = WakeWordConfiguration.current
         let phrase = configuration.validatedPhrase()

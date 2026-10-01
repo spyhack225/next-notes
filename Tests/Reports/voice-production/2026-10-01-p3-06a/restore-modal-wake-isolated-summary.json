@@ -1,0 +1,10 @@
+{
+  "temporaryTraceDirectory": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-p3-final-7dcz751y",
+  "runs": [
+    {
+      "name": "wake-isolated-recorded",
+      "exit": 241,
+      "expected": 0
+    }
+  ]
+}

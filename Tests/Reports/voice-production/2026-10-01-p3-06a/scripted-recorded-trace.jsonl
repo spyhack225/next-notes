@@ -1,0 +1,121 @@
+{"event":{"sessionOpened":{"sessionID":"5DE3BE13-0EA6-4C07-94AD-39858AE2A3CD"}},"at":534}
+{"at":539,"event":{"inputWithdrawn":{}}}
+{"event":{"partial":{"_0":{"raw":1},"stable":true,"text":"Check the active app and its running sessions."}},"at":551}
+{"event":{"interruption":{"_0":{"committed":{"_0":{"raw":1}}}}},"at":552}
+{"at":552,"event":{"committed":{"_0":{"raw":1},"text":"Check the active app and its running sessions."}}}
+{"event":{"interruption":{"_0":{"committed":{"_0":{"raw":1}}}}},"at":553}
+{"at":553,"event":{"inputActivity":{"_0":{"raw":1}}}}
+{"event":{"inputEnded":{"_0":{"raw":1}}},"at":553}
+{"at":554,"event":{"timer":{"_0":"quietWindow"}}}
+{"at":554,"event":{"timer":{"_0":"idleCheck"}}}
+{"at":581,"event":{"committed":{"text":"Check the active app and its running sessions.","_0":{"raw":1}}}}
+{"event":{"decisionMade":{"_1":{"spawn":{"userWords":"Check the active app and its running sessions.","objective":"Check the active app and its running sessions."}},"_0":{"raw":1}}},"at":665}
+{"at":666,"event":{"task":{"_0":{"accepted":{"title":"Check the active app and its running sessions.","origin":{"voice":{"turn":{"raw":1},"sessionID":"5DE3BE13-0EA6-4C07-94AD-39858AE2A3CD"}},"_0":{"raw":"A2C57BCC-C4B8-4814-91AC-B223F77AC0BE"}}}}}}
+{"at":673,"event":{"outputQueued":{"_0":{"raw":1},"_1":{"fixed":{"_0":{"raw":1}}}}}}
+{"event":{"responseEnded":{"_1":{"answered":{}},"_0":{"raw":1}}},"at":674}
+{"at":716,"event":{"interruption":{"_0":{"committed":{"_0":{"raw":2}}}}}}
+{"at":716,"event":{"inputActivity":{"_0":{"raw":2}}}}
+{"event":{"playback":{"_1":{"interrupted":{"byUser":true}},"_0":{"raw":1}}},"at":716}
+{"event":{"approvalPending":{"task":{"raw":"A2C57BCC-C4B8-4814-91AC-B223F77AC0BE"},"requestID":"5095A933-39C6-4EFF-9A73-76A56648C720"}},"at":789}
+{"event":{"approvalResolved":{"requestID":"5095A933-39C6-4EFF-9A73-76A56648C720"}},"at":792}
+{"at":806,"event":{"interruption":{"_0":{"committed":{"_0":{"raw":2}}}}}}
+{"event":{"committed":{"_0":{"raw":2},"text":"No, Claude Code. C L A U D E. Check Claude instead."}},"at":806}
+{"event":{"inputEnded":{"_0":{"raw":2}}},"at":806}
+{"at":806,"event":{"timer":{"_0":"quietWindow"}}}
+{"at":806,"event":{"timer":{"_0":"idleCheck"}}}
+{"event":{"committed":{"_0":{"raw":2},"text":"No, Claude Code. C L A U D E. Check Claude instead."}},"at":831}
+{"at":842,"event":{"decisionMade":{"_0":{"raw":2},"_1":{"revise":{"_0":{"raw":"A2C57BCC-C4B8-4814-91AC-B223F77AC0BE"},"text":"No, Claude Code. C L A U D E. Check Claude instead."}}}}}
+{"at":846,"event":{"outputQueued":{"_0":{"raw":2},"_1":{"fixed":{"_0":{"raw":2}}}}}}
+{"event":{"responseEnded":{"_0":{"raw":2},"_1":{"answered":{}}}},"at":846}
+{"at":854,"event":{"task":{"_0":{"completed":{"_0":{"raw":"A2C57BCC-C4B8-4814-91AC-B223F77AC0BE"},"result":"I retained the request and applied your correction.","artifacts":[]}}}}}
+{"event":{"inputWithdrawn":{}},"at":873}
+{"at":874,"event":{"playback":{"_0":{"raw":2},"_1":{"interrupted":{"byUser":false}}}}}
+{"event":{"sessionClosed":{"_0":"done"}},"at":874}
+{"event":{"sessionOpened":{"sessionID":"40B9C904-39A0-4C1B-BDBF-3FAE4F40BD8E"}},"at":890}
+{"event":{"inputWithdrawn":{}},"at":891}
+{"event":{"partial":{"text":"Check the active app and its running sessions.","_0":{"raw":3},"stable":true}},"at":891}
+{"event":{"interruption":{"_0":{"committed":{"_0":{"raw":3}}}}},"at":892}
+{"event":{"committed":{"text":"Check the active app and its running sessions.","_0":{"raw":3}}},"at":892}
+{"at":892,"event":{"interruption":{"_0":{"committed":{"_0":{"raw":3}}}}}}
+{"at":892,"event":{"inputActivity":{"_0":{"raw":3}}}}
+{"event":{"inputEnded":{"_0":{"raw":3}}},"at":892}
+{"event":{"timer":{"_0":"quietWindow"}},"at":893}
+{"at":893,"event":{"timer":{"_0":"idleCheck"}}}
+{"at":926,"event":{"committed":{"_0":{"raw":3},"text":"Check the active app and its running sessions."}}}
+{"event":{"decisionMade":{"_1":{"spawn":{"objective":"Check the active app and its running sessions.","userWords":"Check the active app and its running sessions."}},"_0":{"raw":3}}},"at":940}
+{"at":941,"event":{"task":{"_0":{"accepted":{"_0":{"raw":"DC3DC120-4464-4E31-8135-57AD2F1773B9"},"origin":{"voice":{"sessionID":"40B9C904-39A0-4C1B-BDBF-3FAE4F40BD8E","turn":{"raw":3}}},"title":"Check the active app and its running sessions."}}}}}
+{"event":{"outputQueued":{"_0":{"raw":3},"_1":{"fixed":{"_0":{"raw":3}}}}},"at":944}
+{"at":944,"event":{"responseEnded":{"_0":{"raw":3},"_1":{"answered":{}}}}}
+{"at":982,"event":{"interruption":{"_0":{"committed":{"_0":{"raw":4}}}}}}
+{"at":982,"event":{"inputActivity":{"_0":{"raw":4}}}}
+{"event":{"playback":{"_0":{"raw":3},"_1":{"interrupted":{"byUser":true}}}},"at":982}
+{"event":{"approvalPending":{"requestID":"2307EB29-8FB2-42FE-813F-4F5D3BE1C76B","task":{"raw":"DC3DC120-4464-4E31-8135-57AD2F1773B9"}}},"at":994}
+{"at":994,"event":{"approvalResolved":{"requestID":"2307EB29-8FB2-42FE-813F-4F5D3BE1C76B"}}}
+{"at":1064,"event":{"interruption":{"_0":{"committed":{"_0":{"raw":4}}}}}}
+{"event":{"committed":{"_0":{"raw":4},"text":"No, Claude Code. C L A U D E. Check Claude instead."}},"at":1065}
+{"at":1065,"event":{"inputEnded":{"_0":{"raw":4}}}}
+{"event":{"timer":{"_0":"quietWindow"}},"at":1065}
+{"at":1065,"event":{"timer":{"_0":"idleCheck"}}}
+{"event":{"committed":{"_0":{"raw":4},"text":"No, Claude Code. C L A U D E. Check Claude instead."}},"at":1089}
+{"event":{"decisionMade":{"_1":{"revise":{"_0":{"raw":"DC3DC120-4464-4E31-8135-57AD2F1773B9"},"text":"No, Claude Code. C L A U D E. Check Claude instead."}},"_0":{"raw":4}}},"at":1099}
+{"at":1102,"event":{"outputQueued":{"_1":{"fixed":{"_0":{"raw":4}}},"_0":{"raw":4}}}}
+{"at":1103,"event":{"responseEnded":{"_0":{"raw":4},"_1":{"answered":{}}}}}
+{"event":{"task":{"_0":{"completed":{"artifacts":[],"result":"I retained the request and applied your correction.","_0":{"raw":"DC3DC120-4464-4E31-8135-57AD2F1773B9"}}}}},"at":1107}
+{"event":{"inputWithdrawn":{}},"at":1117}
+{"at":1117,"event":{"playback":{"_0":{"raw":4},"_1":{"interrupted":{"byUser":false}}}}}
+{"event":{"sessionClosed":{"_0":"done"}},"at":1117}
+{"event":{"sessionOpened":{"sessionID":"7ADFE509-16A0-416B-B7F9-3F9533F68998"}},"at":1118}
+{"event":{"outputQueued":{"_0":{"raw":5},"_1":{"delivery":{"_0":[]}}}},"at":1118}
+{"event":{"inputWithdrawn":{}},"at":1119}
+{"event":{"playback":{"_0":{"raw":5},"_1":{"interrupted":{"byUser":false}}}},"at":1119}
+{"at":1119,"event":{"sessionClosed":{"_0":"done"}}}
+{"event":{"sessionOpened":{"sessionID":"BDD481B8-C547-4623-BBB4-C0934EA23999"}},"at":1120}
+{"event":{"inputWithdrawn":{}},"at":1120}
+{"at":1120,"event":{"sessionClosed":{"_0":"done"}}}
+{"event":{"inputWithdrawn":{}},"at":1121}
+{"event":{"sessionOpened":{"sessionID":"A3517218-AD1F-4628-A6CA-CFAA6745A937"}},"at":1122}
+{"at":1122,"event":{"inputActivity":{"_0":{"raw":5}}}}
+{"event":{"hesitation":{"text":"Um","_0":{"raw":5}}},"at":1122}
+{"event":{"inputActivity":{"_0":{"raw":5}}},"at":1122}
+{"at":1122,"event":{"hesitation":{"text":"Um","_0":{"raw":5}}}}
+{"at":1122,"event":{"timer":{"_0":"quietWindow"}}}
+{"event":{"timer":{"_0":"idleCheck"}},"at":1122}
+{"event":{"inputWithdrawn":{}},"at":1122}
+{"at":1122,"event":{"inputWithdrawn":{}}}
+{"event":{"sessionClosed":{"_0":"done"}},"at":1123}
+{"event":{"sessionOpened":{"sessionID":"1AD3DECE-838C-496F-8F2D-A906AFF54452"}},"at":1123}
+{"at":1123,"event":{"inputActivity":{"_0":{"raw":6}}}}
+{"event":{"hesitation":{"text":"Um","_0":{"raw":6}}},"at":1123}
+{"event":{"inputActivity":{"_0":{"raw":6}}},"at":1123}
+{"at":1123,"event":{"hesitation":{"text":"Um","_0":{"raw":6}}}}
+{"at":1124,"event":{"timer":{"_0":"quietWindow"}}}
+{"event":{"timer":{"_0":"idleCheck"}},"at":1124}
+{"event":{"partial":{"_0":{"raw":6},"stable":true,"text":"How are things?"}},"at":1124}
+{"at":1124,"event":{"interruption":{"_0":{"committed":{"_0":{"raw":6}}}}}}
+{"event":{"committed":{"_0":{"raw":6},"text":"How are things?"}},"at":1124}
+{"at":1124,"event":{"interruption":{"_0":{"committed":{"_0":{"raw":6}}}}}}
+{"event":{"inputActivity":{"_0":{"raw":6}}},"at":1124}
+{"at":1124,"event":{"inputEnded":{"_0":{"raw":6}}}}
+{"event":{"timer":{"_0":"quietWindow"}},"at":1124}
+{"at":1124,"event":{"timer":{"_0":"idleCheck"}}}
+{"event":{"committed":{"text":"How are things?","_0":{"raw":6}}},"at":1154}
+{"event":{"decisionMade":{"_0":{"raw":6},"_1":{"answer":{}}}},"at":1165}
+{"at":1167,"event":{"responseStarted":{"_0":{"raw":6},"_1":{"raw":6}}}}
+{"event":{"decisionMade":{"_0":{"raw":6},"_1":{"answer":{}}}},"at":1167}
+{"at":1170,"event":{"responseEnded":{"_0":{"raw":6},"_1":{"answered":{}}}}}
+{"event":{"inputWithdrawn":{}},"at":1170}
+{"at":1170,"event":{"playback":{"_0":{"raw":6},"_1":{"interrupted":{"byUser":false}}}}}
+{"event":{"sessionClosed":{"_0":"done"}},"at":1171}
+{"event":{"sessionOpened":{"sessionID":"01640873-D44D-480A-88A6-0CD7CDB7201D"}},"at":1171}
+{"at":1171,"event":{"interruption":{"_0":{"committed":{"_0":{"raw":7}}}}}}
+{"event":{"inputActivity":{"_0":{"raw":7}}},"at":1171}
+{"event":{"inputEnded":{"_0":{"raw":7}}},"at":1171}
+{"event":{"inputWithdrawn":{}},"at":1171}
+{"event":{"outputQueued":{"_0":{"raw":7},"_1":{"delivery":{"_0":[]}}}},"at":1171}
+{"event":{"playback":{"_0":{"raw":7},"_1":{"firstAudio":{}}}},"at":1172}
+{"event":{"playback":{"_0":{"raw":7},"_1":{"clauseCompleted":{}}}},"at":1172}
+{"at":1172,"event":{"playback":{"_0":{"raw":7},"_1":{"firstAudio":{}}}}}
+{"event":{"playback":{"_0":{"raw":7},"_1":{"clauseCompleted":{}}}},"at":1172}
+{"event":{"playback":{"_0":{"raw":7},"_1":{"finished":{}}}},"at":1172}
+{"event":{"inputWithdrawn":{}},"at":1172}
+{"at":1172,"event":{"sessionClosed":{"_0":"done"}}}

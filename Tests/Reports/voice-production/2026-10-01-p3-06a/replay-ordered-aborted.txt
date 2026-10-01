@@ -1,0 +1,40 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-session-reducer /tmp/nextnotes-voice-replay-9abbd8b2-1fa1-4911-ae42-2a545ba203e1/recorded.jsonl
+2026-10-01 05:17:54.534 NextNotes[55123:1318395] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+WARNING: Using native backtrace. Set GGML_BACKTRACE_LLDB for more info.
+WARNING: GGML_BACKTRACE_LLDB may cause native MacOS Terminal.app to crash.
+See: https://github.com/ggml-org/llama.cpp/pull/17869
+0   llama                               0x00000001097d5470 ggml_print_backtrace + 276
+1   llama                               0x00000001097e8338 _ZL23ggml_uncaught_exceptionv + 12
+2   libc++abi.dylib                     0x00000001904e92b0 _ZSt11__terminatePFvvE + 16
+3   libc++abi.dylib                     0x00000001904eb7bc __cxa_get_exception_ptr + 0
+4   libc++abi.dylib                     0x00000001904d818c __cxa_get_globals + 0
+5   libsherpa-onnx-c-api.dylib          0x00000001267a0bc0 _ZN3Ort6detail11ThrowStatusERKNS_6StatusE + 272
+6   libsherpa-onnx-c-api.dylib          0x00000001267c8850 _ZN3Ort5Value12CreateTensorEPK13OrtMemoryInfoPvmPKxm25ONNXTensorElementDataType + 76
+7   libsherpa-onnx-c-api.dylib          0x00000001267b9b44 _ZNK11sherpa_onnx28KeywordSpotterTransducerImpl13DecodeStreamsEPPNS_12OnlineStreamEi + 1296
+8   libsherpa-onnx-c-api.dylib          0x000000012678da48 SherpaOnnxDecodeKeywordStream + 72
+9   NextNotes                           0x0000000103cb608c nn_wake_accept + 184
+10  NextNotes                           0x0000000100c6e06c $s9NextNotes20SherpaKeywordSpotterC6accept7samples10sampleRateSSSgSaySfG_s5Int32VtFAJSRySfGXEfU_ + 404
+11  NextNotes                           0x0000000100c6e0a8 $s9NextNotes20SherpaKeywordSpotterC6accept7samples10sampleRateSSSgSaySfG_s5Int32VtFAJSRySfGXEfU_TA + 32
+12  NextNotes                           0x0000000100c6f498 $ss12_ArrayBufferV010withUnsafeB7Pointeryqd__qd__SRyxGqd_0_YKXEqd_0_YKs5ErrorRd_0_r0_lF + 484
+13  NextNotes                           0x0000000100c6e124 $sSa23withUnsafeBufferPointeryqd__qd__SRyxGqd_0_YKXEqd_0_YKs5ErrorRd_0_r0_lF + 112
+14  NextNotes                           0x0000000100c6dd7c $s9NextNotes20SherpaKeywordSpotterC6accept7samples10sampleRateSSSgSaySfG_s5Int32VtF + 236
+15  NextNotes                           0x0000000100c7eaf0 $s9NextNotes20WakeWordAudioMonitorC5start33_D3F65EAC52530764E900585BAEE35BB6LL13configuration6phraseyAA0cD13ConfigurationV_SStFyAA0E5ChunkVYbcfU_ + 348
+16  NextNotes                           0x0000000101c858b4 $s9NextNotes26AudioCaptureDeliveryWorker33_406180502CD8055278ECEA7198EDD1D2LLC7deliveryyAD4ItemVF + 896
+17  NextNotes                           0x0000000101c85518 $s9NextNotes26AudioCaptureDeliveryWorker33_406180502CD8055278ECEA7198EDD1D2LLC7enqueue6source5level15captureHostTimeSbSo16AVAudioPCMBufferC_Sfs6UInt64VSgtFyyYbcfU0_ + 208
+18  NextNotes                           0x0000000100ce28d4 $sIegh_IeyBh_TR + 48
+19  libdispatch.dylib                   0x0000000190374a34 _dispatch_call_block_and_release + 32
+20  libdispatch.dylib                   0x000000019038e5a0 _dispatch_client_callout + 16
+21  libdispatch.dylib                   0x000000019037cfc0 _dispatch_lane_serial_drain + 744
+22  libdispatch.dylib                   0x000000019037dabc _dispatch_lane_invoke + 392
+23  libdispatch.dylib                   0x0000000190387f58 _dispatch_root_queue_drain_deferred_wlh + 284
+24  libdispatch.dylib                   0x000000019038785c _dispatch_workloop_worker_thread + 720
+25  libsystem_pthread.dylib             0x0000000190531f9c _pthread_wqthread + 292
+26  libsystem_pthread.dylib             0x0000000190530ce0 start_wqthread + 8
+libc++abi: terminating due to uncaught exception of type Ort::Exception: GetElementType is not implemented
+VOICE_SESSION_REDUCER_TRACE events=121
+VOICE_SESSION_REDUCER_PURE: traces=10 failures=0
+VOICE_CONVERSATION_HELD: after_read=false status=running revision=0 effects=0
+VOICE_CONVERSATION_HELD: after_read=true status=running revision=0 effects=0
+VOICE_CONVERSATION_OK
+VOICE_SESSION_SHADOW: events=121 divergences=0 coverage=["floor": 39, "output": 39, "effectsHeld": 39, "turnPending": 39] output_present=18 unavailable=[:]
+VOICE_SESSION_REDUCER_OK: 10 traces and actual capture/output producers

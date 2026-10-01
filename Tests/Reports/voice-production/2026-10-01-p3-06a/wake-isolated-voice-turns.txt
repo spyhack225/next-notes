@@ -1,0 +1,16 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-turns -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO
+2026-10-01 05:41:13.278 NextNotes[56333:1344326] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+VOICE_TURNS_OK
+2026-10-01 05:41:13.520 NextNotes[56333:1344326] NSQuitAlwaysKeepsWindows=NO
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#4) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#4) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#5) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#5) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#7) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#7) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#10) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#10) legacy=nil
+VOICE_LISTEN_CANDIDATE_TO_PAUSE=2.9802322387695312e-06s
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#13) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#13) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=output event=inputWithdrawn reducer=Optional(NextNotes.VoiceSessionState.Output(id: output#8, kind: NextNotes.OutputKind.delivery([]), status: NextNotes.VoiceSessionState.Output.Status.paused, heard: true)) legacy=Optional(NextNotes.VoiceSessionState.Output(id: output#8, kind: NextNotes.OutputKind.delivery([]), status: NextNotes.VoiceSessionState.Output.Status.playing, heard: true))

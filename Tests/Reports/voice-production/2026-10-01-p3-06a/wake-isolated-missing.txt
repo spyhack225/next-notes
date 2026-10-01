@@ -1,0 +1,6 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-session-reducer /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-p3-final-lsgm6uye/missing.jsonl -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO
+2026-10-01 05:40:45.193 NextNotes[56177:1342510] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+2026-10-01 05:40:45.731 NextNotes[56177:1342510] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+2026-10-01 05:40:46.298 NextNotes[56177:1342510] NSQuitAlwaysKeepsWindows=NO
+VOICE_SESSION_REDUCER_WRONG: file: The file “missing.jsonl” couldn’t be opened because there is no such file.
+VOICE_SESSION_REDUCER_FAILED: file: The file “missing.jsonl” couldn’t be opened because there is no such file.

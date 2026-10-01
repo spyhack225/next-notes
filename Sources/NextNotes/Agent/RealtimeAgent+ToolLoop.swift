@@ -196,7 +196,7 @@ final class AgentToolSpeechTracker {
         }
         if !didStreamSpeech {
             agent.beginFirstTTSTrace(for: turn)
-            RealtimeAudioSession.shared.beginSpokenReply()
+            RealtimeAudioSession.shared.beginSpokenReply(turn: agent.voiceFrontendShadowTurn)
             didStreamSpeech = true
         }
         let delta = String(snapshot.dropFirst(sentCharacters))

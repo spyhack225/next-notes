@@ -1,0 +1,3 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-acp --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/voice-production/2026-10-01-p3-06a/core/selftest-acp.out
+2026-10-01 05:07:59.483 NextNotes[54262:1303949] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+ACP_OK: initialize, session, subscribe and permission relay hold

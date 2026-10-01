@@ -3,6 +3,8 @@ import Foundation
 enum ConcurrentVoiceSelfTest {
     @MainActor
     static func run() async -> Bool {
+        let shadow = VoiceSession.shared
+        shadow.resetDiagnosticsForTesting()
         let conversation = VoiceConversationCoordinator.shared
         let agent = RealtimeAgent.shared
         let capture = AgentCaptureController.shared
@@ -216,7 +218,7 @@ enum ConcurrentVoiceSelfTest {
             check(classifiedAt.duration(to: committedAt) <= .milliseconds(200),
                   "the held effect committed more than 200 ms after classification")
         }
-        _ = await agent.handle("Stall please.", source: .voice)
+        _ = await speak("Stall please.")
         check(conversation.effectHoldEpoch != nil,
               "a failed frontend turn did not hold effects")
         conversation.closeSession()
@@ -226,6 +228,12 @@ enum ConcurrentVoiceSelfTest {
         conversation.resetForTesting()
         await capture.endSession(source: .done)
         synth.restoreSystemBacking()
+        await Task.yield()
+        shadow.printDiagnostics()
+        check(shadow.divergenceCount == 0, "shadow producer divergence")
+        check(["effectsHeld", "turnPending", "output"].allSatisfy { shadow.comparisonCounts[$0, default: 0] > 0 },
+              "shadow sampler lacked covered fields")
+        check(shadow.outputPresenceComparisonCount > 0, "shadow output presence coverage absent")
         for failure in failures { SelfTest.diagnostic("CONCURRENT_VOICE_WRONG: \(failure)") }
         print(failures.isEmpty ? "CONCURRENT_VOICE_OK" : "CONCURRENT_VOICE_FAILED")
         return failures.isEmpty

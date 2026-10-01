@@ -104,6 +104,11 @@ final class RealtimeAgent {
     private(set) var voiceInputActive = false
     /// Output has its own lifetime: yielding speech must not invalidate work.
     private(set) var speechGeneration = 0
+    private var voiceFrontendShadowIdentity: (owner: Int, turn: TurnID)?
+    var voiceFrontendShadowTurn: TurnID? {
+        guard let identity = voiceFrontendShadowIdentity, isCurrent(identity.owner) else { return nil }
+        return identity.turn
+    }
 
     func userSpeechStarted() {
         guard !voiceInputActive else { return }
@@ -118,7 +123,11 @@ final class RealtimeAgent {
         finishFirstTTSTrace(note: "yielded")
     }
 
-    func userSpeechEnded() { voiceInputActive = false }
+    func userSpeechEnded() {
+        let wasActive = voiceInputActive
+        voiceInputActive = false
+        if wasActive { VoiceConversationCoordinator.shared.speechEnded() }
+    }
 
     func discardVoiceInput() {
         let interruptedResponse = voiceInputActive
@@ -235,15 +244,18 @@ final class RealtimeAgent {
 
     func cancelVoiceObjective() { generation += 1 }
 
-    func beginVoiceFrontend() -> Int {
+    func beginVoiceFrontend(voiceTurn: TurnID? = nil) -> Int {
         generation += 1
+        voiceFrontendShadowIdentity = voiceTurn.map { (generation, $0) }
         currentTurnSource = .voice
         beginWork(title: "Listening and thinking…")
         return generation
     }
 
     func finishVoiceFrontend(_ text: String, turn: Int, streamed: Bool) -> AgentTurn {
-        conclude(turn, Self.voiceSafeReply(text), route: "on-device-frontend", speak: !streamed)
+        let result = conclude(turn, Self.voiceSafeReply(text), route: "on-device-frontend", speak: !streamed)
+        if voiceFrontendShadowIdentity?.owner == turn { voiceFrontendShadowIdentity = nil }
+        return result
     }
 
     /// The single voice-boundary scrub (P0-7, rewritten by P1-10b).
@@ -272,7 +284,7 @@ final class RealtimeAgent {
     }
 
     func handle(_ utterance: String, source: AgentUtteranceSource,
-                turnID: UUID? = nil) async -> AgentTurn {
+                turnID: UUID? = nil, turn: TurnID? = nil) async -> AgentTurn {
         if source == .voice {
             if SelfTest.isRunning, VoiceConversationCoordinator.shared.streamForTesting == nil,
                !VoiceRealModelSelfTests.isRunning {
@@ -280,7 +292,7 @@ final class RealtimeAgent {
                 SelfTest.failed = true
                 return AgentTurn(reply: "", delegated: false)
             }
-            return await VoiceConversationCoordinator.shared.handle(utterance)
+            return await VoiceConversationCoordinator.shared.handle(utterance, turn: turn)
         }
         // One turn id per handled utterance (P0-20a): the answer pass and every planner
         // round it leads to share it.

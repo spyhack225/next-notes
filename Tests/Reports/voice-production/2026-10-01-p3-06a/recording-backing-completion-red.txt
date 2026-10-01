@@ -1,0 +1,9 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-session-reducer
+2026-10-01 04:26:45.481 NextNotes[47367:1227490] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_SESSION_REDUCER_PURE: traces=9 failures=0
+VOICE_CONVERSATION_HELD: after_read=false status=running revision=0 effects=0
+VOICE_CONVERSATION_HELD: after_read=true status=running revision=0 effects=0
+VOICE_CONVERSATION_OK
+VOICE_SESSION_SHADOW: events=110 divergences=0 coverage=["effectsHeld": 38, "turnPending": 38, "floor": 38, "output": 38] unavailable=[:]
+VOICE_SESSION_REDUCER_INTEGRATION_WRONG: second streamed clause did not start at the backing before finalization
+VOICE_SESSION_REDUCER_FAILED: integration

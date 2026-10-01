@@ -1,0 +1,5 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-work-lifecycle
+2026-10-01 05:04:09.303 NextNotes[52570:1293140] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_WORK_LIFECYCLE_C1: round2_ms=0 status=finished
+VOICE_SESSION_SHADOW: events=59 divergences=0 coverage=["output": 19, "effectsHeld": 19, "floor": 19, "turnPending": 19] output_present=9 unavailable=[:]
+VOICE_WORK_LIFECYCLE_OK
