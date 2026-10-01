@@ -1,0 +1,5 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-live --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/voice-production/2026-10-01-p3-01/core/selftest-meeting-live.out
+2026-10-01 01:29:00.677 NextNotes[28120:1011583] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_BUS_OK
+MEETING_LIVE_CADENCE: 2 pass(es) over 2 min of 2 s finals · 2 over 2 min of continuous speech · reads the last 3 min · automatic: OpenRouter off, on-device on
+MEETING_LIVE_OK: cadence, cards and the authority split hold

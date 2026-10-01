@@ -1,0 +1,10 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-work-lifecycle
+2026-10-01 01:13:31.414 NextNotes[25966:988138] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_WORK_LIFECYCLE_WRONG: typed provider override rerouted voice away from coordinator
+VOICE_WORK_LIFECYCLE_WRONG: a corrected objective answered "Nothing is frontmost.
+
+That took longer than I allow, so I stopped. Try one thing at a time."
+VOICE_WORK_LIFECYCLE_WRONG: a second correction inside the interval still left a reply: "Nothing is frontmost.
+
+That took longer than I allow, so I stopped. Try one thing at a time."
+VOICE_WORK_LIFECYCLE_FAILED

@@ -1,0 +1,8 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-work-lifecycle
+2026-10-01 01:23:55.112 NextNotes[27099:1002456] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_WORK_LIFECYCLE_C1: round2_ms=absent status=running
+VOICE_LEGACY_PATH_REACHED: Unconfigured synthetic frontend
+VOICE_WORK_LIFECYCLE_WRONG: C1 failure did not release reads and retain the effect hold
+VOICE_WORK_LIFECYCLE_WRONG: C1 real planner round two did not resume within 200 ms
+VOICE_WORK_LIFECYCLE_WRONG: C1 actual worker did not finish its read
+VOICE_WORK_LIFECYCLE_FAILED

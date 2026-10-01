@@ -1,0 +1,24 @@
+acceptance: logs in /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/voice-production/2026-10-01-p3-01/core
+== CORE ==
+  --selftest-dictation                     PASS  44s
+  --selftest-capture                       PASS  2s
+  --selftest-stream                        PASS  1s
+  --selftest-wake-live                     FAIL  18s
+  --selftest-voice-conversation            PASS  3s
+  --selftest-acoustic-replay               PASS  6s
+  --selftest-duplex                        PASS  3s
+  --selftest-action-runtime                PASS  2s
+  --selftest-activity                      PASS  1s
+  --selftest-meeting-live                  PASS  2s
+  --selftest-meeting-resume                PASS  15s
+  --selftest-toolloop                      PASS  1s
+  --selftest-computer                      PASS  1s
+  --selftest-imessage-watch                PASS  8s
+  --selftest-imessage-loop                 PASS  2s
+  --selftest-imessage-approval             PASS  1s
+  --selftest-acp                           PASS  2s
+  --selftest-mcp                           PASS  1s
+CORE         17/18 PASS
+
+FAIL  core         --selftest-wake-live                 WAKE_LIVE_FAILED: 17/24 hits, 3/32 false at sens 0.6 — hit rate 0.71 under 0.8 at sensitivity 0.6; 3 false accepts over 2 at sensitivity 0.6
+make: *** [acceptance] Error 1

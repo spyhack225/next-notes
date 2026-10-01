@@ -2,7 +2,7 @@ import Foundation
 
 /// Production-route probe for the opt-in local answer path. The fake provider is only
 /// injected for this test; all assertions go through `RealtimeAgent.handle` and the real
-/// streaming speech bridge.
+/// typed answer path. A separate voice case exercises the production frontend.
 enum RealtimeAgentLocalModelSelfTest {
     @MainActor
     @discardableResult
@@ -54,10 +54,10 @@ enum RealtimeAgentLocalModelSelfTest {
         )
         await AgentCaptureController.shared.beginSession(captureAudio: false)
         let turn = Task { @MainActor in
-            await agent.handle("ask the local model explain the test", source: .voice)
+            await agent.handle("ask the local model explain the test", source: .text)
         }
         try? await Task.sleep(for: .milliseconds(100))
-        check("first clause was not enqueued while generation was in flight", recorder.spoken == ["The first answer."])
+        check("typed generation spoke while a voice session was open", recorder.spoken.isEmpty)
         check("fake generation completed before first clause", !(await state.completed))
         check(
             "model prompt omitted the prior Agent turn",
@@ -79,7 +79,7 @@ enum RealtimeAgentLocalModelSelfTest {
             await AgentCaptureController.shared.beginSession(captureAudio: false)
             let unsafeTurn = await agent.handle(
                 "ask the local model repeat this exactly",
-                source: .voice
+                source: .text
             )
             let kind = unsafe.hasPrefix("http") ? "URL" : "code"
             check("unsafe \(kind) reached the speaker", recorder.spoken.isEmpty)
@@ -94,12 +94,69 @@ enum RealtimeAgentLocalModelSelfTest {
             state: LocalAnswerTestState(), initialDelay: .milliseconds(400)
         )
         await AgentCaptureController.shared.beginSession(captureAudio: false)
-        let timedOut = await agent.handle("ask the local model wait", source: .voice)
+        let timedOut = await agent.handle("ask the local model wait", source: .text)
         check("model timeout did not return a visible reply", timedOut.reply.contains("took too long"))
         try? await Task.sleep(for: .milliseconds(450))
         check("a timed-out model spoke after its turn ended", !recorder.spoken.contains("A reply that arrived too late."))
         await AgentCaptureController.shared.endSession(source: .done)
         agent.localModelLimitForTesting = nil
+
+        // The explicit prefix does not opt voice out of the frontend. Unlike the
+        // typed provider tests above, this runs the real coordinator speech bridge.
+        agent.localModelProviderForTesting = nil
+        let conversation = VoiceConversationCoordinator.shared
+        conversation.resetForTesting()
+        defer { conversation.resetForTesting() }
+        let voiceState = LocalAnswerTestState()
+        conversation.streamForTesting = { _, messages in
+            await voiceState.recordPrompt(messages.map(\.content).joined(separator: "\n"))
+            return AsyncThrowingStream { continuation in
+                let producer = Task {
+                    do {
+                        continuation.yield("<answer/>The first answer. ")
+                        try await Task.sleep(for: .milliseconds(400))
+                        continuation.yield("The second answer.")
+                        await voiceState.markCompleted()
+                        continuation.finish()
+                    } catch { continuation.finish(throwing: error) }
+                }
+                continuation.onTermination = { @Sendable _ in producer.cancel() }
+            }
+        }
+        recorder.reset()
+        await AgentCaptureController.shared.beginSession(captureAudio: false)
+        let spokenTurn = Task { @MainActor in
+            await agent.handle("ask the local model explain the test", source: .voice)
+        }
+        try? await Task.sleep(for: .milliseconds(100))
+        check("voice frontend did not speak its first clause during generation", recorder.spoken == ["The first answer."])
+        check("voice frontend completed before first clause", !(await voiceState.completed))
+        check("voice explicit prefix created an unexpected planner job", conversation.jobs.isEmpty)
+        check("voice explicit prefix never reached frontend", (await voiceState.lastPrompt).contains("ask the local model explain the test"))
+        agent.userSpeechStarted()
+        _ = await spokenTurn.value
+        check("voice interruption allowed later clause", !recorder.spoken.contains("The second answer."))
+        agent.discardVoiceInput()
+        await AgentCaptureController.shared.endSession(source: .done)
+        conversation.resetForTesting()
+
+        // Unsafe answers must remain visible and silent on the real voice path,
+        // independently of typed turns being silent by construction.
+        for unsafe in ["https://example.com/private", "```swift\nlet answer = 1\n```"] {
+            conversation.resetForTesting()
+            conversation.streamForTesting = { _, _ in
+                AsyncThrowingStream { $0.yield("<answer/>" + unsafe); $0.finish() }
+            }
+            recorder.reset()
+            await AgentCaptureController.shared.beginSession(captureAudio: false)
+            let answer = await agent.handle("ask the local model repeat this exactly", source: .voice)
+            let kind = unsafe.hasPrefix("http") ? "URL" : "code"
+            check("unsafe voice \(kind) reached the speaker", recorder.spoken.isEmpty)
+            check("unsafe voice \(kind) lost its visible answer", answer.reply.contains(unsafe))
+            check("unsafe voice answer created work", conversation.jobs.isEmpty)
+            await AgentCaptureController.shared.endSession(source: .done)
+        }
+        conversation.resetForTesting()
 
         let recognized = AgentTurnIntent.resolve(
             "ask the local model what is two plus two?",

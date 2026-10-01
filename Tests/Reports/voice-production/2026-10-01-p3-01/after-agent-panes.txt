@@ -1,0 +1,3 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-agent-panes
+2026-10-01 01:19:19.646 NextNotes[26711:997355] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+AGENT_PANES_OK: 3 panes, unique titles, Reminders and Goals say what they are, layout on the shared scaffold

@@ -1,0 +1,14 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-concurrent-voice
+2026-10-01 00:56:38.953 NextNotes[23782:968135] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[00:56:39.349] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[00:56:39.349] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[00:56:39.406] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[00:56:39.474] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[00:56:40.417] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[00:56:40.572] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[00:56:40.598] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 1.25s
+[00:56:40.624] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[00:56:40.624] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[00:56:40.624] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+CONCURRENT_VOICE_OK
+CONCURRENT_VOICE_OK

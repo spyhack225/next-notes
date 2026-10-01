@@ -9,9 +9,13 @@ enum VoiceConversationSelfTest {
         }
         let agent = RealtimeAgent.shared
         let capture = AgentCaptureController.shared
+        let conversation = VoiceConversationCoordinator.shared
+        let oldExecutor = AgentToolExecutor.fakeForTesting
         let recorder = RecordingSpeechBacking()
         AgentSpeechSynthesizer.shared.useTestingBacking(recorder)
         defer {
+            conversation.resetForTesting()
+            AgentToolExecutor.fakeForTesting = oldExecutor
             agent.localModelProviderForTesting = nil
             AgentSpeechSynthesizer.shared.restoreSystemBacking()
         }
@@ -41,9 +45,17 @@ enum VoiceConversationSelfTest {
         for afterRead in [false, true] {
             AgentSession.shared.forgetAllConversations() // SelfTest disables disk writes.
             await capture.beginSession(captureAudio: false)
+            conversation.resetForTesting()
+            agent.localModelProviderForTesting = nil
+            AgentToolExecutor.fakeForTesting = { _, _ in AgentToolResult(summary: "Nothing is frontmost.") }
             recorder.reset()
             let state = VoiceConversationProbeState(afterRead: afterRead)
-            agent.localModelProviderForTesting = VoiceConversationProbeProvider(state: state)
+            conversation.workerProviderForTesting = VoiceConversationProbeProvider(state: state)
+            conversation.streamForTesting = { _, messages in
+                let response = messages.last?.content.contains("Check Claude instead.") == true
+                    ? "<revise id=\"1\"/>" : "<use_tools/>"
+                return AsyncThrowingStream { $0.yield(response); $0.finish() }
+            }
             capture.simulateSpeech("Check the active app and its running sessions.")
             capture.simulateSilence()
             _ = await capture.considerEndpoint()
@@ -52,25 +64,34 @@ enum VoiceConversationSelfTest {
                 try? await Task.sleep(for: .milliseconds(10))
             }
             check("producer never reached the suspended boundary", await state.parked)
-            let workID = agent.voiceWork?.id
+            let original = conversation.jobs.first
+            let workID = original?.id
+            // The frontend acknowledgement precedes the held-floor interval.
+            recorder.reset()
             agent.userSpeechStarted()
-            check("starting speech cancelled work", agent.isThinking && agent.voiceWork?.id == workID)
+            check("starting speech cancelled work", conversation.jobs.first?.status == "running" && conversation.jobs.first?.id == workID && original?.work.revision == 0)
             check("starting speech failed to stop playback", AgentSpeechSynthesizer.shared.didStop)
 
             // Let the old model finish while the user still holds the floor.
             await state.release()
             try? await Task.sleep(for: .milliseconds(80))
             check("a completed response spoke over unfinished input", recorder.spoken.isEmpty)
-            check("unfinished input completed the work", agent.isThinking)
+            check("speech onset revised or cancelled the job", conversation.jobs.first?.id == workID
+                  && conversation.jobs.first?.status != "cancelled" && original?.work.revision == 0)
 
             capture.simulateSpeech("No, Claude Code. C L A U D E. Check Claude instead.")
             capture.simulateSilence()
             let ended = await capture.considerEndpoint()
             check("follow-up was not committed", ended)
-            check("follow-up replaced the work item", workID != nil && agent.voiceWork?.id == workID)
+            check("follow-up replaced the work item", workID != nil && conversation.jobs.count == 1 && conversation.jobs.first?.id == workID)
             await capture.waitForActiveTurnForTesting()
+            for _ in 0..<300 {
+                if conversation.jobs.first?.status == "finished" { break }
+                try? await Task.sleep(for: .milliseconds(10))
+            }
+            check("correction did not advance the same work revision", original?.work.revision == 1)
             check("original objective or correction was lost", await state.sawAmendedObjective)
-            check("stale plan executed or correction was lost", agent.lastReply == "I retained the request and applied your correction.")
+            check("stale plan executed or correction was lost", conversation.jobs.first?.result == "I retained the request and applied your correction.")
             if afterRead {
                 check("completed read was lost after correction", await state.sawRetainedResult)
                 check("completed read was requested again", await state.readRequests == 1)
@@ -93,6 +114,7 @@ enum VoiceConversationSelfTest {
               !VoiceAnnouncementQueue.shared.flush(userHasFloor: false))
         await capture.endSession(source: .done)
 
+        AgentToolExecutor.fakeForTesting = oldExecutor
         // The last validity check runs inside the real executor, after approval
         // and target resolution, immediately before the effect.
         var validityChecked = false

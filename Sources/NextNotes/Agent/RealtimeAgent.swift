@@ -108,7 +108,7 @@ final class RealtimeAgent {
     func userSpeechStarted() {
         guard !voiceInputActive else { return }
         voiceInputActive = true
-        if localModelProviderForTesting == nil { VoiceConversationCoordinator.shared.speechStarted() }
+        VoiceConversationCoordinator.shared.speechStarted()
         speechGeneration += 1
         let wasSpeaking = RealtimeAudioSession.shared.isSpeaking || AgentSpeechSynthesizer.shared.isSpeaking
         RealtimeAudioSession.shared.noteUserSpeech()
@@ -123,31 +123,8 @@ final class RealtimeAgent {
     func discardVoiceInput() {
         let interruptedResponse = voiceInputActive
         voiceInputActive = false
-        if localModelProviderForTesting == nil {
-            VoiceConversationCoordinator.shared.discardInput()
-            if interruptedResponse { waitForVoiceContinuation() }
-        }
-    }
-
-    /// Capture delivers a settled follow-up without cancelling its execution task.
-    func appendVoiceFollowUp(_ text: String) -> Bool {
-        guard localModelProviderForTesting != nil, isThinking, let voiceWork else { return false }
-        if VoiceTurnPolicy.isHesitation(text) { return true }
-        if VoiceTurnPolicy.isExplicitWorkCancellation(text) {
-            AgentSession.shared.recordUser(text, source: .voice)
-            AgentAuditLog.shared.record(kind: .request, title: text,
-                                       detail: "voice work cancelled · work \(voiceWork.id)")
-            cancel()
-            return true
-        }
-        voiceWork.append(text)
-        if let pending = PermissionGate.shared.pending, pending.taskID == voiceWork.id.uuidString {
-            PermissionGate.shared.cancelPending(id: pending.id)
-        }
-        AgentSession.shared.recordUser(text, source: .voice)
-        AgentAuditLog.shared.record(kind: .request, title: text,
-                                   detail: "voice follow-up · work \(voiceWork.id) · revision \(voiceWork.revision)")
-        return true
+        VoiceConversationCoordinator.shared.discardInput()
+        if interruptedResponse { waitForVoiceContinuation() }
     }
 
     /// No reply or newly planned effect may overtake unfinished user speech.
@@ -296,9 +273,13 @@ final class RealtimeAgent {
 
     func handle(_ utterance: String, source: AgentUtteranceSource,
                 turnID: UUID? = nil) async -> AgentTurn {
-        if source == .voice, localModelProviderForTesting == nil,
-           !SelfTest.isRunning || VoiceConversationCoordinator.shared.streamForTesting != nil
-                || CommandLine.arguments.contains("--selftest-voice-pipeline") {
+        if source == .voice {
+            if SelfTest.isRunning, VoiceConversationCoordinator.shared.streamForTesting == nil,
+               !VoiceRealModelSelfTests.isRunning {
+                print("VOICE_LEGACY_PATH_REACHED: \(String(utterance.prefix(60)))")
+                SelfTest.failed = true
+                return AgentTurn(reply: "", delegated: false)
+            }
             return await VoiceConversationCoordinator.shared.handle(utterance)
         }
         // One turn id per handled utterance (P0-20a): the answer pass and every planner
@@ -1469,4 +1450,12 @@ final class AgentSession {
                 && loaded[1].source == nil
         } catch { return false }
     }
+}
+
+/// Registered real-model voice probes deliberately reach the frontend without a fixture.
+enum VoiceRealModelSelfTests {
+    static let flags = ["--selftest-voice-pipeline", "--selftest-voice-latency",
+                        "--selftest-voice-frontend", "--selftest-voice-local",
+                        "--selftest-voice-capabilities-live"]
+    static var isRunning: Bool { flags.contains(where: CommandLine.arguments.contains) }
 }

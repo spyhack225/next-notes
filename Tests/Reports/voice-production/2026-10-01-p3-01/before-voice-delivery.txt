@@ -1,0 +1,5 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-delivery
+2026-10-01 00:57:44.264 NextNotes[23944:970379] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[00:57:46.019] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[00:57:46.074] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+LLVM ERROR: IO failure on output stream: No space left on device

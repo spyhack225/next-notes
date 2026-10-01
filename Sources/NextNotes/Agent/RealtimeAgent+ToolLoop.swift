@@ -1782,7 +1782,8 @@ extension RealtimeAgent {
                 if ToolLoopBudget.refill(
                     ceilingRemaining: &remaining, budget: budget,
                     lastRefill: lastRefill, now: clock.now) {
-                    runner.charge(remaining - runner.ceilingRemaining)
+                    // charge subtracts elapsed time; a refill is a negative charge.
+                    runner.charge(runner.ceilingRemaining - remaining)
                     lastRefill = clock.now
                     Log.agent.info("tool plan ceiling refill · revision=\(revision, privacy: .public)")
                 }

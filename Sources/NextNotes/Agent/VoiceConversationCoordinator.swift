@@ -39,6 +39,8 @@ final class VoiceConversationCoordinator {
     var responseDeadlineForTesting: Duration?
     var streamForTesting: (@Sendable (String, [LLMChatMessage]) async -> AsyncThrowingStream<String, Error>)?
     var workerForTesting: (@MainActor (VoiceConversationWork) async -> String)?
+    /// Scripted model only: the production planned worker and executor still run.
+    var workerProviderForTesting: (any LLMProvider)?
     /// P1-07's hold can only be pinned by seeing what did *not* reach speech, and a
     /// self-test cannot attach a real TTS stream to a capture session. Every answer
     /// snapshot this path hands to the speech tracker is reported here first, in order.
@@ -613,7 +615,7 @@ final class VoiceConversationCoordinator {
                                                  turn: turn, streamed: false)
             case .newWork:
                 tracker.cancel()
-                guard !SelfTest.isRunning || workerForTesting != nil else {
+                guard !SelfTest.isRunning || workerForTesting != nil || workerProviderForTesting != nil else {
                     SelfTest.failed = true
                     resolveClassified(epoch: inputEpoch)
                     return agent.finishVoiceFrontend("The voice test requested a tool, so it was stopped.",
@@ -810,6 +812,7 @@ final class VoiceConversationCoordinator {
     private func submit(_ text: String) {
         let work = VoiceConversationWork(text)
         let worker = RealtimeAgent(voiceWorker: work)
+        worker.localModelProviderForTesting = workerProviderForTesting
         let id = work.id
         jobs.append(Job(id: id, work: work, worker: worker))
         AgentTaskManager.shared.beginVoiceObjective(id: id, objective: text)
@@ -857,6 +860,7 @@ final class VoiceConversationCoordinator {
         jobs = []
         streamForTesting = nil
         workerForTesting = nil
+        workerProviderForTesting = nil
         frontendUnavailableReasonForTesting = nil
         prewarmObserverForTesting = nil
         answerSpeechObserverForTesting = nil

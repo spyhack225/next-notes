@@ -1,0 +1,18 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-work-lifecycle
+2026-10-01 00:56:24.741 NextNotes[23720:967486] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[00:56:25.359] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[00:56:25.363] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[00:56:31.920] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+VOICE_WORK_LIFECYCLE_WRONG: a corrected objective answered "Nothing is frontmost.
+
+That took longer than I allow, so I stopped. Try one thing at a time."
+VOICE_WORK_LIFECYCLE_WRONG: a second correction inside the interval still left a reply: "Nothing is frontmost.
+
+That took longer than I allow, so I stopped. Try one thing at a time."
+VOICE_WORK_LIFECYCLE_WRONG: a corrected objective answered "Nothing is frontmost.
+
+That took longer than I allow, so I stopped. Try one thing at a time."
+VOICE_WORK_LIFECYCLE_WRONG: a second correction inside the interval still left a reply: "Nothing is frontmost.
+
+That took longer than I allow, so I stopped. Try one thing at a time."
+VOICE_WORK_LIFECYCLE_FAILED

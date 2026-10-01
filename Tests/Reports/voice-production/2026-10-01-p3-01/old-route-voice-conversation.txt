@@ -1,0 +1,5 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-conversation
+2026-10-01 01:13:42.804 NextNotes[26000:988897] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_CONVERSATION_WRONG: a completed response spoke over unfinished input
+VOICE_CONVERSATION_WRONG: a completed response spoke over unfinished input
+VOICE_CONVERSATION_FAILED

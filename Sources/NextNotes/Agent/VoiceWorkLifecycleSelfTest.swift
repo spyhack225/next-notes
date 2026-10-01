@@ -1,84 +1,125 @@
 import Foundation
 
-/// Runs real voice handle/capture policy with a controllable local provider.
+/// Runs the production frontend, capture policy and planned workers with scripted models.
 /// No microphone, model weights, external tools, or user-history writes.
 enum VoiceWorkLifecycleSelfTest {
     @MainActor
     static func run() async -> Bool {
         let agent = RealtimeAgent.shared
         let capture = AgentCaptureController.shared
+        let conversation = VoiceConversationCoordinator.shared
         let speech = AgentSpeechSynthesizer.shared
         let recorder = RecordingSpeechBacking()
-        let state = VoiceWorkLifecycleProbe()
         var failures: [String] = []
+        func check(_ value: Bool, _ message: String) { if !value { failures.append(message) } }
         speech.useTestingBacking(recorder)
-        agent.localModelProviderForTesting = VoiceWorkLifecycleProvider(state: state)
-        // P1-06: the budget is three numbers now. These two cases want exactly what the
-        // single `toolLoopLimitForTesting` used to say — one number, and one deadline for
-        // everything — so `perRound` and `ceiling` both carry it.
-        agent.budgetForTesting = .init(
-            perRound: .milliseconds(120), perReadCall: .milliseconds(120),
-            ceiling: .milliseconds(120), coldLoadAllowance: .zero)
+        let oldExecutor = AgentToolExecutor.fakeForTesting
+        AgentToolExecutor.fakeForTesting = { _, _ in AgentToolResult(summary: "Nothing is frontmost.") }
         defer {
+            conversation.resetForTesting()
             agent.localModelProviderForTesting = nil
             agent.budgetForTesting = nil
+            AgentToolExecutor.fakeForTesting = oldExecutor
             speech.restoreSystemBacking()
             Task { @MainActor in await capture.endSession(source: .done) }
         }
-
-        AgentSession.shared.forgetAllConversations()
         await capture.endSession(source: .done)
+        AgentSession.shared.forgetAllConversations()
         await capture.beginSession(captureAudio: false)
+        conversation.resetForTesting()
+        let state = VoiceWorkLifecycleProbe()
+        conversation.workerProviderForTesting = VoiceWorkLifecycleProvider(state: state)
+        conversation.streamForTesting = { _, messages in
+            let response = messages.last?.content.hasSuffix("What is a haiku?") == true
+                ? "<answer/>A haiku is a short poem." : "<use_tools/>"
+            return AsyncThrowingStream { $0.yield(response); $0.finish() }
+        }
         await state.parkNext(answer: "The objective remains active.")
-        let heldTurn = Task { @MainActor in
-            await agent.handle("Check the active app and its running sessions.", source: .voice)
-        }
-        for _ in 0..<100 {
+        _ = await agent.handle("Check the active app and its running sessions.", source: .voice)
+        for _ in 0..<200 {
             if await state.isParked { break }
             try? await Task.sleep(for: .milliseconds(5))
         }
-        if !(await state.isParked) { failures.append("provider never started before held floor") }
+        check(await state.isParked, "planned worker never reached its parked provider")
+        let original = conversation.jobs.first
+        // A deliberately incompatible *typed* override must not reroute voice. It does
+        // not supply the voice reply; this assertion catches the old routing producer.
+        agent.localModelProviderForTesting = VoiceWorkLifecycleProvider(state: VoiceWorkLifecycleProbe())
         agent.userSpeechStarted()
-        await state.release()
-        try? await Task.sleep(for: .milliseconds(250))
-        if !agent.isThinking { failures.append("completed model reply replaced unfinished speech") }
         agent.userSpeechEnded()
-        let heldResult = await heldTurn.value
-        if heldResult.reply != "The objective remains active." {
-            failures.append("held floor spent inference budget or lost response: \(heldResult.reply)")
-        }
-        await capture.endSession(source: .done)
+        let side = await agent.handle("What is a haiku?", source: .voice)
+        agent.localModelProviderForTesting = nil
+        check(side.reply == "A haiku is a short poem.", "typed provider override rerouted voice away from coordinator")
+        check(original != nil && conversation.jobs.first?.status == "running"
+              && original?.work.revision == 0, "side question cancelled or revised the real worker")
 
-        AgentSession.shared.forgetAllConversations()
-        agent.budgetForTesting = .init(
-            perRound: .seconds(1), perReadCall: .seconds(1),
-            ceiling: .seconds(1), coldLoadAllowance: .zero)
-        await state.parkNext(answer: "A stale answer after cancel.")
-        await capture.beginSession(captureAudio: false)
-        let cancelledTurn = Task { @MainActor in
-            await agent.handle("Check the active app and its running sessions.", source: .voice)
-        }
-        for _ in 0..<100 {
-            if await state.isParked { break }
-            try? await Task.sleep(for: .milliseconds(5))
-        }
-        if !(await state.isParked) { failures.append("provider never reached parked model boundary") }
-        let originalWork = agent.voiceWork?.id
+        recorder.reset()
         capture.simulateSpeech("Cancel that")
         capture.simulateSilence()
-        if !(await capture.considerEndpoint()) { failures.append("explicit cancel did not endpoint") }
-        if originalWork == nil || agent.voiceWork != nil || agent.isThinking {
-            failures.append("explicit cancel retained active work")
-        }
+        check(await capture.considerEndpoint(), "explicit cancel did not endpoint")
+        await capture.waitForActiveTurnForTesting()
+        check(agent.lastReply == "I stopped that task.", "explicit cancel did not confirm the stopped task")
+        check(conversation.jobs.first?.id == original?.id && conversation.jobs.first?.status == "cancelled",
+              "explicit cancel retained/replaced the active job")
+        check(original.map { job in AgentTaskManager.shared.tasks.contains {
+            $0.id == job.id.uuidString && $0.status == .cancelled
+        }} == true, "real task ledger did not record cancellation")
         await state.release()
-        _ = await cancelledTurn.value
         try? await Task.sleep(for: .milliseconds(30))
-        if recorder.spoken.contains("A stale answer after cancel.") {
-            failures.append("cancelled producer spoke a stale answer")
-        }
+        _ = VoiceAnnouncementQueue.shared.flush(userHasFloor: false)
+        check(!recorder.spoken.contains("The objective remains active."), "cancelled producer spoke a stale answer")
         await capture.endSession(source: .done)
 
-        failures.append(contentsOf: await runRevisionCases(check: { failures.append($0) }))
+        // C1: the actual planner is parked on round one. A stalled frontend owns
+        // the input epoch while that round produces a read. Its deadline must reopen
+        // planning/reads, while the separate write-effect hold remains in force.
+        await capture.beginSession(captureAudio: false)
+        conversation.resetForTesting()
+        let stalled = VoiceFailureWorkerProbe()
+        conversation.workerProviderForTesting = VoiceFailureWorkerProvider(state: stalled)
+        conversation.streamForTesting = { _, _ in
+            AsyncThrowingStream { $0.yield("<use_tools/>"); $0.finish() }
+        }
+        _ = await agent.handle("Inspect the frontmost app.", source: .voice)
+        for _ in 0..<200 {
+            if await stalled.parked { break }
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        check(await stalled.parked, "C1 worker never parked on real planner round one")
+        conversation.responseDeadlineForTesting = .milliseconds(200)
+        conversation.streamForTesting = { _, _ in AsyncThrowingStream { _ in } }
+        agent.userSpeechStarted()
+        agent.userSpeechEnded()
+        let failedTurn = Task { @MainActor in await agent.handle("Stall please.", source: .voice) }
+        for _ in 0..<100 {
+            if conversation.inputPending { break }
+            try? await Task.sleep(for: .milliseconds(2))
+        }
+        check(conversation.inputPending, "C1 frontend never owned the input barrier")
+        await stalled.release()
+        _ = await failedTurn.value
+        let failedAt = ContinuousClock.now
+        check(conversation.lastFailure?.code == .deadline, "C1 frontend did not fail at its real deadline")
+        check(!conversation.inputPending && conversation.effectHoldEpoch != nil,
+              "C1 failure did not release reads and retain the effect hold")
+        for _ in 0..<100 {
+            if await stalled.roundTwoAt != nil { break }
+            try? await Task.sleep(for: .milliseconds(2))
+        }
+        let resumed = await stalled.roundTwoAt
+        check(resumed.map { failedAt.duration(to: $0) <= .milliseconds(200) } == true,
+              "C1 real planner round two did not resume within 200 ms")
+        for _ in 0..<200 {
+            if conversation.jobs.first?.status == "finished" { break }
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        check(conversation.jobs.first?.result == "The read finished.", "C1 actual worker did not finish its read")
+        check(conversation.effectHoldEpoch != nil, "C1 worker completion released unclassified effects")
+        print("VOICE_WORK_LIFECYCLE_C1: round2_ms=\(resumed.map { String(ModelPassRecorder.milliseconds(failedAt.duration(to: $0))) } ?? "absent") status=\(conversation.jobs.first?.status ?? "absent")")
+        await capture.endSession(source: .done)
+        conversation.resetForTesting()
+
+        failures.append(contentsOf: await runRevisionCases(check: { _ in }))
 
         for failure in failures { print("VOICE_WORK_LIFECYCLE_WRONG: \(failure)") }
         print(failures.isEmpty ? "VOICE_WORK_LIFECYCLE_OK" : "VOICE_WORK_LIFECYCLE_FAILED")
@@ -102,6 +143,7 @@ enum VoiceWorkLifecycleSelfTest {
         func fail(_ name: String) { failures.append(name); check(name) }
 
         let answer = "Two unread messages."
+        let timeoutSentence = AgentReplyRenderer.render(.timedOut(lastVerified: nil), voice: true)
         let budget = ToolLoopBudget(
             perRound: .seconds(2), perReadCall: .seconds(1),
             ceiling: .seconds(3), coldLoadAllowance: .zero)
@@ -118,10 +160,11 @@ enum VoiceWorkLifecycleSelfTest {
             agent.localModelProviderForTesting = VoiceBudgetScriptProvider(
                 probe: probe, script: [call, call, answer, "A stale answer."])
             agent.budgetForTesting = budget
-            AgentToolExecutor.fakeForTesting = { tool, _ in
+            let previousExecutor = AgentToolExecutor.fakeForTesting
+            AgentToolExecutor.fakeForTesting = { _, _ in
                 AgentToolResult(summary: "Nothing is frontmost.")
             }
-            defer { AgentToolExecutor.fakeForTesting = nil }
+            defer { AgentToolExecutor.fakeForTesting = previousExecutor }
             let task = Task { @MainActor in await agent.runVoiceObjective() }
             for index in parkOn.sorted() {
                 // Long enough to cover the rounds before it: each of those spends its own
@@ -147,7 +190,7 @@ enum VoiceWorkLifecycleSelfTest {
         do {
             guard let (reply, _) = await run(parkOn: [2]) else { return failures }
             if reply != answer { fail("a corrected objective answered \"\(reply)\"") }
-            if reply.contains("too long") {
+            if reply.contains(timeoutSentence) {
                 fail("a corrected objective was charged to the clock the first wording spent: "
                     + "\"\(reply)\"")
             }
@@ -158,7 +201,7 @@ enum VoiceWorkLifecycleSelfTest {
                 fail("a second correction inside the interval refilled the ceiling again: "
                     + "\"\(reply)\"")
             }
-            if !reply.contains("too long") {
+            if !reply.contains(timeoutSentence) {
                 fail("a second correction inside the interval still left a reply: \"\(reply)\"")
             }
         }
@@ -258,5 +301,38 @@ private struct VoiceWorkLifecycleProvider: LLMProvider {
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         let answer = try await state.response()
         return LLMCompletion(text: answer, generatedTokens: answer.count, duration: 0)
+    }
+}
+
+private actor VoiceFailureWorkerProbe {
+    private(set) var parked = false
+    private(set) var roundTwoAt: ContinuousClock.Instant?
+    private var released = false
+    private var rounds = 0
+    func release() { released = true }
+    func response() async throws -> String {
+        rounds += 1
+        if rounds == 1 {
+            parked = true
+            while !released {
+                try Task.checkCancellation()
+                try await Task.sleep(for: .milliseconds(2))
+            }
+            return #"<tool_call>{"name":"computer.active_app","arguments":{},"rationale":"Inspect the app"}</tool_call>"#
+        }
+        roundTwoAt = .now
+        return "The read finished."
+    }
+}
+
+private struct VoiceFailureWorkerProvider: LLMProvider {
+    let id = LLMProviderID.appLLM
+    let state: VoiceFailureWorkerProbe
+    var contextTokens: Int { 8_192 }
+    var unavailableReason: String? { get async { nil } }
+    func countTokens(_ text: String) async throws -> Int { text.count / 4 }
+    func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+        let text = try await state.response()
+        return LLMCompletion(text: text, generatedTokens: text.count, duration: 0)
     }
 }

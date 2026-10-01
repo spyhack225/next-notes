@@ -1,0 +1,4 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-conversation --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/voice-production/2026-10-01-p3-01/core/selftest-voice-conversation.out
+2026-10-01 01:28:44.848 NextNotes[27985:1010649] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_CONVERSATION_OK
+VOICE_CONVERSATION_OK

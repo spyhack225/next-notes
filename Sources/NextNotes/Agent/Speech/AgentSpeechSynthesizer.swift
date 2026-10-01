@@ -126,9 +126,11 @@ final class AgentSpeechSynthesizer {
         kokoroBacking.onFailure = { [weak self] text, volume, token in
             self?.fallbackCurrentClause(text: text, token: token)
         }
-        if Settings.shared.agentVoiceEngine == "pocket" {
+        // Scripted speech tests install their backing after construction. Real audio
+        // probes explicitly prepare their engine; startup must not load models here.
+        if !SelfTest.isRunning, Settings.shared.agentVoiceEngine == "pocket" {
             Task { await PocketAgentVoice.shared.prepare() }
-        } else if Settings.shared.agentVoiceEngine == "kokoro" {
+        } else if !SelfTest.isRunning, Settings.shared.agentVoiceEngine == "kokoro" {
             if KokoroAgentVoice.isSupportedOS {
                 Task { await KokoroAgentVoice.shared.prepare() }
             }

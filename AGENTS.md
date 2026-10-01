@@ -2064,6 +2064,10 @@ a completed clause is not proof of physical audibility. The on-device model's si
 context must be reserved before acquiring its compute scheduler ticket, or actor reentry can corrupt
 its inference state and reverse lock order can deadlock. The voice lifecycle, delivery,
 and scheduling self-tests exercise these boundaries without a microphone.
+Voice tests drive `VoiceConversationCoordinator.streamForTesting` and scripted worker
+providers through the production planned loop; a shared typed-provider override must
+never supply a voice test reply. `handle(.voice)` fails loudly under the harness when
+no frontend fixture or registered real-model voice probe is present.
 
 **Live conversation has a different model owner from tool work.**
 `VoiceConversationCoordinator` routes local Foundation Models responses and keeps separate

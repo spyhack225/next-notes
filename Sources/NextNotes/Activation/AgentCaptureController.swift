@@ -1467,10 +1467,6 @@ final class AgentCaptureController {
             lastActivityAt = Date()
             return
         }
-        if continueSession, turnHandlerForTesting == nil,
-           RealtimeAgent.shared.appendVoiceFollowUp(text) {
-            return
-        }
         if RealtimeAgent.shared.isThinking {
             RealtimeAgent.shared.interrupt()
         }

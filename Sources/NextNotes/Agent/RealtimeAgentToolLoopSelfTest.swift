@@ -745,81 +745,87 @@ enum RealtimeAgentToolLoopSelfTest {
         _ = await agent.handle("Explain this briefly", source: .text)
         check("typed turn spoke while a voice session was open", recorder.spoken.isEmpty)
         await AgentCaptureController.shared.endSession(source: .done)
+        let conversation = VoiceConversationCoordinator.shared
+        conversation.resetForTesting()
+        agent.localModelProviderForTesting = nil
+        defer { conversation.resetForTesting() }
         let voiceState = ToolLoopTestState()
-        agent.localModelProviderForTesting = ToolLoopTestProvider(
+        conversation.workerProviderForTesting = ToolLoopTestProvider(
             state: voiceState,
             finalAnswer: "- /private/one\n- /private/two\n- /private/three\n- /private/four"
         )
+        conversation.streamForTesting = { _, _ in
+            AsyncThrowingStream { $0.yield("<use_tools/>"); $0.finish() }
+        }
         await AgentCaptureController.shared.beginSession(captureAudio: false)
-        let voiceTurn = await agent.handle("tell me which app is frontmost", source: .voice)
-        try? await Task.sleep(for: .milliseconds(100))
+        _ = await agent.handle("tell me which app is frontmost", source: .voice)
+        for _ in 0..<300 {
+            if conversation.jobs.first?.status == "finished" { break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        _ = VoiceAnnouncementQueue.shared.flush(userHasFloor: false)
         check("unspeakable tool listing was read aloud", recorder.spoken.allSatisfy {
             !$0.contains("/private/")
         })
         check("verified tool result produced no voice fallback", !recorder.spoken.isEmpty)
-        check("voice turn lost the full text result", voiceTurn.reply.contains("/private/"))
-        check("voice summary added an extra model round", (await voiceState.rounds) == 3)
-        // The speech path's own first pass, which P1-02 leaves alone. **This check was wrong
-        // about which pass it was looking at, and being wrong about it is what made it red.**
-        //
-        // It asserted `firstSystemCharacters - persona < 1_500`, the *header* pass's bound, on a
-        // turn whose utterance is "tell me which app is frontmost" — a request for a tool, and
-        // therefore a planner turn, whose first pass is the planner prompt and is supposed to
-        // carry the fitted roster. The check failed at 4,229 characters having found nothing
-        // wrong with anything: a correct planner prompt inside a header's budget.
-        //
-        // So the bound now branches on the thing it was actually about — whether the roster is in
-        // this prompt — instead of on an assumption about which pass this is. Where the roster is
-        // required it is held to the **planner's** 8,000, which is the bound the typed planner
-        // prompt is held to above; where it is not required it is held to the header's 1,500. The
-        // invariant is the same one the check was written to protect, and it is now *sharper*,
-        // because the roster's presence is read off the prompt rather than inferred from the
-        // utterance.
+        check("voice worker lost the full text result", conversation.jobs.first?.result.contains("/private/") == true)
+        // Coordinator routing is the frontend; the worker makes exactly the read and
+        // answer rounds. There is no third local-model header pass or summary pass.
+        check("voice worker added a model/summary round", (await voiceState.rounds) == 2)
+        check("voice worker did not consume its verified read", await voiceState.sawToolResult)
         let voiceFirstPass = await voiceState.firstSystemCharacters
         let voiceCarriesCatalogue = await voiceState.sawToolCatalogue
-        check(voiceCarriesCatalogue
-            ? "voice planner prompt carried the roster and stayed inside the planner bound (\(voiceFirstPass) chars, persona \(personaCharacters))"
-            : "voice header pass stayed free of the roster (\(voiceFirstPass) chars, persona \(personaCharacters))",
-              voiceCarriesCatalogue
-                ? voiceFirstPass < 8_000
-                : voiceFirstPass - personaCharacters < 1_500)
-
-        // And the half that was never tested: a voice turn that asks for *nothing* must not reach
-        // the catalogue at all. The check above could only ever see a tool-shaped utterance, so
-        // "the speech path does not pick up the roster" was asserted exclusively about a turn that
-        // legitimately has one. This is the case that makes the sentence true — and it is held to
-        // the **same** `voiceFirstPassBudget` the pass above is held to, because inventing a
-        // second, stricter number here would be the mirror image of the mistake just fixed.
-        let quietVoiceState = ToolLoopTestState()
-        agent.localModelProviderForTesting = ToolLoopTestProvider(
-            state: quietVoiceState, firstCall: "", finalAnswer: "It is frontmost."
-        )
-        await AgentCaptureController.shared.beginSession(captureAudio: false)
-        _ = await agent.handle("say hello", source: .voice)
-        check("a voice turn that wants no tool reached the planner", !(await quietVoiceState.sawToolCatalogue))
-        let quietFirstPass = await quietVoiceState.firstSystemCharacters
-        check("a voice turn that wants no tool stayed inside the first-pass budget (\(quietFirstPass) chars, persona \(personaCharacters))",
-              quietFirstPass < Self.voiceFirstPassBudget)
+        check("voice worker omitted its roster or exceeded the planner bound", voiceCarriesCatalogue && voiceFirstPass < 8_000)
         await AgentCaptureController.shared.endSession(source: .done)
+
+        conversation.resetForTesting()
+        let quietVoiceState = ToolLoopTestState()
+        conversation.streamForTesting = { system, messages in
+            _ = await quietVoiceState.next(user: messages.last?.content ?? "", system: system)
+            return AsyncThrowingStream { $0.yield("<answer/>Hello."); $0.finish() }
+        }
+        await AgentCaptureController.shared.beginSession(captureAudio: false)
+        let quiet = await agent.handle("say hello", source: .voice)
+        let quietCarriesCatalogue = await quietVoiceState.sawToolCatalogue
+        check("a voice turn that wants no tool reached the planner",
+              conversation.jobs.isEmpty && !quietCarriesCatalogue && quiet.reply == "Hello.")
+        let quietFirstPass = await quietVoiceState.firstSystemCharacters
+        check("quiet frontend exceeded the existing first-pass prompt budget (\(quietFirstPass) chars)",
+              quietFirstPass > 0 && quietFirstPass < Self.voiceFirstPassBudget)
+        await AgentCaptureController.shared.endSession(source: .done)
+
+        conversation.resetForTesting()
         recorder.reset()
         let answerState = ToolLoopTestState()
-        agent.localModelProviderForTesting = ToolLoopTestProvider(
-            state: answerState, firstCall: "", delay: .milliseconds(400)
-        )
+        conversation.streamForTesting = { system, messages in
+            _ = await answerState.next(user: messages.last?.content ?? "", system: system)
+            return AsyncThrowingStream { continuation in
+                let producer = Task {
+                    do {
+                        continuation.yield("<answer/>First answer. ")
+                        try await Task.sleep(for: .milliseconds(400))
+                        continuation.yield("Second answer.")
+                        await answerState.markCompleted()
+                        continuation.finish()
+                    } catch { continuation.finish(throwing: error) }
+                }
+                continuation.onTermination = { @Sendable _ in producer.cancel() }
+            }
+        }
         await AgentCaptureController.shared.beginSession(captureAudio: false)
         let spokenTurn = Task { @MainActor in
             await agent.handle("Explain this briefly", source: .voice)
         }
         try? await Task.sleep(for: .milliseconds(100))
-        check("plain model answer waited for all tokens before speaking",
-              recorder.spoken == ["First answer."])
-        check("model answer finished before its first clause was audible",
-              !(await answerState.completed))
-        agent.interrupt()
+        check("frontend answer waited for all tokens before speaking", recorder.spoken == ["First answer."])
+        check("frontend finished before its first clause was audible", !(await answerState.completed))
+        agent.userSpeechStarted()
         _ = await spokenTurn.value
-        check("interrupted answer spoke a later clause",
-              !recorder.spoken.contains("Second answer."))
+        check("interrupted frontend spoke a later clause", !recorder.spoken.contains("Second answer."))
+        check("plain frontend answer created a planner job", conversation.jobs.isEmpty)
+        agent.discardVoiceInput()
         await AgentCaptureController.shared.endSession(source: .done)
+        conversation.resetForTesting()
         AgentSpeechSynthesizer.shared.restoreSystemBacking()
 
         // P0-05 + P1-02 step 6: the budget a typed pass asks for comes from the reader's

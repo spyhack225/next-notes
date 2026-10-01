@@ -1,0 +1,11 @@
+{
+  "Sources/NextNotes/Agent/RealtimeAgent.swift": "8428e20cf32d7044a7c5f3fad95149d83127ca74206b772ea3616af134a92153",
+  "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift": "e315e5b75ad777c962d0cc9bdfe36bc98f30b27b6865ebdb9e2136307167abbb",
+  "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "9a2fbd43d7fad846c904c8dbc5d2fd76409e1386cc9e07dc8d397ab1778a0f9a",
+  "Sources/NextNotes/Activation/AgentCaptureController.swift": "0b75dc2ae1b1acbb857ba5fab6a3220dcec19d16e400c1788dea1ecd7044524b",
+  "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "3ddd5387789861701a7bd4085dc52d71fc4b6ed7c5d4bd151c250f8769d2d882",
+  "Sources/NextNotes/Agent/VoiceWorkLifecycleSelfTest.swift": "d7dbfc860f8f7dde77f0a1a087c73e431ed959c2b6f9f7ac643d4d835697369d",
+  "Sources/NextNotes/Agent/VoiceConversationSelfTest.swift": "4a1b169d1d72a484114bb75fc2b49e51ddf406fd1dc2b228cd7dd08fdf737eeb",
+  "Sources/NextNotes/Agent/RealtimeAgentToolLoopSelfTest.swift": "a7d666e456eeb33acb92ecfa52715bfd0b53febb707d5e6304c47aca01e564f0",
+  "Sources/NextNotes/Agent/RealtimeAgentLocalModelSelfTest.swift": "a495954f0b29530f7bd3601f14edfe396aa044b743e3ccf932b3d8e6932f2500"
+}
