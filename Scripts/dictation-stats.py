@@ -292,11 +292,16 @@ def gate_verdicts(holds, since):
     states = collections.Counter(u.get("errorClass") for u in refused)  # usage
     finishing = states.get("finishing", 0)
     per_100 = round(100 * finishing / len(holds), 2) if holds else None
-    window_days = (now - since).days if since else None
+    # The roadmap requires at least seven observed days, not a rolling-seven-day
+    # sample. --since selects rows; its cutoff cannot invent days before the first
+    # eligible hold. The default invocation must enforce the same minimum.
+    observed = [when for u in holds if (when := parse_date(stamp(u))) is not None and when <= now]
+    window_start = min(observed, default=None)
+    window_days = (now - window_start).days if window_start else 0
     shortfalls = []
     if len(holds) < D13_MIN_HOLDS:
         shortfalls.append(f"{D13_MIN_HOLDS - len(holds)} more owner hold(s) (have {len(holds)})")
-    if window_days is not None and window_days < D13_MIN_DAYS:
+    if window_days < D13_MIN_DAYS:
         shortfalls.append(f"{D13_MIN_DAYS - window_days} more day(s) of use")
     d13 = {
         "holds": len(holds),
@@ -304,6 +309,8 @@ def gate_verdicts(holds, since):
         "refused_finishing": finishing,
         "refused_finishing_per_100_holds": per_100,
         "threshold_per_100": D13_MIN_PER_100,
+        "observation_days": window_days,
+        "days_required": D13_MIN_DAYS,
     }
     if shortfalls:
         d13["verdict"] = "not enough data"

@@ -1,0 +1,47 @@
+FFEE...........
+======================================================================
+ERROR: test_d13_recent_since_excludes_older_observation (__main__.DictationGateCLITests.test_d13_recent_since_excludes_older_observation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 162, in test_d13_recent_since_excludes_older_observation
+    self.assertEqual(gate["observation_days"], 0)
+                     ~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'observation_days'
+
+======================================================================
+ERROR: test_d13_seven_days_and_100_holds_preserve_material_threshold (__main__.DictationGateCLITests.test_d13_seven_days_and_100_holds_preserve_material_threshold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 167, in test_d13_seven_days_and_100_holds_preserve_material_threshold
+    self.assertEqual(gate["observation_days"], 7)
+                     ~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'observation_days'
+
+======================================================================
+FAIL: test_d13_default_cannot_skip_seven_day_observation (__main__.DictationGateCLITests.test_d13_default_cannot_skip_seven_day_observation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 147, in test_d13_default_cannot_skip_seven_day_observation
+    self.assertEqual(gate["verdict"], "not enough data")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'proceed' != 'not enough data'
+- proceed
++ not enough data
+
+
+======================================================================
+FAIL: test_d13_old_since_cannot_invent_unobserved_days (__main__.DictationGateCLITests.test_d13_old_since_cannot_invent_unobserved_days)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 154, in test_d13_old_since_cannot_invent_unobserved_days
+    self.assertEqual(gate["verdict"], "not enough data")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'proceed' != 'not enough data'
+- proceed
++ not enough data
+
+
+----------------------------------------------------------------------
+Ran 15 tests in 3.010s
+
+FAILED (failures=2, errors=2)

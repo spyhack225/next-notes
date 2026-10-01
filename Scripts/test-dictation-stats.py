@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 
 
 SCRIPT = Path(__file__).with_name("dictation-stats.py")
@@ -134,6 +135,40 @@ class DictationGateCLITests(unittest.TestCase):
         gate = self.run_reader(records, "--gates")["gates"][D14]
         self.assertTrue(gate["dictation_side_lane_wait_recorded"])
         self.assertEqual(gate["verdict"], "won't do (evidence)")
+
+    def d13_records(self, age_days, refusals=3):
+        began = (datetime.now(timezone.utc) - timedelta(days=age_days)).isoformat()
+        return ([row("dictation.hold", ts=began, totalMs=800) for _ in range(100)]
+                + [row("dictation.press_refused", ts=began, errorClass="finishing")
+                   for _ in range(refusals)])
+
+    def test_d13_default_cannot_skip_seven_day_observation(self):
+        gate = self.run_reader(self.d13_records(0), "--gates")["gates"]["D-13 pipelined holds"]
+        self.assertEqual(gate["verdict"], "not enough data")
+        self.assertEqual(gate["observation_days"], 0)
+        self.assertIn("7 more day(s)", gate["shortfall"])
+
+    def test_d13_old_since_cannot_invent_unobserved_days(self):
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=8)).isoformat()
+        gate = self.run_reader(self.d13_records(0), "--gates", "--since", cutoff)["gates"]["D-13 pipelined holds"]
+        self.assertEqual(gate["verdict"], "not enough data")
+        self.assertEqual(gate["observation_days"], 0)
+
+    def test_d13_recent_since_excludes_older_observation(self):
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+        records = self.d13_records(8, refusals=0) + self.d13_records(0)
+        gate = self.run_reader(records, "--gates", "--since", cutoff)["gates"]["D-13 pipelined holds"]
+        self.assertEqual(gate["holds"], 100)
+        self.assertEqual(gate["observation_days"], 0)
+        self.assertEqual(gate["verdict"], "not enough data")
+
+    def test_d13_seven_days_and_100_holds_preserve_material_threshold(self):
+        gate = self.run_reader(self.d13_records(7), "--gates")["gates"]["D-13 pipelined holds"]
+        self.assertEqual(gate["observation_days"], 7)
+        self.assertEqual(gate["days_required"], 7)
+        self.assertEqual(gate["verdict"], "proceed")
+        negative = self.run_reader(self.d13_records(8, refusals=0), "--gates")["gates"]["D-13 pipelined holds"]
+        self.assertEqual(negative["verdict"], "won't do (evidence)")
 
 
 if __name__ == "__main__":
