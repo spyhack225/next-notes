@@ -1,0 +1,195 @@
+.FFFFFFFFFF
+======================================================================
+FAIL: test_full_and_gates_modes_agree (gate_cli_tests.DictationGateCLITests.test_full_and_gates_modes_agree)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 104, in test_full_and_gates_modes_agree
+    self.run_reader(records, "--gates")["gates"])
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 44, in run_reader
+    self.assertEqual(result.returncode, 0, result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 370, in <module>
+    main()
+    ~~~~^^
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 85, in main
+    if u.get("feature") == "dictation.hold" and keep(stamp(u))]  # usage
+                                                     ^^^^^
+UnboundLocalError: cannot access local variable 'stamp' where it is not associated with a value
+
+
+======================================================================
+FAIL: test_gates_cli_with_hold_reproduces_original_crash (gate_cli_tests.DictationGateCLITests.test_gates_cli_with_hold_reproduces_original_crash)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 48, in test_gates_cli_with_hold_reproduces_original_crash
+    report = self.run_reader([row("dictation.hold", totalMs=800)], "--gates")
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 44, in run_reader
+    self.assertEqual(result.returncode, 0, result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 370, in <module>
+    main()
+    ~~~~^^
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 85, in main
+    if u.get("feature") == "dictation.hold" and keep(stamp(u))]  # usage
+                                                     ^^^^^
+UnboundLocalError: cannot access local variable 'stamp' where it is not associated with a value
+
+
+======================================================================
+FAIL: test_known_zero_waits_preserve_negative_evidence_verdict (gate_cli_tests.DictationGateCLITests.test_known_zero_waits_preserve_negative_evidence_verdict)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 134, in test_known_zero_waits_preserve_negative_evidence_verdict
+    gate = self.run_reader(records, "--gates")["gates"][D14]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 44, in run_reader
+    self.assertEqual(result.returncode, 0, result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 370, in <module>
+    main()
+    ~~~~^^
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 85, in main
+    if u.get("feature") == "dictation.hold" and keep(stamp(u))]  # usage
+                                                     ^^^^^
+UnboundLocalError: cannot access local variable 'stamp' where it is not associated with a value
+
+
+======================================================================
+FAIL: test_original_d13_minimum_hold_gate_unchanged (gate_cli_tests.DictationGateCLITests.test_original_d13_minimum_hold_gate_unchanged)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 113, in test_original_d13_minimum_hold_gate_unchanged
+    report = self.run_reader(records, "--gates", "--since", "2026-09-01")
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 44, in run_reader
+    self.assertEqual(result.returncode, 0, result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 370, in <module>
+    main()
+    ~~~~^^
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 85, in main
+    if u.get("feature") == "dictation.hold" and keep(stamp(u))]  # usage
+                                                     ^^^^^
+UnboundLocalError: cannot access local variable 'stamp' where it is not associated with a value
+
+
+======================================================================
+FAIL: test_original_meeting_overlap_proceed_condition_unchanged (gate_cli_tests.DictationGateCLITests.test_original_meeting_overlap_proceed_condition_unchanged)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 125, in test_original_meeting_overlap_proceed_condition_unchanged
+    gate = self.run_reader(records, "--gates", meetings=meetings)["gates"][D14]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 44, in run_reader
+    self.assertEqual(result.returncode, 0, result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 370, in <module>
+    main()
+    ~~~~^^
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 85, in main
+    if u.get("feature") == "dictation.hold" and keep(stamp(u))]  # usage
+                                                     ^^^^^
+UnboundLocalError: cannot access local variable 'stamp' where it is not associated with a value
+
+
+======================================================================
+FAIL: test_other_features_and_unmeasured_asr_do_not_count (gate_cli_tests.DictationGateCLITests.test_other_features_and_unmeasured_asr_do_not_count)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 72, in test_other_features_and_unmeasured_asr_do_not_count
+    gate = self.run_reader(records, "--gates")["gates"][D14]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 44, in run_reader
+    self.assertEqual(result.returncode, 0, result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 370, in <module>
+    main()
+    ~~~~^^
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 85, in main
+    if u.get("feature") == "dictation.hold" and keep(stamp(u))]  # usage
+                                                     ^^^^^
+UnboundLocalError: cannot access local variable 'stamp' where it is not associated with a value
+
+
+======================================================================
+FAIL: test_since_filters_asr_waits_and_legacy_stamp_still_reads (gate_cli_tests.DictationGateCLITests.test_since_filters_asr_waits_and_legacy_stamp_still_reads)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 96, in test_since_filters_asr_waits_and_legacy_stamp_still_reads
+    gate = self.run_reader(records, "--gates", "--since", "2026-09-25")["gates"][D14]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 44, in run_reader
+    self.assertEqual(result.returncode, 0, result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 370, in <module>
+    main()
+    ~~~~^^
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 85, in main
+    if u.get("feature") == "dictation.hold" and keep(stamp(u))]  # usage
+                                                     ^^^^^
+UnboundLocalError: cannot access local variable 'stamp' where it is not associated with a value
+
+
+======================================================================
+FAIL: test_three_measured_asr_waits_proceed_without_meeting_rows (gate_cli_tests.DictationGateCLITests.test_three_measured_asr_waits_proceed_without_meeting_rows)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 57, in test_three_measured_asr_waits_proceed_without_meeting_rows
+    self.assertEqual(gate["verdict"], "proceed")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'not enough data' != 'proceed'
+- not enough data
++ proceed
+
+
+======================================================================
+FAIL: test_threshold_and_invalid_measurements (gate_cli_tests.DictationGateCLITests.test_threshold_and_invalid_measurements)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 81, in test_threshold_and_invalid_measurements
+    gate = self.run_reader(records, "--gates")["gates"][D14]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 44, in run_reader
+    self.assertEqual(result.returncode, 0, result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 370, in <module>
+    main()
+    ~~~~^^
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 85, in main
+    if u.get("feature") == "dictation.hold" and keep(stamp(u))]  # usage
+                                                     ^^^^^
+UnboundLocalError: cannot access local variable 'stamp' where it is not associated with a value
+
+
+======================================================================
+FAIL: test_two_waits_do_not_lower_three_occurrence_threshold (gate_cli_tests.DictationGateCLITests.test_two_waits_do_not_lower_three_occurrence_threshold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 63, in test_two_waits_do_not_lower_three_occurrence_threshold
+    gate = self.run_reader(records, "--gates")["gates"][D14]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/test-dictation-stats.py", line 44, in run_reader
+    self.assertEqual(result.returncode, 0, result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 370, in <module>
+    main()
+    ~~~~^^
+  File "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-gate-before-3f7g2rjd/dictation-stats.py", line 85, in main
+    if u.get("feature") == "dictation.hold" and keep(stamp(u))]  # usage
+                                                     ^^^^^
+UnboundLocalError: cannot access local variable 'stamp' where it is not associated with a value
+
+
+----------------------------------------------------------------------
+Ran 11 tests in 2.865s
+
+FAILED (failures=10)
