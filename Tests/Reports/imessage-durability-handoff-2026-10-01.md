@@ -32,8 +32,9 @@ dictation passed this run, earlier intermittent failures remain unresolved.
 
 P6-04a strict migration/read-authority and held launch decisions are now active.
 Unknown/unbound work must never auto-run; pending-card plans need actual routing
-proof. P3-06a focused capture/stream evidence is green, but wider floor/output
-shadow disagreements remain under repair. Legacy controllers still own behavior.
+proof. P3-06a bounded foundation is committed `5ecc7e6`: scripted capture/output and
+related comparisons show zero observed disagreements; ordered replay exits0 and
+invalid traces fail. Physical/full-suite coverage remains open. Legacy controllers still own behavior.
 Root serializes registry changes, installed verification and roadmap updates.
 TaskBridge and OutputScheduler remain subsequent contracts. AgentCapabilityManifest already exists. Remote TaskOrigin
 must reuse ActionOriginContext and preserve message/session/transport identity;
