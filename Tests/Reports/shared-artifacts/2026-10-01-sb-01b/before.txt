@@ -1,0 +1,4 @@
+MODEL_ARTIFACT_WRONG: legacy alias reached fetch boundary instead of reusing original row/path
+MODEL_ARTIFACT_WRONG: legacy alias did not persist checked-byte proof
+MODEL_ARTIFACT_WRONG: legacy adoption did not survive manifest reopen
+MODEL_ARTIFACT_FAILED

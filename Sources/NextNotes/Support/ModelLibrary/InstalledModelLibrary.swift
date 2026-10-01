@@ -277,6 +277,85 @@ final class InstalledModelLibrary {
         }
     }
 
+    /// Test-only pause points around actual background verification, never hash substitutes.
+    @ObservationIgnored var beforeArtifactVerificationForTesting: (@MainActor (InstalledLocalModel) async throws -> Void)?
+    @ObservationIgnored var afterArtifactVerificationForTesting: (@MainActor (InstalledLocalModel) async throws -> Void)?
+
+    /// Explicit download/adoption only. Turn/provider resolution keeps using the read-only
+    /// current-proof lookup. A legacy manifest row gains proof only from its actual bytes.
+    func reuseOrVerifyArtifact(sha256: String?, bytes: Int64) async throws -> InstalledLocalModel? {
+        try Task.checkCancellation()
+        guard bytes > 0, let digest = VerifiedModelArtifact.normalizedDigest(sha256) else { return nil }
+        if let current = reusableModel(sha256: digest, bytes: bytes) { return current }
+        let candidates = usableModels.filter {
+            !$0.isBuiltIn && $0.verifiedArtifact == nil && $0.bytes == bytes && $0.fileIsPresent
+                && $0.support?.llamaBuildTag == LlamaArchitectures.buildTag
+                && $0.support?.fileBytes == bytes
+        }
+        for candidate in candidates {
+            try Task.checkCancellation()
+            guard loadManifest().first(where: { $0.id == candidate.id }) == candidate else { continue }
+            let stamp = try VerifiedModelArtifact.FileStamp.read(candidate.fileURL)
+            if SelfTest.isRunning { try await beforeArtifactVerificationForTesting?(candidate) }
+            try Task.checkCancellation()
+            guard loadManifest().first(where: { $0.id == candidate.id }) == candidate,
+                  (try? VerifiedModelArtifact.FileStamp.read(candidate.fileURL)) == stamp else {
+                throw CancellationError()
+            }
+            let proof: VerifiedModelArtifact
+            do {
+                guard let checked = try await Self.verifyLegacyArtifact(candidate, digest: digest) else { continue }
+                proof = checked
+            } catch ModelDownloadError.invalidChecksum {
+                // A different artifact is not adoption. Preserve it and check other
+                // candidates; mutation during the pass must abort rather than start a fetch.
+                if SelfTest.isRunning { try await afterArtifactVerificationForTesting?(candidate) }
+                try Task.checkCancellation()
+                guard loadManifest().first(where: { $0.id == candidate.id }) == candidate,
+                      (try? VerifiedModelArtifact.FileStamp.read(candidate.fileURL)) == stamp else {
+                    throw CancellationError()
+                }
+                continue
+            }
+            if SelfTest.isRunning { try await afterArtifactVerificationForTesting?(candidate) }
+            try Task.checkCancellation()
+            var manifest = loadManifest()
+            guard let index = manifest.firstIndex(where: { $0.id == candidate.id }),
+                  manifest[index] == candidate, proof.stamp == stamp,
+                  proof.matches(sha256: digest, bytes: bytes, at: candidate.fileURL) else {
+                throw CancellationError()
+            }
+            let upgraded = InstalledLocalModel(
+                id: candidate.id, displayName: candidate.displayName, fileURL: candidate.fileURL,
+                parameterBillions: candidate.parameterBillions, quantization: candidate.quantization,
+                bytes: candidate.bytes, isBuiltIn: candidate.isBuiltIn,
+                support: candidate.support, lastTrial: candidate.lastTrial, verifiedArtifact: proof)
+            manifest[index] = upgraded
+            guard saveManifest(manifest) else { throw CocoaError(.fileWriteUnknown) }
+            reloadFromDisk()
+            guard model(withID: upgraded.id) == upgraded, proof.isCurrent(at: upgraded.fileURL) else {
+                throw CancellationError()
+            }
+            return upgraded
+        }
+        return nil
+    }
+
+    /// Detached utility work keeps GB hashing off the main actor. It shares the existing
+    /// hash/verifier implementation; cancellation forwards to its per-chunk checkpoints.
+    nonisolated private static func verifyLegacyArtifact(
+        _ candidate: InstalledLocalModel, digest: String
+    ) async throws -> VerifiedModelArtifact? {
+        let verification = Task.detached(priority: .utility) {
+            try Task.checkCancellation()
+            return try VerifiedModelArtifact.verify(
+                candidate.fileURL, bytes: candidate.bytes, expectedSHA256: digest)
+        }
+        return try await withTaskCancellationHandler {
+            try await verification.value
+        } onCancel: { verification.cancel() }
+    }
+
     /// Total bytes every installed brain is using right now.
     var totalBytes: Int64 { models.map(\.bytes).reduce(0, +) }
 
@@ -492,15 +571,18 @@ final class InstalledModelLibrary {
         return (try? JSONDecoder().decode([InstalledLocalModel].self, from: data)) ?? []
     }
 
-    private func saveManifest(_ entries: [InstalledLocalModel]) {
+    @discardableResult
+    private func saveManifest(_ entries: [InstalledLocalModel]) -> Bool {
         do {
             try FileManager.default.createDirectory(
                 at: manifestURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             try encoder.encode(entries).write(to: manifestURL, options: .atomic)
+            return true
         } catch {
             Log.app.error("Could not save the model library: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 }

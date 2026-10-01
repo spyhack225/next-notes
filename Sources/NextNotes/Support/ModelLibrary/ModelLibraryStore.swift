@@ -538,6 +538,11 @@ final class ModelLibraryStore {
         return freeBytes - fileBytes < ModelDownloader.minimumFreeBytesAfterDownload * 2
     }
 
+    /// Explicit download/adoption only. Exposed for isolated production-path fixtures.
+    func reusableArtifactBeforeDownload(_ file: HuggingFaceRepoFile) async throws -> InstalledLocalModel? {
+        try await library.reuseOrVerifyArtifact(sha256: file.sha256, bytes: file.sizeBytes)
+    }
+
     /// The transfer itself.
     private func run(
         model: HuggingFaceModel,
@@ -562,13 +567,20 @@ final class ModelLibraryStore {
         // Trusted Hub digest + current checked-byte proof identify the artifact, not its
         // basename or family. Preserve the installed row and path; no second download,
         // copy, manifest row or implicit role selection is needed for another consumer.
-        if let existing = library.reusableModel(sha256: file.sha256, bytes: file.sizeBytes) {
-            downloads[model.id] = .finished
-            await applyPostDownloadPolicy(policy, previousActiveID: previousActiveID, newModel: existing)
-            return
-        }
-        downloads[model.id] = .downloading(completed: remote.resumeOffset, total: file.sizeBytes)
+        downloads[model.id] = .verifying
         do {
+            if let existing = try await reusableArtifactBeforeDownload(file) {
+                try Task.checkCancellation()
+                guard library.model(withID: existing.id) == existing,
+                      existing.verifiedArtifact?.matches(
+                        sha256: file.sha256, bytes: file.sizeBytes, at: existing.fileURL) == true else {
+                    throw CancellationError()
+                }
+                downloads[model.id] = .finished
+                await applyPostDownloadPolicy(policy, previousActiveID: previousActiveID, newModel: existing)
+                return
+            }
+            downloads[model.id] = .downloading(completed: remote.resumeOffset, total: file.sizeBytes)
             let verifiedArtifact = try await ModelDownloader.downloadVerified(remote) { [weak self] progress in
                 Task { @MainActor [weak self] in
                     guard let self, self.downloads[model.id]?.isActive == true else { return }
