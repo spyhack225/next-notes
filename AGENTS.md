@@ -50,6 +50,44 @@ plain action at a time, with the reason and the exact next click. `--selftest-ui
 
 ---
 
+## Fix bugs at the source
+
+**Every agent must investigate and fix the cause at the producer level.** The producer is
+the code that creates the incorrect data, state, event, instruction or result. Trace the
+failure back to the first broken contract and fix the code that owns it. A smaller downstream
+patch is not a better fix when it leaves that producer emitting the same bad output.
+
+For every bug fix:
+
+1. **Reproduce the original failure.** Capture the actual inputs and relevant output or state.
+   Use a focused regression case or existing self-test that fails on the old behavior; do not
+   replace the failing scenario with an easier one.
+2. **Find the cause, not just the last error.** Follow the real call sites and data flow upstream.
+   Confirm where the first incorrect value or decision is produced with a trace, measurement
+   or failing assertion. A plausible explanation is a hypothesis until checked.
+3. **Fix the responsible producer.** Correct its logic or contract through the existing seam.
+   Do not settle for hiding the error, scrubbing the final reply, adding consumer retries or
+   special cases, extending a timeout, or changing a prompt until the symptom disappears.
+   Do not add a store, queue, model pass or abstraction to avoid repairing the cause.
+4. **Verify the producer and the original user flow.** Check that the producer now emits the
+   correct result and that the real consumer receives and uses it. The original regression
+   must fail before the fix and pass afterward. A helper passing without its production call
+   site being exercised is not end-to-end evidence.
+5. **Check related behavior.** Run the relevant existing regressions and preserve speed,
+   full duplex, permissions and stored choices. Report any verification that could not run
+   because a model, grant, account or suitable environment was unavailable.
+
+Keep necessary validation at external boundaries. If the faulty producer is outside this
+repo and cannot be repaired here, document the evidence and apply the smallest justified
+boundary mitigation; label it as a mitigation and leave the upstream cause explicitly open.
+
+Report the confirmed cause, the producer changed, and the before/after verification. A
+corrected error message, grader verdict or output sanitizer can fix its own bug, but does
+not prove that the underlying product failure is resolved. Do not mark that product bug
+fixed until its original failure is verified as resolved.
+
+---
+
 ## What this is
 
 Push-to-talk dictation. Hold a key, talk, release, and cleaned-up text is typed into
@@ -505,7 +543,7 @@ disable/delete offer excludes files needed by another enabled consumer, pending 
 lease or required fallback. Derive consumers from existing stores and work, not a second
 reference-count ledger. The current implementation's one-file/Agent-centric restrictions
 remain a migration constraint, not the product rule. The authoritative implementation plan is
-`roadmap/todo/SHARED-BRAIN/00-README.md` (name/IDs retained; now independent roles/shared files),
+`roadmap/in-progress/SHARED-BRAIN/00-README.md` (name/IDs retained; now independent roles/shared files),
 coordinated with `MODULES-ACTIVATION`. Do not describe planned reuse/gates as shipped.
 
 **A prompt rule is only a rule for the engines that read prompts.** Every grammar, list,
@@ -920,7 +958,7 @@ than a day left by a make that died mid-stage.
 re-deriving it.** `Scripts/dictation-gates.sh` computes the two evidence-gated tasks of
 `roadmap/done/DICTATION-MEETINGS-LIMITS` — D-13 (presses refused while a hold is finishing) and
 D-14 (a dictation hold overlapping a meeting whose transcription waited on the speech lane), whose
-remaining work is `roadmap/todo/DICTATION-MEETINGS-RATES-AND-GATES/` —
+remaining work is `roadmap/in-progress/DICTATION-MEETINGS-RATES-AND-GATES/` —
 and writes three files atomically into
 `~/Library/Caches/NextNotesBuild/dictation-meetings/`: `gates-latest.txt` in words,
 `gates-latest.json`, and one `gates-history.jsonl` line per run with the commit it ran against.
