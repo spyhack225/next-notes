@@ -1,0 +1,2 @@
+MODEL_ARTIFACT_WRONG: same-length substituted bytes were accepted as the pinned artifact
+MODEL_ARTIFACT_FAILED

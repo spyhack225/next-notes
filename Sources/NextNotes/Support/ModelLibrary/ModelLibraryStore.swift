@@ -558,10 +558,18 @@ final class ModelLibraryStore {
             allowLowDiskSpace: confirmed
         )
 
-        let previousActiveID = InstalledModelLibrary.shared.activeAgentModelID
+        let previousActiveID = library.activeAgentModelID
+        // Trusted Hub digest + current checked-byte proof identify the artifact, not its
+        // basename or family. Preserve the installed row and path; no second download,
+        // copy, manifest row or implicit role selection is needed for another consumer.
+        if let existing = library.reusableModel(sha256: file.sha256, bytes: file.sizeBytes) {
+            downloads[model.id] = .finished
+            await applyPostDownloadPolicy(policy, previousActiveID: previousActiveID, newModel: existing)
+            return
+        }
         downloads[model.id] = .downloading(completed: remote.resumeOffset, total: file.sizeBytes)
         do {
-            try await ModelDownloader.download(remote) { [weak self] progress in
+            let verifiedArtifact = try await ModelDownloader.downloadVerified(remote) { [weak self] progress in
                 Task { @MainActor [weak self] in
                     guard let self, self.downloads[model.id]?.isActive == true else { return }
                     self.downloads[model.id] = progress.completedBytes >= progress.totalBytes
@@ -582,9 +590,10 @@ final class ModelLibraryStore {
                 quantization: file.quantization,
                 bytes: file.sizeBytes,
                 isBuiltIn: false,
-                support: support
+                support: support,
+                verifiedArtifact: verifiedArtifact
             )
-            InstalledModelLibrary.shared.add(newModel)
+            try library.addVerifiedDownload(newModel)
             refreshHardware()
             Log.app.info("model library: installed \(model.id, privacy: .public)")
             guard support.verdict == .opens else {

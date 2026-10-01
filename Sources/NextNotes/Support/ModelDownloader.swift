@@ -47,7 +47,13 @@ enum ModelDownloader {
         _ spec: ModelSpec,
         progress: @escaping @Sendable (Double) -> Void = { _ in }
     ) async throws {
-        if spec.isDownloaded { return }
+        if spec.isDownloaded {
+            // A matching length is presence, not identity. Verification stays in this
+            // explicit download/adoption path, never in a user's model turn.
+            _ = try VerifiedModelArtifact.verify(
+                spec.fileURL, bytes: spec.expectedBytes, expectedSHA256: spec.expectedSHA256)
+            return
+        }
 
         let free = availableDiskBytes()
         if free - spec.expectedBytes < minimumFreeBytesAfterDownload {
@@ -245,9 +251,20 @@ extension ModelDownloader {
         _ file: RemoteFile,
         progress: @escaping @Sendable (DownloadProgress) -> Void = { _ in }
     ) async throws {
+        _ = try await downloadVerified(file, progress: progress)
+    }
+
+    /// Same transfer ownership and resume path; callers recording library identity retain
+    /// the proof produced by verification instead of treating expected metadata as proof.
+    static func downloadVerified(
+        _ file: RemoteFile,
+        progress: @escaping @Sendable (DownloadProgress) -> Void = { _ in }
+    ) async throws -> VerifiedModelArtifact? {
         if file.expectedBytes > 0, fileSize(at: file.destination) == file.expectedBytes {
+            let proof = try VerifiedModelArtifact.verify(
+                file.destination, bytes: file.expectedBytes, expectedSHA256: file.expectedSHA256)
             progress(DownloadProgress(completedBytes: file.expectedBytes, totalBytes: file.expectedBytes))
-            return
+            return proof
         }
 
         try FileManager.default.createDirectory(
@@ -280,23 +297,28 @@ extension ModelDownloader {
             throw ModelDownloadError.invalidSize(file.destination.lastPathComponent, actual: size)
         }
 
-        if let expected = file.expectedSHA256?.lowercased(), !expected.isEmpty {
-            let hash = try sha256(of: file.partialURL)
-            guard hash == expected else {
-                // A corrupt file must not be resumable — the next attempt would append to
-                // bytes that are already wrong and fail the same way forever.
-                try? FileManager.default.removeItem(at: file.partialURL)
-                throw ModelDownloadError.invalidChecksum(file.destination.lastPathComponent)
-            }
+        let proof: VerifiedModelArtifact?
+        do {
+            proof = try VerifiedModelArtifact.verify(
+                file.partialURL, bytes: size, expectedSHA256: file.expectedSHA256)
+        } catch ModelDownloadError.invalidChecksum {
+            // A corrupt partial cannot be resumed. An existing destination, by contrast,
+            // is preserved on failure; nothing silently deletes a user's installed file.
+            try? FileManager.default.removeItem(at: file.partialURL)
+            throw ModelDownloadError.invalidChecksum(file.destination.lastPathComponent)
         }
 
         if FileManager.default.fileExists(atPath: file.destination.path) {
             try FileManager.default.removeItem(at: file.destination)
         }
         try FileManager.default.moveItem(at: file.partialURL, to: file.destination)
+        if let proof, !proof.isCurrent(at: file.destination) {
+            throw ModelDownloadError.invalidChecksum(file.destination.lastPathComponent)
+        }
         progress(DownloadProgress(
             completedBytes: file.expectedBytes > 0 ? file.expectedBytes : size,
             totalBytes: file.expectedBytes > 0 ? file.expectedBytes : size))
+        return proof
     }
 
     /// One range request, written onto the end of the partial file *as it arrives*.

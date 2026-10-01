@@ -2056,8 +2056,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
         if arguments.contains("--selftest-model-library") {
-            SelfTest.failed = !ModelLibrarySelfTests.runModelLibrarySelfTest()
-            NSApp.terminate(nil)
+            Task { @MainActor in
+                SelfTest.failed = !(await ModelLibrarySelfTests.runModelLibrarySelfTest())
+                NSApp.terminate(nil)
+            }
             return true
         }
         if arguments.contains("--selftest-transcript-bus") {

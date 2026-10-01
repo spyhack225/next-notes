@@ -23,6 +23,8 @@ struct InstalledLocalModel: Identifiable, Codable, Sendable, Hashable {
     /// tried. P0-02: `support` says the file opens; only `lastTrial` says it answers, and
     /// the Models tab gates "Use for agent turns" on the difference.
     var lastTrial: ModelTrialResult?
+    /// nil on older/imported rows. Only a real download/adoption verification may set it.
+    let verifiedArtifact: VerifiedModelArtifact?
 
     init(
         id: String,
@@ -33,7 +35,8 @@ struct InstalledLocalModel: Identifiable, Codable, Sendable, Hashable {
         bytes: Int64,
         isBuiltIn: Bool,
         support: LlamaProbeResult? = nil,
-        lastTrial: ModelTrialResult? = nil
+        lastTrial: ModelTrialResult? = nil,
+        verifiedArtifact: VerifiedModelArtifact? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -44,6 +47,7 @@ struct InstalledLocalModel: Identifiable, Codable, Sendable, Hashable {
         self.isBuiltIn = isBuiltIn
         self.support = support
         self.lastTrial = lastTrial
+        self.verifiedArtifact = verifiedArtifact
     }
 
     /// Hand-written on purpose: a new field must be `decodeIfPresent`, or every
@@ -61,6 +65,7 @@ struct InstalledLocalModel: Identifiable, Codable, Sendable, Hashable {
         isBuiltIn = try container.decode(Bool.self, forKey: .isBuiltIn)
         support = try container.decodeIfPresent(LlamaProbeResult.self, forKey: .support)
         lastTrial = try container.decodeIfPresent(ModelTrialResult.self, forKey: .lastTrial)
+        verifiedArtifact = try container.decodeIfPresent(VerifiedModelArtifact.self, forKey: .verifiedArtifact)
     }
 
     /// "2.6 GB" — the form the settings rows use.
@@ -263,6 +268,15 @@ final class InstalledModelLibrary {
         models.first { $0.id == id }
     }
 
+    /// An exact verified artifact can be reused under any basename. This returns its
+    /// existing row/ID; adding a second row for the same physical file would make deletion
+    /// ownership ambiguous. No digest is computed here and no role choice is changed.
+    func reusableModel(sha256: String?, bytes: Int64) -> InstalledLocalModel? {
+        usableModels.first {
+            $0.verifiedArtifact?.matches(sha256: sha256, bytes: bytes, at: $0.fileURL) == true
+        }
+    }
+
     /// Total bytes every installed brain is using right now.
     var totalBytes: Int64 { models.map(\.bytes).reduce(0, +) }
 
@@ -413,6 +427,18 @@ final class InstalledModelLibrary {
         manifest.append(model)
         saveManifest(manifest)
         refresh()
+    }
+
+    /// Register only the bytes that the download/adoption producer actually checked.
+    /// An unpinned legacy download may have no proof; a stale proof must never be silently
+    /// downgraded to that case and then reach a trial, switch or delete policy.
+    func addVerifiedDownload(_ model: InstalledLocalModel) throws {
+        if let proof = model.verifiedArtifact {
+            guard proof.bytes == model.bytes, proof.isCurrent(at: model.fileURL) else {
+                throw ModelDownloadError.invalidChecksum(model.fileURL.lastPathComponent)
+            }
+        }
+        add(model)
     }
 
     /// Records what a real trial of this file found, on its own manifest row, so "opened"

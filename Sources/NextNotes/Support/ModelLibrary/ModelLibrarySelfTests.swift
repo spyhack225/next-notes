@@ -735,8 +735,10 @@ enum ModelLibrarySelfTests {
     /// because `ModelLibraryStore` and `InstalledModelLibrary` are.
     @MainActor
     @discardableResult
-    static func runModelLibrarySelfTest() -> Bool {
+    static func runModelLibrarySelfTest() async -> Bool {
         var failures: [String] = []
+        failures.append(contentsOf: await ModelArtifactIdentitySelfTest.downloadFailures())
+        failures.append(contentsOf: ModelArtifactIdentitySelfTest.libraryFailures())
         failures.append(contentsOf: postDownloadDecisionFailures())
         failures.append(contentsOf: builtInRemovalFailures())
         failures.append(contentsOf: partialDownloadFailures())
