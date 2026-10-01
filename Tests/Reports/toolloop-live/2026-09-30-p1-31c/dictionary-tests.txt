@@ -1,0 +1,315 @@
+/tmp/nextnotes-p1-31c-serial.mk:2: warning: overriding commands for target `build'
+Makefile:114: warning: ignoring old commands for target `build'
+/tmp/nextnotes-p1-31c-serial.mk:4: warning: overriding commands for target `test'
+Makefile:123: warning: ignoring old commands for target `test'
+swift test --scratch-path "/Users/sergekadjo/Library/Caches/NextNotesBuild/test-scratch" --jobs 1 --filter VectorTests --filter SpokenFormsTests
+warning: 'speechify': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for debugging...
+[Computing dependencies]
+[Constructing description]
+[Pre-planning 1 / 305]
+[Planning deferred tasks]
+[Starting]
+[1 / 9]
+[3 / 12] NextNotesDictionary
+[6 / 47]
+[7 / 47]
+[10 / 47]
+[11 / 47]
+[13 / 47]
+[14 / 47]
+[16 / 47]
+[18 / 47]
+[21 / 47]
+[22 / 47]
+[23 / 47]
+[24 / 47]
+[25 / 47]
+[26 / 47]
+[27 / 47]
+[28 / 47]
+[29 / 47]
+[30 / 47]
+[32 / 47]
+[34 / 47]
+[35 / 47]
+[36 / 47]
+[37 / 47]
+[38 / 47]
+[39 / 47] NextNotesDictionary
+[43 / 49] NextNotesDictionary
+[45 / 50] NextNotesDictionaryTests-product
+[49 / 58] NextNotesDictionaryTests-product
+[50 / 58]
+[51 / 58] NextNotesDictionaryTests-product
+[56 / 56] NextNotesDictionaryTests-product
+[56 / 66] NextNotes-product
+[58 / 67] NextNotes-product
+[59 / 100] FluidAudio
+[60 / 100]
+[62 / 100]
+[63 / 100]
+[65 / 100]
+[66 / 100]
+[68 / 100]
+[69 / 100]
+[70 / 100]
+[71 / 100]
+[72 / 100]
+[73 / 100]
+[75 / 100]
+[76 / 100]
+[77 / 100]
+[79 / 100]
+[81 / 100]
+[83 / 100]
+[84 / 100]
+[86 / 100]
+[87 / 100]
+[88 / 100]
+[89 / 100]
+[90 / 100]
+[91 / 100]
+[93 / 100]
+[94 / 100]
+[95 / 100] FluidAudio
+[98 / 101] FluidAudio
+[100 / 103] FluidAudio
+[101 / 130] NextNotes-product
+[102 / 130]
+[104 / 130]
+[106 / 130]
+[108 / 130]
+[109 / 130]
+[110 / 130]
+[112 / 130]
+[114 / 130]
+[115 / 130]
+[117 / 130]
+[118 / 130]
+[119 / 130]
+[120 / 130]
+[121 / 130]
+[123 / 130]
+[124 / 130]
+[124 / 130] NextNotes-product
+[125 / 131] NextNotes-product
+[126 / 131]
+[127 / 131]
+[128 / 131]
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/AppleModelWarmth.swift:40:13: warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 38 |     /// timeout closure without hopping to the main actor (D-07): the per-call ceiling
+ 39 |     /// is computed per chunked call, on whatever task asked for it.
+ 40 |     private nonisolated(unsafe) static let warmthLock = NSLock()
+    |             `- warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 41 |     private nonisolated(unsafe) static var warmWindowStorage: Duration = .seconds(600)
+ 42 |     private nonisolated(unsafe) static var lastActivityStorage: Date?
+[129 / 131] NextNotes-product
+[131 / 131] NextNotes-product
+Build complete! (117.79 sec)
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite VectorTests started.
+◇ Suite SpokenFormsTests started.
+◇ Test "an ordinary word used as a trigger is flagged" started.
+◇ Test "a distinctive phrase is not flagged" started.
+◇ Test "disabled entries are excluded from biasing" started.
+◇ Test "bias list is capped and de-duplicated" started.
+◇ Test "every shared vector produces the contracted output" started.
+◇ Test "a name with nothing sayable in it produces nothing" started.
+◇ Test "tokenizing produces the contracted words and UTF-16 offsets" started.
+◇ Test "a name is scored against a paragraph without walking the whole paragraph as one phrase" started.
+◇ Test "a full dictionary keeps every slot" started.
+◇ Test "the vectors file is the version this suite understands" started.
+◇ Test "the harvested share is never exceeded, whatever the room" started.
+◇ Test "the best window of a sentence is the contracted one" started.
+◇ Test "the bias budget is merged exactly as the contract says" started.
+◇ Test "names split into the contracted basename, segments, extension and tokens" started.
+◇ Test "a name that could generate a hundred variants is still capped" started.
+◇ Test "scoring against a pre-tokenized transcript is the same as scoring against the string" started.
+◇ Test "every phonetic key is exactly the pair the vectors spell out" started.
+◇ Test "every score is the contracted number and the contracted verdict" started.
+◇ Test "variants and bias phrases come out in the contracted order" started.
+◇ Test "the two thresholds stay in the order the names imply" started.
+◇ Test "the pairs that must meet phonetically do, and the pairs that must not do not" started.
+◇ Test "empty text and an empty screen change nothing" started.
+◇ Test "the loose match only runs for the names the caller allows" started.
+◇ Test "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test "the references written are reported in order" started.
+◇ Test "what counts as a file from the string alone" started.
+◇ Test "bias budget is never spent on a common word or a two-letter name" started.
+◇ Test "nothing matched is nothing claimed" started.
+◇ Test "the harvest's file flag decides, not the string" started.
+◇ Test "backtick style writes the same references in backticks" started.
+◇ Test case passing 1 argument testCase → [ext] Open login handler dot ts. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Run the login handler test dot ts. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Fix the login dot css file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open the user profile dot tsx. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Update the user card dot jsx. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Check the server index dot js. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Run deploy dot sh. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open main dot go. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open parser dot rs. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open main activity dot kt. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Check user dot rb. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open index dot php. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open index dot html. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open matrix dot c. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open matrix dot h. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open renderer dot cpp. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open renderer dot hpp. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open app delegate dot m. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open bridge dot mm. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Run schema dot sql. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Apply the v2 migration dot sql. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Read meeting notes dot txt. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Load users dot csv. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Use logo dot png. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Use logo dot svg. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open photo dot jpg. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open banner dot jpeg. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open invoice 2024 dot pdf. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Edit settings dot toml. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Edit docker compose dot yml. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Edit ci dot yaml. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open package dot json. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open package lock dot json. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open cargo dot lock. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open ts config dot json. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open vite config dot ts. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open types dot d dot ts. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open eslint rc dot json. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Read the readme dot md. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open API client dot swift. to "every format, name shape and sentence shape on a crowded screen" started.
+✔ Test "disabled entries are excluded from biasing" passed after 0.228 seconds.
+◇ Test case passing 1 argument testCase → [ext] Open the café menu dot md. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Edit theme dot scss. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Open report dot xlsx. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [ext] Play demo dot mp4. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [written] Open loginHandler.ts. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [written] Open LOGIN.CSS now. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [written] Open types.d.ts. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [written] Open vite.config.ts. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [written] Open docker-compose.yml. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [written] Open v2-migration.sql. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [written] Open Cargo.lock. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [written] Open .eslintrc.json. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [written] Open data_loader.py. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [spoken] Open the data loader python file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [spoken] Open the user profile typescript file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [spoken] Open the index HTML file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [spoken] Open the global CSS file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [spoken] Edit the docker compose yaml file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [spoken] Open the package JSON. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [spoken] Open the banner JPG. to "every format, name shape and sentence shape on a crowded screen" started.
+✔ Test "bias list is capped and de-duplicated" passed after 0.350 seconds.
+◇ Test case passing 1 argument testCase → [spoken] Open the readme markdown. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [spoken] Run the deploy shell script. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [spoken] Open the parser rust file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [spoken] Open the main activity kotlin file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [spoken] Check the user ruby file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [spoken] Read the meeting notes text file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [noext] Open the login handler file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [noext] Open the changelog file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [noext] Update the changelog. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [noext] Tag login css. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [noext] Open the Dockerfile. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [noext] Update the Makefile. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [noext] Open the env local file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [noext] Open the file store dot ts. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [tie] Open the logo file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [tie] Open helpers dot ts. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [tie] Open the matrix file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [tie] Open the renderer file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [shape] Compare logo.png and logo.svg. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [shape] Open "login.css" please. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [shape] Is it in (login.css)? to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [shape] Open login.css, then deploy.sh. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [shape] Login dot css is broken! to "every format, name shape and sentence shape on a crowded screen" started.
+✔ Test "a full dictionary keeps every slot" passed after 0.456 seconds.
+✔ Test "a distinctive phrase is not flagged" passed after 0.456 seconds.
+◇ Test case passing 1 argument testCase → [shape] Open login.css⏎then deploy.sh to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [shape] The login.css's colors are off. to "every format, name shape and sentence shape on a crowded screen" started.
+✔ Test "an ordinary word used as a trigger is flagged" passed after 0.501 seconds.
+◇ Test case passing 1 argument testCase → [shape] Open src slash auth slash login dot css. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [shape] Open login.css: it is broken. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [shape] Open login.css; then stop. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [existing] Already @src/auth/login.css done. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [existing] Already `src/auth/login.css` done. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [existing] See src/auth/login.css now. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Let's go to the store. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] I love python. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Write it in typescript. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Save the file. to "every format, name shape and sentence shape on a crowded screen" started.
+✔ Test "the harvested share is never exceeded, whatever the room" passed after 0.647 seconds.
+◇ Test case passing 1 argument testCase → [negative] Send me the logo. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Open the index. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Run the tests. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] The docs are in the assets folder. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Check your email and text me. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] The build uses rust and go. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Update the user. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Add a photo to the notes. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Update the package. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] The data looks right. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Look at the settings. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Deploy it to main. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Parse the report and send it. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Let's go open login.css. to "every format, name shape and sentence shape on a crowded screen" started.
+✔ Test "a name with nothing sayable in it produces nothing" passed after 0.785 seconds.
+◇ Test case passing 1 argument testCase → [negative] Save a file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [negative] Read the license. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [short] Open a dot txt. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [short] Tag ci yaml. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [real] What is inside of the paid release that defied? to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [real] Can you read the next note v1 roadmap md? to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [real] You check the paid release.md file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [real] What is inside of the acoustic dash echo dot md file? to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [real] Check the next notes roadmap. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [boundary] Update the user. Card games are fun. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [boundary] Open the login. CSS is broken. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [boundary] Check the data, loader is fine. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [boundary] Use the logo; png later. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [boundary] Open the index⏎file to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [boundary] Is it logo? File it. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [boundary] Tag. Login dot css. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [offsets] 🎉 Open login.css now. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [offsets] Café 🎉 then deploy dot sh. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [twins] Open button dot tsx. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [twins] Open button dot ts. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [twins] Open the button typescript file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [twins] Open jquery min js. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [twins] Open the index file. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [repeat] Compare login.css with login.css. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [repeat] Open index dot html and index dot js. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [trigger] Tag the release. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [trigger] Tag release. to "every format, name shape and sentence shape on a crowded screen" started.
+◇ Test case passing 1 argument testCase → [trigger] Open the settings dot. to "every format, name shape and sentence shape on a crowded screen" started.
+✔ Test "a name that could generate a hundred variants is still capped" passed after 1.285 seconds.
+✔ Test "tokenizing produces the contracted words and UTF-16 offsets" passed after 1.286 seconds.
+✔ Test "the vectors file is the version this suite understands" passed after 1.286 seconds.
+✔ Test "names split into the contracted basename, segments, extension and tokens" passed after 1.286 seconds.
+✔ Test "the bias budget is merged exactly as the contract says" passed after 1.286 seconds.
+✔ Test "the two thresholds stay in the order the names imply" passed after 1.286 seconds.
+✔ Test "every phonetic key is exactly the pair the vectors spell out" passed after 1.286 seconds.
+✔ Test "empty text and an empty screen change nothing" passed after 1.286 seconds.
+✔ Test "the pairs that must meet phonetically do, and the pairs that must not do not" passed after 1.286 seconds.
+✔ Test "a name is scored against a paragraph without walking the whole paragraph as one phrase" passed after 1.286 seconds.
+✔ Test "variants and bias phrases come out in the contracted order" passed after 1.286 seconds.
+✔ Test "what counts as a file from the string alone" passed after 1.286 seconds.
+✔ Test "the loose match only runs for the names the caller allows" passed after 1.286 seconds.
+✔ Test "the best window of a sentence is the contracted one" passed after 1.286 seconds.
+✔ Test "every score is the contracted number and the contracted verdict" passed after 1.286 seconds.
+✔ Test "scoring against a pre-tokenized transcript is the same as scoring against the string" passed after 1.286 seconds.
+✔ Test "bias budget is never spent on a common word or a two-letter name" passed after 1.286 seconds.
+✔ Test "every shared vector produces the contracted output" passed after 1.287 seconds.
+✔ Test "nothing matched is nothing claimed" passed after 1.286 seconds.
+✔ Test "the harvest's file flag decides, not the string" passed after 1.286 seconds.
+✔ Test "the references written are reported in order" passed after 1.286 seconds.
+✔ Test "backtick style writes the same references in backticks" passed after 1.286 seconds.
+✔ Suite VectorTests passed after 1.287 seconds.
+✔ Test "every format, name shape and sentence shape on a crowded screen" with 137 test cases passed after 1.356 seconds.
+✔ Suite SpokenFormsTests passed after 1.358 seconds.
+✔ Test run with 30 tests in 2 suites passed after 1.358 seconds.

@@ -1,0 +1,3 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-model-library
+2026-09-30 23:12:14.889 NextNotes[11418:851731] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MODEL_LIBRARY_OK

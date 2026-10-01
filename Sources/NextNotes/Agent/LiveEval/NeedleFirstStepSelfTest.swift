@@ -104,7 +104,7 @@ enum NeedleFirstStepSelfTest {
         ToolLoopLiveEval.needleResponseForTesting = { _, _ in
             response("memory.recall", ["query": "short answers"])
         }
-        _ = await agent.handle("Remember that I prefer short answers", source: .text)
+        _ = await agent.handle("Remember that I prefer short answers and tell me what you remember", source: .text)
         check("recall ended a save objective without its write",
               fixtures.calls.map(\.toolID) == ["memory.recall", "memory.remember"])
 
@@ -157,7 +157,7 @@ enum NeedleFirstStepSelfTest {
             "<tool_call>{\"name\":\"memory.recall\",\"arguments\":{\"query\":\"short answers\"}}</tool_call>",
             "<tool_call>{\"name\":\"memory.remember\",\"arguments\":{\"kind\":\"profile\",\"text\":\"The user prefers short answers.\"}}</tool_call>",
             "Saved your preference for short answers."]))
-        _ = await agent.handle("Remember that I prefer short answers", source: .text)
+        _ = await agent.handle("Remember that I prefer short answers and tell me what you remember", source: .text)
         check("the base planner repeated an executed first call",
               fixtures.calls.map(\.toolID) == ["memory.recall", "memory.remember"])
         UsageLog.shared.flush()

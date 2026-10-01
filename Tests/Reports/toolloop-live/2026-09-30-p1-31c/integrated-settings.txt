@@ -1,0 +1,31 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-settings
+2026-09-30 23:12:19.270 NextNotes[11447:851986] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+  general: title "General" (0 U+0020) heading "The keys you hold" (3 U+0020)
+  dictation: title "Dictation" (0 U+0020) heading "Which engine hears you" (3 U+0020)
+  comparison: title "Comparison" (0 U+0020) heading "How the engines compare on one recording" (6 U+0020)
+  formatting: title "Formatting" (0 U+0020) heading "How the text lands in each app" (6 U+0020)
+  meetings: title "Meetings" (0 U+0020) heading "When a meeting records itself" (4 U+0020)
+  calendar: title "Calendar" (0 U+0020) heading "Where meetings are read from" (4 U+0020)
+  workspace: title "Workspace" (0 U+0020) heading "What Next Notes may do in your account" (7 U+0020)
+  agent: title "Agent" (0 U+0020) heading "How you wake it and what it may do" (8 U+0020)
+  computer: title "Computer & browser" (2 U+0020) heading "Whether the agent can act on the Mac and the browser" (10 U+0020)
+  integrations: title "Integrations" (0 U+0020) heading "Other apps it can reach" (4 U+0020)
+  models: title "Models" (0 U+0020) heading "Local and cloud models" (3 U+0020)
+  permissions: title "Permissions" (0 U+0020) heading "What macOS has agreed to" (4 U+0020)
+  agent: title "Your Mac is the only agent you need" (7 U+0020)
+  tracking: eyebrow 1.4 word 0.0
+SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host
+  settings narrow: general pane wants 320pt in 320pt
+  settings narrow: dictation pane wants 320pt in 320pt
+  settings narrow: comparison pane wants 320pt in 320pt
+  settings narrow: formatting pane wants 320pt in 320pt
+  settings narrow: meetings pane wants 320pt in 320pt
+  settings narrow: calendar pane wants 320pt in 320pt
+  settings narrow: workspace pane wants 320pt in 320pt
+  settings narrow: agent pane wants 320pt in 320pt
+  settings narrow: computer pane wants 320pt in 320pt
+  settings narrow: integrations pane wants 320pt in 320pt
+  settings narrow: models pane wants 320pt in 320pt
+  settings narrow: permissions pane wants 320pt in 320pt
+  settings narrow: window wants 560pt in 560pt
+  settings width: formatting ink 719pt at 800pt host, 1455pt at 1600pt host

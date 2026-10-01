@@ -1,0 +1,5 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-model-unopenable
+2026-09-30 23:20:45.392 NextNotes[12739:865389] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+P0-14: no fallback provider on this Mac, so the notice was not exercised
+model-unopenable · post-download live: the S1-mini trial took 6.5 s, over the 5 s budget
+MODEL_UNOPENABLE_FAILED: 1 problem(s)

@@ -128,6 +128,44 @@ enum AgentDirectIntent: Equatable, Sendable {
         return parseOpen(text, wholeSentence: wholeSentence)
     }
 
+    /// An explicit, single personal fact already supplies the save tool and its arguments.
+    /// Y01 reached a recall and then an acknowledgment because these were left to the
+    /// model to choose. Preserve the fact's words; only change its grammatical subject.
+    /// Questions, quotes, conditionals and compound objectives still belong to the planner.
+    /// This parses an action, never grants it: the manifest and ToolStepRunner own that.
+    static func memorySaveCall(_ utterance: String) -> AgentToolCall? {
+        guard !utterance.contains(where: { "\n\r\"“”`?!;".contains($0) }),
+              let expression = try? NSRegularExpression(
+                pattern: #"^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?remember\s+(?:that\s+)?(.+?)\s*$"#,
+                options: .caseInsensitive),
+              let match = expression.firstMatch(in: utterance, range: NSRange(utterance.startIndex..., in: utterance)),
+              let range = Range(match.range(at: 1), in: utterance) else { return nil }
+        var fact = String(utterance[range]).trimmingCharacters(in: .whitespaces)
+        if fact.hasSuffix(".") { fact.removeLast() }
+        guard !fact.contains("."),
+              fact.range(of: #"\b(and|then|but|also|if|unless|when|according|email|website|page|file|says|said)\b"#,
+                         options: [.regularExpression, .caseInsensitive]) == nil else { return nil }
+        let words = fact.split(whereSeparator: \.isWhitespace).map(String.init)
+        guard words.count >= 3 else { return nil }
+        // Only the subject is transformed here. A second pronoun needs interpretation
+        // ("I work with my brother"), otherwise the stored fact and confirmation change
+        // whose brother it is. Leave that sentence to the ordinary planner.
+        let pronouns: Set<String> = ["i", "my", "me", "mine", "you", "your"]
+        guard !words.dropFirst().contains(where: { pronouns.contains($0.lowercased()) }) else { return nil }
+        if words[0].lowercased() == "my" {
+            guard fact.range(of: #"\b(is|are|was|were|has|have|likes|prefers|works|lives|uses)\b"#,
+                             options: [.regularExpression, .caseInsensitive]) != nil else { return nil }
+            fact = "The user's " + words.dropFirst().joined(separator: " ")
+        } else if words[0].lowercased() == "i" {
+            let verbs = ["am": "is", "was": "was", "have": "has", "prefer": "prefers",
+                         "like": "likes", "use": "uses", "work": "works", "live": "lives"]
+            guard let verb = verbs[words[1].lowercased()] else { return nil }
+            fact = "The user " + verb + " " + words.dropFirst(2).joined(separator: " ")
+        } else { return nil }
+        return AgentToolCall(name: "memory.remember", arguments: ["kind": "profile", "text": fact],
+                             rationale: "explicit personal fact", evidence: nil)
+    }
+
     /// Lowercased, de-punctuated, with wake words and false starts trimmed off the front.
     static func normalize(_ utterance: String) -> String {
         var text = utterance.lowercased()

@@ -1,0 +1,4 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-model-roles
+2026-09-30 23:13:56.325 NextNotes[11667:855229] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MODEL_ROLES_OK: fallback, routing, call paths, discovery and tool-call bridging verified
+MODEL_ROLES_CODEX_FALLBACK: agent=localServer computerUse=localServer

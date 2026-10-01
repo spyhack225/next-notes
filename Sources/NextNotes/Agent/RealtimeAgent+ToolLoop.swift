@@ -1458,6 +1458,55 @@ extension RealtimeAgent {
             budget: budget, ceilingRemaining: budget.ceiling, request: prompt,
             maxCalls: maxCalls, readerContextTokens: window,
             untrustedOutputs: AgentSession.shared.recentAssistantTexts())
+        // The action is completely specified by the user's own sentence. Produce its
+        // write before asking a model to plan: a recall or a fluent acknowledgment cannot
+        // substitute for saving it. The existing runner still binds provenance, checks
+        // effect validity, executes the guards and records only successful completions.
+        if !prompt.hasPrefix(PendingAction.confirmedPrefix),
+           work?.followUps.isEmpty ?? true,
+           let call = AgentDirectIntent.memorySaveCall(prompt) {
+            guard manifest.allowedIDs.contains(call.name) else {
+                return PlannedTurnResult(reply: "I couldn't save that memory.",
+                                         usedTools: false, calledToolIDs: [])
+            }
+            await waitForVoiceInput()
+            guard isCurrent(owner) else {
+                return PlannedTurnResult(reply: "I stopped that.", usedTools: false, calledToolIDs: [])
+            }
+            speech?.cancel()
+            let began = clock.now
+            let step = await runner.execute(call)
+            UsageLog.shared.record(UsageRecord(
+                id: UUID(), ts: Date(),
+                feature: ((background || isVoiceWorker) ? UsageFeature.agentWorker : .agentTyped).rawValue,
+                pass: "explicit-memory-save", provider: UsageProvider.rules.rawValue,
+                modelID: "direct-intent", locality: "local",
+                totalMs: max(0, ModelPassRecorder.milliseconds(began.duration(to: clock.now))
+                                - (step.usage?.ms ?? 0)),
+                finishReason: runner.completedToolIDs.isEmpty ? "error" : "stop",
+                toolsProposed: [call.name], toolsExecuted: step.usage.map { [$0] },
+                turnID: currentTurnID, conversationID: AgentSession.shared.sessionID,
+                workID: work?.id, revision: work?.revision))
+            let reply: String
+            switch step.disposition {
+            case .completed(let output):
+                AgentSession.shared.noteToolOutput(output)
+                speech?.recordVerifiedResult(toolID: step.canonicalID, output: output)
+                reply = output
+            case .endTurn(let end):
+                switch end {
+                case .notReady(let sentence), .stopped(let sentence): reply = sentence
+                case .denied(let sentence): reply = AgentReplyRenderer.render(.denied(sentence), voice: voice)
+                case .infrastructure(let sentence):
+                    reply = AgentReplyRenderer.render(.infrastructure(sentence), voice: voice)
+                }
+            case .repaired, .skipped, .answerNow, .outOfTime:
+                // No model rewrite/retry of a rejected fact, and no success acknowledgment.
+                reply = "I couldn't save that memory."
+            }
+            return PlannedTurnResult(reply: reply, usedTools: !runner.completedToolIDs.isEmpty,
+                                     calledToolIDs: runner.completedToolIDs)
+        }
         // P1-05: which backend this turn's reader gets, decided once before the first round
         // from the provider the turn already resolved and the manifest it was given.
         // `--planner native|prompt` on the command line overrides it for one process, which is

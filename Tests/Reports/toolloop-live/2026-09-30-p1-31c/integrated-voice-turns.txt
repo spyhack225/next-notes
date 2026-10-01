@@ -1,0 +1,7 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-turns
+2026-09-30 23:14:29.423 NextNotes[11794:856376] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[23:14:30.850] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[23:14:30.851] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[23:14:32.596] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+VOICE_TURNS_OK
+VOICE_LISTEN_CANDIDATE_TO_PAUSE=1.9073486328125e-06s

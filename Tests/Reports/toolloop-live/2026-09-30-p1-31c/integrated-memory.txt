@@ -1,0 +1,23 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-memory
+2026-09-30 23:12:38.181 NextNotes[11511:852595] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEMORY_PLACEHOLDER_REFUSALS 2
+MEMORY_MIGRATION activity=2 entries=0
+MEMORY_BUDGET profile=2372/2400 notes=0/4000
+MEMORY_REFUSED a write with no provenance: Not saved: memory can only be saved from what you say in a conversation with the Agent.
+MEMORY_REFUSED a tool-output write: Not saved: it comes from tool output (an email, page, file or calendar item), not from you.
+MEMORY_REFUSED an emailed forget: Not saved: you didn't say which memory to change.
+MEMORY_REFUSED a single tool-output word: Not saved: it comes from tool output (an email, page, file or calendar item), not from you.
+MEMORY_REFUSED an injected write: Not saved: it reads like an instruction to the Agent rather than a fact.
+MEMORY_REFUSED a meeting-derived write: Not saved: memory can only be saved from what you say in a conversation with the Agent.
+MEMORY_REFUSED a review authority with conversation provenance: Not saved: memory can only be saved from what you say in a conversation with the Agent.
+MEMORY_REFUSED a background authority: Not saved: memory can only be saved from what you say in a conversation with the Agent.
+MEMORY_PATH voiceAnswer memory=299/300 (profile)
+MEMORY_PATH voiceRoute memory=0/0 (none)
+MEMORY_PATH toolLoop memory=404/3400 (profile + notes + relevant activity)
+MEMORY_PATH localModel memory=404/3400 (profile + notes + relevant activity)
+MEMORY_PATH meetingAssistant memory=350/600 (profile)
+MEMORY_PATH scheduledRun memory=404/3400 (profile + notes)
+MEMORY_PATH knowledgeAsk memory=350/600 (profile)
+MEMORY_PATH acpAgent memory=0/0 (none)
+MEMORY_SESSION compactions=1 summary=1484 rows=29
+MEMORY_OK

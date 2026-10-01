@@ -1,0 +1,72 @@
+[
+  {
+    "flag": "toolloop-production",
+    "exit": 0,
+    "last": "TOOLLOOP_PRODUCTION_OK"
+  },
+  {
+    "flag": "model-library",
+    "exit": 0,
+    "last": "MODEL_LIBRARY_OK"
+  },
+  {
+    "flag": "settings",
+    "exit": 0,
+    "last": "  settings width: formatting ink 719pt at 800pt host, 1455pt at 1600pt host"
+  },
+  {
+    "flag": "ui-strings",
+    "exit": 0,
+    "last": "UI_STRINGS_OK"
+  },
+  {
+    "flag": "memory",
+    "exit": 0,
+    "last": "MEMORY_OK"
+  },
+  {
+    "flag": "capability-manifest",
+    "exit": 0,
+    "last": "CAPABILITY_MANIFEST_OK"
+  },
+  {
+    "flag": "usage-log",
+    "exit": 0,
+    "last": "USAGE_LOG_OK: 25 cases"
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "last": "STORE_ISOLATION_FLOW memory tools: Not saved: you didn't ask to forget it."
+  },
+  {
+    "flag": "model-roles",
+    "exit": 0,
+    "last": "MODEL_ROLES_CODEX_FALLBACK: agent=localServer computerUse=localServer"
+  },
+  {
+    "flag": "model-unopenable",
+    "exit": 1,
+    "last": "MODEL_UNOPENABLE_FAILED: 1 problem(s)"
+  },
+  {
+    "flag": "cleanup-router",
+    "exit": 0,
+    "last": "CLEANUP_ROUTER_OK"
+  },
+  {
+    "flag": "toolloop-live-grader",
+    "exit": 0,
+    "last": "TOOLLOOP_LIVE_MAIL: 6 rows, 0 problem(s)"
+  },
+  {
+    "flag": "voice-turns",
+    "exit": 0,
+    "last": "VOICE_LISTEN_CANDIDATE_TO_PAUSE=1.9073486328125e-06s"
+  },
+  {
+    "flag": "voice-scheduling",
+    "exit": 0,
+    "last": "VOICE_SCHEDULING_OK"
+  }
+]

@@ -1,0 +1,12 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-toolloop-live --model unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf --only Y01 --needle-first --report Tests/Reports/toolloop-live/2026-09-30-p1-31c/after-y01-needle.md
+2026-09-30 23:20:55.786 NextNotes[12762:865736] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[23:21:12.263] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[23:21:12.424] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+TOOLLOOP_LIVE_MODEL: appLLM "Qwen3-4B-Instruct-2507" ctx=32768 role=installed:unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+TOOLLOOP_LIVE_CASE Y01 PASS 5.3s turns=1 tools=memory.remember(kind=profile,text=The user's brother's name is Cyril) reply="Saved: The user's brother's name is Cyril."
+TOOLLOOP_LIVE_NEEDLE turns=0 calls=0 errors=0
+TOOLLOOP_LIVE_CLASSES pass=1 error=0 timeout=0 leak=0 refusal=0 wrong_tool=0 fabricated=0 missed_tool=0 ungrounded=0 filler=0
+TOOLLOOP_LIVE_SCORE 1/1
+TOOLLOOP_LIVE_REPORT /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31c/after-y01-needle.md
+TOOLLOOP_LIVE_ELAPSED 5.9
+TOOLLOOP_LIVE_OK: 1/1 on Qwen3-4B-Instruct-2507

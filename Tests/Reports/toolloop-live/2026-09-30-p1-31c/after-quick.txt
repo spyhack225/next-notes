@@ -1,0 +1,36 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-toolloop-live --model unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf --quick --report Tests/Reports/toolloop-live/2026-09-30-p1-31c/after-quick.md
+2026-09-30 23:21:20.236 NextNotes[12846:866596] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[23:21:38.185] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[23:21:38.190] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[23:22:52.672] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[23:23:21.064] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[23:23:55.933] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[23:24:02.283] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[23:24:02.283] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 143.31s
+[23:24:02.283] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[23:24:02.283] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[23:24:02.283] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[23:24:02.283] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[23:24:02.283] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[23:24:02.283] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[23:24:02.283] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'
+WARNING: Using native backtrace. Set GGML_BACKTRACE_LLDB for more info.
+WARNING: GGML_BACKTRACE_LLDB may cause native MacOS Terminal.app to crash.
+See: https://github.com/ggml-org/llama.cpp/pull/17869
+TOOLLOOP_LIVE_MODEL: appLLM "Qwen3-4B-Instruct-2507" ctx=32768 role=installed:unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+TOOLLOOP_LIVE_CASE C01 TIMEOUT 41.7s turns=1 tools=- reply="I ran out of time before finishing the rest."
+TOOLLOOP_LIVE_CASE C04 TIMEOUT 59.1s turns=1 tools=search_email(query=) reply="This takes a few steps on this Mac.  1) Wed 30 Sep 22:21 · Cyril <cyril@example.com> · Dinner tomorrow? — Are you free tomorrow evening? 2) Wed 30 Sep 21:21 · A"
+TOOLLOOP_LIVE_CASE M03 PASS 40.6s turns=1 tools=search_email reply="The latest email is from Marcus Lee (marcus@productflo.example) at 20:21 about the updated pricing sheet v3. The previous one was from Ana Ruiz asking for the d"
+TOOLLOOP_LIVE_CASE M04 MISSED_TOOL 25.3s turns=1 tools=- reply="Got it. I’ll draft that email for you right away.   Drafting email to ana@example.com:  Subject: Deck Delivery – Friday  Body: Hi Ana,  I’ll send the deck on Fr"
+TOOLLOOP_LIVE_CASE M05 PASS 59.1s turns=2 tools=search_email reply="Great — I’ll help you act on any of those emails. Which one would you like to follow up on? For example:  - Respond to Cyril about dinner?  - Send the deck to A"
+TOOLLOOP_LIVE_CASE K01 PASS 34.0s turns=1 tools=meeting.decisions reply="We decided to move the launch to October 14 and keep the price at $12 a month. Sarah also suggested adding a 10% buffer to the budget for ads. You’re responsibl"
+TOOLLOOP_LIVE_CASE R02 PASS 38.0s turns=1 tools=schedule.create(day=every night,kind=reminder,on=23:00,repeat=daily,text=Put the book out,title=Put book out) reply="Got it, Serge. Every night at 10, I’ll remind you to put the book out. Let me know if you’d like to change the time or message."
+TOOLLOOP_LIVE_CASE F03 MISSED_TOOL 42.7s turns=1 tools=filesystem.search(folder=true,query=pricing) reply="I found the pricing document: *Pricing 2026.pdf* in your Documents folder. I’ll email it to Marcus now."
+TOOLLOOP_LIVE_CASE A02 UNGROUNDED 20.5s turns=1 tools=browser.navigate(url=https://www.youtube.com) reply="I'll look for the latest Cortech video on YouTube. Let me search for that."
+TOOLLOOP_LIVE_CASE N04 PASS 11.9s turns=1 tools=- reply="I can help you with your calendar, email, files, reminders, and apps. I can check what’s on your schedule, open apps, find files, or look up notes and meetings."
+TOOLLOOP_LIVE_CLASSES pass=5 error=0 timeout=2 leak=0 refusal=0 wrong_tool=0 fabricated=0 missed_tool=2 ungrounded=1 filler=0
+TOOLLOOP_LIVE_SCORE 5/10 (quick)
+TOOLLOOP_LIVE_REPORT /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31c/after-quick.md
+TOOLLOOP_LIVE_ELAPSED 373.5
+TOOLLOOP_LIVE_FAILED: 5/10 (quick) on Qwen3-4B-Instruct-2507 — below the pass bar 9
+0   llama                               0x000000010aef5470 ggml_print_backtrace + 276
