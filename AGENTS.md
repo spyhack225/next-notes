@@ -88,6 +88,27 @@ fixed until its original failure is verified as resolved.
 
 ---
 
+## Roadmap implementation and quality gates
+
+**Owner decision, 2026-10-01:** independently testable Agent work may proceed while
+aggregate model quality remains below the fixed 9/10 quick bar. Follow actual task
+contracts, isolated production-path proof and coordinated file ownership; read
+`roadmap/in-progress/AGENT-OVERHAUL/00-README.md` §4.1 for the revised entry rules.
+Recheck current call sites before implementing a todo item: latency instrumentation
+already exists, and private task-store constructors need an isolated test seam
+before a restart fixture may seed data. Never seed the owner's task store.
+
+Keep the quick/full/owner, privacy, permission and latency requirements unchanged.
+Run required evaluations and report their real verdicts. A bounded fix may be
+committed with its original regression and relevant functional/safety checks green
+while an inherited aggregate gate stays open. Investigate new failures; do not
+ship a known introduced regression or treat a missing test as a pass. Task completion
+does not promote a model/default, complete a phase or prove broader Agent readiness.
+Live ownership switches, recovery/retry and product claims still require their
+explicit contracts, effect/receipt checks and prescribed acceptance evidence.
+
+---
+
 ## What this is
 
 Push-to-talk dictation. Hold a key, talk, release, and cleaned-up text is typed into
