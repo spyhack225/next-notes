@@ -19,12 +19,14 @@ final class VoiceConversationCoordinator {
         var task: Task<Void, Never>?
     }
     private(set) var jobs: [Job] = []
-    private(set) var inputPending = false
+    private(set) var inputPending = false { didSet { resumeResolvedBarrierWaiters() } }
+    @ObservationIgnored private var barrierWaiters: [UUID: (effects: Bool, continuation: CheckedContinuation<Void, Never>)] = [:]
+    var barrierWaiterCountForTesting: Int { barrierWaiters.count }
     /// P0-07: the epoch of an input that failed before it was ever classified.
     /// Writes wait while this is set; reads and planning do not. `finishFailure`
     /// sets it, and it clears when a later epoch routes successfully, or on
     /// `closeSession()` / `discardInput()`.
-    private(set) var effectHoldEpoch: UInt64?
+    private(set) var effectHoldEpoch: UInt64? { didSet { resumeResolvedBarrierWaiters() } }
     private var responseTask: Task<AgentTurn, Never>?
     private var responseID = UUID()
     private var inputEpoch: UInt64 = 0
@@ -263,6 +265,11 @@ final class VoiceConversationCoordinator {
     /// the effect hold left by an earlier failure. Unlike `resolveInput` the epoch
     /// need not still be current: a later turn's classification is what tells a
     /// write planned against the failed words that it may no longer commit.
+    private func resolveAnswerRoute(id: UUID, epoch: UInt64) {
+        guard responseID == id, !Task.isCancelled else { return }
+        resolveClassified(epoch: epoch)
+    }
+
     private func resolveClassified(epoch: UInt64) {
         resolveInput(epoch: epoch)
         if let hold = effectHoldEpoch, epoch > hold { effectHoldEpoch = nil }
@@ -283,27 +290,47 @@ final class VoiceConversationCoordinator {
         // Background objectives remain in the task list and keep their owners.
     }
 
+    /// Compatibility input client. Background planning and reads never call this.
     func waitForInputResolution() async {
-        while inputPending && AgentCaptureController.shared.isSessionActive && !Task.isCancelled {
-            try? await Task.sleep(for: .milliseconds(20))
-        }
+        await waitForBarrier(effects: false)
     }
 
-    /// P0-07: the write-time effect gate. A write risks committing an effect planned
-    /// against words that were never classified, so it waits for a classified epoch.
-    /// Reads and planning are not effects and keep running through user speech; the
-    /// round barrier (`waitForInputResolution`) still decides when a round starts.
-    ///
-    /// A failed frontend turn releases the read barrier but sets `effectHoldEpoch`, so
-    /// only the effect waits — until a later classified turn, `closeSession()` or
-    /// `discardInput()` clears it. Returns `false` only when the wait is cancelled.
+    /// Only consequential effects wait, after approval and immediately before fire.
+    /// A failed input holds effects until a later classified turn, discard or close.
     func mayCommitEffect() async -> Bool {
-        while (inputPending || effectHoldEpoch != nil),
-              AgentCaptureController.shared.isSessionActive,
-              !Task.isCancelled {
-            try? await Task.sleep(for: .milliseconds(20))
-        }
+        await waitForBarrier(effects: true)
         return !Task.isCancelled
+    }
+
+    private func barrierIsPending(effects: Bool) -> Bool {
+        (inputPending || (effects && effectHoldEpoch != nil))
+            && AgentCaptureController.shared.isSessionActive
+    }
+
+    private func resumeResolvedBarrierWaiters() {
+        let ready = barrierWaiters.filter { !barrierIsPending(effects: $0.value.effects) }
+        for (id, _) in ready { barrierWaiters.removeValue(forKey: id)?.continuation.resume() }
+    }
+
+    private func cancelBarrierWaiter(_ id: UUID) {
+        barrierWaiters.removeValue(forKey: id)?.continuation.resume()
+    }
+
+    private func waitForBarrier(effects: Bool) async {
+        while barrierIsPending(effects: effects), !Task.isCancelled {
+            let id = UUID()
+            await withTaskCancellationHandler {
+                await withCheckedContinuation { continuation in
+                    if Task.isCancelled || !barrierIsPending(effects: effects) {
+                        continuation.resume()
+                    } else {
+                        barrierWaiters[id] = (effects, continuation)
+                    }
+                }
+            } onCancel: {
+                Task { @MainActor in self.cancelBarrierWaiter(id) }
+            }
+        }
     }
 
     /// A filler holds unfinished input without invalidating an answer already
@@ -532,12 +559,24 @@ final class VoiceConversationCoordinator {
             let deadline = responseDeadlineForTesting ?? .seconds(25)
             let streamResult: VoiceFrontendStreamResult? = await withBoundedWait(deadline) {
                 var snapshot = ""
+                var routeReleased = false
                 do {
                     for try await delta in stream {
                         try Task.checkCancellation()
                         snapshot += delta
                         await progress.update(snapshot)
                         let parsed = VoiceFrontendEnvelope.parse(snapshot)
+                        if case .answer = parsed, !routeReleased {
+                            await self.resolveAnswerRoute(id: id, epoch: inputEpoch)
+                            routeReleased = true
+                        }
+                        // A complete control has no answer tail. Apply its existing
+                        // mutation below before opening the effect barrier.
+                        switch parsed {
+                        case .capabilities, .newWork, .revise, .cancel:
+                            return VoiceFrontendStreamResult(snapshot: snapshot, termination: .completed)
+                        case .pending, .answer, .invalid: break
+                        }
                         // P1-07: hold the audio while the answer may still be a denial. Speech
                         // starts on the first complete clause, so "I don't have access to
                         // your email" was already audible before the whole reply could be
@@ -686,8 +725,8 @@ final class VoiceConversationCoordinator {
         // barrier but record the epoch as an effect hold. Planning and reads resume
         // at once; a write waits until a later turn is classified, or the session
         // closes or the user withdraws the input.
-        resolveInput(epoch: inputEpoch)
         effectHoldEpoch = inputEpoch
+        resolveInput(epoch: inputEpoch)
         return agentFailureReply(failure, turn: turn)
     }
 

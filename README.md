@@ -535,6 +535,8 @@ Sources/NextNotes/
 │   │                               grounded against what was actually said before the card
 │   ├── Skills/                     SKILL.md folders already on this Mac, plus search and
 │   │                               install from skills.sh over plain HTTPS
+│   ├── Duplex/                     Production-worker interleaving and final-effect gate
+│   │                               regression; TaskBridge remains upcoming work.
 │   ├── Tasks/                      AgentTask + manager; conversation stays free.
 │   │                               AgentArtifactLedger folds each run's reference/link
 │   │                               into `artifacts` so a result card can link what it made

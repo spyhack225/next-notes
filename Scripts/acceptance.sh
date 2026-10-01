@@ -265,6 +265,7 @@ EXPERIMENTAL_ENTRIES=(
   "selftest-computer-yield|300|via-open"
   "selftest-computer-vision|300"
   "selftest-concurrent-voice|300"
+  "selftest-voice-duplex-work|300"
   "selftest-contention|300"
   "selftest-context|300|via-open"
   "selftest-gws|300"

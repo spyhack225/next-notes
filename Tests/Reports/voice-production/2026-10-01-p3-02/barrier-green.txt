@@ -1,0 +1,2 @@
+DUPLEX_BARRIER_OK
+exit=0

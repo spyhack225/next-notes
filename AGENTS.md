@@ -187,6 +187,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-voice-grounding
 --selftest-voice-conversation --selftest-voice-local
 --selftest-voice-turns --selftest-voice-work-lifecycle --selftest-voice-delivery
+--selftest-voice-duplex-work
 --selftest-playback-ledger --selftest-voice-scheduling
 --selftest-concurrent-voice --selftest-voice-frontend --selftest-voice-eou <wav>
 --selftest-acoustic-replay --selftest-acoustic-speech <far-wav> <near-wav>
@@ -2075,6 +2076,14 @@ Voice tests drive `VoiceConversationCoordinator.streamForTesting` and scripted w
 providers through the production planned loop; a shared typed-provider override must
 never supply a voice test reply. `handle(.voice)` fails loudly under the harness when
 no frontend fixture or registered real-model voice probe is present.
+
+**Background planning and reads continue during conversation.** Only a consequential
+effect waits for classified input, after approval and before fire. Check the owner and
+work revision before and after that wait; a stale proposal must replan, never fail the
+corrected objective or execute the old action. Coordinator barrier waits use cancellable
+continuations, released at route classification, discard or session close.
+`--selftest-voice-duplex-work` drives actual workers, approval and final validity with
+scripted models and replaces only the external effect.
 
 **Live conversation has a different model owner from tool work.**
 `VoiceConversationCoordinator` routes local Foundation Models responses and keeps separate

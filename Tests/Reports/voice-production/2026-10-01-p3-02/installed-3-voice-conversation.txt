@@ -1,0 +1,10 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-conversation
+2026-10-01 02:49:56.334 NextNotes[39791:1102339] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_CONVERSATION_WRONG: correction did not advance the same work revision
+VOICE_CONVERSATION_WRONG: original objective or correction was lost
+VOICE_CONVERSATION_WRONG: stale plan executed or correction was lost
+VOICE_CONVERSATION_WRONG: correction did not advance the same work revision
+VOICE_CONVERSATION_WRONG: original objective or correction was lost
+VOICE_CONVERSATION_WRONG: stale plan executed or correction was lost
+VOICE_CONVERSATION_WRONG: completed read was lost after correction
+VOICE_CONVERSATION_FAILED

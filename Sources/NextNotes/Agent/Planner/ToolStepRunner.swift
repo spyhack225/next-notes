@@ -90,6 +90,31 @@ final class ToolStepRunner: ToolStepExecuting {
     private(set) var lastVerifiedResult: String?
     private(set) var memoryConfirmations: [String] = []
     private(set) var currentToolID: String?
+    /// Whole-turn frameworks execute their own tool loop; preserve those verified
+    /// outputs in the same prompt context the ordinary round loop owns.
+    var verifiedResultObserver: (@MainActor (String, String) -> Void)?
+    // Union of time inside execute, so native model time excludes overlapping
+    // tool/approval/input waits without subtracting concurrent calls twice.
+    private var activeExecutions = 0
+    private var executionUnionStart: ContinuousClock.Instant?
+    private var finishedExecutionUnionTime: Duration = .zero
+
+    func executionUnionTime(at now: ContinuousClock.Instant = .now) -> Duration {
+        finishedExecutionUnionTime + (executionUnionStart.map { $0.duration(to: now) } ?? .zero)
+    }
+
+    private func beginExecutionMeasurement(now: ContinuousClock.Instant = .now) {
+        if activeExecutions == 0 { executionUnionStart = now }
+        activeExecutions += 1
+    }
+
+    private func endExecutionMeasurement(now: ContinuousClock.Instant = .now) {
+        activeExecutions -= 1
+        if activeExecutions == 0, let start = executionUnionStart {
+            finishedExecutionUnionTime += start.duration(to: now)
+            executionUnionStart = nil
+        }
+    }
     /// Tool output this turn has seen, for memory provenance.
     var untrustedOutputs: [String]
     /// Any tool result outside memory and schedule this turn, or a recall that returned
@@ -123,6 +148,10 @@ final class ToolStepRunner: ToolStepExecuting {
         self.maxRepairs = 2
         self.window = readerContextTokens
         self.untrustedOutputs = untrustedOutputs
+        // Fast paths and whole-turn backends also need a revision snapshot. The
+        // ordinary round loop replaces this closure for each new planning round.
+        let revision = work?.revision ?? 0
+        self.revisionIsCurrent = { [work] in (work?.revision ?? 0) == revision }
     }
 
     /// The turn's provider changed — the one in-turn fallback for a file that failed a real
@@ -149,10 +178,29 @@ final class ToolStepRunner: ToolStepExecuting {
         repairs += count
     }
 
+    /// A direct shortcut completed legally before the user corrected the objective.
+    /// Seed this runner's existing structures so the corrected plan carries its
+    /// evidence and cannot replay the same requested effect.
+    func seedCompletedDirectCall(_ tool: String, arguments: [String: String], output: String) {
+        let signature = tool + "|" + arguments.keys.sorted()
+            .map { "\($0)=\(arguments[$0] ?? "")" }.joined(separator: "|")
+        guard completedCalls.insert(signature).inserted else { return }
+        callsUsed += 1
+        completedToolIDs.append(tool)
+        lastVerifiedResult = output
+        untrustedOutputs.append(output)
+        if let registered = AgentToolRegistry.shared.tool(named: tool),
+           RealtimeToolSelection.readsUntrustedOutput(namespace: registered.namespace, output: output) {
+            readToolOutput = true
+        }
+    }
+
     // MARK: - One call
 
     /// Resolve, check, run, classify. Never speaks to a person and never returns one.
     func execute(_ call: AgentToolCall) async -> ToolStepResult {
+        beginExecutionMeasurement()
+        defer { endExecutionMeasurement() }
         // One case is not a repair: a tool this build has and this turn may not run. The
         // manifest carries the one plain sentence a person needs for it
         // (`Readiness.reason`), and that sentence is the whole reply — it says what to do and
@@ -288,11 +336,12 @@ final class ToolStepRunner: ToolStepExecuting {
                                 autoApproveReads: agent.readsRunWithoutAsking,
                                 promptIfNeeded: !agent.denyUnattendedApprovalsForTesting,
                                 // P0-07: a write may only commit while the input that planned
-                                // it is classified. Reads run through user speech; the loop's
-                                // round barrier already decided when this round began. This is
+                                // it is classified. Reads and planning run through user speech; only
+                                // a consequential effect waits at this final boundary. This is
                                 // the only place the voice input barrier applies to an effect,
                                 // and P3-02 moves it to `TaskBridge` as a one-line change.
                                 isStillValid: {
+                                    guard agent.isCurrent(owner), revisionIsCurrent() else { return false }
                                     guard await agent.mayCommitEffect(risk: tool.risk) else { return false }
                                     return agent.isCurrent(owner) && revisionIsCurrent()
                                 }
@@ -348,6 +397,13 @@ final class ToolStepRunner: ToolStepExecuting {
         let usage = UsageToolRun(
             id: tool.id, ok: execution.outcome.isSuccess,
             ms: executionMS, errorClass: (execution.errorClass ?? .other).rawValue)
+        // A correction invalidated this proposal while it waited at the final gate.
+        // It is neither a denial of the updated objective nor a repair to charge.
+        if !revisionIsCurrent(), !execution.outcome.isSuccess {
+            completedCalls.remove(signature)
+            currentToolID = nil
+            return ToolStepResult(canonicalID: canonicalID, disposition: .skipped, usage: usage)
+        }
         switch execution.outcome {
         case .success(let output):
             callsUsed += 1
@@ -370,6 +426,7 @@ final class ToolStepRunner: ToolStepExecuting {
             // A mutation completes one step, not the person's whole objective. Keep its
             // verified result and let the loop plan the remaining work.
             lastVerifiedResult = output
+            verifiedResultObserver?(canonicalID, output)
             // P1-14: a read that matched nothing, where the tool's own description documents
             // the call that would have answered it, is carried as a repair rather than as the
             // turn's answer — once per turn. The call is still recorded above: it ran, so a

@@ -1,0 +1,14 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-duplex-work
+2026-10-01 01:53:35.226 NextNotes[31062:1035661] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_DUPLEX_WORK_OVERLAP: rounds=0 input_pending=true
+VOICE_DUPLEX_WORK_EFFECTS:
+VOICE_DUPLEX_WORK_WRONG: real worker never began round one
+VOICE_DUPLEX_WORK_WRONG: A1 planning/read stalled on an unclassified side question
+VOICE_DUPLEX_WORK_WRONG: actual read did not reach post-validity fire during pending input
+VOICE_DUPLEX_WORK_WRONG: A3 parsed answer route stayed held until the answer stream finished
+VOICE_DUPLEX_WORK_WRONG: real write did not reach its approval card
+VOICE_DUPLEX_WORK_WRONG: real correction did not revise existing work
+VOICE_DUPLEX_WORK_WRONG: corrected objective did not replan to another approval
+VOICE_DUPLEX_WORK_WRONG: A5 real worker did not finish
+VOICE_DUPLEX_WORK_WRONG: final fire was not exactly the approved current-revision tab call
+VOICE_DUPLEX_WORK_FAILED

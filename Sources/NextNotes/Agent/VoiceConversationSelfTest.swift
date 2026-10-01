@@ -11,11 +11,37 @@ enum VoiceConversationSelfTest {
         let capture = AgentCaptureController.shared
         let conversation = VoiceConversationCoordinator.shared
         let oldExecutor = AgentToolExecutor.fakeForTesting
+        let oldFire = AgentToolExecutor.fireOverrideForTesting
+        let oldPolicy = AgentToolExecutor.policyOverrideForTesting
+        let oldInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = RealtimeAgentToolLoopSelfTest.allEnabledFixture()
+        AgentToolExecutor.policyOverrideForTesting = .denyMutations
+        AgentToolExecutor.fakeForTesting = nil
+        var staleEffects = 0
+        AgentToolExecutor.fireOverrideForTesting = { tool, _ in
+            if tool.risk > .read { staleEffects += 1 }
+            return AgentToolResult(summary: "Nothing is frontmost.", verification: "Fixture effect recorded")
+        }
+        // The real card is answered while the user still holds the floor. Only
+        // the actual post-approval validity gate may prevent this obsolete effect.
+        let approvals = Task { @MainActor in
+            while !Task.isCancelled {
+                if let request = PermissionGate.shared.pending,
+                   request.toolID == "computer.press_key" || request.risk <= .read {
+                    _ = PermissionGate.shared.respond(id: request.id, approved: true)
+                }
+                try? await Task.sleep(for: .milliseconds(5))
+            }
+        }
         let recorder = RecordingSpeechBacking()
         AgentSpeechSynthesizer.shared.useTestingBacking(recorder)
         defer {
+            approvals.cancel()
             conversation.resetForTesting()
             AgentToolExecutor.fakeForTesting = oldExecutor
+            AgentToolExecutor.fireOverrideForTesting = oldFire
+            AgentToolExecutor.policyOverrideForTesting = oldPolicy
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = oldInputs
             agent.localModelProviderForTesting = nil
             AgentSpeechSynthesizer.shared.restoreSystemBacking()
         }
@@ -47,7 +73,7 @@ enum VoiceConversationSelfTest {
             await capture.beginSession(captureAudio: false)
             conversation.resetForTesting()
             agent.localModelProviderForTesting = nil
-            AgentToolExecutor.fakeForTesting = { _, _ in AgentToolResult(summary: "Nothing is frontmost.") }
+            staleEffects = 0
             recorder.reset()
             let state = VoiceConversationProbeState(afterRead: afterRead)
             conversation.workerProviderForTesting = VoiceConversationProbeProvider(state: state)
@@ -75,6 +101,14 @@ enum VoiceConversationSelfTest {
             // Let the old model finish while the user still holds the floor.
             await state.release()
             try? await Task.sleep(for: .milliseconds(80))
+            for _ in 0..<100 {
+                if conversation.barrierWaiterCountForTesting > 0 { break }
+                try? await Task.sleep(for: .milliseconds(5))
+            }
+            check("obsolete write never reached the actual post-approval input gate",
+                  conversation.barrierWaiterCountForTesting > 0)
+            check("obsolete write fired while the correction was unfinished", staleEffects == 0)
+            print("VOICE_CONVERSATION_HELD: after_read=\(afterRead) status=\(conversation.jobs.first?.status ?? "absent") revision=\(original?.work.revision ?? -1) effects=\(staleEffects)")
             check("a completed response spoke over unfinished input", recorder.spoken.isEmpty)
             check("speech onset revised or cancelled the job", conversation.jobs.first?.id == workID
                   && conversation.jobs.first?.status != "cancelled" && original?.work.revision == 0)
@@ -89,6 +123,7 @@ enum VoiceConversationSelfTest {
                 if conversation.jobs.first?.status == "finished" { break }
                 try? await Task.sleep(for: .milliseconds(10))
             }
+            check("stale write reached final fire after correction", staleEffects == 0)
             check("correction did not advance the same work revision", original?.work.revision == 1)
             check("original objective or correction was lost", await state.sawAmendedObjective)
             check("stale plan executed or correction was lost", conversation.jobs.first?.result == "I retained the request and applied your correction.")
@@ -114,7 +149,7 @@ enum VoiceConversationSelfTest {
               !VoiceAnnouncementQueue.shared.flush(userHasFloor: false))
         await capture.endSession(source: .done)
 
-        AgentToolExecutor.fakeForTesting = oldExecutor
+        AgentToolExecutor.fakeForTesting = nil
         // The last validity check runs inside the real executor, after approval
         // and target resolution, immediately before the effect.
         var validityChecked = false
@@ -218,8 +253,9 @@ private actor VoiceConversationProbeState {
             try Task.checkCancellation()
             try await Task.sleep(for: .milliseconds(10))
         }
-        // Invalid arguments would fail visibly if the obsolete plan were run.
-        return #"<tool_call>{"name":"computer.type","arguments":{},"rationale":"Obsolete plan"}</tool_call>"#
+        // A schema-valid obsolete proposal crosses real approval and validity.
+        // The final-effect fixture records a failure if it ever executes.
+        return #"<tool_call>{"name":"computer.press_key","arguments":{"key":"escape"},"rationale":"Obsolete plan"}</tool_call>"#
     }
 }
 

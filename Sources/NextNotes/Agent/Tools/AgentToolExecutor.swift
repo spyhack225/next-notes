@@ -8,6 +8,10 @@ enum AgentToolExecutor {
     /// production can never replace a real action with a fixture.
     typealias FakeToolRun = @MainActor @Sendable (AgentTool, [String: String]) async throws -> AgentToolResult
     @MainActor static var fakeForTesting: FakeToolRun?
+    /// Replaces only the external effect, after real approval, validity and argument checks.
+    @MainActor static var fireOverrideForTesting: FakeToolRun?
+    /// Fixture policy only; the real broker, review and final validity still run.
+    @MainActor static var policyOverrideForTesting: PermissionPolicy?
 
     /// P1-17: every (tool, would-it-ask) this process decided, under the harness only.
     /// Appended, not assigned, so a multi-turn case can see the order as well as the values.
@@ -73,7 +77,7 @@ enum AgentToolExecutor {
             }
         }
 
-        var effective = policy
+        var effective = SelfTest.isRunning ? (policyOverrideForTesting ?? policy) : policy
         if autoApproveReads, tool.risk <= .read {
             effective.autoRead = true
             effective.autoObserve = true
@@ -195,6 +199,9 @@ enum AgentToolExecutor {
                     tool: tool, arguments: prepared.executionPlan.arguments
                 ) {
                     throw AgentError.permissionDenied(problem)
+                }
+                if SelfTest.isRunning, let fire = fireOverrideForTesting {
+                    return try await fire(tool, prepared.executionPlan.arguments)
                 }
                 // A denied or waiting action must not appear as executed activity. These
                 // projections happen only after the orchestrator has received permission.

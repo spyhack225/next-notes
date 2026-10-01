@@ -165,6 +165,10 @@ extension AgentWholeTurnPlanner {
 /// the rollback path for the setting, so it is never deleted and never made hard to reach.
 @MainActor
 enum PlannerBackends {
+    /// Scripts the framework-owned turn while retaining the production runner and
+    /// final action boundary. A harness can never select this in a normal launch.
+    static var wholeTurnOverrideForTesting: (any AgentWholeTurnPlanner)?
+
     /// The choice for a turn, from the provider the turn already resolved (P0-14: one
     /// resolution per turn) and the turn's own manifest.
     ///
@@ -174,6 +178,9 @@ enum PlannerBackends {
         for provider: any LLMProvider, manifest: AgentCapabilityManifest,
         forced: PlannerMode? = nil
     ) async -> PlannerBackendChoice {
+        if SelfTest.isRunning, let wholeTurn = wholeTurnOverrideForTesting {
+            return .wholeTurn(wholeTurn)
+        }
         let mode = forced ?? requestedMode ?? (Settings.shared.agentNativeToolCalling ? .native : .prompt)
         guard mode == .native, !manifest.selected.isEmpty else {
             return .rounds(PromptConventionPlanner(provider: provider))

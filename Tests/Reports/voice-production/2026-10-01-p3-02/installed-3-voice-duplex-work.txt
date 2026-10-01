@@ -1,0 +1,9 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-duplex-work
+2026-10-01 02:49:28.203 NextNotes[39671:1101252] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_DUPLEX_WORK_SETUP: jobs=1 status=running
+VOICE_DUPLEX_WORK_OVERLAP: rounds=3 input_pending=false
+VOICE_DUPLEX_WORK_EFFECTS: tab@1
+VOICE_DUPLEX_WORK_TIMING: handle_ms=[34, 35, 34] overlap_starts=2 failure_resume_ms=6
+VOICE_DUPLEX_WORK_NATIVE: model_ms=22 floor_ms=102
+VOICE_DUPLEX_WORK_MEMORY: effects=1 rounds=2
+VOICE_DUPLEX_WORK_OK

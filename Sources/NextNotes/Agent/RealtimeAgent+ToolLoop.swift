@@ -607,7 +607,7 @@ extension RealtimeAgent {
         let system = Self.voiceRoutingSystem(voice: voice)
 
         while isCurrent(owner) {
-            await waitForVoiceInput()
+            if !isVoiceWorker { await waitForVoiceInput() }
             guard isCurrent(owner) else { break }
             let revision = work?.revision ?? 0
             let request = work?.prompt ?? prompt
@@ -732,7 +732,7 @@ extension RealtimeAgent {
             if let event = firstPassTrace.take() { plannerTraceForTesting?(event) }
             remainingBudget -= responseBegan.duration(to: .now)
             recorder.noteModelEnd()
-            await waitForVoiceInput()
+            if !isVoiceWorker { await waitForVoiceInput() }
             guard isCurrent(owner) else {
                 passReason = "cancelled"
                 break
@@ -1321,12 +1321,22 @@ extension RealtimeAgent {
         // conversation. A confirmed "yes" always goes to the planner: its prompt is the
         // earlier request plus the answer, and the shortcut must not re-derive the action
         // from it (P1-02).
+        var completedDirectSteps: [CompletedDirectStep] = []
+        let directRevision = work?.revision ?? 0
         if !prompt.hasPrefix(PendingAction.confirmedPrefix),
            work?.followUps.isEmpty ?? true,
-           let direct = AgentDirectIntent.parse(requestForRanking),
-           let reply = await runDirectIntent(direct, manifest: manifest, speech: speech) {
-            return PlannedTurnResult(
-                reply: reply, usedTools: true, calledToolIDs: direct.requiredToolIDs)
+           let direct = AgentDirectIntent.parse(requestForRanking) {
+            let reply = await runDirectIntent(direct, manifest: manifest, speech: speech) { tool, arguments, output in
+                completedDirectSteps.append(CompletedDirectStep(tool: tool, arguments: arguments, output: output))
+            }
+            guard isCurrent(owner) else {
+                return PlannedTurnResult(reply: "I stopped that.", usedTools: !completedDirectSteps.isEmpty,
+                                         calledToolIDs: completedDirectSteps.map(\.tool))
+            }
+            if directRevision == (work?.revision ?? 0), let reply {
+                return PlannedTurnResult(
+                    reply: reply, usedTools: true, calledToolIDs: direct.requiredToolIDs)
+            }
         }
         // P1-3 / P0-22: the one honest sentence for a long plan is chosen from the model
         // that will actually answer it, so it names the answerer rather than a route
@@ -1343,7 +1353,8 @@ extension RealtimeAgent {
         let planned: PlannedTurnResult = await KnowledgeGraphScope.$reader.withValue(chosen.id) {
             await runPlannedToolLoop(prompt, speech: speech, voice: voice, owner: owner,
                                      background: background, work: work, manifest: manifest,
-                                     provider: chosen, allowFallback: allowFallback)
+                                     provider: chosen, allowFallback: allowFallback,
+                                     completedDirectSteps: completedDirectSteps)
         }
         if let notice, !notice.isEmpty {
             return PlannedTurnResult(
@@ -1366,7 +1377,8 @@ extension RealtimeAgent {
     private func runPlannedToolLoop(
         _ prompt: String, speech: AgentToolSpeechTracker?, voice: Bool, owner: Int, background: Bool,
         work: VoiceConversationWork?, manifest initialManifest: AgentCapabilityManifest,
-        provider chosenProvider: any LLMProvider, allowFallback: Bool = true
+        provider chosenProvider: any LLMProvider, allowFallback: Bool = true,
+        completedDirectSteps: [CompletedDirectStep] = []
     ) async -> PlannedTurnResult {
         // The turn's provider, mutable for the single in-turn fallback: a file that fails a
         // real load here re-resolves once to something that can run, and never reports the
@@ -1469,12 +1481,13 @@ extension RealtimeAgent {
                 return PlannedTurnResult(reply: "I couldn't save that memory.",
                                          usedTools: false, calledToolIDs: [])
             }
-            await waitForVoiceInput()
+            if !isVoiceWorker { await waitForVoiceInput() }
             guard isCurrent(owner) else {
                 return PlannedTurnResult(reply: "I stopped that.", usedTools: false, calledToolIDs: [])
             }
             speech?.cancel()
             let began = clock.now
+            let saveRevision = work?.revision ?? 0
             let step = await runner.execute(call)
             UsageLog.shared.record(UsageRecord(
                 id: UUID(), ts: Date(),
@@ -1487,25 +1500,35 @@ extension RealtimeAgent {
                 toolsProposed: [call.name], toolsExecuted: step.usage.map { [$0] },
                 turnID: currentTurnID, conversationID: AgentSession.shared.sessionID,
                 workID: work?.id, revision: work?.revision))
-            let reply: String
-            switch step.disposition {
-            case .completed(let output):
+            guard isCurrent(owner) else {
+                return PlannedTurnResult(reply: "I stopped that.", usedTools: false, calledToolIDs: [])
+            }
+            if let output = step.output {
                 AgentSession.shared.noteToolOutput(output)
                 speech?.recordVerifiedResult(toolID: step.canonicalID, output: output)
-                reply = output
-            case .endTurn(let end):
-                switch end {
-                case .notReady(let sentence), .stopped(let sentence): reply = sentence
-                case .denied(let sentence): reply = AgentReplyRenderer.render(.denied(sentence), voice: voice)
-                case .infrastructure(let sentence):
-                    reply = AgentReplyRenderer.render(.infrastructure(sentence), voice: voice)
+                if saveRevision != (work?.revision ?? 0) {
+                    results.append(carried(step.canonicalID, output))
                 }
-            case .repaired, .skipped, .answerNow, .outOfTime:
-                // No model rewrite/retry of a rejected fact, and no success acknowledgment.
-                reply = "I couldn't save that memory."
             }
-            return PlannedTurnResult(reply: reply, usedTools: !runner.completedToolIDs.isEmpty,
-                                     calledToolIDs: runner.completedToolIDs)
+            if saveRevision == (work?.revision ?? 0) {
+                let reply: String
+                switch step.disposition {
+                case .completed(let output):
+                    reply = output
+                case .endTurn(let end):
+                    switch end {
+                    case .notReady(let sentence), .stopped(let sentence): reply = sentence
+                    case .denied(let sentence): reply = AgentReplyRenderer.render(.denied(sentence), voice: voice)
+                    case .infrastructure(let sentence):
+                        reply = AgentReplyRenderer.render(.infrastructure(sentence), voice: voice)
+                    }
+                case .repaired, .skipped, .answerNow, .outOfTime:
+                    // No model rewrite/retry of a rejected fact, and no success acknowledgment.
+                    reply = "I couldn't save that memory."
+                }
+                return PlannedTurnResult(reply: reply, usedTools: !runner.completedToolIDs.isEmpty,
+                                         calledToolIDs: runner.completedToolIDs)
+            }
         }
         // P1-05: which backend this turn's reader gets, decided once before the first round
         // from the provider the turn already resolved and the manifest it was given.
@@ -1528,6 +1551,11 @@ extension RealtimeAgent {
                 name: toolID,
                 output: ToolResultBudget.cap(
                     output, readerContextTokens: window, toolID: toolID))
+        }
+        for step in completedDirectSteps {
+            runner.seedCompletedDirectCall(step.tool, arguments: step.arguments, output: step.output)
+            results.append(carried(step.tool, step.output))
+            AgentSession.shared.noteToolOutput(step.output)
         }
         // P0-5 printed "Did search_email, get_agenda (step 2/8). Timed out on
         // meeting.decisions. Remaining steps are unfinished." — four registry ids, a step
@@ -1650,39 +1678,42 @@ extension RealtimeAgent {
             runner.charge(needleBegan.duration(to: clock.now))
             if let firstCall {
                 let step = await runner.execute(firstCall)
+                guard isCurrent(owner) else { return planned("I stopped the tool plan.") }
                 if let output = step.output {
                     results.append(carried(step.canonicalID, output))
                     AgentSession.shared.noteToolOutput(output)
                     speech?.recordVerifiedResult(toolID: step.canonicalID, output: output)
                 }
-                switch step.disposition {
-                case .completed:
-                    if !ToolLoopLiveEval.needleNeedsContinuation(firstCall, request: prompt) {
-                        return planned(await finalAnswerRound(reason: .needleFirst))
-                    }
-                    // A compound request may need another tool using this result. Resume
-                    // the ordinary planner with the verified output already in `results`.
-                case .repaired(let toolID, let note):
-                    results.append(carried(toolID, note))
-                case .skipped:
-                    break
-                case .answerNow(let reason):
-                    return planned(await finalAnswerRound(
-                        reason: reason == .repeatedCall ? .repeatedCall : .callsExhausted))
-                case .outOfTime:
-                    return planned(incomplete("I stopped the tool plan because it took too long.",
-                                             completed: runner.completedToolIDs,
-                                             inFlight: step.canonicalID))
-                case .endTurn(let end):
-                    switch end {
-                    case .notReady(let sentence), .stopped(let sentence):
-                        return planned(confirmed(sentence))
-                    case .denied(let sentence):
-                        return planned(confirmed(AgentReplyRenderer.render(
-                            .denied(sentence), voice: voice)))
-                    case .infrastructure(let sentence):
-                        return planned(confirmed(AgentReplyRenderer.render(
-                            .infrastructure(sentence), voice: voice)))
+                if runner.revisionIsCurrent() {
+                    switch step.disposition {
+                    case .completed:
+                        if !ToolLoopLiveEval.needleNeedsContinuation(firstCall, request: prompt) {
+                            return planned(await finalAnswerRound(reason: .needleFirst))
+                        }
+                        // A compound request may need another tool using this result. Resume
+                        // the ordinary planner with the verified output already in `results`.
+                    case .repaired(let toolID, let note):
+                        results.append(carried(toolID, note))
+                    case .skipped:
+                        break
+                    case .answerNow(let reason):
+                        return planned(await finalAnswerRound(
+                            reason: reason == .repeatedCall ? .repeatedCall : .callsExhausted))
+                    case .outOfTime:
+                        return planned(incomplete("I stopped the tool plan because it took too long.",
+                                                 completed: runner.completedToolIDs,
+                                                 inFlight: step.canonicalID))
+                    case .endTurn(let end):
+                        switch end {
+                        case .notReady(let sentence), .stopped(let sentence):
+                            return planned(confirmed(sentence))
+                        case .denied(let sentence):
+                            return planned(confirmed(AgentReplyRenderer.render(
+                                .denied(sentence), voice: voice)))
+                        case .infrastructure(let sentence):
+                            return planned(confirmed(AgentReplyRenderer.render(
+                                .infrastructure(sentence), voice: voice)))
+                        }
                     }
                 }
             }
@@ -1694,9 +1725,21 @@ extension RealtimeAgent {
         // runner already did every call through the same executor, so `completedToolIDs`,
         // `lastVerifiedResult` and the memory confirmations are the loop's own values.
         if case .wholeTurn(let wholeTurn) = backendChoice {
-            runner.request = prompt
+            let nativeRevision = work?.revision ?? 0
+            let currentRequest = work?.prompt ?? prompt
+            runner.request = currentRequest
+            runner.revisionIsCurrent = { [work] in (work?.revision ?? 0) == nativeRevision }
+            contextSections[contextSections.count - 1] = "Current user request:\n" + currentRequest
+            lastGroundedPrompt = contextSections.joined(separator: "\n\n")
             let wholeSystem = Self.plannerSystem(
-                manifest: runner.manifest, voice: voice, request: prompt)
+                manifest: runner.manifest, voice: voice, request: currentRequest)
+            runner.verifiedResultObserver = { [self] toolID, output in
+                guard isCurrent(owner) else { return }
+                results.append(carried(toolID, output))
+                AgentSession.shared.noteToolOutput(output)
+                speech?.recordVerifiedResult(toolID: toolID, output: output)
+            }
+            defer { runner.verifiedResultObserver = nil }
             let wholeUser = lastGroundedPrompt
             let wholeTokens = (try? await provider.countTokens(wholeSystem + "\n" + wholeUser))
                 ?? (wholeSystem.count + wholeUser.count) / 4
@@ -1708,6 +1751,8 @@ extension RealtimeAgent {
                 // `withBoundedWait` takes a non-throwing body, so the throw is carried out
                 // and rethrown here: a whole turn that failed is handled below, and a
                 // whole turn that timed out is the same plain sentence as any other.
+                let nativeBegan = clock.now
+                let executionTimeBefore = runner.executionUnionTime(at: nativeBegan)
                 let whole = await withBoundedWait(budget.ceiling) { () -> Result<String, Error> in
                     do {
                         return .success(try await wholeTurn.runTurn(
@@ -1717,22 +1762,33 @@ extension RealtimeAgent {
                         return .failure(error)
                     }
                 }
-                let text: String
-                switch whole {
-                case .success(let answer):
-                    text = answer
-                case .failure(let error):
-                    throw error
-                case nil:
-                    // The whole turn ran out of the plan's own clock. The stop page, the
-                    // bridge's `STOP:` sentences and the renderer all end it, and the same
-                    // sentence a timed-out round produces is the honest one here.
+                let nativeEnded = clock.now
+                let nonModelTime = runner.executionUnionTime(at: nativeEnded) - executionTimeBefore
+                runner.charge(max(.zero, nativeBegan.duration(to: nativeEnded) - nonModelTime))
+                guard isCurrent(owner) else { return planned("I stopped the tool plan.") }
+                // A timed-out framework child can still unwind through its executor.
+                // Never hand that same runner to a new plan while cancellation unwinds.
+                guard let whole else {
                     speech?.cancel()
                     return planned(incomplete("I stopped the tool plan because it took too long.",
                                              completed: runner.completedToolIDs,
                                              inFlight: runner.currentToolID))
                 }
-                return planned(confirmed(text))
+                if nativeRevision != (work?.revision ?? 0) {
+                    // The framework turn was planned against old words. Reuse this
+                    // provider, runner and budget in the ordinary revised round loop.
+                    backendChoice = .rounds(PromptConventionPlanner(provider: provider))
+                } else {
+                    let text: String
+                    switch whole {
+                    case .success(let answer):
+                        text = answer
+                    case .failure(let error):
+                        throw error
+
+                    }
+                    return planned(confirmed(text))
+                }
             } catch let error as PlannerRoundError {
                 switch error {
                 case .modelUnavailable:
@@ -1772,7 +1828,7 @@ extension RealtimeAgent {
         var seenRevision = work?.revision ?? 0
         var lastRefill: ContinuousClock.Instant? = nil
         while rounds < maxRounds {
-            await waitForVoiceInput()
+            if !isVoiceWorker { await waitForVoiceInput() }
             let revision = work?.revision ?? 0
             if revision != seenRevision {
                 seenRevision = revision
@@ -1964,7 +2020,7 @@ extension RealtimeAgent {
             }
             runner.charge(completionBegan.duration(to: clock.now))
             roundRecorder.noteModelEnd()
-            await waitForVoiceInput()
+            if !isVoiceWorker { await waitForVoiceInput() }
             guard isCurrent(owner) else {
                 roundReason = "cancelled"
                 plannerTraceForTesting?(.stopped(reason: "cancelled"))
@@ -2187,10 +2243,15 @@ extension RealtimeAgent {
                                              arguments: pending.arguments,
                                              rationale: "read before answering", evidence: nil)
                     let step = await runner.execute(call)
-                    if case .completed = step.disposition, let output = step.output {
+                    guard isCurrent(owner) else { return planned("I stopped the tool plan.") }
+                    if let usage = step.usage { roundRecorder.executed(usage) }
+                    if let output = step.output {
                         AgentSession.shared.noteToolCompleted(pending.toolID)
                         AgentSession.shared.noteToolOutput(output)
                         results.append(carried(pending.toolID, output))
+                    }
+                    if revision != (work?.revision ?? 0) { continue }
+                    if case .completed = step.disposition, step.output != nil {
                         beginWork(title: Self.composingTitle)
                         return planned(await finalAnswerRound(reason: .accountRead))
                     }
@@ -2218,9 +2279,16 @@ extension RealtimeAgent {
                     let call = AgentToolCall(name: read.toolID, arguments: read.arguments,
                                              rationale: "provenance question", evidence: nil)
                     let step = await runner.execute(call)
-                    if case .completed = step.disposition, let output = step.output {
+                    guard isCurrent(owner) else { return planned("I stopped the tool plan.") }
+                    if let usage = step.usage { roundRecorder.executed(usage) }
+                    if let output = step.output {
                         AgentSession.shared.noteToolCompleted(read.toolID)
+                        AgentSession.shared.noteToolOutput(output)
+                        speech?.recordVerifiedResult(toolID: read.toolID, output: output)
                         results.append(carried(read.toolID, output))
+                    }
+                    if revision != (work?.revision ?? 0) { continue }
+                    if case .completed = step.disposition, step.output != nil {
                         beginWork(title: Self.composingTitle)
                         return planned(await finalAnswerRound(reason: .accountRead))
                     }
@@ -2229,7 +2297,7 @@ extension RealtimeAgent {
             }
 
             for call in parsedCalls {
-                await waitForVoiceInput()
+                if !isVoiceWorker { await waitForVoiceInput() }
                 guard isCurrent(owner) else {
                     plannerTraceForTesting?(.stopped(reason: "cancelled"))
                     return planned("I stopped the tool plan.")
@@ -2245,6 +2313,7 @@ extension RealtimeAgent {
                 // What is here is what the runner cannot do: speak. Every sentence a person
                 // reads is rendered by the loop, from the runner's disposition.
                 let step = await runner.execute(call)
+                guard isCurrent(owner) else { return planned("I stopped the tool plan.") }
                 if let usage = step.usage { roundRecorder.executed(usage) }
                 if let output = step.output {
                     results.append(carried(step.canonicalID, output))
@@ -2255,6 +2324,9 @@ extension RealtimeAgent {
                     AgentSession.shared.noteToolOutput(output)
                     speech?.recordVerifiedResult(toolID: step.canonicalID, output: output)
                 }
+                // A legally completed operation keeps its evidence across correction.
+                // Only the stale proposal's disposition is discarded before replanning.
+                if revision != (work?.revision ?? 0) { break }
                 switch step.disposition {
                 case .completed:
                     continue
@@ -2319,9 +2391,13 @@ extension RealtimeAgent {
     /// decide, never to answer a request this parser only half understood.
     func runDirectIntent(
         _ intent: AgentDirectIntent, manifest: AgentCapabilityManifest,
-        speech: AgentToolSpeechTracker?
+        speech: AgentToolSpeechTracker?,
+        onCompleted: (@MainActor (String, [String: String], String) -> Void)? = nil
     ) async -> String? {
         let allowed = manifest.allowedIDs
+        let directOwner = currentGeneration
+        let directWork = voiceWork
+        let directRevision = directWork?.revision ?? 0
         guard intent.requiredToolIDs.allSatisfy(allowed.contains) else { return nil }
         speech?.cancel()
         beginWork(title: intent.progressTitle)
@@ -2329,7 +2405,7 @@ extension RealtimeAgent {
                                     detail: "direct intent; planner skipped")
         switch intent {
         case .openApp(let name):
-            switch await directCall("computer.open_app", ["name": name]) {
+            switch await directCall("computer.open_app", ["name": name], onCompleted: onCompleted) {
             case .done(let result):
                 speech?.recordVerifiedResult(toolID: "computer.open_app", output: result)
                 return "Opened \(name)."
@@ -2338,13 +2414,14 @@ extension RealtimeAgent {
             }
         case .openURL(let url, let app):
             if let app {
-                switch await directCall("computer.open_app", ["name": app]) {
+                switch await directCall("computer.open_app", ["name": app], onCompleted: onCompleted) {
                 case .done: break
                 case .denied(let reason): return reason
                 case .standDown: return nil
                 }
             }
-            switch await directCall("browser.navigate", ["url": url]) {
+            guard isCurrent(directOwner), directRevision == (directWork?.revision ?? 0) else { return nil }
+            switch await directCall("browser.navigate", ["url": url], onCompleted: onCompleted) {
             case .done(let result):
                 speech?.recordVerifiedResult(toolID: "browser.navigate", output: result)
                 let page = url.replacingOccurrences(of: "https://", with: "")
@@ -2354,14 +2431,15 @@ extension RealtimeAgent {
             case .standDown: return nil
             }
         case .locate(let query, let wantsFolder):
-            return await runLocate(query: query, wantsFolder: wantsFolder, speech: speech)
+            return await runLocate(query: query, wantsFolder: wantsFolder, speech: speech, onCompleted: onCompleted)
         }
     }
 
     /// Find what the user named and reveal it, ask which of the near matches they meant, or
     /// say exactly where it was looked for. Never "I cannot open that folder".
     private func runLocate(
-        query: String, wantsFolder: Bool, speech: AgentToolSpeechTracker?
+        query: String, wantsFolder: Bool, speech: AgentToolSpeechTracker?,
+        onCompleted: (@MainActor (String, [String: String], String) -> Void)?
     ) async -> String? {
         let files: any FileRetrieving = fileRetrievalForTesting ?? LiveFileRetrieval()
         guard files.isAvailable else { return nil }
@@ -2376,7 +2454,7 @@ extension RealtimeAgent {
             let names = matches.map(\.hit.name)
             return "I found \(ListFormatter.localizedString(byJoining: names)). Which one?"
         }
-        switch await directCall("filesystem.reveal", ["path": best.hit.path]) {
+        switch await directCall("filesystem.reveal", ["path": best.hit.path], onCompleted: onCompleted) {
         case .done(let result):
             speech?.recordVerifiedResult(toolID: "filesystem.reveal", output: result)
             let parent = URL(fileURLWithPath: best.hit.path).deletingLastPathComponent().lastPathComponent
@@ -2397,7 +2475,20 @@ extension RealtimeAgent {
         case standDown
     }
 
-    private func directCall(_ name: String, _ arguments: [String: String]) async -> DirectCallOutcome {
+    private struct CompletedDirectStep: Sendable {
+        let tool: String
+        let arguments: [String: String]
+        let output: String
+    }
+
+    private func directCall(
+        _ name: String, _ arguments: [String: String],
+        onCompleted: (@MainActor (String, [String: String], String) -> Void)? = nil
+    ) async -> DirectCallOutcome {
+        let owner = currentGeneration
+        let work = voiceWork
+        let revision = work?.revision ?? 0
+        let risk = AgentToolRegistry.shared.tool(named: name)?.risk ?? .privileged
         do {
             let result = try await AgentToolExecutor.run(
                 name, arguments: arguments, policy: .fromSettings(),
@@ -2405,8 +2496,14 @@ extension RealtimeAgent {
                 // P1-17: the direct-intent path asked the same question and hard-coded the
                 // answer, so a shortcut read was the one read a person could not be asked about.
                 autoApproveReads: readsRunWithoutAsking,
-                promptIfNeeded: !denyUnattendedApprovalsForTesting
+                promptIfNeeded: !denyUnattendedApprovalsForTesting,
+                isStillValid: { [self, work] in
+                    guard isCurrent(owner), revision == (work?.revision ?? 0) else { return false }
+                    guard await mayCommitEffect(risk: risk) else { return false }
+                    return isCurrent(owner) && revision == (work?.revision ?? 0)
+                }
             )
+            onCompleted?(name, arguments, result.summary)
             return .done(result.summary)
         } catch AgentError.permissionDenied(let reason) {
             return .denied(reason)

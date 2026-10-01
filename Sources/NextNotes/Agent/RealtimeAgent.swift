@@ -127,7 +127,8 @@ final class RealtimeAgent {
         if interruptedResponse { waitForVoiceContinuation() }
     }
 
-    /// No reply or newly planned effect may overtake unfinished user speech.
+    /// The foreground conversation may not overtake unfinished user speech.
+    /// Background planning/reads skip this wait; effects use the final risk gate.
     /// Session close/cancellation breaks the wait; the audio/VAD lane never awaits it.
     func waitForVoiceInput() async {
         if isVoiceWorker {
@@ -140,8 +141,7 @@ final class RealtimeAgent {
     }
 
     /// P0-07: an effect may commit only once the latest input has been classified.
-    /// A read is not an effect — the round barrier already decides when it starts, and
-    /// once started it runs through user speech — so it answers `true` at once. A
+    /// Reads and planning continue through user speech; reads return `true` at once. A
     /// voice worker asks the coordinator's write-time gate; the shared (typed) agent
     /// keeps the round barrier it has always had.
     func mayCommitEffect(risk: AgentRisk) async -> Bool {

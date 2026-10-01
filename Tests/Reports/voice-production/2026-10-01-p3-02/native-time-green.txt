@@ -1,0 +1,2 @@
+DUPLEX_NATIVE_TIME_OK
+exit=0

@@ -1087,6 +1087,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return true
         }
+        if arguments.contains("--selftest-voice-duplex-work") {
+            Task { @MainActor in
+                SelfTest.failed = !(await VoiceDuplexWorkSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-tasks") {
             runTasksSelfTest()
             return true

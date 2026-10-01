@@ -1,0 +1,3 @@
+DUPLEX_BARRIER_WRONG: failure hold separates reads/effects
+DUPLEX_BARRIER_FAILED
+exit=1
