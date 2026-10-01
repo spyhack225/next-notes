@@ -76,17 +76,52 @@ enum SidebarSection: String, CaseIterable, Identifiable, Sendable {
 @MainActor
 @Observable
 final class NavigationState {
-    static let shared = NavigationState()
+    static let shared = NavigationState(
+        defaults: SelfTest.isRunning ? SelfTestHarnessDefaults.shared : .standard)
+
+    private var section: SidebarSection
 
     var selectedSection: SidebarSection {
-        didSet {
+        get { section }
+        set {
+            if newValue == .comparison { selectedSettingsTab = .comparison }
+            // Bindings and helper routes also write this property; normalize at the producer.
+            section = resolve(newValue)
             // The Settings row is a way in, not where the window reopens: a machine quit
             // while looking at Settings comes back to the section it was working in.
             // `comparison` is guarded for the same reason — it has no row, and a value
             // stored before the move is replaced at launch rather than restored.
             guard selectedSection != .settings, selectedSection != .comparison else { return }
-            UserDefaults.standard.set(selectedSection.rawValue, forKey: Keys.section)
+            defaults.set(selectedSection.rawValue, forKey: Keys.section)
         }
+    }
+
+    /// Resolve before SwiftUI's change callback repairs the stored selection, so the
+    /// detail never constructs a disabled view during a module/index change.
+    var resolvedSection: SidebarSection { resolve(selectedSection) }
+
+    private var enabledModules: Set<AppModule> {
+        Set(AppModule.allCases.filter { isModuleEnabled($0) })
+    }
+
+    private func resolve(_ section: SidebarSection) -> SidebarSection {
+        ModulePolicy.resolvedSection(section, for: enabledModules,
+            knowledgeIndexEnabled: knowledgeIndexEnabled())
+    }
+
+    /// Rehome live selection changes, including the saved destination while Settings is open.
+    func reconcileSelection() {
+        selectedSection = resolvedSection
+        if selectedSection == .settings {
+            let saved = SidebarSection(rawValue: defaults.string(forKey: Keys.section) ?? "") ?? .dictation
+            let landing = resolve(saved)
+            defaults.set((landing == .settings ? fallbackSection : landing).rawValue, forKey: Keys.section)
+        }
+    }
+
+    private var fallbackSection: SidebarSection {
+        ModulePolicy.firstEnabledSection(dictation: isModuleEnabled(.dictation),
+            meetings: isModuleEnabled(.meetings), assistant: isModuleEnabled(.assistant))
     }
 
     /// The meeting shown in the Meetings detail column, if any.
@@ -132,8 +167,9 @@ final class NavigationState {
 
     /// Agent → About, with the Memories sheet opening on one fact.
     func openMemories(_ memoryID: UUID?) {
-        pendingMemory = memoryID
         showAgentAbout()
+        guard selectedSection == .agent else { return }
+        pendingMemory = memoryID
     }
 
     /// The memory waiting to be shown, consumed exactly once.
@@ -146,26 +182,42 @@ final class NavigationState {
         static let section = "navigation.section"
     }
 
-    private init() {
-        let raw = UserDefaults.standard.string(forKey: Keys.section) ?? ""
+    @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private let isModuleEnabled: (AppModule) -> Bool
+    @ObservationIgnored private let knowledgeIndexEnabled: () -> Bool
+
+    init(defaults: UserDefaults = .standard,
+         isModuleEnabled: @escaping (AppModule) -> Bool = { Settings.shared.isModuleEnabled($0) },
+         knowledgeIndexEnabled: @escaping () -> Bool = { Settings.shared.knowledgeIndexEnabled }) {
+        self.defaults = defaults
+        self.isModuleEnabled = isModuleEnabled
+        self.knowledgeIndexEnabled = knowledgeIndexEnabled
+        let raw = defaults.string(forKey: Keys.section) ?? ""
         var restored = SidebarSection(rawValue: raw) ?? .dictation
+        let modules = Set(AppModule.allCases.filter { isModuleEnabled($0) })
+        let fallback = ModulePolicy.firstEnabledSection(dictation: modules.contains(.dictation),
+            meetings: modules.contains(.meetings), assistant: modules.contains(.assistant))
 
         // Comparison moved into Settings. A machine left on the old row opens the pane
         // that replaced it, once — Settings, showing Comparison — and the retired value is
-        // then replaced with Dictation so the next launch does not reopen Settings. A
+        // then replaced with the first enabled section so the next launch does not reopen Settings. A
         // stored `settings` could only come from a build that persisted the row, which
         // this one does not.
         if restored == .comparison {
             selectedSettingsTab = .comparison
             restored = .settings
+            defaults.set(fallback.rawValue, forKey: Keys.section)
         } else if restored == .settings {
-            restored = .dictation
+            restored = fallback
+        } else {
+            restored = ModulePolicy.resolvedSection(restored, for: modules,
+                knowledgeIndexEnabled: knowledgeIndexEnabled())
         }
-        selectedSection = restored
+        section = restored
         // `settings` is deliberately not written back: the migration lands there once, and
         // the next launch must come back to a real section rather than reopen Settings.
         if raw != restored.rawValue, restored != .settings {
-            UserDefaults.standard.set(restored.rawValue, forKey: Keys.section)
+            defaults.set(restored.rawValue, forKey: Keys.section)
         }
     }
 
@@ -194,6 +246,7 @@ final class NavigationState {
     /// Agent → About (SOUL, MEMORY, name and avatar), from Settings or a deep link.
     func showAgentAbout() {
         selectedSection = .agent
+        guard selectedSection == .agent else { return }
         agentPane = .about
     }
 
@@ -222,6 +275,7 @@ final class NavigationState {
 
     func show(meeting id: UUID) {
         selectedSection = .meetings
+        guard selectedSection == .meetings else { return }
         selectedMeetingID = id
         transcriptFocus = nil
     }
@@ -229,6 +283,7 @@ final class NavigationState {
     /// Meetings → this meeting → Transcript, scrolled to `time`.
     func show(meeting id: UUID, at time: TimeInterval) {
         selectedSection = .meetings
+        guard selectedSection == .meetings else { return }
         selectedMeetingID = id
         transcriptFocus = TranscriptFocus(meetingID: id, time: time)
     }
@@ -236,6 +291,7 @@ final class NavigationState {
     /// Agent → Conversation.
     func showConversation() {
         selectedSection = .agent
+        guard selectedSection == .agent else { return }
         agentPane = .conversation
     }
 }

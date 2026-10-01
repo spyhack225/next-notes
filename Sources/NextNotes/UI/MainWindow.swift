@@ -49,11 +49,15 @@ struct MainWindow: View {
         .task {
             OnboardingPresenter.presentIfNeeded(controller: controller)
         }
+        .onChange(of: [settings.moduleDictationEnabled, settings.moduleMeetingsEnabled,
+                       settings.agentEnabled, settings.knowledgeIndexEnabled], initial: true) {
+            navigation.reconcileSelection()
+        }
     }
 
     @ViewBuilder
     private var detail: some View {
-        switch navigation.selectedSection {
+        switch navigation.resolvedSection {
         case .agent:
             AgentView()
         case .meetings:

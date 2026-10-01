@@ -55,4 +55,15 @@ enum ModulePolicy {
         if assistant { return .agent }
         return .dictionary
     }
+
+    /// Normalize navigation and its detail consumer through the same module matrix.
+    static func resolvedSection(_ requested: SidebarSection, for modules: Set<AppModule>,
+                                knowledgeIndexEnabled: Bool) -> SidebarSection {
+        if requested == .settings || requested == .comparison { return .settings }
+        if visibleSections(for: modules, knowledgeIndexEnabled: knowledgeIndexEnabled).contains(requested) {
+            return requested
+        }
+        return firstEnabledSection(dictation: modules.contains(.dictation),
+            meetings: modules.contains(.meetings), assistant: modules.contains(.assistant))
+    }
 }

@@ -76,9 +76,9 @@ struct Sidebar: View {
     private var liveRow: some View {
         HStack(spacing: DS.Space.s) {
             RecordingIndicator(
-                elapsed: meetings.isRecording ? meetings.elapsed : nil,
+                elapsed: meetingIsRecording ? meetings.elapsed : nil,
                 compact: true,
-                label: meetings.isRecording ? "Meeting" : "Recording"
+                label: meetingIsRecording ? "Meeting" : "Recording"
             )
 
             Spacer(minLength: DS.Space.xs)
@@ -94,22 +94,29 @@ struct Sidebar: View {
     /// is one voice being heard, which is `listening` — until the key comes up and the wait
     /// stops being about hearing and starts being about text.
     private var liveState: OrbGeometry.State {
-        if meetings.isRecording { return .weaving }
+        if meetingIsRecording { return .weaving }
         return controller.state == .finishing ? .working : .listening
     }
 
     /// The sections that get a row. Comparison moved into Settings and the Settings row is
     /// drawn below the group, so neither belongs here; both stay in `allCases` so a stored
-    /// raw value keeps decoding. Search appears once the knowledge index is on — or while
-    /// it is the selection, so a relaunch into it never shows a detail without its row.
+    /// raw value keeps decoding. Every module and Search follow the same policy that
+    /// resolves restored, requested and live detail selections.
     private var visibleSections: [SidebarSection] {
-        SidebarSection.allCases.filter {
-            if $0 == .comparison || $0 == .settings { return false }
-            return $0 != .search || settings.knowledgeIndexEnabled || selection == .search
-        }
+        ModulePolicy.visibleSections(
+            for: Set(AppModule.allCases.filter { settings.isModuleEnabled($0) }),
+            knowledgeIndexEnabled: settings.knowledgeIndexEnabled)
+    }
+
+    private var meetingIsRecording: Bool {
+        settings.isModuleEnabled(.meetings) && meetings.isRecording
+    }
+
+    private var dictationIsRecording: Bool {
+        settings.isModuleEnabled(.dictation) && controller.state.isActive
     }
 
     private var isRecording: Bool {
-        controller.state.isActive || meetings.isRecording
+        dictationIsRecording || meetingIsRecording
     }
 }
