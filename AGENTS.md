@@ -156,6 +156,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-tools     --selftest-wake       --selftest-tasks
 --selftest-task-durability
 --selftest-task-recovery
+--selftest-task-authority
 --selftest-persona   --selftest-memory     --selftest-schedule
 --selftest-routine-authority
 --selftest-index     --selftest-search [query] [--gold <path>]
@@ -238,11 +239,11 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 
 `--selftest-task-durability` starts with P6-01's isolated restart baseline: the real
 JSON store round-trips into a fresh manager, running/queued records become failed,
-and a retained permission record supplies no live approval token. This characterizes
-current behavior; it does not prove recovery or authorize an iMessage production host.
-P6-02a extends it to 18 actual-store cases: existing-manager saves atomically write
-JSON first, then mirror the same canonical fields and order into `agent-tasks.sqlite`.
-JSON remains read authority. Mirror failure is reported without discarding JSON;
+and a retained permission record supplies no live approval token. This characterized
+the pre-migration behavior; it does not prove recovery or authorize an iMessage production host.
+P6-02a originally extended it to 18 actual-store cases: existing-manager saves wrote
+JSON first, then mirrored the same canonical fields and order into `agent-tasks.sqlite`.
+JSON was read authority. Mirror failure was reported without discarding JSON;
 SQLite contention fails promptly rather than waiting on the conversational thread.
 Unknown/corrupt databases are retained and rejected. `SelfTestStoreGuard` watches
 the database and its WAL/SHM siblings. This mirror supplies no recovery, attempt
@@ -254,7 +255,7 @@ SQLite snapshot transaction. In-place approval records request and true/false
 completion; false includes cancellation (`notApproved`), not necessarily a human
 denial. Unbound or mismatched task IDs emit no attributed tool facts. Receipt-aware
 30-day compaction removes old terminal journal rows only; unknown ages stay.
-JSON remains read authority. Attempt zero is unbound; ACP/scheduled provenance,
+At P6-03, JSON remained read authority. Attempt zero is unbound; ACP/scheduled provenance,
 real leases/receipts and recovery remain open. Synchronous full-history saves
 have no large-history latency proof; fail-fast contention is a narrower claim.
 
@@ -265,9 +266,25 @@ are blocked. Typed local/ACP running rows pause after restart; no worker starts
 again. Stale input/approval callbacks cannot queue held or terminal rows, and
 missing artifact links never prove that no action happened. Rejected delegation
 returns the plain failure with no task-success audit or started acknowledgement.
-JSON remains authoritative; SQL migration, real leases/receipts, pending-card
-routing, retry and remote/voice/scheduled recovery remain open. Held in-memory
+P6-04a-1 retained JSON authority; P6-04a-2 below supersedes that storage contract.
+Real leases/receipts, pending-card routing, retry and remote/voice/scheduled
+recovery remain open. Held in-memory
 state is not a committed restart decision when its save fails.
+
+`--selftest-task-authority` verifies P6-04a-2's migration into the same
+`agent-tasks.sqlite`: 54 installed cases cover strict reconciliation, a transactional
+identity/generation marker, SQL-first saves, primary-commit admission and actual
+rejected delegations. Four separate process exits and fresh readers pin migration
+boundaries; they do not prove power-loss durability. Existing-only WAL-visible
+probes bind the opened SQLite file, reject contention promptly and never silently
+recreate a deleted marked store. Prepared but unmarked history fails visibly;
+product repair remains open. The retained versioned JSON is an export/witness for
+this reader; older array-only binaries cannot use it. SQL commit failure prevents
+new dispatch, while export failure preserves accepted SQL history. No owner-store
+migration was run by these isolated tests. Full-history latency and independent
+mutation sensitivity of the native file-binding branch remain unproven. Parent
+P6-04a, pending cards, attempts/leases/receipts and IM-16 remain open. See the
+[authority report](Tests/Reports/durable-tasks/2026-10-01-p6-04a-authority-migration.md).
 
 `--selftest-voice-session-reducer` verifies ten pure traces (the original nine
 plus speech-ended identity/hold guards), then actual capture, approval and streamed

@@ -66,14 +66,22 @@ enum TaskRecoverySelfTest {
                 check(persisted.save([interrupted]) == .saved, "restart persistence failure fixture did not save")
                 let original = try Data(contentsOf: file)
                 if failure == "json-write" {
+                    // Keep the existing WAL connection alive before blocking atomic
+                    // export replacement. The directory failure remains at the JSON
+                    // writer boundary, rather than preventing a primary journal open.
+                    check(try sql.load() == [interrupted], "restart export fixture lost its primary row")
                     try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: folder.path)
                     defer { try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: folder.path) }
                     let held = AgentTaskManager(store: persisted)
-                    check(held.task(id: interrupted.id)?.status == .recovering && held.lastPersistenceResult == .jsonFailed,
-                        "restart JSON failure was not visible alongside held in-memory state")
-                    check(try Data(contentsOf: file) == original && sql.load() == [interrupted]
-                        && sql.journal(taskID: interrupted.id).isEmpty,
-                        "failed restart JSON write changed original JSON/SQL/journal")
+                    check(held.task(id: interrupted.id)?.status == .recovering && held.lastPersistenceResult == .exportFailed,
+                        "restart export failure was not visible alongside the committed held state")
+                    check(try Data(contentsOf: file) == original && sql.load() == held.tasks
+                        && persisted.load() == held.tasks,
+                        "failed restart export changed original JSON or hid committed primary history")
+                    let heldEvents = try sql.journal(taskID: interrupted.id)
+                    check(heldEvents.map(\.draft.kind) == [.recoveryHeld]
+                        && heldEvents.allSatisfy { $0.draft.attempt == 3 },
+                        "failed restart export lost or fabricated the committed held event")
                 } else {
                     let writer = TaskStore(root: folder)
                     defer { writer.close() }
@@ -81,13 +89,14 @@ enum TaskRecoverySelfTest {
                         try TaskStore.exec(db, "BEGIN IMMEDIATE")
                         defer { try? TaskStore.exec(db, "ROLLBACK") }
                         let held = AgentTaskManager(store: persisted)
-                        check(held.task(id: interrupted.id)?.status == .recovering && held.lastPersistenceResult == .mirrorFailed,
-                            "restart mirror contention was invisible")
+                        check(held.task(id: interrupted.id)?.status == .recovering && held.lastPersistenceResult == .sqlFailed,
+                            "restart primary contention was invisible")
                         // Read through the other connection; writer's connection lock is
                         // intentionally held by this failure-injection closure.
-                        check(try persisted.load() == held.tasks && sql.load() == [interrupted]
-                            && sql.journal(taskID: interrupted.id).isEmpty,
-                            "contended restart lost JSON authority or partly changed SQL/journal")
+                        check(try persisted.load() == [interrupted] && sql.load() == [interrupted]
+                            && sql.journal(taskID: interrupted.id).isEmpty
+                            && Data(contentsOf: file) == original,
+                            "contended restart changed committed primary history, journal or export")
                     }
                 }
                 sql.close()
@@ -103,7 +112,7 @@ enum TaskRecoverySelfTest {
             }
             cases += 1
             check(try AgentTaskStore(fileURL: file, mirror: mirror).load() == manager.tasks,
-                "actual held restart decision did not reach authoritative JSON")
+                "actual held restart decision did not reach authoritative history")
             let second = TaskStore(root: root)
             defer { second.close() }
             check(try second.load() == manager.tasks, "actual held restart did not reach second SQLite reader")
@@ -175,9 +184,16 @@ enum TaskRecoverySelfTest {
                     "\(name) failed load/save created or migrated SQLite")
                 cases += 1
             }
-            let unreadable = root.appendingPathComponent("not-a-history-file", isDirectory: true)
+            let unreadableRoot = root.appendingPathComponent("unreadable-legacy", isDirectory: true)
+            try FileManager.default.createDirectory(at: unreadableRoot, withIntermediateDirectories: false)
+            let unreadable = unreadableRoot.appendingPathComponent("not-a-history-file", isDirectory: true)
             try FileManager.default.createDirectory(at: unreadable, withIntermediateDirectories: false)
             do { _ = try AgentTaskStore(fileURL: unreadable).load(); check(false, "unreadable legacy file became empty history") } catch {}
+            var retainedDirectory: ObjCBool = false
+            check(FileManager.default.fileExists(atPath: unreadable.path, isDirectory: &retainedDirectory)
+                && retainedDirectory.boolValue, "unreadable legacy directory was replaced or removed")
+            check(!FileManager.default.fileExists(atPath: unreadableRoot.appendingPathComponent(TaskStore.fileName).path),
+                "unreadable legacy history created SQLite")
             cases += 1
         } catch { failures.append("isolated recovery fixture failed: \(error.localizedDescription)") }
         failures += SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).map { "owner store changed: \($0)" }

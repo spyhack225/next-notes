@@ -72,7 +72,7 @@ enum TaskStoreSelfTest {
             check(restarted.tasks.count == fixtures.count, "restart added or dropped a task")
 
             // The actual held decision is now persisted; no backend was started.
-            check(try AgentTaskStore(fileURL: file).load() == restarted.tasks, "restart decision did not reach authoritative JSON")
+            check(try AgentTaskStore(fileURL: file).load() == restarted.tasks, "restart decision did not reach authoritative history")
             caseCount += try storageCases(in: directory, check: check)
             caseCount += try journalProducerCases(in: directory, check: check)
             caseCount += try journalRetentionCases(in: directory, check: check)
@@ -240,8 +240,8 @@ enum TaskStoreSelfTest {
         manager.beginScheduledRun(detailed)
         manager.beginScheduledRun(other)
         let canonical = try json.load()
-        check(manager.lastPersistenceResult == .saved, "real manager did not report successful JSON/mirror save")
-        check(canonical.map(\.id) == [other.id, detailed.id], "JSON lost same-time original task order")
+        check(manager.lastPersistenceResult == .saved, "real manager did not report successful primary/export save")
+        check(canonical.map(\.id) == [other.id, detailed.id], "primary history lost same-time original task order")
         check(try mirror.load() == canonical, "SQLite lost actual fields, nil/empty values, Unicode/NUL or artifact order/duplicates")
         check(canonical.last?.isUserInitiated == detailed.isUserInitiated && canonical.first?.source == other.source,
             "source/schedule authority semantics changed")
@@ -276,10 +276,11 @@ enum TaskStoreSelfTest {
         }
         cases += 1
 
-        // The real MainActor JSON->mirror seam must never spend its general 2 s busy
+        // The real MainActor SQL-primary seam must never spend its general 2 s busy
         // allowance waiting for another writer, including the initial connection open.
         for cold in [false, true] {
             let beforeContention = try mirror.load()
+            let exportBeforeContention = try Data(contentsOf: json.storageURL)
             try second.withConnection { db in
                 try TaskStore.exec(db, "BEGIN IMMEDIATE")
                 defer { try? TaskStore.exec(db, "ROLLBACK") }
@@ -289,16 +290,17 @@ enum TaskStoreSelfTest {
                     result: cold ? "Cold contention fixture" : "Contention fixture", failure: nil)
                 let elapsed = started.duration(to: .now)
                 check(elapsed <= .milliseconds(50), "mirror contention stalled the real manager beyond 50 ms")
-                check(manager.lastPersistenceResult == .mirrorFailed,
+                check(manager.lastPersistenceResult == .sqlFailed,
                     "writer contention was not visible through the real manager")
-                check(try json.load().first?.result == (cold ? "Cold contention fixture" : "Contention fixture"),
-                    "writer contention made successful JSON history unavailable")
+                check(try json.load() == beforeContention
+                    && Data(contentsOf: json.storageURL) == exportBeforeContention,
+                    "failed primary write changed authoritative history or its export")
                 SelfTest.diagnostic("TASK_DURABILITY_CONTENTION: cold=\(cold) elapsed=\(elapsed)")
             }
             check(try mirror.load() == beforeContention, "writer contention partially changed SQLite history")
             manager.finishScheduledRun(id: other.id, status: .completed, result: "Explicit convergence fixture", failure: nil)
             check(manager.lastPersistenceResult == .saved, "next explicit save did not converge after contention")
-            check(try mirror.load() == json.load(), "next explicit save left SQLite stale")
+            check(try mirror.load() == json.load(), "next explicit save left primary history inconsistent")
             try mirror.withConnection { db in
                 check(try TaskStore.integer(db, "PRAGMA busy_timeout") == 2000,
                     "fail-fast save did not restore the general busy allowance")
@@ -316,7 +318,7 @@ enum TaskStoreSelfTest {
         manager.finishScheduledRun(id: other.id, status: .completed, result: "Updated fixture", failure: nil)
         let updated = try json.load()
         check(try manager.lastPersistenceResult == .saved && mirror.load() == updated,
-            "real manager update did not mirror its canonical JSON rows")
+            "real manager update did not commit its canonical primary rows")
         try mirror.withConnection { db in
             check(try TaskStore.integer(db, "SELECT count(*) FROM task_event WHERE kind='fixture'") == 1, "task upsert deleted its event journal")
             check(try TaskStore.integer(db, "SELECT count(*) FROM task_dependency") == 1, "task upsert deleted dependency rows")
@@ -340,23 +342,41 @@ enum TaskStoreSelfTest {
         cases += 1
 
         let blockedJSON = directory.appendingPathComponent("blocked-json", isDirectory: true)
-        let jsonFailureManager = AgentTaskManager(store: AgentTaskStore(fileURL: blockedJSON, mirror: mirror))
+        let exportMirror = TaskStore(root: directory.appendingPathComponent("export-failure", isDirectory: true))
+        defer { exportMirror.close() }
+        let exportStore = AgentTaskStore(fileURL: blockedJSON, mirror: exportMirror)
+        let jsonFailureManager = AgentTaskManager(store: exportStore)
         // Inject at the writer boundary after a successful fresh read. Unreadable
         // initialization has its own strict-load regression and must not reach save.
+        // Fresh authority preparation creates an empty export; replace only that
+        // fixture file with the original directory blocker before the manager write.
+        try FileManager.default.removeItem(at: blockedJSON)
         try FileManager.default.createDirectory(at: blockedJSON, withIntermediateDirectories: false)
         jsonFailureManager.beginScheduledRun(other)
-        check(jsonFailureManager.lastPersistenceResult == .jsonFailed, "JSON failure was not reported by the real manager")
-        check(try mirror.load() == updated, "JSON failure still changed the SQLite mirror")
+        check(jsonFailureManager.lastPersistenceResult == .exportFailed, "export failure was not reported by the real manager")
+        let canonicalOther = canonical.filter { $0.id == other.id }
+        check(try exportMirror.load() == canonicalOther && exportStore.load() == canonicalOther,
+            "failed export made the committed primary history unavailable")
+        check(try exportMirror.journal(taskID: other.id).map(\.draft.kind) == [.jobCreated],
+            "failed export lost the committed creation event")
+        check(try mirror.load() == updated, "isolated export failure changed another task store")
         cases += 1
 
         let blockedRoot = directory.appendingPathComponent("blocked-sqlite")
         try Data("Fixture path blocker".utf8).write(to: blockedRoot)
         let survivingJSON = AgentTaskStore(fileURL: directory.appendingPathComponent("surviving-json.json"),
             mirror: TaskStore(root: blockedRoot))
+        let retainedEncoder = JSONEncoder()
+        retainedEncoder.dateEncodingStrategy = .iso8601
+        let retainedHistory = try retainedEncoder.encode([other])
+        try retainedHistory.write(to: survivingJSON.storageURL)
         let mirrorFailureManager = AgentTaskManager(store: survivingJSON)
         mirrorFailureManager.beginScheduledRun(other)
-        check(mirrorFailureManager.lastPersistenceResult == .mirrorFailed, "mirror failure was not reported by the real manager")
-        check(try survivingJSON.load().map(\.id) == [other.id], "mirror failure made successfully saved JSON unavailable")
+        check(mirrorFailureManager.lastPersistenceResult == .loadFailed
+            && mirrorFailureManager.historyReadFailure != nil && mirrorFailureManager.tasks.isEmpty,
+            "blocked primary storage did not reject initialization and record admission")
+        check(try Data(contentsOf: survivingJSON.storageURL) == retainedHistory,
+            "blocked primary storage rewrote retained legacy history")
         check(try Data(contentsOf: blockedRoot) == Data("Fixture path blocker".utf8), "mirror failure deleted its blocker")
         cases += 1
 
@@ -431,6 +451,7 @@ enum TaskStoreSelfTest {
             "SELECT kind FROM task_event WHERE task_id='journal-real-manager' ORDER BY seq") }
         check(repeated == kinds, "duplicate terminal callback fabricated a second transition")
         let beforeFailure = try mirror.load()
+        let exportBeforeFailure = try Data(contentsOf: json.storageURL)
         try mirror.withConnection { db in
             try TaskStore.exec(db, """
                 CREATE TRIGGER fixture_journal_failure BEFORE INSERT ON task_event
@@ -438,8 +459,9 @@ enum TaskStoreSelfTest {
                 """)
         }
         manager.finishScheduledRun(id: task.id, status: .failed, result: nil, failure: "Private failure")
-        check(manager.lastPersistenceResult == .mirrorFailed, "failed journal append was invisible to real manager")
-        check(try json.load().first?.status == .failed, "failed SQLite journal made successful JSON inaccessible")
+        check(manager.lastPersistenceResult == .sqlFailed, "failed journal append was invisible to real manager")
+        check(try json.load() == beforeFailure && Data(contentsOf: json.storageURL) == exportBeforeFailure,
+            "failed primary journal changed committed history or its export")
         let second = TaskStore(root: root)
         defer { second.close() }
         check(try second.load() == beforeFailure, "state committed without its event after injected journal failure")
@@ -503,6 +525,12 @@ enum TaskStoreSelfTest {
             TaskJournalEventDraft(taskID: tasks[5].id, kind: .jobCancelled, at: old),
             TaskJournalEventDraft(taskID: tasks[5].id, kind: .jobCancelled, at: recent)
         ]
+        // Retention starts with matching legacy history, so its later store read
+        // reconciles real history instead of accepting an orphan mirror as authority.
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode(tasks).write(to: root.appendingPathComponent("agent-tasks.json"))
         try mirror.replaceSnapshot(tasks, events: events, now: now)
         check(try mirror.journal(taskID: tasks[0].id).isEmpty, "old terminal journal was not compacted")
         for task in tasks.dropFirst() {
@@ -513,7 +541,7 @@ enum TaskStoreSelfTest {
             try TaskStore.exec(db, "INSERT INTO task_dependency(upstream,downstream,requirement) VALUES('old-terminal','active','fixture')")
         }
         let json = AgentTaskStore(fileURL: root.appendingPathComponent("agent-tasks.json"), mirror: mirror)
-        check(try json.save(tasks) == .saved && json.load() == tasks, "compaction changed JSON history")
+        check(try json.save(tasks) == .saved && json.load() == tasks, "compaction changed primary history")
         check(try mirror.withConnection { try TaskStore.integer($0, "SELECT count(*) FROM task_dependency") } == 1,
             "journal compaction deleted dependencies")
         var burst: [TaskJournalEventDraft] = []

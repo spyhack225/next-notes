@@ -1,0 +1,5 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO --selftest-tool-review
+2026-10-01 07:29:38.393 NextNotes[66995:1503403] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+2026-10-01 07:29:39.189 NextNotes[66995:1503403] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+2026-10-01 07:29:40.749 NextNotes[66995:1503403] NSQuitAlwaysKeepsWindows=NO
+TOOL_REVIEW_OK

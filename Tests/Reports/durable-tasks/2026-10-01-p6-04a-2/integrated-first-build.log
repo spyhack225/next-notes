@@ -1,0 +1,194 @@
+/tmp/nextnotes-p1-31c-serial.mk:2: warning: overriding commands for target `build'
+Makefile:114: warning: ignoring old commands for target `build'
+/tmp/nextnotes-p1-31c-serial.mk:4: warning: overriding commands for target `test'
+Makefile:123: warning: ignoring old commands for target `test'
+swift build -c debug --scratch-path "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch" --jobs 1
+warning: 'speechify': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for debugging...
+[Computing dependencies]
+[Constructing description]
+[Pre-planning 1 / 275]
+[Planning 1 / 275]
+[Planning deferred tasks]
+[Constructing 495 / 572]
+[Starting]
+[1 / 15] MachTaskSelfWrapper
+[2 / 25] NextNotes-product
+[3 / 29] NextNotes_NextNotesDictionaryTests
+[5 / 34] FluidAudio_FluidAudio
+[5 / 33]
+[8 / 14] NextNotes-product
+[9 / 14] NextNotes-product
+[9 / 16] NextNotes-product
+[9 / 83]
+[10 / 118]
+[12 / 118]
+[14 / 118]
+[15 / 118]
+[16 / 118]
+[17 / 118]
+[18 / 118]
+[20 / 118]
+[21 / 118]
+[22 / 118]
+[23 / 118]
+[24 / 118]
+[25 / 118]
+[27 / 118]
+[28 / 118]
+[30 / 118]
+[31 / 118]
+[33 / 118]
+[35 / 118]
+[36 / 118]
+[37 / 118]
+[38 / 118]
+[39 / 118]
+[40 / 118]
+[42 / 118]
+[43 / 118]
+[44 / 118]
+[45 / 118]
+[47 / 118]
+[48 / 118]
+[49 / 118]
+[50 / 118]
+[52 / 118]
+[53 / 118]
+[54 / 118]
+[56 / 118]
+[58 / 118]
+[60 / 118]
+[61 / 118]
+[62 / 118]
+[64 / 118]
+[66 / 118]
+[67 / 118]
+[69 / 118]
+[70 / 118]
+[71 / 118]
+[72 / 118]
+[73 / 118]
+[75 / 118]
+[76 / 118]
+[77 / 118]
+[78 / 118]
+[80 / 118]
+[81 / 118]
+[82 / 118]
+[83 / 118]
+[85 / 118]
+[86 / 118]
+[87 / 118]
+[88 / 118]
+[89 / 118]
+[91 / 118]
+[93 / 118]
+[95 / 118]
+[96 / 118]
+[97 / 118]
+[99 / 118]
+[100 / 118]
+[101 / 118]
+[102 / 118]
+[103 / 118]
+[104 / 118]
+[106 / 118] NextNotes-product
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/AppleModelWarmth.swift:40:13: warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 38 |     /// timeout closure without hopping to the main actor (D-07): the per-call ceiling
+ 39 |     /// is computed per chunked call, on whatever task asked for it.
+ 40 |     private nonisolated(unsafe) static let warmthLock = NSLock()
+    |             `- warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 41 |     private nonisolated(unsafe) static var warmWindowStorage: Duration = .seconds(600)
+ 42 |     private nonisolated(unsafe) static var lastActivityStorage: Date?
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/NextNotesApp.swift:7531:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+7529 |                 check("the audit lost rows while a near miss was written",
+7530 |                       AgentAuditLog.shared.entries.count >= before)
+7531 |             } catch {
+     |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+7532 |                 failures.append("p1-29 near miss: \(error.localizedDescription)")
+7533 |             }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/NextNotesApp.swift:8230:21: warning: initialization of immutable value 'before' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+8228 |                 // 3. Clear leaves a row, with counts and no words. "New conversation" and
+8229 |                 //    "Forget all conversations" were indistinguishable in every log.
+8230 |                 let before = AgentAuditLog.shared.entries.count
+     |                     `- warning: initialization of immutable value 'before' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+8231 |                 AgentSession.shared.recordUser("p1-29 text that must not be logged")
+8232 |                 AgentSession.shared.recordAssistant("p1-29 answer that must not be logged")
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/NextNotesApp.swift:8277:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+8275 |                     AgentAuditLog.memoryRows == 400
+8276 |                 )
+8277 |             } catch {
+     |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+8278 |                 failures.append("p1-29: \(error.localizedDescription)")
+8279 |             }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[107 / 118] NextNotes-product
+[109 / 118] NextNotes-product
+[110 / 118] NextNotes-product
+[111 / 118] NextNotes-product
+[111 / 119] NextNotes-product
+[111 / 126] NextNotes-product
+[113 / 126] NextNotes-product
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Duplex/VoiceDuplexWorkSelfTest.swift:11:13: warning: initialization of immutable value 'agent' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+  9 |         let conversation = VoiceConversationCoordinator.shared
+ 10 |         let capture = AgentCaptureController.shared
+ 11 |         let agent = RealtimeAgent.shared
+    |             `- warning: initialization of immutable value 'agent' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 12 |         let speech = AgentSpeechSynthesizer.shared
+ 13 |         let probe = DuplexWorkProbe()
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[114 / 126] NextNotes-product
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift:1324:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+1322 |         let committed = await frontend.stream(
+1323 |             system: system, messages: firstRequest, maxTokens: 64, commitRevision: 2)
+1324 |         Task {
+     |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+     |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+1325 |             for try await _ in committed {}
+1326 |         }
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[115 / 126] NextNotes-product
+[117 / 126] NextNotes-product
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/RealtimeAgentToolLoopSelfTest.swift:1020:13: warning: initialization of immutable value 'orphan' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+1018 |               agent.typedPending != nil)
+1019 |         AgentSession.shared.forgetAllConversations()
+1020 |         let orphan = await agent.handle("yes", source: .text)
+     |             `- warning: initialization of immutable value 'orphan' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+1021 |         let orphanUser = orphanLog.calls.last?.user ?? ""
+1022 |         check("a cleared conversation carried the confirmation into the new request: "
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/RealtimeAgentToolLoopSelfTest.swift:1398:13: warning: immutable value 'hermes' was never used; consider replacing with '_' or removing it [#NoUsage]
+1396 |         var failures: [String] = []
+1397 |         func fail(_ name: String) { failures.append(name); check(name, false) }
+1398 |         let hermes: (String) -> String = { "<\u{200B}tool_call>\($0)</\u{200B}tool_call>" }
+     |             `- warning: immutable value 'hermes' was never used; consider replacing with '_' or removing it [#NoUsage]
+1399 | 
+1400 |         // The renderer's own sentence, both forms.
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[118 / 126] NextNotes-product
+[119 / 127] NextNotes-product
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Persona/PersonaSelfTest.swift:121:13: warning: initialization of immutable value 'tools' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+119 |         let plannerManifest = AgentCapabilityManifestBuilder.build(
+120 |             .live(reader: .agentRole), request: "what's on my calendar and any new email")
+121 |         let tools = RealtimeAgent.plannableTools()
+    |             `- warning: initialization of immutable value 'tools' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+122 |         let productionPaths: [(name: String, path: AgentPromptPath, system: String)] = [
+123 |             ("voice answer (Apple)", .voiceAnswer, LocalVoiceSplitResponse.answerInstructions),
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[120 / 127] NextNotes-product
+[121 / 127] NextNotes-product
+[122 / 127] NextNotes-product
+[123 / 127] NextNotes-product
+[124 / 127] NextNotes-product
+[125 / 127] NextNotes-product
+[126 / 127] NextNotes-product
+Build complete! (404.94 sec)

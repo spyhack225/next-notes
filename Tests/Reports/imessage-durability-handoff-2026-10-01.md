@@ -32,8 +32,7 @@ dictation passed this run, earlier intermittent failures remain unresolved.
 
 P6-04a-1 is committed `6f50e07`: held restarts, strict damaged-history rejection,
 stale-response guards and actual truthful failed delegation pass56cases plus12
-related flags and isolation21files/23defaults. P6-04a-2 SQL authority migration
-is now active; JSON remains current read authority.
+related flags and isolation21files/23defaults. P6-04a-2 is now built/installed: authority54, recovery56, durability37 and all13 targeted flags pass. SQL is primary after strict transactional reconciliation; retained tagged JSON is an updated-reader export/witness. New submissions/callback dispatch require primary commit. Four process-exit/read-back boundaries pass; older array-only binary rollback, live repair and large-history latency remain open. Latest CORE15/18 fails dictation capture/continuity, wake accuracy and computer focus. See the [authority report](durable-tasks/2026-10-01-p6-04a-authority-migration.md).
 Unknown/unbound work must never auto-run; pending-card plans need actual routing
 proof. P3-06a bounded foundation is committed `5ecc7e6`: scripted capture/output and
 related comparisons show zero observed disagreements; ordered replay exits0 and

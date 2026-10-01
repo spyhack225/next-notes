@@ -1,0 +1,12 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO --selftest-task-authority
+2026-10-01 07:18:44.258 NextNotes[66048:1486581] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+2026-10-01 07:18:45.377 NextNotes[66048:1486581] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+TASK_AUTHORITY_FAILED: 1 assertions
+2026-10-01 07:18:47.150 NextNotes[66048:1486581] NSQuitAlwaysKeepsWindows=NO
+TASK_PERSISTENCE_FAILED: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_FAILED: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_FAILED: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its additional local copy could not be updated.
+TASK_AUTHORITY_WRONG: actual submission fixture: assertion("export failure hid actual backend completion")

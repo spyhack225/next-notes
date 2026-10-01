@@ -1,0 +1,67 @@
+[
+  {
+    "name": "task-authority",
+    "exit": 0,
+    "passed": true
+  },
+  {
+    "name": "task-recovery",
+    "exit": 0,
+    "passed": true
+  },
+  {
+    "name": "task-durability",
+    "exit": 0,
+    "passed": true
+  },
+  {
+    "name": "tasks",
+    "exit": 0,
+    "passed": true
+  },
+  {
+    "name": "tool-review",
+    "exit": 0,
+    "passed": true
+  },
+  {
+    "name": "guided",
+    "exit": 0,
+    "passed": true
+  },
+  {
+    "name": "agent-panes",
+    "exit": 0,
+    "passed": true
+  },
+  {
+    "name": "activity",
+    "exit": 0,
+    "passed": true
+  },
+  {
+    "name": "realtime",
+    "exit": 0,
+    "passed": true
+  },
+  {
+    "name": "toolloop-production",
+    "exit": 0,
+    "passed": true
+  },
+  {
+    "name": "voice-session-reducer",
+    "exit": 0,
+    "passed": true
+  },
+  {
+    "name": "voice-duplex-work",
+    "exit": 0,
+    "passed": true
+  },
+  {
+    "name": "store-isolation",
+    "exit": 0,
+    "passed": true
+  }
+]

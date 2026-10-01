@@ -1,0 +1,25 @@
+acceptance: logs in /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/durable-tasks/2026-10-01-p6-04a-2/core
+== CORE ==
+  --selftest-dictation                     FAIL  62s
+  --selftest-capture                       PASS  2s
+  --selftest-stream                        PASS  2s
+  --selftest-wake-live                     FAIL  25s
+  --selftest-voice-conversation            PASS  2s
+  --selftest-acoustic-replay               PASS  8s
+  --selftest-duplex                        PASS  2s
+  --selftest-action-runtime                PASS  3s
+  --selftest-activity                      PASS  1s
+  --selftest-meeting-live                  PASS  1s
+  --selftest-meeting-resume                PASS  15s
+  --selftest-toolloop                      PASS  1s
+  --selftest-computer                      FAIL  1s
+  --selftest-imessage-watch                PASS  9s
+  --selftest-imessage-loop                 PASS  2s
+  --selftest-imessage-approval             PASS  1s
+  --selftest-acp                           PASS  2s
+  --selftest-mcp                           PASS  1s
+CORE         15/18 PASS
+
+FAIL  core         --selftest-dictation                 DICTATION_FAILED: 2 problem(s)
+FAIL  core         --selftest-wake-live                 WAKE_LIVE_FAILED: 17/24 hits, 3/32 false at sens 0.6 — hit rate 0.71 under 0.8 at sensitivity 0.6; 3 false accepts over 2 at sensitivity 0.6
+FAIL  core         --selftest-computer                  COMPUTER_FAILED: inspect did not see the self-test OK button

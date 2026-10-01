@@ -1,0 +1,7 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO --selftest-imessage-watch --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/durable-tasks/2026-10-01-p6-04a-2/core/selftest-imessage-watch.out
+2026-10-01 07:34:21.614 NextNotes[67747:1513466] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+IMESSAGE_WATCH_MEASURED: settling: 3 waits × 0.25 seconds = 750ms of virtual time, then resolved with 1 attachment
+IMESSAGE_WATCH_MEASURED: per_message_deadline: rows 2 and 3 delivered at 12ms, row 1 (never settles) at 2041ms, budget 8 × 250ms = 2000ms
+IMESSAGE_WATCH_MEASURED: idle: 1544ms armed and silent, passes 0, attachment queries 0
+IMESSAGE_WATCH_OK: 15 cases
+2026-10-01 07:34:29.849 NextNotes[67747:1513466] NSQuitAlwaysKeepsWindows=NO

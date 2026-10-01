@@ -19,6 +19,8 @@ final class AgentTaskManager {
     /// A separate, in-memory one-shot token for the weaker ACP compatibility path.
     /// It is never persisted or represented as a permission grant.
     @ObservationIgnored private var approvedCompatibilityTaskIDs: Set<String> = []
+    @ObservationIgnored private(set) var backendStartsForTesting = 0
+    @ObservationIgnored var backendEntryForTesting: (@MainActor () throws -> Void)?
     @ObservationIgnored private let store: AgentTaskStore
     private var projectsActivity: Bool { !SelfTest.isRunning || !store.allowsHarnessPersistence }
 
@@ -94,7 +96,13 @@ final class AgentTaskManager {
             return task // Not inserted, persisted, presented as working or dispatched.
         }
         tasks.insert(task, at: 0)
-        persist(events: creationEvents(task))
+        let admission = persist(events: creationEvents(task))
+        guard admission.primaryCommitted else {
+            tasks.removeAll { $0.id == task.id }
+            task.status = .failed
+            task.failure = admission.diagnostic
+            return task
+        }
         if projectsActivity {
             AgentActivityStore.shared.begin(task: task, title: objective)
             IslandState.shared.showBackgroundAgentWork(title: objective)
@@ -184,10 +192,11 @@ final class AgentTaskManager {
               ACPCompatibilityCLIBackend.request(for: task) != nil
         else { return }
         approvedCompatibilityTaskIDs.insert(taskID)
-        update(taskID, kinds: [.permissionApproved]) { item in
+        let admitted = update(taskID, kinds: [.permissionApproved]) { item in
             item.status = .queued
             item.progress = "Starting compatibility CLI once · weaker progress and permissions than ACP"
         }
+        guard admitted.primaryCommitted else { rejectStart(taskID, result: admitted); return }
         running[taskID]?.cancel()
         running[taskID] = Task { @MainActor [weak self] in
             await self?.execute(taskID)
@@ -199,15 +208,14 @@ final class AgentTaskManager {
         guard var task = task(id: taskID), task.status == .waitingForPermission,
               let tool = task.tool else { return }
         if approved {
+            task.status = .queued
+            let admitted = updateRecord(task, kinds: [.permissionApproved])
+            guard admitted.primaryCommitted else { rejectStart(taskID, result: admitted); return }
+            // The durable approval transition must commit before a new reusable grant.
             PermissionGrantStore.shared.add(PermissionGrant(
-                toolID: tool,
-                duration: duration,
-                meetingID: task.meetingID,
-                taskID: taskID
+                toolID: tool, duration: duration, meetingID: task.meetingID, taskID: taskID
             ))
             approvedTaskIDs.insert(taskID)
-            task.status = .queued
-            updateRecord(task, kinds: [.permissionApproved])
             running[taskID] = Task { @MainActor [weak self] in
                 await self?.execute(taskID)
             }
@@ -220,6 +228,10 @@ final class AgentTaskManager {
     }
 
     /// Consumed by the local backend immediately before the exact approved retry fires.
+    func hasCompatibilityApprovalForTesting(taskID: String) -> Bool {
+        SelfTest.isRunning && store.allowsHarnessPersistence && approvedCompatibilityTaskIDs.contains(taskID)
+    }
+
     func consumePermissionApproval(taskID: String) -> Bool {
         approvedTaskIDs.remove(taskID) != nil
     }
@@ -229,7 +241,8 @@ final class AgentTaskManager {
         guard var task = task(id: taskID), task.status == .waitingForInput else { return }
         task.arguments["input"] = text
         task.status = .queued
-        updateRecord(task, kinds: [.inputProvided])
+        let admitted = updateRecord(task, kinds: [.inputProvided])
+        guard admitted.primaryCommitted else { rejectStart(taskID, result: admitted); return }
         running[taskID] = Task { @MainActor [weak self] in
             await self?.execute(taskID)
         }
@@ -241,11 +254,16 @@ final class AgentTaskManager {
         guard !Task.isCancelled, task.status == .queued else { return }
         task.status = .running
         task.progress = "Starting…"
-        updateRecord(task)
+        let started = updateRecord(task)
+        guard started.primaryCommitted else { rejectStart(id, result: started); return }
 
         do {
             let outcome: AgentTaskOutcome
             outcome = try await TaskEventJournal.$current.withValue(journalContext(taskID: id)) {
+                if SelfTest.isRunning && store.allowsHarnessPersistence {
+                    backendStartsForTesting += 1
+                    try backendEntryForTesting?()
+                }
                 if task.backend == AgentBackendKind.acp.rawValue,
                    approvedCompatibilityTaskIDs.remove(id) != nil {
                     return try await ACPCompatibilityCLIBackend.submit(task, explicitApproval: true)
@@ -328,16 +346,31 @@ final class AgentTaskManager {
         running[id] = nil
     }
 
-    private func update(_ id: String, kinds: [TaskEventKind] = [], mutate: (inout AgentTask) -> Void) {
-        guard historyReadFailure == nil else { return }
-        guard let index = tasks.firstIndex(where: { $0.id == id }) else { return }
+    @discardableResult
+    private func update(_ id: String, kinds: [TaskEventKind] = [], mutate: (inout AgentTask) -> Void) -> AgentTaskPersistenceResult {
+        guard historyReadFailure == nil else { return .loadFailed }
+        guard let index = tasks.firstIndex(where: { $0.id == id }) else { return .loadFailed }
         let before = tasks[index]
         mutate(&tasks[index])
-        persist(events: transitionEvents(from: before, to: tasks[index], kinds: kinds))
+        return persist(events: transitionEvents(from: before, to: tasks[index], kinds: kinds))
     }
 
-    private func updateRecord(_ task: AgentTask, kinds: [TaskEventKind] = []) {
+    @discardableResult
+    private func updateRecord(_ task: AgentTask, kinds: [TaskEventKind] = []) -> AgentTaskPersistenceResult {
         update(task.id, kinds: kinds) { $0 = task }
+    }
+
+    private func rejectStart(_ id: String, result: AgentTaskPersistenceResult) {
+        // One-shot approvals cannot survive a rejected admission/start as a later grant.
+        approvedTaskIDs.remove(id)
+        approvedCompatibilityTaskIDs.remove(id)
+        running[id] = nil
+        if let index = tasks.firstIndex(where: { $0.id == id }) {
+            tasks[index].status = .failed
+            tasks[index].failure = result.diagnostic
+        }
+        if projectsActivity { AgentActivityStore.shared.finish(taskID: id, title: result.diagnostic ?? "Could not start") }
+        if let diagnostic = result.diagnostic { announce(diagnostic) }
     }
 
     private func creationEvents(_ task: AgentTask) -> [TaskJournalEventDraft] {
@@ -382,15 +415,19 @@ final class AgentTaskManager {
         })
     }
 
-    private func persist(events: [TaskJournalEventDraft] = []) {
-        guard historyReadFailure == nil else { return }
-        guard !SelfTest.isRunning || store.allowsHarnessPersistence else { return }
+    @discardableResult
+    private func persist(events: [TaskJournalEventDraft] = []) -> AgentTaskPersistenceResult {
+        guard historyReadFailure == nil else { return .loadFailed }
+        // Existing uninjected harness simulations never write the owner store. This
+        // accepted simulation result is not evidence of a durable production commit.
+        guard !SelfTest.isRunning || store.allowsHarnessPersistence else { return .saved }
         let result = store.save(tasks, events: events)
         lastPersistenceResult = result
         if let diagnostic = result.diagnostic {
             if SelfTest.isRunning { SelfTest.diagnostic("TASK_PERSISTENCE_FAILED: \(diagnostic)") }
             else { Log.app.error("\(diagnostic, privacy: .public)") }
         }
+        return result
     }
 
     /// Folds whatever the ledger holds for this run onto the task's artifact list.

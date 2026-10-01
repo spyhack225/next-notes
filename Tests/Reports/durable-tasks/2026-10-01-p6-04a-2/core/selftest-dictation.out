@@ -1,0 +1,4 @@
+  DICTATION_NOTE: pre-roll fed 28751 frames of ~40000 with a 1.5 s start
+  DICTATION_WRONG: key-down to capture took 0.8392469882965088s with a 1.5 s start
+  DICTATION_WRONG: a superseded start-up cut the next hold's microphone: fed 17402 frames of ~40000
+DICTATION_FAILED: 2 problem(s)

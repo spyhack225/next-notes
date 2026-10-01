@@ -540,8 +540,8 @@ Sources/NextNotes/
 │   ├── Tasks/                      AgentTask + manager; conversation stays free.
 │   │                               AgentArtifactLedger folds each run's reference/link
 │   │                               into `artifacts` so a result card can link what it made
-│   │   └── Durable/                SQLite mirror, event journal, strict history reads and held restart tests;
-│   │                               JSON remains authoritative; worker recovery is upcoming.
+│   │   └── Durable/                SQLite authority, event journal, strict migration and held restart tests;
+│   │                               JSON export retained; worker recovery is upcoming.
 │   ├── Goals/                      AgentGoal + GoalStore — an outcome with a state, not a
 │   │                               job on a clock; its nudges are ordinary reminders
 │   ├── Schedules/                  reminders, routines and triggers; the morning digest

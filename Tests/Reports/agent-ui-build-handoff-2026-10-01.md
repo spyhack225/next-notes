@@ -30,3 +30,10 @@ guided expectations were repaired; the stronger receipt-aware AgentPane send-car
 assertion remains intact and passes installed. The old `FailureCard.forTask`
 comment about artifact-only certainty is stale; its external UI owner can update
 that comment with its own reviewed UI changes. No UI hunk is staged by this task.
+
+P6-04a-2 coordination: a second direct send requested a Swift/UI/shared-source
+freeze for the upcoming serial authority build and allowed website-only work.
+It again failed with `thread/resume failed: ... already has an active writer`;
+no delivery or freeze acknowledgement is claimed. Root preserves UI hunks and
+checks source stability around the build. Only the task-store worker may edit
+its claimed files until it explicitly freezes them.

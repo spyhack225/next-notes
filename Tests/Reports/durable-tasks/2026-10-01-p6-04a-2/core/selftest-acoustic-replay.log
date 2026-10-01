@@ -1,0 +1,5 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO --selftest-acoustic-replay --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/durable-tasks/2026-10-01-p6-04a-2/core/selftest-acoustic-replay.out
+2026-10-01 07:33:49.668 NextNotes[67587:1511221] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+warning: discarded first playback frame
+ECHO_OK: echo residual 0.00, double-talk output 0.56
+2026-10-01 07:33:56.712 NextNotes[67587:1511221] NSQuitAlwaysKeepsWindows=NO

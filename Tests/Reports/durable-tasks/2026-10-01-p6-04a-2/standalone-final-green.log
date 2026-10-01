@@ -1,0 +1,8 @@
+TASK_PERSISTENCE_FAILED: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_FAILED: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_FAILED: Task history could not be saved. Your saved history was kept.
+TASK_AUTHORITY_OK: 49 cases
+TASK_AUTHORITY_PROCESS_OK: beforePreparation
+TASK_AUTHORITY_PROCESS_OK: prepared
+TASK_AUTHORITY_PROCESS_OK: authorityCommitted
+TASK_AUTHORITY_PROCESS_OK: primaryCommitted

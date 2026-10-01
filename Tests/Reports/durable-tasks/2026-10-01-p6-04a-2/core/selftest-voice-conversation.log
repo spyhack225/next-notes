@@ -1,0 +1,7 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO --selftest-voice-conversation --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/durable-tasks/2026-10-01-p6-04a-2/core/selftest-voice-conversation.out
+2026-10-01 07:33:47.783 NextNotes[67573:1511015] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+VOICE_CONVERSATION_OK
+2026-10-01 07:33:48.706 NextNotes[67573:1511015] NSQuitAlwaysKeepsWindows=NO
+VOICE_CONVERSATION_HELD: after_read=false status=running revision=0 effects=0
+VOICE_CONVERSATION_HELD: after_read=true status=running revision=0 effects=0
+VOICE_CONVERSATION_OK
