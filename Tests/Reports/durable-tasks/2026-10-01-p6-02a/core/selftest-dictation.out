@@ -1,0 +1,8 @@
+  DICTATION_NOTE: pre-roll fed 35108 frames of ~40000 with a 1.5 s start
+  DICTATION_WRONG: key-down to capture took 0.27307796478271484s with a 1.5 s start
+  DICTATION_WRONG: empty transcript over speech showed the wrong card: No microphone audio reached dictation. Check the selected input device, then try again.
+  DICTATION_WRONG: empty transcript over speech kept nothing for retry
+  DICTATION_WRONG: the empty-over-speech hold's outcome was failed(NextNotes.DictationHoldResult.Cause.noAudio), expected emptySpeech
+  DICTATION_WRONG: a retried hold injected []
+  DICTATION_WRONG: holds started 22 but 21 outcome row(s) were filed
+DICTATION_FAILED: 6 problem(s)

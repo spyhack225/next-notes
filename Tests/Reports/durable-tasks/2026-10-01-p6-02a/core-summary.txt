@@ -1,0 +1,25 @@
+acceptance: logs in /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/durable-tasks/2026-10-01-p6-02a/core
+== CORE ==
+  --selftest-dictation                     FAIL  46s
+  --selftest-capture                       PASS  4s
+  --selftest-stream                        PASS  2s
+  --selftest-wake-live                     FAIL  22s
+  --selftest-voice-conversation            PASS  4s
+  --selftest-acoustic-replay               PASS  6s
+  --selftest-duplex                        PASS  3s
+  --selftest-action-runtime                PASS  2s
+  --selftest-activity                      PASS  2s
+  --selftest-meeting-live                  PASS  1s
+  --selftest-meeting-resume                PASS  15s
+  --selftest-toolloop                      PASS  2s
+  --selftest-computer                      PASS  3s
+  --selftest-imessage-watch                PASS  8s
+  --selftest-imessage-loop                 PASS  1s
+  --selftest-imessage-approval             PASS  2s
+  --selftest-acp                           PASS  1s
+  --selftest-mcp                           PASS  2s
+CORE         16/18 PASS
+
+FAIL  core         --selftest-dictation                 DICTATION_FAILED: 6 problem(s)
+FAIL  core         --selftest-wake-live                 WAKE_LIVE_FAILED: 17/24 hits, 3/32 false at sens 0.6 — hit rate 0.71 under 0.8 at sensitivity 0.6; 3 false accepts over 2 at sensitivity 0.6
+make: *** [acceptance] Error 1

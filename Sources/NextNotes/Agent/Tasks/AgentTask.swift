@@ -53,6 +53,8 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
     var compatibilityDirectory: String?
     /// The routine a `"scheduled"` task ran for (Part 3).
     var scheduleID: UUID?
+    /// Absent on older history. Storage alone never grants recovery or retry authority.
+    var durability: TaskDurability?
 
     static let scheduledSource = "scheduled"
 
@@ -83,9 +85,11 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         compatibilityCommand: String? = nil,
         compatibilityCLI: String? = nil,
         compatibilityDirectory: String? = nil,
-        scheduleID: UUID? = nil
+        scheduleID: UUID? = nil,
+        durability: TaskDurability? = nil
     ) {
         self.scheduleID = scheduleID
+        self.durability = durability
         self.id = id
         self.objective = objective
         self.source = source
@@ -109,7 +113,7 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
     enum CodingKeys: String, CodingKey {
         case id, objective, source, createdAt, contextReferences, status, progress
         case result, artifacts, tool, arguments, meetingID, backend, failure, acpCLI
-        case compatibilityCommand, compatibilityCLI, compatibilityDirectory, scheduleID
+        case compatibilityCommand, compatibilityCLI, compatibilityDirectory, scheduleID, durability
     }
 
     init(from decoder: Decoder) throws {
@@ -133,6 +137,7 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         compatibilityCLI = try container.decodeIfPresent(String.self, forKey: .compatibilityCLI)
         compatibilityDirectory = try container.decodeIfPresent(String.self, forKey: .compatibilityDirectory)
         scheduleID = try container.decodeIfPresent(UUID.self, forKey: .scheduleID)
+        durability = try container.decodeIfPresent(TaskDurability.self, forKey: .durability)
     }
 }
 

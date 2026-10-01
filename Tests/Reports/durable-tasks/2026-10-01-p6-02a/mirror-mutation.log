@@ -1,0 +1,28 @@
+/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-task-durability-lnraphmy/AgentTaskStore.swift:61:13: warning: immutable value 'canonical' was never used; consider removing it [#NoUsage]
+59 |         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+60 |         encoder.dateEncodingStrategy = .iso8601
+61 |         let canonical: [AgentTask]
+   |             `- warning: immutable value 'canonical' was never used; consider removing it [#NoUsage]
+62 |         do {
+63 |             let data = try encoder.encode(tasks)
+
+/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-task-durability-lnraphmy/AgentTaskStore.swift:75:11: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+73 |             // mutation: omit actual JSON-to-SQLite mirror call
+74 |             return .saved
+75 |         } catch {
+   |           `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+76 |             // JSON remains readable/authoritative. There is no cross-file atomicity claim.
+77 |             return .mirrorFailed
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+TASK_DURABILITY_CONTENTION: cold=false elapsed=0.000605459 seconds
+TASK_DURABILITY_CONTENTION: cold=true elapsed=0.00040075 seconds
+TASK_DURABILITY_WRONG: SQLite lost actual fields, nil/empty values, Unicode/NUL or artifact order/duplicates
+TASK_DURABILITY_WRONG: a second connection did not see the committed snapshot
+TASK_DURABILITY_WRONG: future projections fabricated content
+TASK_DURABILITY_WRONG: writer contention was not visible through the real manager
+TASK_DURABILITY_WRONG: next explicit save left SQLite stale
+TASK_DURABILITY_WRONG: writer contention was not visible through the real manager
+TASK_DURABILITY_WRONG: next explicit save left SQLite stale
+TASK_DURABILITY_WRONG: isolated fixture construction failed: Task storage failed (SQLite 19).
+TASK_DURABILITY_FAILED: 8 assertions

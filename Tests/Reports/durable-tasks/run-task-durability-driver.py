@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tiny actual-source P6-01 fixture; backend/UI collaborators must never run."""
+"""Tiny actual-source P6-01/P6-02a fixture; backend/UI collaborators must never run."""
 import pathlib
 import subprocess
 import sys
@@ -8,6 +8,8 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "Sources/NextNotes"
 collaborators = '''import Foundation
+import OSLog
+enum Log { static let app = Logger(subsystem: "fixture.task-durability", category: "test") }
 enum AppIdentity {
     static let applicationSupportDirectory = FileManager.default.temporaryDirectory
         .appendingPathComponent("NextNotesDurabilityOwnerFixture-\\(UUID().uuidString)")
@@ -102,6 +104,7 @@ with tempfile.TemporaryDirectory(prefix="nextnotes-task-durability-") as tempora
     stubs.write_text(collaborators)
     manager = SOURCE / "Agent/Tasks/AgentTaskManager.swift"
     store = SOURCE / "Agent/Tasks/AgentTaskStore.swift"
+    durable_store = SOURCE / "Agent/Tasks/Durable/TaskStore.swift"
     if "--omit-restart-mapping" in sys.argv:
         before = manager.read_text()
         broken = before.replace("if task.status == .running || task.status == .queued {", "if false { // mutation: omit restart mapping")
@@ -115,10 +118,33 @@ with tempfile.TemporaryDirectory(prefix="nextnotes-task-durability-") as tempora
         assert before != broken, "mutation must actually break isolated binding"
         store = folder / "AgentTaskStore.swift"
         store.write_text(broken)
+    if "--drop-compatibility-directory" in sys.argv:
+        before = durable_store.read_text()
+        broken = before.replace(".optionalText(task.compatibilityDirectory)", ".optionalText(nil)")
+        assert before != broken, "mutation must break the actual SQLite row mapper"
+        durable_store = folder / "TaskStore.swift"
+        durable_store.write_text(broken)
+    if "--omit-sqlite-mirror" in sys.argv:
+        before = store.read_text()
+        broken = before.replace("try mirror.replaceSnapshot(canonical, failFast: true)",
+                                "// mutation: omit actual JSON-to-SQLite mirror call")
+        assert before != broken, "mutation must break the production persistence call site"
+        store = folder / "AgentTaskStore.swift"
+        store.write_text(broken)
+    if "--wait-for-mirror-lock" in sys.argv:
+        before = store.read_text()
+        broken = before.replace("mirror.replaceSnapshot(canonical, failFast: true)",
+                                "mirror.replaceSnapshot(canonical, failFast: false)")
+        assert before != broken, "mutation must break the production fail-fast caller"
+        store = folder / "AgentTaskStore.swift"
+        store.write_text(broken)
     binary = folder / "task-durability-driver"
     subprocess.run(["xcrun", "swiftc", "-swift-version", "6", "-parse-as-library",
                     str(stubs), str(SOURCE / "Support/SelfTestStoreGuard.swift"),
                     str(SOURCE / "Agent/Tasks/AgentTask.swift"), str(store),
+                    str(SOURCE / "Agent/Tasks/Durable/TaskDurability.swift"),
+                    str(SOURCE / "Agent/Tasks/Durable/TaskStoreSchema.swift"),
+                    str(durable_store),
                     str(manager), str(SOURCE / "Agent/Tasks/Durable/TaskStoreSelfTest.swift"),
                     "-o", str(binary)], check=True)
     sys.exit(subprocess.run([str(binary)]).returncode)

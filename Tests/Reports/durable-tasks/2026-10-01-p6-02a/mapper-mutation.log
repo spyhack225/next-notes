@@ -1,0 +1,14 @@
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=false elapsed=0.001203791 seconds
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=true elapsed=0.006870375 seconds
+TASK_PERSISTENCE_FAILED: Task history could not be saved. The durable copy was not changed.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_WRONG: SQLite lost actual fields, nil/empty values, Unicode/NUL or artifact order/duplicates
+TASK_DURABILITY_WRONG: a second connection did not see the committed snapshot
+TASK_DURABILITY_WRONG: next explicit save left SQLite stale
+TASK_DURABILITY_WRONG: next explicit save left SQLite stale
+TASK_DURABILITY_WRONG: real manager update did not mirror its canonical JSON rows
+TASK_DURABILITY_WRONG: failed SQLite snapshot did not roll back state/artifacts
+TASK_DURABILITY_WRONG: JSON failure still changed the SQLite mirror
+TASK_DURABILITY_FAILED: 7 assertions

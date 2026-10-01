@@ -1,4 +1,5 @@
 import Foundation
+import SQLite3
 
 /// P6-01 characterizes today's restart behavior. It does not resume or retry work.
 @MainActor
@@ -8,6 +9,7 @@ enum TaskStoreSelfTest {
     static func run() -> String {
         let before = SelfTestStoreGuard.take()
         var failures: [String] = []
+        var caseCount = 5
         func check(_ condition: Bool, _ message: String) {
             if !condition { failures.append(message) }
         }
@@ -69,13 +71,233 @@ enum TaskStoreSelfTest {
 
             // Today the restart mapping is in memory; initialization does not rewrite JSON.
             check(AgentTaskStore(fileURL: file).load() == fixtures, "restart unexpectedly rewrote the persisted ledger")
+            caseCount += try storageCases(in: directory, check: check)
         } catch {
             failures.append("isolated fixture construction failed: \(error.localizedDescription)")
         }
 
         failures += SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).map { "owner store changed: \($0)" }
-        if failures.isEmpty { return "TASK_DURABILITY_OK: 5 cases" }
+        if failures.isEmpty { return "TASK_DURABILITY_OK: \(caseCount) cases" }
         for failure in failures { SelfTest.diagnostic("TASK_DURABILITY_WRONG: \(failure)") }
         return "TASK_DURABILITY_FAILED: \(failures.count) assertions"
+    }
+
+    private static func storageCases(in directory: URL, check: (Bool, String) -> Void) throws -> Int {
+        var cases = 0
+        let root = directory.appendingPathComponent("mirror", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        let mirror = TaskStore(root: root)
+        let json = AgentTaskStore(fileURL: root.appendingPathComponent("agent-tasks.json"), mirror: mirror)
+        guard json.allowsHarnessPersistence,
+              json.storageURL.deletingLastPathComponent().standardizedFileURL == root.standardizedFileURL,
+              mirror.fileURL.deletingLastPathComponent().standardizedFileURL == root.standardizedFileURL else {
+            throw FixtureError.unsafeStoreLocation
+        }
+        defer { mirror.close() }
+        let manager = AgentTaskManager(store: json)
+        var durability = TaskDurability()
+        durability.attempt = 2
+        durability.retryCount = 1
+        durability.maxRetries = 3
+        durability.resumePolicy = .verifyThenDecide
+        durability.runtimeClass = .acpWorker
+        durability.receiptIDs = ["fixture-receipt-b", "fixture-receipt-a"]
+        durability.parentTaskID = "legacy-parent-id"
+        durability.leaseOwner = "fixture-process"
+        durability.heartbeatAt = Date(timeIntervalSince1970: 1_700_000_010.875)
+        durability.lastProgressAt = durability.heartbeatAt
+        durability.attemptStartedAt = durability.heartbeatAt
+        durability.terminalReason = "Fixture reason"
+        let detailed = AgentTask(id: "legacy-not-a-uuid", objective: "Requested draft: hello ☕\u{0}world",
+            source: "scheduled", createdAt: Date(timeIntervalSince1970: 1_700_000_010.875),
+            contextReferences: ["fixture://two", "fixture://one"], status: .completed, progress: "",
+            result: "Existing result summary", artifacts: ["fixture://z", "fixture://a", "fixture://z", ""],
+            tool: "", arguments: ["body": "Explicit requested content", "path": "/fixture/requested/path"],
+            meetingID: UUID(uuidString: "11111111-1111-1111-1111-111111111111"), backend: "acp",
+            failure: "", acpCLI: "fixture-cli", compatibilityCommand: "fixture-cli --fixture",
+            compatibilityCLI: "", compatibilityDirectory: "/fixture/project",
+            scheduleID: UUID(uuidString: "22222222-2222-2222-2222-222222222222"), durability: durability)
+        let other = AgentTask(id: "fixture-other", objective: "Other fixture", source: "unknown-source",
+            createdAt: detailed.createdAt, status: .completed)
+        manager.beginScheduledRun(detailed)
+        manager.beginScheduledRun(other)
+        let canonical = json.load()
+        check(manager.lastPersistenceResult == .saved, "real manager did not report successful JSON/mirror save")
+        check(canonical.map(\.id) == [other.id, detailed.id], "JSON lost same-time original task order")
+        check(try mirror.load() == canonical, "SQLite lost actual fields, nil/empty values, Unicode/NUL or artifact order/duplicates")
+        check(canonical.last?.isUserInitiated == detailed.isUserInitiated && canonical.first?.source == other.source,
+            "source/schedule authority semantics changed")
+        check(canonical.last?.createdAt == Date(timeIntervalSince1970: 1_700_000_010), "canonical legacy ISO precision changed")
+        cases += 1
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let legacy = try decoder.decode(AgentTask.self, from: Data(#"{"id":"legacy-id","objective":"Legacy fixture"}"#.utf8))
+        check(legacy.durability == nil && legacy.acpCLI.isEmpty && legacy.compatibilityDirectory == nil,
+            "old task without durability no longer decodes")
+        check(try JSONDecoder().decode(TaskDurability.self, from: Data("{}".utf8)) == TaskDurability(),
+            "absent durability keys did not use conservative defaults")
+        let partial = try JSONDecoder().decode(TaskDurability.self, from: Data(#"{"attempt":7}"#.utf8))
+        check(partial.attempt == 7 && partial.resumePolicy == .neverAuto && partial.maxRetries == 0,
+            "partial durability invented retry authority")
+        cases += 1
+
+        let second = TaskStore(root: root)
+        defer { second.close() }
+        check(try second.load() == canonical, "a second connection did not see the committed snapshot")
+        cases += 1
+        check(try mirror.integrityProblems().isEmpty, "SQLite integrity/foreign-key checks found problems")
+        try mirror.withConnection { db in
+            check(try TaskStore.integer(db, "PRAGMA foreign_keys") == 1, "foreign keys were not read back as on")
+            check(try TaskStore.integer(db, "PRAGMA busy_timeout") == 2000, "busy timeout changed")
+            check(try TaskStore.integer(db, "PRAGMA synchronous") == 1, "synchronous mode was not NORMAL")
+            check(try TaskStore.stringColumn(db, "PRAGMA journal_mode") == ["wal"], "journal mode was not WAL")
+            check(try TaskStore.integer(db, "PRAGMA user_version") == TaskStoreSchema.version, "schema version was not installed")
+            check(try TaskStore.stringColumn(db, "SELECT origin||title||user_words||delivery FROM task") == ["", ""],
+                "future projections fabricated content")
+        }
+        cases += 1
+
+        // The real MainActor JSON->mirror seam must never spend its general 2 s busy
+        // allowance waiting for another writer, including the initial connection open.
+        for cold in [false, true] {
+            let beforeContention = try mirror.load()
+            try second.withConnection { db in
+                try TaskStore.exec(db, "BEGIN IMMEDIATE")
+                defer { try? TaskStore.exec(db, "ROLLBACK") }
+                if cold { mirror.close() }
+                let started = ContinuousClock.now
+                manager.finishScheduledRun(id: other.id, status: .completed,
+                    result: cold ? "Cold contention fixture" : "Contention fixture", failure: nil)
+                let elapsed = started.duration(to: .now)
+                check(elapsed <= .milliseconds(50), "mirror contention stalled the real manager beyond 50 ms")
+                check(manager.lastPersistenceResult == .mirrorFailed,
+                    "writer contention was not visible through the real manager")
+                check(json.load().first?.result == (cold ? "Cold contention fixture" : "Contention fixture"),
+                    "writer contention made successful JSON history unavailable")
+                SelfTest.diagnostic("TASK_DURABILITY_CONTENTION: cold=\(cold) elapsed=\(elapsed)")
+            }
+            check(try mirror.load() == beforeContention, "writer contention partially changed SQLite history")
+            manager.finishScheduledRun(id: other.id, status: .completed, result: "Explicit convergence fixture", failure: nil)
+            check(manager.lastPersistenceResult == .saved, "next explicit save did not converge after contention")
+            check(try mirror.load() == json.load(), "next explicit save left SQLite stale")
+            try mirror.withConnection { db in
+                check(try TaskStore.integer(db, "PRAGMA busy_timeout") == 2000,
+                    "fail-fast save did not restore the general busy allowance")
+            }
+        }
+        cases += 1
+
+        try mirror.withConnection { db in
+            try TaskStore.run(db, "INSERT INTO task_event(task_id,at,kind) VALUES(?,1,'fixture')", [.text(detailed.id)])
+            try TaskStore.run(db, "INSERT INTO task_dependency(upstream,downstream,requirement) VALUES(?,?,'fixture')",
+                [.text(detailed.id), .text(other.id)])
+            try TaskStore.run(db, "UPDATE task_artifact SET kind='document',title='Fixture metadata' WHERE task_id=? AND ordinal=0",
+                [.text(detailed.id)])
+        }
+        manager.finishScheduledRun(id: other.id, status: .completed, result: "Updated fixture", failure: nil)
+        let updated = json.load()
+        check(try manager.lastPersistenceResult == .saved && mirror.load() == updated,
+            "real manager update did not mirror its canonical JSON rows")
+        try mirror.withConnection { db in
+            check(try TaskStore.integer(db, "SELECT count(*) FROM task_event") == 1, "task upsert deleted its event journal")
+            check(try TaskStore.integer(db, "SELECT count(*) FROM task_dependency") == 1, "task upsert deleted dependency rows")
+            check(try TaskStore.stringColumn(db, "SELECT title FROM task_artifact WHERE ordinal=0 AND title IS NOT NULL") == ["Fixture metadata"],
+                "unchanged artifact ordinal/path lost existing metadata")
+        }
+        cases += 1
+
+        try mirror.withConnection { db in
+            try TaskStore.exec(db, """
+                CREATE TRIGGER fixture_reject BEFORE INSERT ON task_artifact WHEN NEW.path='blocked'
+                BEGIN SELECT RAISE(ABORT,'fixture rejection'); END
+                """)
+        }
+        var rejected = updated
+        rejected[0].objective = "Must roll back"
+        rejected[0].artifacts = ["blocked"]
+        do { try mirror.replaceSnapshot(rejected); check(false, "partial SQLite transaction unexpectedly committed") }
+        catch { check(try mirror.load() == updated, "failed SQLite snapshot did not roll back state/artifacts") }
+        try mirror.withConnection { try TaskStore.exec($0, "DROP TRIGGER fixture_reject") }
+        cases += 1
+
+        let blockedJSON = directory.appendingPathComponent("blocked-json", isDirectory: true)
+        try FileManager.default.createDirectory(at: blockedJSON, withIntermediateDirectories: false)
+        let jsonFailureManager = AgentTaskManager(store: AgentTaskStore(fileURL: blockedJSON, mirror: mirror))
+        jsonFailureManager.beginScheduledRun(other)
+        check(jsonFailureManager.lastPersistenceResult == .jsonFailed, "JSON failure was not reported by the real manager")
+        check(try mirror.load() == updated, "JSON failure still changed the SQLite mirror")
+        cases += 1
+
+        let blockedRoot = directory.appendingPathComponent("blocked-sqlite")
+        try Data("Fixture path blocker".utf8).write(to: blockedRoot)
+        let survivingJSON = AgentTaskStore(fileURL: directory.appendingPathComponent("surviving-json.json"),
+            mirror: TaskStore(root: blockedRoot))
+        let mirrorFailureManager = AgentTaskManager(store: survivingJSON)
+        mirrorFailureManager.beginScheduledRun(other)
+        check(mirrorFailureManager.lastPersistenceResult == .mirrorFailed, "mirror failure was not reported by the real manager")
+        check(survivingJSON.load().map(\.id) == [other.id], "mirror failure made successfully saved JSON unavailable")
+        check(try Data(contentsOf: blockedRoot) == Data("Fixture path blocker".utf8), "mirror failure deleted its blocker")
+        cases += 1
+
+        let unknownRoot = directory.appendingPathComponent("unknown-version", isDirectory: true)
+        try FileManager.default.createDirectory(at: unknownRoot, withIntermediateDirectories: false)
+        let unknownFile = unknownRoot.appendingPathComponent(TaskStore.fileName)
+        try rawSQLite(unknownFile) { db in
+            try TaskStore.exec(db, "CREATE TABLE sentinel(value TEXT); INSERT INTO sentinel VALUES('Keep history'); PRAGMA user_version=99")
+        }
+        let unknownBefore = try Data(contentsOf: unknownFile)
+        let unknown = TaskStore(root: unknownRoot)
+        defer { unknown.close() }
+        do { _ = try unknown.load(); check(false, "newer schema was accepted") }
+        catch TaskStoreError.unsupportedVersion(99) {}
+        check(try Data(contentsOf: unknownFile) == unknownBefore, "newer schema file was mutated/deleted")
+        cases += 1
+
+        let corruptRoot = directory.appendingPathComponent("corrupt", isDirectory: true)
+        try FileManager.default.createDirectory(at: corruptRoot, withIntermediateDirectories: false)
+        let corruptFile = corruptRoot.appendingPathComponent(TaskStore.fileName)
+        let corruptBytes = Data("Corrupt fixture: keep these bytes".utf8)
+        try corruptBytes.write(to: corruptFile)
+        let corrupt = TaskStore(root: corruptRoot)
+        defer { corrupt.close() }
+        do { _ = try corrupt.load(); check(false, "corrupt schema was accepted") } catch {}
+        check(try Data(contentsOf: corruptFile) == corruptBytes, "corrupt history was removed/rebuilt")
+        cases += 1
+
+        let malformedRoot = directory.appendingPathComponent("malformed", isDirectory: true)
+        let malformed = TaskStore(root: malformedRoot)
+        try malformed.replaceSnapshot([other])
+        try malformed.withConnection { try TaskStore.exec($0, "DROP INDEX task_event_task") }
+        malformed.close()
+        let malformedBefore = try Data(contentsOf: malformed.fileURL)
+        do { _ = try malformed.load(); check(false, "malformed known-version shape was accepted") } catch {}
+        malformed.close()
+        check(try Data(contentsOf: malformed.fileURL) == malformedBefore, "malformed known schema was rebuilt/mutated")
+        cases += 1
+
+        // Replacing a closed source file atomically changes the inode under an open reader.
+        let replacementRoot = directory.appendingPathComponent("replacement", isDirectory: true)
+        let replacement = TaskStore(root: replacementRoot)
+        try replacement.replaceSnapshot([other])
+        replacement.close()
+        second.close()
+        mirror.close()
+        _ = try mirror.load() // open the original reader before atomic replacement
+        try Data(contentsOf: replacement.fileURL).write(to: mirror.fileURL, options: .atomic)
+        check(try mirror.load() == [other], "inode replacement kept serving the old ledger")
+        cases += 1
+        return cases
+    }
+
+    private static func rawSQLite(_ file: URL, body: (OpaquePointer) throws -> Void) throws {
+        var handle: OpaquePointer?
+        let code = sqlite3_open_v2(file.path, &handle, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nil)
+        guard code == SQLITE_OK, let handle else {
+            if let handle { sqlite3_close_v2(handle) }
+            throw TaskStoreError.sqlite(code)
+        }
+        defer { sqlite3_close_v2(handle) }
+        try body(handle)
     }
 }

@@ -1,0 +1,3 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-action-runtime --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/durable-tasks/2026-10-01-p6-02a/core/selftest-action-runtime.out
+2026-10-01 03:18:02.704 NextNotes[42899:1145790] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+ACTION_RUNTIME_OK

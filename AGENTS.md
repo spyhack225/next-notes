@@ -238,7 +238,13 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 JSON store round-trips into a fresh manager, running/queued records become failed,
 and a retained permission record supplies no live approval token. This characterizes
 current behavior; it does not prove recovery or authorize an iMessage production host.
-Later Phase 6 tasks extend the same flag as durability lands.
+P6-02a extends it to 18 actual-store cases: existing-manager saves atomically write
+JSON first, then mirror the same canonical fields and order into `agent-tasks.sqlite`.
+JSON remains read authority. Mirror failure is reported without discarding JSON;
+SQLite contention fails promptly rather than waiting on the conversational thread.
+Unknown/corrupt databases are retained and rejected. `SelfTestStoreGuard` watches
+the database and its WAL/SHM siblings. This mirror supplies no recovery, attempt
+fencing, automatic retry or production remote host; those contracts remain open.
 
 `usage.jsonl` is the one local record of which model or engine ran each pass — Agent,
 Meetings and Dictation — with its provider, model, locality, timing, counts, tools and
@@ -506,19 +512,24 @@ settings UI wrote a file the pipeline never read. If you add a seam like
 grep for its callers before assuming the feature ships.
 
 **There is one task ledger, one channel that starts audio, one tool manifest, and one usage log.**
-Four plans have each proposed adding a fifth of one of these, and a second copy of any of them
-fails silently rather than loudly. The single ledger is `TaskBridge` (`Agent/`, planned in
-`roadmap/in-progress/AGENT-OVERHAUL/04-PHASE-3-FULL-DUPLEX.md` §2.5); `VoiceConversationCoordinator.jobs`
-is being deleted and must not come back. The only thing that starts audio is `OutputScheduler`,
-enforced by an `OutputToken` whose initializer is `fileprivate` to that file — so "no backend
-independently decides to speak" is a compile error, not a convention. The per-turn tool authority
-is `AgentCapabilityManifest` (`Agent/AgentCapabilityManifest.swift`). The usage log is `usage.jsonl`
-(`Support/Usage/`), which already has 8 MB rotation, 90-day compaction, `UsageLog.sanitise` and
-harness-temp isolation — **a job's token count is a sum over `UsageRecord`s carrying a task id,
-never a second ledger.** Durable background work (`agent-jobs.sqlite`, a `TaskEvent` journal,
-heartbeats, retry and crash recovery) extends `TaskBridge` rather than sitting beside it; see
-`07-PHASE-6-DURABLE-JOBS.md`. Before you add a task type, a delivery path, a tool registry or a
-metrics file, grep for the existing one and read what the executor above you concluded about it.
+Four plans have each proposed another copy, and duplicates fail silently rather than loudly.
+As of 2026-10-01, task history belongs to `AgentTaskManager`/`AgentTaskStore`;
+Phase 6A extends that existing persistence seam. `TaskBridge` is the planned single
+ledger in `roadmap/in-progress/AGENT-OVERHAUL/04-PHASE-3-FULL-DUPLEX.md` §2.5.
+`VoiceConversationCoordinator.jobs` remains until that migration; once removed,
+it must not return. `OutputScheduler` and its `fileprivate` `OutputToken` are also
+planned contracts, not types that already enforce audio ownership. Until they land,
+use the existing speech producer; do not add an independent path that starts audio.
+The target makes "no backend independently decides to speak" a compile-time rule.
+The per-turn tool authority is the existing `AgentCapabilityManifest`
+(`Agent/AgentCapabilityManifest.swift`). The usage log is `usage.jsonl`
+(`Support/Usage/`), with 8 MB rotation, 90-day compaction, `UsageLog.sanitise` and
+harness-temp isolation — **a job's token count is a sum over `UsageRecord`s carrying
+a task id, never a second ledger.** Durable work (`agent-tasks.sqlite`, an event
+journal, heartbeats, retry and crash recovery) extends the existing manager first
+and the same ledger through TaskBridge later; see `07-PHASE-6-DURABLE-JOBS.md`.
+Before adding a task type, delivery path, tool registry or metrics file, grep for
+the existing producer and read the current implementation evidence.
 
 **Model roles are independent; verified model files are shared (owner decision, 2026-09-30).**
 Meetings, Agent and dictation cleanup may use different appropriate models. Do not make

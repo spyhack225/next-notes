@@ -1,0 +1,9 @@
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=false elapsed=2.100192459 seconds
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=true elapsed=2.097752333 seconds
+TASK_PERSISTENCE_FAILED: Task history could not be saved. The durable copy was not changed.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_WRONG: mirror contention stalled the real manager beyond 50 ms
+TASK_DURABILITY_WRONG: mirror contention stalled the real manager beyond 50 ms
+TASK_DURABILITY_FAILED: 2 assertions

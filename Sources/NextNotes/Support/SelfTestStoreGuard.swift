@@ -24,6 +24,11 @@ enum SelfTestStoreGuard {
     static let fileNames: [String] = [
         "runs.jsonl",
         "agent-tasks.json",
+        // Task durability mirrors legacy JSON into SQLite. WAL writes may leave the
+        // main file unchanged, so watch the full store while JSON stays compatible.
+        "agent-tasks.sqlite",
+        "agent-tasks.sqlite-wal",
+        "agent-tasks.sqlite-shm",
         "agent-audit.jsonl",
         "agent-conversation.json",
         "next-memory.json",

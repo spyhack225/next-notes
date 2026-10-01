@@ -8,6 +8,8 @@ final class AgentTaskManager {
     static let shared = AgentTaskManager()
 
     private(set) var tasks: [AgentTask] = []
+    /// A storage failure is visible to diagnostics/UI without claiming both files committed.
+    private(set) var lastPersistenceResult: AgentTaskPersistenceResult?
     @ObservationIgnored private var running: [String: Task<Void, Never>] = [:]
     /// A one-shot approval is intentionally not persisted as a standing grant. Keep the
     /// approval long enough for the exact queued retry to hand it to ActionOrchestrator.
@@ -291,8 +293,13 @@ final class AgentTaskManager {
     }
 
     private func persist() {
-        guard !SelfTest.isRunning else { return }
-        store.save(tasks)
+        guard !SelfTest.isRunning || store.allowsHarnessPersistence else { return }
+        let result = store.save(tasks)
+        lastPersistenceResult = result
+        if let diagnostic = result.diagnostic {
+            if SelfTest.isRunning { SelfTest.diagnostic("TASK_PERSISTENCE_FAILED: \(diagnostic)") }
+            else { Log.app.error("\(diagnostic, privacy: .public)") }
+        }
     }
 
     /// Folds whatever the ledger holds for this run onto the task's artifact list.

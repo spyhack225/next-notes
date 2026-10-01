@@ -1,0 +1,3 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-duplex --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/durable-tasks/2026-10-01-p6-02a/core/selftest-duplex.out
+2026-10-01 03:17:59.216 NextNotes[42812:1145415] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+DUPLEX_OK
