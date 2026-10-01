@@ -1,0 +1,15 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31b-2026-09-30/Before.app/Contents/MacOS/NextNotes --selftest-voice-grounding --selftest-out /tmp/nextnotes-p1-31b-before-voice-progress.txt
+GROUNDING_LIVE: Will / Serge Kadjo / folders= items=0 surfaces=10
+PROMPT_SIZE: planner=5418 chars over 63 tools, first-pass=4248, spoken-answer=1923
+PROMPT_SIZE_PARTS: first-pass persona=882 grounding=639 rules=2587 memory=0 capabilities=0 skills=0
+PROMPT_SIZE: voice-capability-inventory=1583 chars
+GROUNDING_SIMILARITY: note/notes=0.82 project/notes=0.00
+PROMPT_TOKENS: 1718 for 24 tools on a 4,096-token reader
+PROMPT_TOKENS: 1967 for 24 tools on a 8,192-token reader
+GROUNDING_OK
+VOICE_GROUNDING_RESPONSE: Yes, I can hear you just fine. What can I help you with right now?
+VOICE_FOLLOWUP_RESPONSE: I'm sorry my voice sounds choppy. I can look into that for you if you tell me more about what's happening.
+VOICE_TIMEOUT_FOLLOWUP_RESPONSE: My speech took too long to come out.
+VOICE_IDENTITY_RESPONSE: I'm here to help you with things on your Mac. I can look at your calendar, email, files, and other apps if you need me to.
+VOICE_GROUNDING_WRONG: the speaking path still does not know the user
+VOICE_GROUNDING_FAILED

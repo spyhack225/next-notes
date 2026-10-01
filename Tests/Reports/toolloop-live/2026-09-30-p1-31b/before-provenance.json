@@ -1,0 +1,142 @@
+{
+  "phase": "before",
+  "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31b-2026-09-30/Before.app",
+  "binary_sha256": "0f24f5127431c2cc9c5cbe84ef8f678e953518e0e3cd5d86e0ab3191a8ac21b2",
+  "sources": {
+    "Sources/NextNotes/Agent/ToolClaimGuard.swift": "bc0d4a07ad02272cf1c472e7a24d752639d9f824f28ba89500adf8c9908ff2e8",
+    "Sources/NextNotes/Agent/AgentToolLoop.swift": "c9ea33b68ebe36fe9f49e4bbcda930ab2b84f3884f25beff73022234c42fc84c",
+    "Sources/NextNotes/Agent/AgentCapabilityManifest.swift": "bba2323a95dbba3eb7dad4a6cf84581abab7c04f7705e77479fce0775cb908fc",
+    "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift": "1a6c1eebf2770bd64ef98a7cbe94de72a95a4b2700266d2142404827a5cf77c9",
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalCases.swift": "c96b507e5577117c00c29656ac056c5595750b251f765e334a1809a8d4ed8f7a",
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalGrader.swift": "fe99b9e29434cc765f87a8425e0dba9493551fb8fcfa367feb140c405e6530bb"
+  },
+  "runs": [
+    {
+      "name": "grader-green",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live-grader"
+      ],
+      "exit_code": 0,
+      "seconds": 2.759,
+      "markers": [
+        "TOOLLOOP_LIVE_GRADER_OK"
+      ],
+      "load": [
+        4.0732421875,
+        4.6806640625,
+        4.44677734375
+      ]
+    },
+    {
+      "name": "production-green",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--selftest-toolloop-production"
+      ],
+      "exit_code": 0,
+      "seconds": 35.13,
+      "markers": [
+        "TOOLLOOP_PRODUCTION_OK"
+      ],
+      "load": [
+        5.07763671875,
+        4.845703125,
+        4.51416015625
+      ]
+    },
+    {
+      "name": "before-base-quick",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--model",
+        "unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31b/before-base-quick.md",
+        "--quick"
+      ],
+      "exit_code": 1,
+      "seconds": 288.21,
+      "markers": [
+        "TOOLLOOP_LIVE_SCORE 5/10 (quick)",
+        "TOOLLOOP_LIVE_FAILED: 5/10 (quick) on Qwen3-4B-Instruct-2507 \u2014 below the pass bar 9"
+      ],
+      "load": [
+        29.43896484375,
+        27.7353515625,
+        15.75537109375
+      ]
+    },
+    {
+      "name": "before-base-targets",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--model",
+        "unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31b/before-base-targets.md",
+        "--only",
+        "Y01,M04,O09"
+      ],
+      "exit_code": 1,
+      "seconds": 105.431,
+      "markers": [
+        "TOOLLOOP_LIVE_PARTIAL 0/2",
+        "TOOLLOOP_LIVE_INCOMPLETE: a model turn exceeded the time limit; 3/3 cases attempted"
+      ],
+      "load": [
+        53.029296875,
+        33.1787109375,
+        19.05029296875
+      ]
+    },
+    {
+      "name": "before-needle-quick",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--model",
+        "unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31b/before-needle-quick.md",
+        "--quick",
+        "--needle-first"
+      ],
+      "exit_code": 241,
+      "seconds": 296.258,
+      "markers": [],
+      "load": [
+        27.15283203125,
+        27.72265625,
+        20.5205078125
+      ]
+    },
+    {
+      "name": "before-needle-targets",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--model",
+        "unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31b/before-needle-targets.md",
+        "--only",
+        "Y01,M04,O09",
+        "--needle-first"
+      ],
+      "exit_code": 1,
+      "seconds": 157.086,
+      "markers": [
+        "TOOLLOOP_LIVE_PARTIAL 1/2",
+        "TOOLLOOP_LIVE_INCOMPLETE: a model turn exceeded the time limit; 3/3 cases attempted"
+      ],
+      "load": [
+        12.3720703125,
+        20.37548828125,
+        18.65673828125
+      ]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-01T01:20:41.769382+00:00",
+  "run": "after-base-targets-retry",
+  "reason": "Stopped owned comparison after more than five minutes in unscored warm-up without any case verdict, shared-host load 181.46/116.41/69.78. No score or quality verdict. Remaining rejected-candidate Needle arms not run.",
+  "pids": [
+    92243,
+    94124
+  ]
+}

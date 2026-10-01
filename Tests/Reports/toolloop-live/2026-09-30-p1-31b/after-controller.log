@@ -1,0 +1,14 @@
+START after-base-quick
+DONE after-base-quick exit=1 
+START after-base-targets
+Traceback (most recent call last):
+  File "/tmp/nextnotes-p1-31b-runs.py", line 31, in <module>
+    (out/(phase+'-provenance.json')).write_text(json.dumps(metadata,indent=2)+'\n')
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py", line 809, in write_text
+    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py", line 771, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 28] No space left on device: '/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31b/after-provenance.json'

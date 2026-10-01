@@ -1,0 +1,85 @@
+[
+  {
+    "flag": "toolloop-live-grader",
+    "exit_code": 0,
+    "seconds": 14.265,
+    "markers": [
+      "TOOLLOOP_LIVE_GRADER_OK"
+    ]
+  },
+  {
+    "flag": "toolloop-production",
+    "exit_code": 0,
+    "seconds": 35.478,
+    "markers": [
+      "TOOLLOOP_PRODUCTION_OK"
+    ]
+  },
+  {
+    "flag": "toolloop",
+    "exit_code": 0,
+    "seconds": 0.755,
+    "markers": [
+      "TOOLLOOP_OK"
+    ]
+  },
+  {
+    "flag": "capability-manifest",
+    "exit_code": 0,
+    "seconds": 0.745,
+    "markers": [
+      "CAPABILITY_MANIFEST_OK"
+    ]
+  },
+  {
+    "flag": "tool-awareness",
+    "exit_code": 0,
+    "seconds": 105.755,
+    "markers": [
+      "GROUNDING_OK",
+      "TOOL_AWARENESS_OK"
+    ]
+  },
+  {
+    "flag": "voice-grounding",
+    "exit_code": 1,
+    "seconds": 78.352,
+    "markers": [
+      "GROUNDING_OK",
+      "VOICE_GROUNDING_FAILED"
+    ]
+  },
+  {
+    "flag": "voice-turns",
+    "exit_code": 0,
+    "seconds": 5.979,
+    "markers": [
+      "VOICE_TURNS_OK"
+    ]
+  },
+  {
+    "flag": "voice-scheduling",
+    "exit_code": 0,
+    "seconds": 7.686,
+    "markers": [
+      "VOICE_SCHEDULING_OK"
+    ]
+  },
+  {
+    "flag": "usage-log",
+    "exit_code": 0,
+    "seconds": 40.419,
+    "markers": [
+      "USAGE_LOG_OK: 25 cases"
+    ]
+  },
+  {
+    "flag": "store-isolation",
+    "exit_code": 0,
+    "seconds": 470.49,
+    "markers": [
+      "STORE_ISOLATION_OK: 18 files and 23 defaults unchanged",
+      "TOOLLOOP_PRODUCTION_OK"
+    ]
+  }
+]

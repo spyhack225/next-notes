@@ -1,0 +1,12 @@
+START retained-toolloop-live-grader
+DONE retained-toolloop-live-grader exit=0 TOOLLOOP_LIVE_GRADER_OK
+START retained-toolloop-production
+DONE retained-toolloop-production exit=0 TOOLLOOP_PRODUCTION_OK
+START retained-capability-manifest
+DONE retained-capability-manifest exit=0 CAPABILITY_MANIFEST_OK
+START retained-base-quick
+DONE retained-base-quick exit=1 TOOLLOOP_LIVE_SCORE 5/10 (quick) | TOOLLOOP_LIVE_FAILED: 5/10 (quick) on Qwen3-4B-Instruct-2507 — below the pass bar 9
+START retained-base-targets
+DONE retained-base-targets exit=1 TOOLLOOP_LIVE_PARTIAL 0/2 | TOOLLOOP_LIVE_INCOMPLETE: a model turn exceeded the time limit; 3/3 cases attempted
+START retained-needle-mail
+DONE retained-needle-mail exit=1 TOOLLOOP_LIVE_PARTIAL 0/1 | TOOLLOOP_LIVE_INCOMPLETE: a model turn exceeded the time limit; 1/1 cases attempted

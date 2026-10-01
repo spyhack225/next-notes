@@ -1,0 +1,39 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31b-2026-09-30/Before.app/Contents/MacOS/NextNotes --selftest-toolloop-live --model unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf --report /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31b/before-base-targets.md --only Y01,M04,O09
+2026-09-30 20:39:41.942 NextNotes[83484:642392] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[20:39:56.330] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[20:39:56.337] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[20:40:06.448] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[20:40:09.113] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[20:40:11.213] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[20:40:11.533] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[20:40:11.541] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 15.20s
+[20:40:11.565] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[20:40:11.566] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[20:40:11.566] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[20:40:11.573] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[20:40:11.599] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[20:40:11.601] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[20:40:11.602] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'
+2026-09-30 20:41:20.577 NextNotes[83484:643189] 2026-09-30 20:41:20.576583 [E:onnxruntime:, sequential_executor.cc:671 ExecuteKernel] Non-zero status code returned while running Add node. Name:'/Add_98' Status Message: GetElementType is not implemented
+WARNING: Using native backtrace. Set GGML_BACKTRACE_LLDB for more info.
+WARNING: GGML_BACKTRACE_LLDB may cause native MacOS Terminal.app to crash.
+See: https://github.com/ggml-org/llama.cpp/pull/17869
+TOOLLOOP_LIVE_MODEL: appLLM "Qwen3-4B-Instruct-2507" ctx=32768 role=installed:unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+TOOLLOOP_LIVE_CASE Y01 MISSED_TOOL 22.9s turns=1 tools=- reply="Got it. I’ll remember that your brother’s name is Cyril."
+TOOLLOOP_LIVE_CASE M04 TIMEOUT 31.0s turns=1 tools=- reply="I ran out of time before finishing the rest."
+TOOLLOOP_LIVE_CASE O09 TIMEOUT 30.8s turns=1 tools=- reply="This takes a few steps on this Mac.  I ran out of time before finishing the rest."
+TOOLLOOP_LIVE_CLASSES pass=0 error=0 timeout=2 leak=0 refusal=0 wrong_tool=0 fabricated=0 missed_tool=1 ungrounded=0 filler=0
+TOOLLOOP_LIVE_PARTIAL 0/2
+TOOLLOOP_LIVE_REPORT /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31b/before-base-targets.md
+TOOLLOOP_LIVE_ELAPSED 85.0
+TOOLLOOP_LIVE_INCOMPLETE: a model turn exceeded the time limit; 3/3 cases attempted
+0   llama                               0x000000010b011470 ggml_print_backtrace + 276
+1   llama                               0x000000010b024338 _ZL23ggml_uncaught_exceptionv + 12
+2   libc++abi.dylib                     0x00000001904e92b0 _ZSt11__terminatePFvvE + 16
+3   libc++abi.dylib                     0x00000001904eb7bc __cxa_get_exception_ptr + 0
+4   libc++abi.dylib                     0x00000001904d818c __cxa_get_globals + 0
+5   libsherpa-onnx-c-api.dylib          0x00000001271a0bc0 _ZN3Ort6detail11ThrowStatusERKNS_6StatusE + 272
+6   libsherpa-onnx-c-api.dylib          0x00000001271ce840 _ZN3Ort6detail11SessionImplI10OrtSessionE3RunERKNS_10RunOptionsEPKPKcPKNS_5ValueEmSA_PSB_m + 84
+7   libsherpa-onnx-c-api.dylib          0x00000001272a27e0 _ZN11sherpa_onnx31OnlineZipformer2TransducerModel10RunEncoderEN3Ort5ValueENSt3__16vectorIS2_NS3_9allocatorIS2_EEEES2_ + 348
+8   libsherpa-onnx-c-api.dylib          0x00000001271b9bd4 _ZNK11sherpa_onnx28KeywordSpotterTransducerImpl13DecodeStreamsEPPNS_12OnlineStreamEi + 1440
+9   libsherpa-onnx-c-api.dylib          0x000000012718da48 SherpaOnnxDecodeKeywordStream + 72

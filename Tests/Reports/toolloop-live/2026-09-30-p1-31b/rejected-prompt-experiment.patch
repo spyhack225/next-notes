@@ -1,0 +1,53 @@
+--- a/Sources/NextNotes/Agent/AgentCapabilityManifest.swift
++++ b/Sources/NextNotes/Agent/AgentCapabilityManifest.swift
+@@ -259,6 +259,10 @@
+                 forget first. The app says what was saved.
+                 """)
+         }
++        if selectedIntents.contains(.memory), selectedIDs.contains("memory.remember") {
++            lines.append("For a request to remember a new fact, call memory.remember before "
++                + "confirming it. memory.recall only reads; it does not save.")
++        }
+         if selectedIntents.contains(.reminders) {
+             lines.append("""
+                 Reminders: call schedule.list first and update a match rather than duplicate it.
+@@ -287,6 +291,15 @@
+                 When a request has two parts, do them in order. A second part that needs an \
+                 address or a choice is a question to ask, never a promise to send.
+                 """)
++        }
++        if selectedIntents.contains(.mail), selectedIDs.contains("draft_email") {
++            lines.append("A requested saved draft needs draft_email; prose is not a saved "
++                + "Gmail draft. Never send for a draft-only request.")
++        }
++        if selectedIntents.contains(.mail), selectedIntents.contains(.calendar),
++           selectedIDs.contains("search_email"), selectedIDs.contains("get_agenda") {
++            lines.append("If both email and calendar were requested, read both before "
++                + "answering; do not stop after the first read.")
+         }
+         if selectedIntents.contains(.browser) {
+             // P1-04. `.browser` was the one selected class with no rule line at all, and the
+--- a/Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift
++++ b/Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift
+@@ -1091,8 +1091,9 @@
+         manifest: AgentCapabilityManifest, extraCatalogue: String
+     ) -> String {
+         let catalogueRules = """
+-            For a tool step, emit exactly one Hermes call as
++            For each tool step, emit a Hermes call as
+             <tool_call>{"name":"...","arguments":{...},"rationale":"..."}</tool_call>.
++            Emit independent reads together. A dependent step waits for its preceding result.
+             Never call a tool that is not listed below. If a listed tool can answer the
+             request, call it now; never ask whether you should. Use the date given below
+             for requests about today; do not guess a date from prior context.
+@@ -1209,8 +1210,9 @@
+     ) -> String {
+         guard catalogue else { return base }
+         let catalogueRules = """
+-            For a tool step, emit exactly one Hermes call as
++            For each tool step, emit a Hermes call as
+             <tool_call>{"name":"...","arguments":{...},"rationale":"..."}</tool_call>.
++            Emit independent reads together. A dependent step waits for its preceding result.
+             Never call a tool that is not listed below. If a listed tool can answer the
+             request, call it now; never ask whether you should. Use the date given below
+             for requests about today; do not guess a date from prior context.

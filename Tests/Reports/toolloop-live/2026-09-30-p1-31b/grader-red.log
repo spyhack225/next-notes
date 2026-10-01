@@ -1,0 +1,12 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-toolloop-live-grader
+2026-09-30 20:28:20.993 NextNotes[81127:622515] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+TOOLLOOP_LIVE_GRADER_FAILED
+TOOLLOOP_LIVE_GRADER_WRONG: C01 expected TIMEOUT got FABRICATED
+TOOLLOOP_LIVE_GRADER_WRONG: C01 expected TIMEOUT got PASS
+TOOLLOOP_LIVE_GRADER_WRONG: timeout sentence claims an action
+TOOLLOOP_LIVE_GRADER_WRONG: C01 expected TIMEOUT got MISSED_TOOL
+TOOLLOOP_LIVE_GRADER_WRONG: C01 expected TIMEOUT got PASS
+TOOLLOOP_LIVE_MAIL_QUERY: "recent" -> 1 row(s)
+TOOLLOOP_LIVE_MAIL_QUERY: "from:productflo.com" -> 1 row(s)
+TOOLLOOP_LIVE_MAIL_QUERY: "subject:'ProductFlo'" -> 1 row(s)
+TOOLLOOP_LIVE_MAIL: 6 rows, 0 problem(s)

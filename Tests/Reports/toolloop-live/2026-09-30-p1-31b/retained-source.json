@@ -1,0 +1,12 @@
+{
+  "sources": {
+    "Sources/NextNotes/Agent/ToolClaimGuard.swift": "bc0d4a07ad02272cf1c472e7a24d752639d9f824f28ba89500adf8c9908ff2e8",
+    "Sources/NextNotes/Agent/AgentToolLoop.swift": "cd7f1767866b385507f1c75227a38cd75579562af24f63d1d7c5e8bbbae7d7d6",
+    "Sources/NextNotes/Agent/RealtimeAgentToolLoopSelfTest.swift": "c2539baa3e9d98579015ab217269a74982cc4356bf754c42181f0ac2411bd8cc",
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalGrader.swift": "fe99b9e29434cc765f87a8425e0dba9493551fb8fcfa367feb140c405e6530bb",
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalCases.swift": "c96b507e5577117c00c29656ac056c5595750b251f765e334a1809a8d4ed8f7a",
+    "Sources/NextNotes/Agent/AgentCapabilityManifest.swift": "bba2323a95dbba3eb7dad4a6cf84581abab7c04f7705e77479fce0775cb908fc",
+    "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift": "1a6c1eebf2770bd64ef98a7cbe94de72a95a4b2700266d2142404827a5cf77c9"
+  },
+  "note": "Original prompt files restored. Final one-job Makefile rebuild and installation completed; use retained-provenance.json for the frozen final binary and its checks."
+}

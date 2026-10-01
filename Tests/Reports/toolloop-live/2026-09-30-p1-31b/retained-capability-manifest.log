@@ -1,0 +1,7 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31b-2026-09-30/Final.app/Contents/MacOS/NextNotes --selftest-capability-manifest --selftest-out /tmp/nextnotes-p1-31b-retained-progress.txt
+CAPABILITY_MANIFEST_CATALOGUE: 79 registered, 77 at or below .send
+CAPABILITY_MANIFEST_PARITY: 65 allowed
+CAPABILITY_MANIFEST_SCAN: 97 id and alias spellings
+CAPABILITY_MANIFEST_PROMPT: 1674 tokens, 16 tools, compact=false catalogue=601
+CAPABILITY_MANIFEST_SMALL: 1125 tokens, 8 tools
+CAPABILITY_MANIFEST_OK

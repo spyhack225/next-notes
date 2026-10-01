@@ -1,0 +1,46 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-toolloop-production
+2026-09-30 20:46:28.103 NextNotes[84025:650876] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[20:46:28.838] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[20:46:28.838] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[20:46:38.280] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[20:46:39.745] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[20:46:41.754] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[20:46:41.963] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[20:46:41.964] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 13.13s
+[20:46:41.983] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[20:46:41.983] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[20:46:41.983] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[20:46:41.988] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[20:46:41.998] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[20:46:41.998] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[20:46:41.998] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'
+CONVERSATION_PROMPT_CHARS: 6081 persona 882 roster 5199
+PROMPT_TOKENS: 1967 for 24 tools (live loop)
+ANSWER_BUDGET: deep=1024 fast=1024 small=144 prompt=1136
+APPLE_FM_CONTEXT=8192
+  TOOLLOOP_PRODUCTION_READ_APPROVAL: 3 recorded decisions, 1 setting check, 2 call sites scanned, 2-switch knowledge gate, 5 markup forms scrubbed
+  TOOLLOOP_PRODUCTION_HISTORY_BUDGET: 262,144 reader 18513 chars, 4,096 reader 2500 chars
+  TOOLLOOP_PRODUCTION_CUT_SHORT: 3 sentences, final-answer round keeps the completion; the streamed planner rounds cannot see the flag (recorded)
+FITTED_PROMPT: 4 round(s), worst total 3155 tokens of 4,096
+  TOOLLOOP_PRODUCTION_ACCOUNT_READ: 10 cases, guard is pure
+  TOOLLOOP_PRODUCTION_IDENTIFIERS: 4 id parameters marked, I1–I4 green, matcher is "FunctionCallGrounding" reused
+TOOLLOOP_LIVE_NEEDLE_TOOLS memory.forget,memory.recall,memory.remember,memory.update
+TOOLLOOP_LIVE_NEEDLE_TURN memory.recall confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS schedule.create,schedule.list,schedule.pause,schedule.remove,schedule.resume,schedule.run_now,schedule.update
+TOOLLOOP_LIVE_NEEDLE_ERROR The listening model took longer than 8s.
+TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit
+TOOLLOOP_LIVE_NEEDLE_TOOLS schedule.create,schedule.list,schedule.pause,schedule.remove,schedule.resume,schedule.run_now,schedule.update
+TOOLLOOP_LIVE_NEEDLE_TURN schedule.list confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS memory.forget,memory.recall,memory.remember,memory.update
+TOOLLOOP_LIVE_NEEDLE_TURN memory.recall confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS send_email
+TOOLLOOP_LIVE_NEEDLE_TURN send_email confidence=0.990 0.000s
+  TOOLLOOP_PRODUCTION_NEEDLE: 0 problem(s)
+  TOOLLOOP_PRODUCTION_WRONG: an account noun became a content filter: email
+  TOOLLOOP_PRODUCTION_WRONG: an account noun became a content filter: emails
+  TOOLLOOP_PRODUCTION_WRONG: an account noun became a content filter: mail
+  TOOLLOOP_PRODUCTION_WRONG: an account noun became a content filter: inbox
+  TOOLLOOP_PRODUCTION_WRONG: an account noun became a content filter: message
+  TOOLLOOP_PRODUCTION_WRONG: an account noun became a content filter: messages
+  TOOLLOOP_PRODUCTION_WRONG: broad-mail grounding dropped the requested count or kept the filter
+TOOLLOOP_PRODUCTION_FAILED

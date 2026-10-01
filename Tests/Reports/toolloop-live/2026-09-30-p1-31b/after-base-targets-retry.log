@@ -1,0 +1,15 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31b-2026-09-30/After.app/Contents/MacOS/NextNotes --selftest-toolloop-live --model unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf --report /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31b/after-base-targets-retry.md --only Y01,M04,O09 --selftest-out /tmp/nextnotes-p1-31b-after-progress.txt
+[21:14:45.153] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[21:14:45.558] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[21:14:48.448] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[21:14:49.776] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[21:14:50.225] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[21:14:51.088] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[21:14:51.177] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 5.95s
+[21:14:51.208] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[21:14:51.282] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[21:14:51.283] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[21:14:51.283] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[21:14:51.283] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[21:14:51.283] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[21:14:51.283] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'

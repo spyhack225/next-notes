@@ -129,8 +129,14 @@ enum ToolClaimGuard {
                 found.append(Claim(text: name, toolID: name, isWrite: false))
             }
         }
-        for phrase in claimPhrases where boundedOccurrence(of: phrase, in: lowered) != nil {
-            found.append(Claim(text: phrase, toolID: nil, isWrite: false))
+        for phrase in claimPhrases {
+            // “I ran out of time” reports an unfinished turn, not an executed tool.
+            // Exclude that occurrence only: a later “I ran the script” still counts.
+            let idiomSuffix = phrase == "i ran" || phrase == "i've run" || phrase == "i have run"
+                ? " out of time" : nil
+            if boundedOccurrence(of: phrase, in: lowered, excludingSuffix: idiomSuffix) != nil {
+                found.append(Claim(text: phrase, toolID: nil, isWrite: false))
+            }
         }
         for phrase in writeClaimPhrases where boundedOccurrence(of: phrase, in: lowered) != nil {
             found.append(Claim(text: phrase, toolID: nil, isWrite: true))
@@ -288,14 +294,25 @@ enum ToolClaimGuard {
     /// The first occurrence of `needle` in an already-lowercased string whose two edges are
     /// not word characters — the same boundary the live eval's leak check uses, so "mail" is
     /// not `search_email` and `my_get_agenda_note` is not `get_agenda`.
-    private static func boundedOccurrence(of needle: String, in lowered: String) -> Range<String.Index>? {
+    private static func boundedOccurrence(
+        of needle: String, in lowered: String, excludingSuffix: String? = nil
+    ) -> Range<String.Index>? {
         var search = lowered.startIndex
         while let hit = lowered.range(of: needle, range: search..<lowered.endIndex) {
             let startsClean = hit.lowerBound == lowered.startIndex
                 || !isWordCharacter(lowered[lowered.index(before: hit.lowerBound)])
             let endsClean = hit.upperBound == lowered.endIndex
                 || !isWordCharacter(lowered[hit.upperBound])
-            if startsClean && endsClean { return hit }
+            if startsClean && endsClean {
+                if let suffix = excludingSuffix, lowered[hit.upperBound...].hasPrefix(suffix) {
+                    let end = lowered.index(hit.upperBound, offsetBy: suffix.count)
+                    if end == lowered.endIndex || !isWordCharacter(lowered[end]) {
+                        search = hit.upperBound
+                        continue
+                    }
+                }
+                return hit
+            }
             search = hit.upperBound
         }
         return nil

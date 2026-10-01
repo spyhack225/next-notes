@@ -1,0 +1,40 @@
+{
+  "phase": "after",
+  "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31b-2026-09-30/After.app",
+  "binary_sha256": "c9dfea8c45d92a9c5bdd4aea2e77dc10a64fa20f1774055980e8388fcf2abce5",
+  "sources": {
+    "Sources/NextNotes/Agent/ToolClaimGuard.swift": "bc0d4a07ad02272cf1c472e7a24d752639d9f824f28ba89500adf8c9908ff2e8",
+    "Sources/NextNotes/Agent/AgentToolLoop.swift": "cd7f1767866b385507f1c75227a38cd75579562af24f63d1d7c5e8bbbae7d7d6",
+    "Sources/NextNotes/Agent/AgentCapabilityManifest.swift": "720d4a59f00830bc1741e271680cac314672e58ec40ee20f4bf7d8201eed4015",
+    "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift": "d499b342876be031a40244f6eac11d410457ced394d95547e7629602c1137ace",
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalCases.swift": "c96b507e5577117c00c29656ac056c5595750b251f765e334a1809a8d4ed8f7a",
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalGrader.swift": "fe99b9e29434cc765f87a8425e0dba9493551fb8fcfa367feb140c405e6530bb"
+  },
+  "runs": [
+    {
+      "name": "after-base-quick-retry",
+      "command": [
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+        "--out",
+        "/tmp/nextnotes-p1-31b-after-progress.txt",
+        "--selftest-toolloop-live",
+        "--model",
+        "unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+        "--report",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31b/after-base-quick-retry.md",
+        "--quick"
+      ],
+      "exit_code": 1,
+      "seconds": 410.408,
+      "markers": [
+        "TOOLLOOP_LIVE_SCORE 4/10 (quick)",
+        "TOOLLOOP_LIVE_FAILED: 4/10 (quick) on Qwen3-4B-Instruct-2507 \u2014 below the pass bar 9"
+      ],
+      "load": [
+        135.4716796875,
+        65.755859375,
+        38.4873046875
+      ]
+    }
+  ]
+}

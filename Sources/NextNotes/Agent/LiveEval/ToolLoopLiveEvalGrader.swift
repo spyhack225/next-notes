@@ -64,6 +64,9 @@ enum LiveEvalGrader {
         "took too long", "timed out on", "stopped the tool plan", "stopped waiting",
         "couldn't finish the tool plan", "couldn’t finish the tool plan",
         "within the safe limit",
+        // P1-31b: the renderer's current typed and spoken timeout sentences.
+        "i ran out of time before finishing the rest",
+        "that took longer than i allow, so i stopped",
     ]
     static let modelFailurePatterns = ["the model didn't finish that answer"]
 
@@ -473,6 +476,20 @@ enum LiveEvalGrader {
         expect(.timeout, "C04", replies: [
             "I stopped the tool plan because it took too long.",
         ])
+
+        // P1-31b: use the actual renderer in both modes. Verified work does not
+        // turn an unfinished timeout into PASS, and the stop idiom is not a claim.
+        for voice in [false, true] {
+            let stopped = AgentReplyRenderer.render(.timedOut(lastVerified: nil), voice: voice)
+            expect(.timeout, "C01", replies: [stopped])
+            expect(.timeout, "C01", replies: [AgentReplyRenderer.render(
+                .timedOut(lastVerified: "Standup at 9:30."), voice: voice)],
+                calls: [call("get_agenda", ["date": today])])
+            if !ToolClaimGuard.claims(in: stopped, roster: []).isEmpty {
+                SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: timeout sentence claims an action")
+                misclassified += 1
+            }
+        }
 
         // WRONG_TOOL — a forbidden send.
         expect(.wrongTool, "M04", replies: ["I sent it for you."], calls: [

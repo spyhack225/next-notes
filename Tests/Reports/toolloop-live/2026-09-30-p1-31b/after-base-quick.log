@@ -1,0 +1,6 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31b-2026-09-30/After.app/Contents/MacOS/NextNotes --selftest-toolloop-live --model unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf --report /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31b/after-base-quick.md --quick --selftest-out /tmp/nextnotes-p1-31b-after-progress.txt
+2026-09-30 21:03:36.725 NextNotes[92018:683788] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[21:03:53.809] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[21:03:53.817] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+LLVM ERROR: IO failure on output stream: No space left on device
+TOOLLOOP_LIVE_MODEL: appLLM "Qwen3-4B-Instruct-2507" ctx=32768 role=installed:unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf

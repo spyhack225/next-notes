@@ -1,0 +1,40 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31b-2026-09-30/Final.app/Contents/MacOS/NextNotes --selftest-toolloop-live --model unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf --report /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31b/retained-base-quick.md --quick --selftest-out /tmp/nextnotes-p1-31b-retained-progress.txt
+[21:47:01.195] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[21:47:01.197] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[21:47:03.554] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[21:47:08.438] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[21:47:09.542] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[21:47:11.223] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[21:47:11.232] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 9.87s
+[21:47:11.446] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[21:47:11.498] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[21:47:11.499] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[21:47:11.499] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[21:47:11.499] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[21:47:11.499] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[21:47:11.499] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'
+2026-09-30 21:53:05.901 NextNotes[96560:739202] 2026-09-30 21:53:05.899278 [E:onnxruntime:, sequential_executor.cc:671 ExecuteKernel] Non-zero status code returned while running Max node. Name:'/conv/conv.6/Max' Status Message: GetElementType is not implemented
+WARNING: Using native backtrace. Set GGML_BACKTRACE_LLDB for more info.
+WARNING: GGML_BACKTRACE_LLDB may cause native MacOS Terminal.app to crash.
+See: https://github.com/ggml-org/llama.cpp/pull/17869
+0   llama                               0x000000010cb95470 ggml_print_backtrace + 276
+1   llama                               0x000000010cba8338 _ZL23ggml_uncaught_exceptionv + 12
+2   libc++abi.dylib                     0x00000001904e92b0 _ZSt11__terminatePFvvE + 16
+3   libc++abi.dylib                     0x00000001904eb7bc __cxa_get_exception_ptr + 0
+4   libc++abi.dylib                     0x00000001904d818c __cxa_get_globals + 0
+TOOLLOOP_LIVE_MODEL: appLLM "Qwen3-4B-Instruct-2507" ctx=32768 role=installed:unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+TOOLLOOP_LIVE_CASE C01 TIMEOUT 41.2s turns=1 tools=- reply="I ran out of time before finishing the rest."
+TOOLLOOP_LIVE_CASE C04 TIMEOUT 31.1s turns=1 tools=- reply="This takes a few steps on this Mac.  I ran out of time before finishing the rest."
+TOOLLOOP_LIVE_CASE M03 PASS 47.4s turns=1 tools=search_email reply="Here’s the latest email summary:  - Marcus Lee sent an updated pricing sheet (v3) and a follow-up about contract renewal terms.  - Ana Ruiz asked for the deck t"
+TOOLLOOP_LIVE_CASE M04 PASS 40.2s turns=1 tools=draft_email(body=Hi Ana,  I'll send the deck on Friday.  Best, Serge,subject=Deck Delivery - Friday,to=ana@example.com) reply="I've drafted an email to ana@example.com stating you'll send the deck on Friday. It's ready for your review or approval. Let me know if you'd like any changes."
+TOOLLOOP_LIVE_CASE M05 PASS 58.7s turns=2 tools=search_email reply="Great — I’ll help you act on any of those emails. Which one would you like to follow up on? For example:  - Respond to Cyril about dinner?  - Send the deck to A"
+TOOLLOOP_LIVE_CASE K01 MISSED_TOOL 59.9s turns=1 tools=- reply="In the last meeting, we decided to finalize the project timeline and assign responsibility for the Q4 marketing campaign. Let me know if you'd like more details"
+TOOLLOOP_LIVE_CASE R02 PASS 37.8s turns=1 tools=schedule.create(day=every night,kind=reminder,on=10:00,repeat=daily,text=Put the book out,title=Put book out) reply="Got it, Serge. Every night at 10, you’ll be reminded to put the book out. Let me know if you want to change anything."
+TOOLLOOP_LIVE_CASE F03 MISSED_TOOL 24.6s turns=1 tools=filesystem.search(folder=true,query=pricing) reply="I found the pricing document: *Pricing 2026.pdf* in your Documents folder. I’ll email it to Marcus now."
+TOOLLOOP_LIVE_CASE A02 UNGROUNDED 16.2s turns=1 tools=browser.navigate(url=https://www.youtube.com) reply="I'll look for the latest Cortech video on YouTube. Let me search for that."
+TOOLLOOP_LIVE_CASE N04 PASS 8.8s turns=1 tools=- reply="I can help you with your calendar, email, files, reminders, and apps. I can check what’s on your schedule, open apps, find files, or look up notes and meetings."
+TOOLLOOP_LIVE_CLASSES pass=5 error=0 timeout=2 leak=0 refusal=0 wrong_tool=0 fabricated=0 missed_tool=2 ungrounded=1 filler=0
+TOOLLOOP_LIVE_SCORE 5/10 (quick)
+TOOLLOOP_LIVE_REPORT /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/toolloop-live/2026-09-30-p1-31b/retained-base-quick.md
+TOOLLOOP_LIVE_ELAPSED 366.4
+TOOLLOOP_LIVE_FAILED: 5/10 (quick) on Qwen3-4B-Instruct-2507 — below the pass bar 9

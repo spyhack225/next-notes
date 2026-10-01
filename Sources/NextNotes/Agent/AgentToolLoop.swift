@@ -158,6 +158,7 @@ enum AgentToolLoop {
     /// The fields whose value is a span of time rather than a word, so their value is checked
     /// against what the user said about time instead of token by token.
     private static let mailAgeFields: Set<String> = ["newer_than", "older_than", "after", "before"]
+    private static let mailAccountNouns = Set(AgentAccountRead.accountNouns(.mail))
     /// What a person says when they mean a span of time. Deliberately generous: a false
     /// negative here drops a date filter the user did ask for.
     private static let timeWords: [String] = [
@@ -213,6 +214,16 @@ enum AgentToolLoop {
             return timeWords.contains { request.contains($0) }
         }
         let content = isField ? String(parts[1]) : clause
+        // P1-31b: “check my email” names the account, not the word to search
+        // inside messages. Keep explicit topics/quoted words and Gmail fields.
+        let bare = content.trimmingCharacters(in: CharacterSet(charactersIn: " \"'“”‘’"))
+            .lowercased()
+        if !isField, mailAccountNouns.contains(bare) {
+            let noun = NSRegularExpression.escapedPattern(for: bare)
+            let explicit = "\\b(?:about|containing|matching|word|term|phrase)\\s+"
+                + noun + "\\b|[\"'“‘]" + noun + "[\"'”’]"
+            guard request.range(of: explicit, options: .regularExpression) != nil else { return false }
+        }
         let words = content
             .lowercased()
             .components(separatedBy: CharacterSet.alphanumerics.inverted)

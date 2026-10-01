@@ -1,0 +1,24 @@
+Processes: 638 total, 85 running, 2 stuck, 551 sleeping, 4627 threads 
+2026/09/30 21:41:57
+Load Avg: 167.46, 192.91, 170.35 
+CPU usage: 43.56% user, 15.8% sys, 41.34% idle 
+SharedLibs: 485M resident, 96M data, 88M linkedit.
+MemRegions: 634849 total, 2927M resident, 104M private, 2308M shared.
+PhysMem: 15G used (3702M wired, 5475M compressor), 90M unused.
+VM: 341T vsize, 57G framework vsize, 1476067(0) swapins, 2071074(0) swapouts.
+Networks: packets: 10799544/12G in, 3942339/3093M out.
+Disks: 30848684/763G read, 10201601/196G written.
+
+PID    COMMAND          %CPU TIME     #TH  #WQ #PORTS MEM   PURG CMPRS PGRP  PPID  STATE    BOOSTS  %CPU_ME %CPU_OTHRS UID FAULTS COW MSGSENT MSGRECV SYSBSD SYSMACH CSW    PAGEINS IDLEW POWER INSTRS CYCLES JETPRI USER       #MREGS RPRVT VPRVT VSIZE KPRVT KSHRD
+95636  top              0.0  00:01.49 1/1  0   16     5696K 0B   2304K 95634 95634 running  *0[1]   0.00000 0.00000    0   1357   79  1317513 658756  3367   665368  17819  20      0     0.0   0      0      180    root       N/A    N/A   N/A   N/A   N/A   N/A  
+95634  zsh              0.0  00:00.01 1    0   22     1648K 0B   1280K 95634 77799 sleeping *0[1]   0.00000 0.00000    501 290    41  57      24      259    198     144    20      0     0.0   0      0      180    sergekadjo N/A    N/A   N/A   N/A   N/A   N/A  
+95624  Codex (Renderer) 0.0  00:00.19 15/5 1   112    26M   0B   22M   45229 45229 running   0[14]  0.00000 0.00000    501 8313   938 741     387     1981   1226    2441   4       0     0.0   0      0      30     sergekadjo N/A    N/A   N/A   N/A   N/A   N/A  
+95621  followupd        0.0  00:00.03 2    1   52     2864K 0B   2656K 95621 1     sleeping  0[0]   0.00000 0.00000    501 646    96  181     62      638    355     725    45      0     0.0   0      0      0      sergekadjo N/A    N/A   N/A   N/A   N/A   N/A  
+95620  postersyncd      0.0  00:00.58 3/1  2/1 185    9872K 0B   5888K 95620 1     running  *0[1]   0.00000 0.00000    501 2789   147 817     144     11031  2579    7515   69      0     0.0   0      0      40     sergekadjo N/A    N/A   N/A   N/A   N/A   N/A  
+95619  ANECompilerServi 0.0  00:01.57 3/1  2/1 38     11M   0B   4800K 95619 1     running   0[0]   0.00000 0.00000    0   3889   90  168     72      9293   282     21683  846     0     0.0   0      0      40     root       N/A    N/A   N/A   N/A   N/A   N/A  
+95618  com.apple.iCloud 0.0  00:00.55 3    2   57     4704K 0B   3568K 95618 1     sleeping *114[1] 0.00000 0.00000    501 2262   106 935     401     11582  1566    5849   59      0     0.0   0      0      0      sergekadjo N/A    N/A   N/A   N/A   N/A   N/A  
+95531  dirhelper        0.0  00:00.01 2    1   26     1184K 0B   960K  95531 1     sleeping  0[0]   0.00000 0.00000    0   323    51  105     46      318    203     208    3       0     0.0   0      0      0      root       N/A    N/A   N/A   N/A   N/A   N/A  
+95518  akd              0.0  00:00.26 3    2   75     5744K 0B   3296K 95518 1     sleeping *0[3]   0.00000 0.00000    0   2211   142 439     153     4887   892     3878   193     0     0.0   0      0      40     root       N/A    N/A   N/A   N/A   N/A   N/A  
+95459  swift-package    0.0  00:12.39 5    1   45     427M  0B   427M  95403 95403 sleeping *0[1]   0.00000 0.00000    501 87950  848 319     109     120903 12674   102746 7392    0     0.0   0      0      180    sergekadjo N/A    N/A   N/A   N/A   N/A   N/A  
+95403  gnumake          0.0  00:00.05 1    0   11     1728K 0B   1456K 95403 77799 sleeping *0[1]   0.00000 0.00000    501 1321   175 191     84      885    455     533    27      0     0.0   0      0      180    sergekadjo N/A    N/A   N/A   N/A   N/A   N/A  
+95169  inputanalyticsd  0.0  00:00.16 2    1   48     4352K 0B   4032K 95169 1     sleeping  0[0]   0.00000 0.00000    501 1239   109 207     85      1124   429     2937   83      0     0.0   0      0      0      sergekadjo N/A    N/A   N/A   N/A   N/A   N/A  

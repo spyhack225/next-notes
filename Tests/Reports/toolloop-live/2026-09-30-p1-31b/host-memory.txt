@@ -1,0 +1,22 @@
+Processes: 646 total, 6 running, 1 stuck, 639 sleeping, 4553 threads 
+2026/09/30 21:44:04
+Load Avg: 51.35, 144.72, 154.79 
+CPU usage: 66.29% user, 25.84% sys, 7.85% idle 
+SharedLibs: 528M resident, 121M data, 93M linkedit.
+MemRegions: 617484 total, 2894M resident, 139M private, 1764M shared.
+PhysMem: 14G used (3334M wired, 5307M compressor), 1074M unused.
+VM: 343T vsize, 57G framework vsize, 1477109(0) swapins, 2071074(0) swapouts.
+Networks: packets: 10818766/12G in, 3975655/3128M out.
+Disks: 30938150/765G read, 10249119/196G written.
+
+PID    COMMAND          MEM   CMPRS #TH  STATE   
+3536   opencode         1621M 1231M 30/1 running 
+1197   com.apple.WebKit 1162M 823M  3    sleeping
+421    WindowServer     827M  232M  21   stuck   
+45302  Codex (Renderer) 793M  659M  18   sleeping
+45252  Codex (Service)  691M  79M   21   sleeping
+7534   Cursor Helper (R 508M  456M  20   sleeping
+559    mysqld           465M  462M  36   sleeping
+95459  swift-package    428M  412M  8    sleeping
+45229  ChatGPT          388M  299M  65   sleeping
+2263   com.apple.WebKit 373M  427M  3    sleeping

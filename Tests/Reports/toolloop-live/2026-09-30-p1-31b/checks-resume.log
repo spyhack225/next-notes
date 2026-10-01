@@ -1,0 +1,8 @@
+START voice-turns
+DONE voice-turns 0 VOICE_TURNS_OK
+START voice-scheduling
+DONE voice-scheduling 0 VOICE_SCHEDULING_OK
+START usage-log
+DONE usage-log 0 USAGE_LOG_OK: 25 cases
+START store-isolation
+DONE store-isolation 0 STORE_ISOLATION_OK: 18 files and 23 defaults unchanged | TOOLLOOP_PRODUCTION_OK

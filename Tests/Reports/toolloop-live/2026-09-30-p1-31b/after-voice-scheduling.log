@@ -1,0 +1,4 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31b-2026-09-30/After.app/Contents/MacOS/NextNotes --selftest-voice-scheduling --selftest-out /tmp/nextnotes-p1-31b-check-progress.txt
+[21:05:45.438] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[21:05:45.440] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+VOICE_SCHEDULING_OK

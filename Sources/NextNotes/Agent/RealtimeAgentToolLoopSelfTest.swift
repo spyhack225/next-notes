@@ -2638,6 +2638,13 @@ enum RealtimeAgentToolLoopSelfTest {
             // none of them may be replaced by the honest sentence.
             ("I can check your calendar", [], 0),
             ("Ran into traffic?", [], 0),
+            ("I ran out of time before finishing the rest.", [], 0),
+            ("I've run out of time.", [], 0),
+            ("I have run out of time.", [], 0),
+            // Exclude the idiom occurrence only; a later action is still a claim.
+            ("I ran out of time. I ran the script.", [], 1),
+            ("I ran out of time. I sent the email.", [], 1),
+            ("I ran out of timers.", [], 1),
             ("Shall I look at your calendar?", [], 0),
             ("No new emails found in the last few days.", [], 0),
             ("I couldn't find that in your inbox.", [], 0),
@@ -2994,6 +3001,26 @@ enum RealtimeAgentToolLoopSelfTest {
             check("a filter the user never said survived grounding: \(invented) -> "
                   + "\(grounded["query"] ?? "(dropped)")", grounded["query"] == nil)
         }
+        // P1-31b: an account noun is not a requested content filter. This is
+        // M03's measured Needle query, generalized across the mail-account nouns.
+        for noun in ["email", "emails", "mail", "inbox", "message", "messages"] {
+            let grounded = mail(noun, "Summarize my recent " + noun)
+            check("an account noun became a content filter: " + noun,
+                  grounded["query"] == nil)
+        }
+        // Explicit content survives, including the same word used as a topic.
+        for request in ["Find mail about email", "Find messages containing email",
+                        "Find mail with the word email", "Search mail for \"email\""] {
+            check("explicit email topic was dropped: " + request,
+                  mail("email", request)["query"] == "email")
+        }
+        check("an explicit subject named email was dropped",
+              mail("subject:email", "Find messages with subject email")["query"] == "subject:email")
+        let counted = AgentToolLoop.groundedArguments(
+            for: "search_email", proposed: ["query": "email", "maxResults": "3"],
+            request: "Summarize my last 3 emails")
+        check("broad-mail grounding dropped the requested count or kept the filter",
+              counted == ["maxResults": "3"])
         // The two the user *did* say, and the one the case M02 is graded on.
         check("a sender the user named was dropped (\(mail("from:Marcus", "Any new emails from Marcus?")["query"] ?? "-"))",
               mail("from:Marcus", "Any new emails from Marcus?")["query"] == "from:Marcus")

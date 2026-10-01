@@ -1,0 +1,45 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31b-2026-09-30/After.app/Contents/MacOS/NextNotes --selftest-store-isolation --selftest-out /tmp/nextnotes-p1-31b-check-progress.txt
+[21:12:55.187] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[21:12:55.243] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[21:13:25.353] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[21:13:28.314] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[21:13:36.951] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[21:13:37.717] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[21:13:37.746] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 42.55s
+[21:13:37.796] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[21:13:37.796] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[21:13:37.796] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[21:13:37.821] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[21:13:37.879] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[21:13:37.888] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[21:13:37.889] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'
+STORE_ISOLATION_OK: 18 files and 23 defaults unchanged
+2026-09-30 21:14:16.547 NextNotes[93849:700920] 2026-09-30 21:14:16.546778 [E:onnxruntime:, sequential_executor.cc:671 ExecuteKernel] Non-zero status code returned while running Sub node. Name:'/activation/Sub_3' Status Message: GetElementType is not implemented
+WARNING: Using native backtrace. Set GGML_BACKTRACE_LLDB for more info.
+WARNING: GGML_BACKTRACE_LLDB may cause native MacOS Terminal.app to crash.
+See: https://github.com/ggml-org/llama.cpp/pull/17869
+MODEL_ROLES_CODEX_FALLBACK: agent=localServer computerUse=localServer
+CONVERSATION_PROMPT_CHARS: 6156 persona 882 roster 5274
+PROMPT_TOKENS: 1985 for 24 tools (live loop)
+ANSWER_BUDGET: deep=1024 fast=1024 small=125 prompt=1155
+APPLE_FM_CONTEXT=8192
+  TOOLLOOP_PRODUCTION_READ_APPROVAL: 3 recorded decisions, 1 setting check, 2 call sites scanned, 2-switch knowledge gate, 5 markup forms scrubbed
+  TOOLLOOP_PRODUCTION_HISTORY_BUDGET: 262,144 reader 18513 chars, 4,096 reader 2500 chars
+  TOOLLOOP_PRODUCTION_CUT_SHORT: 3 sentences, final-answer round keeps the completion; the streamed planner rounds cannot see the flag (recorded)
+FITTED_PROMPT: 4 round(s), worst total 3202 tokens of 4,096
+  TOOLLOOP_PRODUCTION_ACCOUNT_READ: 10 cases, guard is pure
+  TOOLLOOP_PRODUCTION_IDENTIFIERS: 4 id parameters marked, I1–I4 green, matcher is "FunctionCallGrounding" reused
+TOOLLOOP_LIVE_NEEDLE_TOOLS memory.forget,memory.recall,memory.remember,memory.update
+TOOLLOOP_LIVE_NEEDLE_TURN memory.recall confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS schedule.create,schedule.list,schedule.pause,schedule.remove,schedule.resume,schedule.run_now,schedule.update
+TOOLLOOP_LIVE_NEEDLE_ERROR The listening model took longer than 8s.
+TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit
+TOOLLOOP_LIVE_NEEDLE_TOOLS schedule.create,schedule.list,schedule.pause,schedule.remove,schedule.resume,schedule.run_now,schedule.update
+TOOLLOOP_LIVE_NEEDLE_TURN schedule.list confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS memory.forget,memory.recall,memory.remember,memory.update
+TOOLLOOP_LIVE_NEEDLE_TURN memory.recall confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS send_email
+TOOLLOOP_LIVE_NEEDLE_TURN send_email confidence=0.990 0.000s
+  TOOLLOOP_PRODUCTION_NEEDLE: 0 problem(s)
+TOOLLOOP_PRODUCTION_OK
+STORE_ISOLATION_FLOW memory tools: Not saved: you didn't ask to forget it.

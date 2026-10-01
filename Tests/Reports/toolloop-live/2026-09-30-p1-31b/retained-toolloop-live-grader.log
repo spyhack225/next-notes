@@ -1,0 +1,6 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/agent-overhaul/P1-31b-2026-09-30/Final.app/Contents/MacOS/NextNotes --selftest-toolloop-live-grader --selftest-out /tmp/nextnotes-p1-31b-retained-progress.txt
+TOOLLOOP_LIVE_GRADER_OK
+TOOLLOOP_LIVE_MAIL_QUERY: "recent" -> 1 row(s)
+TOOLLOOP_LIVE_MAIL_QUERY: "from:productflo.com" -> 1 row(s)
+TOOLLOOP_LIVE_MAIL_QUERY: "subject:'ProductFlo'" -> 1 row(s)
+TOOLLOOP_LIVE_MAIL: 6 rows, 0 problem(s)

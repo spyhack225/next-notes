@@ -1,0 +1,23 @@
+{
+  "verified_off_turn_path": true,
+  "artifacts": [
+    {
+      "path": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/unsloth--Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+      "bytes": 2497281120,
+      "sha256": "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597",
+      "mtime_ns": 1790219670290548038
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/needle3.cact",
+      "bytes": 35335380,
+      "sha256": "c9d915eca282ed42d1a09b143b592adb4cc6744ffe2d294adf5cfc5548170c38",
+      "mtime_ns": 1789917962867634930
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/needle3-macos-arm64",
+      "bytes": 824744,
+      "sha256": "bfcc14c38a7ebf670bf7ade3849b617d268120dc4cc75d3aa12c88bc7c0ba75c",
+      "mtime_ns": 1789917961856784913
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+START toolloop-live-grader
+DONE toolloop-live-grader 0 TOOLLOOP_LIVE_GRADER_OK
+START toolloop-production
+DONE toolloop-production 0 TOOLLOOP_PRODUCTION_OK
+START toolloop
+DONE toolloop 0 TOOLLOOP_OK
+START capability-manifest
+DONE capability-manifest 0 CAPABILITY_MANIFEST_OK
+START tool-awareness
+DONE tool-awareness 0 GROUNDING_OK | TOOL_AWARENESS_OK
+START voice-grounding
+DONE voice-grounding 1 GROUNDING_OK | VOICE_GROUNDING_FAILED
