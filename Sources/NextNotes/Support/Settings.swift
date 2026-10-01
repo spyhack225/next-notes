@@ -316,6 +316,22 @@ struct CleanupPreferences: Sendable {
 final class Settings {
     static let shared = Settings()
 
+    /// Master choices only; behavior-specific preferences remain unchanged when a module is off.
+    /// Missing keys keep Dictation and Meetings available for existing users.
+    var moduleDictationEnabled: Bool {
+        didSet { defaults.set(moduleDictationEnabled, forKey: Keys.moduleDictationEnabled) }
+    }
+
+    var moduleMeetingsEnabled: Bool {
+        didSet { defaults.set(moduleMeetingsEnabled, forKey: Keys.moduleMeetingsEnabled) }
+    }
+
+    /// Assistant activation uses the existing Workspace choice, not a second switch.
+    func isModuleEnabled(_ module: AppModule) -> Bool {
+        ModulePolicy.isEnabled(module, dictation: moduleDictationEnabled,
+            meetings: moduleMeetingsEnabled, assistant: agentEnabled)
+    }
+
     var pushToTalkKey: PushToTalkKey {
         didSet {
             if commandModeEnabled, commandModeKey == pushToTalkKey {
@@ -1125,6 +1141,8 @@ final class Settings {
     private let defaults = UserDefaults.standard
 
     private enum Keys {
+        static let moduleDictationEnabled = "moduleDictationEnabled"
+        static let moduleMeetingsEnabled = "moduleMeetingsEnabled"
         static let pushToTalkKey = "pushToTalkKey"
         static let commandModeEnabled = "commandModeEnabled"
         static let commandModeKey = "commandModeKey"
@@ -1233,7 +1251,18 @@ final class Settings {
         defaults.object(forKey: Keys.knowledgeAgentToolsEnabled) as? Bool ?? KnowledgeToolGate.defaultEnabled
     }
 
+    /// The same reader used at launch, with an isolated defaults suite available to tests.
+    nonisolated static func initialModuleEnabled(_ module: AppModule, from defaults: UserDefaults) -> Bool {
+        switch module {
+        case .dictation: defaults.object(forKey: Keys.moduleDictationEnabled) as? Bool ?? true
+        case .meetings: defaults.object(forKey: Keys.moduleMeetingsEnabled) as? Bool ?? true
+        case .assistant: defaults.object(forKey: Keys.agentEnabled) as? Bool ?? false
+        }
+    }
+
     private init() {
+        moduleDictationEnabled = Self.initialModuleEnabled(.dictation, from: defaults)
+        moduleMeetingsEnabled = Self.initialModuleEnabled(.meetings, from: defaults)
         let raw = defaults.string(forKey: Keys.pushToTalkKey) ?? PushToTalkKey.rightOption.rawValue
         pushToTalkKey = PushToTalkKey(rawValue: raw) ?? .rightOption
         commandModeEnabled = defaults.object(forKey: Keys.commandModeEnabled) as? Bool ?? false
@@ -1338,7 +1367,7 @@ final class Settings {
         googleClientID = defaults.string(forKey: Keys.googleClientID) ?? ""
         googleClientSecret = defaults.string(forKey: Keys.googleClientSecret) ?? ""
         googleCalendarIDs = defaults.stringArray(forKey: Keys.googleCalendarIDs) ?? []
-        agentEnabled = defaults.object(forKey: Keys.agentEnabled) as? Bool ?? false
+        agentEnabled = Self.initialModuleEnabled(.assistant, from: defaults)
         agentAutoRunReadTools = defaults.object(forKey: Keys.agentAutoRunReadTools) as? Bool ?? true
         agentLiveDuringMeeting = defaults.object(forKey: Keys.agentLiveDuringMeeting) as? Bool ?? false
         voiceWakeEnabled = defaults.object(forKey: Keys.voiceWakeEnabled) as? Bool ?? false
