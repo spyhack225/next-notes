@@ -1,0 +1,12 @@
+TASK_HISTORY_FAILED: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_HISTORY_FAILED: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_RECOVERY_WRONG: typed running record was not held recovering
+TASK_RECOVERY_WRONG: queued unbound record was not failed with a truthful safety reason
+TASK_RECOVERY_WRONG: restart JSON failure was not visible alongside held in-memory state
+TASK_RECOVERY_WRONG: restart mirror contention was invisible
+TASK_RECOVERY_WRONG: out-of-scope owner record falsely remained live or acquired recovery: voice
+TASK_RECOVERY_WRONG: out-of-scope owner record falsely remained live or acquired recovery: scheduled
+TASK_RECOVERY_WRONG: out-of-scope owner record falsely remained live or acquired recovery: remote
+TASK_RECOVERY_WRONG: out-of-scope owner record falsely remained live or acquired recovery: unknown
+TASK_RECOVERY_WRONG: held restart fabricated recovery or lost actual attempt metadata
+TASK_RECOVERY_FAILED: 9 assertions

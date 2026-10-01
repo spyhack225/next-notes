@@ -126,11 +126,10 @@ enum GuidedFirstSuccessSelfTest {
         failed.failure = "Google refused the change."
         record("failure summary", failed.failureSummary)
         record("failure undo", failed.failureUndoLine)
-        check("a failure did not say what did not happen",
-              failed.failureSummary.contains("Google refused the change.")
-                && failed.failureSummary.contains("Nothing was created or sent."))
-        check("a failure did not say there is nothing to undo",
-              failed.failureUndoLine.lowercased().contains("nothing to undo"))
+        check("a failure lost the known reason or fabricated effect certainty",
+              failed.failureSummary == "Google refused the change.")
+        check("a failure did not ask for review before retry",
+              failed.failureUndoLine == "Review any changes before trying again.")
         let sendFailure = FailureCard.forTask(failed, retryRisk: .send, retry: {}, openResult: nil)
         check("a failed send offered a retry", sendFailure.actions.isEmpty)
         check("a failure card offered more than two ways forward", sendFailure.actions.count <= 2)

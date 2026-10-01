@@ -1,0 +1,80 @@
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskRecoveryPlanner.swift:59:9: warning: default will never be executed
+ 57 |         case .running:
+ 58 |             return held(input)
+ 59 |         default:
+    |         `- warning: default will never be executed
+ 60 |             // Covers the launch-only recovering state once the existing enum is
+ 61 |             // released for modification, and future states fail closed too.
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskRecoverySelfTest.swift:22:19: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 20 |             let store = AgentTaskStore(fileURL: file, mirror: mirror)
+ 21 |             guard store.allowsHarnessPersistence else { throw TaskStoreError.invalidRecord }
+ 22 |             check(try store.load().isEmpty, "missing legacy history was not fresh empty history")
+    |                   `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 23 |             cases += 1
+ 24 |             let date = Date(timeIntervalSince1970: 1_700_000_000)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskRecoverySelfTest.swift:67:19: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 65 |             }
+ 66 |             cases += 1
+ 67 |             check(try AgentTaskStore(fileURL: file, mirror: mirror).load() == manager.tasks,
+    |                   `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 68 |                 "actual held restart decision did not reach authoritative JSON")
+ 69 |             let second = TaskStore(root: root)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskRecoverySelfTest.swift:89:26: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 87 |                 try contents.write(to: damaged)
+ 88 |                 let failedStore = AgentTaskStore(fileURL: damaged)
+ 89 |                 do { _ = try failedStore.load(); check(false, "\(name) legacy history was silently accepted") } catch {}
+    |                          `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 90 |                 let failedManager = AgentTaskManager(store: failedStore)
+ 91 |                 let rejected = failedManager.submit(objective: "Private rejected work", tool: "filesystem.read")
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskRecoverySelfTest.swift:89:113: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+ 87 |                 try contents.write(to: damaged)
+ 88 |                 let failedStore = AgentTaskStore(fileURL: damaged)
+ 89 |                 do { _ = try failedStore.load(); check(false, "\(name) legacy history was silently accepted") } catch {}
+    |                                                                                                                 `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+ 90 |                 let failedManager = AgentTaskManager(store: failedStore)
+ 91 |                 let rejected = failedManager.submit(objective: "Private rejected work", tool: "filesystem.read")
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskRecoverySelfTest.swift:108:22: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+106 |             let unreadable = root.appendingPathComponent("not-a-history-file", isDirectory: true)
+107 |             try FileManager.default.createDirectory(at: unreadable, withIntermediateDirectories: false)
+108 |             do { _ = try AgentTaskStore(fileURL: unreadable).load(); check(false, "unreadable legacy file became empty history") } catch {}
+    |                      `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+109 |             cases += 1
+110 |         } catch { failures.append("isolated recovery fixture failed: \(error.localizedDescription)") }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskRecoverySelfTest.swift:108:132: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+106 |             let unreadable = root.appendingPathComponent("not-a-history-file", isDirectory: true)
+107 |             try FileManager.default.createDirectory(at: unreadable, withIntermediateDirectories: false)
+108 |             do { _ = try AgentTaskStore(fileURL: unreadable).load(); check(false, "unreadable legacy file became empty history") } catch {}
+    |                                                                                                                                    `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+109 |             cases += 1
+110 |         } catch { failures.append("isolated recovery fixture failed: \(error.localizedDescription)") }
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_RECOVERY_WRONG: typed running record was not held recovering
+TASK_RECOVERY_WRONG: queued unbound record was not failed with a truthful safety reason
+TASK_RECOVERY_WRONG: actual held restart decision did not reach authoritative JSON
+TASK_RECOVERY_WRONG: actual held restart did not reach second SQLite reader
+TASK_RECOVERY_WRONG: held restart fabricated recovery or lost actual attempt metadata
+TASK_RECOVERY_WRONG: corrupt legacy history was silently accepted
+TASK_RECOVERY_WRONG: corrupt failed initialization accepted new executable work
+TASK_RECOVERY_WRONG: corrupt failed submit overwrote original history
+TASK_RECOVERY_WRONG: corrupt failed initialization allowed ordinary record mutation
+TASK_RECOVERY_WRONG: corrupt failed load did not block empty save
+TASK_RECOVERY_WRONG: corrupt blocked save erased original history
+TASK_RECOVERY_WRONG: corrupt failed load/save created or migrated SQLite
+TASK_RECOVERY_WRONG: duplicate legacy history was silently accepted
+TASK_RECOVERY_WRONG: duplicate failed initialization accepted new executable work
+TASK_RECOVERY_WRONG: duplicate failed submit overwrote original history
+TASK_RECOVERY_WRONG: duplicate failed initialization allowed ordinary record mutation
+TASK_RECOVERY_WRONG: duplicate failed load did not block empty save
+TASK_RECOVERY_WRONG: duplicate blocked save erased original history
+TASK_RECOVERY_WRONG: duplicate failed load/save created or migrated SQLite
+TASK_RECOVERY_WRONG: unreadable legacy file became empty history
+TASK_RECOVERY_FAILED: 20 assertions

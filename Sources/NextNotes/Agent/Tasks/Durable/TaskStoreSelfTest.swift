@@ -1,7 +1,7 @@
 import Foundation
 import SQLite3
 
-/// P6-01 characterizes today's restart behavior. It does not resume or retry work.
+/// P6-01's baseline now verifies P6-04a-1 held restart. No work is resumed or retried.
 @MainActor
 enum TaskStoreSelfTest {
     private enum FixtureError: Error { case unsafeStoreLocation, backingFailure }
@@ -28,7 +28,7 @@ enum TaskStoreSelfTest {
                 throw FixtureError.unsafeStoreLocation
             }
             check(!FileManager.default.fileExists(atPath: file.path), "fixture ledger was not fresh")
-            check(fixtureStore.load().isEmpty, "fresh isolated store was not empty")
+            check(try fixtureStore.load().isEmpty, "fresh isolated store was not empty")
 
             // Whole-second dates survive the production ISO-8601 round trip exactly.
             let date = Date(timeIntervalSince1970: 1_700_000_000)
@@ -54,23 +54,25 @@ enum TaskStoreSelfTest {
                 throw FixtureError.unsafeStoreLocation
             }
             check(reopenedStore !== fixtureStore, "restart reused the same store instance")
-            check(reopenedStore.load() == fixtures, "fresh store cannot reach the exact persisted ledger")
+            check(try reopenedStore.load() == fixtures, "fresh store cannot reach the exact persisted ledger")
 
             // Use the actual fresh-manager initializer, not a duplicated recovery table.
             let restarted = AgentTaskManager(store: reopenedStore)
-            let quitMessage = "Next Notes quit while this task was running."
-            for id in ["durability-running", "durability-queued"] {
-                check(restarted.task(id: id)?.status == .failed, "\(id) did not become failed")
-                check(restarted.task(id: id)?.failure == quitMessage, "\(id) lost the exact quit message")
-            }
+            check(restarted.task(id: "durability-running")?.status == .recovering,
+                "interrupted running task was not held recovering")
+            check(restarted.task(id: "durability-running")?.progress.contains("paused") == true,
+                "held task lost its plain pause explanation")
+            check(restarted.task(id: "durability-queued")?.status == .failed
+                && restarted.task(id: "durability-queued")?.failure?.contains("safe to run again") == true,
+                "queued unbound work was not failed conservatively")
             check(restarted.task(id: "durability-permission") == fixtures[2], "permission record changed on restart")
             check(!restarted.consumePermissionApproval(taskID: "durability-permission"),
                 "persisted permission record incorrectly supplied a live one-shot approval")
             check(restarted.task(id: "durability-completed") == fixtures[3], "completed task changed on restart")
             check(restarted.tasks.count == fixtures.count, "restart added or dropped a task")
 
-            // Today the restart mapping is in memory; initialization does not rewrite JSON.
-            check(AgentTaskStore(fileURL: file).load() == fixtures, "restart unexpectedly rewrote the persisted ledger")
+            // The actual held decision is now persisted; no backend was started.
+            check(try AgentTaskStore(fileURL: file).load() == restarted.tasks, "restart decision did not reach authoritative JSON")
             caseCount += try storageCases(in: directory, check: check)
             caseCount += try journalProducerCases(in: directory, check: check)
             caseCount += try journalRetentionCases(in: directory, check: check)
@@ -237,7 +239,7 @@ enum TaskStoreSelfTest {
             createdAt: detailed.createdAt, status: .completed)
         manager.beginScheduledRun(detailed)
         manager.beginScheduledRun(other)
-        let canonical = json.load()
+        let canonical = try json.load()
         check(manager.lastPersistenceResult == .saved, "real manager did not report successful JSON/mirror save")
         check(canonical.map(\.id) == [other.id, detailed.id], "JSON lost same-time original task order")
         check(try mirror.load() == canonical, "SQLite lost actual fields, nil/empty values, Unicode/NUL or artifact order/duplicates")
@@ -289,7 +291,7 @@ enum TaskStoreSelfTest {
                 check(elapsed <= .milliseconds(50), "mirror contention stalled the real manager beyond 50 ms")
                 check(manager.lastPersistenceResult == .mirrorFailed,
                     "writer contention was not visible through the real manager")
-                check(json.load().first?.result == (cold ? "Cold contention fixture" : "Contention fixture"),
+                check(try json.load().first?.result == (cold ? "Cold contention fixture" : "Contention fixture"),
                     "writer contention made successful JSON history unavailable")
                 SelfTest.diagnostic("TASK_DURABILITY_CONTENTION: cold=\(cold) elapsed=\(elapsed)")
             }
@@ -312,7 +314,7 @@ enum TaskStoreSelfTest {
                 [.text(detailed.id)])
         }
         manager.finishScheduledRun(id: other.id, status: .completed, result: "Updated fixture", failure: nil)
-        let updated = json.load()
+        let updated = try json.load()
         check(try manager.lastPersistenceResult == .saved && mirror.load() == updated,
             "real manager update did not mirror its canonical JSON rows")
         try mirror.withConnection { db in
@@ -338,8 +340,10 @@ enum TaskStoreSelfTest {
         cases += 1
 
         let blockedJSON = directory.appendingPathComponent("blocked-json", isDirectory: true)
-        try FileManager.default.createDirectory(at: blockedJSON, withIntermediateDirectories: false)
         let jsonFailureManager = AgentTaskManager(store: AgentTaskStore(fileURL: blockedJSON, mirror: mirror))
+        // Inject at the writer boundary after a successful fresh read. Unreadable
+        // initialization has its own strict-load regression and must not reach save.
+        try FileManager.default.createDirectory(at: blockedJSON, withIntermediateDirectories: false)
         jsonFailureManager.beginScheduledRun(other)
         check(jsonFailureManager.lastPersistenceResult == .jsonFailed, "JSON failure was not reported by the real manager")
         check(try mirror.load() == updated, "JSON failure still changed the SQLite mirror")
@@ -352,7 +356,7 @@ enum TaskStoreSelfTest {
         let mirrorFailureManager = AgentTaskManager(store: survivingJSON)
         mirrorFailureManager.beginScheduledRun(other)
         check(mirrorFailureManager.lastPersistenceResult == .mirrorFailed, "mirror failure was not reported by the real manager")
-        check(survivingJSON.load().map(\.id) == [other.id], "mirror failure made successfully saved JSON unavailable")
+        check(try survivingJSON.load().map(\.id) == [other.id], "mirror failure made successfully saved JSON unavailable")
         check(try Data(contentsOf: blockedRoot) == Data("Fixture path blocker".utf8), "mirror failure deleted its blocker")
         cases += 1
 
@@ -435,7 +439,7 @@ enum TaskStoreSelfTest {
         }
         manager.finishScheduledRun(id: task.id, status: .failed, result: nil, failure: "Private failure")
         check(manager.lastPersistenceResult == .mirrorFailed, "failed journal append was invisible to real manager")
-        check(json.load().first?.status == .failed, "failed SQLite journal made successful JSON inaccessible")
+        check(try json.load().first?.status == .failed, "failed SQLite journal made successful JSON inaccessible")
         let second = TaskStore(root: root)
         defer { second.close() }
         check(try second.load() == beforeFailure, "state committed without its event after injected journal failure")
@@ -449,7 +453,7 @@ enum TaskStoreSelfTest {
         manager.respondInput(taskID: input.id, text: "Private entered text")
         check(try mirror.journal(taskID: input.id).map(\.draft.kind) == [.jobCreated, .workerStarted, .inputRequested, .inputProvided],
             "actual input-wait/input-response producer journal changed")
-        check(json.load().first?.arguments["input"] == "Private entered text", "existing input execution payload changed")
+        check(try json.load().first?.arguments["input"] == "Private entered text", "existing input execution payload changed")
         let permission = AgentTask(id: "journal-permission", objective: "Fixture permission", status: .running, tool: "filesystem.read")
         manager.beginScheduledRun(permission)
         manager.finishScheduledRun(id: permission.id, status: .waitingForPermission, result: nil, failure: nil)
@@ -509,7 +513,7 @@ enum TaskStoreSelfTest {
             try TaskStore.exec(db, "INSERT INTO task_dependency(upstream,downstream,requirement) VALUES('old-terminal','active','fixture')")
         }
         let json = AgentTaskStore(fileURL: root.appendingPathComponent("agent-tasks.json"), mirror: mirror)
-        check(json.save(tasks) == .saved && json.load() == tasks, "compaction changed JSON history")
+        check(try json.save(tasks) == .saved && json.load() == tasks, "compaction changed JSON history")
         check(try mirror.withConnection { try TaskStore.integer($0, "SELECT count(*) FROM task_dependency") } == 1,
             "journal compaction deleted dependencies")
         var burst: [TaskJournalEventDraft] = []

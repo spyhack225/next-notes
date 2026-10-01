@@ -1,0 +1,4 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO --selftest-acp --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/durable-tasks/2026-10-01-p6-04a-1/core/selftest-acp.out
+2026-10-01 06:14:11.726 NextNotes[62149:1399585] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+ACP_OK: initialize, session, subscribe and permission relay hold
+2026-10-01 06:14:12.378 NextNotes[62149:1399585] NSQuitAlwaysKeepsWindows=NO

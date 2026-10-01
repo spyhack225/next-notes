@@ -155,6 +155,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-learn     --selftest-context [bundle-id]
 --selftest-tools     --selftest-wake       --selftest-tasks
 --selftest-task-durability
+--selftest-task-recovery
 --selftest-persona   --selftest-memory     --selftest-schedule
 --selftest-routine-authority
 --selftest-index     --selftest-search [query] [--gold <path>]
@@ -256,6 +257,17 @@ denial. Unbound or mismatched task IDs emit no attributed tool facts. Receipt-aw
 JSON remains read authority. Attempt zero is unbound; ACP/scheduled provenance,
 real leases/receipts and recovery remain open. Synchronous full-history saves
 have no large-history latency proof; fail-fast contention is a narrower claim.
+
+`--selftest-task-recovery` verifies P6-04a-1's held restart and strict legacy
+reader: 53 isolated planner/store/manager cases plus three actual rejected text
+delegations. Damaged history is retained and manager-owned writes/submission
+are blocked. Typed local/ACP running rows pause after restart; no worker starts
+again. Stale input/approval callbacks cannot queue held or terminal rows, and
+missing artifact links never prove that no action happened. Rejected delegation
+returns the plain failure with no task-success audit or started acknowledgement.
+JSON remains authoritative; SQL migration, real leases/receipts, pending-card
+routing, retry and remote/voice/scheduled recovery remain open. Held in-memory
+state is not a committed restart decision when its save fails.
 
 `--selftest-voice-session-reducer` verifies ten pure traces (the original nine
 plus speech-ended identity/hold guards), then actual capture, approval and streamed

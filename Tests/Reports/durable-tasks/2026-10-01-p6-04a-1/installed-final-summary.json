@@ -1,0 +1,50 @@
+[
+  {
+    "name": "task-recovery",
+    "exit": 0
+  },
+  {
+    "name": "task-durability",
+    "exit": 0
+  },
+  {
+    "name": "tasks",
+    "exit": 0
+  },
+  {
+    "name": "tool-review",
+    "exit": 0
+  },
+  {
+    "name": "guided",
+    "exit": 0
+  },
+  {
+    "name": "agent-panes",
+    "exit": 0
+  },
+  {
+    "name": "activity",
+    "exit": 0
+  },
+  {
+    "name": "realtime",
+    "exit": 0
+  },
+  {
+    "name": "toolloop-production",
+    "exit": 0
+  },
+  {
+    "name": "voice-session-reducer",
+    "exit": 0
+  },
+  {
+    "name": "voice-duplex-work",
+    "exit": 0
+  },
+  {
+    "name": "store-isolation",
+    "exit": 0
+  }
+]

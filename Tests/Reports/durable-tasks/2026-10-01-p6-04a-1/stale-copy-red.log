@@ -1,0 +1,14 @@
+TASK_RECOVERY_WRONG: stale input changed recovering work
+TASK_RECOVERY_WRONG: stale input persisted a false transition
+TASK_RECOVERY_WRONG: stale permission changed recovering work
+TASK_RECOVERY_WRONG: stale permission persisted a false transition
+TASK_RECOVERY_WRONG: stale input changed completed work
+TASK_RECOVERY_WRONG: stale input persisted a false transition
+TASK_RECOVERY_WRONG: stale permission changed completed work
+TASK_RECOVERY_WRONG: stale permission persisted a false transition
+TASK_RECOVERY_WRONG: failure summary inferred an effect from artifact absence
+TASK_RECOVERY_WRONG: failure undo line inferred an undo outcome from artifact history
+TASK_RECOVERY_WRONG: blank failure fabricated effect certainty
+TASK_RECOVERY_WRONG: failure undo line inferred an undo outcome from artifact history
+TASK_RECOVERY_WRONG: blank failure fabricated effect certainty
+TASK_RECOVERY_FAILED: 13 assertions

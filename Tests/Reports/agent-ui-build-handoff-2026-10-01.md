@@ -20,3 +20,13 @@ delivery is claimed. This local note is the reviewable handoff.
 The Agent task's serial install uses `/tmp/nextnotes-p3-p6-integrated-install.log`,
 followed by sequential installed duplex, task-durability/tasks/isolation and core
 checks. Avoid parallel app builds/install/model benchmarks during those checks.
+
+
+P6-04a-1 consumer-copy coordination: generic `AgentTask.failureSummary` now
+returns its known failure reason or “This task did not finish.”, and
+`failureUndoLine` asks to review changes before retry. Missing artifact links
+cannot establish that no action happened. The actual generic properties and
+guided expectations were repaired; the stronger receipt-aware AgentPane send-card
+assertion remains intact and passes installed. The old `FailureCard.forTask`
+comment about artifact-only certainty is stale; its external UI owner can update
+that comment with its own reviewed UI changes. No UI hunk is staged by this task.

@@ -3,6 +3,8 @@ import Foundation
 enum AgentTaskStatus: String, Codable, Sendable, CaseIterable {
     case queued
     case running
+    /// A launch-only held decision. No worker was reattached or started.
+    case recovering
     case waitingForPermission
     /// ACP could not complete its protocol handshake. The task is parked until the
     /// person explicitly chooses the weaker, one-shot compatibility CLI path.
@@ -18,6 +20,7 @@ enum AgentTaskStatus: String, Codable, Sendable, CaseIterable {
         switch self {
         case .queued: "Ready"
         case .running: "Working"
+        case .recovering: "Paused after restart"
         case .waitingForPermission: "Waiting for you"
         case .waitingForCompatibilityCLI: "Needs approval"
         case .waitingForInput: "Waiting for your answer"
@@ -150,28 +153,15 @@ enum AgentContextReference {
 }
 
 extension AgentTask {
-    /// The failure card's first line: what did and did not happen (§8.2). The failure
-    /// string itself is the "what went wrong" half; this adds the "what did not happen"
-    /// half so the card is never a bare error.
+    /// History records results, not complete effect receipts. Missing links cannot
+    /// prove that nothing changed before failure or interruption.
     var failureSummary: String {
         let reason = (failure ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if artifacts.isEmpty {
-            return reason.isEmpty
-                ? "Nothing was created or sent."
-                : "\(reason) Nothing was created or sent."
-        }
-        return reason.isEmpty
-            ? "Something I was making did not finish."
-            : reason
+        return reason.isEmpty ? "This task did not finish." : reason
     }
 
-    /// The explicit undo line. A failed run that wrote nothing is the common case and
-    /// says so by name — "nothing to undo" is the honest answer, and silence here is
-    /// what leaves a person hunting for a bag to empty.
+    /// No undo outcome is inferred from the artifact list.
     var failureUndoLine: String {
-        if artifacts.isEmpty {
-            return "Nothing was added anywhere, so nothing to undo."
-        }
-        return "Nothing was undone \u{2014} what I made is below."
+        "Review any changes before trying again."
     }
 }

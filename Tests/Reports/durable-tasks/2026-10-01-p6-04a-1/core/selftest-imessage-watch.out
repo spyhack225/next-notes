@@ -1,0 +1,4 @@
+IMESSAGE_WATCH_MEASURED: settling: 3 waits × 0.25 seconds = 750ms of virtual time, then resolved with 1 attachment
+IMESSAGE_WATCH_MEASURED: per_message_deadline: rows 2 and 3 delivered at 12ms, row 1 (never settles) at 2044ms, budget 8 × 250ms = 2000ms
+IMESSAGE_WATCH_MEASURED: idle: 1501ms armed and silent, passes 0, attachment queries 0
+IMESSAGE_WATCH_OK: 15 cases

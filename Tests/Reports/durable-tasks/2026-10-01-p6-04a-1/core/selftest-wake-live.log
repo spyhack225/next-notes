@@ -1,0 +1,45 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO --selftest-wake-live --selftest-timeout 600 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/durable-tasks/2026-10-01-p6-04a-1/core/selftest-wake-live.out
+2026-10-01 06:12:54.880 NextNotes[60929:1395238] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+WAKE_HIT 17/24
+WAKE_FALSE 3/32
+WAKE_HIT_RATE 0.71
+WAKE_LIVE_FAILED: 17/24 hits, 3/32 false at sens 0.6 — hit rate 0.71 under 0.8 at sensitivity 0.6; 3 false accepts over 2 at sensitivity 0.6
+2026-10-01 06:13:23.465 NextNotes[60929:1395238] NSQuitAlwaysKeepsWindows=NO
+  WAKE_LIVE_PHRASE: Hey Will (24 hits, 32 near-misses from /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Fixtures/wake)
+  WAKE_LIVE_CLIP hits/hit-01-samantha-150.wav [hit/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-02-samantha-190.wav [hit/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-03-samantha-230.wav [hit/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-04-daniel-150.wav [hit/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-05-daniel-190.wav [miss/miss/miss] as "unattributed"
+  WAKE_LIVE_CLIP hits/hit-06-daniel-230.wav [miss/miss/miss] as "unattributed"
+  WAKE_LIVE_CLIP hits/hit-07-karen-150.wav [miss/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-08-karen-190.wav [miss/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-09-karen-230.wav [miss/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-10-moira-150.wav [hit/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-11-moira-190.wav [hit/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-12-moira-230.wav [hit/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-13-tessa-150.wav [miss/hit/hit] as "softened the last consonant — “hey wi”"
+  WAKE_LIVE_CLIP hits/hit-14-tessa-190.wav [hit/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-15-tessa-230.wav [hit/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-16-rishi-150.wav [hit/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-17-rishi-190.wav [hit/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-18-rishi-230.wav [hit/hit/hit] as "as written"
+  WAKE_LIVE_CLIP hits/hit-19-jacques-150.wav [miss/hit/hit] as "tense vowel — “hey weel”"
+  WAKE_LIVE_CLIP hits/hit-20-jacques-190.wav [miss/miss/miss] as "unattributed"
+  WAKE_LIVE_CLIP hits/hit-21-jacques-230.wav [miss/miss/miss] as "unattributed"
+  WAKE_LIVE_CLIP hits/hit-22-thomas-150.wav [miss/miss/miss] as "unattributed"
+  WAKE_LIVE_CLIP hits/hit-23-thomas-190.wav [miss/miss/miss] as "unattributed"
+  WAKE_LIVE_CLIP hits/hit-24-thomas-230.wav [miss/miss/miss] as "unattributed"
+  WAKE_LIVE_FALSE_ACCEPT near-miss/neg-04-bill-numbers-in.wav @0.6 — “hey Bill did the numbers come in”
+  WAKE_LIVE_FALSE_ACCEPT near-miss/neg-04-bill-numbers-in.wav @1.0 — “hey Bill did the numbers come in”
+  WAKE_LIVE_FALSE_ACCEPT near-miss/neg-12-where-keys.wav @0.6 as "as written" — “hey where did I put my keys”
+  WAKE_LIVE_FALSE_ACCEPT near-miss/neg-12-where-keys.wav @1.0 — “hey where did I put my keys”
+  WAKE_LIVE_FALSE_ACCEPT near-miss/neg-22-win-or-lose.wav @0.6 as "as written" — “hey win or lose we played well”
+  WAKE_LIVE_FALSE_ACCEPT near-miss/neg-22-win-or-lose.wav @1.0 — “hey win or lose we played well”
+  WAKE_LIVE_GRID sens=0.0 hits=12/24 false=0/32
+  WAKE_LIVE_GRID sens=0.6 hits=17/24 false=3/32
+  WAKE_LIVE_GRID sens=1.0 hits=17/24 false=3/32
+  WAKE_VARIANT "as written": 15
+  WAKE_VARIANT "softened the last consonant — “hey wi”": 1
+  WAKE_VARIANT "tense vowel — “hey weel”": 1
+  WAKE_MIC: no local captures (record into /Users/sergekadjo/Library/Application Support/Next Notes/WakeWord/LiveFixtures to cover real rooms)

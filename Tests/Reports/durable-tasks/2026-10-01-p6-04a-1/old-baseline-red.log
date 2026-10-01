@@ -1,0 +1,13 @@
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=false elapsed=0.001303625 seconds
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=true elapsed=0.00120425 seconds
+TASK_HISTORY_FAILED: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_WRONG: durability-running did not become failed
+TASK_DURABILITY_WRONG: durability-running lost the exact quit message
+TASK_DURABILITY_WRONG: durability-queued lost the exact quit message
+TASK_DURABILITY_WRONG: restart unexpectedly rewrote the persisted ledger
+TASK_DURABILITY_WRONG: JSON failure was not reported by the real manager
+TASK_DURABILITY_FAILED: 5 assertions

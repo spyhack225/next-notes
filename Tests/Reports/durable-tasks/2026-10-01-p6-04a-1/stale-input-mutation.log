@@ -1,0 +1,9 @@
+TASK_PERSISTENCE_FAILED: Task history could not be saved. The durable copy was not changed.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_HISTORY_FAILED: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_HISTORY_FAILED: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_RECOVERY_WRONG: stale input changed recovering work
+TASK_RECOVERY_WRONG: stale input persisted a false transition
+TASK_RECOVERY_WRONG: stale input changed completed work
+TASK_RECOVERY_WRONG: stale input persisted a false transition
+TASK_RECOVERY_FAILED: 4 assertions

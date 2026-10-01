@@ -1,0 +1,11 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes -ApplePersistenceIgnoreState YES -NSQuitAlwaysKeepsWindows NO --selftest-voice-session-reducer
+2026-10-01 06:10:49.939 NextNotes[60496:1390943] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/ai.pivotstudio.nextnotes.savedState
+2026-10-01 06:10:50.543 NextNotes[60496:1390943] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+2026-10-01 06:10:52.301 NextNotes[60496:1390943] NSQuitAlwaysKeepsWindows=NO
+VOICE_SESSION_REDUCER_PURE: traces=10 failures=0
+VOICE_CONVERSATION_HELD: after_read=false status=running revision=0 effects=0
+VOICE_CONVERSATION_HELD: after_read=true status=running revision=0 effects=0
+VOICE_CONVERSATION_OK
+VOICE_SESSION_WAKE_ISOLATION: skipped=7 listening=false subscribed=false
+VOICE_SESSION_SHADOW: events=121 divergences=0 coverage=["effectsHeld": 39, "turnPending": 39, "floor": 39, "output": 39] output_present=18 unavailable=[:]
+VOICE_SESSION_REDUCER_OK: 10 traces and actual capture/output producers

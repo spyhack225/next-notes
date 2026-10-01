@@ -10,6 +10,8 @@ final class AgentTaskManager {
     private(set) var tasks: [AgentTask] = []
     /// A storage failure is visible to diagnostics/UI without claiming both files committed.
     private(set) var lastPersistenceResult: AgentTaskPersistenceResult?
+    /// Failed history initialization blocks all record writes and new execution.
+    private(set) var historyReadFailure: String?
     @ObservationIgnored private var running: [String: Task<Void, Never>] = [:]
     /// A one-shot approval is intentionally not persisted as a standing grant. Keep the
     /// approval long enough for the exact queued retry to hand it to ActionOrchestrator.
@@ -22,14 +24,43 @@ final class AgentTaskManager {
 
     init(store: AgentTaskStore = .shared) {
         self.store = store
-        tasks = store.load().map { task in
-            var task = task
-            if task.status == .running || task.status == .queued {
-                task.status = .failed
-                task.failure = "Next Notes quit while this task was running."
+        do { tasks = try store.load() }
+        catch {
+            historyReadFailure = AgentTaskPersistenceResult.loadFailed.diagnostic
+            lastPersistenceResult = .loadFailed
+            if let diagnostic = historyReadFailure {
+                if SelfTest.isRunning { SelfTest.diagnostic("TASK_HISTORY_FAILED: \(diagnostic)") }
+                else { Log.app.error("\(diagnostic, privacy: .public)") }
             }
-            return task
+            return
         }
+        let now = Date()
+        var events: [TaskJournalEventDraft] = []
+        for index in tasks.indices {
+            let before = tasks[index]
+            guard before.status == .running || before.status == .queued else { continue }
+            // The actual typed producer uses text; default and older records use user.
+            // Voice/routine/remote/unknown owners keep their interrupted-history baseline.
+            let typed = ["user", "text", "selftest"].contains(before.source)
+                && before.scheduleID == nil && ["local", "acp"].contains(before.backend)
+            if typed {
+                let plan = TaskRecoveryPlanner.plan(TaskRecoveryInput(task: before, now: now))
+                switch plan.action {
+                case .holdForReview:
+                    tasks[index].status = .recovering
+                    tasks[index].progress = plan.reason
+                case .reportFailed:
+                    tasks[index].status = .failed
+                    tasks[index].failure = plan.reason
+                case .noAction, .restoreCard: continue
+                }
+            } else {
+                tasks[index].status = .failed
+                tasks[index].failure = "Next Notes quit while this task was running."
+            }
+            events += transitionEvents(from: before, to: tasks[index], kinds: [])
+        }
+        if !events.isEmpty { persist(events: events) }
     }
 
     func task(id: String) -> AgentTask? {
@@ -47,7 +78,7 @@ final class AgentTaskManager {
         acpCLI: String = "",
         source: String = "user"
     ) -> AgentTask {
-        let task = AgentTask(
+        var task = AgentTask(
             objective: objective,
             source: source,
             contextReferences: contextReferences,
@@ -57,6 +88,11 @@ final class AgentTaskManager {
             backend: backend.rawValue,
             acpCLI: acpCLI
         )
+        guard historyReadFailure == nil else {
+            task.status = .failed
+            task.failure = historyReadFailure
+            return task // Not inserted, persisted, presented as working or dispatched.
+        }
         tasks.insert(task, at: 0)
         persist(events: creationEvents(task))
         if projectsActivity {
@@ -74,6 +110,7 @@ final class AgentTaskManager {
     /// tasks. It is never announced into the conversation — a routine delivers through its
     /// own notification — and never handed to a backend.
     func beginScheduledRun(_ task: AgentTask) {
+        guard historyReadFailure == nil else { return }
         tasks.insert(task, at: 0)
         persist(events: creationEvents(task))
         guard !SelfTest.isRunning else { return }
@@ -93,6 +130,7 @@ final class AgentTaskManager {
     }
 
     func beginVoiceObjective(id: UUID, objective: String) {
+        guard historyReadFailure == nil else { return }
         let task = AgentTask(id: id.uuidString, objective: objective, source: "voice",
                              status: .running, progress: "Working locally")
         tasks.insert(task, at: 0)
@@ -121,6 +159,7 @@ final class AgentTaskManager {
     }
 
     func cancel(_ id: String) {
+        guard historyReadFailure == nil else { return }
         if let uuid = UUID(uuidString: id),
            VoiceConversationCoordinator.shared.jobs.contains(where: { $0.id == uuid && $0.status == "running" }) {
             VoiceConversationCoordinator.shared.cancel(uuid)
@@ -139,6 +178,7 @@ final class AgentTaskManager {
     /// Approves exactly one already parked ACP handshake failure. The backend will consume
     /// this token before entering ActionOrchestrator; it cannot authorize another run.
     func approveCompatibilityCLI(taskID: String) {
+        guard historyReadFailure == nil else { return }
         guard let task = task(id: taskID),
               task.status == .waitingForCompatibilityCLI,
               ACPCompatibilityCLIBackend.request(for: task) != nil
@@ -155,7 +195,9 @@ final class AgentTaskManager {
     }
 
     func respondPermission(taskID: String, approved: Bool, duration: PermissionDuration = .once) {
-        guard var task = task(id: taskID), let tool = task.tool else { return }
+        guard historyReadFailure == nil else { return }
+        guard var task = task(id: taskID), task.status == .waitingForPermission,
+              let tool = task.tool else { return }
         if approved {
             PermissionGrantStore.shared.add(PermissionGrant(
                 toolID: tool,
@@ -183,7 +225,8 @@ final class AgentTaskManager {
     }
 
     func respondInput(taskID: String, text: String) {
-        guard var task = task(id: taskID) else { return }
+        guard historyReadFailure == nil else { return }
+        guard var task = task(id: taskID), task.status == .waitingForInput else { return }
         task.arguments["input"] = text
         task.status = .queued
         updateRecord(task, kinds: [.inputProvided])
@@ -193,8 +236,9 @@ final class AgentTaskManager {
     }
 
     private func execute(_ id: String) async {
+        guard historyReadFailure == nil else { return }
         guard var task = task(id: id) else { return }
-        guard !Task.isCancelled, task.status != .cancelled else { return }
+        guard !Task.isCancelled, task.status == .queued else { return }
         task.status = .running
         task.progress = "Starting…"
         updateRecord(task)
@@ -285,6 +329,7 @@ final class AgentTaskManager {
     }
 
     private func update(_ id: String, kinds: [TaskEventKind] = [], mutate: (inout AgentTask) -> Void) {
+        guard historyReadFailure == nil else { return }
         guard let index = tasks.firstIndex(where: { $0.id == id }) else { return }
         let before = tasks[index]
         mutate(&tasks[index])
@@ -310,6 +355,7 @@ final class AgentTaskManager {
         if task.status != before.status {
             switch task.status {
             case .running: result.append(.workerStarted)
+            case .recovering: result.append(.recoveryHeld)
             case .waitingForPermission, .waitingForCompatibilityCLI: result.append(.permissionRequested)
             case .waitingForInput: result.append(.inputRequested)
             case .completed: result.append(.jobCompleted)
@@ -337,6 +383,7 @@ final class AgentTaskManager {
     }
 
     private func persist(events: [TaskJournalEventDraft] = []) {
+        guard historyReadFailure == nil else { return }
         guard !SelfTest.isRunning || store.allowsHarnessPersistence else { return }
         let result = store.save(tasks, events: events)
         lastPersistenceResult = result
@@ -350,6 +397,7 @@ final class AgentTaskManager {
     /// Called from `execute` and from `--selftest-tasks`'s browser-run fixture; the
     /// take-on-read keeps a second fold from duplicating the links.
     func foldArtifacts(taskID: String) {
+        guard historyReadFailure == nil else { return }
         let captured = AgentArtifactLedger.take(taskID: taskID)
         guard !captured.isEmpty else { return }
         update(taskID) { item in

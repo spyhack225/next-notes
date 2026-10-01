@@ -74,13 +74,28 @@ struct VoiceJob { let id: UUID; let status: String }
     func recordAssistant(_ text: String, contextKind: String) { fatalError("fixture must not record conversation") }
 }
 @MainActor final class AgentAuditLog {
-    enum Kind { case reply }
+    enum Kind: Equatable { case reply, task }
+    struct Entry { let kind: Kind }
+    var entries: [Entry] = []
     static let shared = AgentAuditLog()
     func record(kind: Kind, title: String) { fatalError("fixture must not audit") }
 }
 @MainActor final class VoiceAnnouncementQueue {
     static let shared = VoiceAnnouncementQueue()
     func enqueue(_ text: String) { fatalError("fixture must not speak") }
+}
+enum AgentUtteranceSource { case text }
+struct AgentTurn { let reply: String; let delegated: Bool }
+@MainActor final class RealtimeAgent {
+    static let shared = RealtimeAgent()
+    var taskManagerForTesting: AgentTaskManager?
+    func handle(_ text: String, source: AgentUtteranceSource) async -> AgentTurn {
+        fatalError("standalone wrapper compilation does not prove real Agent routing")
+    }
+}
+@MainActor final class AgentHarnessRouter {
+    static let shared = AgentHarnessRouter()
+    var availabilityProbe: ((String) -> Bool)?
 }
 struct AgentTool: Sendable {}
 struct AgentToolResult: Sendable {
@@ -126,6 +141,9 @@ struct PermissionPolicy: Sendable {
 with tempfile.TemporaryDirectory(prefix="nextnotes-task-durability-") as temporary:
     folder = pathlib.Path(temporary)
     stubs = folder / "Collaborators.swift"
+    if "--recovery-foundation" in sys.argv:
+        collaborators = collaborators.replace("TaskStoreSelfTest.run()", "TaskRecoverySelfTest.run()")
+        collaborators = collaborators.replace("TASK_DURABILITY_OK:", "TASK_RECOVERY_OK:")
     stubs.write_text(collaborators)
     manager = SOURCE / "Agent/Tasks/AgentTaskManager.swift"
     store = SOURCE / "Agent/Tasks/AgentTaskStore.swift"
@@ -134,9 +152,25 @@ with tempfile.TemporaryDirectory(prefix="nextnotes-task-durability-") as tempora
     if "--omit-restart-mapping" in sys.argv:
         before = manager.read_text()
         broken = before.replace("if task.status == .running || task.status == .queued {", "if false { // mutation: omit restart mapping")
+        if before == broken:
+            broken = before.replace("guard before.status == .running || before.status == .queued else { continue }",
+                                    "guard false else { continue } // mutation: omit actual restart decisions")
         assert before != broken, "mutation must change the actual restart producer"
         manager = folder / "AgentTaskManager.swift"
         manager.write_text(broken)
+    if "--accept-stale-input" in sys.argv:
+        before = manager.read_text()
+        broken = before.replace("guard var task = task(id: taskID), task.status == .waitingForInput else { return }",
+                                "guard var task = task(id: taskID) else { return }")
+        assert before != broken, "mutation must break the real input response producer"
+        manager = folder / "AgentTaskManager.swift"
+        manager.write_text(broken)
+    if "--ignore-failed-load" in sys.argv:
+        before = store.read_text()
+        broken = before.replace("guard !failedLoad else { return .loadFailed }", "// mutation: allow overwriting failed-load history")
+        assert before != broken, "mutation must break the actual storage failure latch"
+        store = folder / "AgentTaskStore.swift"
+        store.write_text(broken)
     if "--ignore-injected-path" in sys.argv:
         before = store.read_text()
         broken = before.replace("var storageURL: URL { injectedFileURL ?? Self.fileURL }",
@@ -189,6 +223,9 @@ with tempfile.TemporaryDirectory(prefix="nextnotes-task-durability-") as tempora
                     str(SOURCE / "Agent/Tasks/Durable/TaskDurability.swift"),
                     str(SOURCE / "Agent/Tasks/Durable/TaskStoreSchema.swift"),
                     str(journal),
+                    str(SOURCE / "Agent/Tasks/Durable/TaskRecoveryPlanner.swift"),
+                    str(SOURCE / "Agent/Tasks/Durable/TaskRecoveryPlannerSelfTest.swift"),
+                    str(SOURCE / "Agent/Tasks/Durable/TaskRecoverySelfTest.swift"),
                     str(durable_store),
                     str(manager), str(SOURCE / "Agent/Tasks/Durable/TaskStoreSelfTest.swift"),
                     "-o", str(binary)], check=True)

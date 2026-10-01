@@ -73,6 +73,9 @@ final class RealtimeAgent {
     /// The override is honoured only under the harness, because `Settings` writes
     /// `UserDefaults.standard` and a self-test must never move the owner's saved choice.
     var readApprovalOverrideForTesting: Bool?
+    /// An explicitly supplied fixture manager exercises real task submission.
+    /// Uninjected harness turns retain their existing no-dispatch behavior.
+    @ObservationIgnored var taskManagerForTesting: AgentTaskManager?
     var readsRunWithoutAsking: Bool {
         if SelfTest.isRunning, let override = readApprovalOverrideForTesting { return override }
         return Settings.shared.agentAutoRunReadTools
@@ -442,10 +445,11 @@ final class RealtimeAgent {
         case .delegate:
             applyHarness(choice)
             replyTrace.end(note: "task")
+            let submission = delegate(text, source: source, choice: choice)
             return conclude(
                 mine,
-                delegate(text, source: source, choice: choice),
-                delegated: true,
+                submission.reply,
+                delegated: submission.delegated,
                 route: "task"
             )
         case .toolLoop:
@@ -591,11 +595,12 @@ final class RealtimeAgent {
         _ text: String,
         source: AgentUtteranceSource,
         choice: AgentHarnessChoice
-    ) -> String {
+    ) -> AgentTurn {
         let intent = AgentHarnessRouter.intent(for: text)
         let backend = choice.backend
-        if !SelfTest.isRunning {
-            let task = AgentTaskManager.shared.submit(
+        let manager = SelfTest.isRunning ? taskManagerForTesting : AgentTaskManager.shared
+        if let manager {
+            let task = manager.submit(
                 objective: text,
                 contextReferences: AgentContext.current.references,
                 meetingID: MeetingContextStore.shared.current?.meetingID,
@@ -603,6 +608,9 @@ final class RealtimeAgent {
                 acpCLI: choice.acpCLI,
                 source: source.rawValue
             )
+            guard task.status != .failed else {
+                return AgentTurn(reply: task.failure ?? "I couldn’t start that background task.", delegated: false)
+            }
             AgentAuditLog.shared.record(kind: .task, title: task.objective, taskID: task.id)
         }
         AgentHarnessRouter.shared.record(choice, snippet: text, intent: intent)
@@ -610,7 +618,7 @@ final class RealtimeAgent {
         if !choice.note.isEmpty {
             reply = choice.note + " " + reply
         }
-        return reply
+        return AgentTurn(reply: reply, delegated: true)
     }
 
     func beginWork(title: String) {

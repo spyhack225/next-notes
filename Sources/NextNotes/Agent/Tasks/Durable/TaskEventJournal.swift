@@ -5,7 +5,7 @@ enum TaskEventKind: String, Codable, Sendable {
     case jobCreated, workerStarted, toolStarted, toolCompleted
     case permissionRequested, permissionApproved, permissionDenied
     case inputRequested, inputProvided
-    case artifactCaptured, heartbeat, retryScheduled, workerRecovered
+    case artifactCaptured, heartbeat, retryScheduled, workerRecovered, recoveryHeld
     case jobCompleted, jobFailed, jobCancelled
     case revisionRecorded, dependencySatisfied, staleAttemptDropped, outcomeResolved
 }
