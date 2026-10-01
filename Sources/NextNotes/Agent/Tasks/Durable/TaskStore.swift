@@ -102,9 +102,11 @@ final class TaskStore: @unchecked Sendable {
 
     /// One transaction replaces the canonical JSON snapshot's current rows. UPSERT updates
     /// retained identities without deleting their event/dependency rows. No second owner.
-    func replaceSnapshot(_ tasks: [AgentTask], failFast: Bool = false) throws {
+    func replaceSnapshot(_ tasks: [AgentTask], failFast: Bool = false,
+                         events: [TaskJournalEventDraft] = [], now: Date = Date()) throws {
         guard Set(tasks.map(\.id)).count == tasks.count,
-              tasks.allSatisfy({ $0.createdAt.timeIntervalSince1970.isFinite }) else {
+              tasks.allSatisfy({ $0.createdAt.timeIntervalSince1970.isFinite }),
+              events.allSatisfy({ event in tasks.contains { $0.id == event.taskID } }) else {
             throw TaskStoreError.invalidRecord
         }
         if failFast {
@@ -149,7 +151,13 @@ final class TaskStore: @unchecked Sendable {
                     try Self.run(db, "DELETE FROM task_artifact WHERE task_id=? AND ordinal>=?",
                         [.text(task.id), .integer(Int64(task.artifacts.count))])
                 }
+                try TaskEventJournal.append(events, to: db)
+                try TaskEventJournal.compact(in: db, now: now)
             }
+    }
+
+    func journal(taskID: String) throws -> [TaskJournalEvent] {
+        try withConnection { try TaskEventJournal.load(from: $0, taskID: taskID) }
     }
 
     /// Diagnostics and later migration use this; AgentTaskManager still reads only JSON.

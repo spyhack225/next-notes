@@ -23,11 +23,20 @@ final class PermissionGate {
     func ask(_ request: PermissionRequest) async -> Bool {
         askCount += 1
         let requestID = request.id
-        return await withTaskCancellationHandler {
+        // Only the original task-bound caller supplies journal provenance. Callback
+        // transports without that context stay unbound until their own bridge is verified.
+        let context = TaskEventJournal.current.flatMap { $0.taskID == request.taskID ? $0 : nil }
+        var admitted = false
+        let approved = await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 guard !Task.isCancelled else {
                     continuation.resume(returning: false)
                     return
+                }
+                admitted = true
+                if let context {
+                    context.record(TaskJournalEventDraft(taskID: context.taskID,
+                        kind: .permissionRequested, attempt: context.attempt))
                 }
                 if waiter == nil { present(request, continuation: continuation) }
                 else { queued.append((request, continuation)) }
@@ -37,6 +46,13 @@ final class PermissionGate {
                 PermissionGate.shared.cancelPending(id: requestID)
             }
         }
+        if admitted, let context {
+            // False includes cancellation/withdrawal. It does not assert a human denial.
+            context.record(TaskJournalEventDraft(taskID: context.taskID,
+                kind: approved ? .permissionApproved : .permissionDenied,
+                detail: approved ? nil : "notApproved", attempt: context.attempt))
+        }
+        return approved
     }
 
     private func present(_ request: PermissionRequest,

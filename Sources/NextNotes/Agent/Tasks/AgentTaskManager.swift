@@ -18,6 +18,7 @@ final class AgentTaskManager {
     /// It is never persisted or represented as a permission grant.
     @ObservationIgnored private var approvedCompatibilityTaskIDs: Set<String> = []
     @ObservationIgnored private let store: AgentTaskStore
+    private var projectsActivity: Bool { !SelfTest.isRunning || !store.allowsHarnessPersistence }
 
     init(store: AgentTaskStore = .shared) {
         self.store = store
@@ -57,9 +58,11 @@ final class AgentTaskManager {
             acpCLI: acpCLI
         )
         tasks.insert(task, at: 0)
-        persist()
-        AgentActivityStore.shared.begin(task: task, title: objective)
-        IslandState.shared.showBackgroundAgentWork(title: objective)
+        persist(events: creationEvents(task))
+        if projectsActivity {
+            AgentActivityStore.shared.begin(task: task, title: objective)
+            IslandState.shared.showBackgroundAgentWork(title: objective)
+        }
         running[task.id] = Task { @MainActor [weak self] in
             await self?.execute(task.id)
         }
@@ -72,7 +75,7 @@ final class AgentTaskManager {
     /// own notification — and never handed to a backend.
     func beginScheduledRun(_ task: AgentTask) {
         tasks.insert(task, at: 0)
-        persist()
+        persist(events: creationEvents(task))
         guard !SelfTest.isRunning else { return }
         AgentActivityStore.shared.begin(task: task, title: task.objective)
         IslandState.shared.showBackgroundAgentWork(title: task.objective)
@@ -93,8 +96,8 @@ final class AgentTaskManager {
         let task = AgentTask(id: id.uuidString, objective: objective, source: "voice",
                              status: .running, progress: "Working locally")
         tasks.insert(task, at: 0)
+        persist(events: creationEvents(task))
         guard !SelfTest.isRunning else { return }
-        persist()
         AgentActivityStore.shared.begin(task: task, title: objective)
         IslandState.shared.showBackgroundAgentWork(title: objective)
     }
@@ -141,7 +144,7 @@ final class AgentTaskManager {
               ACPCompatibilityCLIBackend.request(for: task) != nil
         else { return }
         approvedCompatibilityTaskIDs.insert(taskID)
-        update(taskID) { item in
+        update(taskID, kinds: [.permissionApproved]) { item in
             item.status = .queued
             item.progress = "Starting compatibility CLI once · weaker progress and permissions than ACP"
         }
@@ -162,12 +165,12 @@ final class AgentTaskManager {
             ))
             approvedTaskIDs.insert(taskID)
             task.status = .queued
-            updateRecord(task)
+            updateRecord(task, kinds: [.permissionApproved])
             running[taskID] = Task { @MainActor [weak self] in
                 await self?.execute(taskID)
             }
         } else {
-            update(taskID) { item in
+            update(taskID, kinds: [.permissionDenied]) { item in
                 item.status = .cancelled
                 item.failure = "Permission denied."
             }
@@ -183,7 +186,7 @@ final class AgentTaskManager {
         guard var task = task(id: taskID) else { return }
         task.arguments["input"] = text
         task.status = .queued
-        updateRecord(task)
+        updateRecord(task, kinds: [.inputProvided])
         running[taskID] = Task { @MainActor [weak self] in
             await self?.execute(taskID)
         }
@@ -198,12 +201,14 @@ final class AgentTaskManager {
 
         do {
             let outcome: AgentTaskOutcome
-            if task.backend == AgentBackendKind.acp.rawValue,
-               approvedCompatibilityTaskIDs.remove(id) != nil {
-                outcome = try await ACPCompatibilityCLIBackend.submit(task, explicitApproval: true)
-            } else {
-                let backend = AgentBackendRegistry.shared.backend(named: task.backend)
-                outcome = try await backend.submit(task)
+            outcome = try await TaskEventJournal.$current.withValue(journalContext(taskID: id)) {
+                if task.backend == AgentBackendKind.acp.rawValue,
+                   approvedCompatibilityTaskIDs.remove(id) != nil {
+                    return try await ACPCompatibilityCLIBackend.submit(task, explicitApproval: true)
+                } else {
+                    let backend = AgentBackendRegistry.shared.backend(named: task.backend)
+                    return try await backend.submit(task)
+                }
             }
             try Task.checkCancellation()
             // P1-5: nested tool calls park their reference and link on the ledger; fold
@@ -217,10 +222,10 @@ final class AgentTaskManager {
                 item.artifacts = outcome.artifacts + captured.filter { !outcome.artifacts.contains($0) }
                 item.failure = outcome.failure
             }
-            AgentActivityStore.shared.finish(
+            if projectsActivity { AgentActivityStore.shared.finish(
                 taskID: id,
                 title: outcome.status == .completed ? (outcome.result ?? "Done") : (outcome.failure ?? "Failed")
-            )
+            ) }
             if let result = outcome.result {
                 announce(result)
             } else if let failure = outcome.failure {
@@ -241,12 +246,12 @@ final class AgentTaskManager {
                     item.compatibilityDirectory = request.directory
                 }
                 approvedCompatibilityTaskIDs.remove(id)
-                AgentActivityStore.shared.update(
+                if projectsActivity { AgentActivityStore.shared.update(
                     taskID: id,
                     kind: .waiting,
                     title: "ACP unavailable",
                     detail: "Compatibility mode requires a one-shot approval and has weaker progress and permissions."
-                )
+                ) }
                 running[id] = nil
                 return
             }
@@ -255,19 +260,19 @@ final class AgentTaskManager {
                     item.status = .waitingForPermission
                     item.progress = title
                 }
-                IslandState.shared.propose(IslandProposal(
+                if projectsActivity { IslandState.shared.propose(IslandProposal(
                     id: id,
                     title: title,
                     detail: task.objective,
                     meetingID: task.meetingID
-                ))
+                )) }
                 return
             }
             update(id) { item in
                 item.status = .failed
                 item.failure = error.localizedDescription
             }
-            AgentActivityStore.shared.finish(taskID: id, title: error.localizedDescription)
+            if projectsActivity { AgentActivityStore.shared.finish(taskID: id, title: error.localizedDescription) }
             announce(error.localizedDescription)
         } catch {
             update(id) { item in
@@ -279,22 +284,61 @@ final class AgentTaskManager {
         running[id] = nil
     }
 
-    private func update(_ id: String, mutate: (inout AgentTask) -> Void) {
+    private func update(_ id: String, kinds: [TaskEventKind] = [], mutate: (inout AgentTask) -> Void) {
         guard let index = tasks.firstIndex(where: { $0.id == id }) else { return }
+        let before = tasks[index]
         mutate(&tasks[index])
-        persist()
+        persist(events: transitionEvents(from: before, to: tasks[index], kinds: kinds))
     }
 
-    private func updateRecord(_ task: AgentTask) {
-        if let index = tasks.firstIndex(where: { $0.id == task.id }) {
-            tasks[index] = task
+    private func updateRecord(_ task: AgentTask, kinds: [TaskEventKind] = []) {
+        update(task.id, kinds: kinds) { $0 = task }
+    }
+
+    private func creationEvents(_ task: AgentTask) -> [TaskJournalEventDraft] {
+        let attempt = task.durability?.attempt ?? 0
+        var events = [TaskJournalEventDraft(taskID: task.id, kind: .jobCreated, attempt: attempt)]
+        // A scheduled/voice producer can hand us work already started; no invented
+        // terminal event for an imported completed history row.
+        if task.status == .running { events.append(TaskJournalEventDraft(taskID: task.id, kind: .workerStarted, attempt: attempt)) }
+        return events
+    }
+
+    private func transitionEvents(from before: AgentTask, to task: AgentTask,
+                                  kinds: [TaskEventKind]) -> [TaskJournalEventDraft] {
+        var result = kinds
+        if task.status != before.status {
+            switch task.status {
+            case .running: result.append(.workerStarted)
+            case .waitingForPermission, .waitingForCompatibilityCLI: result.append(.permissionRequested)
+            case .waitingForInput: result.append(.inputRequested)
+            case .completed: result.append(.jobCompleted)
+            case .failed: result.append(.jobFailed)
+            case .cancelled: result.append(.jobCancelled)
+            case .queued: break // Approval/input producers supply their factual reason.
+            }
         }
-        persist()
+        let attempt = task.durability?.attempt ?? 0
+        var events = result.map { TaskJournalEventDraft(taskID: task.id, kind: $0, attempt: attempt) }
+        let added = task.artifacts.filter { !before.artifacts.contains($0) }
+        if !added.isEmpty {
+            events.append(TaskJournalEventDraft(taskID: task.id, kind: .artifactCaptured,
+                detail: "count:\(added.count)", attempt: attempt))
+        }
+        return events
     }
 
-    private func persist() {
+    func journalContext(taskID: String) -> TaskJournalContext? {
+        guard let task = task(id: taskID) else { return nil }
+        return TaskJournalContext(taskID: taskID, attempt: task.durability?.attempt ?? 0, record: { [weak self] event in
+            guard event.taskID == taskID, self?.task(id: taskID) != nil else { return }
+            self?.persist(events: [event])
+        })
+    }
+
+    private func persist(events: [TaskJournalEventDraft] = []) {
         guard !SelfTest.isRunning || store.allowsHarnessPersistence else { return }
-        let result = store.save(tasks)
+        let result = store.save(tasks, events: events)
         lastPersistenceResult = result
         if let diagnostic = result.diagnostic {
             if SelfTest.isRunning { SelfTest.diagnostic("TASK_PERSISTENCE_FAILED: \(diagnostic)") }
@@ -318,6 +362,7 @@ final class AgentTaskManager {
     /// Background work used to finish only in the task list. A failure the conversation
     /// never hears is the same shape as a turn that never replied.
     private func announce(_ text: String) {
+        guard projectsActivity else { return }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         // Tagged: a background result is content the user did not write, so the memory review
@@ -331,6 +376,7 @@ final class AgentTaskManager {
     /// The artifact half of a finished run, persisted in the conversation (P1-5).
     /// Never spoken: a URL read out loud is noise, and the links are for the result card.
     private func announceArtifacts(taskID: String) {
+        guard projectsActivity else { return }
         guard let task = task(id: taskID), !task.artifacts.isEmpty else { return }
         let lines = "What I made for you:\n"
             + task.artifacts.map { "\u{2022} \($0)" }.joined(separator: "\n")

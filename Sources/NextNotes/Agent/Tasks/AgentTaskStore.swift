@@ -54,7 +54,7 @@ final class AgentTaskStore {
     }
 
     @discardableResult
-    func save(_ tasks: [AgentTask]) -> AgentTaskPersistenceResult {
+    func save(_ tasks: [AgentTask], events: [TaskJournalEventDraft] = []) -> AgentTaskPersistenceResult {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
@@ -70,7 +70,7 @@ final class AgentTaskStore {
             return .jsonFailed
         }
         do {
-            try mirror.replaceSnapshot(canonical, failFast: true)
+            try mirror.replaceSnapshot(canonical, failFast: true, events: events)
             return .saved
         } catch {
             // JSON remains readable/authoritative. There is no cross-file atomicity claim.

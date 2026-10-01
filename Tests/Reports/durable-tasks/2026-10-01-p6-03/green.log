@@ -1,0 +1,8 @@
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=false elapsed=0.003262125 seconds
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=true elapsed=0.003461208 seconds
+TASK_PERSISTENCE_FAILED: Task history could not be saved. The durable copy was not changed.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_OK: 28 cases

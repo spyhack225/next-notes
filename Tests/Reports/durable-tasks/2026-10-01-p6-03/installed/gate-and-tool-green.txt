@@ -1,0 +1,10 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-durability
+2026-10-01 04:26:38.719 NextNotes[47348:1227083] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+TASK_DURABILITY_OK: 37 cases
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=false elapsed=0.001247584 seconds
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=true elapsed=0.001829 seconds
+TASK_PERSISTENCE_FAILED: Task history could not be saved. The durable copy was not changed.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.

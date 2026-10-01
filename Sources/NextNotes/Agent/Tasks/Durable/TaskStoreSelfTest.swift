@@ -4,7 +4,7 @@ import SQLite3
 /// P6-01 characterizes today's restart behavior. It does not resume or retry work.
 @MainActor
 enum TaskStoreSelfTest {
-    private enum FixtureError: Error { case unsafeStoreLocation }
+    private enum FixtureError: Error { case unsafeStoreLocation, backingFailure }
 
     static func run() -> String {
         let before = SelfTestStoreGuard.take()
@@ -72,6 +72,8 @@ enum TaskStoreSelfTest {
             // Today the restart mapping is in memory; initialization does not rewrite JSON.
             check(AgentTaskStore(fileURL: file).load() == fixtures, "restart unexpectedly rewrote the persisted ledger")
             caseCount += try storageCases(in: directory, check: check)
+            caseCount += try journalProducerCases(in: directory, check: check)
+            caseCount += try journalRetentionCases(in: directory, check: check)
         } catch {
             failures.append("isolated fixture construction failed: \(error.localizedDescription)")
         }
@@ -81,6 +83,120 @@ enum TaskStoreSelfTest {
         for failure in failures { SelfTest.diagnostic("TASK_DURABILITY_WRONG: \(failure)") }
         return "TASK_DURABILITY_FAILED: \(failures.count) assertions"
     }
+
+#if !TASK_DURABILITY_STANDALONE
+    /// Registered app path additionally exercises the real manager/backend/executor.
+    static func runIncludingToolBoundary() async -> String {
+        let stores = run()
+        guard stores.hasPrefix("TASK_DURABILITY_OK:") else { return stores }
+        let before = SelfTestStoreGuard.take()
+        var failures: [String] = []
+        func check(_ condition: Bool, _ message: String) { if !condition { failures.append(message) } }
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NextNotesJournalTools-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let previousFake = AgentToolExecutor.fakeForTesting
+        let previousFire = AgentToolExecutor.fireOverrideForTesting
+        let previousPolicy = AgentToolExecutor.policyOverrideForTesting
+        defer {
+            AgentToolExecutor.fakeForTesting = previousFake
+            AgentToolExecutor.fireOverrideForTesting = previousFire
+            AgentToolExecutor.policyOverrideForTesting = previousPolicy
+        }
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+            let mirror = TaskStore(root: directory)
+            defer { mirror.close() }
+            let store = AgentTaskStore(fileURL: directory.appendingPathComponent("agent-tasks.json"), mirror: mirror)
+            guard store.allowsHarnessPersistence else { throw FixtureError.unsafeStoreLocation }
+            let manager = AgentTaskManager(store: store)
+            AgentToolExecutor.fakeForTesting = nil
+            AgentToolExecutor.policyOverrideForTesting = .selfTest
+            var backingCalls = 0
+            AgentToolExecutor.fireOverrideForTesting = { _, _ in
+                backingCalls += 1
+                return AgentToolResult(summary: "Private backing result", reference: "fixture://private-reference",
+                    link: URL(string: "https://fixture.invalid/private-link"))
+            }
+            // This is the production call-site proof: submit -> execute -> local backend
+            // -> final authorized fire. No manually supplied TaskLocal context here.
+            let task = manager.submit(objective: "Private fixture objective", tool: "filesystem.read",
+                arguments: ["path": directory.appendingPathComponent("private-fixture.txt").path], source: "selftest")
+            let clock = ContinuousClock()
+            let deadline = clock.now.advanced(by: .seconds(5))
+            while clock.now < deadline, manager.task(id: task.id)?.status == .queued || manager.task(id: task.id)?.status == .running {
+                await Task.yield()
+            }
+            check(manager.task(id: task.id)?.status == .completed && backingCalls == 1,
+                "actual manager/local backend did not reach one final-boundary backing")
+            let second = TaskStore(root: directory)
+            defer { second.close() }
+            let events = try second.journal(taskID: task.id)
+            check(events.map(\.draft.kind) == [.jobCreated, .workerStarted, .toolStarted, .toolCompleted, .jobCompleted, .artifactCaptured],
+                "actual manager execution context did not journal its real tool and terminal transitions")
+            check(events.allSatisfy { $0.draft.attempt == 0 && !($0.draft.detail ?? "").contains("Private") },
+                "tool facts fabricated a bound attempt or copied private results")
+            check(try second.load().first?.artifacts.count == 2
+                && events.last?.draft.detail == "count:2", "actual local-backend artifact capture did not reach task/journal")
+
+            // Additional boundary tests use the same production context factory, and
+            // deliberately do not stand in for the primary submit/execute proof above.
+            let context = manager.journalContext(taskID: task.id)
+            let count = events.count
+            await TaskEventJournal.$current.withValue(context) {
+                do {
+                    _ = try await AgentToolExecutor.run("filesystem.read", arguments: [:], policy: .selfTest, taskID: task.id)
+                    check(false, "missing-argument call unexpectedly fired")
+                } catch {}
+                do {
+                    _ = try await AgentToolExecutor.run("filesystem.write", arguments: ["path": "/fixture/path", "text": "Private body"],
+                        policy: .denyMutations, taskID: task.id)
+                    check(false, "denied mutation unexpectedly fired")
+                } catch {}
+            }
+            check(try second.journal(taskID: task.id).count == count && backingCalls == 1,
+                "denied/validation-refused call falsely journalled tool execution")
+
+            AgentToolExecutor.fireOverrideForTesting = { _, _ in
+                backingCalls += 1
+                throw FixtureError.backingFailure
+            }
+            await TaskEventJournal.$current.withValue(context) {
+                do {
+                    _ = try await AgentToolExecutor.run("filesystem.read", arguments: ["path": "/fixture/path"], policy: .selfTest, taskID: task.id)
+                    check(false, "throwing backing unexpectedly returned")
+                } catch {}
+            }
+            let failed = try second.journal(taskID: task.id)
+            check(failed.suffix(2).map(\.draft.kind) == [.toolStarted, .toolCompleted]
+                && failed.last?.draft.detail == "filesystem.read:threw" && backingCalls == 2,
+                "actual failed backing did not journal its bounded factual outcome")
+            AgentToolExecutor.fakeForTesting = { _, _ in AgentToolResult(summary: "Private early fake") }
+            try await TaskEventJournal.$current.withValue(context) {
+                _ = try await AgentToolExecutor.run("filesystem.read", arguments: [:], policy: .selfTest, taskID: task.id)
+            }
+            check(try second.journal(taskID: task.id).count == failed.count, "pre-broker fake fabricated execution events")
+            AgentToolExecutor.fakeForTesting = nil
+            AgentToolExecutor.fireOverrideForTesting = { _, _ in AgentToolResult(summary: "Private unrelated backing") }
+            try await TaskEventJournal.$current.withValue(context) {
+                _ = try await AgentToolExecutor.run("filesystem.read", arguments: ["path": "/fixture/path"],
+                    policy: .selfTest, taskID: "unrelated-task")
+                _ = try await AgentToolExecutor.run("filesystem.read", arguments: ["path": "/fixture/path"], policy: .selfTest)
+            }
+            check(try second.journal(taskID: task.id).count == failed.count,
+                "unbound or mismatching tool task identity was routed into the bound manager")
+        } catch { failures.append("tool boundary fixture failed: \(error.localizedDescription)") }
+        let permissions = await TaskPermissionJournalSelfTest.run()
+        failures += permissions.failures
+        failures += SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).map { "owner store changed: \($0)" }
+        for failure in failures { SelfTest.diagnostic("TASK_DURABILITY_WRONG: \(failure)") }
+        if !failures.isEmpty { return "TASK_DURABILITY_FAILED: \(failures.count) tool assertions" }
+        guard let base = stores.split(separator: " ").dropFirst().first.flatMap({ Int($0) }) else {
+            return "TASK_DURABILITY_FAILED: missing base case count"
+        }
+        return "TASK_DURABILITY_OK: \(base + 5 + permissions.cases) cases"
+    }
+#endif
 
     private static func storageCases(in directory: URL, check: (Bool, String) -> Void) throws -> Int {
         var cases = 0
@@ -200,7 +316,7 @@ enum TaskStoreSelfTest {
         check(try manager.lastPersistenceResult == .saved && mirror.load() == updated,
             "real manager update did not mirror its canonical JSON rows")
         try mirror.withConnection { db in
-            check(try TaskStore.integer(db, "SELECT count(*) FROM task_event") == 1, "task upsert deleted its event journal")
+            check(try TaskStore.integer(db, "SELECT count(*) FROM task_event WHERE kind='fixture'") == 1, "task upsert deleted its event journal")
             check(try TaskStore.integer(db, "SELECT count(*) FROM task_dependency") == 1, "task upsert deleted dependency rows")
             check(try TaskStore.stringColumn(db, "SELECT title FROM task_artifact WHERE ordinal=0 AND title IS NOT NULL") == ["Fixture metadata"],
                 "unchanged artifact ordinal/path lost existing metadata")
@@ -288,6 +404,136 @@ enum TaskStoreSelfTest {
         check(try mirror.load() == [other], "inode replacement kept serving the old ledger")
         cases += 1
         return cases
+    }
+
+    private static func journalProducerCases(in directory: URL, check: (Bool, String) -> Void) throws -> Int {
+        let root = directory.appendingPathComponent("journal-producer", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        let mirror = TaskStore(root: root)
+        defer { mirror.close() }
+        let json = AgentTaskStore(fileURL: root.appendingPathComponent("agent-tasks.json"), mirror: mirror)
+        guard json.allowsHarnessPersistence else { throw FixtureError.unsafeStoreLocation }
+        let manager = AgentTaskManager(store: json)
+        let task = AgentTask(id: "journal-real-manager", objective: "Private objective must not enter journal",
+            source: "scheduled", status: .running)
+        manager.beginScheduledRun(task)
+        manager.finishScheduledRun(id: task.id, status: .completed, result: "Private result", failure: nil)
+        let kinds = try mirror.withConnection { try TaskStore.stringColumn($0,
+            "SELECT kind FROM task_event WHERE task_id='journal-real-manager' ORDER BY seq") }
+        check(kinds == ["jobCreated", "workerStarted", "jobCompleted"],
+            "actual manager creation/start/completion did not journal exact transitions")
+        manager.finishScheduledRun(id: task.id, status: .completed, result: "Private result", failure: nil)
+        let repeated = try mirror.withConnection { try TaskStore.stringColumn($0,
+            "SELECT kind FROM task_event WHERE task_id='journal-real-manager' ORDER BY seq") }
+        check(repeated == kinds, "duplicate terminal callback fabricated a second transition")
+        let beforeFailure = try mirror.load()
+        try mirror.withConnection { db in
+            try TaskStore.exec(db, """
+                CREATE TRIGGER fixture_journal_failure BEFORE INSERT ON task_event
+                WHEN NEW.kind='jobFailed' BEGIN SELECT RAISE(ABORT,'fixture journal rejection'); END
+                """)
+        }
+        manager.finishScheduledRun(id: task.id, status: .failed, result: nil, failure: "Private failure")
+        check(manager.lastPersistenceResult == .mirrorFailed, "failed journal append was invisible to real manager")
+        check(json.load().first?.status == .failed, "failed SQLite journal made successful JSON inaccessible")
+        let second = TaskStore(root: root)
+        defer { second.close() }
+        check(try second.load() == beforeFailure, "state committed without its event after injected journal failure")
+        let afterFailureKinds = try second.withConnection { try TaskStore.stringColumn($0,
+            "SELECT kind FROM task_event WHERE task_id='journal-real-manager' ORDER BY seq") }
+        check(afterFailureKinds == kinds, "failed state transaction partially changed the journal")
+        try mirror.withConnection { try TaskStore.exec($0, "DROP TRIGGER fixture_journal_failure") }
+        let input = AgentTask(id: "journal-input", objective: "Fixture input", status: .running)
+        manager.beginScheduledRun(input)
+        manager.finishScheduledRun(id: input.id, status: .waitingForInput, result: nil, failure: nil)
+        manager.respondInput(taskID: input.id, text: "Private entered text")
+        check(try mirror.journal(taskID: input.id).map(\.draft.kind) == [.jobCreated, .workerStarted, .inputRequested, .inputProvided],
+            "actual input-wait/input-response producer journal changed")
+        check(json.load().first?.arguments["input"] == "Private entered text", "existing input execution payload changed")
+        let permission = AgentTask(id: "journal-permission", objective: "Fixture permission", status: .running, tool: "filesystem.read")
+        manager.beginScheduledRun(permission)
+        manager.finishScheduledRun(id: permission.id, status: .waitingForPermission, result: nil, failure: nil)
+        manager.respondPermission(taskID: permission.id, approved: false)
+        check(try mirror.journal(taskID: permission.id).map(\.draft.kind) ==
+            [.jobCreated, .workerStarted, .permissionRequested, .permissionDenied, .jobCancelled],
+            "actual permission denial/cancellation producer journal changed")
+        let all = try mirror.withConnection { try TaskStore.stringColumn($0, "SELECT COALESCE(detail,'') FROM task_event") }
+        check(!all.joined().contains("Private"), "journal copied objective/result/failure/entered text")
+        check(try mirror.withConnection { try TaskStore.integer($0, "SELECT count(*) FROM task_event WHERE attempt<>0") } == 0,
+            "legacy task events fabricated an attempt binding")
+        var durability = TaskDurability()
+        durability.attempt = 3
+        let attempted = AgentTask(id: "journal-attempt", objective: "Fixture attempt", status: .running, durability: durability)
+        manager.beginScheduledRun(attempted)
+        manager.finishScheduledRun(id: attempted.id, status: .completed, result: nil, failure: nil)
+        let attemptedEvents = try mirror.journal(taskID: attempted.id)
+        check(attemptedEvents.count == 3 && attemptedEvents.allSatisfy { $0.draft.attempt == 3 }
+            && manager.journalContext(taskID: attempted.id)?.attempt == 3,
+            "existing attempt metadata was not captured consistently")
+        return 6
+    }
+
+    private static func journalRetentionCases(in directory: URL, check: (Bool, String) -> Void) throws -> Int {
+        let root = directory.appendingPathComponent("journal-retention", isDirectory: true)
+        let mirror = TaskStore(root: root)
+        defer { mirror.close() }
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        let old = now.addingTimeInterval(-31 * 86_400)
+        let recent = now.addingTimeInterval(-1 * 86_400)
+        var receipt = TaskDurability()
+        receipt.receiptIDs = ["fixture-retained-receipt"]
+        let tasks = [
+            AgentTask(id: "old-terminal", objective: "Fixture old", createdAt: recent, status: .completed, artifacts: ["fixture://keep"]),
+            AgentTask(id: "recent-terminal", objective: "Fixture recent", createdAt: old, status: .failed),
+            AgentTask(id: "receipt-terminal", objective: "Fixture receipt", createdAt: now, status: .completed, durability: receipt),
+            AgentTask(id: "active", objective: "Fixture active", createdAt: now, status: .running),
+            AgentTask(id: "unknown-age", objective: "Fixture unknown", createdAt: old, status: .completed),
+            AgentTask(id: "latest-terminal", objective: "Fixture latest", createdAt: now, status: .cancelled)
+        ]
+        let events = [
+            TaskJournalEventDraft(taskID: tasks[0].id, kind: .jobCompleted, at: old),
+            TaskJournalEventDraft(taskID: tasks[1].id, kind: .jobFailed, at: recent),
+            TaskJournalEventDraft(taskID: tasks[2].id, kind: .jobCompleted, at: old),
+            TaskJournalEventDraft(taskID: tasks[3].id, kind: .jobFailed, at: old),
+            TaskJournalEventDraft(taskID: tasks[4].id, kind: .jobCreated, at: old),
+            TaskJournalEventDraft(taskID: tasks[5].id, kind: .jobCancelled, at: old),
+            TaskJournalEventDraft(taskID: tasks[5].id, kind: .jobCancelled, at: recent)
+        ]
+        try mirror.replaceSnapshot(tasks, events: events, now: now)
+        check(try mirror.journal(taskID: tasks[0].id).isEmpty, "old terminal journal was not compacted")
+        for task in tasks.dropFirst() {
+            check(try !mirror.journal(taskID: task.id).isEmpty, "receipt/active/recent/unknown-age journal was incorrectly deleted")
+        }
+        check(try mirror.load() == tasks, "journal compaction changed task/artifact rows")
+        try mirror.withConnection { db in
+            try TaskStore.exec(db, "INSERT INTO task_dependency(upstream,downstream,requirement) VALUES('old-terminal','active','fixture')")
+        }
+        let json = AgentTaskStore(fileURL: root.appendingPathComponent("agent-tasks.json"), mirror: mirror)
+        check(json.save(tasks) == .saved && json.load() == tasks, "compaction changed JSON history")
+        check(try mirror.withConnection { try TaskStore.integer($0, "SELECT count(*) FROM task_dependency") } == 1,
+            "journal compaction deleted dependencies")
+        var burst: [TaskJournalEventDraft] = []
+        for index in 0..<40 { burst.append(TaskJournalEventDraft(taskID: "active", kind: .heartbeat,
+            at: now, detail: "fixture:\(index)")) }
+        try mirror.replaceSnapshot(tasks, events: burst, now: now)
+        let seq = try mirror.journal(taskID: "active").map(\.seq)
+        check(zip(seq, seq.dropFirst()).allSatisfy { $0 < $1 }, "journal sequence did not increase across burst")
+        let previous = seq.last!
+        try mirror.replaceSnapshot(tasks, events: [TaskJournalEventDraft(taskID: "active", kind: .heartbeat, at: now)], now: now)
+        check(try mirror.journal(taskID: "active").last!.seq > previous, "journal sequence reused a compacted identity")
+        try mirror.withConnection { db in
+            try TaskStore.exec(db, "INSERT INTO task_event(task_id,at,kind,attempt) VALUES('active','unknown','heartbeat',0)")
+        }
+        do { _ = try mirror.journal(taskID: "active"); check(false, "invalid journal time silently became epoch zero") }
+        catch TaskStoreError.invalidRecord {}
+        check(try mirror.withConnection { try TaskStore.integer($0, "SELECT count(*) FROM task_event WHERE at='unknown'") } == 1,
+            "journal rejection erased the corrupt row")
+        try mirror.withConnection { db in
+            try TaskStore.exec(db, "DELETE FROM task_event WHERE at='unknown'; INSERT INTO task_event(task_id,at,kind,attempt) VALUES('active',1,'heartbeat','oops')")
+        }
+        do { _ = try mirror.journal(taskID: "active"); check(false, "invalid journal attempt silently became unbound zero") }
+        catch TaskStoreError.invalidRecord {}
+        return 4
     }
 
     private static func rawSQLite(_ file: URL, body: (OpaquePointer) throws -> Void) throws {

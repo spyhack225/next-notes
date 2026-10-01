@@ -200,8 +200,13 @@ enum AgentToolExecutor {
                 ) {
                     throw AgentError.permissionDenied(problem)
                 }
+                let journal = TaskEventJournal.toolStarted(taskID: taskID, tool: tool.id)
+                var backingReturned = false
+                defer { TaskEventJournal.toolCompleted(journal, tool: tool.id, succeeded: backingReturned) }
                 if SelfTest.isRunning, let fire = fireOverrideForTesting {
-                    return try await fire(tool, prepared.executionPlan.arguments)
+                    let result = try await fire(tool, prepared.executionPlan.arguments)
+                    backingReturned = true
+                    return result
                 }
                 // A denied or waiting action must not appear as executed activity. These
                 // projections happen only after the orchestrator has received permission.
@@ -235,6 +240,7 @@ enum AgentToolExecutor {
                 defer { ToolExecutionTimer.current?.end() }
                 let result = try await perform(tool, arguments: prepared.executionPlan.arguments,
                                                taskID: taskID, authority: actionAuthority)
+                backingReturned = true
                 // P1-5: a run's artifacts — the reference and the link — ride with the
                 // task id so `AgentTaskManager.execute` can fold them into the result
                 // card. Same fold `LocalAgentBackend` applies to a single-tool task.

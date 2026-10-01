@@ -1,0 +1,4 @@
+run-selftest: open -n /Applications/Next Notes.app --args --selftest-dictation --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/durable-tasks/2026-10-01-p6-03/core/selftest-dictation.out
+  DICTATION_NOTE: pre-roll fed 39801 frames of ~40000 with a 1.5 s start
+  DICTATION_NOTE: key-down to capture 0.08012592792510986s with a 1.5 s start
+DICTATION_OK: every hold came back to idle

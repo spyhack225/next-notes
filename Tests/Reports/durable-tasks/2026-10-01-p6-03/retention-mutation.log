@@ -1,0 +1,10 @@
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=false elapsed=0.002574916 seconds
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=true elapsed=0.001916666 seconds
+TASK_PERSISTENCE_FAILED: Task history could not be saved. The durable copy was not changed.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_WRONG: old terminal journal was not compacted
+TASK_DURABILITY_WRONG: receipt/active/recent/unknown-age journal was incorrectly deleted
+TASK_DURABILITY_FAILED: 2 assertions

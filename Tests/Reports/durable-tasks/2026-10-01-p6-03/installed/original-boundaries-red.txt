@@ -1,0 +1,23 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-durability
+2026-10-01 04:18:31.945 NextNotes[46882:1216060] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+TASK_DURABILITY_FAILED: 13 tool assertions
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=false elapsed=0.00136675 seconds
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=true elapsed=0.002259333 seconds
+TASK_PERSISTENCE_FAILED: Task history could not be saved. The durable copy was not changed.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_WRONG: actual manager execution context did not journal its real tool and terminal transitions
+TASK_DURABILITY_WRONG: actual failed backing did not journal its bounded factual outcome
+TASK_DURABILITY_WRONG: approve: admitted in-place approval had no factual requested row
+TASK_DURABILITY_WRONG: approve: in-place permission/tool fact order changed
+TASK_DURABILITY_WRONG: deny: admitted in-place approval had no factual requested row
+TASK_DURABILITY_WRONG: deny: in-place permission/tool fact order changed
+TASK_DURABILITY_WRONG: cancel/false approval was misrepresented as a human denial
+TASK_DURABILITY_WRONG: cancel: admitted in-place approval had no factual requested row
+TASK_DURABILITY_WRONG: cancel: in-place permission/tool fact order changed
+TASK_DURABILITY_WRONG: cancel/false approval was misrepresented as a human denial
+TASK_DURABILITY_WRONG: incomplete: admitted in-place approval had no factual requested row
+TASK_DURABILITY_WRONG: incomplete: in-place permission/tool fact order changed
+TASK_DURABILITY_WRONG: cancel/false approval was misrepresented as a human denial

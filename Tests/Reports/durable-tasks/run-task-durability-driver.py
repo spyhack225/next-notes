@@ -82,6 +82,31 @@ struct VoiceJob { let id: UUID; let status: String }
     static let shared = VoiceAnnouncementQueue()
     func enqueue(_ text: String) { fatalError("fixture must not speak") }
 }
+struct AgentTool: Sendable {}
+struct AgentToolResult: Sendable {
+    let summary: String
+    var reference: String? = nil
+    var link: URL? = nil
+}
+struct PermissionPolicy: Sendable {
+    static let selfTest = PermissionPolicy()
+    static let denyMutations = PermissionPolicy()
+}
+@MainActor enum AgentToolExecutor {
+    typealias FakeToolRun = @MainActor @Sendable (AgentTool, [String: String]) async throws -> AgentToolResult
+    static var fakeForTesting: FakeToolRun?
+    static var fireOverrideForTesting: FakeToolRun?
+    static var policyOverrideForTesting: PermissionPolicy?
+    static func run(_ name: String, arguments: [String: String], policy: PermissionPolicy,
+                    taskID: String? = nil) async throws -> AgentToolResult {
+        fatalError("standalone fixture must not claim an actual tool-boundary execution")
+    }
+}
+@MainActor enum TaskPermissionJournalSelfTest {
+    static func run() async -> (cases: Int, failures: [String]) {
+        fatalError("standalone fixture must not claim actual permission-boundary execution")
+    }
+}
 @main struct TaskDurabilityFixture {
     @MainActor static func main() throws {
         // The owner's path collaborator is itself a disposable sentinel fixture.
@@ -105,6 +130,7 @@ with tempfile.TemporaryDirectory(prefix="nextnotes-task-durability-") as tempora
     manager = SOURCE / "Agent/Tasks/AgentTaskManager.swift"
     store = SOURCE / "Agent/Tasks/AgentTaskStore.swift"
     durable_store = SOURCE / "Agent/Tasks/Durable/TaskStore.swift"
+    journal = SOURCE / "Agent/Tasks/Durable/TaskEventJournal.swift"
     if "--omit-restart-mapping" in sys.argv:
         before = manager.read_text()
         broken = before.replace("if task.status == .running || task.status == .queued {", "if false { // mutation: omit restart mapping")
@@ -126,24 +152,43 @@ with tempfile.TemporaryDirectory(prefix="nextnotes-task-durability-") as tempora
         durable_store.write_text(broken)
     if "--omit-sqlite-mirror" in sys.argv:
         before = store.read_text()
-        broken = before.replace("try mirror.replaceSnapshot(canonical, failFast: true)",
+        broken = before.replace("try mirror.replaceSnapshot(canonical, failFast: true, events: events)",
                                 "// mutation: omit actual JSON-to-SQLite mirror call")
         assert before != broken, "mutation must break the production persistence call site"
         store = folder / "AgentTaskStore.swift"
         store.write_text(broken)
     if "--wait-for-mirror-lock" in sys.argv:
         before = store.read_text()
-        broken = before.replace("mirror.replaceSnapshot(canonical, failFast: true)",
-                                "mirror.replaceSnapshot(canonical, failFast: false)")
+        broken = before.replace("mirror.replaceSnapshot(canonical, failFast: true, events: events)",
+                                "mirror.replaceSnapshot(canonical, failFast: false, events: events)")
         assert before != broken, "mutation must break the production fail-fast caller"
         store = folder / "AgentTaskStore.swift"
         store.write_text(broken)
+    if "--omit-journal-events" in sys.argv or "--non-atomic-journal" in sys.argv:
+        before = durable_store.read_text()
+        broken = before.replace("try TaskEventJournal.append(events, to: db)", "// mutation: omit in-transaction append")
+        assert before != broken, "mutation must alter actual journal write"
+        if "--non-atomic-journal" in sys.argv:
+            needle = "            }\n    }\n\n    func journal"
+            assert needle in broken, "mutation must identify real transaction completion"
+            broken = broken.replace(needle,
+                "            }\n        try TaskEventJournal.append(events, to: db)\n    }\n\n    func journal", 1)
+        durable_store = folder / "TaskStore.swift"
+        durable_store.write_text(broken)
+    if "--wrong-retention-age" in sys.argv:
+        before = journal.read_text()
+        broken = before.replace("AND last.at<?", "AND t.created_at<?")
+        assert before != broken, "mutation must break actual journal retention age"
+        journal = folder / "TaskEventJournal.swift"
+        journal.write_text(broken)
     binary = folder / "task-durability-driver"
-    subprocess.run(["xcrun", "swiftc", "-swift-version", "6", "-parse-as-library",
+    definitions = [] if "--compile-tool-wrapper" in sys.argv else ["-D", "TASK_DURABILITY_STANDALONE"]
+    subprocess.run(["xcrun", "swiftc", "-swift-version", "6", *definitions, "-parse-as-library",
                     str(stubs), str(SOURCE / "Support/SelfTestStoreGuard.swift"),
                     str(SOURCE / "Agent/Tasks/AgentTask.swift"), str(store),
                     str(SOURCE / "Agent/Tasks/Durable/TaskDurability.swift"),
                     str(SOURCE / "Agent/Tasks/Durable/TaskStoreSchema.swift"),
+                    str(journal),
                     str(durable_store),
                     str(manager), str(SOURCE / "Agent/Tasks/Durable/TaskStoreSelfTest.swift"),
                     "-o", str(binary)], check=True)

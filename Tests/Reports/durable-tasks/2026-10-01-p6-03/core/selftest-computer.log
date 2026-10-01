@@ -1,0 +1,85 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-computer --selftest-timeout 300 --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/durable-tasks/2026-10-01-p6-03/core/selftest-computer.out
+2026-10-01 04:49:35.942 NextNotes[50208:1266339] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+no focused window. stub tree, 0 names. No elements were invented.
+Window: Next Notes
+MenuItem id: 2.1  label: About This Mac
+MenuItem id: 2.2  label: System Information
+MenuItem id: 2.3
+MenuItem id: 2.4  label: System Settings…, 2 updates
+MenuItem id: 2.5  label: App Store
+MenuItem id: 2.6
+MenuItem id: 2.7  label: Recent Items
+MenuItem id: 2.8
+MenuItem id: 2.9  label: Force Quit…
+MenuItem id: 2.10  label: Force Quit Next Notes
+MenuItem id: 2.11
+MenuItem id: 2.12  label: Sleep
+MenuItem id: 2.13  label: Restart…
+MenuItem id: 2.14  label: Restart
+MenuItem id: 2.15  label: Shut Down…
+MenuItem id: 2.16  label: Shut Down
+MenuItem id: 2.17
+MenuItem id: 2.18  label: Lock Screen
+MenuItem id: 2.19  label: Log Out Serge Kadjo…
+MenuItem id: 2.20  label: Log Out Serge Kadjo
+MenuItem id: 2.21
+MenuItem id: 2.22  label: About Next Notes
+MenuItem id: 2.23  label: Reveal Dictionary File
+MenuItem id: 2.24
+MenuItem id: 2.25  label: Settings…
+MenuItem id: 2.26
+MenuItem id: 2.27  label: Services
+MenuItem id: 2.28
+MenuItem id: 2.29  label: Hide Next Notes
+MenuItem id: 2.30  label: Hide Others
+MenuItem id: 2.31  label: Show All
+MenuItem id: 2.32
+MenuItem id: 2.33  label: Quit Next Notes
+MenuItem id: 2.34  label: Quit and Close All Windows
+MenuItem id: 2.35  label: Record Meeting
+MenuItem id: 2.36
+MenuItem id: 2.37
+MenuItem id: 2.38  label: Close
+MenuItem id: 2.39  label: Close All
+MenuItem id: 2.40  label: Undo
+MenuItem id: 2.41  label: Redo
+MenuItem id: 2.42
+MenuItem id: 2.43  label: Cut
+MenuItem id: 2.44  label: Copy
+MenuItem id: 2.45  label: Paste
+MenuItem id: 2.46  label: Delete
+MenuItem id: 2.47  label: Select All
+MenuItem id: 2.48
+MenuItem id: 2.49  label: Writing Tools
+MenuItem id: 2.50
+MenuItem id: 2.51  label: AutoFill
+MenuItem id: 2.52  label: Start Dictation
+MenuItem id: 2.53  label: Emoji & Symbols
+MenuItem id: 2.54  label: Enter Full Screen
+MenuItem id: 2.55  label: Minimize
+MenuItem id: 2.56  label: Minimize All
+MenuItem id: 2.57  label: Zoom
+MenuItem id: 2.58  label: Zoom All
+MenuItem id: 2.59  label: Fill
+MenuItem id: 2.60  label: Center
+MenuItem id: 2.61
+MenuItem id: 2.62  label: Move & Resize
+MenuItem id: 2.63  label: Full Screen Tile
+MenuItem id: 2.64
+MenuItem id: 2.65
+MenuItem id: 2.66  label: Bring All to Front
+MenuItem id: 2.67  label: Arrange in Front
+MenuItem id: 2.68  label: Remove Window from Set
+MenuItem id: 2.69
+MenuItem id: 2.70  label: Next Notes Computer Self-Test
+MenuItem id: 2.71  label: Send Next Notes Feedback to Apple
+MenuItem id: 2.72
+MenuItem id: 2.73  label: Next Notes Help
+MenuItem id: 2.74  label: About This Mac
+MenuItem id: 2.75  label: System Information
+MenuItem id: 2.76
+MenuItem id: 2.77  label: System Settings…, 2 updates
+MenuItem id: 2.78  label: App Store
+MenuItem id: 2.79
+MenuItem id: 2.80  label: Recent Items
+COMPUTER_FAILED: inspect did not see the self-test OK button

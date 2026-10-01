@@ -1083,8 +1083,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
         if arguments.contains("--selftest-task-durability") {
-            writeSelfTest(TaskStoreSelfTest.run())
-            NSApp.terminate(nil)
+            Task { @MainActor in
+                writeSelfTest(await TaskStoreSelfTest.runIncludingToolBoundary())
+                NSApp.terminate(nil)
+            }
             return true
         }
         if arguments.contains("--selftest-voice-duplex-work") {

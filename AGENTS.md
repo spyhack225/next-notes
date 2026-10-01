@@ -246,6 +246,16 @@ Unknown/corrupt databases are retained and rejected. `SelfTestStoreGuard` watche
 the database and its WAL/SHM siblings. This mirror supplies no recovery, attempt
 fencing, automatic retry or production remote host; those contracts remain open.
 
+P6-03 extends the installed flag to 37 cases. Actual manager transitions and
+approved, validated final tool execution emit bounded metadata into the same
+SQLite snapshot transaction. In-place approval records request and true/false
+completion; false includes cancellation (`notApproved`), not necessarily a human
+denial. Unbound or mismatched task IDs emit no attributed tool facts. Receipt-aware
+30-day compaction removes old terminal journal rows only; unknown ages stay.
+JSON remains read authority. Attempt zero is unbound; ACP/scheduled provenance,
+real leases/receipts and recovery remain open. Synchronous full-history saves
+have no large-history latency proof; fail-fast contention is a narrower claim.
+
 `usage.jsonl` is the one local record of which model or engine ran each pass — Agent,
 Meetings and Dictation — with its provider, model, locality, timing, counts, tools and
 outcome (P0-20a–e). It never leaves this Mac: nothing uploads it, no network call touches

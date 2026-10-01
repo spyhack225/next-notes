@@ -1,0 +1,10 @@
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=false elapsed=0.000738875 seconds
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_CONTENTION: cold=true elapsed=0.004345958 seconds
+TASK_PERSISTENCE_FAILED: Task history could not be saved. The durable copy was not changed.
+TASK_PERSISTENCE_FAILED: Task history was saved, but its durable copy could not be updated.
+TASK_DURABILITY_WRONG: actual manager creation/start/completion did not journal exact transitions
+TASK_DURABILITY_WRONG: failed journal append was invisible to real manager
+TASK_DURABILITY_WRONG: state committed without its event after injected journal failure
+TASK_DURABILITY_FAILED: 3 assertions
