@@ -2189,3 +2189,11 @@ would have caught it — a positive corpus of ordinary questions — lives in
 `--selftest-voice-turn-routing` beside the junk corpus; the junk list without the positive
 corpus is how a green suite coexisted with an unusable app. `--selftest-voice-turns` grades
 the list itself.
+
+`MemoryEntry.lineage` stores historical `MemoryProvenanceRecord` descriptors: source,
+trusted channel, label, time, session, confidence and correction identity. The live
+`MemoryProvenance.userText` and `untrustedText` arrays never enter those descriptors
+or the memory file. The existing live provenance and authority gates still decide
+writes; stored lineage never grants permission. Version 3 preserves legacy memory
+content with unknown lineage rather than inventing its source. This P4-07a foundation
+does not implement P4-07/P4-11 or memory lifecycle consolidation.

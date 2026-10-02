@@ -1,7 +1,14 @@
-# P4-07a memory provenance: isolated producer evidence
+# P4-07a memory provenance: producer and installed evidence
 
 Date: 2026-10-01. Scope: the complete persisted-provenance prerequisite recipe in
-`roadmap/in-progress/AGENT-OVERHAUL/05-PHASE-4-PROACTIVE.md` P4-07a. This is source implementation plus isolated proof, **not task or phase closure**. Required installed and model gates remain pending below.
+`roadmap/in-progress/AGENT-OVERHAUL/05-PHASE-4-PROACTIVE.md` P4-07a. **The bounded
+persisted-provenance prerequisite is complete.** All six Done-when requirements are
+satisfied, and the prescribed installed checks were executed. CORE and fixed quick
+remain red on the retained aggregate findings below; the owner's §4.1 rule permits
+this independently verified task completion. This is not phase, model-quality,
+explicit-memory or lifecycle-consolidation completion. The producer implementation
+is in `8888474`; its five source hashes still match the retained green proof and
+shared build-input manifest.
 
 ## Confirmed producer failures and changes
 
@@ -82,22 +89,23 @@ producer behavior changed after green (MemoryTools whitespace only).
 
 | Contract | Isolated evidence | Installed/gate status |
 | --- | --- | --- |
-| Two own-file Codable/Sendable/Equatable types; explicit date/enum decoding | Added MemoryLineage.swift; complete-source compile; rich metadata and sparse record round trips; bad date/origin/channel/confidence rejection | App build pending |
-| Optional lineage; hand-written all-field decoder | Minimal old row preserves nil metadata and defaults updatedAt; required-field removal rejects; rich all-old/all-new metadata round trip | Full existing memory test pending |
-| Version-2 profile/note/superseded/three-activity fixture preserved | 3 active, 1 superseded, 3 activity/use counts; 115-byte snapshot exact; fresh reader retains values | Installed memory and persona pending |
-| Version 3 additive migration, legacy lineage unknown | Actual migration writes v3; all four legacy rows omit lineage; manual write remains unknown | Installed memory pending |
-| Both actual checked write sites propagate descriptors | Real catalogue/executor remember for four channels; real update/fresh read records replaced id and preserves old descriptor | Full runtime/approval path pending |
-| Four trusted channels/confidences | Real writer stores 0.9 / 0.8 / 0.7 / 0.5 and corresponding channel, origin, date, label and session | Installed memory-review pending |
-| Source contents never persisted | Actual file omits distinct source/untrusted canaries plus userText/untrustedText keys | Store-isolation and review pending |
+| Two own-file Codable/Sendable/Equatable types; explicit date/enum decoding | Added MemoryLineage.swift; complete-source compile; rich metadata and sparse record round trips; bad date/origin/channel/confidence rejection | Shared app build and installed MEMORY_OK |
+| Optional lineage; hand-written all-field decoder | Minimal old row preserves nil metadata and defaults updatedAt; required-field removal rejects; rich all-old/all-new metadata round trip | Installed full MEMORY_OK, existing cases retained |
+| Version-2 profile/note/superseded/three-activity fixture preserved | 3 active, 1 superseded, 3 activity/use counts; 115-byte snapshot exact; fresh reader retains values | Installed MEMORY_OK with 115-byte marker; PERSONA_OK |
+| Version 3 additive migration, legacy lineage unknown | Actual migration writes v3; all four legacy rows omit lineage; manual write remains unknown | Installed MEMORY_OK includes actual isolated migration/reopen |
+| Both actual checked write sites propagate descriptors | Real catalogue/executor remember for four channels; real update/fresh read records replaced id and preserves old descriptor | Installed MEMORY_OK; actual AgentToolExecutor user/review saves and refusals; no rendered approval-card claim |
+| Four trusted channels/confidences | Real writer stores 0.9 / 0.8 / 0.7 / 0.5 and corresponding channel, origin, date, label and session | Installed MEMORY_OK lineage cases; MEMORY_REVIEW_OK is scripted, not native model-quality proof |
+| Source contents never persisted | Actual file omits distinct source/untrusted canaries plus userText/untrustedText keys | Installed MEMORY_OK privacy cases, MEMORY_REVIEW_OK and STORE_ISOLATION_OK |
 | Empty consolidation state until consolidation | New checked writer records have [] absorbed ids and no run id; manual/legacy nil lineage | Consolidation not implemented here |
-| Existing fast metadata and budgets/snapshot/ordering unchanged | origin/confidence/sourceLabel retained; 2400/4000/300 unchanged; exact snapshot golden unchanged; no prompt-share edit | CORE/persona/quick pending |
-| Lineage never grants authority | Actual tool write with nil live gate is refused on a store containing recorded lineage; file unchanged; permission code untouched | Permission/runtime regressions pending |
-| Unsupported future schema cannot be silently downgraded | Original real manual write loses future metadata; current writer throws storage error and bytes remain exact | Installed memory pending |
+| Existing fast metadata and budgets/snapshot/ordering unchanged | origin/confidence/sourceLabel retained; 2400/4000/300 unchanged; exact snapshot golden unchanged; no prompt-share edit | PERSONA_OK; CORE21/22 retains wake failure; fixed quick3/10 below9/10 |
+| Lineage never grants authority | Actual tool write with nil live gate is refused on a store containing recorded lineage; file unchanged; permission code untouched | Installed MEMORY_OK includes actual executor authority refusals; related ACTION_RUNTIME_OK; no new grant or live-owner action |
+| Unsupported future schema cannot be silently downgraded | Original real manual write loses future metadata; current writer throws storage error and bytes remain exact | Installed MEMORY_OK includes future-schema preservation case |
+| Required AGENTS.md descriptor/privacy line | Existing paragraph names historical descriptors and explicitly excludes live userText/untrustedText and permission authority | Present in AGENTS.md; this documentation update did not edit or stage that shared file |
 
-## Required remaining task acceptance, unchanged
+## Prescribed acceptance and actual verdicts
 
-Root owns the serial shared app build/installation, registry/docs/roadmaps and permission
-runtime. Run the exact P4-07a recipe against the rebuilt binary:
+The parent performed serialized shared app builds/installation and ran the prescribed
+installed flags. The recipe remains unchanged for reproduction:
 
 ```bash
 make build && make install OPEN=0
@@ -109,11 +117,40 @@ make acceptance TIER=core
 Scripts/run-selftest.sh --selftest-toolloop-live --quick --report <isolated-report-path>
 ```
 
-The fixed Phase-4 quick gate retains its 9/10 bar and fixed selection. The task may have
-independent source evidence while an inherited aggregate gate stays open; missing model
-or installed evidence is never a pass. Phase completion still requires prescribed full
-runs and other phase contracts. Root must update STATUS and AGENTS to name the descriptor
-and explicitly say source utterances/untrusted text never enter the file.
+The installed focused results are `MEMORY_OK`, `MEMORY_REVIEW_OK`, `PERSONA_OK`, and
+`STORE_ISOLATION_OK: 21 files and 31 defaults unchanged`. The memory flag prints
+`MEMORY_LINEAGE_LEGACY_SNAPSHOT_BYTES=115`; its source assertion still compares the
+entire UTF-8 snapshot with the original golden, not just its byte count.
+
+Review used the unchanged 32-case scripted corpus: precision 0.938 (15/16 writes),
+recall 1.000 (17/17), against its fixed 0.90 bar. One `other-person-preference` case
+saved a fact when zero writes were expected. That inherited false positive remains
+explicitly unresolved; a passing marker is not perfect review behavior or native
+memory-review model-quality evidence. The source gate logic was not changed by this
+descriptor task.
+
+CORE ran and retained **21/22**, with wake red at 17/24 hits and 3/32 false accepts.
+The fixed quick run returned **3/10**, FAILED below the unchanged **9/10** bar, on
+Gemma 4 E4B as the local fallback for the saved cloud role. No role/default was
+changed and no model was downloaded. This is a different model from earlier Qwen
+runs, so it is not a before/after quality comparison for this task. No full/owner
+phase gate is claimed.
+
+[installed-markers.log](installed-markers.log) retains only final markers and test
+counts, including the false-positive case metadata. [installed-evidence-manifest.json](installed-evidence-manifest.json)
+pins the original `/tmp/nextnotes-agent-closure-related` log hashes, the five
+unchanged producer sources and build inputs, and the parent's retained CORE/quick
+integration evidence. No raw persona output or prompt was copied. The build-5 binary
+hash in that manifest identifies the later aggregate integration evidence; it is
+not asserted to identify the earlier focused-check binary. The broader serialized
+build evidence and remaining defects are described in the
+[installed integration report](../2026-10-01-installed-integration.md).
+
+All six task Done-when items are satisfied: the two types, all-field decoder,
+version-3 migration, exact legacy snapshot, privacy cases, and AGENTS.md descriptor
+paragraph. Bounded task completion follows the owner's §4.1 independent-task rule;
+aggregate quality, wake and phase readiness remain open. No test selection, marker,
+threshold, privacy gate or permission contract was softened.
 
 ## Boundaries and open work
 
@@ -125,7 +162,9 @@ and explicitly say source utterances/untrusted text never enter the file.
   open contracts, not evidence for full roadmap closure.
 - Historical raw source text is intentionally unavailable from the descriptor. It grants no
   new source-read, remote-write or retry permission.
-- This source evidence does not close P4-07, P4-11 or the consolidation roadmap.
+- This bounded prerequisite completion does not close P4-07, P4-11 or the consolidation roadmap.
+- The installed checks use isolated fixtures. No owner-store migration, physical crash
+  durability, rendered approval-card interaction or live native review-model quality is claimed.
 
 ## Frozen artifacts
 
