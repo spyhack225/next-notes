@@ -1,0 +1,1 @@
+run-selftest: open -n /Applications/Next Notes.app --args --selftest-toolloop-live --quick --report /tmp/nextnotes-agent-closure-quick-13.md --selftest-timeout 3300 --selftest-out /tmp/nextnotes-agent-closure-quick-13.out

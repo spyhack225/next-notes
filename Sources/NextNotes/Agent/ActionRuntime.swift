@@ -359,6 +359,9 @@ final class ActionReceiptStore {
     /// to do that honestly is a store pointed at a temporary file. `MeetingStore.isolated()` is
     /// the same seam.
     private let fileURL: URL
+    private let injectedFile: Bool
+    /// An unreadable source is evidence, never an empty replacement store.
+    private let loadedSafely: Bool
     static var defaultFileURL: URL {
         AppIdentity.applicationSupportDirectory.appendingPathComponent("action-receipts.json")
     }
@@ -366,14 +369,30 @@ final class ActionReceiptStore {
     /// A self-test starts empty: it must never read the user's receipts either.
     private init() {
         fileURL = Self.defaultFileURL
-        receipts = SelfTest.isRunning ? [] : Self.load(from: fileURL)
+        injectedFile = false
+        if SelfTest.isRunning {
+            receipts = []
+            loadedSafely = true
+        } else {
+            let loaded = Self.load(from: fileURL)
+            receipts = loaded.receipts
+            loadedSafely = loaded.writable
+        }
     }
 
     /// A store over its own file. The only way to construct one outside `shared`, and it never
     /// reads or writes the user's receipts whatever the harness is doing.
     init(fileURL: URL) {
         self.fileURL = fileURL
-        receipts = SelfTest.isRunning ? Self.load(from: fileURL) : Self.load(from: fileURL)
+        injectedFile = true
+        guard !SelfTest.isRunning || Self.permitsHarnessFile(fileURL) else {
+            receipts = []
+            loadedSafely = false
+            return
+        }
+        let loaded = Self.load(from: fileURL)
+        receipts = loaded.receipts
+        loadedSafely = loaded.writable
     }
 
     /// How many receipts this store holds. For a self-test that has just written a file.
@@ -381,22 +400,38 @@ final class ActionReceiptStore {
 
     @discardableResult
     func record(_ receipt: ActionReceipt) -> Bool {
+        let memoryOnly = SelfTest.isRunning && !injectedFile
+        guard memoryOnly || (loadedSafely && (!SelfTest.isRunning || Self.permitsHarnessFile(fileURL))) else {
+            return false
+        }
+        let before = receipts
         if let index = receipts.firstIndex(where: { $0.actionID == receipt.actionID }) {
             receipts[index] = receipt
         } else {
             receipts.insert(receipt, at: 0)
         }
         if receipts.count > 500 { receipts = Array(receipts.prefix(500)) }
-        // Self-tests may inspect the in-memory lifecycle, but must never write an audit
-        // record into the user's support directory.
-        return SelfTest.isRunning ? true : save()
+        // Default harness lifecycle checks stay memory-only. An explicitly injected,
+        // safe temporary file exercises the same disk producer as the app.
+        if memoryOnly { return true }
+        guard save() else { receipts = before; return false }
+        return true
     }
 
     func receipt(for id: UUID) -> ActionReceipt? { receipts.first { $0.actionID == id } }
 
     func receipt(forIntent id: UUID) -> ActionReceipt? { receipts.first { $0.intentID == id } }
 
+    private static func permitsHarnessFile(_ fileURL: URL) -> Bool {
+        guard fileURL.isFileURL else { return false }
+        let resolved = fileURL.resolvingSymlinksInPath().standardizedFileURL
+        let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        return resolved.path.hasPrefix(temporary.path + "/")
+            && !resolved.pathComponents.contains("Application Support")
+    }
+
     private func save() -> Bool {
+        guard loadedSafely, !SelfTest.isRunning || (injectedFile && Self.permitsHarnessFile(fileURL)) else { return false }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
@@ -418,14 +453,16 @@ final class ActionReceiptStore {
     /// one store that must never be silently emptied, and it was the one store that could be
     /// emptied by a version difference alone.
     ///
-    /// So each record is decoded on its own, the ones that decode are kept, and the rest are
-    /// counted in the log rather than dropped without word. A file that is not a JSON array at
-    /// all is a different failure and still reads as empty — there is nothing in it to keep.
-    private static func load(from fileURL: URL) -> [ActionReceipt] {
+    /// Readable rows remain available, but an undecodable row or source blocks writes
+    /// so the next record cannot erase the retained evidence. Only a missing file is fresh.
+    private static func load(from fileURL: URL) -> (receipts: [ActionReceipt], writable: Bool) {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        guard let data = try? Data(contentsOf: fileURL) else { return [] }
-        guard let rows = try? decoder.decode([AnyReceiptRow].self, from: data) else { return [] }
+        let data: Data
+        do { data = try Data(contentsOf: fileURL) }
+        catch CocoaError.fileReadNoSuchFile { return ([], true) }
+        catch { return ([], false) }
+        guard let rows = try? decoder.decode([AnyReceiptRow].self, from: data) else { return ([], false) }
         var kept: [ActionReceipt] = []
         var unreadable = 0
         for row in rows {
@@ -443,7 +480,7 @@ final class ActionReceiptStore {
                 (\(unreadable) unreadable by this build, left on disk)
                 """)
         }
-        return kept
+        return (kept, unreadable == 0)
     }
 
     /// One element of the stored array, decoded on its own so a failure is a nil rather than a
@@ -490,6 +527,9 @@ final class ActionOrchestrator {
         permissionAlreadyGranted: Bool = false,
         allowUnverifiedResult: Bool = false,
         isStillValid: (@MainActor @Sendable () async -> Bool)? = nil,
+        /// An explicitly isolated fixture uses the existing receipt writer on disk.
+        /// Normal callers keep the same shared receipt store.
+        receiptStore: ActionReceiptStore = .shared,
         /// IM-12: where the turn came from. Nil (the default every existing caller
         /// keeps) is local policy as before; a remote origin narrows the broker's
         /// answers without changing the authority.
@@ -518,13 +558,13 @@ final class ActionOrchestrator {
             // ACP can append nested permission events while `fire` is suspended. Merge
             // them before writing the next stage so the outer receipt does not erase
             // evidence of what the coding agent asked the user to approve.
-            if let stored = ActionReceiptStore.shared.receipt(for: receipt.actionID) {
+            if let stored = receiptStore.receipt(for: receipt.actionID) {
                 let known = Set(receipt.events.map(\.id))
                 receipt.events.append(contentsOf: stored.events.filter { !known.contains($0.id) })
             }
             receipt.status = stage
             receipt.events.append(ActionReceiptEvent(stage: stage, detail: detail))
-            return ActionReceiptStore.shared.record(receipt)
+            return receiptStore.record(receipt)
         }
         add(.judged, "\(intent.source.rawValue) intent for \(tool.id)")
 
@@ -650,7 +690,7 @@ final class ActionOrchestrator {
                     if let link = result.link?.absoluteString { receipt.artifacts.append(link) }
                     receipt.verification = "Unverified; inspect the target before retrying"
                     receipt.completedAt = Date()
-                    _ = ActionReceiptStore.shared.record(receipt)
+                    _ = receiptStore.record(receipt)
                     return AgentToolResult(
                         summary: result.summary + "\nNext Notes could not independently verify the effect. Inspect the target before retrying.",
                         reference: result.reference,

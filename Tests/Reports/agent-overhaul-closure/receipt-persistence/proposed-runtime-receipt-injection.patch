@@ -1,0 +1,37 @@
+--- a/Sources/NextNotes/Agent/ActionRuntime.swift
++++ b/Sources/NextNotes/Agent/ActionRuntime.swift
+@@ -527,6 +527,9 @@
+         permissionAlreadyGranted: Bool = false,
+         allowUnverifiedResult: Bool = false,
+         isStillValid: (@MainActor @Sendable () async -> Bool)? = nil,
++        /// An explicitly isolated fixture uses the existing receipt writer on disk.
++        /// Normal callers keep the same shared receipt store.
++        receiptStore: ActionReceiptStore = .shared,
+         /// IM-12: where the turn came from. Nil (the default every existing caller
+         /// keeps) is local policy as before; a remote origin narrows the broker's
+         /// answers without changing the authority.
+@@ -555,13 +558,13 @@
+             // ACP can append nested permission events while `fire` is suspended. Merge
+             // them before writing the next stage so the outer receipt does not erase
+             // evidence of what the coding agent asked the user to approve.
+-            if let stored = ActionReceiptStore.shared.receipt(for: receipt.actionID) {
++            if let stored = receiptStore.receipt(for: receipt.actionID) {
+                 let known = Set(receipt.events.map(\.id))
+                 receipt.events.append(contentsOf: stored.events.filter { !known.contains($0.id) })
+             }
+             receipt.status = stage
+             receipt.events.append(ActionReceiptEvent(stage: stage, detail: detail))
+-            return ActionReceiptStore.shared.record(receipt)
++            return receiptStore.record(receipt)
+         }
+         add(.judged, "\(intent.source.rawValue) intent for \(tool.id)")
+ 
+@@ -687,7 +690,7 @@
+                     if let link = result.link?.absoluteString { receipt.artifacts.append(link) }
+                     receipt.verification = "Unverified; inspect the target before retrying"
+                     receipt.completedAt = Date()
+-                    _ = ActionReceiptStore.shared.record(receipt)
++                    _ = receiptStore.record(receipt)
+                     return AgentToolResult(
+                         summary: result.summary + "\nNext Notes could not independently verify the effect. Inspect the target before retrying.",
+                         reference: result.reference,

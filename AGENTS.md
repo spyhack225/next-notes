@@ -159,6 +159,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-task-authority
 --selftest-task-restoration
 --selftest-task-history-repair
+--selftest-receipt-persistence
 --selftest-agent-presentation
 --selftest-persona   --selftest-memory     --selftest-schedule
 --selftest-routine-authority
@@ -1552,9 +1553,11 @@ certain. **A write is never retried automatically, for any error** — "Send aga
 approval of the same prepared content*, and the timeout itself does not get raised. The state
 travels on `WorkspaceToolResult.outcomeUnknown` rather than in a sentence, because a reworded
 string is how a duplicate-send bug comes back with nobody testing it. Two supporting rules: the
-receipts store decodes element by element and gives an unrecognised status a hand-written
-`init(from:)` mapping to `.couldNotVerify`, because one unreadable row used to empty the audit
-trail and the next `record` then overwrote the file; and `JSONSerialization.data(withJSONObject:)`
+receipts store decodes element by element and maps an unrecognised status to
+`.couldNotVerify`. A partially unreadable or malformed source blocks replacing writes
+and retains its exact bytes; readable rows remain available. Explicit temporary-file
+harness stores exercise real disk persistence, while the shared harness store stays
+in memory. A failed write restores the last committed memory state; and `JSONSerialization.data(withJSONObject:)`
 raised on a Swift struct there, which killed a self-test task and left the app in the run loop
 looking like a hang — pass dictionaries, never a `Codable` value.
 

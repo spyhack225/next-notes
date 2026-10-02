@@ -1,0 +1,12 @@
+{
+  "mode": "original",
+  "full_source_sha256": "f67e96ea5ce6e1653259338c6e60acb58a69faa73020e53bb21475dbee6fd4ca",
+  "actual_risk_source_sha256": "e62bc2a7db301cbe1222ea43c4b64e22ffed7a2df1886d321ca7a7d4c94a4e2a",
+  "inputs": {
+    "ActualReceiptProducer.swift": "54df4a1b9c6cb8d64f17623174bb66dc72e5c3d31fc34aa04541feba7434ed2b",
+    "ActualRisk.swift": "637fe5563808459527165fe15fea995b1b89d465fd6f65600d400af241b3eda0",
+    "Collaborators.swift": "84caea4068e6615fbad77e93a1d63a76e7f4ba55dd0b16e812fa98d7259ca416",
+    "ReceiptFixture.swift": "d5435799430873e4342cec810c986de0d9a8e9615759a6ebcd6fb804b80196a0"
+  },
+  "scope": "Copied actual store + types; declared SelfTest/AppIdentity/logger. No ActionOrchestrator, owner stores, attempts, task linkage or effect/recovery proof."
+}

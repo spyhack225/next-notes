@@ -1,0 +1,42 @@
+[
+  {
+    "flag": "tool-review",
+    "exit": 0,
+    "seconds": 1.318,
+    "markers": [
+      "TOOL_REVIEW_OK"
+    ]
+  },
+  {
+    "flag": "task-restoration",
+    "exit": 0,
+    "seconds": 1.355,
+    "markers": [
+      "TASK_RESTORATION_OK: 70 cases"
+    ]
+  },
+  {
+    "flag": "task-authority",
+    "exit": 0,
+    "seconds": 1.333,
+    "markers": [
+      "TASK_AUTHORITY_OK: 58 cases"
+    ]
+  },
+  {
+    "flag": "task-durability",
+    "exit": 0,
+    "seconds": 1.148,
+    "markers": [
+      "TASK_DURABILITY_OK: 37 cases"
+    ]
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "seconds": 32.662,
+    "markers": [
+      "STORE_ISOLATION_OK: 21 files and 31 defaults unchanged"
+    ]
+  }
+]

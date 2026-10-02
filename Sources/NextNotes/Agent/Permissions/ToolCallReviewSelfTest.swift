@@ -681,8 +681,8 @@ enum ToolCallReviewSelfTest {
             fail("a fuzzy match is reported as certain")
         }
 
-        // G. The store. One record with a status this build has no word for, and two good ones:
-        // `load()` must keep the two, and the next `record` must write three — not one.
+        // G. The actual disk store: unknown statuses remain readable/writable;
+        // unreadable rows or source bytes are retained and refuse replacement.
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("NextNotesSelfTest-receipts-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root) }
@@ -697,6 +697,7 @@ enum ToolCallReviewSelfTest {
         let file = root.appendingPathComponent("receipts.json")
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
         var rows: [[String: Any]] = []
         for (index, receipt) in [good, odd, good].enumerated() {
             var row = (try? JSONSerialization.jsonObject(
@@ -728,6 +729,22 @@ enum ToolCallReviewSelfTest {
                 + "\(oddRead?.status.rawValue ?? "nothing"), expected couldNotVerify")
         }
 
+        // A record must actually reach disk, not succeed only in the harness array.
+        let freshFile = root.appendingPathComponent("fresh-record.json")
+        let fresh = ActionReceiptStore(fileURL: freshFile)
+        let canonicalGood = try? decoder.decode(ActionReceipt.self, from: encoder.encode(good))
+        if canonicalGood == nil || !fresh.record(good) || !FileManager.default.fileExists(atPath: freshFile.path)
+            || ActionReceiptStore(fileURL: freshFile).receipt(for: good.actionID) != canonicalGood {
+            fail("an accepted fresh receipt did not round-trip through its actual disk writer")
+        }
+        let acceptedUnknown = store.record(good)
+        let canonicalKnownRows = try? decoder.decode([ActionReceipt].self, from: encoder.encode(store.receipts))
+        let reopenedUnknown = ActionReceiptStore(fileURL: file)
+        if !acceptedUnknown || canonicalKnownRows == nil || reopenedUnknown.receipts != canonicalKnownRows
+            || reopenedUnknown.count != 3 || reopenedUnknown.receipt(for: odd.actionID)?.status != .couldNotVerify {
+            fail("an unknown-status receipt did not survive an exact actual accepted disk update")
+        }
+
         // G2. A row this build genuinely cannot read — a required field of the wrong type — is
         // dropped **on its own**, and the file keeps everything else. This is the half the
         // per-element decode exists for, and it is what the old `decode([…]) ?? []` turned into
@@ -748,9 +765,10 @@ enum ToolCallReviewSelfTest {
         unreadable["toolID"] = 42  // a number where a string is required
         let goodRow = (try? JSONSerialization.jsonObject(
             with: encoder.encode(good))) as? [String: Any] ?? [:]
-        if let mixed = try? JSONSerialization.data(
-            withJSONObject: [goodRow, unreadable, goodRow]) {
-            try? mixed.write(to: file, options: .atomic)
+        guard let mixed = try? JSONSerialization.data(withJSONObject: [goodRow, unreadable, goodRow]),
+              (try? mixed.write(to: file, options: .atomic)) != nil else {
+            fail("the mixed readable/unreadable receipts fixture could not be written")
+            return failures
         }
         let partial = ActionReceiptStore(fileURL: file)
         if partial.count != 2 {
@@ -760,7 +778,12 @@ enum ToolCallReviewSelfTest {
         // And the record that used to overwrite it. The unreadable row must still be on disk
         // afterwards: the store dropping a row it cannot read is correct, the store *erasing*
         // the file is the bug.
-        _ = partial.record(good)
+        if partial.record(good) {
+            fail("an unreadable-row source accepted a replacing record")
+        }
+        if (try? Data(contentsOf: file)) != mixed {
+            fail("a rejected partial receipt record changed the exact retained source bytes")
+        }
         if let after = try? Data(contentsOf: file),
            let rows = try? JSONSerialization.jsonObject(with: after) as? [[String: Any]],
            rows.count != 3 {
@@ -770,6 +793,51 @@ enum ToolCallReviewSelfTest {
         if ActionReceiptStore(fileURL: file).count != 2 {
             fail("reloading after a record lost the readable rows")
         }
+        for (name, retained) in [("truncated", Data("[{\"actionID\":\"retained".utf8)),
+                                 ("not-an-array", Data("{\"retained\":true}".utf8))] {
+            let damagedFile = root.appendingPathComponent(name + ".json")
+            guard (try? retained.write(to: damagedFile, options: .atomic)) != nil else {
+                fail("the damaged receipt fixture could not be written: \(name)")
+                continue
+            }
+            let damaged = ActionReceiptStore(fileURL: damagedFile)
+            if damaged.record(good) || damaged.count != 0 || (try? Data(contentsOf: damagedFile)) != retained {
+                fail("an undecodable receipt source accepted replacement or changed bytes: \(name)")
+            }
+        }
+        do {
+            let failureRoot = root.appendingPathComponent("save-failure", isDirectory: true)
+            try FileManager.default.createDirectory(at: failureRoot, withIntermediateDirectories: false)
+            let failureFile = failureRoot.appendingPathComponent("receipts.json")
+            try encoder.encode([good]).write(to: failureFile)
+            let failing = ActionReceiptStore(fileURL: failureFile)
+            let committed = failing.receipts
+            try FileManager.default.removeItem(at: failureFile)
+            try FileManager.default.removeItem(at: failureRoot)
+            let retained = Data("owned fixture parent is now a file".utf8)
+            try retained.write(to: failureRoot)
+            if failing.record(odd) || failing.receipts != committed || (try? Data(contentsOf: failureRoot)) != retained {
+                fail("a failed disk save retained an uncommitted receipt or changed its retained fixture")
+            }
+            let protected = root.appendingPathComponent("Library/Application Support/Next Notes", isDirectory: true)
+            try FileManager.default.createDirectory(at: protected, withIntermediateDirectories: true)
+            let protectedFile = protected.appendingPathComponent("receipts.json")
+            let originalBytes = try encoder.encode([good]); try originalBytes.write(to: protectedFile)
+            let refused = ActionReceiptStore(fileURL: protectedFile)
+            if refused.count != 0 || refused.record(odd) || refused.count != 0
+                || (try? Data(contentsOf: protectedFile)) != originalBytes {
+                fail("an injected Application Support path was read or accepted a write")
+            }
+            // An explicitly owned support surrogate keeps even a broken guard
+            // from inspecting owner receipts. A symlink cannot evade the boundary.
+            let linked = root.appendingPathComponent("linked-support.json")
+            try FileManager.default.createSymbolicLink(at: linked, withDestinationURL: protectedFile)
+            let linkedRefusal = ActionReceiptStore(fileURL: linked)
+            if linkedRefusal.count != 0 || linkedRefusal.record(odd) || linkedRefusal.count != 0
+                || (try? Data(contentsOf: protectedFile)) != originalBytes {
+                fail("a symlinked support injection evaded the harness file boundary")
+            }
+        } catch { fail("receipt persistence boundary fixture: \(error)") }
         return failures
     }
 

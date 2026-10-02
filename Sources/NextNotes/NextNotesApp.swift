@@ -1128,6 +1128,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-receipt-persistence") {
+            Task { @MainActor in
+                let marker = await ReceiptPersistenceRuntimeSelfTest.run()
+                SelfTest.failed = SelfTest.failed || marker.contains("_FAILED")
+                writeSelfTest(marker)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+        if arguments.contains("--selftest-task-history-repair") {
+            Task { @MainActor in
+                writeSelfTest(TaskHistoryRepairSelfTest.run())
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-agent-presentation") {
             Task { @MainActor in
                 SelfTest.failed = !(await AgentPresentationSelfTest.run())
