@@ -1,0 +1,8 @@
+{
+  "beforeSHA256": "18b7069f924db55278217a25e9c4fbd86506e4dd402a6db345c825968b0a533d",
+  "afterSHA256": "fd13500c5e63afc64b651c4c4c83fe671e3fbd6bd51539a74ee526d25df49f8a",
+  "upgradeAfterOriginal69": "single response-contract assertion, executed in six original modes: nested selected/reject-once, no top-level optionId",
+  "checkCount": 68,
+  "unchanged": "peer/protocol/identity inputs, gate/activity/reply controls and all other assertions",
+  "originalWireArchive": "ACPSessionOriginSelfTest.swift.original69.txt plus original52/fixed53 reports"
+}

@@ -505,6 +505,18 @@ post-await/client/nested permission authority, effect reconciliation, recovery/r
 and IM-16 remain open. See the
 [completion proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-completion-admission-review/verification.md).
 
+Installed app70 verifies bounded P6-06l ACP permission outcomes. Original69 fails
+three actual allow/decline/cancel wire assertions; unchanged fixed70 passes22 new
+checks, existing68 origin controls, worker764 and all20 focused flags. The existing
+incoming result seam now carries serialized Data for nested selected/cancelled
+outcomes. Session cancellation is recorded before Gate withdrawal and checked after
+existing awaits. No new await/store/queue/timer; MCP/EOF behavior remains green.
+Only the archived legacy flat-wire assertion was explicitly upgraded in six modes;
+all its inputs/other guards are unchanged. Concurrent/client epochs, malformed
+options, request IDs, cancel notification semantics, nested durable authority,
+effects/recovery/retry and IM-16 remain open. See the
+[permission proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-invocation-review/permission-result-review/native-verification/verification.md).
+
 ACP now checks the exact established session ID before accumulating reply text,
 publishing activity or relaying a permission (installed app53). Actual original52
 fails20 of68 origin checks; the unchanged fixture passes68 in fixed53 and five

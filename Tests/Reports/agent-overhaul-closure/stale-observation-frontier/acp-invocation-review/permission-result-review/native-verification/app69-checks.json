@@ -1,0 +1,13 @@
+[
+  {
+    "flag": "acp",
+    "exit": 1,
+    "marker": "ACP_FAILED: 3 rule(s) wrong",
+    "originChecks": [
+      "68",
+      "68"
+    ],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  }
+]

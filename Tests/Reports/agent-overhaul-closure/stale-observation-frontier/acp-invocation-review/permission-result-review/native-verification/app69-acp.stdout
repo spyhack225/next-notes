@@ -1,0 +1,10 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-acp --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-acp-origin-69-tmukouxl/acp.log
+  ACP_WRONG: ACP result: actual peer received a nonconforming permission outcome (allow)
+  ACP_WRONG: ACP result: actual peer received a nonconforming permission outcome (decline)
+  ACP_WRONG: ACP result: actual peer received a nonconforming permission outcome (cancel)
+ACP_FAILED: 3 rule(s) wrong
+ACP_ORIGIN_CHECKS: 68
+ACP_PERMISSION_RESULT_TRACE: mode=allow result={"optionId": "allow-once"}
+ACP_PERMISSION_RESULT_TRACE: mode=decline result={"optionId": "reject-once"}
+ACP_PERMISSION_RESULT_TRACE: mode=cancel result={"optionId": "reject-once"}
+ACP_PERMISSION_RESULT_CHECKS: 22

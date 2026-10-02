@@ -8303,6 +8303,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     check(name, condition)
                 }
                 SelfTest.diagnostic("ACP_ORIGIN_CHECKS: \(originChecks)")
+                var permissionResultChecks = 0
+                try await ACPSessionPermissionResultSelfTest.originalCases(root: terminalRoot) { condition, name in
+                    permissionResultChecks += 1
+                    check(name, condition)
+                }
+                SelfTest.diagnostic("ACP_PERMISSION_RESULT_CHECKS: \(permissionResultChecks)")
                 let script = try AgentStdioFixtures.writeACP()
                 let session = ACPSession()
                 let flags = ACPSelfTestFlags()

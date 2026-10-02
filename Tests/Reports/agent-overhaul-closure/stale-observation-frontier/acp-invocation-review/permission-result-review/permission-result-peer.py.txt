@@ -1,0 +1,46 @@
+import json, pathlib, sys
+mode, acknowledgement = sys.argv[1:]
+session = 'fixture-permission-result'
+waiting = None
+permission = False
+cancellation = False
+def send(value):
+    sys.stdout.write(json.dumps(value) + '\n')
+    sys.stdout.flush()
+def complete_if_ready():
+    global waiting
+    if waiting is None or not permission or (mode == 'cancel' and not cancellation):
+        return
+    if mode != 'cancel':
+        send({'jsonrpc':'2.0','method':'session/update','params':{'sessionId':session,
+            'update':{'sessionUpdate':'agent_message_chunk',
+                'content':{'type':'text','text':'Permission fixture done.'}}}})
+    send({'jsonrpc':'2.0','id':waiting,'result':{'stopReason':
+        'cancelled' if mode == 'cancel' else 'end_turn'}})
+    waiting = None
+for line in sys.stdin:
+    message = json.loads(line)
+    mid, method = message.get('id'), message.get('method')
+    if method == 'initialize':
+        send({'jsonrpc':'2.0','id':mid,'result':{'protocolVersion':1,'agentCapabilities':{}}})
+    elif method == 'session/new':
+        send({'jsonrpc':'2.0','id':mid,'result':{'sessionId':session}})
+    elif method == 'session/prompt':
+        assert message['params']['sessionId'] == session
+        waiting = mid
+        send({'jsonrpc':'2.0','id':900,'method':'session/request_permission','params':{
+            'sessionId':session,'toolCall':{'toolCallId':'fixture-result-tool',
+                'title':'Owned fixture review only','kind':'other','status':'pending'},
+            'options':[{'optionId':'allow-once','name':'Allow once','kind':'allow_once'},
+                {'optionId':'reject-once','name':'Reject','kind':'reject_once'}]}})
+    elif method == 'session/cancel':
+        assert message['params']['sessionId'] == session
+        cancellation = True
+        send({'jsonrpc':'2.0','id':mid,'result':{}})
+        complete_if_ready()
+    elif method is None and mid == 900:
+        # Original flat and future nested bytes are both retained verbatim.
+        # Complete the same control; do not substitute malformed-response timeout.
+        pathlib.Path(acknowledgement).write_text(json.dumps(message.get('result', {}), sort_keys=True))
+        permission = True
+        complete_if_ready()

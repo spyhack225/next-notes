@@ -1,0 +1,11 @@
+{
+  "nativeFlagsPassed": 20,
+  "newPermissionChecks": 22,
+  "originControls": 68,
+  "workerChecks": 764,
+  "sourceManifestEntries": 1027,
+  "sourceDrift": [],
+  "sameBundle": true,
+  "ownedPeerProcessesRemaining": 0,
+  "nativeScope": "allow/decline/cancel after actual Gate await; no effects/client replacement proof"
+}

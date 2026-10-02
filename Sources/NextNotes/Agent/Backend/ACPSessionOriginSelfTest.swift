@@ -109,10 +109,11 @@ enum ACPSessionOriginSelfTest {
                     && PermissionGate.shared.askCount == askBefore + (valid ? 1 : 0),
                     "ACP origin: session identity did not fence permission callbacks (\(mode))")
                 let ackData = try Data(contentsOf: ack)
-                let wire = try JSONSerialization.jsonObject(with: ackData) as? [String: String]
-                // This characterizes the current flat reply. Official nested ACP
-                // outcome conformance is a distinct, explicitly open producer gap.
-                check(wire == ["optionId": "reject-once"],
+                let wire = try JSONSerialization.jsonObject(with: ackData) as? [String: Any]
+                // Retain the exact offered decline and origin controls under the
+                // protocol's nested response contract (original flat bytes archived).
+                check(wire?["outcome"] as? [String: String]
+                    == ["outcome": "selected", "optionId": "reject-once"] && wire?["optionId"] == nil,
                     "ACP origin: actual permission reply was not the offered decline (\(mode))")
                 let relayed = await session.permissionRelayed
                 check(relayed == valid,

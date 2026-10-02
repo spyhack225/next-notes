@@ -18,7 +18,7 @@ final class JSONRPCStdioClient: @unchecked Sendable {
     private var buffer = Data()
     private var nextID = 1
     private var pending: [Int: CheckedContinuation<Data, Error>] = [:]
-    private var incomingHandler: (@Sendable ([String: String]) async -> [String: String])?
+    private var incomingHandler: (@Sendable ([String: String]) async -> Data)?
     private var notificationHandler: (@Sendable ([String: String]) async -> Void)?
     /// Preserve wire order between notifications and the response that completes a
     /// request. ACP commonly emits its final message immediately before end_turn.
@@ -53,7 +53,7 @@ final class JSONRPCStdioClient: @unchecked Sendable {
         }
     }
 
-    func onIncoming(_ handler: @escaping @Sendable ([String: String]) async -> [String: String]) {
+    func onIncoming(_ handler: @escaping @Sendable ([String: String]) async -> Data) {
         lock.lock()
         incomingHandler = handler
         lock.unlock()
@@ -127,7 +127,10 @@ final class JSONRPCStdioClient: @unchecked Sendable {
         ])
     }
 
-    func reply(id: Any, result: [String: String]) throws {
+    func reply(id: Any, resultJSON: Data) throws {
+        guard let result = try JSONSerialization.jsonObject(with: resultJSON) as? [String: Any] else {
+            throw JSONRPCError(message: "JSON-RPC result must be a JSON object.")
+        }
         try write([
             "jsonrpc": "2.0",
             "id": id,
@@ -258,8 +261,8 @@ final class JSONRPCStdioClient: @unchecked Sendable {
             let replyID = Self.intID(message["id"]) ?? 0
             let flat = Self.flat(message)
             Task { [weak self] in
-                let result = await handler?(flat) ?? [:]
-                try? self?.reply(id: replyID, result: result)
+                let result = await handler?(flat) ?? Data("{}".utf8)
+                try? self?.reply(id: replyID, resultJSON: result)
             }
             _ = method
             return
