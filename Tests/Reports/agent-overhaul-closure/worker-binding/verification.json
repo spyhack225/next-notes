@@ -1,0 +1,9 @@
+{
+  "originalFeatureFailedAssertions": 7,
+  "originalPriorCases": 362,
+  "finalCases": 399,
+  "relatedFlags": 14,
+  "sourceChangesAtVerification": [],
+  "fixtureSHA256": "ff89dd62ecd483ed43e44a79613f9ea7360214f12c8907372cdbe41d6117e5c2",
+  "finalBinarySHA256": "670abcdda9a883dedffbd9d55b1b1d74a2dc75a12d6aa5a928ba1ae40bbf12f8"
+}

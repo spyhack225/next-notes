@@ -1,0 +1,21 @@
+{
+  "status": "Read-only hashes during root original37 preparation; no reviewer compiler/native execution",
+  "date": "2026-10-02",
+  "sources": {
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "3d8b308bc10bd406bf933d75abd2141c182f1b768bd90b35c025c37e54b3fe5e",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskDurability.swift": "e4d3144fe43fe51012b3bba0303a3223f7c808d019084855b7efdd5d50d4e872",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskRecoveryPlanner.swift": "6f29af04e8b47586d5d38667d6de990507906dc5bb570ff78537a101e65b9c53",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskEventJournal.swift": "1579f21a3f7d43df37f9b8ebc837e9119cb2dee0c7274530a0f47ca95ac240a4",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskStore.swift": "961644e8a7689a1f4d8004e64d0b3d12a567136653dff32bd7192786b26d18da",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift": "8e7c619ae5de83bb3add8ec41726550b83f90d9890f2dd254205cb1302562e09",
+    "Sources/NextNotes/Agent/Backend/LocalAgentBackend.swift": "869c607a427e25a77edbabeb6872d8ab6d6130425932b53bfc6d3fe41602ded4",
+    "Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift": "fd4d645ada9f5fdd5a1f2e1d66f3a633af559b5c9383e2cfdd015d1a7dd243d9",
+    "Sources/NextNotes/Agent/Backend/ACPSession.swift": "861bcfa619e51ffc285194f528da5c2bd94849ad64483044c03423f85bb87551",
+    "Sources/NextNotes/Agent/Backend/JSONRPCStdioClient.swift": "8265b2b878bc41e1125ffd838a764f4a94d064b6ec513eafad021be0c472bda5",
+    "Sources/NextNotes/Agent/ActionRuntime.swift": "bbc5789e1393a6aea08bbaddd2585fdb3b2056cab5a4e6ca58aad201e83e09e3",
+    "Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift": "b0b9bc4f0aa2b5e78a587d6d60de802bde746356ea8a14837cebbe2d2b6e9efb",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerBindingSelfTest.swift": "ff89dd62ecd483ed43e44a79613f9ea7360214f12c8907372cdbe41d6117e5c2",
+    "Tests/Reports/agent-overhaul-closure/worker-binding/TaskWorkerBindingSelfTest.swift.txt": "ff89dd62ecd483ed43e44a79613f9ea7360214f12c8907372cdbe41d6117e5c2",
+    "Tests/Reports/agent-overhaul-closure/worker-binding/proposed-AgentTaskManager.swift.txt": "520270e020ae2dd4571cc1b366deb85549522322e51778acb32adfdf06bb971b"
+  }
+}

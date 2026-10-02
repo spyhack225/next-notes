@@ -386,6 +386,19 @@ primary probe is added. Browser proof stops before authorization/backing; MCP,
 stale windows, process/session liveness, recovery/retry and IM-16 remain open.
 See the [runtime-class report](Tests/Reports/agent-overhaul-closure/runtime-class-fence/README.md).
 
+P6-05c adds captured handle observation (installed app38 worker399). Original app37
+retains the unbound producer plus nil snapshot scaffold and fails seven missing-feature
+assertions; prior362 remain green. The same running map wraps the same Task, binds
+positive typed-local identity only after accepted primary start, and preserves the
+queued-successor/cancel/release paths. The actual entry debug diagnostic and held
+backing consume exact captured metadata. Snapshot reads change no stored history;
+all14 related flags pass, including restoration82 and owner isolation21files32defaults.
+Cancellation may leave already-entered backing active; a fresh Manager's restart hold
+invalidates the old primary context even if its old in-memory handle remains present.
+This snapshot reads no SQL and proves no health, process death, complete stale
+observations, recovery/retry or IM-16 authority. No new store/save/await/timer is added.
+See the [worker-binding report](Tests/Reports/agent-overhaul-closure/worker-binding/README.md).
+
 `--selftest-voice-session-reducer` verifies ten pure traces (the original nine
 plus speech-ended identity/hold guards), then actual capture, approval and streamed
 playback with scripted models and a recording backing. `VoiceSession` remains a

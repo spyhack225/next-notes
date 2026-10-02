@@ -12,7 +12,11 @@ final class AgentTaskManager {
     private(set) var lastPersistenceResult: AgentTaskPersistenceResult?
     /// Failed history initialization blocks all record writes and new execution.
     private(set) var historyReadFailure: String?
-    @ObservationIgnored private var running: [String: Task<Void, Never>] = [:]
+    private struct RunningWorker {
+        let handle: Task<Void, Never>
+        var binding: TaskWorkerBinding? = nil
+    }
+    @ObservationIgnored private var running: [String: RunningWorker] = [:]
     /// A one-shot approval is intentionally not persisted as a standing grant. Keep the
     /// approval long enough for the exact queued retry to hand it to ActionOrchestrator.
     @ObservationIgnored private var approvedTaskIDs: Set<String> = []
@@ -45,6 +49,18 @@ final class AgentTaskManager {
             return
         }
         holdInterruptedTasks()
+    }
+
+    /// Current admitted in-process handle metadata. It supplies no health,
+    /// backend-session, effect, process-death or retry authority.
+    func workerBinding(taskID: String) -> TaskWorkerBinding? {
+        guard let worker = running[taskID], !worker.handle.isCancelled,
+              let binding = worker.binding, let current = task(id: taskID),
+              ownsLocalAttempt(current), current.status == .running,
+              current.durability?.attempt == binding.attempt,
+              current.durability?.leaseOwner == binding.leaseOwner,
+              current.durability?.attemptStartedAt == binding.startedAt else { return nil }
+        return binding
     }
 
     /// Repair reuses the same startup hold transition; no backend or dispatch occurs.
@@ -156,9 +172,7 @@ final class AgentTaskManager {
             AgentActivityStore.shared.begin(task: task, title: objective)
             IslandState.shared.showBackgroundAgentWork(title: objective)
         }
-        running[task.id] = Task { @MainActor [weak self] in
-            await self?.execute(task.id)
-        }
+        enqueueWorker(task.id)
         return task
     }
 
@@ -249,7 +263,7 @@ final class AgentTaskManager {
             task.pendingInteraction = nil
         }
         guard admitted.primaryCommitted else { return }
-        running[id]?.cancel()
+        running[id]?.handle.cancel()
         running[id] = nil
         approvedCompatibilityTaskIDs.remove(id)
         approvedTaskIDs.remove(id)
@@ -272,10 +286,8 @@ final class AgentTaskManager {
         // card available, and mint the one-shot token only after primary admission.
         guard admitted.primaryCommitted else { return }
         approvedCompatibilityTaskIDs.insert(taskID)
-        running[taskID]?.cancel()
-        running[taskID] = Task { @MainActor [weak self] in
-            await self?.execute(taskID)
-        }
+        running[taskID]?.handle.cancel()
+        enqueueWorker(taskID)
     }
 
     func respondPermission(taskID: String, approved: Bool, duration: PermissionDuration = .once) {
@@ -435,7 +447,7 @@ final class AgentTaskManager {
         guard admitted.primaryCommitted else { return false }
         if approved {
             approvedTaskIDs.insert(taskID)
-            running[taskID] = Task { @MainActor [weak self] in await self?.execute(taskID) }
+            enqueueWorker(taskID)
         }
         return true
     }
@@ -505,7 +517,7 @@ final class AgentTaskManager {
         task.pendingInteraction = nil
         let admitted = updateRecord(task, kinds: [.inputProvided])
         guard admitted.primaryCommitted else { return false }
-        running[taskID] = Task { @MainActor [weak self] in await self?.execute(taskID) }
+        enqueueWorker(taskID)
         return true
     }
 
@@ -537,13 +549,24 @@ final class AgentTaskManager {
         return update(captured.id, worker: expected, mutate: mutate)
     }
 
+    private func enqueueWorker(_ id: String) {
+        // The same execution slot starts unbound; only primary admission binds it.
+        running[id] = RunningWorker(handle: Task { @MainActor [weak self] in
+            await self?.execute(id)
+        })
+    }
+
     private func releaseWorker(_ captured: AgentTask) {
         if !ownsLocalAttempt(captured) { running[captured.id] = nil; return }
         // A queued explicit continuation may already own the next handle before its
         // asynchronous execute allocates the next attempt. Do not remove that handle.
         guard let current = task(id: captured.id), current.status != .queued,
               current.durability?.attempt == captured.durability?.attempt,
-              current.durability?.leaseOwner == captured.durability?.leaseOwner else { return }
+              current.durability?.leaseOwner == captured.durability?.leaseOwner,
+              let binding = running[captured.id]?.binding,
+              binding.attempt == captured.durability?.attempt,
+              binding.leaseOwner == captured.durability?.leaseOwner,
+              binding.startedAt == captured.durability?.attemptStartedAt else { return }
         running[captured.id] = nil
     }
 
@@ -573,6 +596,15 @@ final class AgentTaskManager {
         task.progress = "Starting…"
         let started = updateRecord(task, worker: startCondition)
         guard started.primaryCommitted else { rejectStart(id, result: started); return }
+        if ownsLocalAttempt(task), let metadata = task.durability,
+           metadata.attempt > 0, let owner = metadata.leaseOwner,
+           let began = metadata.attemptStartedAt {
+            running[id]?.binding = TaskWorkerBinding(taskID: id, attempt: metadata.attempt,
+                leaseOwner: owner, startedAt: began)
+            if let observed = workerBinding(taskID: id) {
+                Log.app.debug("Task worker admitted: attempt \(observed.attempt), owner \(observed.leaseOwner, privacy: .public)")
+            }
+        }
         defer {
             releaseWorker(task)
             if SelfTest.isRunning && store.allowsHarnessPersistence { backendExitForTesting?() }

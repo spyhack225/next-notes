@@ -1,0 +1,5 @@
+{
+  "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "fabfb4c937ff9717e4cbc8c5dc9a258447f1305ce9d112e5fa23c538bcc3fec6",
+  "Sources/NextNotes/Agent/Tasks/Durable/TaskDurability.swift": "b12761248b8dabc8012aae7b3c9602202cd9e7ccf604e930a2a83130c6c0df81",
+  "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift": "75598b9859135c4575a84414f71bdfd77dd4bddd515e7f3717ad70bff7c88e11"
+}
