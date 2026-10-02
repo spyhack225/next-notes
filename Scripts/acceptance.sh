@@ -297,6 +297,7 @@ EXPERIMENTAL_ENTRIES=(
   "selftest-concurrent-voice|300"
   "selftest-voice-duplex-work|300"
   "selftest-voice-session-reducer|300"
+  "selftest-apple-resume-owner|300"
   "selftest-contention|300"
   "selftest-context|300|via-open"
   "selftest-gws|300"

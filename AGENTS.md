@@ -200,6 +200,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-voice-playback-projection
 --selftest-voice-playback-resume-receipt
 --selftest-apple-playback-timeline
+--selftest-apple-resume-owner
 --selftest-playback-ledger --selftest-voice-scheduling
 --selftest-concurrent-voice --selftest-voice-frontend --selftest-voice-eou <wav>
 --selftest-acoustic-replay --selftest-acoustic-speech <far-wav> <near-wav>
@@ -700,6 +701,21 @@ adds no owner read and keeps grading intact; app99's initial mutation remains
 unattributed/open despite passing100/101 workers. Final101 quick remains3/10
 against9/10 and core21/22 with unchanged wake failure; no gate promotion. See the
 [negative resume proof](Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/negative-contract-verification/verification.md).
+
+`--selftest-apple-resume-owner` verifies bounded same-clause Apple resume
+publication: original102 has6 targets after two qualified native receipts;
+identical fixed103 passes44. Old/initially-late callbacks, repeated phases,
+previous receipts and stop/replacement are exercised at actual player/capture/
+synth/audio/shadow call sites. All25 focused flags pass, including prior48 and
+worker1352. Exact1047 manifests differ only at the synth publication method;
+allcommon consumers/gates match. Receipt suffixes are partial, not an acoustic
+pause cut or audibility proof. Production now adds per-buffer metadata/atomic
+work and resume cursor queries; overhead is unmeasured. No new queue/channel/
+timer/model pass/foreground await or live Island ownership switch was added.
+Short tails/new clauses, other backends, engine changes and full/live gates remain
+open. Final103 quickFAILED2/10 (87.5s), core21/22 unchangedwake; new hallucinated
+C04 email/calendar answer is retained and its runtime cause stays open.
+See the [positive owner proof](Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/positive-owner-verification/verification.md).
 
 `--selftest-apple-playback-timeline` is a bounded native diagnostic: corrected
 original97 RED3 → fixed98 same22 PASS, repeated99. It observes the same Apple

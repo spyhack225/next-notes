@@ -1,0 +1,21 @@
+{
+  "status": "off-source-uncompiled-unexecuted-proposal",
+  "baseline": {
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "7e2ed84c8ebb6844a02549d193d553c8a659631b20922be6dd55122bcf45d365",
+    "Sources/NextNotes/Agent/RealtimeAudioSession.swift": "c48ad2560f3a6bed453c7ecec9fcaa490b21ffb02187e8bfda8dd2f8dc74c07a",
+    "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift": "9ddda9c19c4c528b1fceb8752a7047a5405b645545b289dab936b81a8547ded5",
+    "Sources/NextNotes/Agent/VoicePlaybackDelivery.swift": "0737862c5f04346f639868d5f5d2b7b71c151de97992bb2b5d8ce914191cd3c7"
+  },
+  "common": {
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "1f86146250238083c8075265d5e1b28b199a41947f875bc116391b22be1cb7cd",
+    "Sources/NextNotes/Agent/RealtimeAudioSession.swift": "e785ea5eec1b20c808778dcf589cd8fd5512b27fab19972ca0cc28c3e2b313f1",
+    "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift": "18c5fb24d53d62fc780f1c73dfa9f5352fbd7c19f4c6956774d08bece45517cb",
+    "Sources/NextNotes/Agent/VoicePlaybackDelivery.swift": "c4df4ca70a115b6959c78c874af5f43cdf3a446addd3e22a3e82c2d0f0bd0d81"
+  },
+  "fixed": {
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "871e02fa01dbf36e46f3e437495640f4fc8b4104f9af2ecf931e930f41b7930f",
+    "Sources/NextNotes/Agent/RealtimeAudioSession.swift": "e785ea5eec1b20c808778dcf589cd8fd5512b27fab19972ca0cc28c3e2b313f1",
+    "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift": "18c5fb24d53d62fc780f1c73dfa9f5352fbd7c19f4c6956774d08bece45517cb",
+    "Sources/NextNotes/Agent/VoicePlaybackDelivery.swift": "c4df4ca70a115b6959c78c874af5f43cdf3a446addd3e22a3e82c2d0f0bd0d81"
+  }
+}

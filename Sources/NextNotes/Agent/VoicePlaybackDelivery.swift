@@ -41,7 +41,7 @@ final class VoicePlaybackDelivery {
         case .interrupted:
             queued = max(0, queued - 1)
             interrupted = true
-        case .startAcknowledged: break
+        case .startAcknowledged, .resumeRequested, .resumeAcknowledged: break
         }
         if let messageID { AgentSession.shared.updateSpeech(messageID: messageID, delivery: snapshot) }
         VoiceAnnouncementQueue.shared.receive(event)

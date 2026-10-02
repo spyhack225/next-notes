@@ -568,6 +568,7 @@ Sources/NextNotes/
 │   ├── Duplex/ApplePlaybackTimelineSelfTest.swift  actual same-player resume diagnostic
 │   │   VoicePlaybackResumeReceiptSelfTest.swift  actual stale-resume receipt refusal
 │   │   VoicePlaybackRepeatResumeSelfTest.swift   repeated pause/resume controls
+│   │   AppleResumeOwnerSelfTest.swift            qualified same-owner Apple resume
 │   │                               is the file-sink path — it never touches the live graph
 │   ├── Backend/                    AgentBackend, Local, ACP, harness router;
 │   │                               VisionHandoff — the parked screenshot → consented

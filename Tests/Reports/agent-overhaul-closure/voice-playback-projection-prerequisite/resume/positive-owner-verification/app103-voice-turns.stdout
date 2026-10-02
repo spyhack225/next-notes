@@ -1,0 +1,15 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-turns --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-103-auybj_n3/voice-turns.log
+2026-10-02 18:11:52.603 NextNotes[12042:104253] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_TURNS_OK
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#4) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#4) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#5) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#5) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#7) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#7) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#10) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#10) legacy=nil
+VOICE_LISTEN_CANDIDATE_TO_PAUSE=1.0728836059570312e-06s
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#13) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#13) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=output event=inputWithdrawn reducer=Optional(NextNotes.VoiceSessionState.Output(id: output#8, kind: NextNotes.OutputKind.delivery([]), status: NextNotes.VoiceSessionState.Output.Status.paused, heard: true, resumeToken: nil, resumePhase: nil)) legacy=Optional(NextNotes.VoiceSessionState.Output(id: output#8, kind: NextNotes.OutputKind.delivery([]), status: NextNotes.VoiceSessionState.Output.Status.awaitingResume, heard: true, resumeToken: nil, resumePhase: nil))

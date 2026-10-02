@@ -1,0 +1,16 @@
+TOOLLOOP_LIVE_MODEL: appLLM "Gemma 4 E4B" ctx=32768 role=cloud FALLBACK
+TOOLLOOP_LIVE_CASE C01 PASS 10.9s turns=1 tools=get_agenda(date=2026-10-02) reply="You have Standup at 9:30, Budget review with Ana at 2:00, and a Call with Marcus about pricing at 4:30 today."
+TOOLLOOP_LIVE_CASE C04 UNGROUNDED 35.8s turns=1 tools=search_email(maxResults=5) get_agenda(date=2026-10-03) reply="This takes a few steps on this Mac.  I see you want a summary of your recent emails and tomorrow's events. Here is what I found for you.  Your last emails are: "
+TOOLLOOP_LIVE_CASE M03 REFUSAL 3.2s turns=1 tools=- reply="I can check your last emails for you. Should I show you a summary of what I find?"
+TOOLLOOP_LIVE_CASE M04 MISSED_TOOL 3.7s turns=1 tools=- reply="I can draft that email for you. What should the subject line be?"
+TOOLLOOP_LIVE_CASE M05 UNGROUNDED 13.4s turns=2 tools=search_email(maxResults=3) reply="What about those emails?"
+TOOLLOOP_LIVE_CASE K01 REFUSAL 2.8s turns=1 tools=- reply="I can check the decisions from the last meeting for you. Should I look at the decisions recorded in the most recent meeting?"
+TOOLLOOP_LIVE_CASE R02 MISSED_TOOL 4.8s turns=1 tools=- reply="I haven't checked that yet."
+TOOLLOOP_LIVE_CASE F03 MISSED_TOOL 3.5s turns=1 tools=- reply="I can find the pricing document, but I need to know where it is saved first."
+TOOLLOOP_LIVE_CASE A02 UNGROUNDED 6.8s turns=1 tools=browser.navigate(url=https://www.youtube.com) reply="I can look at the page for you. Can you show me a snapshot of what's on the screen?"
+TOOLLOOP_LIVE_CASE N04 PASS 2.1s turns=1 tools=- reply="I can look at your calendar, email, Drive and Docs, reminders and routines, past meetings and notes, Mac apps and the screen, browser pages, installable skills,"
+TOOLLOOP_LIVE_CLASSES pass=2 error=0 timeout=0 leak=0 refusal=2 wrong_tool=0 fabricated=0 missed_tool=3 ungrounded=3 filler=0
+TOOLLOOP_LIVE_SCORE 2/10 (quick)
+TOOLLOOP_LIVE_REPORT /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/positive-owner-verification/app103-quick.md
+TOOLLOOP_LIVE_ELAPSED 87.5
+TOOLLOOP_LIVE_FAILED: 2/10 (quick) on Gemma 4 E4B — below the pass bar 9

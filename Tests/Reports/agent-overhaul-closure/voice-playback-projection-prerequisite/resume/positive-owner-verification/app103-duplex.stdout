@@ -1,0 +1,5 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-duplex --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-103-auybj_n3/duplex.log
+2026-10-02 18:11:59.788 NextNotes[12092:105002] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#2) legacy=nil
+DUPLEX_OK

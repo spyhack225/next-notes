@@ -1,0 +1,205 @@
+{
+  "scope": "Read-only attribution of measured quick101→103 C04 change; no rerun, native/model/source/index action.",
+  "verdict": "New C04 grounding failure preserved. Runtime cause and attribution to changed common/audio producer unresolved.",
+  "quick": {
+    "previous101": {
+      "pass": 3,
+      "total": 10,
+      "seconds": 84.8
+    },
+    "current103": {
+      "pass": 2,
+      "total": 10,
+      "seconds": 87.5
+    },
+    "bar": 9,
+    "soleChangedVerdict": "C04 PASS→UNGROUNDED",
+    "otherVerdictsUnchanged": true,
+    "A02": "Still UNGROUNDED; now navigate only, previously navigate+snapshot, no browser.click in either"
+  },
+  "C04": {
+    "previous101": {
+      "evidence": "09-22 00:58Z",
+      "expectedFix": "P1-02, P1-06",
+      "id": "C04",
+      "lastMaxTokens": 1024,
+      "lastRaw": "I see you want a summary of your recent emails and what's on your calendar for tomorrow.\n\nYour last emails mention a dinner tomorrow with Cyril, a deck for Friday from Ana Ruiz, and an updated pricing sheet from Marcus Lee.\n\nFor tomorrow, October 3rd, you have appointments with the Dentist from 8:00 to 8:45 AM, a Design sync at 3:00 PM to 3:45 PM, and dinner with Cyril at 7:00 PM.",
+      "lastSystemCharacters": 6738,
+      "lastUserCharacters": 1025,
+      "needle": [],
+      "process": {
+        "activeProcessorCount": 8,
+        "hostUptime": 1901.0867617083334,
+        "interruptWakeups": 415,
+        "isLowPowerModeEnabled": false,
+        "peakResidentMemoryBytes": 4087398400,
+        "physicalFootprintBytes": 475534256,
+        "physicalMemoryBytes": 17179869184,
+        "platformIdleWakeups": 2,
+        "processorCount": 8,
+        "residentMemoryBytes": 1264173056,
+        "systemCPUSeconds": 1.546955,
+        "thermalState": "fair",
+        "userCPUSeconds": 3.459706
+      },
+      "reply": "This takes a few steps on this Mac.\n\nI see you want a summary of your recent emails and what's on your calendar for tomorrow.\n\nYour last emails mention a dinner tomorrow with Cyril, a deck for Friday from Ana Ruiz, and an updated pricing sheet from Marcus Lee.\n\nFor tomorrow, October 3rd, you have ap",
+      "rounds": 3,
+      "seconds": 21.4,
+      "timing": [
+        {
+          "answerSeconds": 21.424184834,
+          "firstVerifiedResultSeconds": 5.157101,
+          "turn": 0
+        }
+      ],
+      "tools": [
+        "search_email(maxResults=5)",
+        "get_agenda(date=2026-10-03)"
+      ],
+      "turns": 1,
+      "usagePasses": [
+        "agent.typed/planner llama Gemma 4 E4B prompt=1741 completion=62 reasoning=0 ttft=2116ms total=5118ms finish=stop proposed=search_email executed=search_email",
+        "agent.typed/planner llama Gemma 4 E4B prompt=1960 completion=42 reasoning=0 ttft=8644ms total=10651ms finish=stop proposed=get_agenda executed=get_agenda",
+        "agent.typed/planner llama Gemma 4 E4B prompt=2022 completion=107 reasoning=0 ttft=447ms total=5564ms finish=stop proposed=- executed=-"
+      ],
+      "verdict": "PASS"
+    },
+    "current103": {
+      "evidence": "09-22 00:58Z",
+      "expectedFix": "P1-02, P1-06",
+      "id": "C04",
+      "lastMaxTokens": 1024,
+      "lastRaw": "I see you want a summary of your recent emails and tomorrow's events. Here is what I found for you.\n\nYour last emails are:\n*   From: Jane Doe, Subject: Project Update, Date: Friday, October 2nd\n*   From: Support Team, Subject: Account Question, Date: Thursday, October 1st\n*   From: Marketing Dept, Subject: Q4 Planning, Date: Wednesday, October 7th\n\nFor tomorrow, October 3rd, you have these events:",
+      "lastSystemCharacters": 6738,
+      "lastUserCharacters": 1067,
+      "needle": [],
+      "process": {
+        "activeProcessorCount": 8,
+        "hostUptime": 3184.225458916667,
+        "interruptWakeups": 537,
+        "isLowPowerModeEnabled": false,
+        "peakResidentMemoryBytes": 4919328768,
+        "physicalFootprintBytes": 473699248,
+        "physicalMemoryBytes": 17179869184,
+        "platformIdleWakeups": 14,
+        "processorCount": 8,
+        "residentMemoryBytes": 2825322496,
+        "systemCPUSeconds": 1.774329,
+        "thermalState": "nominal",
+        "userCPUSeconds": 5.914116
+      },
+      "reply": "This takes a few steps on this Mac.\n\nI see you want a summary of your recent emails and tomorrow's events. Here is what I found for you.\n\nYour last emails are:\n* From: Jane Doe, Subject: Project Update, Date: Friday, October 2nd\n* From: Support Team, Subject: Account Question, Date: Thursday, Octobe",
+      "rounds": 4,
+      "seconds": 35.8,
+      "timing": [
+        {
+          "answerSeconds": 35.820600333,
+          "firstVerifiedResultSeconds": 5.701937542,
+          "turn": 0
+        }
+      ],
+      "tools": [
+        "search_email(maxResults=5)",
+        "get_agenda(date=2026-10-03)"
+      ],
+      "turns": 1,
+      "usagePasses": [
+        "agent.typed/planner llama Gemma 4 E4B prompt=1741 completion=62 reasoning=0 ttft=2193ms total=5676ms finish=stop proposed=search_email executed=search_email",
+        "agent.typed/planner llama Gemma 4 E4B prompt=1960 completion=246 reasoning=0 ttft=8306ms total=19401ms finish=stop proposed=- executed=-",
+        "agent.typed/planner llama Gemma 4 E4B prompt=2092 completion=45 reasoning=0 ttft=711ms total=2744ms finish=stop proposed=get_agenda executed=get_agenda",
+        "agent.typed/planner llama Gemma 4 E4B prompt=1967 completion=150 reasoning=0 ttft=971ms total=7849ms finish=stop proposed=- executed=-"
+      ],
+      "verdict": "UNGROUNDED"
+    },
+    "firstRecordedDecisionDifference": "Round2 after executed search_email:101 proposed/executed get_agenda with42 completion tokens,103 proposed-/executed- with246.103 later executes get_agenda at round3 and writes final no-call prose at round4. Round2 raw/prompt bytes are not retained in exported JSONL, so exact prose and continuation/repair trigger are unknown.",
+    "firstAvailableIncorrectResult": "Final model completion invents Jane Doe/Support Team/Marketing Dept, none present in owned email fixture; it ends with tomorrow events heading and no event rows. Both executed reads remain recorded. This is generated-answer grounding failure, not recorded denial/missing execution of search_email/get_agenda.",
+    "grading": "Unchanged mustMention mail group pricing/deck/invoice and calendar group dentist/design sync both absent. The grader correctly labels UNGROUNDED under its existing contract, not a new expected failure. finalRaw finish=stop,150 tokens, so no recorded limit/time-out diagnosis."
+  },
+  "source": {
+    "previousEntries": 1046,
+    "currentEntries": 1047,
+    "delta": {
+      "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift": {
+        "previous101": "9ddda9c19c4c528b1fceb8752a7047a5405b645545b289dab936b81a8547ded5",
+        "current103": "18c5fb24d53d62fc780f1c73dfa9f5352fbd7c19f4c6956774d08bece45517cb"
+      },
+      "Sources/NextNotes/Agent/RealtimeAudioSession.swift": {
+        "previous101": "c48ad2560f3a6bed453c7ecec9fcaa490b21ffb02187e8bfda8dd2f8dc74c07a",
+        "current103": "e785ea5eec1b20c808778dcf589cd8fd5512b27fab19972ca0cc28c3e2b313f1"
+      },
+      "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": {
+        "previous101": "7e2ed84c8ebb6844a02549d193d553c8a659631b20922be6dd55122bcf45d365",
+        "current103": "871e02fa01dbf36e46f3e437495640f4fc8b4104f9af2ecf931e930f41b7930f"
+      },
+      "Sources/NextNotes/Agent/VoicePlaybackDelivery.swift": {
+        "previous101": "0737862c5f04346f639868d5f5d2b7b71c151de97992bb2b5d8ce914191cd3c7",
+        "current103": "c4df4ca70a115b6959c78c874af5f43cdf3a446addd3e22a3e82c2d0f0bd0d81"
+      },
+      "Sources/NextNotes/NextNotesApp.swift": {
+        "previous101": "fbdd1d5ac33efd5d64006a6d8d352a595681b1f9f12d330140cdb28fc5113cfa",
+        "current103": "efc05bd59dd290a5ce26a06249099fd10c342c1352d7dce4902e1fba16ea2a01"
+      },
+      "Sources/NextNotes/Agent/Duplex/AppleResumeOwnerSelfTest.swift": {
+        "current103": "8b47c89c0092da46ff5503b060ed1ca0b491026f8623cdba5913e90e1d088da6"
+      }
+    },
+    "typedProducerAndFixturePins": {
+      "Sources/NextNotes/Agent/RealtimeAgent.swift": {
+        "previous101": "b0e88e04ccf8d680e61bdf43604fab24999a1bb4c559c73c04d31d3029aac470",
+        "current103": "b0e88e04ccf8d680e61bdf43604fab24999a1bb4c559c73c04d31d3029aac470",
+        "presentBoth": true,
+        "equal": true
+      },
+      "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift": {
+        "previous101": "1c0cf45391ef495a05f1aa28315f6cce7d7c973408fcfc99471c750dd1503103",
+        "current103": "1c0cf45391ef495a05f1aa28315f6cce7d7c973408fcfc99471c750dd1503103",
+        "presentBoth": true,
+        "equal": true
+      },
+      "Sources/NextNotes/Agent/Planner/AgentPlannerBackend.swift": {
+        "previous101": "a2064304b79b8de289f731bb7615226444903bc6579affce32eecb29be5ae4c8",
+        "current103": "a2064304b79b8de289f731bb7615226444903bc6579affce32eecb29be5ae4c8",
+        "presentBoth": true,
+        "equal": true
+      },
+      "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEval.swift": {
+        "previous101": "22251d95f178bcd5c359fad56f7f991751d742bd6e9a7c98a5d635f21984d538",
+        "current103": "22251d95f178bcd5c359fad56f7f991751d742bd6e9a7c98a5d635f21984d538",
+        "presentBoth": true,
+        "equal": true
+      },
+      "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalCases.swift": {
+        "previous101": "c96b507e5577117c00c29656ac056c5595750b251f765e334a1809a8d4ed8f7a",
+        "current103": "c96b507e5577117c00c29656ac056c5595750b251f765e334a1809a8d4ed8f7a",
+        "presentBoth": true,
+        "equal": true
+      },
+      "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalFixtures.swift": {
+        "previous101": "37e246abc0767e034e1a0119300a4ed905176eb234982942fc045ac415b1ed58",
+        "current103": "37e246abc0767e034e1a0119300a4ed905176eb234982942fc045ac415b1ed58",
+        "presentBoth": true,
+        "equal": true
+      },
+      "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalGrader.swift": {
+        "previous101": "fe99b9e29434cc765f87a8425e0dba9493551fb8fcfa367feb140c405e6530bb",
+        "current103": "fe99b9e29434cc765f87a8425e0dba9493551fb8fcfa367feb140c405e6530bb",
+        "presentBoth": true,
+        "equal": true
+      }
+    }
+  },
+  "callGraph": [
+    "ToolLoopLiveEval.runCases → agent.handle(source:.text) → tracker allowSpeech=false → runModelTurn voicefalse → runPlannedTurn/PlannerBackends → model parser no-call or tool-step execution → conclude/finish.",
+    "Typed handle always calls finishFirstTTSTrace, which accesses AgentSpeechSynthesizer.shared to clear callback fields. Therefore shared Synth construction does run; new init installs the resume callback and makes per-buffer timelineEnabled true if a buffer is ever produced.",
+    "Tracker.receive presents text before allowSpeech guard; allowSpeech=false prevents beginFirstTTSTrace/beginSpokenReply/appendSpokenReply. Tracker.finish/cancel still run; noteUserSpeech is conditional on didStreamSpeech, never set by this typed receive path. Typed finish does not call speakWithFirstAudioTrace or VoicePlaybackDelivery.bind.",
+    "Source contains actual shared cleanup paths: RealtimeAgent.cancel/interrupt → RealtimeAudioSession.noteUserSpeech → stopOutput → Synth.stop; audio.begin also calls stopOutput. Source reachability is distinct from measured execution. C04 has no timeout and no logged evidence identifying those cleanup branches as its incorrect-answer cause.",
+    "Fresh-process eval registry launches real runSelfTest; no current-owner resume gate/receipt branch execution is recorded by the typed quick report. Absence of such diagnostic recording does not prove every shared audio method was unexecuted or remove possible runtime effects."
+  ],
+  "limits": [
+    "Same recorded model label/context and identical typed source hashes do not establish identical prompt bytes, provider sampling state, weights fingerprint, warm state or scheduling across runs.",
+    "Round2 prompt-token count1960 is equal, but completion differs42→246; final prompt changes2022→1967 and final user character counts1025→1067 after divergent history. Token-count equality is not byte equality.",
+    "No causal mechanism from the new native callback constructor/stop/reset to the model answer has been measured. Do not label this variance, inherited-only behavior or introduced audio regression without further evidence.",
+    "No grader weakening, downstream scrub, automatic retry, timeout extension or model/default promotion is supported. C04/A02 and fixed9/10 quality bar remain open.",
+    "Core103 was still serially running when the parent assigned this audit; this report does not declare core/owner/full gates passed."
+  ]
+}

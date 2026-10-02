@@ -1184,6 +1184,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-apple-resume-owner") {
+            Task { @MainActor in
+                let result = await AppleResumeOwnerSelfTest.run()
+                if !result.hasPrefix("APPLE_RESUME_OWNER_OK:") { SelfTest.failed = true }
+                writeSelfTest(result)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-apple-playback-timeline") {
             Task { @MainActor in
                 let result = await ApplePlaybackTimelineSelfTest.run()

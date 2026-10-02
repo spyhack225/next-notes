@@ -1,0 +1,111 @@
+// OFF-SOURCE candidate fragments for existing AgentSpeechSynthesizer.swift.
+// Integrate only after root owner review. No new queue/channel/timer/await.
+// Common backend proof is diagnostic until actual late-notice controls verify it.
+
+struct AppleResumePlaybackReceipt: Sendable, Equatable {
+    let packet: ApplePlaybackNativeObservation
+    let earlier: ApplePlaybackCursorObservation
+    let later: ApplePlaybackCursorObservation
+    let checkpoint: Int64
+    let checkpointBuffer: ApplePlaybackBufferObservation
+}
+
+// In existing AVSpeechBacking, beside timelineResumeHost:
+// private var resumeEarlierCursor: ApplePlaybackCursorObservation?
+// private var resumeLaterCursor: ApplePlaybackCursorObservation?
+// private var resumeStrongCut: Int64?
+// private var resumeCheckpointBuffer: ApplePlaybackBufferObservation?
+// private var resumeReceiptDelivered = false
+// var onResumePlaybackAcknowledged: ((AppleResumePlaybackReceipt) -> Void)?
+// SelfTest observer receives the SAME qualified receipt before the existing
+// backend callback, for metadata proof even with original unused synth bridge.
+// var resumeProofObserverForTesting: (@MainActor (AppleResumePlaybackReceipt) -> Void)?
+
+// Existing resume resets these fields, AFTER actual player.play():
+// resumeEarlierCursor = nil // initial post-play cursor must pass the SAME guards
+// if let cursor = timelineCursor(), let host = timelineResumeHost,
+//    cursor.sampleRate == timelineRate, cursor.frame >= 0, cursor.frame <= timelineEnd,
+//    cursor.observedHostTime >= host, cursor.nodeHostTime >= host {
+//     resumeEarlierCursor = cursor
+// }
+// resumeLaterCursor = nil; resumeStrongCut = nil; resumeCheckpointBuffer = nil
+// resumeReceiptDelivered = false
+// Existing pause/speak/stop invalidate them before native unscheduling.
+// Extend the existing timeline metadata/callback path to production only when
+// onResumePlaybackAcknowledged is installed. Preserve nil/default old path.
+// Atomic native capture BEFORE MainActor and stop=0 must remain unchanged.
+
+// In existing AVSpeechBacking; called at receiveTimelineCompletion's existing
+// actor hop with the SAME cursor, before independent bufferPlayed bookkeeping.
+private func qualifiedResumeReceipt(_ packet: ApplePlaybackNativeObservation,
+    cursor: ApplePlaybackCursorObservation?) -> AppleResumePlaybackReceipt? {
+    let phase = timelinePhase.value.load(ordering: .acquiring)
+    guard !resumeReceiptDelivered, let requestedHost = timelineResumeHost,
+          activeToken == packet.buffer.token, speaking, !pausedForListening,
+          phase != 0, phase % 2 == 0, packet.originPhase == phase,
+          packet.callbackKind == Int(AVAudioPlayerNodeCompletionCallbackType.dataPlayedBack.rawValue),
+          packet.originHostTime >= requestedHost,
+          packet.buffer.upperFrame > packet.buffer.lowerFrame,
+          packet.buffer.sampleRate == timelineRate else { return nil }
+    if let cut = resumeStrongCut, let earlier = resumeEarlierCursor,
+       let later = resumeLaterCursor, let checkpointBuffer = resumeCheckpointBuffer {
+        guard packet.buffer.upperFrame > cut,
+              packet.originHostTime >= later.observedHostTime else { return nil }
+        resumeReceiptDelivered = true
+        return .init(packet: packet, earlier: earlier, later: later, checkpoint: cut, checkpointBuffer: checkpointBuffer)
+    }
+    guard let cursor, cursor.sampleRate == packet.buffer.sampleRate,
+          cursor.frame >= 0, cursor.frame <= timelineEnd,
+          cursor.observedHostTime >= requestedHost,
+          cursor.nodeHostTime >= requestedHost else { return nil }
+    guard let earlier = resumeEarlierCursor else {
+        resumeEarlierCursor = cursor
+        return nil
+    }
+    // Future-dated node timestamps are NOT equated with wall-clock completion.
+    // Require actual successive node/player observations to advance together.
+    guard cursor.frame > earlier.frame,
+          cursor.nodeHostTime > earlier.nodeHostTime,
+          cursor.observedHostTime > earlier.observedHostTime,
+          cursor.sampleRate == earlier.sampleRate else { return nil }
+    resumeLaterCursor = cursor
+    resumeStrongCut = max(cursor.frame, packet.buffer.upperFrame)
+    resumeCheckpointBuffer = packet.buffer
+    // The checkpoint-building packet itself never establishes fresh speaking.
+    return nil
+}
+
+// Existing receiveTimelineCompletion, before bufferPlayed:
+// if let receipt = qualifiedResumeReceipt(packet, cursor: cursor) {
+//     if SelfTest.isRunning { resumeProofObserverForTesting?(receipt) }
+//     onResumePlaybackAcknowledged?(receipt)
+// }
+// Independent drain accounting runs for unusable/stale packets as before.
+
+// COMMON SOURCE mounting choice for original/fixed comparison:
+// Backend proof/callback/common consumers are identical. The original synth
+// bridge is UNUSED: didResumeAudio(_ receipt) returns without publication.
+// Fixed changes ONLY that existing bridge body to current-owner admission below.
+// The actual native backing receipt exists in BOTH via SelfTest observer; this
+// permits unchanged old-receipt/late-origin/stop controls without fake packets.
+
+// Fixed AgentSpeechSynthesizer bridge body (existing MainActor owner):
+private func didResumeAudio(_ receipt: AppleResumePlaybackReceipt) {
+    guard (backing as AnyObject) === systemBacking,
+          currentClause != nil, !didStop, !isPausedForListening,
+          voiceResumePending, receipt.packet.buffer.token == currentPlaybackToken,
+          let binding = voiceResumeBinding,
+          binding.token == receipt.packet.buffer.token,
+          binding.phase == receipt.packet.originPhase,
+          systemBacking.currentResumePhase == binding.phase else { return }
+    voiceResumePending = false
+    onPlaybackEvent?(.resumeAcknowledged(receipt))
+    onVoiceLifecycleSettled?()
+}
+
+// Suggested currentResumePhase on actual Apple backing (synchronous getter):
+// var currentResumePhase: UInt64? {
+//     let phase = timelinePhase.value.load(ordering: .acquiring)
+//     return speaking && !pausedForListening && phase != 0 && phase % 2 == 0
+//         && timelineResumeHost != nil ? phase : nil
+// }

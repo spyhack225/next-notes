@@ -1,0 +1,245 @@
+{
+  "status": "New A02 quick browser failure remains OPEN; no causal attribution",
+  "sourcePins": [
+    {
+      "file": "Sources/NextNotes/Agent/RealtimeAgent.swift",
+      "app99": "b0e88e04ccf8d680e61bdf43604fab24999a1bb4c559c73c04d31d3029aac470",
+      "app101": "b0e88e04ccf8d680e61bdf43604fab24999a1bb4c559c73c04d31d3029aac470",
+      "identical": true
+    },
+    {
+      "file": "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift",
+      "app99": "1c0cf45391ef495a05f1aa28315f6cce7d7c973408fcfc99471c750dd1503103",
+      "app101": "1c0cf45391ef495a05f1aa28315f6cce7d7c973408fcfc99471c750dd1503103",
+      "identical": true
+    },
+    {
+      "file": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEval.swift",
+      "app99": "22251d95f178bcd5c359fad56f7f991751d742bd6e9a7c98a5d635f21984d538",
+      "app101": "22251d95f178bcd5c359fad56f7f991751d742bd6e9a7c98a5d635f21984d538",
+      "identical": true
+    },
+    {
+      "file": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalCases.swift",
+      "app99": "c96b507e5577117c00c29656ac056c5595750b251f765e334a1809a8d4ed8f7a",
+      "app101": "c96b507e5577117c00c29656ac056c5595750b251f765e334a1809a8d4ed8f7a",
+      "identical": true
+    },
+    {
+      "file": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalFixtures.swift",
+      "app99": "37e246abc0767e034e1a0119300a4ed905176eb234982942fc045ac415b1ed58",
+      "app101": "37e246abc0767e034e1a0119300a4ed905176eb234982942fc045ac415b1ed58",
+      "identical": true
+    },
+    {
+      "file": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalGrader.swift",
+      "app99": "fe99b9e29434cc765f87a8425e0dba9493551fb8fcfa367feb140c405e6530bb",
+      "app101": "fe99b9e29434cc765f87a8425e0dba9493551fb8fcfa367feb140c405e6530bb",
+      "identical": true
+    },
+    {
+      "file": "Sources/NextNotes/Agent/AgentAnswerBudget.swift",
+      "app99": "223af3c6df4109c4ab97c439191f502ae7d2b80bcc754807014b290f1df354bf",
+      "app101": "223af3c6df4109c4ab97c439191f502ae7d2b80bcc754807014b290f1df354bf",
+      "identical": true
+    }
+  ],
+  "sourceDelta99To101": [
+    "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift",
+    "Sources/NextNotes/Agent/Duplex/VoicePlaybackResumeReceiptSelfTest.swift",
+    "Sources/NextNotes/Agent/RealtimeAudioSession.swift",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPostGateSelfTest.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+    "Sources/NextNotes/Support/SelfTestStoreGuard.swift",
+    "Sources/NextNotes/Agent/Duplex/VoicePlaybackRepeatResumeSelfTest.swift"
+  ],
+  "scope": "Only three production resume producers plus COMMON test/diagnostic changes; planner/grade/fixture/model-provider route source unchanged",
+  "observedModel": {
+    "provider": "appLLM",
+    "displayName": "Gemma 4 E4B",
+    "reportedContext": 32768,
+    "role": "cloud FALLBACK",
+    "needle": false,
+    "weightBytesIndependentlyRead": false
+  },
+  "quick": {
+    "previousScore": "3/10",
+    "currentScore": "3/10",
+    "fixedBar": "9/10",
+    "previousElapsedSeconds": 147.9,
+    "currentElapsedSeconds": 84.8,
+    "currentPasses": [
+      "C01",
+      "C04",
+      "N04"
+    ],
+    "currentNonPass": [
+      "M03",
+      "M04",
+      "M05",
+      "K01",
+      "R02",
+      "F03",
+      "A02"
+    ],
+    "passBarMet": false
+  },
+  "cases": [
+    {
+      "id": "A02",
+      "previous": {
+        "verdict": "PASS",
+        "seconds": 21.5,
+        "tools": [
+          "browser.navigate(url=https://www.youtube.com)",
+          "browser.snapshot",
+          "browser.click(expectedText=Cortech — newest upload (2 days ago))"
+        ],
+        "rounds": 4,
+        "lastRaw": "I see you want to watch the latest Cortech video. I clicked on the link for the newest upload, so that should be open now.",
+        "usagePasses": [
+          "agent.typed/planner llama Gemma 4 E4B prompt=1424 completion=58 reasoning=0 ttft=2479ms total=7061ms finish=stop proposed=browser.navigate executed=browser.navigate",
+          "agent.typed/planner llama Gemma 4 E4B prompt=1466 completion=31 reasoning=0 ttft=576ms total=2884ms finish=stop proposed=browser.snapshot executed=browser.snapshot",
+          "agent.typed/planner llama Gemma 4 E4B prompt=1504 completion=96 reasoning=0 ttft=521ms total=8541ms finish=stop proposed=browser.click executed=browser.click",
+          "agent.typed/planner llama Gemma 4 E4B prompt=1503 completion=29 reasoning=0 ttft=788ms total=2878ms finish=stop proposed=- executed=-"
+        ]
+      },
+      "current": {
+        "verdict": "UNGROUNDED",
+        "seconds": 14.4,
+        "tools": [
+          "browser.navigate(url=https://www.youtube.com)",
+          "browser.snapshot"
+        ],
+        "rounds": 3,
+        "lastRaw": "I see the Cortech video you want to watch. I will click on the newest upload link for you.",
+        "usagePasses": [
+          "agent.typed/planner llama Gemma 4 E4B prompt=1424 completion=72 reasoning=0 ttft=2954ms total=8477ms finish=stop proposed=browser.navigate executed=browser.navigate",
+          "agent.typed/planner llama Gemma 4 E4B prompt=1466 completion=31 reasoning=0 ttft=605ms total=3310ms finish=stop proposed=browser.snapshot executed=browser.snapshot",
+          "agent.typed/planner llama Gemma 4 E4B prompt=1504 completion=22 reasoning=0 ttft=686ms total=2539ms finish=stop proposed=- executed=-"
+        ]
+      }
+    },
+    {
+      "id": "C04",
+      "previous": {
+        "verdict": "TIMEOUT",
+        "seconds": 38.5,
+        "tools": [
+          "search_email(maxResults=5)"
+        ],
+        "rounds": 1,
+        "lastRaw": "I can check your last emails and see what you have planned for tomorrow.\n\n<tool_call>{\"name\":\"search_email\",\"arguments\":{\"maxResults\":5},\"rationale\":\"The user asked to summarize their last emails, so I will search for the five newest emails.\"}</tool_call>",
+        "usagePasses": [
+          "agent.typed/planner llama Gemma 4 E4B prompt=1741 completion=62 reasoning=0 ttft=3500ms total=7897ms finish=stop proposed=search_email executed=search_email",
+          "agent.typed/planner llama Gemma 4 E4B prompt=0 completion=0 reasoning=0 ttft=12471ms total=30308ms finish=timeout proposed=- executed=-"
+        ]
+      },
+      "current": {
+        "verdict": "PASS",
+        "seconds": 21.4,
+        "tools": [
+          "search_email(maxResults=5)",
+          "get_agenda(date=2026-10-03)"
+        ],
+        "rounds": 3,
+        "lastRaw": "I see you want a summary of your recent emails and what's on your calendar for tomorrow.\n\nYour last emails mention a dinner tomorrow with Cyril, a deck for Friday from Ana Ruiz, and an updated pricing sheet from Marcus Lee.\n\nFor tomorrow, October 3rd, you have appointments with the Dentist from 8:00 to 8:45 AM, a Design sync at 3:00 PM to 3:45 PM, and dinner with Cyril at 7:00 PM.",
+        "usagePasses": [
+          "agent.typed/planner llama Gemma 4 E4B prompt=1741 completion=62 reasoning=0 ttft=2116ms total=5118ms finish=stop proposed=search_email executed=search_email",
+          "agent.typed/planner llama Gemma 4 E4B prompt=1960 completion=42 reasoning=0 ttft=8644ms total=10651ms finish=stop proposed=get_agenda executed=get_agenda",
+          "agent.typed/planner llama Gemma 4 E4B prompt=2022 completion=107 reasoning=0 ttft=447ms total=5564ms finish=stop proposed=- executed=-"
+        ]
+      }
+    },
+    {
+      "id": "F03",
+      "previous": {
+        "verdict": "MISSED_TOOL",
+        "seconds": 5.4,
+        "tools": [],
+        "rounds": 1,
+        "lastRaw": "I can find the pricing document, but I need to know where it is saved first.",
+        "usagePasses": [
+          "agent.typed/planner llama Gemma 4 E4B prompt=1719 completion=18 reasoning=0 ttft=4234ms total=5257ms finish=stop proposed=- executed=-"
+        ]
+      },
+      "current": {
+        "verdict": "MISSED_TOOL",
+        "seconds": 4.6,
+        "tools": [],
+        "rounds": 1,
+        "lastRaw": "I can find the pricing document, but I need to know where it is saved first.",
+        "usagePasses": [
+          "agent.typed/planner llama Gemma 4 E4B prompt=1719 completion=18 reasoning=0 ttft=3725ms total=4617ms finish=stop proposed=- executed=-"
+        ]
+      }
+    }
+  ],
+  "firstChangedToolDecision": {
+    "case": "A02",
+    "round": 3,
+    "after": [
+      "browser.navigate",
+      "browser.snapshot"
+    ],
+    "previous": "proposed/executed browser.click, completion96/finishstop",
+    "current": "plain final prose, completion22/finishstop, proposed-/executed-",
+    "producerBoundary": "AgentPlannerBackend emitted no executable call; loop no-calls branch accepts final prose",
+    "notRecorded": "No dropped/denied click execution is present",
+    "grader": "Unchanged browserFollowThrough requires actual Cortech click or direct Cortech URL"
+  },
+  "routeEvidence": [
+    {
+      "file": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEval.swift",
+      "line": 594,
+      "contract": "Actual source.text handle percase with fixture executor and real selected provider"
+    },
+    {
+      "file": "Sources/NextNotes/Agent/RealtimeAgent.swift",
+      "line": 305,
+      "contract": "Voice source alone enters VoiceConversationCoordinator; text uses typed plan"
+    },
+    {
+      "file": "Sources/NextNotes/Agent/RealtimeAgent.swift",
+      "line": 478,
+      "contract": "Tracker allowSpeech is source==voice, false in current eval"
+    },
+    {
+      "file": "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift",
+      "line": 524,
+      "contract": "voice false reaches runPlannedTurn directly"
+    },
+    {
+      "file": "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift",
+      "line": 199,
+      "contract": "allowSpeech guard before beginSpokenReply/append"
+    },
+    {
+      "file": "Sources/NextNotes/Agent/RealtimeAgent.swift",
+      "line": 820,
+      "contract": "finished typed reply cannot call speakWithFirstAudioTrace; no physical playback/resume established"
+    },
+    {
+      "file": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalGrader.swift",
+      "line": 349,
+      "contract": "Actual completed browser follow-through required; promised future click insufficient"
+    }
+  ],
+  "resumeAttribution": "The changed accepted-pause/resume projection logic has no demonstrated execution in this typed non-speaking case. Generic launch/cleanup may initialize or reset existing audio singleton; that does not establish changed resume logic entering planner data or decision.",
+  "limitations": [
+    "No method-level coverage instrument or seed/runtime-state proof added",
+    "A02 first completion differed58 vs72tokens already; equal prompt token counts do not prove identical prompt bytes/preceding model text",
+    "Provider weights were not read or modified by reviewer; identity is reported model metadata, not independent file-integrity proof",
+    "One previous/current run cannot establish sampling variance or causal Source regression",
+    "Timing improvement cannot be attributed to bounded shadow fix",
+    "Correct failed extraRule must not be suppressed, regraded or repaired by adding downstream retries/prompt sanitization"
+  ],
+  "actions": {
+    "modelRerun": false,
+    "nativeRun": false,
+    "sourceEdit": false,
+    "gradeEdit": false,
+    "indexEdit": false
+  }
+}

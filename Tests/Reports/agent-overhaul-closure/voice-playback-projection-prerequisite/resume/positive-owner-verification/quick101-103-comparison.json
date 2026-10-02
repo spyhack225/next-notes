@@ -1,0 +1,121 @@
+{
+  "previous": {
+    "C01": {
+      "verdict": "PASS",
+      "seconds": 12.5,
+      "tools": "get_agenda(date=2026-10-02)"
+    },
+    "C04": {
+      "verdict": "PASS",
+      "seconds": 21.4,
+      "tools": "search_email(maxResults=5) get_agenda(date=2026-10-03)"
+    },
+    "M03": {
+      "verdict": "REFUSAL",
+      "seconds": 3.2,
+      "tools": ""
+    },
+    "M04": {
+      "verdict": "MISSED_TOOL",
+      "seconds": 3.9,
+      "tools": ""
+    },
+    "M05": {
+      "verdict": "UNGROUNDED",
+      "seconds": 11.5,
+      "tools": "search_email(maxResults=3)"
+    },
+    "K01": {
+      "verdict": "REFUSAL",
+      "seconds": 3.2,
+      "tools": ""
+    },
+    "R02": {
+      "verdict": "MISSED_TOOL",
+      "seconds": 5.5,
+      "tools": ""
+    },
+    "F03": {
+      "verdict": "MISSED_TOOL",
+      "seconds": 4.6,
+      "tools": ""
+    },
+    "A02": {
+      "verdict": "UNGROUNDED",
+      "seconds": 14.4,
+      "tools": "browser.navigate(url=https://www.youtube.com) browser.snapshot"
+    },
+    "N04": {
+      "verdict": "PASS",
+      "seconds": 4.3,
+      "tools": ""
+    }
+  },
+  "current": {
+    "C01": {
+      "verdict": "PASS",
+      "seconds": 10.9,
+      "tools": "get_agenda(date=2026-10-02)"
+    },
+    "C04": {
+      "verdict": "UNGROUNDED",
+      "seconds": 35.8,
+      "tools": "search_email(maxResults=5) get_agenda(date=2026-10-03)"
+    },
+    "M03": {
+      "verdict": "REFUSAL",
+      "seconds": 3.2,
+      "tools": ""
+    },
+    "M04": {
+      "verdict": "MISSED_TOOL",
+      "seconds": 3.7,
+      "tools": ""
+    },
+    "M05": {
+      "verdict": "UNGROUNDED",
+      "seconds": 13.4,
+      "tools": "search_email(maxResults=3)"
+    },
+    "K01": {
+      "verdict": "REFUSAL",
+      "seconds": 2.8,
+      "tools": ""
+    },
+    "R02": {
+      "verdict": "MISSED_TOOL",
+      "seconds": 4.8,
+      "tools": ""
+    },
+    "F03": {
+      "verdict": "MISSED_TOOL",
+      "seconds": 3.5,
+      "tools": ""
+    },
+    "A02": {
+      "verdict": "UNGROUNDED",
+      "seconds": 6.8,
+      "tools": "browser.navigate(url=https://www.youtube.com)"
+    },
+    "N04": {
+      "verdict": "PASS",
+      "seconds": 2.1,
+      "tools": ""
+    }
+  },
+  "verdictChanges": {
+    "C04": {
+      "previous101": {
+        "verdict": "PASS",
+        "seconds": 21.4,
+        "tools": "search_email(maxResults=5) get_agenda(date=2026-10-03)"
+      },
+      "current103": {
+        "verdict": "UNGROUNDED",
+        "seconds": 35.8,
+        "tools": "search_email(maxResults=5) get_agenda(date=2026-10-03)"
+      }
+    }
+  },
+  "sourceAttributionPending": true
+}

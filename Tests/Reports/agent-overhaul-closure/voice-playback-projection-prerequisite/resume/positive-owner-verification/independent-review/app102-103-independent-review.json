@@ -1,0 +1,462 @@
+{
+  "scope": "Controlled same-owner Apple positive resume publication; report-only independent review. No source/native/model/index actions.",
+  "verdict": "Valid original six-feature-failure / fixed44 comparison; all25 focused flags pass.",
+  "source": {
+    "originalEntries": 1047,
+    "fixedEntries": 1047,
+    "exactChangedFiles": {
+      "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": {
+        "original": "1f86146250238083c8075265d5e1b28b199a41947f875bc116391b22be1cb7cd",
+        "fixed": "871e02fa01dbf36e46f3e437495640f4fc8b4104f9af2ecf931e930f41b7930f"
+      }
+    },
+    "commonPins": {
+      "Sources/NextNotes/Agent/Duplex/AppleResumeOwnerSelfTest.swift": {
+        "original": "8b47c89c0092da46ff5503b060ed1ca0b491026f8623cdba5913e90e1d088da6",
+        "fixed": "8b47c89c0092da46ff5503b060ed1ca0b491026f8623cdba5913e90e1d088da6",
+        "equal": true
+      },
+      "Sources/NextNotes/Agent/RealtimeAudioSession.swift": {
+        "original": "e785ea5eec1b20c808778dcf589cd8fd5512b27fab19972ca0cc28c3e2b313f1",
+        "fixed": "e785ea5eec1b20c808778dcf589cd8fd5512b27fab19972ca0cc28c3e2b313f1",
+        "equal": true
+      },
+      "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift": {
+        "original": "18c5fb24d53d62fc780f1c73dfa9f5352fbd7c19f4c6956774d08bece45517cb",
+        "fixed": "18c5fb24d53d62fc780f1c73dfa9f5352fbd7c19f4c6956774d08bece45517cb",
+        "equal": true
+      },
+      "Sources/NextNotes/Agent/VoicePlaybackDelivery.swift": {
+        "original": "c4df4ca70a115b6959c78c874af5f43cdf3a446addd3e22a3e82c2d0f0bd0d81",
+        "fixed": "c4df4ca70a115b6959c78c874af5f43cdf3a446addd3e22a3e82c2d0f0bd0d81",
+        "equal": true
+      },
+      "Sources/NextNotes/NextNotesApp.swift": {
+        "original": "efc05bd59dd290a5ce26a06249099fd10c342c1352d7dce4902e1fba16ea2a01",
+        "fixed": "efc05bd59dd290a5ce26a06249099fd10c342c1352d7dce4902e1fba16ea2a01",
+        "equal": true
+      }
+    },
+    "acceptanceLimit": "Scripts/acceptance.sh is not a compiler-manifest entry; no equality inference from absent map values. Common mount metadata pins EXPERIMENTAL registration separately."
+  },
+  "original": {
+    "checks": [
+      {
+        "flag": "apple-resume-owner",
+        "exit": 1,
+        "marker": "APPLE_RESUME_OWNER_FAILED: 6 assertions",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      }
+    ],
+    "failures": [
+      "APPLE_RESUME_OWNER_WRONG: TARGET R01 actual synth clears awaiting only after qualified receipt 4",
+      "APPLE_RESUME_OWNER_WRONG: TARGET R02 actual synth publishes exact native receipt once 4",
+      "APPLE_RESUME_OWNER_WRONG: TARGET R03 real synth/audio/shadow owner receives fresh resumed playback 4",
+      "APPLE_RESUME_OWNER_WRONG: TARGET R01 actual synth clears awaiting only after qualified receipt 6",
+      "APPLE_RESUME_OWNER_WRONG: TARGET R02 actual synth publishes exact native receipt once 6",
+      "APPLE_RESUME_OWNER_WRONG: TARGET R03 real synth/audio/shadow owner receives fresh resumed playback 6"
+    ],
+    "recording": {
+      "checks": 44,
+      "scheduled": 2031,
+      "handled": 2031,
+      "proofs": 2,
+      "events": 0,
+      "resumes": 2,
+      "overflow": false,
+      "divergences": 0
+    },
+    "proofs": [
+      {
+        "token": 1,
+        "ordinal": 6,
+        "lower": 1244,
+        "upper": 1500,
+        "sampleRate": 22050,
+        "phase": 4,
+        "kind": 2,
+        "originHost": 68078990152,
+        "originMain": false,
+        "earlierFrame": 472,
+        "earlierRate": 22050,
+        "earlierNodeHost": 68077876358,
+        "earlierObservedHost": 68077310833,
+        "laterFrame": 1416,
+        "laterRate": 22050,
+        "laterNodeHost": 68078900358,
+        "laterObservedHost": 68078444140,
+        "checkpoint": 1416,
+        "checkpointToken": 1,
+        "checkpointOrdinal": 4,
+        "checkpointLower": 732,
+        "checkpointUpper": 988,
+        "checkpointRate": 22050,
+        "suffixFrames": 84,
+        "partialSuffix": true,
+        "advancingFrame": true,
+        "advancingNodeHost": true,
+        "advancingObservedHost": true,
+        "checkpointFormula": true,
+        "originAfterObservation": true,
+        "rateDomainMatches": true,
+        "nodeHostCanExceedObservation": true
+      },
+      {
+        "token": 1,
+        "ordinal": 12,
+        "lower": 2780,
+        "upper": 3036,
+        "sampleRate": 22050,
+        "phase": 6,
+        "kind": 2,
+        "originHost": 68081202569,
+        "originMain": false,
+        "earlierFrame": 1888,
+        "earlierRate": 22050,
+        "earlierNodeHost": 68080180358,
+        "earlierObservedHost": 68079614596,
+        "laterFrame": 2832,
+        "laterRate": 22050,
+        "laterNodeHost": 68081204358,
+        "laterObservedHost": 68080745402,
+        "checkpoint": 2832,
+        "checkpointToken": 1,
+        "checkpointOrdinal": 10,
+        "checkpointLower": 2268,
+        "checkpointUpper": 2524,
+        "checkpointRate": 22050,
+        "suffixFrames": 204,
+        "partialSuffix": true,
+        "advancingFrame": true,
+        "advancingNodeHost": true,
+        "advancingObservedHost": true,
+        "checkpointFormula": true,
+        "originAfterObservation": true,
+        "rateDomainMatches": true,
+        "nodeHostCanExceedObservation": true
+      }
+    ],
+    "noInputFailure": true,
+    "bundleInvariant": true,
+    "binary": {
+      "build": 102,
+      "sha256": "e894936d56f005c94d6bbfb1430584df7cb8e52a0614039f756593181c0dbddb",
+      "cache": "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-closure-app102-NextNotes",
+      "sourceDrift": []
+    }
+  },
+  "fixed": {
+    "checks": [
+      {
+        "flag": "apple-resume-owner",
+        "exit": 0,
+        "marker": "APPLE_RESUME_OWNER_OK: 44 checks",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-playback-resume-receipt",
+        "exit": 0,
+        "marker": "VOICE_PLAYBACK_RESUME_RECEIPT_OK: 48 checks",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "apple-playback-timeline",
+        "exit": 0,
+        "marker": "APPLE_PLAYBACK_TIMELINE_OK: 22 checks",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-session-reducer",
+        "exit": 0,
+        "marker": "VOICE_SESSION_REDUCER_OK: 10 traces and actual capture/output producers",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "task-worker-attempt",
+        "exit": 0,
+        "marker": "TASK_WORKER_ATTEMPT_OK: 1352 cases",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-playback-projection",
+        "exit": 0,
+        "marker": "VOICE_PLAYBACK_PROJECTION_OK: 33 checks",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-suspend-live",
+        "exit": 0,
+        "marker": "VOICE_SUSPEND_OK: paused PCM retained token and queue; resumed and drained; next clause restarted",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-suspend",
+        "exit": 0,
+        "marker": "VOICE_SUSPEND_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-duplex-work",
+        "exit": 0,
+        "marker": "VOICE_DUPLEX_WORK_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "concurrent-voice",
+        "exit": 0,
+        "marker": "CONCURRENT_VOICE_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-work-lifecycle",
+        "exit": 0,
+        "marker": "VOICE_WORK_LIFECYCLE_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-delivery",
+        "exit": 0,
+        "marker": "VOICE_DELIVERY_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-conversation",
+        "exit": 0,
+        "marker": "VOICE_CONVERSATION_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-turns",
+        "exit": 0,
+        "marker": "VOICE_TURNS_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-turn-routing",
+        "exit": 0,
+        "marker": "VOICE_TURN_ROUTING_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "realtime",
+        "exit": 0,
+        "marker": "REALTIME_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "duplex",
+        "exit": 0,
+        "marker": "DUPLEX_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "tts-stream",
+        "exit": 0,
+        "marker": "TTS_TOKEN_STREAM_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "playback-ledger",
+        "exit": 0,
+        "marker": "PLAYBACK_LEDGER_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-scheduling",
+        "exit": 0,
+        "marker": "VOICE_SCHEDULING_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "tool-review",
+        "exit": 0,
+        "marker": "TOOL_REVIEW_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "store-isolation",
+        "exit": 0,
+        "marker": "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "ui-strings",
+        "exit": 0,
+        "marker": "UI_STRINGS_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "acoustic-replay",
+        "exit": 0,
+        "marker": "ECHO_OK: echo residual 0.00, double-talk output 0.56",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "pcm-reconfiguration",
+        "exit": 0,
+        "marker": "PCM_RECONFIGURATION_OK",
+        "originChecks": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      }
+    ],
+    "focusedFlags": 25,
+    "allFlagsPass": true,
+    "recording": {
+      "checks": 44,
+      "scheduled": 2232,
+      "handled": 2232,
+      "proofs": 2,
+      "events": 2,
+      "resumes": 2,
+      "overflow": false,
+      "divergences": 0
+    },
+    "proofs": [
+      {
+        "token": 1,
+        "ordinal": 6,
+        "lower": 1244,
+        "upper": 1500,
+        "sampleRate": 22050,
+        "phase": 4,
+        "kind": 2,
+        "originHost": 71064110238,
+        "originMain": false,
+        "earlierFrame": 472,
+        "earlierRate": 22050,
+        "earlierNodeHost": 71063008373,
+        "earlierObservedHost": 71062443177,
+        "laterFrame": 1416,
+        "laterRate": 22050,
+        "laterNodeHost": 71064032373,
+        "laterObservedHost": 71063577291,
+        "checkpoint": 1416,
+        "checkpointToken": 1,
+        "checkpointOrdinal": 4,
+        "checkpointLower": 732,
+        "checkpointUpper": 988,
+        "checkpointRate": 22050,
+        "suffixFrames": 84,
+        "partialSuffix": true,
+        "advancingFrame": true,
+        "advancingNodeHost": true,
+        "advancingObservedHost": true,
+        "checkpointFormula": true,
+        "originAfterObservation": true,
+        "rateDomainMatches": true,
+        "nodeHostCanExceedObservation": true
+      },
+      {
+        "token": 1,
+        "ordinal": 11,
+        "lower": 2524,
+        "upper": 2780,
+        "sampleRate": 22050,
+        "phase": 6,
+        "kind": 2,
+        "originHost": 71066124421,
+        "originMain": false,
+        "earlierFrame": 1652,
+        "earlierRate": 22050,
+        "earlierNodeHost": 71065056373,
+        "earlierObservedHost": 71064492502,
+        "laterFrame": 2596,
+        "laterRate": 22050,
+        "laterNodeHost": 71066080373,
+        "laterObservedHost": 71065598144,
+        "checkpoint": 2596,
+        "checkpointToken": 1,
+        "checkpointOrdinal": 9,
+        "checkpointLower": 2012,
+        "checkpointUpper": 2268,
+        "checkpointRate": 22050,
+        "suffixFrames": 184,
+        "partialSuffix": true,
+        "advancingFrame": true,
+        "advancingNodeHost": true,
+        "advancingObservedHost": true,
+        "checkpointFormula": true,
+        "originAfterObservation": true,
+        "rateDomainMatches": true,
+        "nodeHostCanExceedObservation": true
+      }
+    ],
+    "noWrongOrInput": true,
+    "bundleInvariant": true,
+    "binary": {
+      "build": 103,
+      "sha256": "23e83587d79dd391bd2d763149e4dce8402150f5105b90cbf259ff6756a8358e",
+      "cache": "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-closure-app103-NextNotes",
+      "sourceDrift": []
+    }
+  },
+  "causeAndConsumer": "Same common native backing gate produced two qualified receipts in both builds. Original current Synth publication bridge was deliberately empty. Fixed exact backing/token/phase/current-clause admission clears pending and publishes the receipt once; actual Audio listener and shadow reducer reach playing/speaking for the retained output. Only that Synth method body differs.",
+  "controls": [
+    "Real native dataPlayedBack with two advancing same-player cursor observations and later suffix, not fabricated receipt",
+    "Original phase4 held immutable packet does not become proof after resume",
+    "Phase6 pre-pause native entry deferred before producer capture looks current but is excluded as proof",
+    "Actual previous receipt replay cannot restore current awaiting output",
+    "Stop and replacement retain token/phase exclusion, exact callback joins and legitimate replacement onset",
+    "Old negative resume48, reducer10, timeline22, projection33, worker1352, owner isolation21files32defaults and remaining focused controls pass"
+  ],
+  "limits": [
+    "Checkpoint cuts a buffer interval and both native receipts contain partial suffixes; no assertion that entire admitted buffer began after resume",
+    "nodeHostTime may exceed observedHostTime; timestamps are not a physical pause cut or physical audibility proof",
+    "Observed exclusion covers the actual controlled packets and current same-owner gate; not universal callback exclusion or engine loss/reconfiguration proof",
+    "Common path installs backend callback and enables per-buffer metadata/atomic/host work in production; no zero-overhead or measured latency claim",
+    "No Pocket/Kokoro/new-clause short-tail guarantee, live UI/ownership-switch/phase promotion/full Agent readiness or aggregate model-quality pass",
+    "COMMON receipt gate and consumer scaffolding existed before both; original result is missing publication contract, not proof of a historical fully specified native gate failure",
+    "No extra owner read was performed by this reviewer; existing cached metrics traces show no signature/size/mtime/digest differences in both scopes"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "reviewArtifacts": {
+    "quick101-103-attribution.json": "41cac23392f937c87104dc1cec426db2b679c0c95df3cf3fbb5aa48d93e19920",
+    "quick101-103-attribution.md": "8d28da06ad7694ba90ed6fc995efd372c9dcd4721282618804c5c099ec63da7e"
+  },
+  "inputArtifacts": {
+    "app103-quick.md": "5c39bcfa4e80d0c7db77e050087c26b4048014f548b120f161d1ecb61a0a093f",
+    "app103-quick.md.jsonl": "3c9982a094875aed3f1eeb3c244fc7ba914ca141139deeb557cb41755a46f016",
+    "app103-quick.log": "9fdca92608c2095349bb8e2b1e11450690498cd7cdd040af83e9b2ab2ddc8792",
+    "app103-quick.stdout": "cc4766d4b9174bc0ef012604ca9f6e173403cbb48ca5c9bc161adb8264260f2d",
+    "quick101-103-comparison.json": "51038288467330b04bd465905aa488ac955def8cf56299e744f3dc6279f3b8ba",
+    "../negative-contract-verification/app101-quick.md.jsonl": "20a4eed47a7984fd0c1dcd1eabc6c988271b4e19bcec9dc62e298c99c9ee0f79"
+  }
+}

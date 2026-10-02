@@ -1,0 +1,14 @@
+[
+  {
+    "file": "static-native-owner-review.json",
+    "sha256": "1c25fd4c0f274df6c506fe3cea54d22f5fa246a6374814243ed44273c97a5f17"
+  },
+  {
+    "file": "static-native-owner-review.md",
+    "sha256": "cfbccccd83ee14669609a498fa2adb11140f5e871dc4dbda716881d80b624d2c"
+  },
+  {
+    "file": "root-mounted-registration.swift.txt",
+    "sha256": "42f75322daf6d22413115a57d6e7c5615dbc95a4910fa563df0d596ec95dd4d5"
+  }
+]

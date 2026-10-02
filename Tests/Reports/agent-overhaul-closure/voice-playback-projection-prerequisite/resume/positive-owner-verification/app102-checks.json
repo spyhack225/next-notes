@@ -1,0 +1,10 @@
+[
+  {
+    "flag": "apple-resume-owner",
+    "exit": 1,
+    "marker": "APPLE_RESUME_OWNER_FAILED: 6 assertions",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  }
+]
