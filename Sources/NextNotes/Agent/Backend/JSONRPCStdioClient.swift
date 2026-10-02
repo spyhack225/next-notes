@@ -5,6 +5,16 @@ struct JSONRPCError: Error, LocalizedError {
     var errorDescription: String? { message }
 }
 
+/// Current metadata sampled from the exact owned child and transport. A running
+/// process/open transport is not responsiveness, effect coverage or retry authority.
+struct JSONRPCStdioObservation: Equatable, Sendable {
+    let processID: Int32
+    let isRunning: Bool
+    let transportClosed: Bool
+    let outputEOF: Bool
+    let pendingRequestCount: Int
+}
+
 /// Newline-delimited JSON-RPC 2.0 over a child process. Also accepts LSP-style
 /// `Content-Length` frames. Used by ACP and MCP — one session, one process.
 final class JSONRPCStdioClient: @unchecked Sendable {
@@ -28,6 +38,17 @@ final class JSONRPCStdioClient: @unchecked Sendable {
     // its final parsed frames. One stream, the existing lock, no queue/timer.
     private var activeOutputReads = 0
     private var sawOutputEOF = false
+
+    /// Sample the same retained Process and current transport under its state lock.
+    /// OS process state can change immediately afterward; this is not a health lease.
+    /// Pending requests count outgoing RPCs only, never all tools or external effects.
+    func currentRuntimeObservation() -> JSONRPCStdioObservation? {
+        lock.withLock {
+            JSONRPCStdioObservation(processID: process.processIdentifier,
+                isRunning: process.isRunning, transportClosed: closed,
+                outputEOF: sawOutputEOF, pendingRequestCount: pending.count)
+        }
+    }
 
     init(command: String, arguments: [String], directory: String? = nil) throws {
         guard !command.isEmpty else {

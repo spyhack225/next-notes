@@ -1,0 +1,6 @@
+{
+  "Sources/NextNotes/Agent/Backend/JSONRPCStdioClient.swift": {
+    "original": "7427289b63a229125544edb3ffd939a614249ebd8d7be969e500b8eda4e92fb3",
+    "fixed": "8b0461e34fce7cc04885bf679cf030c83d5fd41d6060dd80a6dff9d0810765de"
+  }
+}

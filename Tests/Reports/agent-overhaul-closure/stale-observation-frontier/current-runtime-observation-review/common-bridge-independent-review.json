@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-02",
+  "scope": "Static read-only review of root P6-05i common five-file bridge and exact off-source fixed getter proposal; original getter intentionally nil",
+  "verdict": "No concrete source-level ownership, lifecycle, admission or execution-order defect found",
+  "executed_verification": [],
+  "sources_modified": false,
+  "build_native_index_model_operations": false,
+  "fixed_getter_proposal_review": {
+    "path": "proposed-JSONRPCStdioClient.swift.txt",
+    "original_source_sha256": "7427289b63a229125544edb3ffd939a614249ebd8d7be969e500b8eda4e92fb3",
+    "proposal_sha256": "8b0461e34fce7cc04885bf679cf030c83d5fd41d6060dd80a6dff9d0810765de",
+    "verified_diff": "Only currentRuntimeObservation implementation and comments",
+    "verdict": "No concrete defect found; existing-lock sample of same retained Process and transport fields",
+    "adds": ["One diagnostic existing-lock read"],
+    "does_not_add": ["PID lookup", "terminationStatus", "wait/join", "clock", "write lock", "query/save", "timer", "process owner"],
+    "native_or_latency_verdict": null
+  },
+  "files_reviewed": [
+    "Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift",
+    "Sources/NextNotes/Agent/Backend/ACPSession.swift",
+    "Sources/NextNotes/Agent/Backend/JSONRPCStdioClient.swift",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskEventJournal.swift"
+  ],
+  "positive_findings": [
+    "Same unique Session moved after admitted toolStarted and passed into unchanged runSession flow",
+    "Weak concrete Session in existing worker map; callback weak-captures Manager",
+    "Attachment requires exact captured live binding and empty slot",
+    "Diagnostic promotes weak reference then rechecks both binding and same Session after actor hop",
+    "No primary, receipt, progress or cached-observation mutation from diagnostic getter",
+    "Nil current client is unavailable; historical handshake is not runtime authority",
+    "No new execution-path await, process owner, registry, store, timer or model pass"
+  ],
+  "required_evidence": [
+    "Actual Manager same-Session live silent peer PID/open/running/pending consumer",
+    "Repeated sampling leaves task/journal/export/receipt/choices/cache unchanged",
+    "Held-primary coexistence with live child and false execution validity",
+    "Unavailable before attachment and after binding/client release",
+    "Supplementary same-owned Process EOF-alive and actual-exit controls",
+    "Exact original/fixed fixture/common bridge with getter-only fixed difference",
+    "Root existing20 functional and owner-isolation verdicts plus targeted peer cleanup"
+  ],
+  "limitations": [
+    "Process and transport state are sampled, not an atomic OS lease",
+    "Open/running is not responsiveness or health",
+    "Outgoing pending RPC count is not incoming callbacks or active-tool/effect coverage",
+    "EOF/terminate request is not joined child death or descendant/effect cessation",
+    "Early unavailable test alone does not prove post-hop guard mutation sensitivity",
+    "No primary authority, stale classification, reattachment, reconciliation, recovery or retry claim",
+    "Parent Phase6, IM-16 and aggregate quality/latency/privacy contracts remain open"
+  ]
+}

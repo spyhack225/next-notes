@@ -1,0 +1,77 @@
+import json, os, pathlib, signal, sys, tempfile, time
+
+root = pathlib.Path(__file__).resolve().parent
+temporary = pathlib.Path(tempfile.gettempdir()).resolve()
+assert root != temporary and temporary in root.parents
+assert 'Application Support' not in root.parts
+config = json.loads((root / 'config.json').read_text())
+assert config['kind'] in ('worker', 'idle')
+session = 'fixture-acp-runtime-observation'
+methods = []
+
+def write(name, value):
+    target = root / name
+    tmp = root / (name + '.tmp')
+    tmp.write_text(json.dumps(value, sort_keys=True))
+    tmp.replace(target)
+
+def send(value):
+    sys.stdout.write(json.dumps(value) + '\n')
+    sys.stdout.flush()
+
+def wait(name):
+    deadline = time.monotonic() + 12
+    while not (root / name).exists():
+        if time.monotonic() >= deadline:
+            raise TimeoutError('owned release barrier')
+        time.sleep(0.005)
+    assert json.loads((root / name).read_text()) == {'release': True}
+
+def main():
+    assert not (root / 'launch.json').exists()
+    write('launch.json', {'launchCount': 1, 'pid': os.getpid()})
+    if config['kind'] == 'idle':
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    for line in sys.stdin:
+        message = json.loads(line)
+        mid, method = message.get('id'), message.get('method')
+        assert mid is not None and method is not None
+        methods.append(method)
+        write('calls.json', {'methods': methods})
+        if method == 'initialize':
+            send({'jsonrpc': '2.0', 'id': mid, 'result': {'protocolVersion': 1, 'agentCapabilities': {}}})
+        elif method == 'session/new':
+            send({'jsonrpc': '2.0', 'id': mid, 'result': {'sessionId': session}})
+            if config['kind'] == 'idle':
+                wait('release-eof.json')
+                os.close(1)
+                write('eof-observed.json', {'pid': os.getpid()})
+                # Product close's SIGTERM intentionally cannot substitute for observed exit.
+                # Owned release or bounded escape always exits this exact peer; no PID lookup/kill.
+                deadline = time.monotonic() + 8
+                while not (root / 'release-exit.json').exists() and time.monotonic() < deadline:
+                    time.sleep(0.005)
+                if (root / 'release-exit.json').exists():
+                    assert json.loads((root / 'release-exit.json').read_text()) == {'release': True}
+                write('exit-observed.json', {'pid': os.getpid()})
+                os._exit(0)
+        elif method == 'session/prompt':
+            assert config['kind'] == 'worker' and methods == ['initialize', 'session/new', 'session/prompt']
+            assert message['params']['sessionId'] == session
+            assert message['params']['prompt'][0]['text'] == config['objective']
+            write('prompt-observed.json', {'taskID': config['taskID'], 'sessionID': session,
+                'objective': config['objective'], 'promptCount': 1})
+            wait('release-result.json')
+            send({'jsonrpc': '2.0', 'method': 'session/update', 'params': {'sessionId': session,
+                'update': {'sessionUpdate': 'agent_message_chunk', 'content': {'type': 'text', 'text': config['marker']}}}})
+            send({'jsonrpc': '2.0', 'id': mid, 'result': {'stopReason': 'end_turn'}})
+        elif method == 'session/cancel':
+            send({'jsonrpc': '2.0', 'id': mid, 'result': {}})
+        else:
+            raise ValueError('unexpected owned protocol message')
+
+try:
+    main()
+except Exception as error:
+    write('peer-error.json', {'errorClass': type(error).__name__})
+    raise

@@ -1,0 +1,53 @@
+{
+  "reviewer": "/root/agent_closure_audit",
+  "scope": "P6-05i original missing-current-observation feature proof",
+  "verdict": "EXPECTED RED; functional controls pass",
+  "build": 84,
+  "binarySHA256": "de5c725d99349cce91439551cb5c75fdfb262b83993dadeb511ce646b2f4ea71",
+  "manifestCount": 1034,
+  "fixtureSHA256": "f3396629aa4045cc94a526504c8388b695299ce1369acc8bc51b6f84a4b7dd30",
+  "workerSHA256": "709a7ef51855038e02eb9b071fe74576fd70e7ab93c69aa46569c5b6e1946f07",
+  "nativeRecord": {
+    "flag": "task-worker-attempt",
+    "exit": 1,
+    "marker": "TASK_WORKER_ATTEMPT_FAILED: 10 assertions",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  "rawStdoutMarkerVerified": true,
+  "wrongLabels": [
+    "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: current owned child/open silent prompt observation unavailable (accepted)",
+    "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: second inert Session replaced actual owned live probe (accepted)",
+    "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: repeated current owned samples are missing or changed silently (accepted)",
+    "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: current owned child/open silent prompt observation unavailable (fresh-primary-held)",
+    "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: second inert Session replaced actual owned live probe (fresh-primary-held)",
+    "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: repeated current owned samples are missing or changed silently (fresh-primary-held)",
+    "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: live owned process was conflated with held primary authority",
+    "TASK_WORKER_ATTEMPT_WRONG: ACP runtime standalone: current actual idle child observation missing",
+    "TASK_WORKER_ATTEMPT_WRONG: ACP runtime standalone: output EOF was conflated with actual child exit",
+    "TASK_WORKER_ATTEMPT_WRONG: ACP runtime standalone: same owned Process exit was unavailable or inferred from EOF"
+  ],
+  "exactExpectedFeatureFailureCount": 10,
+  "actualRuntimeTraces": [
+    "TASK_ACP_RUNTIME_TRACE: mode=accepted observed=false running=unknown closed=unknown pending=-1 primary=completed entered=1 ended=1",
+    "TASK_ACP_RUNTIME_TRACE: mode=fresh-primary-held observed=false running=unknown closed=unknown pending=-1 primary=recovering entered=1 ended=1",
+    "TASK_ACP_RUNTIME_STANDALONE_TRACE: open=false eofRunning=unknown eofClosed=unknown exited=false absent=true"
+  ],
+  "functionalControls": "Both real typed peers consumed silent prompt, accepted completed and fresh-held recovering, entry1/exit1; exact primary/context/receipt/journal/grants/no-effects controls and cleanup assertions pass; standalone valid handshake/owned EOF and exit marker barriers/close unavailable controls pass",
+  "bundleBeforeAfterEqual": true,
+  "compilerFixtureErrorsOrWarnings": [],
+  "limitations": [
+    "Nil original means unavailable; failure-label replacement/conflation wording is a failed feature predicate, not evidence that an actual probe was replaced or actual child death was misclassified",
+    "Original cannot positively observe process alive or death because getter is nil",
+    "EOF and child-exit controls are supplementary standalone Session, not worker EOF availability",
+    "Observed open/running/pending would not establish health, complete tool coverage, effect absence or retry authority"
+  ],
+  "actions": {
+    "sourceWrites": false,
+    "fixtureWrites": false,
+    "nativeRuns": false,
+    "indexChanges": false,
+    "reportOnlyWrite": true
+  }
+}

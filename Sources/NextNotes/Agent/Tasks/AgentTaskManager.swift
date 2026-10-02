@@ -17,6 +17,7 @@ final class AgentTaskManager {
         var binding: TaskWorkerBinding? = nil
         var primaryObservation: TaskWorkerPrimaryObservation? = nil
         var toolBackingObservation: TaskWorkerToolBackingObservation? = nil
+        weak var acpSession: ACPSession? = nil
     }
     @ObservationIgnored private var running: [String: RunningWorker] = [:]
     /// A one-shot approval is intentionally not persisted as a standing grant. Keep the
@@ -84,6 +85,17 @@ final class AgentTaskManager {
         guard let binding = workerBinding(taskID: taskID),
               let observed = running[taskID]?.toolBackingObservation,
               observed.binding == binding else { return nil }
+        return observed
+    }
+
+    /// Sample the exact current owned Session, then reject a released/replaced
+    /// binding across its actor hop. No SQL, receipt or LAST-cache health inference.
+    func workerACPRuntimeObservation(taskID: String) async -> JSONRPCStdioObservation? {
+        guard let binding = workerBinding(taskID: taskID),
+              let session = running[taskID]?.acpSession else { return nil }
+        let observed = await session.currentRuntimeObservation()
+        guard workerBinding(taskID: taskID) == binding,
+              running[taskID]?.acpSession === session else { return nil }
         return observed
     }
 
@@ -945,6 +957,17 @@ final class AgentTaskManager {
                 return observed.outcome == .accepted
             }
         } else { validity = nil }
+        let observeACPSession: (@MainActor @Sendable (ACPSession) -> Void)?
+        if ownsTypedACPAttempt(task) {
+            observeACPSession = { [weak self] session in
+                guard let self, let binding = self.workerBinding(taskID: taskID),
+                      binding.attempt == task.durability?.attempt,
+                      binding.leaseOwner == task.durability?.leaseOwner,
+                      binding.startedAt == task.durability?.attemptStartedAt,
+                      self.running[taskID]?.acpSession == nil else { return }
+                self.running[taskID]?.acpSession = session
+            }
+        } else { observeACPSession = nil }
         return TaskJournalContext(taskID: taskID, attempt: task.durability?.attempt ?? 0, record: { [weak self] event in
             guard event.taskID == taskID, let self, self.task(id: taskID) != nil else { return false }
             if self.hasWorkerAttemptRecord(task) {
@@ -1004,7 +1027,8 @@ final class AgentTaskManager {
                self.workerCondition(task, states: [.running]) == nil { return false }
             return self.consumePermissionApproval(taskID: taskID)
         }, restoredOrigin: origin, restoredPermission: restoredPermission, restoredArguments: restoredArguments,
-           receiptStore: receiptStore, leaseOwner: hasWorkerAttemptRecord(task) ? task.durability?.leaseOwner : nil)
+           receiptStore: receiptStore, leaseOwner: hasWorkerAttemptRecord(task) ? task.durability?.leaseOwner : nil,
+           observeACPSession: observeACPSession)
     }
 
     private func progressDate() -> Date {

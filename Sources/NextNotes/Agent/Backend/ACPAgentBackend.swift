@@ -366,6 +366,7 @@ struct ACPAgentBackend: AgentBackend {
     }
 
     private func runSession(
+        session: ACPSession,
         command: String,
         arguments: [String],
         directory: String? = nil,
@@ -379,7 +380,6 @@ struct ACPAgentBackend: AgentBackend {
             && task.backend == AgentBackendKind.acp.rawValue && (task.durability?.attempt ?? 0) > 0
             && task.compatibilityCLI == nil && task.compatibilityCommand == nil
         let taskContext = boundAttempt ? TaskEventJournal.current : nil
-        let session = ACPSession()
         let token = await session.subscribe { event in
             Task { @MainActor in
                 guard let current = AgentTaskManager.shared.task(id: task.id),
@@ -520,6 +520,10 @@ struct ACPAgentBackend: AgentBackend {
                     try Task.checkCancellation()
                     let journal = try TaskEventJournal.toolStarted(taskID: task.id, tool: tool.id,
                         receiptID: prepared.id)
+                    // Construction starts no process. The same Session is sampled
+                    // through this admitted worker's existing in-memory binding.
+                    let session = ACPSession()
+                    journal?.observeACPSession?(session)
                     var backingReturned = false
                     defer {
                         completedJournalAccepted = TaskEventJournal.toolCompleted(journal, tool: tool.id,
@@ -529,6 +533,7 @@ struct ACPAgentBackend: AgentBackend {
                     let outcome: AgentTaskOutcome
                     do {
                         outcome = try await self.runSession(
+                            session: session,
                             command: command,
                             arguments: arguments,
                             directory: directory,

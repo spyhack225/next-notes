@@ -1,0 +1,22 @@
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -570,6 +570,19 @@
+ physical latency, recovery/retry/IM-16 and parent/aggregate gates remain open.
+ See [post-Gate proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-post-gate-review/verification.md).
+ 
++Bounded P6-05i supplies CURRENT owned ACP process/transport metadata through the
++same Session and existing bound worker, not LAST-cache health. Actual original84
++nil-scaffold RED10 → identical fixed85 worker1132/all20 focused flags PASS, Source1034
++and full bundle invariant. Exact live peer PID/open/pending1, repeated nonmutation,
++fresh-primary-held plus still-live child, competing/late attach and released negatives
++are verified; supplementary standalone Session proves EOF while alive then actual exit.
++Only stdio getter differs original/fixed; common weak same-Session bridge adds no store,
++registry, query/save, timer or foreground await. Missing/released is unavailable, never
++no-effect/death/retry evidence. OS sample is not an atomic lease; complete active tools,
++current receipts, human waiting/stale decisions, recovery/retry/IM-16 and parent/aggregate
++gates remain open. No instrumented compute, physical UI or latency claim.
++See [current runtime proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/current-runtime-observation-review/verification.md).
++
+ Bounded P6-06p repairs ACP review metadata at Session's argument producer:
+ keep typed Request.taskID/Broker routing/context, remove its redundant editable
+ operation argument, preserve exact toolCall/detail. Actual original82 RED4 becomes

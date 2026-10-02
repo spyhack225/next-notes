@@ -1,0 +1,20 @@
+{
+  "sourcePaths": [
+    "Sources/NextNotes/Agent/Backend/JSONRPCStdioClient.swift",
+    "Sources/NextNotes/Agent/Backend/ACPSession.swift",
+    "Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskEventJournal.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskACPRuntimeObservationSelfTest.swift"
+  ],
+  "scopedWhitespace": "PASS",
+  "scope": "P6-05i exact7Source paths+own AGENTS paragraph+actual runtime review and read-only frontier evidence only",
+  "originalFixed": "Actual84 featureRED10\u2192identical85 worker1132/all20PASS;1034 compiler entries differ only JSONRPC getter",
+  "historicalPreparationREADME": "freeze hash preserved at frozen-preparation-README.md; actual verdict in verification.md/README.md",
+  "foreignWork": "Whole AGENTS/NextNotesApp/theme/UI/model/meeting/dictation not staged; ignored roadmaps updated in place only",
+  "rawEvidence": "Native logs/source copies kept verbatim",
+  "compilationLimit": "Coordinated dirty workspace, not clean-checkout compile proof",
+  "open": "Parent stale/health/effect/receipt/humanwait/recovery/retry/IM-16 and aggregate gates unchanged",
+  "independentReviewSHA256": "59125383dd06919e6ab6b83396ea23f7a31e14f53bdaaa91b3cdfde67e5482c2"
+}

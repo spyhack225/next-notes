@@ -1,0 +1,38 @@
+{
+  "status": "read-only current-source audit/proposal; root selected next bounded prerequisite",
+  "tentativeID": "P6-05i",
+  "producerGap": "No current same-owned ACP child Process/transport view reaches exact existing bound worker; current caches are historical",
+  "bugOrFeature": "missing feature prerequisite; no original native failure/new stale verdict claimed",
+  "ownerScope": [
+    "JSONRPCStdioClient.swift",
+    "ACPSession.swift",
+    "ACPAgentBackend.swift",
+    "TaskEventJournal.swift",
+    "AgentTaskManager.swift"
+  ],
+  "existingSeam": "already MainActor runSessionWithReceipt.fire after admitted toolStarted, SAME Session creation passed to private runSession; optional scoped attach to weak concrete field in existing RunningWorker",
+  "noNewForegroundAwait": true,
+  "currentDiagnostic": "same weak Session reference actual getter, binding and reference rechecked after actor await; missing/released unknown",
+  "criticalFixtureLimit": "EOF prompt settlement may close/release before Manager read; no product pause to force transient alive/closed result; supplementary producer controls transparent",
+  "allUnknownStill": [
+    "backend responsiveness/session health",
+    "complete tool-inflight/external effects",
+    "complete current receipt source/absence",
+    "crash/reconciliation/retry/recovery",
+    "remote/voice/scheduled/IM-16"
+  ],
+  "prohibited": [
+    "new registry/store/cache/timer per task",
+    "LAST-derived authority",
+    "leaseOwner used as ACP child PID",
+    "state transition/autoretry/model/backing effect/UI host"
+  ],
+  "independentFixtureOwner": "agent_closure_audit; separate current-runtime-observation-review",
+  "sourceChangesByWorker": false,
+  "nativeRunsByWorker": false,
+  "ownerPayloadReadOrSeeded": false,
+  "sha256": {
+    "README.md": "9c6130b87bb3b4f961bffeb9822dfa0566ce104030e0a38461ae7b481d9acdb9",
+    "read-only-source-pins.json": "c5dc6e3ad5605391d6707d9d3b366152d9048dc5c33a472f483f1e5c48110cce"
+  }
+}

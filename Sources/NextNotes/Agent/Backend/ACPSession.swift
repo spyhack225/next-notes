@@ -30,6 +30,12 @@ actor ACPSession {
     // the current prompt cancellation before the MainActor hop releases its waiter.
     private var promptCancellationRequested = false
 
+    /// Current owned transport metadata, separate from historical handshake bits.
+    /// A missing client is unavailable, not proof that a child stopped.
+    func currentRuntimeObservation() -> JSONRPCStdioObservation? {
+        client?.currentRuntimeObservation()
+    }
+
     func start(
         command: String,
         arguments: [String] = [],

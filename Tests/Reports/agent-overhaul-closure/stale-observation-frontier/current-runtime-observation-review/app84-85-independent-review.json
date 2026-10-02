@@ -1,0 +1,324 @@
+{
+  "reviewer": "/root/agent_closure_audit",
+  "scope": "P6-05i current owned ACP process/transport observation; independent artifact review",
+  "verdict": "PASS bounded missing-feature original/fixed comparison",
+  "sameInputs": {
+    "manifestCounts": [
+      1034,
+      1034
+    ],
+    "independentlyDifferingEntries": [
+      "Sources/NextNotes/Agent/Backend/JSONRPCStdioClient.swift"
+    ],
+    "fixtureSHA256": "f3396629aa4045cc94a526504c8388b695299ce1369acc8bc51b6f84a4b7dd30",
+    "peerSHA256": "4207ab95b7a6731e28928f82bc4461ec823439e9fe2d4578771e59bf8ae5b980",
+    "workerRegistrationSame": true,
+    "commonBridge": "SAME Session construction/attachment/manager diagnostic/API identical before both; original nil getter only differs from fixed actual getter",
+    "extensionChecks": 40,
+    "priorWorkerChecks": 1092,
+    "fixedWorkerChecks": 1132
+  },
+  "producer": {
+    "source": "Sources/NextNotes/Agent/Backend/JSONRPCStdioClient.swift",
+    "originalSHA256": "7427289b63a229125544edb3ffd939a614249ebd8d7be969e500b8eda4e92fb3",
+    "fixedSHA256": "8b0461e34fce7cc04885bf679cf030c83d5fd41d6060dd80a6dff9d0810765de",
+    "onlyGetterAndCommentsDiffer": true,
+    "currentSample": "Same retained Process.processIdentifier/isRunning and existing closed/sawOutputEOF/pending.count under existing lock",
+    "mutationsOrAddedIOAwaitTimerComputeAcquisition": false,
+    "managerBridge": "Weak SAME Session in existing RunningWorker with same exact binding and Session identity checked before/after actor hop"
+  },
+  "original": {
+    "build": 84,
+    "binarySHA256": "de5c725d99349cce91439551cb5c75fdfb262b83993dadeb511ce646b2f4ea71",
+    "exit": 1,
+    "marker": "TASK_WORKER_ATTEMPT_FAILED: 10 assertions",
+    "wrongLabels": [
+      "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: current owned child/open silent prompt observation unavailable (accepted)",
+      "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: second inert Session replaced actual owned live probe (accepted)",
+      "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: repeated current owned samples are missing or changed silently (accepted)",
+      "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: current owned child/open silent prompt observation unavailable (fresh-primary-held)",
+      "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: second inert Session replaced actual owned live probe (fresh-primary-held)",
+      "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: repeated current owned samples are missing or changed silently (fresh-primary-held)",
+      "TASK_WORKER_ATTEMPT_WRONG: ACP runtime: live owned process was conflated with held primary authority",
+      "TASK_WORKER_ATTEMPT_WRONG: ACP runtime standalone: current actual idle child observation missing",
+      "TASK_WORKER_ATTEMPT_WRONG: ACP runtime standalone: output EOF was conflated with actual child exit",
+      "TASK_WORKER_ATTEMPT_WRONG: ACP runtime standalone: same owned Process exit was unavailable or inferred from EOF"
+    ],
+    "exactFeatureFailures": 10,
+    "rawTrace": [
+      "TASK_ACP_RUNTIME_TRACE: mode=accepted observed=false running=unknown closed=unknown pending=-1 primary=completed entered=1 ended=1",
+      "TASK_ACP_RUNTIME_TRACE: mode=fresh-primary-held observed=false running=unknown closed=unknown pending=-1 primary=recovering entered=1 ended=1",
+      "TASK_ACP_RUNTIME_STANDALONE_TRACE: open=false eofRunning=unknown eofClosed=unknown exited=false absent=true"
+    ],
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "bundleInvariant": true,
+    "functionalControls": "Both real typed peers consumed silent prompt, accepted completed and fresh-held recovering, entry1/exit1; exact primary/context/receipt/journal/grants/no-effects controls and cleanup assertions pass; standalone valid handshake/owned EOF and exit marker barriers/close unavailable controls pass"
+  },
+  "fixed": {
+    "build": 85,
+    "binarySHA256": "a031d1e3caa6f2073826ff01aa3b016c2fbf9a7adf6fc541b9287476bb80bc30",
+    "workerMarker": "TASK_WORKER_ATTEMPT_OK: 1132 cases",
+    "runtimeTraces": [
+      "TASK_ACP_RUNTIME_TRACE: mode=accepted observed=true running=true closed=false pending=1 primary=completed entered=1 ended=1",
+      "TASK_ACP_RUNTIME_TRACE: mode=fresh-primary-held observed=true running=true closed=false pending=1 primary=recovering entered=1 ended=1",
+      "TASK_ACP_RUNTIME_STANDALONE_TRACE: open=true eofRunning=true eofClosed=true exited=true absent=true"
+    ],
+    "workerWrongLabels": [],
+    "all20RawVerified": true,
+    "rawVerdicts": [
+      {
+        "flag": "task-worker-attempt",
+        "exit": 0,
+        "marker": "TASK_WORKER_ATTEMPT_OK: 1132 cases",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "task-harness-read",
+        "exit": 0,
+        "marker": "TASK_HARNESS_READ_OK: 40 cases",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "task-durability",
+        "exit": 0,
+        "marker": "TASK_DURABILITY_OK: 37 cases",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "task-recovery",
+        "exit": 0,
+        "marker": "TASK_RECOVERY_OK: 56 cases",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "task-authority",
+        "exit": 0,
+        "marker": "TASK_AUTHORITY_OK: 58 cases",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "task-restoration",
+        "exit": 0,
+        "marker": "TASK_RESTORATION_OK: 82 cases",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "task-history-repair",
+        "exit": 0,
+        "marker": "TASK_HISTORY_REPAIR_OK: 58 cases",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "receipt-persistence",
+        "exit": 0,
+        "marker": "RECEIPT_RUNTIME_OK: 5 cases",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "tool-review",
+        "exit": 0,
+        "marker": "TOOL_REVIEW_OK",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": false,
+        "rawAppLogMarkerVerified": null,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "toolloop-production",
+        "exit": 0,
+        "marker": "TOOLLOOP_PRODUCTION_OK",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": false,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "routine-authority",
+        "exit": 0,
+        "marker": "ROUTINE_AUTHORITY_OK",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": false,
+        "rawAppLogMarkerVerified": null,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "schedule",
+        "exit": 0,
+        "marker": "SCHEDULE_OK",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": false,
+        "rawAppLogMarkerVerified": null,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "usage-log",
+        "exit": 0,
+        "marker": "USAGE_LOG_OK: 26 cases",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": false,
+        "rawAppLogMarkerVerified": null,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "store-isolation",
+        "exit": 0,
+        "marker": "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "toolloop-live-grader",
+        "exit": 0,
+        "marker": "TOOLLOOP_LIVE_GRADER_OK",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-scheduling",
+        "exit": 0,
+        "marker": "VOICE_SCHEDULING_OK",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "acp",
+        "exit": 0,
+        "marker": "ACP_OK: initialize, session, subscribe and permission relay hold",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "mcp",
+        "exit": 0,
+        "marker": "MCP_OK: initialize, session, list and call hold",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "acp-confirm",
+        "exit": 0,
+        "marker": "ACP_CONFIRM_OK",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": false,
+        "rawAppLogMarkerVerified": null,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "tasks",
+        "exit": 0,
+        "marker": "TASKS_OK: submit, run and cancel hold",
+        "rawStdoutMarkerVerified": true,
+        "hasAppLog": true,
+        "rawAppLogMarkerVerified": true,
+        "rawFailedMarker": false,
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      }
+    ],
+    "bundleInvariant": true,
+    "ownedPeerCleanup": {
+      "matchingOwnedPeerPIDs": [],
+      "matchScope": "exact fixture-only ACP runtime directory/script suffixes; no process killed",
+      "verdict": "No remaining matching owned fixture process after worker1132 completed",
+      "limitations": "No descendant/effect cessation or general process health proof"
+    }
+  },
+  "coverage": {
+    "actualTypedManager": "Accepted and fresh-primary-held silent prompt; exact owned child PID/pending1/open/running; repeated reads preserve primary/journal/export/receipt/binding; competing inert attachment and post-release old-context attachment excluded; same actual receipt consumer and truthful completion/held refusal",
+    "supplementaryStandalone": "SAME Session valid handshake; stdout EOF while exact child still running, then actual same Process exited before close, then nil client unavailable",
+    "sourceReviewedOnly": [
+      "Post-hop same binding/Session recheck",
+      "No preattachment sample or replacement-during-hop native mutation sensitivity",
+      "No producer compute-lane acquisition"
+    ]
+  },
+  "limits": [
+    "Missing nil-original observations are feature prerequisites, not evidence of actual death misclassification or probe replacement bugs",
+    "No native preattach or replacement-during-actor-hop mutation proof",
+    "Standalone EOF/exit is not actual worker EOF availability through cleanup unwind",
+    "No separately instrumented compute-lane invariant",
+    "Process/transport sample may change immediately afterward and is not responsiveness/health/lease",
+    "Outgoing pending count is not incoming nested tool/effect coverage; nil is unavailable, not death/no-effects",
+    "No current complete receipt coverage, stale collector, recovery/retry, IM-16 or parent phase completion",
+    "Aggregate quick/full/owner model quality and prescribed privacy/permission/latency gates remain unchanged"
+  ],
+  "reviewerActions": {
+    "sourceOrFixtureOrReadmeWrites": false,
+    "nativeRuns": false,
+    "indexOrStaging": false,
+    "reportOnlyWrite": true
+  }
+}

@@ -43,6 +43,9 @@ struct TaskJournalContext: Sendable {
     var restoredArguments: [String: String]? = nil
     var receiptStore: ActionReceiptStore? = nil
     var leaseOwner: String? = nil
+    // Attach the same already-owned ACP Session to the existing worker slot.
+    // Optional and diagnostic only; supplies no execution or persistence authority.
+    var observeACPSession: (@MainActor @Sendable (ACPSession) -> Void)? = nil
 }
 
 enum TaskEventJournal {

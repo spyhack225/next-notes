@@ -1,0 +1,22 @@
+--- a/Sources/NextNotes/Agent/Backend/JSONRPCStdioClient.swift
++++ b/Sources/NextNotes/Agent/Backend/JSONRPCStdioClient.swift
+@@ -39,9 +39,16 @@
+     private var activeOutputReads = 0
+     private var sawOutputEOF = false
+ 
+-    /// Optional until the current process/transport producer is implemented.
+-    /// Nil is unavailable, never evidence of death or no work in flight.
+-    func currentRuntimeObservation() -> JSONRPCStdioObservation? { nil }
++    /// Sample the same retained Process and current transport under its state lock.
++    /// OS process state can change immediately afterward; this is not a health lease.
++    /// Pending requests count outgoing RPCs only, never all tools or external effects.
++    func currentRuntimeObservation() -> JSONRPCStdioObservation? {
++        lock.withLock {
++            JSONRPCStdioObservation(processID: process.processIdentifier,
++                isRunning: process.isRunning, transportClosed: closed,
++                outputEOF: sawOutputEOF, pendingRequestCount: pending.count)
++        }
++    }
+ 
+     init(command: String, arguments: [String], directory: String? = nil) throws {
+         guard !command.isEmpty else {
