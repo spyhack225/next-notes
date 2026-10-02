@@ -121,13 +121,46 @@ struct MeetingNotesContextAssembler {
     /// How many files a name match may carry. `files.find` is where the agent goes properly.
     static let fileLimit = 5
 
-    func brief(for meeting: Meeting, reader: LLMProviderID) async -> MeetingNotesBrief {
-        let query = Self.query(for: meeting)
+    func brief(
+        for meeting: Meeting,
+        reader: LLMProviderID,
+        contextTokens: Int = 8_192
+    ) async -> MeetingNotesBrief {
+        await brief(forEvent: meeting.title, attendees: meeting.attendees,
+                    excluding: meeting.id, reader: reader, contextTokens: contextTokens)
+    }
+
+    /// An upcoming event has no recorded Meeting identity yet. Use its own title and
+    /// invitees, and exclude a recorded meeting only when the caller knows that identity.
+    func brief(
+        forEvent title: String,
+        attendees: [String],
+        excluding: UUID? = nil,
+        reader: LLMProviderID,
+        contextTokens: Int = 8_192
+    ) async -> MeetingNotesBrief {
+        let query = ([title] + attendees)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        return await brief(query: query,
+                           fileQuery: title.trimmingCharacters(in: .whitespacesAndNewlines),
+                           excluding: excluding, reader: reader, contextTokens: contextTokens)
+    }
+
+    private func brief(
+        query: String,
+        fileQuery: String,
+        excluding: UUID?,
+        reader: LLMProviderID,
+        contextTokens: Int
+    ) async -> MeetingNotesBrief {
         guard !query.isEmpty else { return .empty }
+        let scale = max(1, contextTokens / 8_192)
         var brief = MeetingNotesBrief()
 
         if memoryEnabled() {
-            brief.memory = Self.renderMemory(recallMemory(query, reader), limit: Self.maxMemoryCharacters)
+            brief.memory = Self.renderMemory(recallMemory(query, reader), limit: Self.maxMemoryCharacters * scale)
         }
 
         // The graph is the distilled version of every meeting, so it reaches a cloud model
@@ -135,34 +168,36 @@ struct MeetingNotesContextAssembler {
         if KnowledgeGraphScope.mayRead(reader: reader, cloudConsent: graphCloudConsent()) {
             brief.decisions = Self.renderDecisions(
                 decisionThreads().filter { thread in
-                    !thread.rows.allSatisfy { $0.meetingID == meeting.id.uuidString }
+                    excluding == nil || !thread.rows.allSatisfy { $0.meetingID == excluding?.uuidString }
                 },
                 matching: query,
-                limit: Self.maxDecisionCharacters
+                limit: Self.maxDecisionCharacters * scale
             )
             brief.connections = Self.renderConnections(
                 relatedNodes(query),
-                limit: Self.maxConnectionCharacters
+                limit: Self.maxConnectionCharacters * scale
             )
         }
 
         if let context = knowledge() {
             brief.passages = await Self.passages(
                 matching: query,
-                excluding: meeting.id,
+                excluding: excluding,
                 context: context,
-                limit: Self.maxPassageCharacters
+                limit: Self.maxPassageCharacters * scale,
+                scale: scale
             )
         }
 
         // A file name carries the user's account name and this week's work in its path, so
         // it reaches a cloud model only under the file index's own consent.
         if let section = Self.files(
-            matching: Self.fileQuery(for: meeting),
+            matching: fileQuery,
             files: files(),
             reader: reader,
             cloudConsent: filesCloudConsent(),
-            limit: Self.maxFileCharacters
+            limit: Self.maxFileCharacters * scale,
+            count: Self.fileLimit * scale
         ) {
             brief.files = section
         }
@@ -253,27 +288,33 @@ struct MeetingNotesContextAssembler {
     /// itself is not a connection.
     static func passages(
         matching query: String,
-        excluding meetingID: UUID,
+        excluding meetingID: UUID?,
         context: KnowledgeToolContext,
-        limit: Int
+        limit: Int,
+        scale: Int = 1
     ) async -> String {
-        guard let request = try? KnowledgeToolExecutor.searchQuery(
+        guard var request = try? KnowledgeToolExecutor.searchQuery(
             ["query": query, "limit": String(passageFetchLimit)], context: context
         ) else { return "" }
+        // This internal context request is validated by the same grammar, then sized
+        // to the reader's bounded brief. Keep the public tool's 20-hit limit unchanged.
+        request.limit = Self.passageFetchLimit * scale
         let prepared = await context.searcher.prepare(request)
         guard let hits = try? KnowledgeToolExecutor.search(prepared, context: context) else { return "" }
-        var kept = Array(hits.filter { $0.sourceID != meetingID.uuidString }.prefix(Self.passageLimit))
+        var kept = Array(hits.filter {
+            meetingID == nil || $0.sourceID != meetingID?.uuidString
+        }.prefix(Self.passageLimit * scale))
         while !kept.isEmpty,
-              render(hits: kept, context: context).count > limit {
+              render(hits: kept, context: context, textLimit: Self.passageTextLimit * scale).count > limit {
             kept.removeLast()
         }
         guard !kept.isEmpty else { return "" }
-        return render(hits: kept, context: context)
+        return render(hits: kept, context: context, textLimit: Self.passageTextLimit * scale)
     }
 
-    private static func render(hits: [KnowledgeHit], context: KnowledgeToolContext) -> String {
+    private static func render(hits: [KnowledgeHit], context: KnowledgeToolContext, textLimit: Int) -> String {
         KnowledgeToolExecutor.render(
-            hits, sourceTitle: context.sourceTitle, textLimit: Self.passageTextLimit
+            hits, sourceTitle: context.sourceTitle, textLimit: textLimit
         )
     }
 
@@ -284,13 +325,14 @@ struct MeetingNotesContextAssembler {
         files: any FileRetrieving,
         reader: LLMProviderID,
         cloudConsent: Bool,
-        limit: Int
+        limit: Int,
+        count: Int = Self.fileLimit
     ) -> String? {
         guard FileIndexScope.mayRead(reader: reader, cloudConsent: cloudConsent),
               files.isAvailable,
               !FileIndexStore.tokens(query).isEmpty,
               let hits = try? files.find(query: query, category: nil, folder: nil,
-                                         modifiedAfter: nil, limit: Self.fileLimit),
+                                         modifiedAfter: nil, limit: count),
               !hits.isEmpty
         else { return nil }
         var kept = hits

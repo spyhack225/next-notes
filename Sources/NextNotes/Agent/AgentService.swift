@@ -52,10 +52,13 @@ final class AgentService {
 
     private let store: MeetingStore
     private let cli: GoogleWorkspaceCLI
+    private let contextAssembler: MeetingNotesContextAssembler
 
-    init(store: MeetingStore = .shared, cli: GoogleWorkspaceCLI = .shared) {
+    init(store: MeetingStore = .shared, cli: GoogleWorkspaceCLI = .shared,
+         contextAssembler: MeetingNotesContextAssembler = .live) {
         self.store = store
         self.cli = cli
+        self.contextAssembler = contextAssembler
     }
 
     // MARK: - Lifecycle
@@ -293,9 +296,11 @@ final class AgentService {
     /// What the agent may know about the user while reading this meeting — the same brief
     /// the notes pass uses, assembled for the agent's own reader so its consent decisions
     /// are made for the model that is actually reading.
-    private func knownContext(for meeting: Meeting, provider: any LLMProvider) async -> MeetingNotesBrief {
+    func knownContext(for meeting: Meeting, provider: any LLMProvider) async -> MeetingNotesBrief {
         guard Settings.shared.notesRelatedContext else { return .empty }
-        return await MeetingNotesContextAssembler.live.brief(for: meeting, reader: provider.id)
+        let contextTokens = await AgentAnswerBudget.readerContextTokens(for: provider)
+        return await contextAssembler.brief(for: meeting, reader: provider.id,
+                                            contextTokens: contextTokens)
     }
 
     // MARK: - Answering

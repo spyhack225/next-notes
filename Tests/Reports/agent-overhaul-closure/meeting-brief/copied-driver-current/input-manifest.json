@@ -1,0 +1,129 @@
+{
+  "mode": "working-tree",
+  "original_revision": "ae454a4",
+  "assembler_sha256": "c5aa0becaccb46edfa6d9fc4e35c3918e68203026babd1fb38320581afd55755",
+  "fixture_sha256": "d632c15c30751102163f7353d561a34e9563f2c22943b3dec5acf66060221a64",
+  "actual_extractions": {
+    "GraphScope": {
+      "path": "Knowledge/KnowledgeTools.swift",
+      "marker": "enum KnowledgeGraphScope",
+      "sha256": "0dae5dfd3841ca6721f34637a39bc5143f3e87fbcd33fa015ab00237175317fb"
+    },
+    "GraphNode": {
+      "path": "Knowledge/KnowledgeTools.swift",
+      "marker": "struct KnowledgeGraphNode",
+      "sha256": "5c711fce090d962b87f8a885bd56cda7bd910800cfefd5c217eba3e253d9d803"
+    },
+    "DecisionRow": {
+      "path": "Knowledge/GraphStore.swift",
+      "marker": "struct DecisionThreadRow",
+      "sha256": "f00240e32e39e254978fd0813dfde2d4b33109f4be465b79bc9329c20aafa101"
+    },
+    "DecisionThread": {
+      "path": "Knowledge/GraphStore.swift",
+      "marker": "struct DecisionThread:",
+      "sha256": "03955ab673c09d66998b7869bde301fbf9a7401fe2a7d362031aec657ca516a1"
+    },
+    "KnowledgeKind": {
+      "path": "Knowledge/KnowledgeStore.swift",
+      "marker": "enum KnowledgeSourceKind",
+      "sha256": "9035c0f55ba026a3370fa2a20a1e06d11c2c588c038c6a0015a1aba0fb7a9dc0"
+    },
+    "KnowledgeFilter": {
+      "path": "Knowledge/KnowledgeSearch.swift",
+      "marker": "struct KnowledgeFilter",
+      "sha256": "1df5759539659d42f9dfea58f4df2aa4a2def8c22003b939c05ca96bc0d26e36"
+    },
+    "KnowledgeQuery": {
+      "path": "Knowledge/KnowledgeSearch.swift",
+      "marker": "struct KnowledgeQuery",
+      "sha256": "16f995921d65a4294dcee044fa7d06340864baae8aeaeb9f0cc5c1cebc779f09"
+    },
+    "KnowledgeHit": {
+      "path": "Knowledge/KnowledgeSearch.swift",
+      "marker": "struct KnowledgeHit",
+      "sha256": "31ed357052e695e00b7fdcb77700db9ff17800ac4ee6fa8c379ffeb4f74e4194"
+    },
+    "KnowledgeError": {
+      "path": "Knowledge/KnowledgeTools.swift",
+      "marker": "enum KnowledgeToolError",
+      "sha256": "7dc29dea3c5c07b25d8115475520850dd5c455164f3e688305f1c3bf0c4131a1"
+    },
+    "FileCategory": {
+      "path": "Knowledge/Files/FileIndex.swift",
+      "marker": "enum FileCategory",
+      "sha256": "5e04830709d5697ec5d6ce68f6a0c6ff4da18d7242f601f00aa9ee9311abedf6"
+    },
+    "FileHit": {
+      "path": "Knowledge/Files/FileIndex.swift",
+      "marker": "struct FileHit",
+      "sha256": "cf64c9cd6c693e5f27c59209edb37df9833645f2adc3bbaa6ab8ac34f2921642"
+    },
+    "FileProtocol": {
+      "path": "Knowledge/Files/FileIndexTools.swift",
+      "marker": "protocol FileRetrieving",
+      "sha256": "74f86564b2492c69433c1ca4b043b8aeb5d0a578316f14c0909e5cf609bce882"
+    },
+    "FileScope": {
+      "path": "Knowledge/Files/FileIndexTools.swift",
+      "marker": "enum FileIndexScope",
+      "sha256": "5112fd0639890594ccac72e855c2b13d404108020b8727b731952a82bb5a8770"
+    },
+    "MemoryTokens": {
+      "path": "Memory/MemoryGuard.swift",
+      "marker": "    static func tokens(",
+      "sha256": "4ac23a75ff24a8e6c60aa2a74cd8f12232e452297f79097f5b257ed9e3ccb314"
+    },
+    "FileCountDefault": {
+      "path": "Knowledge/Files/FileIndexTools.swift",
+      "marker": "    func count(query: String) throws -> Int { 0 }",
+      "sha256": "f43526f6126aa7c0ba0d79f3a4e0f2bef3ce7c44c3dc46d97b6149b0fe5832f3"
+    },
+    "FileTokens": {
+      "path": "Knowledge/Files/FileIndex.swift",
+      "marker": "    static func tokens(",
+      "sha256": "3e80d60a2a228bf41113a1372e9833eb6f1b10c7d283eda9bffd3831df3d48d1"
+    },
+    "KnowledgeTokens": {
+      "path": "Knowledge/KnowledgeSearch.swift",
+      "marker": "    static func tokens(",
+      "sha256": "1904b9a4104aa1451a4a4d0c3e4972ba6e142d5fd3ec3fa98348a24b3ec681d1"
+    },
+    "CitationMarker": {
+      "path": "Knowledge/KnowledgeAsk.swift",
+      "marker": "    nonisolated static func marker(",
+      "sha256": "3476211f0caa86f2144beb9698378ebe9d031c01b4555f19beb30e1b0461a4b6"
+    },
+    "KnowledgeTool:    static func searchQuery(": {
+      "path": "Knowledge/KnowledgeTools.swift",
+      "marker": "    static func searchQuery(",
+      "sha256": "95e0457b7538fc88537379098ac16558ce3bb1e010b033e90af2da510b75d1f7"
+    },
+    "KnowledgeTool:    static func search(_ query:": {
+      "path": "Knowledge/KnowledgeTools.swift",
+      "marker": "    static func search(_ query:",
+      "sha256": "67a0a1c93c6e60f974eabae5c43f579b084c12290cd54d99af4ac099c11d7838"
+    },
+    "KnowledgeTool:    static func render(_ hits:": {
+      "path": "Knowledge/KnowledgeTools.swift",
+      "marker": "    static func render(_ hits:",
+      "sha256": "a780ede3a9ab38bfdcd4e803a5c3c24bb5ad91e04774ce01df024236489a97c3"
+    },
+    "KnowledgeTool:    private static func value(": {
+      "path": "Knowledge/KnowledgeTools.swift",
+      "marker": "    private static func value(",
+      "sha256": "776c7cb5008362840d3f02c680f306b9a8a5d70f1b3c2101302b5e6ee1137226"
+    },
+    "KnowledgeTool:    static func date(": {
+      "path": "Knowledge/KnowledgeTools.swift",
+      "marker": "    static func date(",
+      "sha256": "1f6bf448dd897fd57e52aecf7da2108d00a693ad459d06dca30a058d5f8f83de"
+    },
+    "FileRender": {
+      "path": "Knowledge/Files/FileIndexTools.swift",
+      "marker": "    static func render(_ hits:",
+      "sha256": "9523cc512206c1cc5bc27c387d1a5178b4d87c73a23bdd4611ded8f70b16bf2d"
+    }
+  },
+  "fixture_boundaries": "value-only memory/Meeting; injected search/file corpus honoring limits; actual validation, render, token and consent methods; embedding/store/graph owner paths trap; no real provider, app consumer or latency claim"
+}

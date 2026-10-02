@@ -28,16 +28,19 @@ final class NotesService {
     @ObservationIgnored private var stoppedByWatchdog: Set<UUID> = []
 
     private let store: MeetingStore
+    private let contextAssembler: MeetingNotesContextAssembler
     private let providerResolver: (@MainActor (LLMProviderID?) async -> (any LLMProvider)?)?
 
     /// Instance-local fixture substitution leaves every production generation/save
     /// step intact; no global provider override or owner model choice is changed.
     init(
         store: MeetingStore = .shared,
-        providerResolver: (@MainActor (LLMProviderID?) async -> (any LLMProvider)?)? = nil
+        providerResolver: (@MainActor (LLMProviderID?) async -> (any LLMProvider)?)? = nil,
+        contextAssembler: MeetingNotesContextAssembler = .live
     ) {
         self.store = store
         self.providerResolver = providerResolver
+        self.contextAssembler = contextAssembler
     }
 
     func step(for id: UUID) -> NotesGenerator.Step? { steps[id] }
@@ -179,9 +182,11 @@ final class NotesService {
     /// The connections the notes may draw on, or an empty brief while the user has the
     /// feature off. Every source inside still applies its own switch and cloud consent —
     /// this one toggle decides whether the notes even look.
-    private func notesBrief(for meeting: Meeting, provider: any LLMProvider) async -> MeetingNotesBrief {
+    func notesBrief(for meeting: Meeting, provider: any LLMProvider) async -> MeetingNotesBrief {
         guard Settings.shared.notesRelatedContext else { return .empty }
-        return await MeetingNotesContextAssembler.live.brief(for: meeting, reader: provider.id)
+        let contextTokens = await AgentAnswerBudget.readerContextTokens(for: provider)
+        return await contextAssembler.brief(for: meeting, reader: provider.id,
+                                            contextTokens: contextTokens)
     }
 
     /// One `meeting.notes.single` row for a pass with no provider to run (P0-20b).

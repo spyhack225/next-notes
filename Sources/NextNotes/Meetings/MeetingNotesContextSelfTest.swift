@@ -188,6 +188,156 @@ enum MeetingNotesContextSelfTest {
         let none = await emptySources.brief(for: meeting, reader: .appLLM)
         check("an empty brief did not stay empty", none.isEmpty && none.promptBlock.isEmpty && none.sources.isEmpty)
 
+        // MARK: Upcoming events and reader-sized context (P4-04a)
+
+        let explicitDefault = await assembler().brief(for: meeting, reader: .appLLM,
+                                                       contextTokens: 8_192)
+        let zeroWindow = await assembler().brief(for: meeting, reader: .appLLM,
+                                                  contextTokens: 0)
+        let upcoming = await assembler().brief(forEvent: meeting.title,
+            attendees: meeting.attendees, excluding: meeting.id, reader: .appLLM)
+        check("the explicit default window changed the original brief", explicitDefault == full)
+        check("a zero window changed the default brief", zeroWindow == full)
+        check("the event path changed the recorded meeting brief", upcoming == full)
+        let noExclusion = await assembler().brief(forEvent: meeting.title,
+            attendees: meeting.attendees, reader: .appLLM)
+        check("an upcoming event invented an exclusion identity",
+              noExclusion.passages.contains("very meeting's own note"))
+        let whitespaceEvent = await assembler().brief(forEvent: "  \n ", attendees: [" "],
+                                                       reader: .appLLM, contextTokens: 32_768)
+        check("a nameless event produced context", whitespaceEvent == .empty)
+        let emptyLarge = await emptySources.brief(for: meeting, reader: .appLLM,
+                                                   contextTokens: 32_768)
+        check("an empty source gained context at a larger window", emptyLarge == .empty)
+
+        let denseMemory = (0..<8).map { index in
+            MemoryEntry(kind: .profile,
+                text: "pricing memory \(index): " + String(repeating: "detail ", count: 20),
+                source: .manual, createdAt: meeting.start)
+        }
+        let denseThreads = (0..<20).map { index in
+            DecisionThread(id: "pricing-\(index)", subject: "pricing \(index)",
+                rows: [DecisionThreadRow(id: "dense-\(index)",
+                    text: "decision \(index): " + String(repeating: "detail ", count: 10),
+                    saidBy: "Sarah", meetingID: "earlier-\(index)", meetingTitle: "Past pricing",
+                    observedAt: meeting.start.addingTimeInterval(-Double(index + 1)),
+                    validTo: nil, sourceChunk: Int64(index + 1))])
+        }
+        let denseNodes = (0..<30).map { index in
+            KnowledgeGraphNode(id: "dense-person-\(index)", type: "Person",
+                label: "pricing connection \(index): " + String(repeating: "name ", count: 5),
+                sourceChunk: Int64(index + 1))
+        }
+        let denseHits = (0..<50).map { index in
+            KnowledgeHit(chunkID: Int64(index + 1), kind: .notes,
+                sourceID: index < 3 ? meeting.id.uuidString : "past-\(index)", ordinal: index,
+                text: "pricing passage \(index)", snippet: "", startTime: nil, endTime: nil,
+                speaker: nil, heading: "Summary", occurredAt: meeting.start, score: Double(index))
+        }
+        let denseFiles = (0..<25).map { index in
+            FileHit(path: "/fixture/pricing-\(index).txt", name: "pricing-\(index).txt",
+                isDirectory: false, category: .document, size: 100,
+                modifiedAt: meeting.start, accessedAt: nil, root: "/fixture", depth: 1)
+        }
+        let denseSearch = StubKnowledgeSearch(hits: denseHits)
+        let denseFileReader = StubFileRetrieval(hits: denseFiles)
+        var denseAssembler = assembler()
+        denseAssembler.recallMemory = { _, _ in (denseMemory, []) }
+        denseAssembler.decisionThreads = { denseThreads }
+        denseAssembler.relatedNodes = { _ in denseNodes }
+        denseAssembler.knowledge = {
+            KnowledgeToolContext(searcher: denseSearch, sourceTitle: { _ in "Past pricing" })
+        }
+        denseAssembler.files = { denseFileReader }
+        let denseDefault = await denseAssembler.brief(for: meeting, reader: .appLLM)
+        let denseLarge = await denseAssembler.brief(for: meeting, reader: .appLLM,
+                                                    contextTokens: 32_768)
+        for (name, small, large) in [
+            ("memory", denseDefault.memory, denseLarge.memory),
+            ("decisions", denseDefault.decisions, denseLarge.decisions),
+            ("connections", denseDefault.connections, denseLarge.connections),
+            ("passages", denseDefault.passages, denseLarge.passages),
+            ("files", denseDefault.files, denseLarge.files)
+        ] {
+            check("the large reader did not retain more \(name)", large.count > small.count)
+        }
+        check("the default passage fetch changed", denseSearch.queries.first?.limit == 10)
+        check("the trusted reader fetch was still clamped to the tool limit",
+              denseSearch.queries.last?.limit == 40)
+        check("the default file request changed", denseFileReader.requests.first?.limit == 5)
+        check("the large reader did not request more files", denseFileReader.requests.last?.limit == 20)
+        let passageRows = denseLarge.passages.data(using: .utf8).flatMap {
+            try? JSONDecoder().decode([[String: String]].self, from: $0)
+        }
+        check("the reader-scaled passage count did not stop at twelve", passageRows?.count == 12)
+        check("the fixture returned more files than the request",
+              !denseLarge.files.contains("pricing-20.txt"))
+        check("file search started using attendee names", denseFileReader.requests.allSatisfy {
+            $0.query == meeting.title
+        })
+        check("reader-scaled memory exceeded its cap", denseLarge.memory.count <= 700 * 4)
+        check("reader-scaled decisions exceeded their cap", denseLarge.decisions.count <= 500 * 4)
+        check("reader-scaled connections exceeded their cap", denseLarge.connections.count <= 400 * 4)
+        check("reader-scaled passages exceeded their cap", denseLarge.passages.count <= 900 * 4)
+        check("large passages included the excluded meeting", !denseLarge.passages.contains("passage 0"))
+        let publicQuery = try? KnowledgeToolExecutor.searchQuery(
+            ["query": "pricing", "limit": "40"],
+            context: KnowledgeToolContext(searcher: denseSearch))
+        check("the public tool's 20-hit bound changed", publicQuery?.limit == 20)
+
+        let longHit = KnowledgeHit(chunkID: 99, kind: .notes, sourceID: "past-long",
+            ordinal: 0, text: String(repeating: "x", count: 400) + "END_OF_LONG_PASSAGE",
+            snippet: "", startTime: nil, endTime: nil, speaker: nil, heading: nil,
+            occurredAt: meeting.start, score: 1)
+        var longAssembler = denseAssembler
+        longAssembler.knowledge = {
+            KnowledgeToolContext(searcher: StubKnowledgeSearch(hits: [longHit]))
+        }
+        let longDefault = await longAssembler.brief(for: meeting, reader: .appLLM)
+        let longLarge = await longAssembler.brief(for: meeting, reader: .appLLM,
+                                                  contextTokens: 32_768)
+        check("the default passage text limit changed",
+              !longDefault.passages.contains("END_OF_LONG_PASSAGE"))
+        check("the passage text limit did not scale with the reader",
+              longLarge.passages.contains("END_OF_LONG_PASSAGE"))
+
+        let wideCloud = await denseAssembler.brief(forEvent: meeting.title,
+            attendees: meeting.attendees, excluding: meeting.id, reader: .openRouter,
+            contextTokens: 32_768)
+        check("scaled event graph bypassed cloud consent",
+              wideCloud.decisions.isEmpty && wideCloud.connections.isEmpty)
+        check("scaled event files bypassed cloud consent", wideCloud.files.isEmpty)
+
+        // Drive the real consumers with the same instance-local assembler. A nonlocal
+        // fixture provider has an explicit window, so resident GGUF state cannot replace it.
+        let originalRelated = Settings.shared.notesRelatedContext
+        defer { Settings.shared.notesRelatedContext = originalRelated }
+        Settings.shared.notesRelatedContext = true
+        let contextStore = MeetingStore.isolated()
+        check("context consumer fixture did not save its meeting", contextStore.save(meeting))
+        let reader = RecordingNotesProvider(contextTokens: 32_768, id: .appleFoundation)
+        let notesConsumer = NotesService(store: contextStore, providerResolver: { _ in reader },
+                                         contextAssembler: denseAssembler)
+        let agentConsumer = AgentService(store: contextStore, contextAssembler: denseAssembler)
+        let notesContext = await notesConsumer.notesBrief(for: meeting, provider: reader)
+        let agentContext = await agentConsumer.knownContext(for: meeting, provider: reader)
+        check("the notes consumer lost the actual reader window", notesContext == denseLarge)
+        check("the agent consumer lost the actual reader window", agentContext == denseLarge)
+        let generatedModel = await notesConsumer.generate(for: meeting, segments: [segment])
+        check("the actual notes consumer did not run its provider", generatedModel != nil)
+        check("the actual notes provider did not receive the scaled brief",
+              reader.calls.first?.user.contains(denseLarge.promptBlock) == true)
+        check("the actual notes consumer did not save its result",
+              contextStore.freshReaderForTesting().notes(for: meeting.id)?.contains("## Summary") == true)
+        check("the context consumer changed capture integrity",
+              contextStore.freshReaderForTesting().meeting(id: meeting.id)?.captureIntegrity == meeting.captureIntegrity)
+        Settings.shared.notesRelatedContext = false
+        let offNotes = await notesConsumer.notesBrief(for: meeting, provider: reader)
+        let offAgent = await agentConsumer.knownContext(for: meeting, provider: reader)
+        check("the actual notes consumer ignored its switch", offNotes == .empty)
+        check("the actual agent consumer ignored its switch", offAgent == .empty)
+        Settings.shared.notesRelatedContext = originalRelated
+
         // MARK: The prompt and the formatter
 
         check("Related context is not the last heading", NotesPrompts.headings.last == "Related context")
@@ -377,28 +527,37 @@ private final class StubKnowledgeSearch: KnowledgeSearching, @unchecked Sendable
     func prepare(_ query: KnowledgeQuery) async -> KnowledgeQuery { query }
 }
 
-private struct StubFileRetrieval: FileRetrieving {
-    var hits: [FileHit] = []
+private final class StubFileRetrieval: FileRetrieving, @unchecked Sendable {
+    let hits: [FileHit]
+    private let lock = NSLock()
+    private var recorded: [(query: String, limit: Int)] = []
+    var requests: [(query: String, limit: Int)] { lock.withLock { recorded } }
+
+    init(hits: [FileHit] = []) { self.hits = hits }
 
     var isAvailable: Bool { true }
     var folders: [String] { ["/Users/test/Documents"] }
 
     func find(query: String, category: FileCategory?, folder: String?, modifiedAfter: Date?,
-              limit: Int) throws -> [FileHit] { hits }
+              limit: Int) throws -> [FileHit] {
+        lock.withLock { recorded.append((query, limit)) }
+        return Array(hits.prefix(limit))
+    }
     func tree(path: String, depth: Int, limit: Int) throws -> (hits: [FileHit], total: Int) { ([], 0) }
 }
 
 /// Records every prompt it is handed; answers facts to the map step and a complete document
 /// to everything else, so `NotesFormatter.isBlank` is never what fails the test.
 private final class RecordingNotesProvider: LLMProvider, @unchecked Sendable {
-    let id = LLMProviderID.appLLM
+    let id: LLMProviderID
     let contextTokens: Int
 
     private let lock = NSLock()
     private var recorded: [(system: String, user: String)] = []
 
-    init(contextTokens: Int) {
+    init(contextTokens: Int, id: LLMProviderID = .appLLM) {
         self.contextTokens = contextTokens
+        self.id = id
     }
 
     var calls: [(system: String, user: String)] {
