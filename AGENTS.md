@@ -493,6 +493,18 @@ compatibility, effect reconciliation, recovery/retry and IM-16 stay open. Histor
 repeated after the fixture correction. See the
 [startup proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-receipt-start-review/verification.md).
 
+Installed app68 extends the worker flag to764 checks with bounded P6-06k. Original67
+fails four actual completion assertions; unchanged fixed68 and all20 focused flags
+pass. ACP now emits the existing exact receipt-bound toolCompleted transaction and
+checks its admission after the shared runtime retains its returned receipt. Rejected
+completion fails the task with the exact history-save error and no reply/artifact/
+success delivery; real returned receipt evidence survives, accepted output unchanged.
+One existing primary completion transaction is added; no new store/await/timer/queue.
+Full-history latency, combined throwing/cancellation writer-loss cases, Session
+post-await/client/nested permission authority, effect reconciliation, recovery/retry
+and IM-16 remain open. See the
+[completion proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-completion-admission-review/verification.md).
+
 ACP now checks the exact established session ID before accumulating reply text,
 publishing activity or relaying a permission (installed app53). Actual original52
 fails20 of68 origin checks; the unchanged fixture passes68 in fixed53 and five

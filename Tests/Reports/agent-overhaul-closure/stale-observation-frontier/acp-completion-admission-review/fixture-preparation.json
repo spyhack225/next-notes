@@ -1,0 +1,12 @@
+{
+  "childFixtureSHA256": "487cbf73166c2347fcb41a7c541660dc0a5bad48d0989e3399619313edda8f40",
+  "rootFrozenFixtureSHA256": "1ae87374dac621bf5638f5a16853d7a30c1f1aaf2b149ec1f33f2f62c70b632f",
+  "beforeOriginal67Edits": [
+    "trim blank-line whitespace",
+    "descriptive fixture header"
+  ],
+  "peerUnchanged": true,
+  "peerPythonAST": "PASS",
+  "nonoptionalResultNilMistake": "not present; receipt result pinned actual returned marker",
+  "swift": "UNBUILT"
+}

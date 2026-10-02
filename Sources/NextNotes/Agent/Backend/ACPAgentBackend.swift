@@ -477,7 +477,10 @@ struct ACPAgentBackend: AgentBackend {
             risk: tool.risk,
             confidence: 1
         )
-        let result = try await ActionOrchestrator.shared.execute(
+        var completedJournalAccepted = true
+        let result: AgentToolResult
+        do {
+            result = try await ActionOrchestrator.shared.execute(
                 intent: intent,
                 tool: tool,
                 title: task.objective,
@@ -505,8 +508,13 @@ struct ACPAgentBackend: AgentBackend {
                     ? (TaskEventJournal.current?.receiptStore ?? .shared) : .shared,
                 fire: { [self] prepared in
                     try Task.checkCancellation()
-                    _ = try TaskEventJournal.toolStarted(taskID: task.id, tool: tool.id,
+                    let journal = try TaskEventJournal.toolStarted(taskID: task.id, tool: tool.id,
                         receiptID: prepared.id)
+                    var backingReturned = false
+                    defer {
+                        completedJournalAccepted = TaskEventJournal.toolCompleted(journal, tool: tool.id,
+                            succeeded: backingReturned, receiptID: prepared.id)
+                    }
                     let before = directory.flatMap(ACPWorkspaceVerification.capture)
                     let outcome: AgentTaskOutcome
                     do {
@@ -532,7 +540,7 @@ struct ACPAgentBackend: AgentBackend {
                             outcome.failure ?? "ACP session did not complete."
                         )
                     }
-                    return AgentToolResult(
+                    let result = AgentToolResult(
                         summary: outcome.result ?? "ACP session completed.",
                         reference: outcome.artifacts.first,
                         verification: directory.flatMap { path in
@@ -542,8 +550,22 @@ struct ACPAgentBackend: AgentBackend {
                             return "ACP checkout content changed; review the edited files"
                         }
                     )
+                    backingReturned = true
+                    return result
                 }
-        )
+            )
+        } catch {
+            // Runtime has already retained its own evidence; a lost completion fact
+            // must not report retryable task success or claim no effect occurred.
+            if !completedJournalAccepted {
+                throw AgentError.backendUnavailable((AgentTaskPersistenceResult.sqlFailed.diagnostic ?? "The task history could not be saved.") + " Check the result before trying again.")
+            }
+            throw error
+        }
+        // Keep the runtime receipt before refusing task delivery on primary failure.
+        guard completedJournalAccepted else {
+            throw AgentError.backendUnavailable((AgentTaskPersistenceResult.sqlFailed.diagnostic ?? "The task history could not be saved.") + " Check the result before trying again.")
+        }
         return .completed(result.summary, artifacts: result.reference.map { [$0] } ?? [])
     }
 

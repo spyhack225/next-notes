@@ -1,0 +1,6 @@
+{
+  "file": "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+  "anchor": "            try await TaskACPReceiptStartSelfTest.originalCases(root: root, check: check)",
+  "append": "            try await TaskACPReceiptCompletionSelfTest.originalCases(root: root, check: check)",
+  "producer": "Anticipated root64 baseline; append after exact startup fixture with no previous predicate/input edits."
+}

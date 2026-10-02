@@ -1,0 +1,7 @@
+{
+  "changed": [
+    "Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift"
+  ],
+  "fixtureUnchangedSHA256": "1ae87374dac621bf5638f5a16853d7a30c1f1aaf2b149ec1f33f2f62c70b632f",
+  "sameProtocolAndSQLInputs": true
+}
