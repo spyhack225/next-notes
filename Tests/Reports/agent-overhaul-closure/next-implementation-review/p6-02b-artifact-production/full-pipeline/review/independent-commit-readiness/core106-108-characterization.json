@@ -1,0 +1,39 @@
+{
+  "verdict": "Core10820/22 OPEN; bounded artifact scope remains separately proven",
+  "baseline106": "21/22 OPEN: wake17/24hit,3/32false sensitivity0.6",
+  "actual108": "20/22 OPEN: identicalwake17/24hit3/32false plus computer emptyfield after takeoverpause",
+  "ComputerCharacterization": {
+    "raw": "The actual owned native harness clicks OK, captures its own test window, then prints the exact HumanInputWatch pausedSentence before final emptyfield failure.",
+    "producerCallsite": "NextNotesApp.swift8403 invokes ComputerToolExecutor.run directly for computer.type, not AgentToolExecutor or task artifact pipeline.",
+    "pauseAdmission": "ComputerToolExecutor.swift17-20 arms HumanInputWatch and returns pauseResult before action switch when mayPostAnotherEvent=false. Raw summary confirms takeover refusal but no internal flag/origin trace was captured.",
+    "consumerLimitation": "NextNotesApp.swift8413 checks field==hello and prints type ran, without distinguishing paused-result summary. Actual output does not prove typing happened or was erased.",
+    "causeLimit": "Triggering input/source, native focus timing and watch metadata unmeasured; no variance/inherited product success/introduced artifact regression claim. No retry, native takeover or gate relaxation performed by reviewer."
+  },
+  "unchangedDirectComputerSourcePins": {
+    "Sources/NextNotes/NextNotesApp.swift": "6670649bb378b35df5260f0d63b310c64a82860734e9d4bfa98469bb57a4edb0",
+    "Sources/NextNotes/Computer/ComputerToolExecutor.swift": "8364af0d651bb55b546888aca7ec7e81861d7795efbd78140b3e4536c591379f",
+    "Sources/NextNotes/Computer/HumanInputWatch.swift": "5a89d969611347318a15199719f0d4ca1b060498230771114c988b53d1074cef",
+    "Sources/NextNotes/Computer/ComputerSelfTestHarness.swift": "dc8777958eaac39398ae7c64e75b14365aea50b71d7112a01c01ca4c030dd628"
+  },
+  "rootRun": {
+    "exit": 2,
+    "durationSeconds": 111.50876808166504,
+    "sourceInvariant": true,
+    "bundleInvariant": true,
+    "scripts": {
+      "Scripts/acceptance.sh": "af7b4c06b3b721356f93fa1d725471dbe6a373c73fb68198f9bc64fb72dff261",
+      "Scripts/run-selftest.sh": "0ce751b4b167ff66b57d68164c58cfc37f18d9c7489156ef0aa952addada99df"
+    },
+    "scriptInvariant": true,
+    "verdict": "OPEN"
+  },
+  "quickVerdict": "1084/10 same exact106case verdicts; Failed9/10bar unchanged; C04extra modelround/time explicitly recorded in siblingcomparison",
+  "evidenceSHA256": {
+    "Tests/Reports/agent-overhaul-closure/next-implementation-review/p6-02b-artifact-production/full-pipeline/native-verification/app108/core.stdout": "13e3c02f701231f27449871ed36803a4261709869148af2ed4eccae79b71bcc1",
+    "Tests/Reports/agent-overhaul-closure/next-implementation-review/p6-02b-artifact-production/full-pipeline/native-verification/app108/core-run.json": "1177f83aa92e77e495a745b7936c741380064750b34fcf83b1f039a5bf5c2864",
+    "Tests/Reports/agent-overhaul-closure/c04-result-context-review/native-verification/app106-core.stdout": "db9db65228a4f96b44daf2086c5dcf881575856d19edce6ac4b8c11952dbc4a5",
+    "Tests/Reports/agent-overhaul-closure/c04-result-context-review/native-verification/app106-core-gate.json": "2c90f30e6e8b3c4760a7851d6a54f97542270c1a3f26f1f22ffc17017609e884",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/acceptance/20261002-193615-23007/selftest-computer.out": "e24b96da386ea655a3a7e77bfa544e3510484e9c14ab93168e8fa99d1d20e1db",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/acceptance/20261002-193615-23007/selftest-computer.log": "c36bb66a019a0035fe2c5d97acb0fa643a025630c046521808203731fb1f56d9"
+  }
+}

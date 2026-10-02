@@ -1,0 +1,8 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-acp --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/next-implementation-review/p6-02b-artifact-production/full-pipeline/native-verification/app108/acp.log
+2026-10-02 19:30:44.522 NextNotes[22450:208474] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+ACP_OK: initialize, session, subscribe and permission relay hold
+ACP_ORIGIN_CHECKS: 68
+ACP_PERMISSION_RESULT_TRACE: mode=allow result={"outcome": {"optionId": "allow-once", "outcome": "selected"}}
+ACP_PERMISSION_RESULT_TRACE: mode=decline result={"outcome": {"optionId": "reject-once", "outcome": "selected"}}
+ACP_PERMISSION_RESULT_TRACE: mode=cancel result={"outcome": {"outcome": "cancelled"}}
+ACP_PERMISSION_RESULT_CHECKS: 22

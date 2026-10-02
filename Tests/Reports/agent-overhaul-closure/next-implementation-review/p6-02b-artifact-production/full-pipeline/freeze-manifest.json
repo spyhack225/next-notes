@@ -1,0 +1,177 @@
+{
+  "status": "OFF-SOURCE AMENDED SOURCE-COMPLETE; independent encoding/schema static review passed; not compiled/mounted/executed",
+  "normal_common_check_count": 135,
+  "normal_check_components": {
+    "document": 49,
+    "file_action_storage": 62,
+    "unchanged_ACP": 23,
+    "ACP_metadata": 1
+  },
+  "existing_worker_count_at_preparation": 1352,
+  "normal_integrated_count_if_same_prior_cases": 1487,
+  "original_failures": "Expected feature failures only; exact count and valid original require root native proof",
+  "schema_contract": {
+    "version": 4,
+    "canonical_table": "task_artifact",
+    "new_column": "encoding_version INTEGER NOT NULL DEFAULT 0",
+    "legacy_domain": 0,
+    "owned_typed_domain": 1,
+    "read_1_2_3": "literal0; no upgrade",
+    "preexisting_column_migration": "expected INTEGER NOTNULL DEFAULT0 shape and every retained value INTEGER0; otherwise unchanged refusal",
+    "diagnostic_v1": "legacy writes stay1; typed snapshots refuse before row/event write",
+    "installation": "existing snapshot/import transaction only",
+    "extra_query": "one conditional retained-value validation query for old schema with existing marker; migration-only"
+  },
+  "source_sha256": {
+    "Agent/Activity/AgentActivityProjector.swift": {
+      "baseline": "1624196066cdada0174bd3bf4a68609436e39e28b9f990efd8af25fe0534d32a",
+      "original-scaffold": "165af3be86b5ae5cb9df73ec56341b4a4a88500c73b0e4b6fe48a84ee003903d",
+      "fixed-proposal": "df03c11401e3d7688a6ea1b9342720ebf20dc38824f49a17f49b456fb43d8ec5"
+    },
+    "Agent/AgentModels.swift": {
+      "baseline": "e62bc2a7db301cbe1222ea43c4b64e22ffed7a2df1886d321ca7a7d4c94a4e2a",
+      "original-scaffold": "f4bd19df21c790797086cc5c357cd9090167fe8a4fcd1facdfeb39470c7946de",
+      "fixed-proposal": "f4bd19df21c790797086cc5c357cd9090167fe8a4fcd1facdfeb39470c7946de"
+    },
+    "Agent/Backend/LocalAgentBackend.swift": {
+      "baseline": "869c607a427e25a77edbabeb6872d8ab6d6130425932b53bfc6d3fe41602ded4",
+      "original-scaffold": "869c607a427e25a77edbabeb6872d8ab6d6130425932b53bfc6d3fe41602ded4",
+      "fixed-proposal": "c7f2afc2e02a8be3ce18375b882869e789521ca2fafbcbd083809cf536755300"
+    },
+    "Agent/Tasks/AgentArtifactLedger.swift": {
+      "baseline": "b9b8143508453032fee75f632172ac669c6ce5281723243a410c5d4df0ede15c",
+      "original-scaffold": "59b054a243d84ffa75246b344f7a72f57ede8f4940caf07818263d5a52683861",
+      "fixed-proposal": "ffcc3052348bb03cf46e1a62885c31a1c2338dd3a1ac885daa0882d23974f758"
+    },
+    "Agent/Tasks/AgentTask.swift": {
+      "baseline": "e4f84014066d7b6179e0e4bc497293b8a7b64d0bd92c232b56c9ad84e05cc6b2",
+      "original-scaffold": "cdbc9aca8183f920c10c3a90bedea1c05e078e2ee4efc7d501cf35f63227e7a2",
+      "fixed-proposal": "cdbc9aca8183f920c10c3a90bedea1c05e078e2ee4efc7d501cf35f63227e7a2"
+    },
+    "Agent/Tasks/AgentTaskManager.swift": {
+      "baseline": "44c84fdc4a14ab4fdc50e50729e12d90f9d844c6e5bc29a2b07e5db40c39a2d1",
+      "original-scaffold": "1340cd62e546add823fa8f6dab9096323a54fa5fd7d06feb42b8dd5d181764aa",
+      "fixed-proposal": "d511f3706cd917913b2276b074aa98c6e74048b8ccc968cea92e68d012407687"
+    },
+    "Agent/Tasks/Durable/TaskAuthoritySelfTest.swift": {
+      "baseline": "2c37047baf347e06149fcadce70f5d9b003e80d9d572c0fb81e7b0a83d321dff",
+      "original-scaffold": "a787fa0785f29641080e157536d76332c2bfd9ba5acb661e6c361e4d92677807",
+      "fixed-proposal": "a787fa0785f29641080e157536d76332c2bfd9ba5acb661e6c361e4d92677807"
+    },
+    "Agent/Tasks/Durable/TaskStore.swift": {
+      "baseline": "2007c757cc3713c397413c89b9dd82153f232c106bfce45749eb2d4ca15aeaea",
+      "original-scaffold": "1cb0dc89dea672311110f913971181222229b8332e1ab65d0681f239b71a6744",
+      "fixed-proposal": "e7ed7aaad95a97150270f48e629ac11994ea6c716deea5c28080beada293cf5f"
+    },
+    "Agent/Tasks/Durable/TaskStoreSchema.swift": {
+      "baseline": "6447b03e5c4875701d3b182ce8705f618fc2cdc701d8239cddfb5e580202e247",
+      "original-scaffold": "96739e32e8d99b1665750df3b301e1097f85c1d5011ccf9417ca9ccaba7a7d36",
+      "fixed-proposal": "96739e32e8d99b1665750df3b301e1097f85c1d5011ccf9417ca9ccaba7a7d36"
+    },
+    "Agent/Tools/AgentToolExecutor.swift": {
+      "baseline": "0768d2faa619d250758843161698e984d108a8eb9cc7f1c27ebb4e2a367b10ff",
+      "original-scaffold": "033abc7aba02b6ab18acd626e14570347cda38f3e8da90a5c21725be4ca55cc6",
+      "fixed-proposal": "033abc7aba02b6ab18acd626e14570347cda38f3e8da90a5c21725be4ca55cc6"
+    },
+    "Agent/WorkspaceToolRunner.swift": {
+      "baseline": "20051a3bbe6778e3acd0abb9cf8f7ca003008f1ad068adf5d7e17d6c8513f1ef",
+      "original-scaffold": "20051a3bbe6778e3acd0abb9cf8f7ca003008f1ad068adf5d7e17d6c8513f1ef",
+      "fixed-proposal": "58f990c41043f3c9cfb04c4d3b38b4e28bfd663bf6e8697d447e7756586bfc24"
+    },
+    "Shell/FilesystemExecutor.swift": {
+      "baseline": "ebc37c2812aae9ec0a8480c46bd1adf776a9e837dfdeb66df826f0555db56564",
+      "original-scaffold": "ebc37c2812aae9ec0a8480c46bd1adf776a9e837dfdeb66df826f0555db56564",
+      "fixed-proposal": "4a3e74ae35e3417a7f61a54053aeaf25d8e39f40d91c27d5d810cf730564e303"
+    },
+    "UI/Agent/AgentWorkingCard.swift": {
+      "baseline": "90130118f5d69acdded1e72d423cfa0877d740385bbe69119f17d0e8ae0dfb2d",
+      "original-scaffold": "b3702609bc26a48bd2aa68fe73c9cd98026cfcb94a29d0b5a9b6c8d97c3d7f39",
+      "fixed-proposal": "b3702609bc26a48bd2aa68fe73c9cd98026cfcb94a29d0b5a9b6c8d97c3d7f39"
+    }
+  },
+  "common_source_files": [
+    "Agent/AgentModels.swift",
+    "Agent/Tasks/AgentTask.swift",
+    "Agent/Tasks/Durable/TaskAuthoritySelfTest.swift",
+    "Agent/Tasks/Durable/TaskStoreSchema.swift",
+    "Agent/Tools/AgentToolExecutor.swift",
+    "UI/Agent/AgentWorkingCard.swift"
+  ],
+  "fixed_only_source_files": [
+    "Agent/Activity/AgentActivityProjector.swift",
+    "Agent/Backend/LocalAgentBackend.swift",
+    "Agent/Tasks/AgentArtifactLedger.swift",
+    "Agent/Tasks/AgentTaskManager.swift",
+    "Agent/Tasks/Durable/TaskStore.swift",
+    "Agent/WorkspaceToolRunner.swift",
+    "Shell/FilesystemExecutor.swift"
+  ],
+  "artifact_sha256": {
+    "TaskArtifactMetadataSelfTest.swift.txt": "1c53750323bccfa439d368ca4879f6fdb09741c8afec11ee7ca523d9e5e3e649",
+    "common-registration.patch.txt": "6a3f0debda32587e4ea36e9eb9a44ce6a7516c57d96daf4749983ae78ca4bfe4",
+    "original-scaffold.patch.txt": "23175c3bd84bff25b2eb9d065a4030fc4a047c02685fd809ad54b7804b88f17b",
+    "fixed-proposal.patch.txt": "f3d6caf195204a8d591a4d7c20cc09d0a93c976f040984678ef6345cc33ce2d4",
+    "original-to-fixed.patch.txt": "aea3de8c40cb543c77de747b15f7b3d8a64a9e2d621e93611a1ad67e93ce5313",
+    "prepare.py": "c7e7030028b1fdb834fe82039cc90a7cc94571bae451c9e248a3ad8b67df28d4",
+    "prepare-consumer.py": "0d56cbf017639fef6d427c06128dfda8ae2556d49f2ee350220231c47fde04e5",
+    "README.md": "5a001a7e176190fbafaf66b1ffb3f0d62ee1ff9cd0ff51c2b02c971d07e6c304"
+  },
+  "independent_encoding_review_sha256": {
+    "review/independent-schema-review/amended-encoding-schema-review.json": "33bdeb77e9cb356b5e0d402d50c82a1150964c6c77bb36244a44312d3cecac9d",
+    "review/independent-schema-review/amended-encoding-schema-review.md": "f58d558b5eb31440a03682d5d93030e76d41cf8d7e552ad44ca6579a8adf2220"
+  },
+  "registry_source_sha256": "a0dcd05553c479e59a30f8a1ad9e99acf8c4639c5fea2ac5b552b8846c13e76e",
+  "fixture_mount_target": "Sources/NextNotes/Agent/Tasks/Durable/TaskArtifactMetadataSelfTest.swift",
+  "future_coordinated_source_lease": [
+    "Sources/NextNotes/Agent/Activity/AgentActivityProjector.swift",
+    "Sources/NextNotes/Agent/AgentModels.swift",
+    "Sources/NextNotes/Agent/Backend/LocalAgentBackend.swift",
+    "Sources/NextNotes/Agent/Tasks/AgentArtifactLedger.swift",
+    "Sources/NextNotes/Agent/Tasks/AgentTask.swift",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskAuthoritySelfTest.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskStore.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskStoreSchema.swift",
+    "Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift",
+    "Sources/NextNotes/Agent/WorkspaceToolRunner.swift",
+    "Sources/NextNotes/Shell/FilesystemExecutor.swift",
+    "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskArtifactMetadataSelfTest.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift"
+  ],
+  "ui_baseline_sha256": "90130118f5d69acdded1e72d423cfa0877d740385bbe69119f17d0e8ae0dfb2d",
+  "native_run": false,
+  "compiler_run": false,
+  "source_mutations_by_this_agent": false,
+  "Authority_common_expectation_change": "Only literal schema3 becomes declared TaskStoreSchema.version; strict admission/raw children/old2 no-upgrade/rollback checks and counts unchanged",
+  "limits": [
+    "No compiler/native original/fixed proof; preparation counts only",
+    "Physical SwiftUI/clipboard/NSWorkspace/VoiceOver unverified; same production dispatcher uses recorded fixture backing",
+    "Common UI routing exists before both; no separate original/fixed baseline bulk Open proof",
+    "Declared-shape/empty-column migration refusal is source-reviewed, not separately exercised by the common native fixture",
+    "Migration-only validation scans retained marker values; no large-history migration latency proof or steady4 extra query",
+    "Failed terminal task artifacts stay empty under existing admission contracts; raw refs remain receipt/ledger, no new card receipt consumer",
+    "No real browser/fileURL/mail artifact producer proof; matrix rows explicitly synthetic",
+    "Schema4 older-binary refusal is explicit; no owner migration, rollback readiness, crash durability, complete effects/recovery/retry/liveness/IM16 or phase completion"
+  ],
+  "common_fixture_amendment": {
+    "cause": "terminal-task-rejected trigger referenced nonexistent task.status SQL column; actual canonical column is task.state",
+    "change": "Only NEW.status -> NEW.state before both builds; scenarios/count135/backings/producer snapshots unchanged",
+    "previous_unmounted_fixture_sha256": "ac7003c84143ca448a9d881fb92d29277cd6781f1f78af0d8cadcedc31881580",
+    "previous_freeze_sha256": "8c172d6d228611b59288f03143ab36ab97f164a9384651a12c399a3fbddd1652",
+    "native_run": false,
+    "source_mount": false,
+    "review": "Root independently checked remaining fixture SQL fields and found no other mismatch; producer pins unchanged"
+  },
+  "common_projector_eof_amendment": {
+    "change": "Remove exactly one extra trailing newline from BOTH projector snapshots; each ends in one newline. No input/count/producer logic change.",
+    "prior_freeze_sha256": "0a5698b189647df0630c259e1abb4c340261958f266e508887ac79503c0fdbd1",
+    "prior_projector_sha256": {
+      "baseline": "1624196066cdada0174bd3bf4a68609436e39e28b9f990efd8af25fe0534d32a",
+      "original-scaffold": "f1c509d429ccbd857065790c16be29969192501320be7c6f53510d94332f85a3",
+      "fixed-proposal": "8fe3be70e804d328e1c11f8c3058b9f5590503ce6a1aead82dcb769edbba8ffe"
+    },
+    "history": "Root original source mounted, unbuilt at detection; prior package retained in review/prior-projector-eof-unbuilt. Root applied identical original trim before app107 build.",
+    "root_original_sha256": "165af3be86b5ae5cb9df73ec56341b4a4a88500c73b0e4b6fe48a84ee003903d"
+  }
+}

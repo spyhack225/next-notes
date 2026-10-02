@@ -1,0 +1,26 @@
+{
+  "status": "Baseline pin admission before fixture-only amendment/mount; no native verdict",
+  "capturedAt": "2026-10-02T23:22:11.826405+00:00",
+  "HEAD": "ec44025408d9651fa52435df30405920fab9753d",
+  "unmountedProposalManifestSHA256": "8c172d6d228611b59288f03143ab36ab97f164a9384651a12c399a3fbddd1652",
+  "baselineSource": {
+    "Agent/Activity/AgentActivityProjector.swift": "1624196066cdada0174bd3bf4a68609436e39e28b9f990efd8af25fe0534d32a",
+    "Agent/AgentModels.swift": "e62bc2a7db301cbe1222ea43c4b64e22ffed7a2df1886d321ca7a7d4c94a4e2a",
+    "Agent/Backend/LocalAgentBackend.swift": "869c607a427e25a77edbabeb6872d8ab6d6130425932b53bfc6d3fe41602ded4",
+    "Agent/Tasks/AgentArtifactLedger.swift": "b9b8143508453032fee75f632172ac669c6ce5281723243a410c5d4df0ede15c",
+    "Agent/Tasks/AgentTask.swift": "e4f84014066d7b6179e0e4bc497293b8a7b64d0bd92c232b56c9ad84e05cc6b2",
+    "Agent/Tasks/AgentTaskManager.swift": "44c84fdc4a14ab4fdc50e50729e12d90f9d844c6e5bc29a2b07e5db40c39a2d1",
+    "Agent/Tasks/Durable/TaskAuthoritySelfTest.swift": "2c37047baf347e06149fcadce70f5d9b003e80d9d572c0fb81e7b0a83d321dff",
+    "Agent/Tasks/Durable/TaskStore.swift": "2007c757cc3713c397413c89b9dd82153f232c106bfce45749eb2d4ca15aeaea",
+    "Agent/Tasks/Durable/TaskStoreSchema.swift": "6447b03e5c4875701d3b182ce8705f618fc2cdc701d8239cddfb5e580202e247",
+    "Agent/Tools/AgentToolExecutor.swift": "0768d2faa619d250758843161698e984d108a8eb9cc7f1c27ebb4e2a367b10ff",
+    "Agent/WorkspaceToolRunner.swift": "20051a3bbe6778e3acd0abb9cf8f7ca003008f1ad068adf5d7e17d6c8513f1ef",
+    "Shell/FilesystemExecutor.swift": "ebc37c2812aae9ec0a8480c46bd1adf776a9e837dfdeb66df826f0555db56564",
+    "UI/Agent/AgentWorkingCard.swift": "90130118f5d69acdded1e72d423cfa0877d740385bbe69119f17d0e8ae0dfb2d"
+  },
+  "registrySHA256": "a0dcd05553c479e59a30f8a1ad9e99acf8c4639c5fea2ac5b552b8846c13e76e",
+  "indexEmpty": true,
+  "uiExactReleasedCommon": "b3702609bc26a48bd2aa68fe73c9cd98026cfcb94a29d0b5a9b6c8d97c3d7f39",
+  "requiredCommonFixtureAmendment": "NEW.status -> NEW.state matches actual TaskStoreSchema task column; must occur before BOTH original/fixed",
+  "noSourceMutationYet": true
+}

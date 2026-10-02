@@ -2,7 +2,7 @@ import Foundation
 import SQLite3
 
 enum TaskStoreSchema {
-    static let version: Int64 = 3
+    static let version: Int64 = 4
 
     /// P6-02a retains current AgentTask fields. Future projections are explicit empty/
     /// zero/nil defaults, not invented instructions, authority or delivery receipts.
@@ -58,6 +58,7 @@ enum TaskStoreSchema {
           added_at INTEGER NOT NULL,
           kind TEXT NOT NULL DEFAULT 'link',
           title TEXT,
+          encoding_version INTEGER NOT NULL DEFAULT 0,
           PRIMARY KEY (task_id, ordinal)
         );
         CREATE TABLE task_dependency (
@@ -100,18 +101,34 @@ enum TaskStoreSchema {
     }
 
     /// Caller already owns the snapshot transaction. No read probe upgrades a file.
-    static func installPendingInteractions(on db: OpaquePointer) throws {
+    @discardableResult
+    static func installPendingInteractions(on db: OpaquePointer) throws -> Int64 {
         let current = try TaskStore.integer(db, "PRAGMA user_version")
-        guard current == 1 || current == 2 || current == version else {
+        guard (1...version).contains(current) else {
             throw TaskStoreError.unsupportedVersion(current)
         }
         let columns = try TaskStore.stringColumn(db, "PRAGMA table_info(task)", column: 1)
         if !columns.contains("pending_interaction") {
             try TaskStore.exec(db, "ALTER TABLE task ADD COLUMN pending_interaction TEXT")
         }
+        if current < 4 {
+            let artifactColumns = try TaskStore.stringColumn(db,
+                "SELECT name||'|'||upper(type)||'|'||[notnull]||'|'||coalesce(dflt_value,'') FROM pragma_table_info('task_artifact')")
+            if let marker = artifactColumns.first(where: { $0.hasPrefix("encoding_version|") }) {
+                // A historical extra column is not proof that this producer authored it.
+                // Admit only the exact neutral domain; keep unknown bytes and schema unchanged.
+                guard marker == "encoding_version|INTEGER|1|0",
+                      try TaskStore.integer(db, "SELECT COUNT(*) FROM task_artifact WHERE typeof(encoding_version)!='integer' OR encoding_version!=0") == 0 else {
+                    throw TaskStoreError.invalidRecord
+                }
+            } else {
+                try TaskStore.exec(db, "ALTER TABLE task_artifact ADD COLUMN encoding_version INTEGER NOT NULL DEFAULT 0")
+            }
+        }
         // An unmarked v1 diagnostic store stays v1 until the importer marks authority.
         if current >= 2 { try TaskStore.exec(db, "PRAGMA user_version = \(version)") }
         try validateKnown(on: db)
+        return current >= 2 ? version : current
     }
 
     /// Read-only validation never installs tables, changes WAL or upgrades the version.
@@ -132,7 +149,7 @@ enum TaskStoreSchema {
         for query in [
             "SELECT origin,title,user_words,revision,started_at,finished_at,question,pending_request_id,delivery,delivery_attempts FROM task LIMIT 0",
             "SELECT seq,task_id,at,kind,detail,attempt FROM task_event LIMIT 0",
-            "SELECT task_id,path,ordinal,added_at,kind,title FROM task_artifact LIMIT 0",
+            "SELECT task_id,path,ordinal,added_at,kind,title\(version >= 4 ? " ,encoding_version" : "") FROM task_artifact LIMIT 0",
             "SELECT upstream,downstream,requirement FROM task_dependency LIMIT 0"
         ] {
             let statement = try TaskStore.prepare(db, query)

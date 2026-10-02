@@ -718,6 +718,25 @@ open. Final103 quickFAILED2/10 (87.5s), core21/22 unchangedwake; new hallucinate
 C04 email/calendar answer is retained and its runtime cause stays open.
 See the [positive owner proof](Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/positive-owner-verification/verification.md).
 
+`--selftest-task-worker-attempt` now checks bounded P6-02b-1 through actual
+Manager/backend/executor/runtime/Workspace CLI, fresh SQL/export readers and the
+card's named-row dispatcher. Original107 fails23 feature assertions with controls
+green; identical fixed108 passes1487. Verified document ID/link/final approved title
+and explicit file read/saved kinds survive one canonical artifact collection.
+Schema4 adds one discriminator on the existing row; old arbitrary metadata remains
+neutral, exact and read-without-upgrade. Typed migration is transactional; older
+schema3 binaries reject4. Capture/admission/receipt uncertainty remain unchanged;
+there is no new store/queue/timer/model pass or foreground await. All23 related
+functional flags pass, including authority58, restoration82, reader40 and
+isolation21files32defaults. Initial reader output-path refusal is retained; the
+corrected system-temp invocation passes unchanged. Quick108 stays4/10 (112.1s);
+CORE20/22 retains wake and a new computer takeover pause before type dispatch.
+An unchanged standalone computer follow-up passes, but the original core verdict
+and unmeasured input origin remain open. Physical card/clipboard/Open/focus/VO,
+mail evidence/Based on, migration latency, owner migration, full effects/recovery/
+retry/IM16 and parent phases remain unproven. See the
+[artifact proof](Tests/Reports/agent-overhaul-closure/next-implementation-review/p6-02b-artifact-production/full-pipeline/native-verification/verification.md).
+
 `--selftest-c04-result-context --c04-fixture-now <ISO8601>` verifies bounded
 P1-10a-1 through the actual typed planner/read/result/provider path. Original105
 fails four mail-body assertions among84; identical fixed106 passes84. Eager

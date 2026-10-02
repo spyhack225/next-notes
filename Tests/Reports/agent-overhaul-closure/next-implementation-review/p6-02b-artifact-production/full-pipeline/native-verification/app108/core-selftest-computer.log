@@ -1,0 +1,32 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-computer --selftest-timeout 300 --selftest-out /Users/sergekadjo/Library/Caches/NextNotesBuild/acceptance/20261002-193615-23007/selftest-computer.out
+2026-10-02 19:37:55.409 NextNotes[23622:219739] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+no focused window. stub tree, 0 names. No elements were invented.
+Window: Next Notes Computer Self-Test
+TextField id: 2.1
+StaticText id: 2.2  value: Actions ready.
+TextArea id: 2.3
+Button id: 2.4
+Button id: 2.5
+Button id: 2.6
+Button id: 2.7
+Button id: 2.8  label: OK
+Button id: 2.9
+Button id: 2.10
+Button id: 2.11
+StaticText id: 2.12  value: Next Notes Computer Self-Test
+I clicked the control, but could not confirm the result. It may have changed. Let me look again before another action.
+Window: Next Notes Computer Self-Test
+TextField id: 4.1
+StaticText id: 4.2  value: Actions ready.
+TextArea id: 4.3
+Button id: 4.4
+Button id: 4.5
+Button id: 4.6
+Button id: 4.7
+Button id: 4.8  label: OK
+Button id: 4.9
+Button id: 4.10
+Button id: 4.11
+StaticText id: 4.12  value: Next Notes Computer Self-Test
+Paused — you’re using the Mac. Tell me to carry on when you’re done.
+COMPUTER_FAILED: type ran but the field reads “”

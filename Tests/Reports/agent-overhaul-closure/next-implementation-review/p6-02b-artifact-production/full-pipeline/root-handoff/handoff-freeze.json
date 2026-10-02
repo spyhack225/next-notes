@@ -1,0 +1,20 @@
+{
+  "status": "Additive ROOT handoff frozen; proposal snapshots immutable; no Source/build/native/index mutations by preparation agent",
+  "proposalManifestSHA256": "f96aca6a353af31a2d82d55850fde52b9290cfb500bed6c4cce4c7a0161fd5cd",
+  "normalCommonChecks": 135,
+  "normalIntegratedFixedChecks": 1487,
+  "driverValidation": "Python AST parse; read-only actual107 log+stdout classification only",
+  "files": {
+    "FIXTURE-FIELD-AMENDMENT.md": "64ed61d0e7ad5e4c719bb7a6d6e2ca5c1a8a4855470718ab7db810f5b89ecf76",
+    "README.md": "86868a288a1144abaddcfa21bf27ba23eef880bff374972e106e872d21044f71",
+    "TaskWorkerAttemptSelfTest.baseline.swift.txt": "a0dcd05553c479e59a30f8a1ad9e99acf8c4639c5fea2ac5b552b8846c13e76e",
+    "actual107-merged-classification.json": "608dfa2136c04c31d24c9e06aab2e6bf544a80ce54c91833ab52e31e786e0e93",
+    "artifact-handoff.py": "ef21768e1dac68643f55502bf035da00d3c94369361c6daa37ad35f0c3f719a3",
+    "assertion-classification.json": "49b2fdc26c3d9498eea62b5336883edfae72a46c9926ff691967a41d36293b39",
+    "mount-plan.json": "82f1038c2a2034b92ba4cf78f2ba10d5d7937fd7f1249b540a06e244a17e8a16"
+  },
+  "raw107Evidence": {
+    "native-verification/app107/task-worker-attempt.log": "007da5196449c034860af646b45d8f0888d804ff751630eee2939f990076952f",
+    "native-verification/app107/task-worker-attempt.stdout": "e4210fdc86c0054056ceec5a5bb6c89c356dbfc20945a8d8b7f0449c5bd9a8a5"
+  }
+}

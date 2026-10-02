@@ -555,8 +555,8 @@ Sources/NextNotes/
 │   ├── Duplex/                     Production-worker interleaving, final-effect gate and
 │   │                               pure voice shadow observer; TaskBridge remains upcoming.
 │   ├── Tasks/                      AgentTask + manager; conversation stays free.
-│   │                               AgentArtifactLedger folds each run's reference/link
-│   │                               into `artifacts` so a result card can link what it made
+│   │                               AgentArtifactLedger retains one ordered result collection;
+│   │                               verified titles/kinds survive SQL/export into named Open/Copy rows
 │   │   └── Durable/                SQLite authority, event journal, strict migration and held restart tests;
 │   │                               JSON export retained; worker recovery is upcoming.
 │   ├── Goals/                      AgentGoal + GoalStore — an outcome with a state, not a

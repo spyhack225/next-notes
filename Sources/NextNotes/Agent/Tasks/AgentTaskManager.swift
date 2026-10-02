@@ -772,12 +772,12 @@ final class AgentTaskManager {
             // them in beside whatever the backend itself returned, and keep them on the
             // task so the terminal card can link them after a relaunch.
             if ownsWorkerAttempt(task), workerCondition(task, states: [.running]) == nil { return }
-            let captured = AgentArtifactLedger.take(taskID: id)
+            let captured = AgentArtifactLedger.takeRecords(taskID: id)
             let finished = updateWorker(task) { item in
                 item.status = outcome.status
                 item.progress = outcome.progress
                 item.result = outcome.result
-                item.artifacts = outcome.artifacts + captured.filter { !outcome.artifacts.contains($0) }
+                item.artifactRecords = AgentArtifact.merging(captured, into: outcome.artifactRecords)
                 item.failure = outcome.failure
                 item.pendingInteraction = nil
             }
@@ -1111,12 +1111,10 @@ final class AgentTaskManager {
     /// take-on-read keeps a second fold from duplicating the links.
     func foldArtifacts(taskID: String) {
         guard historyReadFailure == nil else { return }
-        let captured = AgentArtifactLedger.take(taskID: taskID)
+        let captured = AgentArtifactLedger.takeRecords(taskID: taskID)
         guard !captured.isEmpty else { return }
         update(taskID) { item in
-            for artifact in captured where !item.artifacts.contains(artifact) {
-                item.artifacts.append(artifact)
-            }
+            item.artifactRecords = AgentArtifact.merging(captured, into: item.artifactRecords)
         }
     }
 
@@ -1144,8 +1142,8 @@ final class AgentTaskManager {
         }
         guard projectsActivity else { return }
         guard let task = task(id: taskID), !task.artifacts.isEmpty else { return }
-        let lines = "What I made for you:\n"
-            + task.artifacts.map { "\u{2022} \($0)" }.joined(separator: "\n")
+        let lines = AgentActivityProjector.artifactHeading(for: task) + ":\n"
+            + task.artifactRecords.map { "\u{2022} \(AgentActivityProjector.artifactLabel($0))" }.joined(separator: "\n")
         AgentSession.shared.recordAssistant(lines, contextKind: AgentSession.backgroundTaskContextKind)
         AgentAuditLog.shared.record(kind: .reply, title: "Saved \(task.artifacts.count) result\(task.artifacts.count == 1 ? "" : "s")")
         IslandState.shared.showBackgroundAgentReply(
@@ -1158,8 +1156,22 @@ struct AgentTaskOutcome: Sendable {
     var status: AgentTaskStatus
     var progress: String
     var result: String?
-    var artifacts: [String]
+    var artifactRecords: [AgentArtifact]
+    var artifacts: [String] {
+        get { artifactRecords.map(\.value) }
+        set { artifactRecords = AgentArtifact.replacingValues(newValue, in: artifactRecords) }
+    }
     var failure: String?
+
+    init(status: AgentTaskStatus, progress: String, result: String?, artifacts: [String], failure: String?) {
+        self.status = status; self.progress = progress; self.result = result
+        self.artifactRecords = artifacts.map { AgentArtifact($0) }; self.failure = failure
+    }
+    static func completed(_ result: String, artifactRecords: [AgentArtifact]) -> AgentTaskOutcome {
+        var outcome = completed(result, artifacts: artifactRecords.map(\.value))
+        outcome.artifactRecords = artifactRecords
+        return outcome
+    }
 
     static func completed(_ result: String, artifacts: [String] = []) -> AgentTaskOutcome {
         AgentTaskOutcome(status: .completed, progress: "Done", result: result, artifacts: artifacts, failure: nil)

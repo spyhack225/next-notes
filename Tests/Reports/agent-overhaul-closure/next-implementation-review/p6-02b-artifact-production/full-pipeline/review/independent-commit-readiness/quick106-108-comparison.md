@@ -1,0 +1,5 @@
+Actual quick108 remains **4/10 FAILED** against the unchanged9/10 bar, matching quick106's exact case verdicts and class counts:4pass,2refusal,3missed-tool,1ungrounded; error/timeout/leak0. Both report Gemma4E4B appLLM32768 fallback. No quality promotion follows.
+
+C04 remainsPASS, but its elapsed time rises27.5→36.8seconds. The first two planner prompt-token counts match1741/1960, with closely matching first-two TTFT/total timings. At the second pass106 emits get_agenda;108 emits no tool and uses one extra model round before get_agenda. The recorded traces establish this divergence; they do not establish artifact causality or a general variance explanation. No repeated controlled latency proof was run. The exact seven artifact source deltas add no model/prompt producer change, and C04's search_email/get_agenda call path supplies no create_doc artifact title/body, but this source scope alone does not prove timing independence.
+
+All10 original case IDs/verdicts, tools, rounds, envelope fields and relevant source/report hashes are retained in the JSON companion. Core108 was still pending when this comparison was saved.

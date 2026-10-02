@@ -1,0 +1,1 @@
+Historical package before the shared projector EOF-only correction. Root had mounted the original but had not built it when the extra newline was detected. No native verdict applies to these projector bytes. The common 135-case fixture remains unchanged.

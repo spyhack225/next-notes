@@ -23,6 +23,7 @@ struct AgentWorkingCard: View {
     @State private var gate = PermissionGate.shared
     @State private var reviewStore = ToolCallReviewStore.shared
     @State private var expandedStep: String?
+    @State private var artifactNotice: String?
 
     private var steps: [AgentStep] {
         store.steps(taskID: task.id)
@@ -253,7 +254,7 @@ struct AgentWorkingCard: View {
                             source: task.source
                         )
                     },
-                    openResult: task.artifacts.isEmpty ? nil : { openArtifacts() }
+                    openResult: nil
                 )
             } else {
                 if let result = task.result {
@@ -261,15 +262,6 @@ struct AgentWorkingCard: View {
                         .font(DS.Font.callout)
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
-                }
-                if !task.artifacts.isEmpty {
-                    VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                        Text("What I made")
-                            .font(DS.Font.sectionLabel)
-                        ForEach(task.artifacts, id: \.self) { artifact in
-                            artifactLink(artifact)
-                        }
-                    }
                 }
                 // P1-6: one button for the action this result makes obvious, when the
                 // result determines every argument. It is the sentence the user would
@@ -294,6 +286,15 @@ struct AgentWorkingCard: View {
                     .padding(.top, DS.Space.xxs)
                 }
             }
+            if !task.artifactRecords.isEmpty {
+                VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                    Text(AgentActivityProjector.artifactHeading(for: task)).font(DS.Font.sectionLabel)
+                    ForEach(Self.artifactRows(for: task)) { row in artifactRow(row) }
+                    if let artifactNotice {
+                        Text(artifactNotice).font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
+                    }
+                }
+            }
         }
     }
 
@@ -306,26 +307,61 @@ struct AgentWorkingCard: View {
         return FollowUpOfferBuilder.offer(for: tool, result: result)
     }
 
-    @ViewBuilder
-    private func artifactLink(_ artifact: String) -> some View {
-        // A URL is a link; a file reference or a doc id is copyable text. Both are
-        // consumer names — "Library" items, never "artifacts".
-        if let url = URL(string: artifact), url.scheme == "http" || url.scheme == "https" {
-            Link(artifact, destination: url)
-                .font(DS.Font.caption)
-        } else {
-            Text(artifact)
-                .font(DS.Font.caption)
-                .textSelection(.enabled)
+    /// SAME projection and dispatcher used by actual row buttons and the isolated fixture.
+    static func artifactRows(for task: AgentTask) -> [AgentArtifactRow] {
+        AgentActivityProjector.artifactRows(for: task)
+    }
+
+    @MainActor
+    static func performArtifactAction(_ action: AgentArtifactAction, task: AgentTask,
+        row: AgentArtifactRow, open: (URL) -> Bool, copy: (String) -> Bool) -> Bool {
+        guard row.taskID == task.id, task.artifactRecords.indices.contains(row.ordinal),
+              task.artifactRecords[row.ordinal] == row.artifact else { return false }
+        switch action {
+        case .copy: return copy(row.artifact.value)
+        case .open:
+            // Recompute the SAME task-bound target at the click; never trust a forged/stale row URL.
+            guard let current = artifactRows(for: task).first(where: { $0.ordinal == row.ordinal }),
+                  let url = current.openURL else { return false }
+            if url.isFileURL, !FileManager.default.fileExists(atPath: url.path) { return false }
+            return open(url)
         }
     }
 
-    private func openArtifacts() {
-        for artifact in task.artifacts {
-            if let url = URL(string: artifact), url.scheme == "http" || url.scheme == "https" {
-                NSWorkspace.shared.open(url)
-            }
+    static func artifactActionNotice(_ action: AgentArtifactAction, accepted: Bool) -> String? {
+        guard !accepted else { return nil }
+        switch action {
+        case .copy: return "These details couldn’t be copied. Try again."
+        case .open: return "This result is unavailable. You can still copy its details."
         }
+    }
+
+    private func artifactRow(_ row: AgentArtifactRow) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
+            VStack(alignment: .leading, spacing: DS.Space.xs) {
+                Text(row.label).font(DS.Font.caption).textSelection(.enabled)
+                Text(row.valueRole).font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
+            }
+            Spacer(minLength: 0)
+            if row.openURL != nil {
+                Button("Open") { performArtifactAction(.open, row: row) }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("Open \(row.label)")
+            }
+            Button(row.copyButtonTitle) { performArtifactAction(.copy, row: row) }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(row.copyAccessibilityLabel)
+        }
+    }
+
+    private func performArtifactAction(_ action: AgentArtifactAction, row: AgentArtifactRow) {
+        let accepted = Self.performArtifactAction(action, task: task, row: row,
+            open: { NSWorkspace.shared.open($0) },
+            copy: { value in
+                NSPasteboard.general.clearContents()
+                return NSPasteboard.general.setString(value, forType: .string)
+            })
+        artifactNotice = Self.artifactActionNotice(action, accepted: accepted)
     }
 
     // MARK: - P2-6

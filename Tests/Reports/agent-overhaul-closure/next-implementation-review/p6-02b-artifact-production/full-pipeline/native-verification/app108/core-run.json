@@ -1,0 +1,12 @@
+{
+  "exit": 2,
+  "durationSeconds": 111.50876808166504,
+  "sourceInvariant": true,
+  "bundleInvariant": true,
+  "scripts": {
+    "Scripts/acceptance.sh": "af7b4c06b3b721356f93fa1d725471dbe6a373c73fb68198f9bc64fb72dff261",
+    "Scripts/run-selftest.sh": "0ce751b4b167ff66b57d68164c58cfc37f18d9c7489156ef0aa952addada99df"
+  },
+  "scriptInvariant": true,
+  "verdict": "OPEN"
+}

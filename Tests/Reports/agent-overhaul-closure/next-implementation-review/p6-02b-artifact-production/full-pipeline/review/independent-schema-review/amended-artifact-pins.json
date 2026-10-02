@@ -1,0 +1,13 @@
+{
+  "reports": {
+    "amended-encoding-schema-review.json": "33bdeb77e9cb356b5e0d402d50c82a1150964c6c77bb36244a44312d3cecac9d",
+    "amended-encoding-schema-review.md": "f58d558b5eb31440a03682d5d93030e76d41cf8d7e552ad44ca6579a8adf2220"
+  },
+  "sourcePins": {
+    "commonSchema": "96739e32e8d99b1665750df3b301e1097f85c1d5011ccf9417ca9ccaba7a7d36",
+    "fixedSchema": "96739e32e8d99b1665750df3b301e1097f85c1d5011ccf9417ca9ccaba7a7d36",
+    "commonAuthority": "a787fa0785f29641080e157536d76332c2bfd9ba5acb661e6c361e4d92677807",
+    "fixedStore": "e7ed7aaad95a97150270f48e629ac11994ea6c716deea5c28080beada293cf5f",
+    "commonFixture": "ac7003c84143ca448a9d881fb92d29277cd6781f1f78af0d8cadcedc31881580"
+  }
+}

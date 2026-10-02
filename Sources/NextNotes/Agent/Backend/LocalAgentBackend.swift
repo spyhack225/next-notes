@@ -55,10 +55,7 @@ struct LocalAgentBackend: AgentBackend {
             permissionAlreadyGranted: permissionAlreadyGranted,
             isStillValid: TaskEventJournal.current?.taskID == task.id ? TaskEventJournal.current?.isStillValid : nil
         )
-        var artifacts: [String] = []
-        if let reference = result.reference { artifacts.append(reference) }
-        if let link = result.link { artifacts.append(link.absoluteString) }
-        return .completed(result.summary, artifacts: artifacts)
+        return .completed(result.summary, artifactRecords: result.artifactRecords)
     }
 
     func status(taskID: String) async -> AgentTaskStatus? {

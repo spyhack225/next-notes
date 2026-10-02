@@ -1,0 +1,389 @@
+{
+  "status": "Preparation catalog only; no native verdict",
+  "fixtureSHA256": "ac7003c84143ca448a9d881fb92d29277cd6781f1f78af0d8cadcedc31881580",
+  "normalNewChecks": 135,
+  "priorWorkerChecks": 1352,
+  "preparedIntegratedChecks": 1487,
+  "required_modes": [
+    "accepted",
+    "readback-unverified",
+    "start-rejected",
+    "terminal-receipt-rejected",
+    "completion-journal-rejected",
+    "terminal-task-rejected"
+  ],
+  "label_patterns": [
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: unapproved task ran CLI (\\(mode))",
+      "regex": "artifact\\ control:\\ unapproved\\ task\\ ran\\ CLI\\ \\((?:accepted|readback-unverified|start-rejected|terminal-receipt-rejected|completion-journal-rejected|terminal-task-rejected)\\)",
+      "sourceLine": 154
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: real saved edited review was not ready (\\(mode))",
+      "regex": "artifact\\ control:\\ real\\ saved\\ edited\\ review\\ was\\ not\\ ready\\ \\((?:accepted|readback-unverified|start-rejected|terminal-receipt-rejected|completion-journal-rejected|terminal-task-rejected)\\)",
+      "sourceLine": 163
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: real task did not settle/release (\\(mode))",
+      "regex": "artifact\\ control:\\ real\\ task\\ did\\ not\\ settle/release\\ \\((?:accepted|readback-unverified|start-rejected|terminal-receipt-rejected|completion-journal-rejected|terminal-task-rejected)\\)",
+      "sourceLine": 171
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: rejected start created/published a result",
+      "regex": "artifact\\ control:\\ rejected\\ start\\ created/published\\ a\\ result",
+      "sourceLine": 180
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: backing lost approval/binding/one-create/readback (\\(mode))",
+      "regex": "artifact\\ control:\\ backing\\ lost\\ approval/binding/one\\-create/readback\\ \\((?:accepted|readback-unverified|start-rejected|terminal-receipt-rejected|completion-journal-rejected|terminal-task-rejected)\\)",
+      "sourceLine": 184
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: refused or admitted flow erased receipt join (\\(mode))",
+      "regex": "artifact\\ control:\\ refused\\ or\\ admitted\\ flow\\ erased\\ receipt\\ join\\ \\((?:accepted|readback-unverified|start-rejected|terminal-receipt-rejected|completion-journal-rejected|terminal-task-rejected)\\)",
+      "sourceLine": 186
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: refused terminal admission delivered success (\\(mode))",
+      "regex": "artifact\\ control:\\ refused\\ terminal\\ admission\\ delivered\\ success\\ \\((?:accepted|readback-unverified|start-rejected|terminal-receipt-rejected|completion-journal-rejected|terminal-task-rejected)\\)",
+      "sourceLine": 190
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: receipt/journal refusal erased raw related references or invented task success (\\(mode))",
+      "regex": "artifact\\ control:\\ receipt/journal\\ refusal\\ erased\\ raw\\ related\\ references\\ or\\ invented\\ task\\ success\\ \\((?:accepted|readback-unverified|start-rejected|terminal-receipt-rejected|completion-journal-rejected|terminal-task-rejected)\\)",
+      "sourceLine": 193
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: refused receipt write erased exact fired evidence",
+      "regex": "artifact\\ control:\\ refused\\ receipt\\ write\\ erased\\ exact\\ fired\\ evidence",
+      "sourceLine": 198
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: failed/unadmitted task implied created success (\\(mode))",
+      "regex": "artifact\\ feature:\\ failed/unadmitted\\ task\\ implied\\ created\\ success\\ \\((?:accepted|readback-unverified|start-rejected|terminal-receipt-rejected|completion-journal-rejected|terminal-task-rejected)\\)",
+      "sourceLine": 202
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: accepted ordered paths/one consume/fresh no-replay changed (\\(mode))",
+      "regex": "artifact\\ control:\\ accepted\\ ordered\\ paths/one\\ consume/fresh\\ no\\-replay\\ changed\\ \\((?:accepted|readback-unverified|start-rejected|terminal-receipt-rejected|completion-journal-rejected|terminal-task-rejected)\\)",
+      "sourceLine": 212
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: decoded actual SQL/witness canonical equality changed (\\(mode))",
+      "regex": "artifact\\ control:\\ decoded\\ actual\\ SQL/witness\\ canonical\\ equality\\ changed\\ \\((?:accepted|readback-unverified|start-rejected|terminal-receipt-rejected|completion-journal-rejected|terminal-task-rejected)\\)",
+      "sourceLine": 217
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: real approved document kind/title did not reach fresh canonical task",
+      "regex": "artifact\\ feature:\\ real\\ approved\\ document\\ kind/title\\ did\\ not\\ reach\\ fresh\\ canonical\\ task",
+      "sourceLine": 222
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: actual producer metadata did not occupy existing ordered SQL columns",
+      "regex": "artifact\\ feature:\\ actual\\ producer\\ metadata\\ did\\ not\\ occupy\\ existing\\ ordered\\ SQL\\ columns",
+      "sourceLine": 227
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: actual card projection lost approved labels or honest Open/Copy semantics",
+      "regex": "artifact\\ feature:\\ actual\\ card\\ projection\\ lost\\ approved\\ labels\\ or\\ honest\\ Open/Copy\\ semantics",
+      "sourceLine": 241
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: unverified real readback promoted created metadata",
+      "regex": "artifact\\ control:\\ unverified\\ real\\ readback\\ promoted\\ created\\ metadata",
+      "sourceLine": 245
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: couldNotVerify task implied created success or guessed an Open target",
+      "regex": "artifact\\ feature:\\ couldNotVerify\\ task\\ implied\\ created\\ success\\ or\\ guessed\\ an\\ Open\\ target",
+      "sourceLine": 249
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: existing receipt codec/raw artifact/effect evidence changed",
+      "regex": "artifact\\ control:\\ existing\\ receipt\\ codec/raw\\ artifact/effect\\ evidence\\ changed",
+      "sourceLine": 259
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: actual ACP couldNotVerify reply became created metadata",
+      "regex": "artifact\\ feature:\\ actual\\ ACP\\ couldNotVerify\\ reply\\ became\\ created\\ metadata",
+      "sourceLine": 271
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: actual accepted ACP row missing",
+      "regex": "artifact\\ control:\\ actual\\ accepted\\ ACP\\ row\\ missing",
+      "sourceLine": 272
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: genuine schema3 collision read promoted metadata or upgraded source",
+      "regex": "artifact\\ control:\\ genuine\\ schema3\\ collision\\ read\\ promoted\\ metadata\\ or\\ upgraded\\ source",
+      "sourceLine": 296
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: rejected original-schema save admitted schema upgrade",
+      "regex": "artifact\\ control:\\ rejected\\ original\\-schema\\ save\\ admitted\\ schema\\ upgrade",
+      "sourceLine": 305
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: refused schema transaction changed retained old3 bytes/schema/metadata",
+      "regex": "artifact\\ control:\\ refused\\ schema\\ transaction\\ changed\\ retained\\ old3\\ bytes/schema/metadata",
+      "sourceLine": 311
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: genuine schema3 same-path save refused after removing actual trigger",
+      "regex": "artifact\\ control:\\ genuine\\ schema3\\ same\\-path\\ save\\ refused\\ after\\ removing\\ actual\\ trigger",
+      "sourceLine": 314
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: admitted schema3 save erased legacy collision bytes or promoted typed authority",
+      "regex": "artifact\\ control:\\ admitted\\ schema3\\ save\\ erased\\ legacy\\ collision\\ bytes\\ or\\ promoted\\ typed\\ authority",
+      "sourceLine": 319
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: historical extra-column marker promoted creation semantics on old3 read",
+      "regex": "artifact\\ control:\\ historical\\ extra\\-column\\ marker\\ promoted\\ creation\\ semantics\\ on\\ old3\\ read",
+      "sourceLine": 332
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: unsupported old3 marker save erased historical metadata or changed retained bytes/schema",
+      "regex": "artifact\\ control:\\ unsupported\\ old3\\ marker\\ save\\ erased\\ historical\\ metadata\\ or\\ changed\\ retained\\ bytes/schema",
+      "sourceLine": 339
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: genuine old2 read changed legacy metadata or installed new columns",
+      "regex": "artifact\\ control:\\ genuine\\ old2\\ read\\ changed\\ legacy\\ metadata\\ or\\ installed\\ new\\ columns",
+      "sourceLine": 349
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: diagnostic v1 read changed schema or legacy collision metadata",
+      "regex": "artifact\\ control:\\ diagnostic\\ v1\\ read\\ changed\\ schema\\ or\\ legacy\\ collision\\ metadata",
+      "sourceLine": 354
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: diagnostic v1 legacy snapshot changed authority or metadata",
+      "regex": "artifact\\ control:\\ diagnostic\\ v1\\ legacy\\ snapshot\\ changed\\ authority\\ or\\ metadata",
+      "sourceLine": 358
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: diagnostic v1 accepted an unobservable typed write or changed retained schema/events/metadata",
+      "regex": "artifact\\ feature:\\ diagnostic\\ v1\\ accepted\\ an\\ unobservable\\ typed\\ write\\ or\\ changed\\ retained\\ schema/events/metadata",
+      "sourceLine": 366
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: actual file read did not complete",
+      "regex": "artifact\\ control:\\ actual\\ file\\ read\\ did\\ not\\ complete",
+      "sourceLine": 380
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: file producer lost original content/path",
+      "regex": "artifact\\ control:\\ file\\ producer\\ lost\\ original\\ content/path",
+      "sourceLine": 383
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: real file read was labelled created/unknown",
+      "regex": "artifact\\ feature:\\ real\\ file\\ read\\ was\\ labelled\\ created/unknown",
+      "sourceLine": 386
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: actual path-only failure Open no-op or implied success",
+      "regex": "artifact\\ feature:\\ actual\\ path\\-only\\ failure\\ Open\\ no\\-op\\ or\\ implied\\ success",
+      "sourceLine": 393
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: named Copy changed exact path",
+      "regex": "artifact\\ control:\\ named\\ Copy\\ changed\\ exact\\ path",
+      "sourceLine": 396
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: task A row acted on task B",
+      "regex": "artifact\\ control:\\ task\\ A\\ row\\ acted\\ on\\ task\\ B",
+      "sourceLine": 401
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: same-task forged URL replaced the bound producer location",
+      "regex": "artifact\\ feature:\\ same\\-task\\ forged\\ URL\\ replaced\\ the\\ bound\\ producer\\ location",
+      "sourceLine": 408
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: actual failed Copy implied copying still works",
+      "regex": "artifact\\ control:\\ actual\\ failed\\ Copy\\ implied\\ copying\\ still\\ works",
+      "sourceLine": 412
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: actual trailing-space file read did not complete",
+      "regex": "artifact\\ control:\\ actual\\ trailing\\-space\\ file\\ read\\ did\\ not\\ complete",
+      "sourceLine": 421
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: original trailing-space backing/input changed",
+      "regex": "artifact\\ control:\\ original\\ trailing\\-space\\ backing/input\\ changed",
+      "sourceLine": 425
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: typed capture rewrote exact file location or emitted a duplicate trimmed path",
+      "regex": "artifact\\ feature:\\ typed\\ capture\\ rewrote\\ exact\\ file\\ location\\ or\\ emitted\\ a\\ duplicate\\ trimmed\\ path",
+      "sourceLine": 429
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: exact trailing-space producer location did not reach actual card Open backing",
+      "regex": "artifact\\ feature:\\ exact\\ trailing\\-space\\ producer\\ location\\ did\\ not\\ reach\\ actual\\ card\\ Open\\ backing",
+      "sourceLine": 434
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: mixed row order/value changed",
+      "regex": "artifact\\ control:\\ mixed\\ row\\ order/value\\ changed",
+      "sourceLine": 450
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: explicit mixed named Open refused row\\(index)",
+      "regex": "artifact\\ feature:\\ explicit\\ mixed\\ named\\ Open\\ refused\\ row[0-7]",
+      "sourceLine": 455
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: mixed URL/path/fileURL opened wrong target or blindly opened multiple",
+      "regex": "artifact\\ feature:\\ mixed\\ URL/path/fileURL\\ opened\\ wrong\\ target\\ or\\ blindly\\ opened\\ multiple",
+      "sourceLine": 458
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: ID/receipt/malformed/legacy unknown guessed an Open target row\\(index)",
+      "regex": "artifact\\ feature:\\ ID/receipt/malformed/legacy\\ unknown\\ guessed\\ an\\ Open\\ target\\ row[0-7]",
+      "sourceLine": 463
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: mixed Copy lost exact unknown text row\\(index)",
+      "regex": "artifact\\ control:\\ mixed\\ Copy\\ lost\\ exact\\ unknown\\ text\\ row[0-7]",
+      "sourceLine": 466
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: explicit \\(label) crossed named Open boundary",
+      "regex": "artifact\\ feature:\\ explicit\\ (?:credential URL|remote file URL)\\ crossed\\ named\\ Open\\ boundary",
+      "sourceLine": 476
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: deleted file Open reached native backing",
+      "regex": "artifact\\ control:\\ deleted\\ file\\ Open\\ reached\\ native\\ backing",
+      "sourceLine": 482
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: deleted file lost copyable location",
+      "regex": "artifact\\ control:\\ deleted\\ file\\ lost\\ copyable\\ location",
+      "sourceLine": 485
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: legacy bytes/order/duplicates gained typed metadata",
+      "regex": "artifact\\ control:\\ legacy\\ bytes/order/duplicates\\ gained\\ typed\\ metadata",
+      "sourceLine": 498
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: decoded actual legacy SQL/witness canonical roundtrip changed",
+      "regex": "artifact\\ control:\\ decoded\\ actual\\ legacy\\ SQL/witness\\ canonical\\ roundtrip\\ changed",
+      "sourceLine": 501
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: conflicting typed/legacy canonical paths were silently admitted",
+      "regex": "artifact\\ control:\\ conflicting\\ typed/legacy\\ canonical\\ paths\\ were\\ silently\\ admitted",
+      "sourceLine": 507
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: historical SQL kind/title became canonical or was erased on same path",
+      "regex": "artifact\\ control:\\ historical\\ SQL\\ kind/title\\ became\\ canonical\\ or\\ was\\ erased\\ on\\ same\\ path",
+      "sourceLine": 514
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: historical kind collision became canonical or invalid",
+      "regex": "artifact\\ control:\\ historical\\ kind\\ collision\\ became\\ canonical\\ or\\ invalid",
+      "sourceLine": 521
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: same-path save erased exact uppercase/mixed/prefix legacy metadata",
+      "regex": "artifact\\ control:\\ same\\-path\\ save\\ erased\\ exact\\ uppercase/mixed/prefix\\ legacy\\ metadata",
+      "sourceLine": 525
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: unknown/noninteger row encoding was silently admitted",
+      "regex": "artifact\\ control:\\ unknown/noninteger\\ row\\ encoding\\ was\\ silently\\ admitted",
+      "sourceLine": 531
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: malformed/future versioned SQL metadata was silently admitted",
+      "regex": "artifact\\ feature:\\ malformed/future\\ versioned\\ SQL\\ metadata\\ was\\ silently\\ admitted",
+      "sourceLine": 540
+    },
+    {
+      "category": "feature",
+      "labelTemplate": "artifact feature: unknown versioned semantic authorized Open/created output",
+      "regex": "artifact\\ feature:\\ unknown\\ versioned\\ semantic\\ authorized\\ Open/created\\ output",
+      "sourceLine": 547
+    },
+    {
+      "category": "control",
+      "labelTemplate": "artifact control: duplicate ref/link capture changed ordered one-consume semantics",
+      "regex": "artifact\\ control:\\ duplicate\\ ref/link\\ capture\\ changed\\ ordered\\ one\\-consume\\ semantics",
+      "sourceLine": 556
+    }
+  ],
+  "acceptance": {
+    "original": "Native exit1, terminal FAILED marker, only exact catalog feature labels, all six expected actual mode traces, no timeout/source/bundle drift or foreign/control/owner/input failure. Functional-control failure makes original invalid, even alongside feature failures.",
+    "fixed": "Exit0 and exact OK1487, no WRONG lines, all six mode traces and Source/bundle invariant; same frozen fixture/common APIs.",
+    "existing1352": "Existing worker registration/source copied beforeboth; every unscoped/prior-worker WRONG line invalidates original. FAILED output does not print executed case count; do not report1487 as measured original count.",
+    "feature_patterns": "Some feature assertions intentionally PASS original (e.g. web URL path); label alone does not predict failure. Exact original RED count depends actual Foundation URL parser and controls."
+  }
+}

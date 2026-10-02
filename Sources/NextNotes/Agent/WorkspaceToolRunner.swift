@@ -584,7 +584,9 @@ enum WorkspaceToolRunner {
             summary: "Created the Doc \u{201c}\(title)\u{201d}.",
             reference: id,
             link: documentURL(id),
-            verification: verified ? "Read back the created document's title and content" : nil
+            verification: verified ? "Read back the created document's title and content" : nil,
+            artifactRecords: verified ? [AgentArtifact(id, kind: "documentIDCreated", title: title)]
+                + (documentURL(id).map { [AgentArtifact($0.absoluteString, kind: "documentCreated", title: title)] } ?? []) : nil
         )
     }
 

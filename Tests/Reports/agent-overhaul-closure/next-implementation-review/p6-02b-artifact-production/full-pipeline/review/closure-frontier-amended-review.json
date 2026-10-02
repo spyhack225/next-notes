@@ -1,0 +1,9 @@
+{
+  "status": "two-static-findings-resolved-native-pending",
+  "sha256": {
+    "fixed-proposal/Agent/Tasks/AgentArtifactLedger.swift": "ffcc3052348bb03cf46e1a62885c31a1c2338dd3a1ac885daa0882d23974f758",
+    "TaskArtifactMetadataSelfTest.swift.txt": "8446ced166839d4fbe0bea45ef8753b8cba806e4721848cd43f3d42968be4a89"
+  },
+  "source_writes": false,
+  "native_or_compiler_run": false
+}

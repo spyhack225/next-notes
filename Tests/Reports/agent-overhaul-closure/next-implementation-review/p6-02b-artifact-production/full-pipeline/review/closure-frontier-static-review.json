@@ -1,0 +1,36 @@
+{
+  "status": "static-draft-review-two-findings-sent-owner",
+  "native_run": false,
+  "compiler_run": false,
+  "source_writes": false,
+  "finding_ids": [
+    "typed-path-normalization",
+    "actual-json-witness-proof-gap"
+  ],
+  "reviewed_sha256": {
+    "TaskArtifactMetadataSelfTest.swift.txt": "959080966d5915260fd92f5a818881fdd7a5d1805b4d2ec84bd8113984c02763",
+    "fixed-proposal/Agent/Activity/AgentActivityProjector.swift": "e681431cd36bc41450c7b4f95e8cfe6a6f89ae74451c3499051dd54edb5b23d6",
+    "fixed-proposal/Agent/AgentModels.swift": "f4bd19df21c790797086cc5c357cd9090167fe8a4fcd1facdfeb39470c7946de",
+    "fixed-proposal/Agent/Backend/LocalAgentBackend.swift": "c7f2afc2e02a8be3ce18375b882869e789521ca2fafbcbd083809cf536755300",
+    "fixed-proposal/Agent/Tasks/AgentArtifactLedger.swift": "27ed3227964344d83b3481265a576dc8c0bf9027cb657ddb6421ed29f8f42219",
+    "fixed-proposal/Agent/Tasks/AgentTask.swift": "cdbc9aca8183f920c10c3a90bedea1c05e078e2ee4efc7d501cf35f63227e7a2",
+    "fixed-proposal/Agent/Tasks/AgentTaskManager.swift": "d511f3706cd917913b2276b074aa98c6e74048b8ccc968cea92e68d012407687",
+    "fixed-proposal/Agent/Tasks/Durable/TaskStore.swift": "6a31bafdf2357fce4b79913e64a619501d8d3f7a44ffebbecb8ecd2f25c5599d",
+    "fixed-proposal/Agent/Tools/AgentToolExecutor.swift": "033abc7aba02b6ab18acd626e14570347cda38f3e8da90a5c21725be4ca55cc6",
+    "fixed-proposal/Agent/WorkspaceToolRunner.swift": "58f990c41043f3c9cfb04c4d3b38b4e28bfd663bf6e8697d447e7756586bfc24",
+    "fixed-proposal/Shell/FilesystemExecutor.swift": "4a3e74ae35e3417a7f61a54053aeaf25d8e39f40d91c27d5d810cf730564e303",
+    "fixed-proposal/UI/Agent/AgentWorkingCard.swift": "9218f7e1c236f5aa3ca1dce9e753a498602870a1584763bbfb6006283ee6fed0",
+    "original-scaffold/Agent/Activity/AgentActivityProjector.swift": "2d1edcc9b499c1a9819d47d87c92f05e38cc55935255da43bf97633ae3d7e151",
+    "original-scaffold/Agent/AgentModels.swift": "f4bd19df21c790797086cc5c357cd9090167fe8a4fcd1facdfeb39470c7946de",
+    "original-scaffold/Agent/Backend/LocalAgentBackend.swift": "869c607a427e25a77edbabeb6872d8ab6d6130425932b53bfc6d3fe41602ded4",
+    "original-scaffold/Agent/Tasks/AgentArtifactLedger.swift": "59b054a243d84ffa75246b344f7a72f57ede8f4940caf07818263d5a52683861",
+    "original-scaffold/Agent/Tasks/AgentTask.swift": "cdbc9aca8183f920c10c3a90bedea1c05e078e2ee4efc7d501cf35f63227e7a2",
+    "original-scaffold/Agent/Tasks/AgentTaskManager.swift": "1340cd62e546add823fa8f6dab9096323a54fa5fd7d06feb42b8dd5d181764aa",
+    "original-scaffold/Agent/Tasks/Durable/TaskStore.swift": "b4a2a17fbad7e4b18d62646d2b071ba4824e2fbaeb2fb50de00f6a03ef925cae",
+    "original-scaffold/Agent/Tools/AgentToolExecutor.swift": "033abc7aba02b6ab18acd626e14570347cda38f3e8da90a5c21725be4ca55cc6",
+    "original-scaffold/Agent/WorkspaceToolRunner.swift": "20051a3bbe6778e3acd0abb9cf8f7ca003008f1ad068adf5d7e17d6c8513f1ef",
+    "original-scaffold/Shell/FilesystemExecutor.swift": "ebc37c2812aae9ec0a8480c46bd1adf776a9e837dfdeb66df826f0555db56564",
+    "original-scaffold/UI/Agent/AgentWorkingCard.swift": "9218f7e1c236f5aa3ca1dce9e753a498602870a1584763bbfb6006283ee6fed0",
+    "original-to-fixed.patch.txt": "9e679a3d0cd558be213112c9adb6fff81c8c83dc6dc2a00bafb82dbdf4040fe9"
+  }
+}

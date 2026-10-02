@@ -218,6 +218,41 @@ struct AgentProposal: Identifiable, Sendable, Equatable, Codable {
     }
 }
 
+/// One ordered result descriptor. The value is the existing path/ID/link payload.
+/// Kind/title come from a producer; unknown strings never gain inferred authority.
+struct AgentArtifact: Codable, Equatable, Sendable {
+    var value: String
+    var kind: String
+    var title: String?
+    init(_ value: String, kind: String = "link", title: String? = nil) {
+        self.value = value; self.kind = kind; self.title = title
+    }
+    var isLegacy: Bool { kind == "link" && title == nil }
+
+    /// Preserve the existing ordered paths, including duplicates, on legacy mutations.
+    static func replacingValues(_ values: [String], in old: [Self]) -> [Self] {
+        var used = Set<Int>()
+        return values.enumerated().map { ordinal, value in
+            let index: Int?
+            if old.indices.contains(ordinal), old[ordinal].value == value, !used.contains(ordinal) {
+                index = ordinal
+            } else { index = old.indices.first { !used.contains($0) && old[$0].value == value } }
+            if let index { used.insert(index); return old[index] }
+            return Self(value)
+        }
+    }
+    /// The backend's old ordered list stays first; captured duplicates enrich in place.
+    static func merging(_ captured: [Self], into initial: [Self]) -> [Self] {
+        var records = initial
+        for record in captured {
+            if let index = records.firstIndex(where: { $0.value == record.value }) {
+                if records[index].isLegacy && !record.isLegacy { records[index] = record }
+            } else { records.append(record) }
+        }
+        return records
+    }
+}
+
 /// What a tool produced, once it ran.
 struct WorkspaceToolResult: Sendable {
     /// What the model — or the log — should be told. Trimmed to something readable.
@@ -237,14 +272,18 @@ struct WorkspaceToolResult: Sendable {
     /// and P0-17 exist to remove: a reworded sentence silently stops being recognised and the
     /// duplicate-send bug comes back with nobody testing it.
     var outcomeUnknown: Bool = false
+    let artifactRecords: [AgentArtifact]
 
     init(summary: String, reference: String? = nil, link: URL? = nil,
-         verification: String? = nil, outcomeUnknown: Bool = false) {
+         verification: String? = nil, outcomeUnknown: Bool = false,
+         artifactRecords: [AgentArtifact]? = nil) {
         self.summary = summary
         self.reference = reference
         self.link = link
         self.verification = verification
         self.outcomeUnknown = outcomeUnknown
+        self.artifactRecords = artifactRecords ?? [reference, link?.absoluteString]
+            .compactMap { $0 }.map { AgentArtifact($0) }
     }
 }
 

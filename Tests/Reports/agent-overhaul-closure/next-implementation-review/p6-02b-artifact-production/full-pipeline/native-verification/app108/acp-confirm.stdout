@@ -1,0 +1,3 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-acp-confirm --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/next-implementation-review/p6-02b-artifact-production/full-pipeline/native-verification/app108/acp-confirm.log
+2026-10-02 19:30:47.322 NextNotes[22494:208780] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+ACP_CONFIRM_OK

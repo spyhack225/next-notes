@@ -139,7 +139,8 @@ final class TaskStore: @unchecked Sendable {
 
     static func validate(_ tasks: [AgentTask]) throws {
         guard Set(tasks.map(\.id)).count == tasks.count, tasks.allSatisfy({ task in
-            guard !task.id.isEmpty, task.createdAt.timeIntervalSince1970.isFinite else { return false }
+            guard !task.id.isEmpty, task.createdAt.timeIntervalSince1970.isFinite,
+                  task.artifactRecords.allSatisfy({ !$0.kind.isEmpty && !$0.kind.utf8.contains(0) }) else { return false }
             switch task.pendingInteraction {
             case .permission(let request, _, let review):
                 guard !request.id.isEmpty, !request.toolID.isEmpty,
@@ -264,6 +265,7 @@ final class TaskStore: @unchecked Sendable {
         guard current.allSatisfy({ task in
             guard let row = incoming[task.id] else { return false }
             return row.artifacts.starts(with: task.artifacts)
+                && Array(row.artifactRecords.prefix(task.artifactRecords.count)) == task.artifactRecords
         }) else { throw TaskStoreError.authorityConflict }
         guard try stringColumn(db, "PRAGMA foreign_key_check").isEmpty else { throw TaskStoreError.invalidRecord }
     }
@@ -433,7 +435,10 @@ final class TaskStore: @unchecked Sendable {
                         throw TaskStoreError.authorityConflict
                     }
                 }
-                try TaskStoreSchema.installPendingInteractions(on: db)
+                let artifactVersion = try TaskStoreSchema.installPendingInteractions(on: db)
+                guard artifactVersion >= 4 || tasks.allSatisfy({ $0.artifactRecords.allSatisfy(\.isLegacy) }) else {
+                    throw TaskStoreError.invalidRecord
+                }
                 try Self.writeRows(tasks, to: db, preservingChildren: false)
                 try TaskEventJournal.append(events, to: db)
                 try TaskEventJournal.compact(in: db, now: Date())
@@ -515,7 +520,10 @@ final class TaskStore: @unchecked Sendable {
         if failFast { sqlite3_busy_timeout(db, 0) }
         defer { if failFast { sqlite3_busy_timeout(db, 2_000) } }
             try Self.transaction(db) {
-                try TaskStoreSchema.installPendingInteractions(on: db)
+                let artifactVersion = try TaskStoreSchema.installPendingInteractions(on: db)
+                guard artifactVersion >= 4 || tasks.allSatisfy({ $0.artifactRecords.allSatisfy(\.isLegacy) }) else {
+                    throw TaskStoreError.invalidRecord
+                }
                 try Self.writeRows(tasks, to: db, preservingChildren: false)
                 try TaskEventJournal.append(events, to: db)
                 try TaskEventJournal.compact(in: db, now: now)
@@ -544,15 +552,20 @@ final class TaskStore: @unchecked Sendable {
             ]
             try Self.run(db, Self.upsert, values)
             for (ordinal, path) in task.artifacts.enumerated() {
-                // Legacy links have neutral metadata until P6-02b's real producers.
-                // Retain existing metadata only when this ordinal still names that path.
+                let record = task.artifactRecords[ordinal]
                 try Self.run(db, """
-                    INSERT INTO task_artifact(task_id,path,ordinal,added_at) VALUES(?,?,?,CAST(? AS INTEGER))
+                    INSERT INTO task_artifact(task_id,path,ordinal,added_at,kind,title,encoding_version)
+                    VALUES(?,?,?,CAST(? AS INTEGER),?,?,?)
                     ON CONFLICT(task_id,ordinal) DO UPDATE SET
-                      kind=CASE WHEN path=excluded.path THEN kind ELSE 'link' END,
-                      title=CASE WHEN path=excluded.path THEN title ELSE NULL END,
-                      path=excluded.path
-                    """, [.text(task.id), .text(path), .integer(Int64(ordinal)), .real(task.createdAt.timeIntervalSince1970)])
+                      kind=CASE WHEN excluded.kind='link' AND excluded.title IS NULL
+                        AND path=excluded.path AND encoding_version=0 THEN kind ELSE excluded.kind END,
+                      title=CASE WHEN excluded.kind='link' AND excluded.title IS NULL
+                        AND path=excluded.path AND encoding_version=0 THEN title ELSE excluded.title END,
+                      encoding_version=excluded.encoding_version, path=excluded.path
+                    """, [.text(task.id), .text(path), .integer(Int64(ordinal)),
+                        .real(task.createdAt.timeIntervalSince1970),
+                        .text(record.isLegacy ? "link" : "artifact-v1:" + record.kind), .optionalText(record.title),
+                        .integer(record.isLegacy ? 0 : 1)])
             }
             if !preservingChildren {
                 try Self.run(db, "DELETE FROM task_artifact WHERE task_id=? AND ordinal>=?",
@@ -598,26 +611,39 @@ final class TaskStore: @unchecked Sendable {
                       [SQLITE_FLOAT, SQLITE_INTEGER].contains(sqlite3_column_type(statement, 16)),
                       sqlite3_column_double(statement, 16).isFinite else { throw TaskStoreError.invalidRecord }
                 let artifactsStatement = try Self.prepare(db,
-                    "SELECT path,ordinal,added_at,kind,title FROM task_artifact WHERE task_id=? ORDER BY ordinal")
+                    "SELECT path,ordinal,added_at,kind,title,\(version >= 4 ? "encoding_version" : "0") FROM task_artifact WHERE task_id=? ORDER BY ordinal")
                 defer { sqlite3_finalize(artifactsStatement) }
                 try Self.bind(artifactsStatement, [.text(id)])
-                var artifacts: [String] = []
+                var artifactRecords: [AgentArtifact] = []
                 var artifactCode = sqlite3_step(artifactsStatement)
                 while artifactCode == SQLITE_ROW {
                     guard let path = try Self.text(artifactsStatement, 0),
                           sqlite3_column_type(artifactsStatement, 1) == SQLITE_INTEGER,
-                          sqlite3_column_int64(artifactsStatement, 1) == Int64(artifacts.count),
+                          sqlite3_column_int64(artifactsStatement, 1) == Int64(artifactRecords.count),
                           sqlite3_column_type(artifactsStatement, 2) == SQLITE_INTEGER,
-                          try Self.text(artifactsStatement, 3) != nil else { throw TaskStoreError.invalidRecord }
-                    _ = try Self.text(artifactsStatement, 4)
-                    artifacts.append(path)
+                          sqlite3_column_type(artifactsStatement, 5) == SQLITE_INTEGER,
+                          [0, 1].contains(sqlite3_column_int64(artifactsStatement, 5)),
+                          let kind = try Self.text(artifactsStatement, 3) else { throw TaskStoreError.invalidRecord }
+                    let title = try Self.text(artifactsStatement, 4)
+                    let encoding = sqlite3_column_int64(artifactsStatement, 5)
+                    if encoding == 0 {
+                        // Every historical kind/title is neutral, including exact prefix collisions.
+                        artifactRecords.append(AgentArtifact(path))
+                    } else if kind.hasPrefix("artifact-v1:") {
+                        let semantic = String(kind.dropFirst("artifact-v1:".count))
+                        guard !semantic.isEmpty, !semantic.utf8.contains(0) else { throw TaskStoreError.invalidRecord }
+                        artifactRecords.append(AgentArtifact(path, kind: semantic, title: title))
+                    } else {
+                        // Only the explicitly owned encoding domain can reject malformed/future data.
+                        throw TaskStoreError.invalidRecord
+                    }
                     artifactCode = sqlite3_step(artifactsStatement)
                 }
                 guard artifactCode == SQLITE_DONE else { throw TaskStoreError.sqlite(artifactCode) }
-                let task = AgentTask(id: id, objective: try required(4), source: try required(2),
+                var task = AgentTask(id: id, objective: try required(4), source: try required(2),
                     createdAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 16)),
                     contextReferences: try Self.decode([String].self, required(6)), status: status,
-                    progress: try required(5), result: try Self.text(statement, 17), artifacts: artifacts,
+                    progress: try required(5), result: try Self.text(statement, 17), artifacts: artifactRecords.map(\.value),
                     tool: try Self.text(statement, 7), arguments: try Self.decode([String: String].self, required(8)),
                     meetingID: try Self.uuid(Self.text(statement, 9)), backend: try required(3),
                     failure: try Self.text(statement, 18), acpCLI: try required(10),
@@ -625,6 +651,7 @@ final class TaskStore: @unchecked Sendable {
                     compatibilityDirectory: try Self.text(statement, 13), scheduleID: try Self.uuid(Self.text(statement, 14)),
                     durability: try Self.text(statement, 19).map { try Self.decode(TaskDurability.self, $0) },
                     pendingInteraction: try Self.text(statement, 20).map { try Self.decode(TaskPendingInteraction.self, $0) })
+                task.artifactRecords = artifactRecords
                 tasks.append(task)
                 code = sqlite3_step(statement)
             }

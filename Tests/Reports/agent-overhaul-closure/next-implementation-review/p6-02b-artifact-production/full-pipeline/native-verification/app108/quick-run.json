@@ -1,0 +1,10 @@
+{
+  "exit": 1,
+  "durationSeconds": 112.11719179153442,
+  "markers": [
+    "TOOLLOOP_LIVE_FAILED: 4/10 (quick) on Gemma 4 E4B \u2014 below the pass bar 9"
+  ],
+  "sourceInvariant": true,
+  "bundleInvariant": true,
+  "report": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/next-implementation-review/p6-02b-artifact-production/full-pipeline/native-verification/app108/quick.md"
+}

@@ -42,7 +42,12 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
     var status: AgentTaskStatus
     var progress: String
     var result: String?
-    var artifacts: [String]
+    var artifactRecords: [AgentArtifact]
+    /// Compatibility view of the single canonical collection, not a second list.
+    var artifacts: [String] {
+        get { artifactRecords.map(\.value) }
+        set { artifactRecords = AgentArtifact.replacingValues(newValue, in: artifactRecords) }
+    }
     var tool: String?
     var arguments: [String: String]
     var meetingID: UUID?
@@ -105,7 +110,7 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         self.status = status
         self.progress = progress
         self.result = result
-        self.artifacts = artifacts
+        self.artifactRecords = artifacts.map { AgentArtifact($0) }
         self.tool = tool
         self.arguments = arguments
         self.meetingID = meetingID
@@ -119,7 +124,7 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
 
     enum CodingKeys: String, CodingKey {
         case id, objective, source, createdAt, contextReferences, status, progress
-        case result, artifacts, tool, arguments, meetingID, backend, failure, acpCLI
+        case result, artifacts, artifactRecords, tool, arguments, meetingID, backend, failure, acpCLI
         case compatibilityCommand, compatibilityCLI, compatibilityDirectory, scheduleID, durability, pendingInteraction
     }
 
@@ -133,7 +138,13 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         status = try container.decodeIfPresent(AgentTaskStatus.self, forKey: .status) ?? .queued
         progress = try container.decodeIfPresent(String.self, forKey: .progress) ?? ""
         result = try container.decodeIfPresent(String.self, forKey: .result)
-        artifacts = try container.decodeIfPresent([String].self, forKey: .artifacts) ?? []
+        let values = try container.decodeIfPresent([String].self, forKey: .artifacts) ?? []
+        let records = try container.decodeIfPresent([AgentArtifact].self, forKey: .artifactRecords)
+        guard records == nil || records?.map(\.value) == values else {
+            throw DecodingError.dataCorruptedError(forKey: .artifactRecords, in: container,
+                debugDescription: "Artifact metadata does not match the ordered values")
+        }
+        artifactRecords = records ?? values.map { AgentArtifact($0) }
         tool = try container.decodeIfPresent(String.self, forKey: .tool)
         arguments = try container.decodeIfPresent([String: String].self, forKey: .arguments) ?? [:]
         meetingID = try container.decodeIfPresent(UUID.self, forKey: .meetingID)
@@ -147,6 +158,34 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         durability = try container.decodeIfPresent(TaskDurability.self, forKey: .durability)
         pendingInteraction = try container.decodeIfPresent(TaskPendingInteraction.self, forKey: .pendingInteraction)
     }
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(objective, forKey: .objective)
+        try container.encode(source, forKey: .source)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(contextReferences, forKey: .contextReferences)
+        try container.encode(status, forKey: .status)
+        try container.encode(progress, forKey: .progress)
+        try container.encode(arguments, forKey: .arguments)
+        try container.encode(backend, forKey: .backend)
+        try container.encode(acpCLI, forKey: .acpCLI)
+        try container.encodeIfPresent(result, forKey: .result)
+        try container.encodeIfPresent(tool, forKey: .tool)
+        try container.encodeIfPresent(meetingID, forKey: .meetingID)
+        try container.encodeIfPresent(failure, forKey: .failure)
+        try container.encodeIfPresent(compatibilityCommand, forKey: .compatibilityCommand)
+        try container.encodeIfPresent(compatibilityCLI, forKey: .compatibilityCLI)
+        try container.encodeIfPresent(compatibilityDirectory, forKey: .compatibilityDirectory)
+        try container.encodeIfPresent(scheduleID, forKey: .scheduleID)
+        try container.encodeIfPresent(durability, forKey: .durability)
+        try container.encodeIfPresent(pendingInteraction, forKey: .pendingInteraction)
+        try container.encode(artifacts, forKey: .artifacts)
+        if artifactRecords.contains(where: { !$0.isLegacy }) {
+            try container.encode(artifactRecords, forKey: .artifactRecords)
+        }
+    }
+
 }
 
 enum AgentContextReference {

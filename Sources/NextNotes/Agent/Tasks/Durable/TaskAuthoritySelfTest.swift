@@ -108,7 +108,7 @@ enum TaskAuthoritySelfTest {
             let original = try rawChildren(f.sql)
             try require(try f.store.load() == rows, "ordered full payload/duplicates changed")
             try require(try rawChildren(f.sql) == original, "import changed raw children/future columns")
-            try require(try f.sql.withConnection { try TaskStore.integer($0, "PRAGMA user_version") } == 3, "schema not upgraded transactionally")
+            try require(try f.sql.withConnection { try TaskStore.integer($0, "PRAGMA user_version") } == TaskStoreSchema.version, "schema not upgraded transactionally")
             try require(try f.sql.integrityProblems().isEmpty, "import integrity failed")
         }
         test("schema2-read-is-not-upgrade") { f in

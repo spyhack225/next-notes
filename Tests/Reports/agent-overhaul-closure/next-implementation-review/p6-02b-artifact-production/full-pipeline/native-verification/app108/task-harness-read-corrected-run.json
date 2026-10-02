@@ -1,0 +1,11 @@
+{
+  "flag": "task-harness-read",
+  "exit": 0,
+  "durationSeconds": 0.209089994430542,
+  "markers": [
+    "TASK_HARNESS_READ_OK: 40 cases"
+  ],
+  "sourceInvariant": true,
+  "bundleInvariant": true,
+  "originalInvocation": "Preserved first refusal: repository --out path was invalid; existing pre-App contract requires system temporary directory. No producer/test source change or assertion relaxation."
+}

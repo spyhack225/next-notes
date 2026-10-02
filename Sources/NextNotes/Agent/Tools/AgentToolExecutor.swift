@@ -10,6 +10,7 @@ enum AgentToolExecutor {
     @MainActor static var fakeForTesting: FakeToolRun?
     /// Replaces only the external effect, after real approval, validity and argument checks.
     @MainActor static var fireOverrideForTesting: FakeToolRun?
+    @MainActor static var workspaceCLIForTesting: (any WorkspaceCLIRunning)?
     /// Fixture policy only; the real broker, review and final validity still run.
     @MainActor static var policyOverrideForTesting: PermissionPolicy?
 
@@ -418,6 +419,12 @@ enum AgentToolExecutor {
 
         switch tool.namespace {
         case .workspace:
+            if SelfTest.isRunning, let cli = workspaceCLIForTesting {
+                let proposal = AgentProposal(meetingID: UUID(), tool: tool.name,
+                    arguments: arguments, rationale: "", accountTag: nil,
+                    startsAt: proposalStartsAt(toolName: tool.name, arguments: arguments))
+                return try await WorkspaceToolRunner.run(proposal, cli: cli)
+            }
             let proposal = AgentProposal(
                 meetingID: UUID(),
                 tool: tool.name,

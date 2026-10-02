@@ -1,0 +1,340 @@
+{
+  "functionalPassed": 23,
+  "functionalTotal": 23,
+  "rawInvocationsUnchanged": true,
+  "records": [
+    {
+      "flag": "task-durability",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 0.9056351184844971,
+      "markers": [
+        "TASK_DURABILITY_OK: 37 cases"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    },
+    {
+      "flag": "task-authority",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 1.0350840091705322,
+      "markers": [
+        "TASK_AUTHORITY_OK: 58 cases"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    },
+    {
+      "flag": "task-recovery",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 0.7959892749786377,
+      "markers": [
+        "TASK_RECOVERY_OK: 56 cases"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    },
+    {
+      "flag": "task-restoration",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 1.1023280620574951,
+      "markers": [
+        "TASK_RESTORATION_OK: 82 cases"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    },
+    {
+      "flag": "task-history-repair",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 0.6831600666046143,
+      "markers": [
+        "TASK_HISTORY_REPAIR_OK: 58 cases"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    },
+    {
+      "flag": "task-harness-read",
+      "exit": 0,
+      "durationSeconds": 0.209089994430542,
+      "markers": [
+        "TASK_HARNESS_READ_OK: 40 cases"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "originalInvocation": "Preserved first refusal: repository --out path was invalid; existing pre-App contract requires system temporary directory. No producer/test source change or assertion relaxation.",
+      "initialRefusedInvocation": {
+        "flag": "task-harness-read",
+        "exit": 1,
+        "timeout": false,
+        "durationSeconds": 0.15064024925231934,
+        "markers": [
+          "TASK_HARNESS_READ_FAILED: output must be a temporary diagnostic file"
+        ],
+        "sourceInvariant": true,
+        "bundleInvariant": true
+      },
+      "functionalPass": true
+    },
+    {
+      "flag": "tasks",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 0.6696798801422119,
+      "markers": [
+        "TASKS_OK: submit, run and cancel hold"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    },
+    {
+      "flag": "receipt-persistence",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 0.618790864944458,
+      "markers": [
+        "RECEIPT_RUNTIME_OK: 5 cases"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    },
+    {
+      "flag": "toolloop-production",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 33.737330198287964,
+      "markers": [
+        "TOOLLOOP_PRODUCTION_OK"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    },
+    {
+      "flag": "toolloop",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 0.6753571033477783,
+      "markers": [
+        "TOOLLOOP_OK"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": false,
+      "functionalPass": true
+    },
+    {
+      "flag": "tool-review",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 0.7371518611907959,
+      "markers": [
+        "TOOL_REVIEW_OK"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": false,
+      "functionalPass": true
+    },
+    {
+      "flag": "tools",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 0.6247768402099609,
+      "markers": [
+        "TOOLS_OK: registry, router and broker hold"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    },
+    {
+      "flag": "ui-strings",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 2.133405923843384,
+      "markers": [
+        "UI_STRINGS_OK"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": false,
+      "functionalPass": true
+    },
+    {
+      "flag": "store-isolation",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 34.34224009513855,
+      "markers": [
+        "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged",
+        "TOOLLOOP_PRODUCTION_OK"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    },
+    {
+      "flag": "agent-presentation",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 0.7420938014984131,
+      "markers": [
+        "AGENT_PRESENTATION_OK: actual typed stream, stable commit, Stop, isolation"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    },
+    {
+      "flag": "routine-authority",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 1.7056307792663574,
+      "markers": [
+        "ROUTINE_AUTHORITY_OK"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": false,
+      "functionalPass": true
+    },
+    {
+      "flag": "scheduler",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 0.7823429107666016,
+      "markers": [
+        "SCHEDULER_OK"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": false,
+      "functionalPass": true
+    },
+    {
+      "flag": "schedule",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 0.8395059108734131,
+      "markers": [
+        "GOALS_OK goal=DE60CA87 nudges=1",
+        "SCHEDULE_OK"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": false,
+      "functionalPass": true
+    },
+    {
+      "flag": "acp",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 1.5440361499786377,
+      "markers": [
+        "ACP_OK: initialize, session, subscribe and permission relay hold"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    },
+    {
+      "flag": "mcp",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 0.6859850883483887,
+      "markers": [
+        "MCP_OK: initialize, session, list and call hold"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    },
+    {
+      "flag": "acp-confirm",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 0.5633010864257812,
+      "markers": [
+        "ACP_CONFIRM_OK"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": false,
+      "functionalPass": true
+    },
+    {
+      "flag": "voice-duplex-work",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 1.4553658962249756,
+      "markers": [
+        "VOICE_DUPLEX_WORK_OK"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": false,
+      "functionalPass": true
+    },
+    {
+      "flag": "voice-conversation",
+      "exit": 0,
+      "timeout": false,
+      "durationSeconds": 1.0238697528839111,
+      "markers": [
+        "VOICE_CONVERSATION_OK"
+      ],
+      "sourceInvariant": true,
+      "bundleInvariant": true,
+      "markerSource": "appLog+launcherStdout (intact markers only)",
+      "appLogExists": true,
+      "functionalPass": true
+    }
+  ]
+}

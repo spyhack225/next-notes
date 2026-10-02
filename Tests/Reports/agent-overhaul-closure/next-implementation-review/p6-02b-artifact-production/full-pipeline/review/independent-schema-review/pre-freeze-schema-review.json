@@ -1,0 +1,46 @@
+{
+  "status": "Read-only pre-freeze schema contract review; candidate mutable when read, no native verdict.",
+  "scope": "One encoding_version column in existing task_artifact, same snapshot/import transaction; no competing Source/native/index/build/model action.",
+  "sourcePins": {
+    "commonSchema": "96739e32e8d99b1665750df3b301e1097f85c1d5011ccf9417ca9ccaba7a7d36",
+    "fixedStore": "e7ed7aaad95a97150270f48e629ac11994ea6c716deea5c28080beada293cf5f",
+    "commonFixture": "b81f261b243b13b250f58eb757e490f0d3a4d2373e983f2963059f42b352f371"
+  },
+  "soundContracts": [
+    "Schema4 creation adds NOTNULL INTEGER DEFAULT0. Existing install validates old1/2/3 and does not install newcolumn on read. Existing readRows selects literal0 beforeversion4.",
+    "installPendingInteractions accepts1...4 including requiredold3; genuine migration occurs only existing snapshot/import transaction. Existing guard old1/2/version would have rejected3 afterbump if unchanged.",
+    "Common knownshape validation extends same artifact LIMIT0; artifact table_info executes onlycurrent<4, so no added schema4 steady-state query.",
+    "installAuthority old1 creates authority and marks2 inside import transaction beforeinstallPending, resulting4. Failed import/snapshot retains oldversion, rows, authority/events/witness under existing rollback.",
+    "Legacy encoding0 ignores any arbitrary SQLkind/title canonically, including exact/mixedcase/current/future prefix collision, and existingpath0 UPSERT preserves rawmetadata.",
+    "Only encoding1 enters exactartifact-v1 validation, nonempty NULfree kind; malformed/future encodingprefix refuses. Unknown valid semantic remains data but cannot imply created/open authority.",
+    "Fixed direct diagnosticversion1 refuses nonlegacy writes beforewriteRows/event by returnedexistingPRAGMA version; avoids typed write followed by literal0 read. Legacy diagnostic remains1; authorizedimport still1→2→4."
+  ],
+  "actualFixtureSourceControls": [
+    "Genuineold3 physicallydropsencodingcolumn and read provesnoinstallation; SQLUPDATEtrigger rejection brackets DB/export/WAL/schema/rawkindtitle, followed by admittedsamepathupgrade0.",
+    "Genuineold2 additionally dropspendingcolumn; genuineold1 dropsauthoritytable. Both readers preservelegacy/noinstallation.",
+    "Actual diagnosticv1 legacysave remains1; typedreplacement refuse before changing retainedrows/events/kinds.",
+    "Encoded0 exact/mixed/current/futureprefix collision metadata remainsbytefaithful at SQL row level; encoded2/nonintegerrefusal; encoded1 malformed/futureprefixrefusal; unknownvalidkind neutralconsumer."
+  ],
+  "pendingContractRisk": {
+    "description": "Pre-version4 files may already contain an extra arbitrary encoding_version column; validateKnown(old) permits extra columns and readRows ignoresit. installPending currently adopts a preexisting column solelybyname. Oldnonzero marker then changes interpretation; fixedsamepathlegacyUPSERT onlypreserves rawkind/title when oldmarker0, so an admitted upgrade can clear historicalmetadata.",
+    "classification": "Source-level scenario, not actual reproduced failure; no claim of owner collision or existing affected data.",
+    "coverageTrace": "Every valid retained ordinal is rewritten during import/replace, so no assertion of untouched row survives. The narrower concern is wrong adoption/erasure of nonneutral oldcolumn.",
+    "recommendedBoundary": "When current<4 andcolumnpreexists require integer0 values beforeadmission, otherwise refuse unchanged. Needs explicitlyjustified migration-only metadata query or equivalent proven existing seam; no schema4 per-save/query or newstore.",
+    "requiredSameControl": "Actual isolatedold3 withpreexistinginteger1/nonintegercolumn readneutral, attemptedupgrade refuses retainingDB/export/WAL/version/kinds andauthority; downstamp0 anddiagnosticrepeat0 cases remaingreen."
+  },
+  "requiredRelatedEvidence": [
+    "Same common schema4/Authorityliteral3→versionconstant/fixtures beforeboth",
+    "Existing Authority read-old2/import/SQL-reject/fileidentity/unknownschema refusal tests unchanged semantically; only versionconstant expectationupgrade",
+    "TaskStore durability/repair/recovery andtypedworker completion/sourceadmission regressions green",
+    "New schema4 missingencodingcolumn refuses beforepersistentjournalmodechange",
+    "Source/fullbundle pins and actual common count fromexecution, not stalefreeze108/131 estimates",
+    "No ownerstore access/migration and no older-reader rollback compatibility claim"
+  ],
+  "limits": [
+    "No artifactnative/UI/model/core claim; source-only review",
+    "Read-no-upgrade concerns schema/authority; broad diagnosticwithConnection may preserve its existing journal-mode behavior and is not equivalent to noncreating read-only authorityprobe",
+    "SameDB transaction and sourcebyte rollback do not establish crash/powerloss durability",
+    "Migration branch queries cost is bounded to knownupgrade; full-history/largeartifact latency stillunmeasured",
+    "No speculative newledger/queue/timer or encoding by arbitrary prefixalone"
+  ]
+}

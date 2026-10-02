@@ -82,7 +82,8 @@ enum FilesystemExecutor {
             throw AgentError.permissionDenied("That file is not text.")
         }
         let clipped = text.count > readCap ? String(text.prefix(readCap)) + "\n…" : text
-        return AgentToolResult(summary: clipped, reference: url.path)
+        return AgentToolResult(summary: clipped, reference: url.path,
+            artifactRecords: [AgentArtifact(url.path, kind: "filePathRead", title: url.lastPathComponent)])
     }
 
     private static func write(path: String, text: String) throws -> AgentToolResult {
@@ -90,7 +91,8 @@ enum FilesystemExecutor {
         guard let url else { throw AgentError.missingArgument(name: "path", tool: "filesystem.write") }
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try text.write(to: url, atomically: true, encoding: .utf8)
-        return AgentToolResult(summary: "Wrote \(url.lastPathComponent).", reference: url.path)
+        return AgentToolResult(summary: "Wrote \(url.lastPathComponent).", reference: url.path,
+            artifactRecords: [AgentArtifact(url.path, kind: "filePathSaved", title: url.lastPathComponent)])
     }
 
     private static func move(from: String, to: String) throws -> AgentToolResult {

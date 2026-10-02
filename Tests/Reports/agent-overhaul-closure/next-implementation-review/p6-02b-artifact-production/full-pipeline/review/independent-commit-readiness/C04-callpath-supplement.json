@@ -1,0 +1,19 @@
+{
+  "status": "Actual C04 source-path supplement; no controlled model latency causality proof",
+  "pins": {
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEval.swift": "22251d95f178bcd5c359fad56f7f991751d742bd6e9a7c98a5d635f21984d538",
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalFixtures.swift": "37e246abc0767e034e1a0119300a4ed905176eb234982942fc045ac415b1ed58",
+    "Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift": "033abc7aba02b6ab18acd626e14570347cda38f3e8da90a5c21725be4ca55cc6",
+    "Sources/NextNotes/Agent/Planner/ToolStepRunner.swift": "121d289b5fa4cdfe8f1749fe04ea8690f369a834cc05ad8ab47ef3c92e5d008b",
+    "Sources/NextNotes/Agent/AgentModels.swift": "f4bd19df21c790797086cc5c357cd9090167fe8a4fcd1facdfeb39470c7946de"
+  },
+  "pinsAtRead": "Current fixed108 fullsource freeze, read-only",
+  "calls": [
+    "ToolLoopLiveEval.swift561 sets fakeForTesting=fixtures.run; unchanged eval boundary.",
+    "ToolLoopLiveEvalFixtures.swift379-385 records calls, constructs AgentToolResult(summary: fixture summary), no reference/link/artifact metadata.",
+    "AgentToolExecutor.swift47-48 returns actual fake before perform, runtime/receipt/result capture and injected workspaceCLI branch.",
+    "ToolStepRunner.swift353 retains existing capture seam. With nil ref/link and default empty artifactRecords this captures zero records in both original/fixed;371 returns unchanged result.summary to planner.",
+    "AgentModels.swift279-285 new compatibility default maps absent reference/link to empty records; preserves summary and prior scalar fields."
+  ],
+  "conclusion": "C04 concrete quick fixture path does not invoke changed WorkspaceToolRunner producer or real Docs/receipt/task artifact runtime. It still calls amended zero-record capture/default metadata code. No metadata/body/title can be passed from C04 fixture through that capture. Source route and identical first-two prompt counts support bounded input parity; they do not measure total system/model timing independence."
+}

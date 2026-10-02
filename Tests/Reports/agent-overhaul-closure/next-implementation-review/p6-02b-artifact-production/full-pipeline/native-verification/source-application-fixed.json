@@ -1,0 +1,24 @@
+{
+  "appliedAt": "2026-10-02T23:27:08.874678+00:00",
+  "proposalManifestAtRead": "f96aca6a353af31a2d82d55850fde52b9290cfb500bed6c4cce4c7a0161fd5cd",
+  "originalNativeAdmission": "app107 RED23 only feature failures, controls complete, source/bundle unchanged",
+  "change": "seven responsible producer delta; common Projector EOF preserved across both",
+  "before": {
+    "Agent/Activity/AgentActivityProjector.swift": "165af3be86b5ae5cb9df73ec56341b4a4a88500c73b0e4b6fe48a84ee003903d",
+    "Agent/Backend/LocalAgentBackend.swift": "869c607a427e25a77edbabeb6872d8ab6d6130425932b53bfc6d3fe41602ded4",
+    "Agent/Tasks/AgentArtifactLedger.swift": "59b054a243d84ffa75246b344f7a72f57ede8f4940caf07818263d5a52683861",
+    "Agent/Tasks/AgentTaskManager.swift": "1340cd62e546add823fa8f6dab9096323a54fa5fd7d06feb42b8dd5d181764aa",
+    "Agent/Tasks/Durable/TaskStore.swift": "1cb0dc89dea672311110f913971181222229b8332e1ab65d0681f239b71a6744",
+    "Agent/WorkspaceToolRunner.swift": "20051a3bbe6778e3acd0abb9cf8f7ca003008f1ad068adf5d7e17d6c8513f1ef",
+    "Shell/FilesystemExecutor.swift": "ebc37c2812aae9ec0a8480c46bd1adf776a9e837dfdeb66df826f0555db56564"
+  },
+  "after": {
+    "Agent/Activity/AgentActivityProjector.swift": "df03c11401e3d7688a6ea1b9342720ebf20dc38824f49a17f49b456fb43d8ec5",
+    "Agent/Backend/LocalAgentBackend.swift": "c7f2afc2e02a8be3ce18375b882869e789521ca2fafbcbd083809cf536755300",
+    "Agent/Tasks/AgentArtifactLedger.swift": "ffcc3052348bb03cf46e1a62885c31a1c2338dd3a1ac885daa0882d23974f758",
+    "Agent/Tasks/AgentTaskManager.swift": "d511f3706cd917913b2276b074aa98c6e74048b8ccc968cea92e68d012407687",
+    "Agent/Tasks/Durable/TaskStore.swift": "e7ed7aaad95a97150270f48e629ac11994ea6c716deea5c28080beada293cf5f",
+    "Agent/WorkspaceToolRunner.swift": "58f990c41043f3c9cfb04c4d3b38b4e28bfd663bf6e8697d447e7756586bfc24",
+    "Shell/FilesystemExecutor.swift": "4a3e74ae35e3417a7f61a54053aeaf25d8e39f40d91c27d5d810cf730564e303"
+  }
+}

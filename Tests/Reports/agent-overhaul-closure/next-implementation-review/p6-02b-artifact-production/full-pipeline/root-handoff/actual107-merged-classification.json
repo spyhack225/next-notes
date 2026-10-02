@@ -1,0 +1,176 @@
+{
+  "phase": "original",
+  "marker": "TASK_WORKER_ATTEMPT_FAILED: 23 assertions",
+  "failures": [
+    {
+      "message": "artifact feature: real approved document kind/title did not reach fresh canonical task",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: actual producer metadata did not occupy existing ordered SQL columns",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: actual card projection lost approved labels or honest Open/Copy semantics",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: couldNotVerify task implied created success or guessed an Open target",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: failed/unadmitted task implied created success (terminal-receipt-rejected)",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: failed/unadmitted task implied created success (completion-journal-rejected)",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: failed/unadmitted task implied created success (terminal-task-rejected)",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: real file read was labelled created/unknown",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: actual path-only failure Open no-op or implied success",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: same-task forged URL replaced the bound producer location",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: typed capture rewrote exact file location or emitted a duplicate trimmed path",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: exact trailing-space producer location did not reach actual card Open backing",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: explicit mixed named Open refused row1",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: explicit mixed named Open refused row2",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: mixed URL/path/fileURL opened wrong target or blindly opened multiple",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: ID/receipt/malformed/legacy unknown guessed an Open target row5",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: ID/receipt/malformed/legacy unknown guessed an Open target row7",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: explicit credential URL crossed named Open boundary",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: malformed/future versioned SQL metadata was silently admitted",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: malformed/future versioned SQL metadata was silently admitted",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: unknown versioned semantic authorized Open/created output",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: diagnostic v1 accepted an unobservable typed write or changed retained schema/events/metadata",
+      "category": "feature"
+    },
+    {
+      "message": "artifact feature: actual ACP couldNotVerify reply became created metadata",
+      "category": "feature"
+    }
+  ],
+  "unexpectedFailures": [],
+  "modeTraces": [
+    [
+      "accepted",
+      "3",
+      "true",
+      "completed",
+      "2",
+      "link,link",
+      "0"
+    ],
+    [
+      "readback-unverified",
+      "3",
+      "true",
+      "completed",
+      "2",
+      "link,link",
+      "0"
+    ],
+    [
+      "start-rejected",
+      "0",
+      "false",
+      "failed",
+      "0",
+      "",
+      "0"
+    ],
+    [
+      "terminal-receipt-rejected",
+      "3",
+      "true",
+      "failed",
+      "0",
+      "",
+      "2"
+    ],
+    [
+      "completion-journal-rejected",
+      "3",
+      "true",
+      "failed",
+      "0",
+      "",
+      "2"
+    ],
+    [
+      "terminal-task-rejected",
+      "3",
+      "true",
+      "running",
+      "0",
+      "",
+      "0"
+    ]
+  ],
+  "intactFinalMarkersAgree": true,
+  "streamEvents": {
+    "appLog": 30,
+    "stdout": 28,
+    "merged": 30
+  },
+  "bufferedFragments": {
+    "appLog": [],
+    "stdout": [
+      "TASK_WORKER_ATTEMPT_WRONG: artifact feature: ID/receipt/TASK_WORKER_ATTEMPT_FAILED: 23 assertions"
+    ]
+  },
+  "modeControlsComplete": true,
+  "failureNumberMatchesLog": true,
+  "actualCaseCount": null,
+  "preparedExpectedChecks": 1487,
+  "preparedNewChecks": 135,
+  "priorBaselineChecks": 1352,
+  "validOriginalFeatureRED": true,
+  "validFixedPASS": false,
+  "limit": "Failed marker prints assertions, not executed cases;1487 on original is preparation arithmetic only. Prior1352 source calls retained; any prior/control/input/owner failure invalidates RED."
+}
