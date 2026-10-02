@@ -1,0 +1,151 @@
+import Foundation
+
+/// Actual local read, real terminal SQL rejection, then the EXACT retained context/task.
+/// Same actual inputs exercise normal terminal and rejected-terminal retained-context replay.
+@MainActor
+enum TaskWorkerReleasedContextSelfTest {
+    private enum FixtureError: Error { case unsafeRoot, absentContext, timeout, wrongBacking }
+    private static func reached(_ condition: @MainActor () -> Bool) async -> Bool {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+        while ContinuousClock.now < deadline {
+            if condition() { return true }
+            await Task.yield()
+        }
+        return condition()
+    }
+    static func originalCases(root: URL, input: URL, text: String,
+                              check: (Bool, String) -> Void) async throws {
+        let safe = root.resolvingSymlinksInPath().standardizedFileURL
+        let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        let originalInput = input.resolvingSymlinksInPath().standardizedFileURL
+        guard SelfTest.isRunning, safe.path.hasPrefix(temporary.path + "/"),
+              !safe.pathComponents.contains("Application Support"),
+              originalInput.path.hasPrefix(safe.path + "/") else { throw FixtureError.unsafeRoot }
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        defer {
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+        }
+        AgentToolExecutor.fakeForTesting = nil
+        AgentToolExecutor.policyOverrideForTesting = .selfTest
+        for rejectTerminal in [false, true] {
+            let flow = safe.appendingPathComponent(rejectTerminal ? "released-context-rejected" : "released-context-terminal", isDirectory: true)
+            try FileManager.default.createDirectory(at: flow, withIntermediateDirectories: false)
+            let sql = TaskStore(root: flow)
+            defer { sql.authorityBoundaryForTesting = nil; sql.close() }
+            let store = AgentTaskStore(fileURL: flow.appendingPathComponent("agent-tasks.json"), mirror: sql)
+            guard store.allowsHarnessPersistence else { throw FixtureError.unsafeRoot }
+            let receiptURL = flow.appendingPathComponent("action-receipts.json")
+            let receipts = ActionReceiptStore(fileURL: receiptURL)
+            let manager = AgentTaskManager(store: store, receiptStore: receipts)
+            var capturedContext: TaskJournalContext?
+            var capturedTask: AgentTask?
+            var entryBinding: TaskWorkerBinding?
+            var entryValid = false
+            var entered = 0
+            var ended = false
+            var effects = 0
+            var announcements: [String] = []
+            manager.backendExitForTesting = { ended = true }
+            manager.announcementForTesting = { announcements.append($0) }
+            manager.backendEntryForTesting = {
+                entered += 1
+                guard let context = TaskEventJournal.current,
+                      let task = manager.task(id: context.taskID) else { throw FixtureError.absentContext }
+                capturedContext = context
+                capturedTask = task
+                entryBinding = manager.workerBinding(taskID: task.id)
+                entryValid = context.isStillValid?() == true
+                if rejectTerminal {
+                    try sql.withConnection { db in
+                        try TaskStore.exec(db, "CREATE TRIGGER reject_released_terminal BEFORE UPDATE ON task WHEN NEW.state='completed' BEGIN SELECT RAISE(ABORT,'fixture rejected terminal SQL'); END")
+                    }
+                }
+            }
+            AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+                guard tool.id == "filesystem.read", arguments == ["path": input.path] else {
+                    throw FixtureError.wrongBacking
+                }
+                effects += 1
+                return try FilesystemExecutor.run(tool, arguments: arguments)
+            }
+            let submitted = manager.submit(objective: "Read the same owned temporary input once",
+                tool: "filesystem.read", arguments: ["path": input.path], source: "selftest")
+            guard await reached({ ended }) else { manager.cancel(submitted.id); throw FixtureError.timeout }
+            guard let context = capturedContext, let task = capturedTask,
+                  let attempt = task.durability?.attempt, let owner = task.durability?.leaseOwner else {
+                throw FixtureError.absentContext
+            }
+            let rowBefore = try sql.load().first { $0.id == submitted.id }
+            let journalBefore = try sql.journal(taskID: submitted.id)
+            let receiptBefore = try Data(contentsOf: receiptURL)
+            check(entered == 1 && effects == 1 && entryValid && entryBinding?.attempt == attempt
+                && entryBinding?.leaseOwner == owner && entryBinding?.startedAt == task.durability?.attemptStartedAt,
+                "Released context: original actual read missed its admitted live binding")
+            check(manager.workerBinding(taskID: submitted.id) == nil,
+                "Released context: actual backend defer did not release its original handle")
+            if rejectTerminal {
+                check(rowBefore?.status == .running && rowBefore?.result == nil
+                    && manager.lastPersistenceResult == .sqlFailed
+                    && !announcements.contains { $0.contains(text) || $0.hasPrefix("fixture artifact announcement:") },
+                    "Released context: same terminal rejection did not retain original running SQL without success")
+            } else {
+                check(rowBefore?.status == .completed && rowBefore?.result?.contains(text) == true,
+                    "Released context: normal admitted terminal control lost its original result")
+            }
+            check(receipts.receipts.contains { $0.taskID == submitted.id && $0.status == .completed
+                && $0.events.contains { $0.stage == .fired } },
+                "Released context: original single read lost its actual terminal receipt")
+            let expected = TaskWorkerWriteCondition(taskID: submitted.id, attempt: attempt,
+                leaseOwner: owner, status: .running)
+            check(store.workerPrimaryObservation(expected).outcome == (rejectTerminal ? .accepted : .mismatch),
+                "Released context: primary control did not distinguish running-row acceptance from terminal rejection")
+            var opens = 0
+            sql.authorityBoundaryForTesting = { name, _ in if name == "existingOpened" { opens += 1 } }
+            let oldValidity = context.isStillValid?()
+            let directValidityOpens = opens
+            var replayCompleted = false
+            var replayRefused = false
+            do {
+                let outcome = try await TaskEventJournal.$current.withValue(context) {
+                    try await LocalAgentBackend().submit(task)
+                }
+                replayCompleted = outcome.status == .completed
+            } catch let error as AgentError {
+                if case .backendUnavailable(let message) = error {
+                    replayRefused = message.contains("can’t safely continue") && message.contains("Nothing was run")
+                }
+            } catch { replayRefused = false }
+            let replayOpens = opens - directValidityOpens
+            sql.authorityBoundaryForTesting = nil
+            check(oldValidity == false,
+                "Released context: absent original handle still supplied live execution validity")
+            check(directValidityOpens == 0 && replayOpens == 0,
+                "Released context: absent handle still opened primary SQL during validity or actual backend replay")
+            check(replayRefused && !replayCompleted && effects == 1,
+                "Released context: exact retained LocalBackend context re-fired the same original read")
+            check(try sql.load().first { $0.id == submitted.id } == rowBefore
+                && sql.journal(taskID: submitted.id) == journalBefore,
+                "Released context: refused replay changed original primary task or journal")
+            check(try Data(contentsOf: receiptURL) == receiptBefore,
+                "Released context: refused replay wrote a second actual runtime receipt")
+            check(manager.workerBinding(taskID: submitted.id) == nil
+                && manager.workerPrimaryObservation(taskID: submitted.id) == nil
+                && manager.workerToolBackingObservation(taskID: submitted.id) == nil,
+                "Released context: old execution recreated handle-bound observations")
+            // The same real released callback cannot authorize new permission facts,
+            // even when a rejected terminal save leaves its primary row running.
+            for kind in [TaskEventKind.permissionRequested, .permissionApproved, .permissionDenied] {
+                check(!context.record(TaskJournalEventDraft(taskID: submitted.id,
+                    kind: kind, attempt: attempt)),
+                    "Released context: permission fact accepted without its original live handle (\(kind.rawValue))")
+            }
+            check(try sql.load().first { $0.id == submitted.id } == rowBefore
+                && sql.journal(taskID: submitted.id) == journalBefore,
+                "Released context: refused permission facts changed primary task or journal")
+        }
+    }
+}

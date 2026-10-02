@@ -1,0 +1,90 @@
+swift build -c debug --scratch-path "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch"
+warning: 'speechify': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for debugging...
+[Pre-planning 1 / 275]
+[Planning deferred tasks]
+[1 / 1]
+[1 / 23] NextNotes-product
+[7 / 12] NextNotes-product
+[13 / 23]
+[18 / 23] NextNotes-product
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift:211:25: warning: result of call to 'run(resultType:body:)' is unused [#NoUsage]
+209 | 
+210 |     func respondInput(taskID: String, text: String) async {
+211 |         await MainActor.run { AgentTaskManager.shared.respondInput(taskID: taskID, text: text) }
+    |                         `- warning: result of call to 'run(resultType:body:)' is unused [#NoUsage]
+212 |     }
+213 | 
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:79:22: warning: result of call to function returning 'Bool' is unused [#NoUsage]
+ 77 |             let terminal = try sql.load()
+ 78 |             let events = try sql.journal(taskID: task.id)
+ 79 |             captured.record(TaskJournalEventDraft(taskID: task.id, kind: .toolStarted,
+    |                      `- warning: result of call to function returning 'Bool' is unused [#NoUsage]
+ 80 |                 detail: "filesystem.read", attempt: captured.attempt))
+ 81 |             let after = try sql.journal(taskID: task.id)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:306:22: warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+304 |             else { suspended.resume(throwing: AgentError.backendUnavailable("Late cancellation-ignoring backing")) }
+305 |             check(await reached { ended }, "late error did not causally unwind through Manager")
+306 |             context?.record(TaskJournalEventDraft(taskID: task.id, kind: .toolStarted,
+    |                      `- warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+307 |                 detail: "filesystem.read", attempt: context?.attempt ?? 0))
+308 |             check(try sql.load() == cancelled
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:395:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+393 |                 "owner variant fresh manager did not hold actual saved work")
+394 |             guard let context = fresh.journalContext(taskID: saved.id) else { throw OwnerFixtureError() }
+395 |             let valid = await context.isStillValid?() ?? true
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+396 |             check(context.isStillValid != nil && !valid,
+397 |                 "recognized local attempt downgraded to unbound or gained live validity (\(name))")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskACPGateAdmissionSelfTest.swift:95:17: warning: variable 'holdingManager' was written to, but never read
+ 93 |             var announcements: [String] = []
+ 94 |             var holdingSQL: TaskStore?
+ 95 |             var holdingManager: AgentTaskManager?
+    |                 `- warning: variable 'holdingManager' was written to, but never read
+ 96 |             defer { holdingSQL?.close() }
+ 97 |             let askBefore = PermissionGate.shared.askCount
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:306:22: warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+304 |             else { suspended.resume(throwing: AgentError.backendUnavailable("Late cancellation-ignoring backing")) }
+305 |             check(await reached { ended }, "late error did not causally unwind through Manager")
+306 |             context?.record(TaskJournalEventDraft(taskID: task.id, kind: .toolStarted,
+    |                      `- warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+307 |                 detail: "filesystem.read", attempt: context?.attempt ?? 0))
+308 |             check(try sql.load() == cancelled
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:395:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+393 |                 "owner variant fresh manager did not hold actual saved work")
+394 |             guard let context = fresh.journalContext(taskID: saved.id) else { throw OwnerFixtureError() }
+395 |             let valid = await context.isStillValid?() ?? true
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+396 |             check(context.isStillValid != nil && !valid,
+397 |                 "recognized local attempt downgraded to unbound or gained live validity (\(name))")
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/AppleModelWarmth.swift:40:13: warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 38 |     /// timeout closure without hopping to the main actor (D-07): the per-call ceiling
+ 39 |     /// is computed per chunked call, on whatever task asked for it.
+ 40 |     private nonisolated(unsafe) static let warmthLock = NSLock()
+    |             `- warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 41 |     private nonisolated(unsafe) static var warmWindowStorage: Duration = .seconds(600)
+ 42 |     private nonisolated(unsafe) static var lastActivityStorage: Date?
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[20 / 23] NextNotes-product
+[21 / 23] NextNotes-product
+[22 / 23] NextNotes-product
+Build complete! (24.27 sec)
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/sergekadjo/Library/Caches/NextNotesBuild/install-67233/Next Notes.app/Contents/MacOS/NextNotes
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-67233/Next Notes.app/Contents/Frameworks/llama.framework: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-67233/Next Notes.app/Contents/Frameworks/libwebrtc-audio-processing-2.1.dylib: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-67233/Next Notes.app/Contents/Frameworks/libNextNotesAEC.dylib: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-67233/Next Notes.app: replacing existing signature
+built /Users/sergekadjo/Library/Caches/NextNotesBuild/install-67233/Next Notes.app  [signed: Next Notes Local Signing]
+installed to /Applications/Next Notes.app

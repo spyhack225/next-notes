@@ -1,0 +1,26 @@
+{
+  "anchor": "try await TaskACPNestedAttemptSelfTest.originalCases(root: root, check: check)",
+  "append": "try await TaskACPGateAdmissionSelfTest.originalCases(root: root, check: check)",
+  "normalAdditionalChecks": 160,
+  "predictedTotalIfAllExecute": 1017,
+  "priorChecks": 857,
+  "breakdown": {
+    "common20PerMode": 120,
+    "pendingC10FiveModes": 5,
+    "nonheldC19FiveModes": 5,
+    "requestR3": 3,
+    "heldH5": 5,
+    "acceptedA1": 1,
+    "withdrawalX1": 1,
+    "ownerO1": 1,
+    "decisionD6TwoModes": 12,
+    "taskOnlyE1FiveModes": 5,
+    "calibrationK2": 2
+  },
+  "cleanupFailureCheck": "conditional; not included in normal count",
+  "compiled": false,
+  "nativeVerdict": null,
+  "priorMainBaseline": 849,
+  "rootIndependentCommonExtensionChecks": 8,
+  "rootIndependentExtension": "TaskWorkerReleasedContextSelfTest: retained released contexts refuse requested/approved/denied facts with exact SQL/journal; common before BOTH78/79; Source owned by root"
+}

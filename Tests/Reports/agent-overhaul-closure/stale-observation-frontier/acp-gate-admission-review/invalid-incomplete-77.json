@@ -1,0 +1,10 @@
+{
+  "build": 77,
+  "verdict": "FAILED5; new approval-rejected review readiness control false then timeout; no complete six-mode proof",
+  "exactRejectedReviewUnavailable": true,
+  "sourceHypothesis": "unknown fallback taskID text may recognize a generated UUID decimal segment as unconfirmed phone",
+  "broaderIdentifierReviewBugFixed": false,
+  "sourceDrift": [],
+  "sameInstalledBundle": true,
+  "rawArtifactsPreserved": true
+}

@@ -1,0 +1,21 @@
+{
+  "anchor": "try await TaskACPNestedAttemptSelfTest.originalCases(root: root, check: check)",
+  "append": "try await TaskACPGateAdmissionSelfTest.originalCases(root: root, check: check)",
+  "normalAdditionalChecks": 151,
+  "predictedTotalIfAllExecute": 1000,
+  "priorChecks": 849,
+  "breakdown": {
+    "common20PerMode": 120,
+    "pendingC10FiveModes": 5,
+    "nonheldC19FiveModes": 5,
+    "requestR3": 3,
+    "decisionD5TwoModes": 10,
+    "heldH5": 5,
+    "acceptedA1": 1,
+    "withdrawalX1": 1,
+    "ownerO1": 1
+  },
+  "cleanupFailureCheck": "conditional; not included in normal count",
+  "compiled": false,
+  "nativeVerdict": null
+}

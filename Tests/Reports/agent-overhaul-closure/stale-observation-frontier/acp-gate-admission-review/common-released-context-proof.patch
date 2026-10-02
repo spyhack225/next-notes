@@ -1,0 +1,19 @@
+--- before/TaskWorkerReleasedContextSelfTest.swift
++++ common/TaskWorkerReleasedContextSelfTest.swift
+@@ -136,6 +136,16 @@
+                 && manager.workerPrimaryObservation(taskID: submitted.id) == nil
+                 && manager.workerToolBackingObservation(taskID: submitted.id) == nil,
+                 "Released context: old execution recreated handle-bound observations")
++            // The same real released callback cannot authorize new permission facts,
++            // even when a rejected terminal save leaves its primary row running.
++            for kind in [TaskEventKind.permissionRequested, .permissionApproved, .permissionDenied] {
++                check(!context.record(TaskJournalEventDraft(taskID: submitted.id,
++                    kind: kind, attempt: attempt)),
++                    "Released context: permission fact accepted without its original live handle (\(kind.rawValue))")
++            }
++            check(try sql.load().first { $0.id == submitted.id } == rowBefore
++                && sql.journal(taskID: submitted.id) == journalBefore,
++                "Released context: refused permission facts changed primary task or journal")
+         }
+     }
+ }

@@ -1,0 +1,12 @@
+Sources/NextNotes/Agent/Tasks/Durable/TaskACPGateAdmissionSelfTest.swift:527: trailing whitespace.
++        
+Sources/NextNotes/Agent/Tasks/Durable/TaskACPGateAdmissionSelfTest.swift:545: trailing whitespace.
++        
+Sources/NextNotes/Agent/Tasks/Durable/TaskACPGateAdmissionSelfTest.swift:550: trailing whitespace.
++        
+Sources/NextNotes/Agent/Tasks/Durable/TaskACPGateAdmissionSelfTest.swift:554: trailing whitespace.
++        
+Sources/NextNotes/Agent/Tasks/Durable/TaskACPGateAdmissionSelfTest.swift:566: trailing whitespace.
++        
+Sources/NextNotes/Agent/Tasks/Durable/TaskACPGateAdmissionSelfTest.swift:642: trailing whitespace.
++        

@@ -1,0 +1,8 @@
+{
+  "additionalChecks": 8,
+  "cases": "actual completed/rejected-terminal workers, retained original contexts, released original handles",
+  "beforeSHA256": "8e4dfe3195c97a30ca1163a80b794ca2c801682a2ec9badfa8ff133d41ac969f",
+  "commonSHA256": "e54ed6c78f654b27f4810991afb4e1c82fa4fdba6da1c6f785cad6d639950b37",
+  "sourceApplied": false,
+  "sameBeforeBothRequired": true
+}

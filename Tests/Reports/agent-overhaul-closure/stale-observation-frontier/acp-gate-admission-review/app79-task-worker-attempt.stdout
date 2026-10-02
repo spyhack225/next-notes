@@ -1,0 +1,130 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-worker-attempt --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-acp-origin-79-0bkt1t5v/task-worker-attempt.log
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+TASK_RECEIPT_COMPLETION_TRACE: terminal=failed effects=1 resultDelivered=false retainedFired=true primaryLink=true
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=mismatch
+TASK_RECEIPT_SOURCE_TRACE: terminal=failed effects=1 resultDelivered=false retainedFired=true primaryLink=true
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_ACP_UNVERIFIED_TRACE: mode=accepted terminal=completed attempt=1 starts=1 delivered=true retainedFired=false
+TASK_ACP_UNVERIFIED_PEER: mode=accepted stderr=
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+TASK_ACP_UNVERIFIED_TRACE: mode=terminal-write-rejected terminal=failed attempt=1 starts=1 delivered=false retainedFired=true
+TASK_ACP_UNVERIFIED_PEER: mode=terminal-write-rejected stderr=
+TASK_ACP_RECEIPT_START_TRACE: mode=accepted terminal=completed joined=1 launched=true starts=1 receiptStage=couldNotVerify receiptEmpty=false receiptArtifacts=1
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_ACP_RECEIPT_START_TRACE: mode=tool-start-rejected terminal=failed joined=0 launched=false starts=1 receiptStage=failed receiptEmpty=true receiptArtifacts=0
+TASK_ACP_RECEIPT_COMPLETION_TRACE: mode=accepted terminal=completed joined=1 launched=true starts=1
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_ACP_RECEIPT_COMPLETION_TRACE: mode=completion-rejected terminal=failed joined=1 launched=true starts=1
+TASK_RECEIPT_QUALITY_TRACE: mode=accepted effects=1 terminal=completed load=readable writeCheck=matched freshLoad=readable
+RECEIPT_SOURCE_DIAGNOSTIC: load=readable writeCheck=mismatch
+TASK_RECEIPT_QUALITY_TRACE: mode=source-changed effects=1 terminal=failed load=readable writeCheck=mismatch freshLoad=partial
+TASK_ACP_NESTED_ENTRY_TRACE: mode=accepted entryValid=true receiptOwner=true memoryStart=1790962598.986263 diskStart=1790962598.0 canonicalStart=1790962598.0
+TASK_ACP_NESTED_ATTEMPT_TRACE: mode=accepted wireOutcome=selected wireOption=fixture-allow-once primary=completed originalMemory=completed heldStarts=0 starts=1 ended=1 joined=1 receiptStage=couldNotVerify
+TASK_ACP_NESTED_ENTRY_TRACE: mode=fresh-primary-held entryValid=true receiptOwner=true memoryStart=1790962599.063596 diskStart=1790962599.0 canonicalStart=1790962599.0
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_ACP_NESTED_ATTEMPT_TRACE: mode=fresh-primary-held wireOutcome=selected wireOption=fixture-reject-once primary=recovering originalMemory=running heldStarts=0 starts=1 ended=1 joined=1 receiptStage=couldNotVerify
+TASK_ACP_NESTED_ENTRY_TRACE: mode=accepted entryValid=true receiptOwner=true memoryStart=1790962599.145028 diskStart=1790962599.0 canonicalStart=1790962599.0
+TASK_ACP_GATE_REVIEW_TRACE: mode=accepted fields=2 problems=0 taskProblem=none unverified=0
+TASK_ACP_GATE_TRACE: mode=accepted wire=fixture-allow-once primary=completed originalMemory=completed requests=1 decisions=1 starts=1 ended=1 joined=1 askDelta=1
+TASK_ACP_NESTED_ENTRY_TRACE: mode=request-rejected entryValid=true receiptOwner=true memoryStart=1790962599.2435389 diskStart=1790962599.0 canonicalStart=1790962599.0
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_ACP_GATE_TRACE: mode=request-rejected wire=fixture-reject-once primary=completed originalMemory=completed requests=0 decisions=0 starts=1 ended=1 joined=1 askDelta=1
+TASK_ACP_NESTED_ENTRY_TRACE: mode=approval-rejected entryValid=true receiptOwner=true memoryStart=1790962599.329763 diskStart=1790962599.0 canonicalStart=1790962599.0
+TASK_ACP_GATE_REVIEW_TRACE: mode=approval-rejected fields=2 problems=0 taskProblem=none unverified=0
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_ACP_GATE_TRACE: mode=approval-rejected wire=fixture-allow-once primary=completed originalMemory=completed requests=1 decisions=1 starts=1 ended=1 joined=1 askDelta=1
+TASK_ACP_NESTED_ENTRY_TRACE: mode=denial-rejected entryValid=true receiptOwner=true memoryStart=1790962599.4249802 diskStart=1790962599.0 canonicalStart=1790962599.0
+TASK_ACP_GATE_REVIEW_TRACE: mode=denial-rejected fields=2 problems=0 taskProblem=none unverified=0
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_ACP_GATE_TRACE: mode=denial-rejected wire=fixture-reject-once primary=completed originalMemory=completed requests=1 decisions=1 starts=1 ended=1 joined=1 askDelta=1
+TASK_ACP_NESTED_ENTRY_TRACE: mode=fresh-primary-held entryValid=true receiptOwner=true memoryStart=1790962599.518114 diskStart=1790962599.0 canonicalStart=1790962599.0
+TASK_ACP_GATE_REVIEW_TRACE: mode=fresh-primary-held fields=2 problems=0 taskProblem=none unverified=0
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_WORKER_ATTEMPT_OK: 1017 cases
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_ACP_GATE_TRACE: mode=fresh-primary-held wire=fixture-reject-once primary=cancelled originalMemory=running requests=1 decisions=0 starts=1 ended=1 joined=1 askDelta=1
+TASK_ACP_NESTED_ENTRY_TRACE: mode=cancel-denial-rejected entryValid=true receiptOwner=true memoryStart=1790962599.607271 diskStart=1790962599.0 canonicalStart=1790962599.0
+TASK_ACP_GATE_REVIEW_TRACE: mode=cancel-denial-rejected fields=2 problems=0 taskProblem=none unverified=0
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_ACP_GATE_TRACE: mode=cancel-denial-rejected wire=fixture-reject-once primary=completed originalMemory=completed requests=1 decisions=0 starts=1 ended=1 joined=1 askDelta=1

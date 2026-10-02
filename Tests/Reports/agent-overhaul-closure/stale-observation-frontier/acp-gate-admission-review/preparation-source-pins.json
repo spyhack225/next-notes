@@ -1,0 +1,16 @@
+{
+  "note": "Read-only revised preparation pins; current fixed77 source, NOT executed source manifest or original78 baseline",
+  "sha256": {
+    "Sources/NextNotes/Agent/Permissions/PermissionGate.swift": "72d26742078d8fcd1a0845ff0707750a23ad5b04abe5f9e87b70bbc821b59a1e",
+    "Sources/NextNotes/Agent/Permissions/PermissionBroker.swift": "9c24e94b2f3f81a1e7a0c047950cf1df8ca7ea2f66dc103a129ad5b30b8a08e3",
+    "Sources/NextNotes/Agent/Backend/ACPSession.swift": "8bd9648010b4b5e5d26b709ad396448b1124eb72a10931a57ebe17bb00d6a52d",
+    "Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift": "cb3aee1b645a21dfb822dee8d20cea935a104aff0b141bf45c7fcbe235526f99",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift": "a1aef582ab9b22dc305533435e331baeb3abda5cbb0b06ce0bce97c027776310",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "f54c9466d043c064c1e835bf4598d9b42acb76c76c177330e76c97102d068313",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskEventJournal.swift": "fda5c495b865ed1017c7ab1fea9911f61e318490b7ae7bc766f41729cf54ec50",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift": "4f4dfaa0b24e0046893ae658fbce73a5dd72dea5efe3e4a83ff44337ccdef325",
+    "Sources/NextNotes/Agent/Permissions/ToolCallReviewStore.swift": "5bde038c10c0ae0a26e251520ca068ba702afc8cc575e693705d3aacec9a5f89",
+    "Sources/NextNotes/Agent/Permissions/ToolCallReviewBuilder.swift": "55cbd25db7bde6ad19415ecd9e9f3b0cc5dbe36022513bdfe2a177cb84842a2a",
+    "Sources/NextNotes/Agent/Permissions/ToolCallInspector.swift": "d60bf7e73ffa35a0046d7d5dbecb645b39c216932e975ccd86feb932a52431eb"
+  }
+}

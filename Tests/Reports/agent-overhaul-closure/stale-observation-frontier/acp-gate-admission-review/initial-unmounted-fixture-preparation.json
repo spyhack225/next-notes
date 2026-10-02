@@ -1,0 +1,15 @@
+{
+  "state": "off-source prepared; uncompiled; unexecuted",
+  "normalAdditionalChecks": 151,
+  "conditionalCleanupFailureChecksExcluded": true,
+  "peerASTParsedOnly": true,
+  "embeddedPeerExact": true,
+  "sourceChangesByWorker": false,
+  "nativeVerdict": null,
+  "sha256": {
+    "TaskACPGateAdmissionSelfTest.swift.txt": "0c39c094e96a3b220cf60179d4015ab58f0ac8c73986a77b500bf65605e480ce",
+    "owned-gate-peer.py.txt": "d730b31bbcf62858781965029e4e22d7acd823398f5d750cb3dfb5bcad7f0a14",
+    "registration.json": "83437b560a42ec75aa049a0f642fd9ad69a06d5e29285039f79d6fcc1e1bb6f1",
+    "preparation-source-pins.json": "2873b351087c16ba2ef456c72f7684b9b3d2a1baf7d5365c5bae11a70214c1a4"
+  }
+}

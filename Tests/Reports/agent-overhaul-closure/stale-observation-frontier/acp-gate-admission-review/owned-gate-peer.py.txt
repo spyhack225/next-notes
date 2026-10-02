@@ -1,0 +1,122 @@
+import json, pathlib, sqlite3, sys, tempfile, time, urllib.parse
+
+root = pathlib.Path(__file__).resolve().parent
+temporary = pathlib.Path(tempfile.gettempdir()).resolve()
+assert root != temporary and temporary in root.parents
+assert 'Application Support' not in root.parts
+config = json.loads((root / 'config.json').read_text())
+assert pathlib.Path(config['database']).resolve().parent == root
+assert pathlib.Path(config['receipts']).resolve().parent == root
+session = 'fixture-acp-nested-attempt'
+options = [
+    {'optionId': 'fixture-allow-once', 'name': 'Allow once', 'kind': 'allow_once'},
+    {'optionId': 'fixture-reject-once', 'name': 'Reject', 'kind': 'reject_once'}
+]
+calls = []
+prompt_id = None
+permission_requests = 0
+permission_replies = 0
+cancel_before_verdict = False
+
+def write(name, value):
+    temporary_file = root / (name + '.tmp')
+    temporary_file.write_text(json.dumps(value, sort_keys=True))
+    temporary_file.replace(root / name)
+
+def send(value):
+    sys.stdout.write(json.dumps(value) + '\n')
+    sys.stdout.flush()
+
+def primary():
+    connection = sqlite3.connect('file:' + urllib.parse.quote(config['database']) + '?mode=ro', uri=True)
+    try:
+        row = connection.execute('SELECT id,state,durability FROM task WHERE id=?', (config['taskID'],)).fetchone()
+        assert row is not None
+        events = connection.execute('SELECT kind,detail,attempt FROM task_event WHERE task_id=? ORDER BY seq', (config['taskID'],)).fetchall()
+    finally:
+        connection.close()
+    return {'taskID': row[0], 'state': row[1], 'durability': json.loads(row[2]) if row[2] else {},
+            'toolStartEvents': [{'kind': kind, 'detail': detail, 'attempt': attempt}
+                                for kind, detail, attempt in events if kind == 'toolStarted']}
+
+def main():
+    global prompt_id, permission_requests, permission_replies, cancel_before_verdict
+    assert not (root / 'launch.json').exists()
+    write('launch.json', {'launchCount': 1})
+    receipt_bytes = pathlib.Path(config['receipts']).read_bytes()
+    receipts = json.loads(receipt_bytes)
+    assert len(receipts) == 1
+    receipt = receipts[0]
+    prepared = receipt['preparedAction']
+    assert receipt['taskID'] == config['taskID'] and receipt['taskAttempt'] == config['taskAttempt']
+    assert receipt['taskLeaseOwner'] == config['taskLeaseOwner']
+    assert receipt['status'] == 'fired' and receipt['events'][-1]['stage'] == 'fired'
+    assert receipt['toolID'] == 'mcp.acp_session'
+    assert prepared['id'] == receipt['actionID'] and prepared['routing']['taskID'] == config['taskID']
+    assert prepared['intentID'] == receipt['intentID']
+    assert prepared['executionPlan']['toolID'] == receipt['toolID']
+    assert prepared['executionPlan']['arguments']['objective'] == config['objective']
+    (root / 'startup-fired-snapshot.json').write_bytes(receipt_bytes)
+    snapshot = primary()
+    snapshot['actionID'] = receipt['actionID']
+    write('startup-primary.json', snapshot)
+    for line in sys.stdin:
+        message = json.loads(line)
+        mid, method = message.get('id'), message.get('method')
+        if method is not None:
+            calls.append(method)
+            write('calls.json', calls)
+        if method == 'initialize':
+            send({'jsonrpc': '2.0', 'id': mid, 'result': {'protocolVersion': 1, 'agentCapabilities': {}}})
+        elif method == 'session/new':
+            send({'jsonrpc': '2.0', 'id': mid, 'result': {'sessionId': session}})
+        elif method == 'session/prompt':
+            assert prompt_id is None
+            assert message['params']['sessionId'] == session
+            assert message['params']['prompt'][0]['text'] == config['objective']
+            prompt_id = mid
+            write('prompt-observed.json', {'taskID': config['taskID'], 'sessionID': session, 'promptCount': 1})
+            deadline = time.monotonic() + 10
+            while not (root / 'release-permission.json').exists():
+                if time.monotonic() >= deadline:
+                    raise TimeoutError('owned fixture release barrier')
+                time.sleep(0.005)
+            release = json.loads((root / 'release-permission.json').read_text())
+            assert release == {'release': True}
+            write('permission-primary.json', primary())
+            permission_requests += 1
+            write('permission-request.json', {'taskID': config['taskID'], 'sessionID': session,
+                    'requestCount': permission_requests, 'requestID': 900, 'options': options})
+            send({'jsonrpc': '2.0', 'id': 900, 'method': 'session/request_permission', 'params': {
+                'sessionId': session,
+                'toolCall': {'toolCallId': 'owned-review-only', 'title': 'Owned fixture review only',
+                             'kind': 'other', 'status': 'pending'}, 'options': options}})
+        elif method is None and mid == 900:
+            assert prompt_id is not None and permission_replies == 0
+            permission_replies += 1
+            write('wire-result.json', {'result': message.get('result', {}), 'replyCount': permission_replies,
+                    'requestCount': permission_requests, 'cancelBeforeVerdict': cancel_before_verdict,
+                    'externalEffectCount': 0, 'promptCount': 1})
+            # Hold only the fixture's prompt completion: observations cannot race terminal saves.
+            deadline = time.monotonic() + 10
+            while not (root / 'release-result.json').exists():
+                if time.monotonic() >= deadline:
+                    raise TimeoutError('owned fixture result barrier')
+                time.sleep(0.005)
+            assert json.loads((root / 'release-result.json').read_text()) == {'release': True}
+            # SAME control for old allow and future reject. No tool is executed.
+            send({'jsonrpc': '2.0', 'method': 'session/update', 'params': {'sessionId': session, 'update': {
+                'sessionUpdate': 'agent_message_chunk', 'content': {'type': 'text', 'text': config['marker']}}}})
+            send({'jsonrpc': '2.0', 'id': prompt_id, 'result': {'stopReason': 'end_turn'}})
+        elif method == 'session/cancel':
+            if permission_replies == 0:
+                cancel_before_verdict = True
+            send({'jsonrpc': '2.0', 'id': mid, 'result': {}})
+        else:
+            raise ValueError('unexpected owned protocol message')
+
+try:
+    main()
+except Exception as error:
+    write('peer-error.json', {'errorClass': type(error).__name__})
+    raise

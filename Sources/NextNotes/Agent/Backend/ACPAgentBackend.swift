@@ -145,7 +145,10 @@ struct ACPAgentBackend: AgentBackend {
                 command: AgentStdioFixtures.python,
                 arguments: [fixture],
                 task: task,
+                // The isolated fixture may exercise the actual nested approval UI
+                // instead of the old harness-only fast allow. Product behavior is unchanged.
                 approvePermissions: SelfTest.isRunning
+                    && task.arguments["acpFixtureAskPermission"] != "true"
             )
         }
 

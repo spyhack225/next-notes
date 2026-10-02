@@ -190,7 +190,11 @@ actor ACPSession {
             case .allow:
                 return Self.selectedPermissionResult(allow)
             case .ask(let request), .askLocal(let request):
-                let approved = await PermissionGate.shared.ask(request)
+                // This callback runs outside the parent task. Rebind only its exact
+                // captured normal typed context at the existing approval boundary.
+                let approved = await TaskEventJournal.$current.withValue(taskContext) {
+                    await PermissionGate.shared.ask(request)
+                }
                 guard !promptCancellationRequested else { return Self.cancelledPermissionResult }
                 return Self.selectedPermissionResult(approved ? allow : reject)
             }

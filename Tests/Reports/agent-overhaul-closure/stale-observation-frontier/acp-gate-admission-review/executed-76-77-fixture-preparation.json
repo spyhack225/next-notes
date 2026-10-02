@@ -1,0 +1,17 @@
+{
+  "state": "revised off-source after review; unmounted; uncompiled; unexecuted",
+  "normalAdditionalChecks": 153,
+  "conditionalCleanupFailureChecksExcluded": true,
+  "peerASTParsedOnly": true,
+  "embeddedPeerExact": true,
+  "sourceChangesByWorker": false,
+  "nativeVerdict": null,
+  "historicalInitialFixture": "initial-unmounted-TaskACPGateAdmissionSelfTest.swift.txt",
+  "historicalInitialSHA256": "0c39c094e96a3b220cf60179d4015ab58f0ac8c73986a77b500bf65605e480ce",
+  "sha256": {
+    "TaskACPGateAdmissionSelfTest.swift.txt": "3d0f12ebaf8b4c4e5f76618d5676c4a0d96c88ad1d5ee3d345845a48954dff9a",
+    "owned-gate-peer.py.txt": "d730b31bbcf62858781965029e4e22d7acd823398f5d750cb3dfb5bcad7f0a14",
+    "registration.json": "0d6da16de04c732d9183f60343a6861e7297fb00069a8fe95f8363a29be390c2",
+    "preparation-source-pins.json": "2873b351087c16ba2ef456c72f7684b9b3d2a1baf7d5365c5bae11a70214c1a4"
+  }
+}

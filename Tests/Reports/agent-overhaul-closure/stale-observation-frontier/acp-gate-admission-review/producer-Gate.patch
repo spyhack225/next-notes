@@ -1,0 +1,83 @@
+--- original/PermissionGate.swift
++++ fixed/PermissionGate.swift
+@@ -15,6 +15,8 @@
+         let request: PermissionRequest
+         var continuation: CheckedContinuation<Bool, Never>?
+         var restoredDecision: ((Bool, [String: String]) -> Bool)?
++        // Live bound workers commit the exact decision before this waiter can resume.
++        var decisionAdmission: ((Bool) -> Bool)?
+         var review: ToolCallReview?
+     }
+     private var waiting: WaitingApproval?
+@@ -36,19 +38,34 @@
+         // Only the original task-bound caller supplies journal provenance. Callback
+         // transports without that context stay unbound until their own bridge is verified.
+         let context = TaskEventJournal.current.flatMap { $0.taskID == request.taskID ? $0 : nil }
++        let requiresAdmission = context?.isStillValid != nil
+         var admitted = false
++        var decisionCommitted = false
+         let approved = await withTaskCancellationHandler {
+             await withCheckedContinuation { continuation in
+                 guard !Task.isCancelled else {
+                     continuation.resume(returning: false)
+                     return
+                 }
++                if let context {
++                    let saved = context.record(TaskJournalEventDraft(taskID: context.taskID,
++                        kind: .permissionRequested, attempt: context.attempt))
++                    guard !requiresAdmission || saved else {
++                        continuation.resume(returning: false)
++                        return
++                    }
++                }
+                 admitted = true
+-                if let context {
+-                    _ = context.record(TaskJournalEventDraft(taskID: context.taskID,
+-                        kind: .permissionRequested, attempt: context.attempt))
++                var entry = WaitingApproval(request: request, continuation: continuation)
++                if requiresAdmission, let context {
++                    entry.decisionAdmission = { decision in
++                        let saved = context.record(TaskJournalEventDraft(taskID: context.taskID,
++                            kind: decision ? .permissionApproved : .permissionDenied,
++                            detail: decision ? nil : "notApproved", attempt: context.attempt))
++                        if saved { decisionCommitted = true }
++                        return saved
++                    }
+                 }
+-                let entry = WaitingApproval(request: request, continuation: continuation)
+                 if pending == nil { present(entry) }
+                 else { queued.append(entry) }
+             }
+@@ -57,13 +74,15 @@
+                 PermissionGate.shared.cancelPending(id: requestID)
+             }
+         }
+-        if admitted, let context {
++        if admitted, let context, !requiresAdmission || !decisionCommitted {
++            // Bound explicit decisions committed before resume. A cancellation still
++            // releases false even when this best-effort denied fact cannot commit.
+             // False includes cancellation/withdrawal. It does not assert a human denial.
+             _ = context.record(TaskJournalEventDraft(taskID: context.taskID,
+                 kind: approved ? .permissionApproved : .permissionDenied,
+                 detail: approved ? nil : "notApproved", attempt: context.attempt))
+         }
+-        return approved
++        return approved && (!requiresAdmission || decisionCommitted)
+     }
+ 
+     /// Restored cards have no suspended worker to resume. Their actual owner must
+@@ -179,6 +198,14 @@
+                 return false
+             }
+         }
++        if let admission = waiting?.decisionAdmission, let request = pending {
++            guard admission(approved) else {
++                // Failed primary admission keeps the exact card, review and waiter.
++                // No grant or authorizing continuation has been emitted yet.
++                raiseIsland(for: request)
++                return false
++            }
++        }
+         let request = pending
+         let wasRestored = waiting?.restoredDecision != nil
+         if wasRestored {
