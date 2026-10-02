@@ -1,0 +1,3 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-acp --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-review/app48-original/acp.log
+  ACP_WRONG: ACP terminal: consumed prompt/peer EOF stayed pending until timeout or external close
+ACP_FAILED: 1 rule(s) wrong

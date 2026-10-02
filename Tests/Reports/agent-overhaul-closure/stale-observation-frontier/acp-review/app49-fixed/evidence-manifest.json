@@ -1,0 +1,17 @@
+{
+  "acp-confirm.stdout": "0d79b4b1c550f895407be659d1ffd4d8e340be989b49241154a97fa857dd0249",
+  "acp.log": "7af39989d1ab4d76306d84efdf5ba6f151285058cf5b1657e38e1f6d2e38ff3a",
+  "acp.stdout": "41f65ff86ad1bc22945b0b4f5567d478eb6f08571a9009f4f0abf983b4ec85cc",
+  "bundle-after.json": "1af3764ca4e74797235bdf1412b528efad44406d48e7cecfce42e9030a05a0f1",
+  "bundle-before.json": "1af3764ca4e74797235bdf1412b528efad44406d48e7cecfce42e9030a05a0f1",
+  "invariance.json": "46ed102ac2aec2e2c51413f8a02d5a9c8c4f603fb897120b7dab7b7c86a1137c",
+  "mcp.log": "fd6214ea6a8828fd069bb0abec4201d0f95efb07e5ac41746fa0aaccf59db450",
+  "mcp.stdout": "0b96986c015e3e35eb2c1f0e6ba7e4e8b710494254a05be4fabdc7e9db4d0f20",
+  "sources-after.json": "5bfba2693c3bbe960d33db4588e04e22e00ae1f047cf7d15f3b5b2e92131d629",
+  "sources-before.json": "5bfba2693c3bbe960d33db4588e04e22e00ae1f047cf7d15f3b5b2e92131d629",
+  "store-isolation.log": "1bee49f059632deb93fa52593e07514bc4dcef28902e2ce2813ccb6f2a9112f7",
+  "store-isolation.stdout": "124aba49213216211e538ae5789d238d7d7d0928b2f38494ae9a612b14a08d37",
+  "task-worker-attempt.log": "43d673a2403ce32dc9a0643d3f3dfdf34cf73e2911bfe3640e1317f9c2f70ab0",
+  "task-worker-attempt.stdout": "4c8575ab12a210723e8db3fd6b7fa0d1e8fa9b26a10755a31ee62cbbe8285a2d",
+  "verdicts.json": "ea18ac9eaa4e315fe96e786f8cc2ed83832b943c9afc2e026c9c5d4e9f792286"
+}

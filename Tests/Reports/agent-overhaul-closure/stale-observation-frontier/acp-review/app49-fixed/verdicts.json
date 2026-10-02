@@ -1,0 +1,88 @@
+[
+  {
+    "flag": "acp",
+    "command": [
+      "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+      "--out",
+      "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-review/app49-fixed/acp.log",
+      "--selftest-acp"
+    ],
+    "ownedPID": 63058,
+    "exit": 0,
+    "seconds": 1.885,
+    "timedOut": false,
+    "markers": [
+      "ACP_OK: initialize, session, subscribe and permission relay hold"
+    ],
+    "expectedVerdict": true
+  },
+  {
+    "flag": "mcp",
+    "command": [
+      "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+      "--out",
+      "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-review/app49-fixed/mcp.log",
+      "--selftest-mcp"
+    ],
+    "ownedPID": 63132,
+    "exit": 0,
+    "seconds": 0.313,
+    "timedOut": false,
+    "markers": [
+      "MCP_OK: initialize, session, list and call hold"
+    ],
+    "expectedVerdict": true
+  },
+  {
+    "flag": "acp-confirm",
+    "command": [
+      "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+      "--out",
+      "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-review/app49-fixed/acp-confirm.log",
+      "--selftest-acp-confirm"
+    ],
+    "ownedPID": 63145,
+    "exit": 0,
+    "seconds": 0.27,
+    "timedOut": false,
+    "markers": [
+      "ACP_CONFIRM_OK"
+    ],
+    "expectedVerdict": true
+  },
+  {
+    "flag": "task-worker-attempt",
+    "command": [
+      "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+      "--out",
+      "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-review/app49-fixed/task-worker-attempt.log",
+      "--selftest-task-worker-attempt"
+    ],
+    "ownedPID": 63156,
+    "exit": 0,
+    "seconds": 1.92,
+    "timedOut": false,
+    "markers": [
+      "TASK_WORKER_ATTEMPT_OK: 531 cases"
+    ],
+    "expectedVerdict": true
+  },
+  {
+    "flag": "store-isolation",
+    "command": [
+      "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+      "--out",
+      "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-review/app49-fixed/store-isolation.log",
+      "--selftest-store-isolation"
+    ],
+    "ownedPID": 63223,
+    "exit": 0,
+    "seconds": 33.403,
+    "timedOut": false,
+    "markers": [
+      "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged",
+      "TOOLLOOP_PRODUCTION_OK"
+    ],
+    "expectedVerdict": true
+  }
+]

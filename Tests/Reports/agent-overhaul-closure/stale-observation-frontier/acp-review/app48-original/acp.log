@@ -1,0 +1,2 @@
+  ACP_WRONG: ACP terminal: consumed prompt/peer EOF stayed pending until timeout or external close
+ACP_FAILED: 1 rule(s) wrong

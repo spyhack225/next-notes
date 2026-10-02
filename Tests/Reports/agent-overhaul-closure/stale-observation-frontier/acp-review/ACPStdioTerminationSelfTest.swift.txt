@@ -1,0 +1,170 @@
+import Foundation
+
+/// Real ACPSession -> shared stdio transport -> owned temporary no-tool peer.
+/// Default ACP timeouts stay unchanged. No model/account/network/stale/retry proof.
+@MainActor
+enum ACPStdioTerminationSelfTest {
+    private enum FixtureError: Error { case unsafeRoot, timeout }
+    @MainActor
+    private final class Result {
+        var finished = false
+        var completions = 0
+        var reply: String?
+        var error = ""
+        var cancelled = false
+    }
+
+    private static func reached(_ condition: @MainActor () -> Bool) async -> Bool {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while ContinuousClock.now < deadline {
+            if condition() { return true }
+            await Task.yield()
+        }
+        return condition()
+    }
+
+    static func originalCases(root: URL, check: (Bool, String) -> Void) async throws {
+        let safeRoot = root.resolvingSymlinksInPath().standardizedFileURL
+        let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        guard SelfTest.isRunning, safeRoot.path.hasPrefix(temporary.path + "/"),
+              !safeRoot.pathComponents.contains("Application Support") else { throw FixtureError.unsafeRoot }
+        let script = safeRoot.appendingPathComponent("stdio-terminal-peer.py")
+        try peer.write(to: script, atomically: true, encoding: .utf8)
+        let ownerBefore = SelfTestStoreGuard.take()
+        for mode in ["final-exit", "pending-exit", "explicit-close", "cancel"] {
+            let marker = safeRoot.appendingPathComponent(mode + "-consumed.txt")
+            let session = ACPSession()
+            let result = Result()
+            var prompt: Task<Void, Never>?
+            var caught: Error?
+            do {
+                try await session.start(command: AgentStdioFixtures.python,
+                    arguments: [script.path, mode, marker.path], directory: safeRoot.path,
+                    taskID: "selftest-acp-terminal-" + mode, approvePermissions: false)
+                let initialized = await session.didInitialize
+                let sessionID = await session.sessionID
+                check(initialized && sessionID == "fixture-terminal",
+                    "ACP terminal: actual isolated handshake failed (\(mode))")
+                prompt = Task { @MainActor in
+                    do {
+                        let reply = try await withTaskCancellationHandler(operation: {
+                            try await session.prompt("Owned fixture: no tools or external effects")
+                        }, onCancel: { Task { await session.cancel() } })
+                        result.reply = reply
+                    } catch {
+                        result.error = error.localizedDescription
+                        result.cancelled = error is CancellationError
+                    }
+                    result.completions += 1
+                    result.finished = true
+                }
+                guard await reached({ FileManager.default.fileExists(atPath: marker.path) }) else {
+                    throw FixtureError.timeout
+                }
+                if mode == "explicit-close" {
+                    await session.close()
+                } else if mode == "cancel" {
+                    prompt?.cancel() // Same cancellation-handler shape as actual backend.
+                }
+                let promptlyFinished = await reached { result.finished }
+                if mode == "pending-exit" {
+                    // Original transport waits its 90s prompt timeout. Cleanup below
+                    // closes that SAME owned client; it never replaces this scenario.
+                    check(promptlyFinished && result.reply == nil
+                        && result.error == "Session output ended." && !result.cancelled,
+                        "ACP terminal: consumed prompt/peer EOF stayed pending until timeout or external close")
+                } else if mode == "final-exit" {
+                    check(promptlyFinished && result.reply == "Final fixture reply." && result.error.isEmpty,
+                        "ACP terminal: final streamed response immediately before exit was lost")
+                } else if mode == "explicit-close" {
+                    check(promptlyFinished && result.reply == nil && result.error == "Session closed.",
+                        "ACP terminal: explicit close failed to drain actual pending prompt")
+                } else {
+                    check(promptlyFinished && result.cancelled && result.reply == nil,
+                        "ACP terminal: actual cancellation protocol did not end the pending prompt")
+                }
+            } catch { caught = error }
+            await session.close()
+            await session.close()
+            let joined = await reached { result.finished || prompt == nil }
+            check(joined && (prompt == nil || result.completions == 1),
+                "ACP terminal: same owned prompt did not join exactly once after cleanup (\(mode))")
+            if joined { await prompt?.value }
+            if let caught { throw caught }
+            var rejectedAfterClose = false
+            do { _ = try await session.prompt("Must not reopen a closed transport") }
+            catch { rejectedAfterClose = error.localizedDescription == "ACP session never started." }
+            check(rejectedAfterClose && result.completions == 1,
+                "ACP terminal: closed session reused historical handshake as live authority (\(mode))")
+        }
+
+        // Shared producer's final-response/EOF/explicit-close/short-timeout race.
+        // The sleep is harness-only so the existing request timer actually expires;
+        // no production timer/timeout is altered or introduced by this regression.
+        let marker = safeRoot.appendingPathComponent("rpc-final-consumed.txt")
+        let client = try JSONRPCStdioClient(command: AgentStdioFixtures.python,
+            arguments: [script.path, "rpc-final", marker.path], directory: safeRoot.path)
+        let result = Result()
+        let request = Task { @MainActor in
+            do {
+                let data = try await client.request(method: "fixture/request", timeout: 0.2)
+                let payload = try JSONSerialization.jsonObject(with: data) as? [String: Bool]
+                result.reply = payload?["ok"] == true ? "ok" : "wrong payload"
+            } catch { result.error = error.localizedDescription }
+            result.completions += 1
+            result.finished = true
+        }
+        let finished = await reached { result.finished }
+        check(finished && result.reply == "ok" && result.error.isEmpty,
+            "ACP terminal: shared transport lost final response/EOF control")
+        client.close()
+        client.close()
+        if await reached({ result.finished }) { await request.value }
+        try await Task.sleep(for: .milliseconds(300))
+        check(result.completions == 1 && result.reply == "ok",
+            "ACP terminal: late timeout/EOF/close completed the same request twice")
+        var closedRefused = false
+        do { _ = try await client.request(method: "must-not-run", timeout: 0.2) }
+        catch { closedRefused = true }
+        check(closedRefused && result.completions == 1,
+            "ACP terminal: closed shared transport admitted another request")
+        check(SelfTestStoreGuard.diff(ownerBefore, SelfTestStoreGuard.take()).isEmpty,
+            "ACP terminal: isolated subprocess fixture changed owner store/default")
+    }
+
+    private static let peer = """
+        import json, pathlib, sys
+        mode, marker = sys.argv[1:]
+        waiting = None
+        def send(value):
+            sys.stdout.write(json.dumps(value) + "\\n")
+            sys.stdout.flush()
+        for line in sys.stdin:
+            msg = json.loads(line)
+            mid, method = msg.get("id"), msg.get("method")
+            if method == "initialize":
+                send({"jsonrpc":"2.0","id":mid,"result":{"protocolVersion":1,"agentCapabilities":{}}})
+            elif method == "session/new":
+                send({"jsonrpc":"2.0","id":mid,"result":{"sessionId":"fixture-terminal"}})
+            elif method == "session/prompt":
+                pathlib.Path(marker).write_text("consumed prompt")
+                if mode == "pending-exit":
+                    break
+                if mode == "final-exit":
+                    for chunk in ["Final", " fixture", " reply."]:
+                        send({"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"fixture-terminal",
+                              "update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":chunk}}}})
+                    send({"jsonrpc":"2.0","id":mid,"result":{"stopReason":"end_turn"}})
+                    break
+                waiting = mid
+            elif method == "session/cancel":
+                send({"jsonrpc":"2.0","id":mid,"result":{}})
+                if waiting is not None:
+                    send({"jsonrpc":"2.0","id":waiting,"result":{"stopReason":"cancelled"}})
+                    waiting = None
+            elif method == "fixture/request":
+                pathlib.Path(marker).write_text("consumed request")
+                send({"jsonrpc":"2.0","id":mid,"result":{"ok":True}})
+                break
+        """
+}

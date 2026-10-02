@@ -428,6 +428,17 @@ timer or task-state/retry change. Complete stale questions, process/session heal
 receipt/journal coverage, recovery/retry and IM-16 remain open.
 See the [primary-observation report](Tests/Reports/agent-overhaul-closure/authoritative-observation/README.md).
 
+The shared stdio JSON-RPC transport now settles pending requests at stdout EOF
+(installed app49). Original48 actual ACP RED1 kept a consumed prompt pending until
+its unchanged timeout or explicit close. The same fixture passes fixed49 alongside
+MCP, confirmation, worker531 and isolation21files32defaults. Existing locks/pending
+map arbitrate response/EOF/close/timeout once; already-started reads and final stream
+notifications drain before reply delivery. No timeout change, retry, polling, queue
+or new process owner. Source/bundle invariance and targeted owned-peer cleanup pass.
+EOF means transport loss, not process death, health, effect outcome or retry authority;
+ACP durable attempt binding and IM-16 remain open. See the
+[protocol evidence](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-review/protocol-verification.md).
+
 The task harness reader now returns empty history before any denied JSON read or
 SQL open (installed app47 worker531). Original46 fails10 of40 actual temporary-canary
 Store/Manager checks; the unchanged fixture passes40 after the source correction.

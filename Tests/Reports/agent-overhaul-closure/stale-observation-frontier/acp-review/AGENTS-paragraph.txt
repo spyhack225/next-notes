@@ -1,0 +1,11 @@
+The shared stdio JSON-RPC transport now settles pending requests at stdout EOF
+(installed app49). Original48 actual ACP RED1 kept a consumed prompt pending until
+its unchanged timeout or explicit close. The same fixture passes fixed49 alongside
+MCP, confirmation, worker531 and isolation21files32defaults. Existing locks/pending
+map arbitrate response/EOF/close/timeout once; already-started reads and final stream
+notifications drain before reply delivery. No timeout change, retry, polling, queue
+or new process owner. Source/bundle invariance and targeted owned-peer cleanup pass.
+EOF means transport loss, not process death, health, effect outcome or retry authority;
+ACP durable attempt binding and IM-16 remain open. See the
+[protocol evidence](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-review/protocol-verification.md).
+

@@ -1,0 +1,6 @@
+{
+  "sourceChanges": [],
+  "installedBundleUnchanged": true,
+  "allDriverAppProcessesReaped": true,
+  "fixtureChildProcessCleanup": "requires post-run inventory; not inferred from app exit"
+}

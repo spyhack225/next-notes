@@ -8290,6 +8290,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if !condition { failures.append(name) }
             }
             do {
+                let terminalRoot = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("NextNotesACPStdioTerminal-" + UUID().uuidString, isDirectory: true)
+                try FileManager.default.createDirectory(at: terminalRoot, withIntermediateDirectories: false)
+                defer { try? FileManager.default.removeItem(at: terminalRoot) }
+                try await ACPStdioTerminationSelfTest.originalCases(root: terminalRoot) { condition, name in
+                    check(name, condition)
+                }
                 let script = try AgentStdioFixtures.writeACP()
                 let session = ACPSession()
                 let flags = ACPSelfTestFlags()

@@ -1,0 +1,7 @@
+{
+  "checkpoint": "post original48 before fixed49 native",
+  "expectedReapedAppPID": 59388,
+  "recognizedRemainingRows": [],
+  "readOnlyRootBrokeredInventory": true,
+  "noPIDKillPerformed": true
+}
