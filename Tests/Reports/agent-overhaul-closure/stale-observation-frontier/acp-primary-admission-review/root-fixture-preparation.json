@@ -1,0 +1,8 @@
+{
+  "fixtureSHA": "71b79322adaa573ba4c267dfefa4efa26a5e233041573e73865d85d790448236",
+  "changesFromChild": [
+    "comment removes off-source status",
+    "two exact positive-attempt/no-context API boundary assertions"
+  ],
+  "originRegistrationDiagnostic": "SelfTest.diagnostic before final marker, avoiding buffered print arriving after verdict; no fixture input change"
+}

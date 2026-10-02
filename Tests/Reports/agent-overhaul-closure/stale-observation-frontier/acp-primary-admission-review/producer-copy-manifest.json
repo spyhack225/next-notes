@@ -1,0 +1,17 @@
+{
+  "notApplied": true,
+  "notCompiled": true,
+  "scope": "typed normal ACP; compatibility excluded",
+  "files": [
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+      "baseSHA": "3453a3198806b5dd5afcd86d90a232bdf65a2eb6a5a16f4db6e29c6696416984",
+      "proposedSHA": "00cb58fdcc060479e1a94c8dc469d492fe672f0beb05c2e84f4ebd3062b40402"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift",
+      "baseSHA": "fd4d645ada9f5fdd5a1f2e1d66f3a633af559b5c9383e2cfdd015d1a7dd243d9",
+      "proposedSHA": "d07a9e7909b369b6b77d29a0625cbf802058e5c2cb431db57c92694f8ef4170b"
+    }
+  ]
+}

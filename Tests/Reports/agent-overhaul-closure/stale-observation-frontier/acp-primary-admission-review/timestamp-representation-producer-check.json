@@ -1,0 +1,11 @@
+{
+  "existingStoreRepresentation": "AgentTaskStore canonical JSON ISO8601 before SQL commit",
+  "actualFoundationBeforeAfter": [
+    "1000.125",
+    "1000.0"
+  ],
+  "testRepair": "Exact memory binding start plus exact existing on-disk canonical start; no tolerance or replacement clock",
+  "build56": "All other assertions green; faulty cross-representation date equality fails one positive check",
+  "revisedFixtureSHA": "7850186c44e5afb06b652a5a516d9fda1c9a0210cf8677e592e9682d201ddfd5",
+  "comparison": "original57/fixed58"
+}

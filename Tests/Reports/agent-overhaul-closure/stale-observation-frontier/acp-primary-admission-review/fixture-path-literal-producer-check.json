@@ -1,0 +1,9 @@
+{
+  "scope": "Fixture header serialization only; no product regression claim",
+  "FoundationGeneratedLiteralBefore": "\"\\/tmp\\/acp-owned-fixture.sqlite\"",
+  "PythonParsedBefore": "\\/tmp\\/acp-owned-fixture.sqlite",
+  "FoundationGeneratedLiteralAfter": "\"/tmp/acp-owned-fixture.sqlite\"",
+  "PythonParsedAfter": "/tmp/acp-owned-fixture.sqlite",
+  "unchangedInputPath": "/tmp/acp-owned-fixture.sqlite",
+  "afterExactMatch": true
+}

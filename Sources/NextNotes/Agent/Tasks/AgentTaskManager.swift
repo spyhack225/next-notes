@@ -58,7 +58,7 @@ final class AgentTaskManager {
     func workerBinding(taskID: String) -> TaskWorkerBinding? {
         guard let worker = running[taskID], !worker.handle.isCancelled,
               let binding = worker.binding, let current = task(id: taskID),
-              ownsLocalAttempt(current), current.status == .running,
+              ownsWorkerAttempt(current), current.status == .running,
               current.durability?.attempt == binding.attempt,
               current.durability?.leaseOwner == binding.leaseOwner,
               current.durability?.attemptStartedAt == binding.startedAt else { return nil }
@@ -310,7 +310,7 @@ final class AgentTaskManager {
         }
         let current = task(id: id)
         let cancelCondition: TaskWorkerWriteCondition?
-        if let current, hasLocalAttemptRecord(current) {
+        if let current, hasWorkerAttemptRecord(current) {
             guard [.queued, .running, .recovering, .waitingForPermission, .waitingForInput].contains(current.status),
                   let durability = current.durability else { return }
             // A user can stop an old-owner saved task. This stored-row predicate
@@ -586,13 +586,28 @@ final class AgentTaskManager {
         isTypedOwner(task) && task.backend == AgentBackendKind.local.rawValue
     }
 
+    /// Normal typed ACP protocol only; compatibility CLI remains explicitly unbound.
+    private func ownsTypedACPAttempt(_ task: AgentTask) -> Bool {
+        isTypedOwner(task) && task.backend == AgentBackendKind.acp.rawValue
+            && task.compatibilityCLI == nil && task.compatibilityCommand == nil
+    }
+
+    private func ownsWorkerAttempt(_ task: AgentTask) -> Bool {
+        ownsLocalAttempt(task) || ownsTypedACPAttempt(task)
+    }
+
+    private func hasWorkerAttemptRecord(_ task: AgentTask) -> Bool {
+        guard ownsWorkerAttempt(task), let durability = task.durability else { return false }
+        return durability.hasTypedLocalAttemptRecord
+    }
+
     private func hasLocalAttemptRecord(_ task: AgentTask) -> Bool {
         guard ownsLocalAttempt(task), let durability = task.durability else { return false }
         return durability.hasTypedLocalAttemptRecord
     }
 
     private func workerCondition(_ captured: AgentTask, states: [AgentTaskStatus]) -> TaskWorkerWriteCondition? {
-        guard hasLocalAttemptRecord(captured), let durability = captured.durability,
+        guard hasWorkerAttemptRecord(captured), let durability = captured.durability,
               durability.attemptStartedAt != nil,
               durability.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
               let current = task(id: captured.id), states.contains(current.status),
@@ -605,7 +620,7 @@ final class AgentTaskManager {
     @discardableResult
     private func updateWorker(_ captured: AgentTask, states: [AgentTaskStatus] = [.running],
                               mutate: (inout AgentTask) -> Void) -> AgentTaskPersistenceResult {
-        if !ownsLocalAttempt(captured) { return update(captured.id, mutate: mutate) }
+        if !ownsWorkerAttempt(captured) { return update(captured.id, mutate: mutate) }
         guard let expected = workerCondition(captured, states: states) else { return .loadFailed }
         return update(captured.id, worker: expected, mutate: mutate)
     }
@@ -618,7 +633,7 @@ final class AgentTaskManager {
     }
 
     private func releaseWorker(_ captured: AgentTask) {
-        if !ownsLocalAttempt(captured) { running[captured.id] = nil; return }
+        if !ownsWorkerAttempt(captured) { running[captured.id] = nil; return }
         // A queued explicit continuation may already own the next handle before its
         // asynchronous execute allocates the next attempt. Do not remove that handle.
         guard let current = task(id: captured.id), current.status != .queued,
@@ -636,7 +651,7 @@ final class AgentTaskManager {
         guard var task = task(id: id) else { return }
         guard !Task.isCancelled, task.status == .queued else { return }
         let startCondition: TaskWorkerWriteCondition?
-        if ownsLocalAttempt(task) {
+        if ownsWorkerAttempt(task) {
             var durability = task.durability ?? TaskDurability()
             guard durability.attempt < Int.max else { rejectStart(id, result: .sqlFailed); return }
             startCondition = TaskWorkerWriteCondition(taskID: id, attempt: durability.attempt,
@@ -648,8 +663,9 @@ final class AgentTaskManager {
             durability.heartbeatAt = began
             durability.lastProgressAt = began
             let descriptor = task.tool.flatMap { AgentToolRegistry.shared.tool(named: $0) }
-            durability.runtimeClass = descriptor?.source == .native && descriptor?.namespace == .browser
-                ? .browserOrMCP : .localDeterministic
+            durability.runtimeClass = ownsTypedACPAttempt(task) ? .acpWorker
+                : (descriptor?.source == .native && descriptor?.namespace == .browser
+                   ? .browserOrMCP : .localDeterministic)
             durability.resumePolicy = .neverAuto
             task.durability = durability
         } else { startCondition = nil }
@@ -657,7 +673,7 @@ final class AgentTaskManager {
         task.progress = "Starting…"
         let started = updateRecord(task, worker: startCondition)
         guard started.primaryCommitted else { rejectStart(id, result: started); return }
-        if ownsLocalAttempt(task), let metadata = task.durability,
+        if ownsWorkerAttempt(task), let metadata = task.durability,
            metadata.attempt > 0, let owner = metadata.leaseOwner,
            let began = metadata.attemptStartedAt {
             running[id]?.binding = TaskWorkerBinding(taskID: id, attempt: metadata.attempt,
@@ -690,7 +706,7 @@ final class AgentTaskManager {
             // P1-5: nested tool calls park their reference and link on the ledger; fold
             // them in beside whatever the backend itself returned, and keep them on the
             // task so the terminal card can link them after a relaunch.
-            if ownsLocalAttempt(task), workerCondition(task, states: [.running]) == nil { return }
+            if ownsWorkerAttempt(task), workerCondition(task, states: [.running]) == nil { return }
             let captured = AgentArtifactLedger.take(taskID: id)
             let finished = updateWorker(task) { item in
                 item.status = outcome.status
@@ -718,7 +734,7 @@ final class AgentTaskManager {
             let cancelled = updateWorker(task) { $0.status = .cancelled }
             if cancelled.primaryCommitted { announce("Cancelled.") }
         } catch let error as AgentError {
-            if ownsLocalAttempt(task), workerCondition(task, states: [.running, .waitingForPermission]) == nil { return }
+            if ownsWorkerAttempt(task), workerCondition(task, states: [.running, .waitingForPermission]) == nil { return }
             if case .missingArgument(let parameter, let toolID) = error,
                let request = missingInputRequest(taskID: id, parameter: parameter, toolID: toolID) {
                 let admitted = updateWorker(task) { item in
@@ -788,7 +804,7 @@ final class AgentTaskManager {
             if projectsActivity { AgentActivityStore.shared.finish(taskID: id, title: error.localizedDescription) }
             announce(error.localizedDescription)
         } catch {
-            if ownsLocalAttempt(task), workerCondition(task, states: [.running]) == nil { return }
+            if ownsWorkerAttempt(task), workerCondition(task, states: [.running]) == nil { return }
             let failed = updateWorker(task) { item in
                 item.status = .failed
                 item.failure = error.localizedDescription
@@ -807,7 +823,7 @@ final class AgentTaskManager {
         guard historyReadFailure == nil else { return .loadFailed }
         guard let index = tasks.firstIndex(where: { $0.id == id }) else { return .loadFailed }
         let before = tasks[index]
-        let expected = worker ?? (hasLocalAttemptRecord(before)
+        let expected = worker ?? (hasWorkerAttemptRecord(before)
             ? TaskWorkerWriteCondition(taskID: before.id, attempt: before.durability!.attempt,
                 leaseOwner: before.durability!.leaseOwner, status: before.status) : nil)
         mutate(&tasks[index])
@@ -863,7 +879,7 @@ final class AgentTaskManager {
         let attempt = task.durability?.attempt ?? 0
         var events = result.map { kind in
             var event = TaskJournalEventDraft(taskID: task.id, kind: kind, attempt: attempt)
-            if kind == .workerStarted, hasLocalAttemptRecord(task), let began = task.durability?.attemptStartedAt {
+            if kind == .workerStarted, hasWorkerAttemptRecord(task), let began = task.durability?.attemptStartedAt {
                 event.at = began
             }
             return event
@@ -909,29 +925,33 @@ final class AgentTaskManager {
             }
         } else { capture = nil }
         let validity: (@MainActor @Sendable () -> Bool)?
-        if hasLocalAttemptRecord(task) {
+        if hasWorkerAttemptRecord(task) {
             validity = { [weak self] in
-                guard let self, let expected = self.workerCondition(task, states: [.running]) else { return false }
+                guard let self, let worker = self.running[taskID], !worker.handle.isCancelled,
+                      let binding = worker.binding, binding.taskID == taskID,
+                      binding.attempt == task.durability?.attempt,
+                      binding.leaseOwner == task.durability?.leaseOwner,
+                      binding.startedAt == task.durability?.attemptStartedAt,
+                      let expected = self.workerCondition(task, states: [.running]) else { return false }
                 if SelfTest.isRunning && !self.store.allowsHarnessPersistence { return true }
-                let worker = self.running[taskID]
                 let observed = self.store.workerPrimaryObservation(expected)
-                // An obsolete callback may refuse work, but cannot stamp a successor.
-                if let worker, !worker.handle.isCancelled, let binding = worker.binding,
-                   binding.attempt == task.durability?.attempt,
-                   binding.leaseOwner == task.durability?.leaseOwner,
-                   binding.startedAt == task.durability?.attemptStartedAt,
-                   let currentWorker = self.running[taskID], !currentWorker.handle.isCancelled,
-                   currentWorker.binding == binding {
-                    self.running[taskID]?.primaryObservation = observed
-                    if let cached = self.running[taskID]?.primaryObservation {
-                        Log.app.debug("Task primary check: attempt \(binding.attempt), outcome \(cached.outcome.rawValue, privacy: .public)")
-                    }
+                // Primary acceptance is authority only while this exact live handle remains bound.
+                guard let currentWorker = self.running[taskID], !currentWorker.handle.isCancelled,
+                      currentWorker.binding == binding else { return false }
+                self.running[taskID]?.primaryObservation = observed
+                if let cached = self.running[taskID]?.primaryObservation {
+                    Log.app.debug("Task primary check: attempt \(binding.attempt), outcome \(cached.outcome.rawValue, privacy: .public)")
                 }
                 return observed.outcome == .accepted
             }
         } else { validity = nil }
         return TaskJournalContext(taskID: taskID, attempt: task.durability?.attempt ?? 0, record: { [weak self] event in
             guard event.taskID == taskID, let self, self.task(id: taskID) != nil else { return false }
+            if self.ownsTypedACPAttempt(task), self.hasWorkerAttemptRecord(task) {
+                guard event.attempt == task.durability?.attempt,
+                      let expected = self.workerCondition(task, states: [.running, .waitingForPermission]) else { return false }
+                return self.persist(events: [event], worker: expected).primaryCommitted
+            }
             if self.hasLocalAttemptRecord(task) {
                 let states: [AgentTaskStatus]
                 switch event.kind {
@@ -977,11 +997,11 @@ final class AgentTaskManager {
             return self.persist(events: [event]).primaryCommitted
         }, isStillValid: validity, capturePermission: capture, consumePermissionApproval: { [weak self] in
             guard let self else { return false }
-            if self.hasLocalAttemptRecord(task),
+            if self.hasWorkerAttemptRecord(task),
                self.workerCondition(task, states: [.running]) == nil { return false }
             return self.consumePermissionApproval(taskID: taskID)
         }, restoredOrigin: origin, restoredPermission: restoredPermission, restoredArguments: restoredArguments,
-           receiptStore: receiptStore, leaseOwner: hasLocalAttemptRecord(task) ? task.durability?.leaseOwner : nil)
+           receiptStore: receiptStore, leaseOwner: hasWorkerAttemptRecord(task) ? task.durability?.leaseOwner : nil)
     }
 
     private func progressDate() -> Date {

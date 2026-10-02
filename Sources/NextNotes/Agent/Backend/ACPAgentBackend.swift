@@ -121,6 +121,18 @@ struct ACPAgentBackend: AgentBackend {
     }
 
     private func runSession(_ task: AgentTask) async throws -> AgentTaskOutcome {
+        let boundAttempt = task.scheduleID == nil && ["user", "text", "selftest"].contains(task.source)
+            && task.backend == AgentBackendKind.acp.rawValue && (task.durability?.attempt ?? 0) > 0
+            && task.compatibilityCLI == nil && task.compatibilityCommand == nil
+        if boundAttempt {
+            guard task.durability?.attemptStartedAt != nil,
+                  task.durability?.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
+                  let context = TaskEventJournal.current, context.taskID == task.id,
+                  context.attempt == task.durability?.attempt,
+                  context.leaseOwner == task.durability?.leaseOwner, context.isStillValid != nil else {
+                throw AgentError.backendUnavailable("This task can’t safely continue. Nothing was run.")
+            }
+        }
         // Before anything launches, fixture or not: a scheduled coding session is refused
         // unless its routine explicitly allows this harness — and even then it gets no
         // auto-approved permissions, so the orchestrator refuses its privileged session
@@ -427,6 +439,7 @@ struct ACPAgentBackend: AgentBackend {
     /// still enter the shared action lifecycle. The receipt deliberately remains
     /// `couldNotVerify` after a successful protocol reply unless the checkout's contents
     /// changed. A protocol success sentence alone cannot prove an edit landed.
+    @MainActor
     private func runSessionWithReceipt(
         command: String,
         arguments: [String],
@@ -486,6 +499,10 @@ struct ACPAgentBackend: AgentBackend {
                 // source that was not "meeting".
                 permissionAlreadyGranted: task.scheduleID == nil && (approvePermissions || task.isUserInitiated),
                 allowUnverifiedResult: true,
+                isStillValid: TaskEventJournal.current?.taskID == task.id
+                    ? TaskEventJournal.current?.isStillValid : nil,
+                receiptStore: TaskEventJournal.current?.taskID == task.id
+                    ? (TaskEventJournal.current?.receiptStore ?? .shared) : .shared,
                 fire: { [self] prepared in
                     try Task.checkCancellation()
                     let before = directory.flatMap(ACPWorkspaceVerification.capture)

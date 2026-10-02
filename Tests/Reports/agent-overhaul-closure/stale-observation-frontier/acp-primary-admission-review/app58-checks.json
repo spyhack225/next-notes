@@ -1,0 +1,10 @@
+[
+  {
+    "flag": "task-worker-attempt",
+    "exit": 0,
+    "marker": "TASK_WORKER_ATTEMPT_OK: 656 cases",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  }
+]

@@ -8,7 +8,7 @@ enum TaskRuntimeClass: String, Codable, Sendable {
     case localDeterministic, cloudModel, browserOrMCP, acpWorker, scheduledResearch, waitingOnPerson
 }
 
-/// Exact in-process handle binding captured at admitted typed-local start.
+/// Exact in-process handle binding captured at admitted typed worker start.
 /// Presence records ownership metadata, never health or safe-to-retry authority.
 struct TaskWorkerBinding: Equatable, Sendable {
     let taskID: String
@@ -42,8 +42,9 @@ struct TaskWorkerToolBackingObservation: Equatable, Sendable {
     let state: TaskWorkerToolBackingState
 }
 
-/// Persisted optional execution metadata. Typed-local producers bind positive attempts
-/// and admitted worker/tool progress; other owners remain explicitly unbound.
+/// Persisted optional execution metadata. Typed local and normal typed ACP producers
+/// bind positive attempts and admitted start fields. Typed-local tool progress has
+/// its own receipt contract; other owners remain explicitly unbound.
 /// These fields alone authorize no recovery, retry or remote worker.
 struct TaskDurability: Codable, Sendable, Equatable {
     var heartbeatAt: Date? = nil

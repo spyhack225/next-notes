@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-02",
+  "notExecuted": true,
+  "pins": [
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+      "sha256": "3453a3198806b5dd5afcd86d90a232bdf65a2eb6a5a16f4db6e29c6696416984"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/LocalAgentBackend.swift",
+      "sha256": "869c607a427e25a77edbabeb6872d8ab6d6130425932b53bfc6d3fe41602ded4"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+      "sha256": "ec85241a76432751c367ccb40649c513e44d31fe27cdfba3250c6239bb7c4305"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskStore.swift",
+      "sha256": "2007c757cc3713c397413c89b9dd82153f232c106bfce45749eb2d4ca15aeaea"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift",
+      "sha256": "a1aef582ab9b22dc305533435e331baeb3abda5cbb0b06ce0bce97c027776310"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift",
+      "sha256": "0768d2faa619d250758843161698e984d108a8eb9cc7f1c27ebb4e2a367b10ff"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/ActionRuntime.swift",
+      "sha256": "8fef88bb335c112df407e67f1eb35b406b4d14f2f0103e7614fafcaf2c81abe0"
+    }
+  ]
+}

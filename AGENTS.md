@@ -453,6 +453,22 @@ EOF means transport loss, not process death, health, effect outcome or retry aut
 ACP durable attempt binding and IM-16 remain open. See the
 [protocol evidence](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-review/protocol-verification.md).
 
+Normal typed ACP workers now commit their positive attempt/current process/start
+metadata before backend and owned Process entry (installed60). Original57 fails14
+ACP admission/primary-fencing assertions; unchanged fixed58 passes worker656.
+A separate original59 fails5 after rejected terminal SQL: the exact released local
+context still authorizes a second real read, receipt and journal. Same fixture fixed60
+refuses through an O(1) exact live-handle guard before SQL, preserving one read and
+zero absent-handle SQL opens. Integrated worker678 and all20 focused flags pass,
+including task reader40, restoration82, actual tasks/ACP/MCP/confirmation and owner
+isolation21files32defaults; Sources/binary/bundle unchanged. Compatibility remains
+unbound, local permission/input capture stays local, and ACP receipt-ID joins,
+activity routing, post-await/current-client authority, atomic SQL-to-Process fencing,
+unverified ACP terminal persistence, liveness/recovery/retry and IM-16 remain open.
+No new store/schema/query/save/timer/queue/model pass; aggregate gates unchanged.
+See [ACP admission](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/verification.md)
+and [released-context proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/released-context-review/verification.md).
+
 ACP now checks the exact established session ID before accumulating reply text,
 publishing activity or relaying a permission (installed app53). Actual original52
 fails20 of68 origin checks; the unchanged fixture passes68 in fixed53 and five

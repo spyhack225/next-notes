@@ -8302,7 +8302,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     originChecks += 1
                     check(name, condition)
                 }
-                print("ACP_ORIGIN_CHECKS: \(originChecks)")
+                SelfTest.diagnostic("ACP_ORIGIN_CHECKS: \(originChecks)")
                 let script = try AgentStdioFixtures.writeACP()
                 let session = ACPSession()
                 let flags = ACPSelfTestFlags()

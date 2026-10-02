@@ -1,0 +1,2 @@
+// Append after the existing worker cases, including ACP extension; do not replace them.
+try await TaskWorkerReleasedContextSelfTest.originalCases(root: root, input: input, text: text, check: check)

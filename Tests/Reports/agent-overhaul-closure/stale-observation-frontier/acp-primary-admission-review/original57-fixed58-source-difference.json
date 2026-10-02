@@ -1,0 +1,8 @@
+{
+  "onlyChangedProducers": [
+    "Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift"
+  ],
+  "unchangedFixtureSHA": "7850186c44e5afb06b652a5a516d9fda1c9a0210cf8677e592e9682d201ddfd5",
+  "unchangedRegistration": true
+}

@@ -1,0 +1,9 @@
+{
+  "runtimeProducerChange": [
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift"
+  ],
+  "commentOnlyChange": [
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskDurability.swift"
+  ],
+  "unchangedFixtureSHA": "8e4dfe3195c97a30ca1163a80b794ca2c801682a2ec9badfa8ff133d41ac969f"
+}

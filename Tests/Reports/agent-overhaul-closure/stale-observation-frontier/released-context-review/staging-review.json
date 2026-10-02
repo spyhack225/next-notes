@@ -1,0 +1,32 @@
+{
+  "sourceDrift": [],
+  "whitespaceCheck": "known exceptions retained verbatim",
+  "exceptions": [
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPrimaryAdmissionSelfTest.swift:256: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/TaskACPPrimaryAdmissionSelfTest.swift.txt:226: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build55-56-time-comparison-fixture.swift.txt:244: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build56-actor-autoclosure-compile-error.log:11: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build56-actor-autoclosure-compile-error.log:16: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build56-actor-autoclosure-compile-error.log:31: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build56.log:10: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build56.log:15: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build56.log:25: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build56.log:130: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build57.log:10: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build57.log:15: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build57.log:124: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build57.log:138: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build58.log:11: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build58.log:16: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build58.log:60: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/build58.log:141: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/invalid-build54-fixture.swift.txt:244: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/producer-reviewed.patch:24: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/producer-reviewed.patch:44: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/producer-reviewed.patch:62: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/producer-reviewed.patch:177: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/producer-reviewed.patch:183: trailing whitespace.",
+    "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/root-reviewed-fixture.swift.txt:256: trailing whitespace."
+  ],
+  "reason": "Raw evidence logs/patches and exact verified embedded Python fixture separator preserved; no runtime source whitespace findings outside that fixture line."
+}
