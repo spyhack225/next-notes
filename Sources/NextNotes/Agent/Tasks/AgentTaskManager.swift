@@ -26,10 +26,13 @@ final class AgentTaskManager {
     @ObservationIgnored var progressDateForTesting: (@MainActor () -> Date)?
     private var preparedRepairAvailable = false
     @ObservationIgnored private let store: AgentTaskStore
+    // Optional: constructing the manager must not load the shared receipt history.
+    @ObservationIgnored private let receiptStore: ActionReceiptStore?
     private var projectsActivity: Bool { !SelfTest.isRunning || !store.allowsHarnessPersistence }
 
-    init(store: AgentTaskStore = .shared) {
+    init(store: AgentTaskStore = .shared, receiptStore: ActionReceiptStore? = nil) {
         self.store = store
+        self.receiptStore = receiptStore
         do { tasks = try store.load() }
         catch {
             historyReadFailure = AgentTaskPersistenceResult.loadFailed.diagnostic
@@ -831,6 +834,19 @@ final class AgentTaskManager {
                       let expected = self.workerCondition(task, states: states) else { return false }
                 if event.kind == .toolStarted || event.kind == .toolCompleted {
                     let prior = self.task(id: taskID)?.durability
+                    if event.kind == .toolStarted {
+                        guard let id = event.receiptID,
+                              let receipt = (self.receiptStore ?? .shared).receipt(for: id),
+                              receipt.taskID == taskID, receipt.taskAttempt == expected.attempt,
+                              receipt.taskLeaseOwner == expected.leaseOwner,
+                              receipt.status == .fired, receipt.events.last?.stage == .fired,
+                              receipt.toolID == event.detail,
+                              receipt.preparedAction?.id == id,
+                              receipt.preparedAction?.routing.taskID == taskID,
+                              receipt.preparedAction?.intentID == receipt.intentID,
+                              receipt.preparedAction?.executionPlan.toolID == receipt.toolID,
+                              prior?.receiptIDs.contains(id.uuidString) == false else { return false }
+                    }
                     let now = max(self.progressDate(), max(prior?.heartbeatAt ?? .distantPast,
                                                           prior?.lastProgressAt ?? .distantPast))
                     var stamped = event
@@ -838,6 +854,9 @@ final class AgentTaskManager {
                     return self.update(taskID, events: [stamped], worker: expected) { item in
                         item.durability?.heartbeatAt = now
                         item.durability?.lastProgressAt = now
+                        if event.kind == .toolStarted, let id = event.receiptID {
+                            item.durability?.receiptIDs.append(id.uuidString)
+                        }
                     }.primaryCommitted
                 }
                 return self.persist(events: [event], worker: expected).primaryCommitted
@@ -848,7 +867,8 @@ final class AgentTaskManager {
             if self.hasLocalAttemptRecord(task),
                self.workerCondition(task, states: [.running]) == nil { return false }
             return self.consumePermissionApproval(taskID: taskID)
-        }, restoredOrigin: origin, restoredPermission: restoredPermission, restoredArguments: restoredArguments)
+        }, restoredOrigin: origin, restoredPermission: restoredPermission, restoredArguments: restoredArguments,
+           receiptStore: receiptStore, leaseOwner: hasLocalAttemptRecord(task) ? task.durability?.leaseOwner : nil)
     }
 
     private func progressDate() -> Date {

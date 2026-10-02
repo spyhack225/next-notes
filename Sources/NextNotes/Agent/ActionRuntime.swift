@@ -327,6 +327,9 @@ struct ActionReceipt: Codable, Equatable, Sendable, Identifiable {
     var toolID: String
     var meetingID: UUID?
     var taskID: String?
+    /// Captured admitted worker identity; absent on legacy and other execution owners.
+    var taskAttempt: Int?
+    var taskLeaseOwner: String?
 
     init(actionID: UUID, intent: ActionIntent, source: ActionSource, authority: ActionAuthority,
          toolID: String, meetingID: UUID? = nil, taskID: String? = nil, startedAt: Date = Date()) {
@@ -346,6 +349,8 @@ struct ActionReceipt: Codable, Equatable, Sendable, Identifiable {
         self.toolID = toolID
         self.meetingID = meetingID
         self.taskID = taskID
+        self.taskAttempt = nil
+        self.taskLeaseOwner = nil
     }
 }
 
@@ -553,6 +558,11 @@ final class ActionOrchestrator {
             authority: intent.authority, toolID: tool.id, meetingID: routing.meetingID,
             taskID: routing.taskID
         )
+        if let context = TaskEventJournal.current, context.taskID == routing.taskID,
+           context.isStillValid != nil, context.attempt > 0, let owner = context.leaseOwner {
+            receipt.taskAttempt = context.attempt
+            receipt.taskLeaseOwner = owner
+        }
         @discardableResult
         func add(_ stage: ActionReceiptStatus, _ detail: String) -> Bool {
             // ACP can append nested permission events while `fire` is suspended. Merge

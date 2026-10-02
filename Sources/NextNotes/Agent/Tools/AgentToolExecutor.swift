@@ -213,6 +213,8 @@ enum AgentToolExecutor {
                                         || tool.namespace == .workspace)
                     && tool.risk > .read,
                 isStillValid: isStillValid,
+                receiptStore: (TaskEventJournal.current?.taskID == taskID
+                    ? TaskEventJournal.current?.receiptStore : nil) ?? .shared,
                 origin: TaskEventJournal.current?.taskID == taskID ? TaskEventJournal.current?.restoredOrigin : nil,
                 fire: { prepared in
                     // The last word on a fabricated or absent argument. Everything above may
@@ -225,7 +227,8 @@ enum AgentToolExecutor {
                     ) {
                         throw AgentError.permissionDenied(problem)
                     }
-                    let journal = try TaskEventJournal.toolStarted(taskID: taskID, tool: tool.id)
+                    let journal = try TaskEventJournal.toolStarted(taskID: taskID, tool: tool.id,
+                        receiptID: prepared.id)
                     var backingReturned = false
                     defer {
                         completedJournalAccepted = TaskEventJournal.toolCompleted(journal, tool: tool.id,

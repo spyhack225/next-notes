@@ -18,6 +18,8 @@ struct TaskJournalEventDraft: Sendable, Equatable {
     var detail: String? = nil
     // Zero is unbound until the actual attempt/lease producer exists.
     var attempt: Int = 0
+    // Transient producer handoff; the task snapshot stores the durable receipt link.
+    var receiptID: UUID? = nil
 }
 
 struct TaskJournalEvent: Sendable, Equatable {
@@ -37,6 +39,8 @@ struct TaskJournalContext: Sendable {
     var restoredOrigin: ActionOriginContext? = nil
     var restoredPermission: PermissionRequest? = nil
     var restoredArguments: [String: String]? = nil
+    var receiptStore: ActionReceiptStore? = nil
+    var leaseOwner: String? = nil
 }
 
 enum TaskEventJournal {
@@ -44,10 +48,10 @@ enum TaskEventJournal {
     @TaskLocal static var current: TaskJournalContext?
 
     @MainActor
-    static func toolStarted(taskID: String?, tool: String) throws -> TaskJournalContext? {
+    static func toolStarted(taskID: String?, tool: String, receiptID: UUID? = nil) throws -> TaskJournalContext? {
         guard let context = current, taskID == context.taskID else { return nil }
         let admitted = context.record(TaskJournalEventDraft(taskID: context.taskID, kind: .toolStarted,
-            detail: tool, attempt: context.attempt))
+            detail: tool, attempt: context.attempt, receiptID: receiptID))
         if context.isStillValid != nil, !admitted {
             throw AgentError.backendUnavailable("The action could not be saved. It was not run.")
         }

@@ -1,0 +1,31 @@
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_WORKER_ATTEMPT_WRONG: receipt join: fresh primary row had no exact receipt ID before actual backing (accepted)
+TASK_WORKER_ATTEMPT_WRONG: receipt join: fresh fired receipt lacked admitted attempt/process binding (accepted)
+TASK_WORKER_ATTEMPT_WRONG: receipt join: terminal primary row lost exact durable receipt link (accepted)
+TASK_WORKER_ATTEMPT_WRONG: receipt join: fresh primary row had no exact receipt ID before actual backing (export-rejected)
+TASK_WORKER_ATTEMPT_WRONG: receipt join: fresh fired receipt lacked admitted attempt/process binding (export-rejected)
+TASK_WORKER_ATTEMPT_WRONG: receipt join: terminal primary row lost exact durable receipt link (export-rejected)
+TASK_WORKER_ATTEMPT_WRONG: receipt join: fresh primary row had no exact receipt ID before actual backing (completion-rejected)
+TASK_WORKER_ATTEMPT_WRONG: receipt join: fresh fired receipt lacked admitted attempt/process binding (completion-rejected)
+TASK_WORKER_ATTEMPT_WRONG: receipt join: terminal primary row lost exact durable receipt link (completion-rejected)
+TASK_WORKER_ATTEMPT_FAILED: 9 assertions

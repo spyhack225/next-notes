@@ -346,6 +346,21 @@ facts do not prove health, runtime-class windows, stale detection, lease/session
 liveness, receipt joins, retry or IM-16. Parent P6-05 remains open. See the
 [original/current progress report](Tests/Reports/agent-overhaul-closure/worker-attempt-prerequisite/heartbeat/README.md).
 
+P6-06c extends `--selftest-task-worker-attempt` to 156 installed app29 cases.
+Original app26 failed nine receipt-link assertions with the prior 93 checks green.
+The actual typed-local receipt captures optional attempt/process ownership; the
+executor passes the prepared action ID, and the manager validates the saved fired
+receipt before adding its ID in the existing primary tool-start/progress transaction.
+Fresh receipt/task readers at actual backing verify exact links, SQL/receipt refusal,
+export-failure admission, and approval/input successor attempts with edited payloads.
+All 14 related checks pass, including restoration82 and isolation21files32defaults.
+Manager receipt injection defaults nil; startup does not load the shared receipt store.
+Legacy receipts stay unbound. Separate task/receipt commits and bounded receipt
+retention mean missing links never prove no effect. No liveness, outcome reconciliation,
+automatic retry, remote/voice/scheduled/ACP authority or IM-16 host is established.
+Parent Phase6 contracts and the historical quick3/10 gate remain open. See the
+[receipt-attempt report](Tests/Reports/agent-overhaul-closure/receipt-attempt-join/README.md).
+
 `--selftest-voice-session-reducer` verifies ten pure traces (the original nine
 plus speech-ended identity/hold guards), then actual capture, approval and streamed
 playback with scripted models and a recording backing. `VoiceSession` remains a
