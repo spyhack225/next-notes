@@ -1,0 +1,181 @@
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_RECEIPT_COMPLETION_TRACE: terminal=failed effects=1 resultDelivered=false retainedFired=true primaryLink=true
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual browser descriptor was admitted with incorrect execution classification
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (localDeterministic-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (cloudModel-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (cloudModel-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (cloudModel-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (cloudModel-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (cloudModel-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (cloudModel-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (cloudModel-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (cloudModel-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (cloudModel-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (cloudModel-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (cloudModel-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (cloudModel-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (cloudModel-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (cloudModel-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (cloudModel-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (cloudModel-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (cloudModel-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (cloudModel-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (cloudModel-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (cloudModel-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (cloudModel-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (cloudModel-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (cloudModel-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (cloudModel-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (browserOrMCP-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (browserOrMCP-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (browserOrMCP-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (browserOrMCP-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (browserOrMCP-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (browserOrMCP-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (browserOrMCP-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (browserOrMCP-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (browserOrMCP-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (browserOrMCP-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (browserOrMCP-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (browserOrMCP-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (browserOrMCP-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (browserOrMCP-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (browserOrMCP-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (browserOrMCP-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (browserOrMCP-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (browserOrMCP-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (browserOrMCP-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (browserOrMCP-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (browserOrMCP-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (browserOrMCP-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (browserOrMCP-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (browserOrMCP-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (acpWorker-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (acpWorker-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (acpWorker-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (acpWorker-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (acpWorker-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (acpWorker-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (acpWorker-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (acpWorker-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (acpWorker-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (acpWorker-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (acpWorker-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (acpWorker-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (acpWorker-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (acpWorker-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (acpWorker-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (acpWorker-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (acpWorker-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (acpWorker-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (acpWorker-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (acpWorker-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (acpWorker-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (acpWorker-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (acpWorker-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (acpWorker-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (scheduledResearch-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (scheduledResearch-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (scheduledResearch-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (scheduledResearch-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (scheduledResearch-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (scheduledResearch-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (scheduledResearch-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (scheduledResearch-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (scheduledResearch-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (scheduledResearch-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (scheduledResearch-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (scheduledResearch-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (scheduledResearch-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (scheduledResearch-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (scheduledResearch-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (scheduledResearch-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (scheduledResearch-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (scheduledResearch-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (scheduledResearch-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (scheduledResearch-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (scheduledResearch-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (scheduledResearch-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (scheduledResearch-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (scheduledResearch-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (waitingOnPerson-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (waitingOnPerson-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (waitingOnPerson-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (waitingOnPerson-held-current)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (waitingOnPerson-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (waitingOnPerson-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (waitingOnPerson-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (waitingOnPerson-old-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (waitingOnPerson-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (waitingOnPerson-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (waitingOnPerson-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (waitingOnPerson-missing-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (waitingOnPerson-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (waitingOnPerson-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (waitingOnPerson-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (waitingOnPerson-wrong-owner)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (waitingOnPerson-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (waitingOnPerson-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (waitingOnPerson-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (waitingOnPerson-missing-start)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification downgraded held ownership or supplied validity (waitingOnPerson-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: actual backend re-read held/stale work after class change (waitingOnPerson-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: refused held/stale backend changed primary/receipt evidence (waitingOnPerson-stale-attempt)
+TASK_WORKER_ATTEMPT_WRONG: runtime class: changed classification admitted a tool fact on held work (waitingOnPerson-stale-attempt)
+TASK_WORKER_ATTEMPT_FAILED: 122 assertions

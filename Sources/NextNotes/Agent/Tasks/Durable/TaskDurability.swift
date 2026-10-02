@@ -26,6 +26,13 @@ struct TaskDurability: Codable, Sendable, Equatable {
     var attemptStartedAt: Date? = nil
     var terminalReason: String? = nil
 
+    /// Recognize admitted or damaged worker history without making its runtime
+    /// classification an execution grant. Legacy metadata without worker identity stays unbound;
+    /// a backend independently refuses every positive attempt lacking live validity.
+    var hasTypedLocalAttemptRecord: Bool {
+        attempt > 0 && (attemptStartedAt != nil || leaseOwner != nil || runtimeClass != .waitingOnPerson)
+    }
+
     init() {}
 
     private enum CodingKeys: String, CodingKey {

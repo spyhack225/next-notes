@@ -515,7 +515,7 @@ final class AgentTaskManager {
 
     private func hasLocalAttemptRecord(_ task: AgentTask) -> Bool {
         guard ownsLocalAttempt(task), let durability = task.durability else { return false }
-        return durability.attempt > 0 && durability.runtimeClass == .localDeterministic
+        return durability.hasTypedLocalAttemptRecord
     }
 
     private func workerCondition(_ captured: AgentTask, states: [AgentTaskStatus]) -> TaskWorkerWriteCondition? {
@@ -563,7 +563,9 @@ final class AgentTaskManager {
             durability.attemptStartedAt = began
             durability.heartbeatAt = began
             durability.lastProgressAt = began
-            durability.runtimeClass = .localDeterministic
+            let descriptor = task.tool.flatMap { AgentToolRegistry.shared.tool(named: $0) }
+            durability.runtimeClass = descriptor?.source == .native && descriptor?.namespace == .browser
+                ? .browserOrMCP : .localDeterministic
             durability.resumePolicy = .neverAuto
             task.durability = durability
         } else { startCondition = nil }
@@ -813,7 +815,7 @@ final class AgentTaskManager {
                 }.primaryCommitted
             }
         } else { capture = nil }
-        let validity: (@MainActor @Sendable () async -> Bool)?
+        let validity: (@MainActor @Sendable () -> Bool)?
         if hasLocalAttemptRecord(task) {
             validity = { [weak self] in
                 guard let self, let expected = self.workerCondition(task, states: [.running]) else { return false }

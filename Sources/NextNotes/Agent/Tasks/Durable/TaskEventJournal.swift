@@ -33,7 +33,9 @@ struct TaskJournalContext: Sendable {
     let taskID: String
     let attempt: Int
     let record: @MainActor @Sendable (TaskJournalEventDraft) -> Bool
-    var isStillValid: (@MainActor @Sendable () async -> Bool)? = nil
+    // The current primary-store check is synchronous; callers may adapt it to
+    // async effect APIs without adding a second hop at backend admission.
+    var isStillValid: (@MainActor @Sendable () -> Bool)? = nil
     var capturePermission: (@MainActor @Sendable (PermissionRequest, ActionOriginContext?, ToolCallReview?) -> Bool)? = nil
     var consumePermissionApproval: (@MainActor @Sendable () -> Bool)? = nil
     var restoredOrigin: ActionOriginContext? = nil

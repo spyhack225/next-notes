@@ -371,6 +371,21 @@ cases and all 14 related flags pass. This proves the isolated read/persistence f
 not crash durability, consequential-write reconciliation, recovery or retry.
 See the [terminal-commit report](Tests/Reports/agent-overhaul-closure/receipt-terminal-commit/README.md).
 
+P6-05b extends the installed worker flag to 362 cases (app35). Original app33
+failed 122 assertions: runtime-class changes bypassed actual held/stale attempt
+fencing, native browser admission was misclassified, and an already-local held
+attempt created receipts before its late validity refusal. Manager now recognizes
+positive worker history across classes; Backend fences every positive typed-local
+attempt and evaluates primary validity at its existing permission-consumption hop,
+before receipt preparation. Native browser metadata comes from the real descriptor.
+The original 185-case extension passes unchanged in app34 worker354; app35 adds eight
+bare/doubly damaged waiting backend negatives with zero reads and unchanged history
+and receipts. All 14 related flags pass, including restoration82 and owner isolation21files32defaults.
+No extra await, save, timer or store is added; one early fail-fast
+primary probe is added. Browser proof stops before authorization/backing; MCP,
+stale windows, process/session liveness, recovery/retry and IM-16 remain open.
+See the [runtime-class report](Tests/Reports/agent-overhaul-closure/runtime-class-fence/README.md).
+
 `--selftest-voice-session-reducer` verifies ten pure traces (the original nine
 plus speech-ended identity/hold guards), then actual capture, approval and streamed
 playback with scripted models and a recording backing. `VoiceSession` remains a

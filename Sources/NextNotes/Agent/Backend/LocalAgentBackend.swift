@@ -25,7 +25,6 @@ struct LocalAgentBackend: AgentBackend {
         let boundAttempt = task.scheduleID == nil && ["user", "text", "selftest"].contains(task.source)
             && task.backend == AgentBackendKind.local.rawValue
             && (task.durability?.attempt ?? 0) > 0
-            && task.durability?.runtimeClass == .localDeterministic
         if boundAttempt {
             guard task.durability?.attemptStartedAt != nil,
                   task.durability?.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
@@ -34,7 +33,14 @@ struct LocalAgentBackend: AgentBackend {
                 throw AgentError.backendUnavailable("This task can’t safely continue. Nothing was run.")
             }
         }
-        let permissionAlreadyGranted = await MainActor.run {
+        let permissionAlreadyGranted = try await MainActor.run {
+            if boundAttempt {
+                guard let context = TaskEventJournal.current, context.taskID == task.id,
+                      context.attempt == task.durability?.attempt,
+                      context.isStillValid?() == true else {
+                    throw AgentError.backendUnavailable("This task can’t safely continue. Nothing was run.")
+                }
+            }
             if let context = TaskEventJournal.current, context.taskID == task.id {
                 return context.consumePermissionApproval?() ?? false
             }
