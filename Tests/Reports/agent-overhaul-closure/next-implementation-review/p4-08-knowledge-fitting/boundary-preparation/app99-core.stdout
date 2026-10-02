@@ -1,0 +1,28 @@
+acceptance: logs in /Users/sergekadjo/Library/Caches/NextNotesBuild/acceptance/20261002-173207-4399
+== CORE ==
+  --selftest-dictation                     PASS  53s
+  --selftest-capture                       PASS  2s
+  --selftest-stream                        PASS  2s
+  --selftest-wake-live                     FAIL  11s
+  --selftest-voice-conversation            PASS  3s
+  --selftest-acoustic-replay               PASS  6s
+  --selftest-duplex                        PASS  2s
+  --selftest-action-runtime                PASS  3s
+  --selftest-activity                      PASS  3s
+  --selftest-meeting-live                  PASS  2s
+  --selftest-meeting-resume                PASS  16s
+  --selftest-meeting-integrity             PASS  4s
+  --selftest-meeting-health                PASS  2s
+  --selftest-meeting-resource-policy       PASS  3s
+  --selftest-meeting-resources             PASS  9s
+  --selftest-toolloop                      PASS  2s
+  --selftest-computer                      PASS  3s
+  --selftest-imessage-watch                PASS  8s
+  --selftest-imessage-loop                 PASS  3s
+  --selftest-imessage-approval             PASS  3s
+  --selftest-acp                           PASS  4s
+  --selftest-mcp                           PASS  2s
+CORE         21/22 PASS
+
+FAIL  core         --selftest-wake-live                 WAKE_LIVE_FAILED: 17/24 hits, 3/32 false at sens 0.6 — hit rate 0.71 under 0.8 at sensitivity 0.6; 3 false accepts over 2 at sensitivity 0.6
+make: *** [acceptance] Error 1

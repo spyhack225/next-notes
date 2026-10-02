@@ -1,0 +1,24 @@
+--- a/Sources/NextNotes/Knowledge/KnowledgeAskBoundarySelfTest.swift
++++ b/Sources/NextNotes/Knowledge/KnowledgeAskBoundarySelfTest.swift
+@@ -59,13 +59,17 @@
+                 })
+             check("knowledge boundary: real assembled prompt exceeds reader \(mode)",
+                 !costs.isEmpty && costs.allSatisfy { $0 <= window })
+-            check("knowledge boundary: citations/retrieved rows were not actually sent \(mode)",
++            let emittedPassages = events.flatMap { event -> [KnowledgeCitation] in
++                if case .retrieved(_, let passages) = event { return passages }; return []
++            }
++            check("knowledge boundary: citations/retrieved event rows were not exactly those actually sent \(mode)",
+                 answer?.isGrounded == true && answer?.claims.count == 1 && answer?.citations.count == 1
+-                    && answer?.invalidMarkers.isEmpty == true
+-                    && answer?.retrieved.allSatisfy { citation in
++                    && answer?.invalidMarkers.isEmpty == true && !emittedPassages.isEmpty
++                    && answer.map { $0.retrieved == emittedPassages } == true
++                    && emittedPassages.allSatisfy { citation in
+                         corpus.contains { $0.chunkID == citation.chunkID && $0.text == citation.text }
+                             && prompts.last?.user.contains("[" + citation.marker + "]") == true
+-                    } == true)
++                    })
+             let partials = events.compactMap { event -> String? in
+                 if case .answering(let text) = event { return text }; return nil
+             }

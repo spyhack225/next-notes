@@ -1,0 +1,65 @@
+--- a/Sources/NextNotes/Knowledge/KnowledgeAsk.swift
++++ b/Sources/NextNotes/Knowledge/KnowledgeAsk.swift
+@@ -237,8 +237,9 @@
+         guard budget > 0 else { throw KnowledgeAskError.contextTooSmall }
+         // Bound arithmetic by the existing maximum; large windows still cap at20 passages.
+         let passageBudgetChars = min(budget, Self.contextPassages * Self.passageCharacters) * 4 * 6 / 10
+-        let contextPassages = min(Self.contextPassages, passageBudgetChars / Self.passageCharacters)
+-        guard contextPassages > 0 else { throw KnowledgeAskError.contextTooSmall }
++        // Three is the preferred minimum; the actual rendered envelope below decides
++        // whether this reader can afford it, fewer passages, or no evidence at all.
++        let contextPassages = min(Self.contextPassages, max(3, passageBudgetChars / Self.passageCharacters))
+         let totalTrace = LatencyTrace.start(.askTotal)
+         var shown: [KnowledgeHit] = []
+         var queries: [String] = []
+@@ -257,8 +258,10 @@
+             round += 1
+             try Task.checkCancellation()
+             var added: [KnowledgeHit] = []
++            var didRetrieve = false
+             if !queries.contains(where: { $0.caseInsensitiveCompare(query) == .orderedSame }) {
+                 queries.append(query)
++                didRetrieve = true
+                 emit(.searching(round: round, query: query))
+                 let retrieveTrace = LatencyTrace.start(.askRetrieve)
+                 let retrieveBegan = Date()
+@@ -272,17 +275,33 @@
+                     \(retrieveSeconds, format: .fixed(precision: 3))s · hits \(added.count, privacy: .public)
+                     """)
+                 shown += added
+-                emit(.retrieved(round: round, passages: added.map(citation)))
+             }
+             // A search that found nothing new ends the searching.
+             if round > 1, added.isEmpty { forceFinal = true }
+-            let final = forceFinal || round == Self.maxRounds || shown.count >= contextPassages
+-            let user = Self.userMessage(question: question, passages: shown.map(citation), files: files,
++            var final = forceFinal || round == Self.maxRounds || shown.count >= contextPassages
++            // Fit the same fully rendered producer input, including titles, searches and files.
++            // Resolve citation metadata once; trimming changes only admitted passage rows.
++            let hadCandidates = !shown.isEmpty
++            var promptPassages = shown.map(citation)
++            var user = Self.userMessage(question: question, passages: promptPassages, files: files,
+                                         queries: queries, final: final)
+-            // Headers, searches and shared-file names also belong to the actual prompt.
+-            // Refuse an unusually large envelope before sending it, without truncating output.
+-            guard system.count / 4 + user.count / 4 + Self.maxTokens + Self.contextHeadroomTokens <= window
++            while system.count / 4 + user.count / 4 + Self.maxTokens + Self.contextHeadroomTokens > window,
++                  !shown.isEmpty {
++                shown.removeLast()
++                promptPassages.removeLast()
++                forceFinal = true
++                final = true
++                user = Self.userMessage(question: question, passages: promptPassages, files: files,
++                                        queries: queries, final: final)
++            }
++            guard (!hadCandidates || !shown.isEmpty),
++                  system.count / 4 + user.count / 4 + Self.maxTokens + Self.contextHeadroomTokens <= window
+             else { throw KnowledgeAskError.contextTooSmall }
++            // Progress, model input and returned citation coverage all describe admitted rows.
++            if didRetrieve {
++                let addedIDs = Set(added.map(\.chunkID))
++                emit(.retrieved(round: round, passages: promptPassages.filter { addedIDs.contains($0.chunkID) }))
++            }
+             emit(.generating(round: round))
+             let generateTrace = LatencyTrace.start(.askGenerate)
+             let generateBegan = Date()

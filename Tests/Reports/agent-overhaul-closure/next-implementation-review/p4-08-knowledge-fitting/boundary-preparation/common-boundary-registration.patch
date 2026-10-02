@@ -1,0 +1,14 @@
+--- a/Sources/NextNotes/Knowledge/KnowledgeAskSelfTest.swift
++++ b/Sources/NextNotes/Knowledge/KnowledgeAskSelfTest.swift
+@@ -46,6 +46,11 @@
+             try await KnowledgeAskWindowSelfTest.originalCases(root: root, check: check)
+         } catch {
+             failures.append("knowledge window fixture failed: \(error)")
++        }
++        do {
++            try await KnowledgeAskBoundarySelfTest.originalCases(root: root, check: check)
++        } catch {
++            failures.append("knowledge boundary fixture failed: \(error)")
+         }
+         let pricing = KnowledgeFixtures.pricingID
+ 

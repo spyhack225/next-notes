@@ -1,0 +1,29 @@
+{
+  "status": "off-source-uncompiled-unrun",
+  "cases": 20,
+  "common_fixture_sha256": "f761404f3d157eca515affb44c8d9f5fa2d5613bdf41a5255dbc12dd68b77fd1",
+  "mount_requires_root_lease": true,
+  "inputs": [
+    {
+      "mode": "feasible-floor3",
+      "window": 1900,
+      "source_title": "Budget fixture"
+    },
+    {
+      "mode": "small-below-floor3",
+      "window": 1500,
+      "source_title": "Budget fixture"
+    },
+    {
+      "mode": "oversized-title",
+      "window": 4096,
+      "source_title_repeat_count": 50
+    }
+  ],
+  "production_baseline": "root95 synchronous advertised-window fitting",
+  "predicted_not_confirmed": [
+    "1900 formula yields2 despite ordinary rendered3 being affordable",
+    "4096 long source titles cause blanket refusal although a smaller subset is affordable"
+  ],
+  "native_executed": false
+}

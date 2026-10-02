@@ -1,0 +1,61 @@
+{
+  "status": "independent-source-review-no-native-verdict",
+  "verdict": "no-blocking-producer-issue-in-covered-three-scenarios",
+  "artifactHashes": {
+    "KnowledgeAskBoundarySelfTest.swift.txt": "f761404f3d157eca515affb44c8d9f5fa2d5613bdf41a5255dbc12dd68b77fd1",
+    "original95-KnowledgeAsk.swift.txt": "f548ff18ae9a9b6e510d71743a81056c547527f71d6d6fc055071a620a6c0003",
+    "proposed-envelope-KnowledgeAsk.swift.txt": "14541862e03b31963385ab0592c60d88dc7997fc56678788f1706abd62d0f964",
+    "envelope-producer.patch": "e9a8498d8f80bf8ee897581284854689861580f8dbfa8546228855c0ddf61e0a"
+  },
+  "fixture": {
+    "normalChecks": 20,
+    "count": "1 corpus + 6 checks per each of3 modes +1 owner invariant",
+    "realPath": "safe temporary SQLite/FTS -> KnowledgeAsker -> ProviderKnowledgeAnswerModel -> capturing actual provider boundary",
+    "modes": [
+      "1900 feasible floor3",
+      "1500 affordable fewer-than3",
+      "4096 oversized citation title"
+    ],
+    "unchangedExistingChecks": 15,
+    "expectedOriginalMechanisms": [
+      "1900 fixed95 heuristic caps at2 although3 rendered passages fit",
+      "4096 metadata makes assembled8-passage input exceed window; fixed95 refuses before stream despite smaller feasible subset"
+    ],
+    "actualOriginalVerdict": null,
+    "actualFixedVerdict": null
+  },
+  "producer": {
+    "formulaUnchanged": true,
+    "maximum20Unchanged": true,
+    "floor3PreferredNotForced": true,
+    "removes": "only least-preferred suffix passage rows",
+    "immutable": [
+      "full original trimmed question",
+      "system/rules",
+      "search history",
+      "files block",
+      "remaining passage titles and text"
+    ],
+    "fits": "complete rendered system/user +512 output +300 reserve under existing character/4 estimate",
+    "metadataResolution": "once per round before its bounded admission/render loop; final answer still resolves metadata again via existing answer()",
+    "modelAndQueryWork": "existing single retrieval await each round; no new awaited lookup/query/model pass; trim forces existing final answer decision",
+    "eventRows": "existing retrieved event is emitted after admission and filters new added IDs against fitted prompt rows",
+    "citationRows": "shown and promptPassages trimmed in lockstep; existing answer and parser use same admitted IDs",
+    "cost": "up to20 synchronous prefix re-renderings; no constant-time or measured latency claim"
+  },
+  "concreteReviewLimits": [
+    "No event-payload assertion in frozen20: .retrieved admitted-row consumption is source-verified only; root notified before96 pins with optional same-count strengthening",
+    "Metadata once is admission-loop scope, not entire ask; answer() still calls citation helper",
+    "Repeated trim across rounds/KnowledgeAnswer.retrieved documented all-round coverage remains unproven",
+    "No isolated oversized question/search-history/files-only refusal case in this20 increment",
+    "Advertised reader window only; actual loaded Llama owned window remains separate unresolved source contract",
+    "Character/4 estimate is roadmap estimate, not measured tokenizer guarantee",
+    "No live quick/full/owner/model quality or native UI claim"
+  ],
+  "constraints": {
+    "sourceEdits": false,
+    "nativeRuns": false,
+    "indexChanges": false,
+    "ownerWeightsReadOrWritten": false
+  }
+}

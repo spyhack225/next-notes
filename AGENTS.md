@@ -703,6 +703,18 @@ and parent P4-08 remain open. Quick quality FAILED4/10; CORE21/22 with unchanged
 wake failure. Existing granted-calendar answer diagnostic archives metadata only.
 See the [fitting proof](Tests/Reports/agent-overhaul-closure/next-implementation-review/p4-08-knowledge-fitting/verification.md).
 
+Bounded P4-08b extends the same ask fixture by20 unchanged real producer/consumer
+checks: original97 RED6 → fixed98 PASS. A1900 reader admits3 at1712 estimated
+tokens;1500 retains1 at1329;4096 with long titles admits6 at3916 instead of
+refusal. Only tail passage rows trim; rules/question/files/output reserve remain
+intact. Real retrieved events, source rows, sent prompts and returned citations
+agree. Metadata resolves once per round admission loop, not once per whole ask.
+No extra retrieval/model round/store/await; character estimation, loaded capacity,
+long query/files-only, repeated trims, typed/memory/Assembler and parent gates
+remain open. Final99 also passes these checks. The first99 worker owner-metrics
+signature failure remains unattributed; unchanged recheck passes1352.
+See [boundary proof](Tests/Reports/agent-overhaul-closure/next-implementation-review/p4-08-knowledge-fitting/boundary-preparation/boundary-verification.md).
+
 `usage.jsonl` is the one local record of which model or engine ran each pass — Agent,
 Meetings and Dictation — with its provider, model, locality, timing, counts, tools and
 outcome (P0-20a–e). It never leaves this Mac: nothing uploads it, no network call touches

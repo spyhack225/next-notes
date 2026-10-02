@@ -47,6 +47,11 @@ enum KnowledgeAskSelfTest {
         } catch {
             failures.append("knowledge window fixture failed: \(error)")
         }
+        do {
+            try await KnowledgeAskBoundarySelfTest.originalCases(root: root, check: check)
+        } catch {
+            failures.append("knowledge boundary fixture failed: \(error)")
+        }
         let pricing = KnowledgeFixtures.pricingID
 
         failures += catalogueFailures()

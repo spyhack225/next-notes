@@ -1,0 +1,16 @@
+{
+  "status": "off-source-prepared-not-built-not-run",
+  "producer_source_owned_by": "root",
+  "common_source_proposed": "Sources/NextNotes/Knowledge/KnowledgeAskBoundarySelfTest.swift",
+  "common_cases": 20,
+  "existing_common15_unchanged": true,
+  "original_fixed_expected": "original96 uses exact95 producer; fixed97 only envelope producer body changes",
+  "source_changes_by_preparer": false,
+  "hashes": {
+    "KnowledgeAskBoundarySelfTest.swift.txt": "f761404f3d157eca515affb44c8d9f5fa2d5613bdf41a5255dbc12dd68b77fd1",
+    "original95-KnowledgeAsk.swift.txt": "f548ff18ae9a9b6e510d71743a81056c547527f71d6d6fc055071a620a6c0003",
+    "proposed-envelope-KnowledgeAsk.swift.txt": "14541862e03b31963385ab0592c60d88dc7997fc56678788f1706abd62d0f964",
+    "envelope-producer.patch": "e9a8498d8f80bf8ee897581284854689861580f8dbfa8546228855c0ddf61e0a",
+    "common-boundary-registration.patch": "e30387605c50eafdf348fe6ec1c6dc80ba8a2f7fff83df015ecc8e14523207ec"
+  }
+}

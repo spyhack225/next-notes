@@ -1,0 +1,115 @@
+{
+  "status": "actual-original97-fixed98-independent-knowledge-verification",
+  "verdict": "bounded full-envelope fitting and feasible floor3 original regression resolved",
+  "actual": {
+    "original": {
+      "app": 97,
+      "flag": "ask",
+      "exit": 1,
+      "marker": "ASK_FAILED",
+      "failureCount": 6,
+      "failures": [
+        "ASK_WRONG: knowledge boundary: reader that can fit3 rendered passages lost the feasible floor",
+        "ASK_WRONG: knowledge boundary: actual provider not reached or reader refused although subset fits oversized-title",
+        "ASK_WRONG: knowledge boundary: real assembled prompt exceeds reader oversized-title",
+        "ASK_WRONG: knowledge boundary: citations/retrieved event rows were not exactly those actually sent oversized-title",
+        "ASK_WRONG: knowledge boundary: actual streaming/progress consumer failed oversized-title",
+        "ASK_WRONG: knowledge boundary: long metadata must retain a smaller actual subset"
+      ],
+      "traces": [
+        "KNOWLEDGE_WINDOW_TRACE: window=4096 modelCalls=2 maxEstimatedWithOutputAndHeadroom=3057 retrieved=10 refused=false",
+        "KNOWLEDGE_WINDOW_TRACE: window=32768 modelCalls=3 maxEstimatedWithOutputAndHeadroom=4974 retrieved=20 refused=false",
+        "KNOWLEDGE_WINDOW_TRACE: window=512 modelCalls=0 maxEstimatedWithOutputAndHeadroom=0 retrieved=0 refused=true",
+        "KNOWLEDGE_BOUNDARY_TRACE: mode=feasible-floor3 window=1900 modelCalls=1 maxEstimatedWithOutputAndHeadroom=1521 retrieved=2 refused=false",
+        "KNOWLEDGE_BOUNDARY_TRACE: mode=small-below-floor3 window=1500 modelCalls=1 maxEstimatedWithOutputAndHeadroom=1329 retrieved=1 refused=false",
+        "KNOWLEDGE_BOUNDARY_TRACE: mode=oversized-title window=4096 modelCalls=0 maxEstimatedWithOutputAndHeadroom=0 retrieved=0 refused=true"
+      ],
+      "sourceDrift": [],
+      "sameInstalledBinary": true,
+      "fullBundleBeforeAfterIdentical": true
+    },
+    "fixed": {
+      "app": 98,
+      "flag": "ask",
+      "exit": 0,
+      "marker": "ASK_OK",
+      "failureCount": 0,
+      "traces": [
+        "KNOWLEDGE_WINDOW_TRACE: window=4096 modelCalls=2 maxEstimatedWithOutputAndHeadroom=3057 retrieved=10 refused=false",
+        "KNOWLEDGE_WINDOW_TRACE: window=32768 modelCalls=3 maxEstimatedWithOutputAndHeadroom=4974 retrieved=20 refused=false",
+        "KNOWLEDGE_WINDOW_TRACE: window=512 modelCalls=0 maxEstimatedWithOutputAndHeadroom=0 retrieved=0 refused=true",
+        "KNOWLEDGE_BOUNDARY_TRACE: mode=feasible-floor3 window=1900 modelCalls=1 maxEstimatedWithOutputAndHeadroom=1712 retrieved=3 refused=false",
+        "KNOWLEDGE_BOUNDARY_TRACE: mode=small-below-floor3 window=1500 modelCalls=1 maxEstimatedWithOutputAndHeadroom=1329 retrieved=1 refused=false",
+        "KNOWLEDGE_BOUNDARY_TRACE: mode=oversized-title window=4096 modelCalls=1 maxEstimatedWithOutputAndHeadroom=3916 retrieved=6 refused=false"
+      ],
+      "sourceDrift": [],
+      "sameInstalledBinary": true,
+      "fullBundleBeforeAfterIdentical": true
+    }
+  },
+  "fixtureCounts": {
+    "boundaryCommon": 20,
+    "priorWindowCommon": 15,
+    "commonCombined": 35,
+    "broaderAskFlagTotal": "not published; not inferred"
+  },
+  "comparison": {
+    "compilerEntries": 1045,
+    "delta": [
+      {
+        "file": "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+        "original": "f94781f9ce609b4d05042233b59886f72a56001772a317d9e55cb60e1d26d4e9",
+        "fixed": "4513d4358e1d10acb76a8fedce90f91f6b08d60a83412c5ae240391e578899c2"
+      },
+      {
+        "file": "Sources/NextNotes/Knowledge/KnowledgeAsk.swift",
+        "original": "f548ff18ae9a9b6e510d71743a81056c547527f71d6d6fc055071a620a6c0003",
+        "fixed": "14541862e03b31963385ab0592c60d88dc7997fc56678788f1706abd62d0f964"
+      }
+    ],
+    "disjointSecondDelta": "AgentSpeechSynthesizer diagnostic checkpoint; knowledge fixtures/capture provider do not invoke it",
+    "commonFixtureSHA": "fc73c763cd512bfc2ffe97ebdea9d618d5a70df3396fe2e458a0ee1b1efe96ac",
+    "prior15FixtureSHA": "f759b630533af52568684ba542b609cdcddb465e11efd6ca0c0885a671595dfb",
+    "askRegistrationUnchanged": true,
+    "scenariosAndInputsIdentical": true,
+    "sourceAndIndexInvariantChecked": true,
+    "ownerStoreDefaultsInvariantChecked": true
+  },
+  "confirmedCauses": {
+    "floor3": "nominal700-character target formula capped feasible1900 reader at2; actual fixed complete3-passage cost1712<=1900 confirms missing admission",
+    "oversizedMetadata": "source title is part of real rendered prompt. Original first8 candidates exceed4096 complete envelope and producer refuses wholesale beforestream; fixed retains unchanged titles for6 actual rows, completecost3916<=4096",
+    "fix": "KnowledgeAsker.run prefers3 as target then admits an actual complete rendered prefix. Only passage suffix rows are removed; immutable question/system/searches/files/remaining titles/text and output512/headroom300 stay unchanged. A trim forces final rather than another query/pass."
+  },
+  "consumersVerified": [
+    "actual capturing provider receives every complete system/user/max512 prompt within its advertisedwindow",
+    "actual retrieved events nonempty and exact ordered==answer.retrieved",
+    "every emitted/result source row and marker is in actual final sent prompt",
+    "grounded answer claims/citations/invalid-marker checks",
+    "real searching/generating/answering/finished events",
+    "safe SQLite/FTS source rows/index remain unchanged",
+    "owner stores/defaults remain unchanged"
+  ],
+  "controls": {
+    "small1500": "same1 actualpassage/cost1329/onecall bothbeforeafter; no unconditional floor3 overflow",
+    "prior4096": "same10 actualpassages/cost3057/twocalls",
+    "prior32768": "same20 actualpassages/cost4974/threecalls",
+    "prior512": "same0 modelcalls/refused"
+  },
+  "metadataAndCost": {
+    "resolution": "once for each round candidate list before bounded repeated rendering; final answer() still resolves metadata again as existing",
+    "foregroundAwait": "no extra producerawait/query/modelpass",
+    "rendering": "synchronous atmost20 prefix re-renderings; no measured CPU/latency/O1 claim"
+  },
+  "retainedHistorical": "Original96 knowledge matched original97 RED6; initial96 audio timeline recorder overflow separately invalid. No knowledge scenario/fixture/producer changes between96and97.",
+  "remainingOpen": [
+    "actual tokenizer/loaded Llama owned capacity and coldunknown semantics",
+    "oversized question/query/file-only boundary and repeated cross-roundtrim",
+    "KnowledgeAnswer retrieved-all-rounds edge outsidethese single-round boundarycases",
+    "memory-fitted typedrouting/Assembler parentP4-08 work",
+    "quick/full/owner qualitybar remains fixed; no defaultpromotion/modelquality/phasecompletion claim",
+    "focused27 and modelquick root-owned inprogress atthisreview; no complete verdict claimed",
+    "native UI/live Island/voice evidence is independent"
+  ],
+  "reviewerSourceEdits": false,
+  "reviewerNativeRuns": false
+}
