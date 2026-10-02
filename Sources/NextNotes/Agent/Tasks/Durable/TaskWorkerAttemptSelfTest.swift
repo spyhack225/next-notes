@@ -138,6 +138,7 @@ enum TaskWorkerAttemptSelfTest {
             try await TaskACPPostGateSelfTest.originalCases(root: root, check: check)
             try await ACPSessionReviewMetadataSelfTest.originalCases(root: root, check: check)
             try await TaskACPRuntimeObservationSelfTest.originalCases(root: root, check: check)
+            try await TaskACPPermissionWaitSelfTest.originalCases(root: root, check: check)
         } catch { failures.append("actual worker fixture: \(error)") }
         failures += SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).map { "owner changed: \($0)" }
         for failure in failures { SelfTest.diagnostic("TASK_WORKER_ATTEMPT_WRONG: \(failure)") }

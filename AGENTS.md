@@ -570,6 +570,19 @@ Broker standing-grant allow, SQL-to-wire handoff, client/close epochs, edited pa
 physical latency, recovery/retry/IM-16 and parent/aggregate gates remain open.
 See [post-Gate proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-post-gate-review/verification.md).
 
+Bounded P6-05j supplies CURRENT task-owned Gate approval waits, both visible and
+queued, through existing live Manager binding. Actual original86 false-scaffold RED6
+→ identical fixed87 worker1161/all20 focused flags PASS; Source1035/fullbundle invariant.
+Two real typed ACP workers admit forty-day-old progress and retain their running rows;
+metadata queries change no history/receipt/card/choice. Rejected approval save retains
+both waits; genuine decision promotes B; Gate withdrawal clears it before worker release.
+Missing/released is unavailable. Restored-only query unchanged; no store/timer/query/save,
+state change/model pass/actor hop or foreground await. This is an approval-only conservative
+taskID exclusion, not exact attempt authority, broader person-input coverage, age window,
+stale verdict or retry. Queue traversal/task lookup have no large-history latency proof.
+Parent health/effect/receipt/stale/recovery/retry/IM-16 and aggregate gates stay open.
+See [current approval wait proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/human-wait-observation-review/verification.md).
+
 Bounded P6-05i supplies CURRENT owned ACP process/transport metadata through the
 same Session and existing bound worker, not LAST-cache health. Actual original84
 nil-scaffold RED10 → identical fixed85 worker1132/all20 focused flags PASS, Source1034

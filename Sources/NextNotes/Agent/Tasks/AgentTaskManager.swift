@@ -99,6 +99,13 @@ final class AgentTaskManager {
         return observed
     }
 
+    /// Current Gate wait for this live task. Missing/released is unavailable;
+    /// false covers only Gate approvals, not every kind of person interaction.
+    func workerPermissionWait(taskID: String) -> Bool? {
+        guard workerBinding(taskID: taskID) != nil else { return nil }
+        return PermissionGate.shared.hasWaitingRequest(taskID: taskID)
+    }
+
     /// Record the LAST actual admitted entry/return under its captured handle.
     /// Completion is observed before its existing save, so rollback cannot invent an
     /// active backing after it returned. This grants no health/effect/retry authority.

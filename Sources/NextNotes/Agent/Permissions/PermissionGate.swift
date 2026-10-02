@@ -265,6 +265,13 @@ final class PermissionGate {
             || queued.contains { $0.request.taskID == taskID && $0.restoredDecision != nil }
     }
 
+    /// Current task-owned approval waits, including the queue. This is a
+    /// diagnostic exclusion, never approval or exact attempt/retry authority.
+    func hasWaitingRequest(taskID: String) -> Bool {
+        (waiting.map { $0.request.taskID == taskID } ?? false)
+            || queued.contains { $0.request.taskID == taskID }
+    }
+
     /// Simulate process loss in the isolated installed restart fixture. A restart drops
     /// ephemeral waiters/cards; it does not manufacture a durable approval or denial.
     func resetForRestartTesting() {

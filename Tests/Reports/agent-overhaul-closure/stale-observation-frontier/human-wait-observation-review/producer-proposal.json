@@ -1,0 +1,5 @@
+{
+  "originalSHA256": "abd0021bcd14e883a66d6dd33132cba2293dc860db04653db02b7a7994f1e308",
+  "proposedSHA256": "27aef47f594195a0549887ef381a986f1ef52abe279f47f6dc3dd13d7dd5836e",
+  "scope": "existing active/queued typed taskID projection only; TaskID conservative diagnostic, not exact attempt or authority"
+}

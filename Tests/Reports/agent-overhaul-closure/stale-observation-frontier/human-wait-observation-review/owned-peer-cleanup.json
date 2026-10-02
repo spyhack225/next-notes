@@ -1,0 +1,6 @@
+{
+  "matchingOwnedPeerPIDs": [],
+  "scope": "exact fixture-only permission-wait-A/B directory/script suffixes",
+  "processKilled": false,
+  "claim": "No remaining matching owned peer after1161 worker completion; not descendant/effect cessation or general liveness"
+}
