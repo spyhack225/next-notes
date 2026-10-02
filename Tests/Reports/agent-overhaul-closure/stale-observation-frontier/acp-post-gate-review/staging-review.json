@@ -1,0 +1,39 @@
+{
+  "rootOwnedSourcePaths": [
+    "Sources/NextNotes/Agent/Backend/ACPSession.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPostGateSelfTest.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift"
+  ],
+  "rootOwnedAGENTS": "only owned-AGENTS.patch; foreign theme paragraph excluded",
+  "ignoredRoadmapsNeverStaged": true,
+  "sourceWhitespace": "Only frozen rawliteral indentation-only blank lines listed; other Source/AGENTS PASS; raw bytes unchanged after pins",
+  "rawLiteralWhitespaceExceptions": [
+    [
+      "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPostGateSelfTest.swift",
+      "408"
+    ],
+    [
+      "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPostGateSelfTest.swift",
+      "426"
+    ],
+    [
+      "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPostGateSelfTest.swift",
+      "431"
+    ],
+    [
+      "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPostGateSelfTest.swift",
+      "435"
+    ],
+    [
+      "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPostGateSelfTest.swift",
+      "447"
+    ],
+    [
+      "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPostGateSelfTest.swift",
+      "523"
+    ]
+  ],
+  "rawArtifacts": "verbatim native/build/source/context logs and snapshots retained",
+  "verifiedSourceEntries": 1032,
+  "dirtyWorkspaceNotCleanCheckout": true
+}

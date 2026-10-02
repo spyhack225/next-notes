@@ -1,0 +1,20 @@
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -559,6 +559,17 @@
+ Phase6/aggregate quality gates remain open. See the
+ [actual Gate proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-gate-admission-review/verification.md).
+ 
++Bounded P6-06o revalidates the exact bound ACP primary owner after the existing
++Gate wait and before returning authorizing Bool. Original80 RED1 becomes identical
++fixed81 worker1074/all20 focused flags PASS: legitimate saved approval remains,
++but a synchronously committed fresh-manager hold now produces offered reject.
++Accepted current attempt still permits the same harmless protocol control. ONE
++existing fail-fast primary probe is added for approved bound calls; false/nil and
++Session cancellation retain their contracts, with no extra await/save/store/timer.
++Broker standing-grant allow, SQL-to-wire handoff, client/close epochs, edited payload,
++physical latency, recovery/retry/IM-16 and parent/aggregate gates remain open.
++See [post-Gate proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-post-gate-review/verification.md).
++
+ ACP now checks the exact established session ID before accumulating reply text,
+ publishing activity or relaying a permission (installed app53). Actual original52
+ fails20 of68 origin checks; the unchanged fixture passes68 in fixed53 and five

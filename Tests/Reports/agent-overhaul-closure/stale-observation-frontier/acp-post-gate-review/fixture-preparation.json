@@ -1,0 +1,16 @@
+{
+  "state": "off-source prepared; uncompiled; unexecuted; resumed after root-authorized n common correction",
+  "normalAdditionalChecks": 57,
+  "predictedWorkerTotalIfNFixedAndAllExecute": 1074,
+  "peerASTParseOnly": true,
+  "embeddedPeerExact": true,
+  "sourceChangesByWorker": false,
+  "nativeVerdict": null,
+  "noAwaitBetweenRespondAndHold": true,
+  "sha256": {
+    "TaskACPPostGateSelfTest.swift.txt": "88db6296851d0af3ba2a0c1732abe3b6388c5f723a8ac5ca62e730a5f69729fd",
+    "owned-post-gate-peer.py.txt": "d730b31bbcf62858781965029e4e22d7acd823398f5d750cb3dfb5bcad7f0a14",
+    "registration.json": "9ab493ae9b599f102feab61f1195fe8ab3d9dc74b3b7614a940603acd904b503",
+    "preparation-source-pins.json": "f256847eb3fc06a9f17957b49aa2c3cd64867de413eddb108c47127ab38b18a8"
+  }
+}

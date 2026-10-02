@@ -1,0 +1,18 @@
+{
+  "anchor": "try await TaskACPGateAdmissionSelfTest.originalCases(root: root, check: check)",
+  "append": "try await TaskACPPostGateSelfTest.originalCases(root: root, check: check)",
+  "normalAdditionalChecks": 57,
+  "breakdown": {
+    "common22TwoModes": 44,
+    "heldH7": 7,
+    "acceptedA3": 3,
+    "ownerO1": 1,
+    "taskOnlyE1TwoModes": 2
+  },
+  "priorExpectedIfP6nNativePasses": 1017,
+  "predictedTotalIfAllExecute": 1074,
+  "conditionalCleanupFailureCheckExcluded": true,
+  "prerequisite": "P6-06n Gate decision admission must be installed in BOTH o versions; its original Gate is not o baseline",
+  "compiled": false,
+  "nativeVerdict": null
+}

@@ -1,0 +1,37 @@
+{
+  "status": "off-source prepared and frozen for independent review; uncompiled/unexecuted",
+  "tentativeRoadmapID": "P6-06o",
+  "sourceApplicationOwner": "root",
+  "compiledByWorker": false,
+  "sourceChangesByWorker": false,
+  "ownerPayloadDecodedOrSeededByWorker": false,
+  "nativeVerdict": null,
+  "normalAdditionalChecks": 57,
+  "priorExpectedIfNFixedNativeGreen": 1017,
+  "predictedWorkerTotalIfAllExecute": 1074,
+  "prerequisite": "Fixed n Gate admission producer + same context bridge + SelfTest askPermission route before BOTH o versions; prior n fixture unchanged",
+  "deterministicInputBoundary": "actual Gate respond once then fresh Manager SQL hold on same MainActor BEFORE ANY await; saved approved event retained",
+  "expectedOriginalFailure": "held C12 returns offered allow instead of reject; actual native reproduction pending",
+  "staticOnly": [
+    "Python AST parse without execution",
+    "embedded peer exact",
+    "34 distinct predicate labels; branch-expanded57",
+    "no await between real respond and fresh hold",
+    "same exact taskID-only Store.confirm prerequisite and frozen request/args"
+  ],
+  "openContracts": [
+    "Session/client/close epochs",
+    "standing grants/edited payload/consequential effects",
+    "process death/crash/reconciliation/retry/recovery",
+    "remote/voice/scheduled/IM-16",
+    "parent phases/aggregate gates"
+  ],
+  "sha256": {
+    "TaskACPPostGateSelfTest.swift.txt": "88db6296851d0af3ba2a0c1732abe3b6388c5f723a8ac5ca62e730a5f69729fd",
+    "owned-post-gate-peer.py.txt": "d730b31bbcf62858781965029e4e22d7acd823398f5d750cb3dfb5bcad7f0a14",
+    "registration.json": "9ab493ae9b599f102feab61f1195fe8ab3d9dc74b3b7614a940603acd904b503",
+    "preparation-source-pins.json": "f256847eb3fc06a9f17957b49aa2c3cd64867de413eddb108c47127ab38b18a8",
+    "fixture-preparation.json": "0abaa3359528988fb83f58dee44eddc34717ce57e538e9294f33d7254f9411db",
+    "README.md": "bc61c3f6e47ad15fe463d9273c736395cdf04ff79ff7ecc373fcf9a3f0e3fa0f"
+  }
+}

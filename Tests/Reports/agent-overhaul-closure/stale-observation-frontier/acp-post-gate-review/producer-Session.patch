@@ -1,0 +1,20 @@
+--- original/ACPSession.swift
++++ fixed/ACPSession.swift
+@@ -192,8 +192,15 @@
+             case .ask(let request), .askLocal(let request):
+                 // This callback runs outside the parent task. Rebind only its exact
+                 // captured normal typed context at the existing approval boundary.
+-                let approved = await TaskEventJournal.$current.withValue(taskContext) {
+-                    await PermissionGate.shared.ask(request)
++                let context = taskContext
++                let approved = await TaskEventJournal.$current.withValue(context) { @MainActor in
++                    let approved = await PermissionGate.shared.ask(request)
++                    guard approved else { return false }
++                    // A committed approval is historical once its worker is held.
++                    // Reuse this existing Gate await to check the live primary owner
++                    // before passing authorization back to the protocol consumer.
++                    guard let context else { return true }
++                    return context.isStillValid?() == true
+                 }
+                 guard !promptCancellationRequested else { return Self.cancelledPermissionResult }
+                 return Self.selectedPermissionResult(approved ? allow : reject)
