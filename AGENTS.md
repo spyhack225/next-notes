@@ -321,8 +321,14 @@ task delivery or automatic retry. Old/missing ownership stays bound and refused;
 held cancellation commits before cleanup, and a rejected save keeps the held row.
 Related durability37, recovery56, authority58, restoration70, history-repair58,
 production tool loop, routine authority, scheduling and owner isolation pass.
+Installed app20 extends the actual restoration flag from 70 to 82 cases. Both
+permission and missing-path input continuation commit prior attempt + 1/current
+process ownership exactly once before real backend and temporary backing entry.
+Retained original/restored contexts refuse facts, capture and token consumption
+without changing successor history. Worker61, review and owner isolation remain
+green. Fresh-object replay holds the captured successor; it is not a process crash.
 This supplies no heartbeat/process liveness, separate crash/power-loss proof,
-replacement-worker or continuation attempt-increment proof, task receipt-ID join,
+replacement-worker lifecycle proof, task receipt-ID join,
 live PermissionGate standing-grant repair, ACP/voice/scheduled/remote authority,
 automatic retry or IM-16 host. Parent Phase 6 tasks remain open. See the
 [worker report](Tests/Reports/agent-overhaul-closure/worker-attempt-prerequisite/README.md).

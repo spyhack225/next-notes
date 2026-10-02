@@ -1,0 +1,12 @@
+{
+  "status": "exact proposal applied by root; installed app20 restoration82 worker61 review/isolation PASS; no production changes",
+  "source": "Sources/NextNotes/Agent/Tasks/Durable/TaskRestorationProductionSelfTest.swift",
+  "original_sha256": "fea3378c696da54e66db0193045edd2ff9de0455f039b50288f19407da298527",
+  "proposed_sha256": "4304f8da7a7f7c087a77ea61a93451d80b4db6f19f6a4677a63c49184fc951f5",
+  "added_checks": 12,
+  "expected_restoration_total": 82,
+  "expected_input_total": 48,
+  "scope": "existing actual temp read/write continuation flows; captured actual metadata replay for fresh object hold; no actual process crash/replacement-worker claim",
+  "actual_restoration_total": 82,
+  "installed_evidence": "installed-app20-evidence-manifest.json"
+}

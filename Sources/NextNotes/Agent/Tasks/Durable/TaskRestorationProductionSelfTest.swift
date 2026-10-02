@@ -49,12 +49,14 @@ enum TaskRestorationProductionSelfTest {
         var firedArguments: [[String: String]] = []
         var allowedPath: String?
         var allowedText: String?
+        var permissionEffectProbe: (() throws -> Void)?
         AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
             guard tool.id == "filesystem.write", let path = allowedPath, let text = allowedText,
                   arguments["path"] == path, arguments["text"] == text,
                   URL(fileURLWithPath: path).resolvingSymlinksInPath().path.hasPrefix(root.resolvingSymlinksInPath().path + "/") else {
                 throw FixtureError.unsafeEffect
             }
+            try permissionEffectProbe?()
             fires += 1
             firedArguments.append(arguments)
             try Data(text.utf8).write(to: URL(fileURLWithPath: path), options: .atomic)
@@ -69,6 +71,8 @@ enum TaskRestorationProductionSelfTest {
             AgentSession.shared.recordUser(objective, source: .text)
             let (store, sql, originalManager) = try fixture("approved-flow")
             defer { sql.close() }
+            var initialPermissionContext: TaskJournalContext?
+            originalManager.backendEntryForTesting = { initialPermissionContext = TaskEventJournal.current }
             let submitted = originalManager.submit(objective: objective, tool: "filesystem.write",
                 arguments: ["path": output.path, "text": initial, "_fixturePin": "original authorization pin"], source: "text")
             check(await eventually { originalManager.task(id: submitted.id)?.status == .waitingForPermission
@@ -86,6 +90,11 @@ enum TaskRestorationProductionSelfTest {
                 "original approval was not genuinely parked before the external effect")
             check(try sql.load().first?.pendingInteraction == original.pendingInteraction,
                 "exact real request did not reach SQL authority")
+            cases += 1
+            let permissionPrior = original.durability?.attempt ?? 0
+            check(permissionPrior > 0 && initialPermissionContext?.attempt == permissionPrior
+                && original.durability?.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
+                "permission continuation did not start from actual persisted positive ownership")
             cases += 1
 
             PermissionGate.shared.resetForRestartTesting()
@@ -136,6 +145,43 @@ enum TaskRestorationProductionSelfTest {
             check(secondRestart.tasks.first?.status == .waitingForPermission && PermissionGate.shared.pending == request,
                 "negative final-boundary validation consumed the original waiting card")
             cases += 1
+            var permissionSuccessor: AgentTask?
+            var permissionEntryBound = false
+            var permissionOldRefused = false
+            var permissionHistoryUnchanged = false
+            var permissionEffectBound = false
+            secondRestart.backendEntryForTesting = {
+                let beforeRows = try sql.load()
+                let beforeEvents = try sql.journal(taskID: submitted.id)
+                permissionSuccessor = beforeRows.first { $0.id == submitted.id }
+                let current = TaskEventJournal.current
+                permissionEntryBound = permissionSuccessor?.status == .running
+                    && permissionSuccessor?.durability?.attempt == permissionPrior + 1
+                    && permissionSuccessor?.durability?.leaseOwner == String(ProcessInfo.processInfo.processIdentifier)
+                    && permissionSuccessor?.durability?.attemptStartedAt != nil
+                    && current?.taskID == submitted.id && current?.attempt == permissionPrior + 1
+                    && beforeEvents.last?.draft.kind == .workerStarted
+                    && beforeEvents.last?.draft.attempt == permissionPrior + 1
+                guard let initialPermissionContext else { throw FixtureError.absentRequest }
+                permissionOldRefused = [initialPermissionContext, restoredContext].allSatisfy { old in
+                    let recorded = old.record(TaskJournalEventDraft(taskID: submitted.id,
+                        kind: .toolStarted, detail: "filesystem.write", attempt: old.attempt))
+                    let permissionRecorded = old.record(TaskJournalEventDraft(taskID: submitted.id,
+                        kind: .permissionApproved, attempt: old.attempt))
+                    let captured = old.capturePermission?(request, origin, savedReview) ?? false
+                    return !recorded && !permissionRecorded && !captured && old.consumePermissionApproval?() != true
+                }
+                permissionHistoryUnchanged = try sql.load() == beforeRows
+                    && sql.journal(taskID: submitted.id) == beforeEvents
+            }
+            permissionEffectProbe = {
+                let row = try sql.load().first { $0.id == submitted.id }
+                permissionEffectBound = row?.status == .running
+                    && row?.durability?.attempt == permissionPrior + 1
+                    && row?.durability?.leaseOwner == String(ProcessInfo.processInfo.processIdentifier)
+                    && TaskEventJournal.current?.attempt == permissionPrior + 1
+                    && row?.arguments == expected
+            }
             check(PermissionGate.shared.respond(id: request.id, approved: true), "genuine restored approval was refused")
             check(await eventually { secondRestart.task(id: submitted.id)?.status == .completed },
                 "real LocalAgentBackend failed to consume its owning manager's one-shot token")
@@ -153,6 +199,32 @@ enum TaskRestorationProductionSelfTest {
             check(completedRestart.backendStartsForTesting == 0 && PermissionGate.shared.pending == nil && fires == 1,
                 "completed history replayed a previously approved effect")
             cases += 1
+            check(permissionEntryBound, "approval did not persist prior+1/current-pid before actual backend entry")
+            cases += 1
+            check(permissionOldRefused && permissionHistoryUnchanged,
+                "old original/restored approval contexts consumed successor authority or changed primary history")
+            cases += 1
+            check(permissionEffectBound, "approved temp backing did not receive persisted successor attempt")
+            cases += 1
+            let permissionStarts = try sql.journal(taskID: submitted.id)
+                .filter { $0.draft.kind == .workerStarted }.map { $0.draft.attempt }
+            check(try permissionStarts == [permissionPrior, permissionPrior + 1]
+                && sql.load().first?.durability?.attempt == permissionPrior + 1
+                && fires == 1 && secondRestart.backendStartsForTesting == 1,
+                "explicit approval allocated more than one successor or lost persisted attempt")
+            cases += 1
+            guard let permissionSuccessor else { throw FixtureError.absentRequest }
+            let (heldPermissionStore, heldPermissionSQL, _) = try fixture("permission-successor-held")
+            defer { heldPermissionSQL.close() }
+            guard heldPermissionStore.save([permissionSuccessor]).primaryCommitted else { throw FixtureError.unsafeEffect }
+            let heldPermission = AgentTaskManager(store: heldPermissionStore)
+            check(try heldPermission.task(id: submitted.id)?.status == .recovering
+                && heldPermission.task(id: submitted.id)?.durability == permissionSuccessor.durability
+                && heldPermission.backendStartsForTesting == 0 && fires == 1
+                && heldPermissionSQL.journal(taskID: submitted.id).last?.draft.kind == .recoveryHeld,
+                "fresh manager replayed actual saved approval successor instead of holding it")
+            cases += 1
+            permissionEffectProbe = nil
 
             // An ephemeral remote-origin context is not permission to restore remote
             // work. This calls the genuine executor/runtime/broker to prove the origin
@@ -395,6 +467,8 @@ enum TaskRestorationProductionSelfTest {
             }
             let (store, sql, manager) = try fixture("original")
             defer { sql.close() }
+            var initialInputContext: TaskJournalContext?
+            manager.backendEntryForTesting = { initialInputContext = TaskEventJournal.current }
             let original = manager.submit(objective: "Read my chosen fixture file", tool: "filesystem.read", source: "text")
             check(await settled(manager, original.id), "original missing-path producer did not settle")
             let question = manager.pendingInputs.first
@@ -411,6 +485,11 @@ enum TaskRestorationProductionSelfTest {
                 return nil
             }
             if let question = primaryQuestion {
+                guard let inputPriorRow = try sql.load().first, let initialInputContext else { throw FixtureError.absentRequest }
+                let inputPrior = inputPriorRow.durability?.attempt ?? 0
+                check(inputPrior > 0 && initialInputContext.attempt == inputPrior
+                    && inputPriorRow.durability?.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
+                    "input continuation did not start from actual persisted positive ownership")
                 let fresh = AgentTaskManager(store: AgentTaskStore(fileURL: store.storageURL, mirror: sql))
                 check(fresh.pendingInputs == [question] && fresh.backendStartsForTesting == 0
                     && fresh.canRespondInput(taskID: original.id, requestID: question.id)
@@ -434,6 +513,49 @@ enum TaskRestorationProductionSelfTest {
                     && Data(contentsOf: store.storageURL) == witness && fresh.backendStartsForTesting == 0 && fires == 0,
                     "rejected answer commit hid its card, changed history or dispatched")
                 try sql.withConnection { try TaskStore.exec($0, "DROP TRIGGER reject_input_answer") }
+                guard let retainedInputContext = fresh.journalContext(taskID: original.id) else { throw FixtureError.absentRequest }
+                var inputSuccessor: AgentTask?
+                var inputEntryBound = false
+                var inputOldRefused = false
+                var inputHistoryUnchanged = false
+                var inputEffectBound = false
+                fresh.backendEntryForTesting = {
+                    let beforeRows = try sql.load()
+                    let beforeEvents = try sql.journal(taskID: original.id)
+                    inputSuccessor = beforeRows.first { $0.id == original.id }
+                    let current = TaskEventJournal.current
+                    inputEntryBound = inputSuccessor?.status == .running
+                        && inputSuccessor?.durability?.attempt == inputPrior + 1
+                        && inputSuccessor?.durability?.leaseOwner == String(ProcessInfo.processInfo.processIdentifier)
+                        && inputSuccessor?.durability?.attemptStartedAt != nil
+                        && current?.taskID == original.id && current?.attempt == inputPrior + 1
+                        && beforeEvents.last?.draft.kind == .workerStarted
+                        && beforeEvents.last?.draft.attempt == inputPrior + 1
+                    let staleRequest = PermissionRequest(id: "stale-original-input-context", toolID: "filesystem.read",
+                        title: "Read the original fixture", detail: "Original fixture path", risk: .read,
+                        arguments: ["path": file.path], taskID: original.id, createdAt: inputPriorRow.createdAt)
+                    inputOldRefused = [initialInputContext, retainedInputContext].allSatisfy { old in
+                        let recorded = old.record(TaskJournalEventDraft(taskID: original.id,
+                            kind: .toolStarted, detail: "filesystem.read", attempt: old.attempt))
+                        let permissionRecorded = old.record(TaskJournalEventDraft(taskID: original.id,
+                            kind: .permissionApproved, attempt: old.attempt))
+                        let captured = old.capturePermission?(staleRequest, nil, nil) ?? false
+                        return !recorded && !permissionRecorded && !captured && old.consumePermissionApproval?() != true
+                    }
+                    inputHistoryUnchanged = try sql.load() == beforeRows && sql.journal(taskID: original.id) == beforeEvents
+                }
+                AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+                    guard tool.id == "filesystem.read", arguments == ["path": file.path] else { throw FixtureError.unsafeEffect }
+                    let row = try sql.load().first { $0.id == original.id }
+                    inputEffectBound = row?.status == .running
+                        && row?.durability?.attempt == inputPrior + 1
+                        && row?.durability?.leaseOwner == String(ProcessInfo.processInfo.processIdentifier)
+                        && TaskEventJournal.current?.attempt == inputPrior + 1
+                        && row?.arguments == arguments
+                    fires += 1
+                    firedArguments.append(arguments)
+                    return try FilesystemExecutor.run(tool, arguments: arguments)
+                }
                 check(fresh.respondInput(taskID: original.id, text: file.path, requestID: question.id),
                     "accepted exact answer did not use its bound continuation")
                 let accepted = try sql.load().first
@@ -450,6 +572,33 @@ enum TaskRestorationProductionSelfTest {
                 let terminal = AgentTaskManager(store: AgentTaskStore(fileURL: store.storageURL, mirror: sql))
                 check(try terminal.tasks == canonical(fresh.tasks) && terminal.pendingInputs.isEmpty && terminal.backendStartsForTesting == 0,
                     "terminal restart restored the old question or replayed the read")
+                check(inputEntryBound, "answer did not persist prior+1/current-pid before actual backend entry")
+                check(inputOldRefused && inputHistoryUnchanged,
+                    "old original/restored input contexts acquired successor authority or changed primary history")
+                check(inputEffectBound, "answered temp read did not receive persisted successor attempt")
+                let inputStarts = try sql.journal(taskID: original.id)
+                    .filter { $0.draft.kind == .workerStarted }.map { $0.draft.attempt }
+                check(try inputStarts == [inputPrior, inputPrior + 1]
+                    && sql.load().first?.durability?.attempt == inputPrior + 1
+                    && fires == 1 && fresh.backendStartsForTesting == 1,
+                    "explicit input allocated more than one successor or lost persisted attempt")
+                guard let inputSuccessor else { throw FixtureError.absentRequest }
+                let (heldInputStore, heldInputSQL, _) = try fixture("input-successor-held")
+                defer { heldInputSQL.close() }
+                guard heldInputStore.save([inputSuccessor]).primaryCommitted else { throw FixtureError.unsafeEffect }
+                let heldInput = AgentTaskManager(store: heldInputStore)
+                check(try heldInput.task(id: original.id)?.status == .recovering
+                    && heldInput.task(id: original.id)?.durability == inputSuccessor.durability
+                    && heldInput.backendStartsForTesting == 0 && fires == 1
+                    && heldInputSQL.journal(taskID: original.id).last?.draft.kind == .recoveryHeld,
+                    "fresh manager replayed actual saved input successor instead of holding it")
+            }
+            // Restore the original backing for the remaining unchanged negative/cancel fixtures.
+            AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+                guard tool.id == "filesystem.read", arguments == ["path": file.path] else { throw FixtureError.unsafeEffect }
+                fires += 1
+                firedArguments.append(arguments)
+                return try FilesystemExecutor.run(tool, arguments: arguments)
             }
 
             let legacy = TaskInputRequest(id: "legacy-question", taskID: "legacy", question: "Original unknown question",
