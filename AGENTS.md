@@ -197,6 +197,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-voice-turns --selftest-voice-work-lifecycle --selftest-voice-delivery
 --selftest-voice-duplex-work
 --selftest-voice-session-reducer
+--selftest-voice-playback-projection
 --selftest-playback-ledger --selftest-voice-scheduling
 --selftest-concurrent-voice --selftest-voice-frontend --selftest-voice-eou <wav>
 --selftest-acoustic-replay --selftest-acoustic-speech <far-wav> <near-wav>
@@ -459,7 +460,7 @@ ACP admission/primary-fencing assertions; unchanged fixed58 passes worker656.
 A separate original59 fails5 after rejected terminal SQL: the exact released local
 context still authorizes a second real read, receipt and journal. Same fixture fixed60
 refuses through an O(1) exact live-handle guard before SQL, preserving one read and
-zero absent-handle SQL opens. Integrated worker678 and all20 focused flags pass,
+zero absent-handle SQL opens. Integrated worker678 and all 20 focused flags pass,
 including task reader40, restoration82, actual tasks/ACP/MCP/confirmation and owner
 isolation21files32defaults; Sources/binary/bundle unchanged. Compatibility remains
 unbound, local permission/input capture stays local, and ACP receipt-ID joins,
@@ -494,7 +495,7 @@ repeated after the fixture correction. See the
 [startup proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-receipt-start-review/verification.md).
 
 Installed app68 extends the worker flag to764 checks with bounded P6-06k. Original67
-fails four actual completion assertions; unchanged fixed68 and all20 focused flags
+fails four actual completion assertions; unchanged fixed68 and all 20 focused flags
 pass. ACP now emits the existing exact receipt-bound toolCompleted transaction and
 checks its admission after the shared runtime retains its returned receipt. Rejected
 completion fails the task with the exact history-save error and no reply/artifact/
@@ -507,7 +508,7 @@ and IM-16 remain open. See the
 
 Installed app70 verifies bounded P6-06l ACP permission outcomes. Original69 fails
 three actual allow/decline/cancel wire assertions; unchanged fixed70 passes22 new
-checks, existing68 origin controls, worker764 and all20 focused flags. The existing
+checks, existing68 origin controls, worker764 and all 20 focused flags. The existing
 incoming result seam now carries serialized Data for nested selected/cancelled
 outcomes. Session cancellation is recorded before Gate withdrawal and checked after
 existing awaits. No new await/store/queue/timer; MCP/EOF behavior remains green.
@@ -545,7 +546,7 @@ remain open; this does not promote Phase6 or model/latency gates.
 
 Bounded P6-06n now admits live bound Gate requests and explicit true/false decisions
 before card release or authorization. Actual corrected original78 RED21 becomes
-identical fixed79 worker1017/all20 focused flags PASS. Request-save refusal presents
+identical fixed79 worker1017/all 20 focused flags PASS. Request-save refusal presents
 no card; decision-save refusal retains the exact review/waiter; successful explicit
 facts commit once. Real released worker contexts cannot record new permission facts,
 even with stale running SQL. Cancellation still releases false if its best-effort
@@ -561,7 +562,7 @@ Phase6/aggregate quality gates remain open. See the
 
 Bounded P6-06o revalidates the exact bound ACP primary owner after the existing
 Gate wait and before returning authorizing Bool. Original80 RED1 becomes identical
-fixed81 worker1074/all20 focused flags PASS: legitimate saved approval remains,
+fixed81 worker1074/all 20 focused flags PASS: legitimate saved approval remains,
 but a synchronously committed fresh-manager hold now produces offered reject.
 Accepted current attempt still permits the same harmless protocol control. ONE
 existing fail-fast primary probe is added for approved bound calls; false/nil and
@@ -571,7 +572,7 @@ physical latency, recovery/retry/IM-16 and parent/aggregate gates remain open.
 See [post-Gate proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-post-gate-review/verification.md).
 
 Bounded P6-05k integrates current primary/receipt-bound heartbeat age diagnostics.
-Corrected original90 RED149 → identical fixed91 worker1352/all20 focused flags PASS;
+Corrected original90 RED149 → identical fixed91 worker1352/all 20 focused flags PASS;
 Source1040/fullbundle invariant. Parallel pure policy/current receipt producer work
 reaches actual Manager/SAME ACP Session/current Gate consumers. Five starting windows
 produce age evidence only; actual forty-day visible/queued approvals are excluded.
@@ -588,7 +589,7 @@ parent/model/latency gate is promoted. See
 
 Bounded P6-05j supplies CURRENT task-owned Gate approval waits, both visible and
 queued, through existing live Manager binding. Actual original86 false-scaffold RED6
-→ identical fixed87 worker1161/all20 focused flags PASS; Source1035/fullbundle invariant.
+→ identical fixed87 worker1161/all 20 focused flags PASS; Source1035/fullbundle invariant.
 Two real typed ACP workers admit forty-day-old progress and retain their running rows;
 metadata queries change no history/receipt/card/choice. Rejected approval save retains
 both waits; genuine decision promotes B; Gate withdrawal clears it before worker release.
@@ -601,7 +602,7 @@ See [current approval wait proof](Tests/Reports/agent-overhaul-closure/stale-obs
 
 Bounded P6-05i supplies CURRENT owned ACP process/transport metadata through the
 same Session and existing bound worker, not LAST-cache health. Actual original84
-nil-scaffold RED10 → identical fixed85 worker1132/all20 focused flags PASS, Source1034
+nil-scaffold RED10 → identical fixed85 worker1132/all 20 focused flags PASS, Source1034
 and full bundle invariant. Exact live peer PID/open/pending1, repeated nonmutation,
 fresh-primary-held plus still-live child, competing/late attach and released negatives
 are verified; supplementary standalone Session proves EOF while alive then actual exit.
@@ -615,7 +616,7 @@ See [current runtime proof](Tests/Reports/agent-overhaul-closure/stale-observati
 Bounded P6-06p repairs ACP review metadata at Session's argument producer:
 keep typed Request.taskID/Broker routing/context, remove its redundant editable
 operation argument, preserve exact toolCall/detail. Actual original82 RED4 becomes
-identical fixed83 worker1092/all20 focused flags PASS. The known UUID originally
+identical fixed83 worker1092/all 20 focused flags PASS. The known UUID originally
 made the real review unready and refused first approval; fixed has only the operation
 field and first approval succeeds. n160/o57 common contract amendments preserve
 exact typed header/context/receipt/SQL/approval/cancel/held checks and add exact
@@ -665,6 +666,20 @@ unavailable and are counted explicitly; that is not all-field equivalence.
 Full physical pipeline/replay coverage and the ownership switch remain open.
 Trace recording is harness-only and refuses Application Support paths; refusal
 must fail the flag and leave the owner path unwritten.
+
+`--selftest-voice-playback-projection` verifies the bounded P3 shadow playback
+producer repair: original92 fails 13 assertions; fixed93 passes the same 33 checks,
+including real Apple acknowledgement→capture partial→confirmed pause and a real
+acknowledgement forwarded while paused. Exact output/token/generation ownership,
+matched stop and owner isolation are exercised through unchanged production call
+sites. The same reducer expectations fail 6 before and pass 10 traces afterward;
+all 20 focused flags plus native trace replay pass. Only VoiceContracts production
+transitions change; commands remain shadow diagnostics. Pending proposal priority
+is pure coverage, not actual Gate/card acceptance. No resumed receipt/epoch exists:
+historical heard cannot authorize resumed speaking, and late-after-resume,
+approvalResolved, live Island ownership and physical/latency gates remain open.
+The original latency WAV is missing; instrumentation passing is not latency proof.
+See the [playback report](Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/verification.md).
 
 `usage.jsonl` is the one local record of which model or engine ran each pass — Agent,
 Meetings and Dictation — with its provider, model, locality, timing, counts, tools and

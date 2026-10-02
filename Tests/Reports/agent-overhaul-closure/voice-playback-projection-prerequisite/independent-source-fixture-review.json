@@ -1,0 +1,64 @@
+{
+  "scope": "Independent read-only source and frozen off-source fixture review; no build/native/Source/index actions by reviewer",
+  "verdict": "No blocking producer/control issue found before original native evidence; valid red still depends on actual native prerequisite controls",
+  "fixtureSHA256": "8c3e6bb0fa6a1b1ba9bb8aada4c111060ca2618ca242a724590feca944dee6e1",
+  "producerSHA256": "574f296c7ea4b7da0b1ce21198ec595116a913a2ec3d165b527dce4f0b26286d",
+  "counts": {
+    "pure": 13,
+    "nativeEachIfAllControlsReached": 9,
+    "modes": 2,
+    "global": 2,
+    "total": 33,
+    "purePredictedOriginalFeatureFailures": 8,
+    "pureOriginalPredictionCorrection": "Preparation manifest says9, but actual source predicts8; matched interrupted starts from original responseEnded listening state and remains a valid green control. Actual executed count takes precedence."
+  },
+  "originalPureExpectedFailures": [
+    "confirmed provisional pause left speaking",
+    "late first receipt undid pause",
+    "model response end hid still-acknowledged playback",
+    "committed interruption left speaking",
+    "onset displaced current actionable proposal",
+    "model completion displaced current actionable proposal",
+    "playback drain displaced current actionable proposal",
+    "actual confirmed pre-onset pause was not represented"
+  ],
+  "originalPureControls": [
+    "stale output cannot activate current paused output",
+    "matched interruption after original responseEnded clears retained output and stays listening",
+    "current proposal survives matched interruption",
+    "stale approval does not clear proposal",
+    "session close clears output/proposal"
+  ],
+  "producerReview": [
+    "Existing exact output-ID and committed/provisional turn guards retained",
+    "Confirmed provisional pause covers queued-before-onset and playing, preserves already-paused identity",
+    "First played receipt retains historical heard while paused, never clears physical pause or current proposal",
+    "Response completion preserves only already-present speaking with free floor/current playing heard output; never restores speaking from hidden/paused state",
+    "Matched finish/interruption uses existing state to project pending proposal, input listening or retained response thinking",
+    "No inputDiscarded/approvalResolved resumption expansion; post-resume callback provenance remains open",
+    "VoiceSession Mode.shadow executes no recorded commands or live Island writes"
+  ],
+  "nativeFixtureReview": [
+    "Existing Apple system route selected via harness-only engine override, no preference writes or model download",
+    "Real positive-buffer callback intercepted on existing listener; real cumulative speech triggers actual pause before original listener is called exactly once",
+    "One long clause, same token/generation/output retained, wrong-capture rejection, matched hard stop/session close exercised",
+    "beginSession(captureAudio:false) skips microphone/decoder/model preparation; existing turnHandler guard suppresses staging/speculation",
+    "No notifyTestingFirstAudio/fake backing in native modes",
+    "StoreGuard hashes owner state without seeding/decoding owner conversation or tasks; before/after isolation remains required",
+    "No fixed product waits added; bounded polling is fixture-only"
+  ],
+  "requiredOriginalEvidence": [
+    "Real Apple onset acknowledgement before natural drain, current output exists and is heard",
+    "Late mode pausedBeforeForward true through real confirmed pause before receipt forward",
+    "Exact token/generation unchanged across provisional pause",
+    "No missing-onset/early-natural-drain/unexpected-model/owner-isolation failure treated as intended projection RED",
+    "Unchanged legacy divergence comparator retained; eventual actual native consumer output/floor/effect/turn agreement required after fix"
+  ],
+  "limits": [
+    "Physical speaker audibility and numeric played frame count not available from current callback",
+    "Pure proposal traces do not prove actual Gate/TaskBridge/card route",
+    "Late callback while paused is covered; pre-pause callback arriving AFTER resume not covered",
+    "inputDiscarded historical playing and approvalResolved restored speaking remain open",
+    "No live speaking Island/portrait/buttons/reduced-motion/VoiceOver or P3-09 ownership switch claim"
+  ]
+}

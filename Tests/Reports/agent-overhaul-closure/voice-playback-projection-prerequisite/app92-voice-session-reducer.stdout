@@ -1,0 +1,14 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-session-reducer --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-92-1hudcgle/voice-session-reducer.log
+VOICE_SESSION_REDUCER_WRONG: T1/9: expected [NextNotes.VoiceCommand.scheduleTimer(NextNotes.VoiceTimer.quietWindow, after: 0.35 seconds)], got [NextNotes.VoiceCommand.scheduleTimer(NextNotes.VoiceTimer.quietWindow, after: 0.35 seconds), NextNotes.VoiceCommand.publishIsland(NextNotes.IslandProjection.listening)]
+VOICE_SESSION_REDUCER_WRONG: T1/10: expected [NextNotes.VoiceCommand.scheduleTimer(NextNotes.VoiceTimer.quietWindow, after: 0.35 seconds), NextNotes.VoiceCommand.publishIsland(NextNotes.IslandProjection.listening)], got [NextNotes.VoiceCommand.scheduleTimer(NextNotes.VoiceTimer.quietWindow, after: 0.35 seconds)]
+VOICE_SESSION_REDUCER_WRONG: T2/5: expected [NextNotes.VoiceCommand.setEffectsHeld(true), NextNotes.VoiceCommand.pauseOutput(output#1), NextNotes.VoiceCommand.publishIsland(NextNotes.IslandProjection.listening)], got [NextNotes.VoiceCommand.setEffectsHeld(true), NextNotes.VoiceCommand.pauseOutput(output#1)]
+VOICE_SESSION_REDUCER_WRONG: T3/5: expected [NextNotes.VoiceCommand.stopOutput(output#1, byUser: true), NextNotes.VoiceCommand.cancelResponse(turn#1), NextNotes.VoiceCommand.publishIsland(NextNotes.IslandProjection.listening)], got [NextNotes.VoiceCommand.stopOutput(output#1, byUser: true), NextNotes.VoiceCommand.cancelResponse(turn#1)]
+VOICE_SESSION_REDUCER_WRONG: T5/7: expected [NextNotes.VoiceCommand.scheduleTimer(NextNotes.VoiceTimer.quietWindow, after: 0.35 seconds)], got [NextNotes.VoiceCommand.scheduleTimer(NextNotes.VoiceTimer.quietWindow, after: 0.35 seconds), NextNotes.VoiceCommand.publishIsland(NextNotes.IslandProjection.listening)]
+VOICE_SESSION_REDUCER_WRONG: T5/8: expected [NextNotes.VoiceCommand.scheduleTimer(NextNotes.VoiceTimer.quietWindow, after: 0.35 seconds), NextNotes.VoiceCommand.publishIsland(NextNotes.IslandProjection.listening)], got [NextNotes.VoiceCommand.scheduleTimer(NextNotes.VoiceTimer.quietWindow, after: 0.35 seconds)]
+VOICE_SESSION_REDUCER_PURE: traces=10 failures=6
+VOICE_CONVERSATION_HELD: after_read=false status=running revision=0 effects=0
+VOICE_CONVERSATION_HELD: after_read=true status=running revision=0 effects=0
+VOICE_CONVERSATION_OK
+VOICE_SESSION_WAKE_ISOLATION: skipped=7 listening=false subscribed=false
+VOICE_SESSION_SHADOW: events=121 divergences=0 coverage=["effectsHeld": 39, "turnPending": 39, "floor": 39, "output": 39] output_present=18 unavailable=[:]
+VOICE_SESSION_REDUCER_FAILED: integration

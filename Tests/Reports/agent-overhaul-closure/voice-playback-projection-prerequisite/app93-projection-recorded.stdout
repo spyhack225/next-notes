@@ -1,0 +1,4 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-playback-projection --record-voice-trace /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-playback-extra-93-6_n42dho/native-trace.jsonl --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-playback-extra-93-6_n42dho/projection-recorded.log
+VOICE_PLAYBACK_PROJECTION_OK: 33 checks
+VOICE_PLAYBACK_PROJECTION_NATIVE: lateWhilePaused=false acknowledged=true pausedBeforeForward=false outputMatched=true token=1 generation=1 divergences=0
+VOICE_PLAYBACK_PROJECTION_NATIVE: lateWhilePaused=true acknowledged=true pausedBeforeForward=true outputMatched=true token=2 generation=4 divergences=0

@@ -1,0 +1,97 @@
+{
+  "status": "OFF-SOURCE FROZEN concrete candidate/common fixture handoff; root can mount original now; no executed verdict",
+  "producerScope": [
+    "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift"
+  ],
+  "futureCommonFixtureScope": [
+    "Sources/NextNotes/Agent/Duplex/VoicePlaybackProjectionSelfTest.swift (new)",
+    "Sources/NextNotes/Agent/Duplex/VoiceSessionReducerSelfTest.swift (same events/invariants; six command expectation amendments)",
+    "registered existing self-test owner or NextNotesApp flag dispatcher (root coordinates)"
+  ],
+  "noSourceLeaseHeld": true,
+  "noSourceNativeBuildModelIndexActions": true,
+  "supportedContract": [
+    "confirmed playing or queued pause projects listening or pending proposal",
+    "first native playback callback forwarded while confirmed paused retains heard but not playing/speaking",
+    "matched interrupted/finished removes current output and preserves pending proposal",
+    "responseEnded preserves already-present acknowledged speaking; never reconstructs speaking from hidden/paused state"
+  ],
+  "explicitOpenContracts": [
+    "inputDiscarded still sets legacy playing without new receipt",
+    "postresume positive receipt/epoch fence absent",
+    "prepause callback arriving AFTER resume remains unsafe/unproven",
+    "approvalResolved restoring speaking remains open",
+    "all backend resumed receipt coverage and fallback epochs",
+    "P3-03a/b,P3-06a acceptance,P3-09 live ownership and UX05 physical Island acceptance"
+  ],
+  "fixtureChecks": {
+    "pure": 13,
+    "nativeIfBothCasesReachAllControls": 18,
+    "unexpectedTurnAndOwnerIsolation": 2,
+    "predictedCompleteTotal": 33,
+    "noExecutedCountOrVerdict": true
+  },
+  "purePredictedOriginalRequirementFailures": 9,
+  "actualNativeOriginalFailures": "unexecuted; do not claim reproduction. At least pause/interrupted/late-paused requirements expected red only if native input controls valid. Comparison-task timing may add actual divergence failure.",
+  "preparedSourcePins": [
+    {
+      "path": "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift",
+      "sha256": "1544a4e8dadb7e419ac7411027baf81a7a8e67bb87b004823bec738ce9801997"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Duplex/VoiceSession.swift",
+      "sha256": "36d2cfc07ea184f5954d34c7b0e5976ad3834b67db37ca242b7fdf97c9a58d59"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Duplex/VoiceSessionReducerSelfTest.swift",
+      "sha256": "c9ead9ecb8164ac82354a4145f926d7ade7b2219740ac79298e839be8ce65655"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/RealtimeAudioSession.swift",
+      "sha256": "37762cbf308d3b3e43d354f752a44688b4ba932df3571a3aa3acfce6c117fd1f"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+      "sha256": "96856fe552b1b12f952ca26cb14f7793a629215f2c186e88b20221d5d8d1504c"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/AgentCaptureController.swift",
+      "sha256": "4355d69f241a8356d28f0b8899addf5c07c6497ae6821e9c3399fda40ebe546c"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/common-VoicePlaybackProjectionSelfTest.swift.txt",
+      "sha256": "8c3e6bb0fa6a1b1ba9bb8aada4c111060ca2618ca242a724590feca944dee6e1"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/common-expectation-VoiceSessionReducerSelfTest.swift.txt",
+      "sha256": "56fa3ed9f64230fc61e074565eb1e1d92517c652ba57bf813229c9775590bc5f"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/common-trace-expectations.patch.txt",
+      "sha256": "5cca4b1cff4021ff0fe7e25581b384dd7fe9ceb1112f76e746fede94985b51e1"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/original-VoiceContracts.swift.txt",
+      "sha256": "1544a4e8dadb7e419ac7411027baf81a7a8e67bb87b004823bec738ce9801997"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/original-VoiceSessionReducerSelfTest.swift.txt",
+      "sha256": "c9ead9ecb8164ac82354a4145f926d7ade7b2219740ac79298e839be8ce65655"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/producer-projection.patch.txt",
+      "sha256": "e9311a4ca42e98584f6bc6ec3c31e71f538ddd71a0b471e16a75fd120e6ae74f"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/proposed-VoiceContracts.swift.txt",
+      "sha256": "574f296c7ea4b7da0b1ce21198ec595116a913a2ec3d165b527dce4f0b26286d"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/registration-snippet.swift.txt",
+      "sha256": "b2bc198fb0bb0316cccb3d0bf08cfe888e06b449d7b8faf40df6489e8e598a3b"
+    }
+  ],
+  "registrationFlag": "--selftest-voice-playback-projection"
+}

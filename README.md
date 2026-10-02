@@ -857,6 +857,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 "$S" --selftest-toolloop                # inspect → click must make both calls
 "$S" --selftest-toolloop-production     # model → read tool → model, plus single-stream answers
 "$S" --selftest-voice-conversation      # corrections preserve work/results; stale effects cannot run
+"$S" --selftest-voice-playback-projection # real Apple onset/pause/stop shadow ownership; no live UI switch
 "$S" --selftest-concurrent-voice        # independent conversation and multiple retained workers
 "$S" --selftest-voice-frontend          # real on-device conversation during local decode/prefill
 "$S" --selftest-voice-eou speech.wav    # local EOU model, silence rejection and speech ending

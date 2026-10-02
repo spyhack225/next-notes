@@ -1,0 +1,83 @@
+--- a/Sources/NextNotes/Agent/Duplex/VoiceContracts.swift
++++ b/Sources/NextNotes/Agent/Duplex/VoiceContracts.swift
+@@ -140,6 +140,14 @@
+         let held = state.effectsHeld
+         let oldIsland = state.island
+         func project(_ island: IslandProjection) { next.island = island }
++        // Non-playing projection from existing ownership only. Historical heard
++        // plus inputDiscarded's legacy playing state cannot prove resumed playback.
++        func projectWithoutActivePlayback() {
++            if let request = next.pendingApproval { project(.proposal(request)) }
++            else if next.floor != .free || next.output?.status == .paused { project(.listening) }
++            else if next.response != nil { project(.thinking) }
++            else { project(.listening) }
++        }
+         func quietTimer() { commands.append(.scheduleTimer(.quietWindow, after: AgentDeliveryTiming.quietWindow)) }
+         func stopForCommitted(_ turn: TurnID) {
+             if let output = next.output {
+@@ -221,15 +229,17 @@
+                 next.floor = .userProvisional(turn)
+                 next.unclassified.insert(turn)
+                 next.lastUserSpeechAt = now
+-                if var output = next.output, output.status == .playing {
++                if var output = next.output, output.status != .paused {
+                     output.status = .paused
+                     next.output = output
+                     commands.append(.pauseOutput(output.id))
+                 }
++                projectWithoutActivePlayback()
+             case .interruption(.committed(let turn)):
+                 guard next.lastCommittedTurn == nil || turn > next.lastCommittedTurn! else { return (state, []) }
+                 if case .userProvisional(let current) = next.floor, turn < current { return (state, []) }
+                 stopForCommitted(turn)
++                projectWithoutActivePlayback()
+             case .interruption(.explicitCancel(let task)): commands.append(.cancelTask(task))
+             case .committed(let turn, let text):
+                 guard next.lastCommittedTurn == nil || turn > next.lastCommittedTurn! else { return (state, []) }
+@@ -267,7 +277,13 @@
+                     next.response = nil
+                     next.unclassified.remove(turn)
+                     if next.output?.kind != .answer(turn) && next.output?.kind != .fixed(turn) { next.turnPending = nil }
+-                    project(.listening)
++                    if let request = next.pendingApproval { project(.proposal(request)) }
++                    else if next.island == .speaking, next.floor == .free,
++                            next.output?.status == .playing, next.output?.heard == true {
++                        // Preserve current acknowledged playback when model work ends.
++                        // Do not restore speaking from a hidden/paused/resumed state.
++                        project(.speaking)
++                    } else { project(.listening) }
+                     quietTimer()
+                 } else { next.unclassified.remove(turn) }
+             case .outputQueued(let id, let kind):
+@@ -278,14 +294,21 @@
+                 switch phase {
+                 case .began, .clauseCompleted: break
+                 case .firstAudio:
+-                    output.status = .playing; output.heard = true; next.output = output; project(.speaking)
++                    output.heard = true
++                    // The receipt may have been queued before the confirmed pause.
++                    // Retain that played fact without undoing physical pause ownership.
++                    if output.status != .paused { output.status = .playing }
++                    next.output = output
++                    if let request = next.pendingApproval { project(.proposal(request)) }
++                    else if next.floor != .free || output.status == .paused { project(.listening) }
++                    else { project(.speaking) }
+                 case .finished:
+                     next.output = nil; next.lastOutputEndAt = now
+                     switch output.kind {
+                     case .answer(let turn), .fixed(let turn): if next.turnPending == turn { next.turnPending = nil }
+                     default: break
+                     }
+-                    project(.listening); quietTimer()
++                    projectWithoutActivePlayback(); quietTimer()
+                 case .interrupted:
+                     next.output = nil; next.lastOutputEndAt = now
+                     switch output.kind {
+@@ -293,6 +316,7 @@
+                         if next.turnPending == old && next.response?.turn != old { next.turnPending = nil }
+                     default: break
+                     }
++                    projectWithoutActivePlayback()
+                 }
+             case .task(let taskEvent):
+                 switch taskEvent {

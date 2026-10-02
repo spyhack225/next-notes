@@ -1,0 +1,18 @@
+[
+  {
+    "flag": "voice-playback-projection",
+    "exit": 1,
+    "marker": "VOICE_PLAYBACK_PROJECTION_FAILED: 13 assertions",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-session-reducer",
+    "exit": 1,
+    "marker": "VOICE_SESSION_REDUCER_FAILED: integration",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  }
+]

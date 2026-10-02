@@ -1184,6 +1184,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-voice-playback-projection") {
+            Task { @MainActor in
+                let result = await VoicePlaybackProjectionSelfTest.run()
+                if !result.hasPrefix("VOICE_PLAYBACK_PROJECTION_OK:") { SelfTest.failed = true }
+                writeSelfTest(result)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-voice-session-reducer") {
             Task { @MainActor in
                 if !(await VoiceSessionReducerSelfTest.run(tracePath: SelfTest.value(after: "--selftest-voice-session-reducer"))) { SelfTest.failed = true }

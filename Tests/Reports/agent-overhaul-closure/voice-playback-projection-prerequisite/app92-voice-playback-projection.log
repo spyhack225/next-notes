@@ -1,0 +1,16 @@
+VOICE_PLAYBACK_PROJECTION_NATIVE: lateWhilePaused=false acknowledged=true pausedBeforeForward=false outputMatched=true token=1 generation=1 divergences=0
+VOICE_PLAYBACK_PROJECTION_NATIVE: lateWhilePaused=true acknowledged=true pausedBeforeForward=true outputMatched=true token=2 generation=4 divergences=1
+VOICE_PLAYBACK_PROJECTION_WRONG: pure: confirmed provisional pause left speaking
+VOICE_PLAYBACK_PROJECTION_WRONG: pure: late first receipt undid pause
+VOICE_PLAYBACK_PROJECTION_WRONG: pure: model response end hid still-acknowledged playback
+VOICE_PLAYBACK_PROJECTION_WRONG: pure: committed interruption left speaking
+VOICE_PLAYBACK_PROJECTION_WRONG: pure: onset displaced current actionable proposal
+VOICE_PLAYBACK_PROJECTION_WRONG: pure: model completion displaced current actionable proposal
+VOICE_PLAYBACK_PROJECTION_WRONG: pure: playback drain displaced current actionable proposal
+VOICE_PLAYBACK_PROJECTION_WRONG: pure: actual confirmed pre-onset pause was not represented
+VOICE_PLAYBACK_PROJECTION_WRONG: native: actual confirmed playing pause retained speaking projection
+VOICE_PLAYBACK_PROJECTION_WRONG: native: actual matched interruption retained speaking shadow
+VOICE_PLAYBACK_PROJECTION_WRONG: native: late actual acknowledgement undid queued pause or presented speaking
+VOICE_PLAYBACK_PROJECTION_WRONG: native: actual matched interruption retained speaking shadow
+VOICE_PLAYBACK_PROJECTION_WRONG: native: actual output/floor/effect/turn producer diverged from shadow
+VOICE_PLAYBACK_PROJECTION_FAILED: 13 assertions

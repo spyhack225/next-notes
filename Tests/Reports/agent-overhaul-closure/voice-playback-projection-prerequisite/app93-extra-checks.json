@@ -1,0 +1,50 @@
+[
+  {
+    "name": "latency-instrumentation",
+    "args": [
+      "--selftest-voice-latency",
+      "--voice-latency-instrumentation"
+    ],
+    "exit": 0,
+    "marker": "VOICE_LATENCY_OK",
+    "sourceDrift": [],
+    "sameBundle": true,
+    "acceptance": "PASS"
+  },
+  {
+    "name": "latency-file-gate",
+    "args": [
+      "--selftest-voice-latency"
+    ],
+    "exit": 1,
+    "marker": "VOICE_LATENCY_ABSENT: fixture haiku16k.wav is missing \u2014 run Scripts/make-voice-fixtures.sh",
+    "sourceDrift": [],
+    "sameBundle": true,
+    "acceptance": "UNAVAILABLE"
+  },
+  {
+    "name": "projection-recorded",
+    "args": [
+      "--selftest-voice-playback-projection",
+      "--record-voice-trace",
+      "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-playback-extra-93-6_n42dho/native-trace.jsonl"
+    ],
+    "exit": 0,
+    "marker": "VOICE_PLAYBACK_PROJECTION_OK: 33 checks",
+    "sourceDrift": [],
+    "sameBundle": true,
+    "acceptance": "PASS"
+  },
+  {
+    "name": "reducer-native-replay",
+    "args": [
+      "--selftest-voice-session-reducer",
+      "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-playback-extra-93-6_n42dho/native-trace.jsonl"
+    ],
+    "exit": 0,
+    "marker": "VOICE_SESSION_REDUCER_OK: 10 traces",
+    "sourceDrift": [],
+    "sameBundle": true,
+    "acceptance": "PASS"
+  }
+]
