@@ -1,0 +1,54 @@
+import json, pathlib, sys, tempfile
+root = pathlib.Path(sys.argv[1]).resolve()
+temporary = pathlib.Path(tempfile.gettempdir()).resolve()
+assert root != temporary and temporary in root.parents and 'Application Support' not in root.parts
+session = 'fixture-review-metadata'
+calls = []
+prompt = None
+requests = 0
+replies = 0
+cancelled = False
+def write(name, value):
+    stage = root / (name + '.tmp')
+    stage.write_text(json.dumps(value, sort_keys=True))
+    stage.replace(root / name)
+def send(value):
+    sys.stdout.write(json.dumps(value) + '\n')
+    sys.stdout.flush()
+assert not (root / 'launch.json').exists()
+write('launch.json', {'count': 1})
+for line in sys.stdin:
+    message = json.loads(line)
+    mid, method = message.get('id'), message.get('method')
+    if method is not None:
+        calls.append(method)
+        write('calls.json', calls)
+    if method == 'initialize':
+        send({'jsonrpc': '2.0', 'id': mid, 'result': {'protocolVersion': 1, 'agentCapabilities': {}}})
+    elif method == 'session/new':
+        send({'jsonrpc': '2.0', 'id': mid, 'result': {'sessionId': session}})
+    elif method == 'session/prompt':
+        assert prompt is None and message['params']['sessionId'] == session
+        assert message['params']['prompt'][0]['text'] == 'Owned metadata review fixture: no tools'
+        prompt = mid
+        write('prompt.json', {'promptCount': 1, 'sessionID': session})
+        requests += 1
+        send({'jsonrpc': '2.0', 'id': 900, 'method': 'session/request_permission', 'params': {
+            'sessionId': session, 'toolCall': {'toolCallId': 'owned-metadata-review',
+                'title': 'Owned fixture review only', 'kind': 'other', 'status': 'pending'},
+            'options': [{'optionId': 'owned-allow-once', 'name': 'Allow once', 'kind': 'allow_once'},
+                {'optionId': 'owned-reject-once', 'name': 'Reject', 'kind': 'reject_once'}]}})
+    elif method is None and mid == 900:
+        assert prompt is not None and replies == 0
+        replies += 1
+        write('wire.json', {'result': message.get('result', {}), 'replyCount': replies,
+            'requestCount': requests, 'cancelBeforeVerdict': cancelled, 'externalEffectCount': 0})
+        send({'jsonrpc': '2.0', 'method': 'session/update', 'params': {'sessionId': session, 'update': {
+            'sessionUpdate': 'agent_message_chunk', 'content': {'type': 'text', 'text': 'Metadata fixture finished.'}}}})
+        send({'jsonrpc': '2.0', 'id': prompt, 'result': {'stopReason': 'end_turn'}})
+    elif method == 'session/cancel':
+        if replies == 0:
+            cancelled = True
+        send({'jsonrpc': '2.0', 'id': mid, 'result': {}})
+    else:
+        raise ValueError('unexpected owned metadata fixture message')

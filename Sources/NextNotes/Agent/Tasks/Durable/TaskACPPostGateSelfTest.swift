@@ -185,21 +185,35 @@ enum TaskACPPostGateSelfTest {
                 }
                 let gate = PermissionGate.shared
                 guard let request = gate.pending, request.taskID == submitted.id,
-                      let initialReview = gate.pendingReview,
-                      let taskField = initialReview.fields.first(where: { $0.name == "taskID" }),
-                      taskField.value == submitted.id,
-                      initialReview.blockers.allSatisfy({ $0.name == "taskID" && $0.problem == .notConfirmed }),
-                      taskField.problem == nil || taskField.problem == .notConfirmed else {
-                    throw FixtureError.invalidPeer
+                      let initialReview = gate.pendingReview else { throw FixtureError.invalidPeer }
+                let taskField = initialReview.fields.first { $0.name == "taskID" }
+                if let taskField {
+                    // Original redundant field remains exact; confirm only its known prerequisite.
+                    guard request.arguments["taskID"] == submitted.id && taskField.value == submitted.id,
+                          taskField.problem == nil || taskField.problem == .notConfirmed,
+                          initialReview.blockers.allSatisfy({ $0.name == "taskID" && $0.problem == .notConfirmed }) else {
+                        throw FixtureError.invalidPeer
+                    }
+                } else {
+                    // Fixed producer puts identity ONLY in typed request metadata, never editable values.
+                    guard request.arguments["taskID"] == nil && initialReview.blockers.isEmpty else {
+                        throw FixtureError.invalidPeer
+                    }
                 }
+                let operationText = request.arguments["toolCall"] ?? ""
+                let operation = (operationText.data(using: .utf8).flatMap {
+                    try? JSONSerialization.jsonObject(with: $0)
+                }) as? [String: String]
+                let expectedOperation = ["toolCallId": "owned-review-only", "title": "Owned fixture review only",
+                    "kind": "other", "status": "pending"]
                 let requestEncoder = JSONEncoder()
                 requestEncoder.outputFormatting = [.sortedKeys]
                 let requestBytes = try requestEncoder.encode(request)
                 let initialArguments = initialReview.arguments
                 let initialFieldValues = initialReview.fields.map { ($0.name, $0.value) }
-                SelfTest.diagnostic("TASK_ACP_POST_GATE_REVIEW_TRACE: mode=\(mode) fields=\(initialReview.fields.count) problems=\(initialReview.fields.filter { $0.problem != nil }.count) taskProblem=\(taskField.problem?.rawValue ?? "none") unverified=\(taskField.unverified.count)")
+                SelfTest.diagnostic("TASK_ACP_POST_GATE_REVIEW_TRACE: mode=\(mode) fields=\(initialReview.fields.count) problems=\(initialReview.fields.filter { $0.problem != nil }.count) taskProblem=\(taskField?.problem?.rawValue ?? "none") unverified=\(taskField?.unverified.count ?? 0)")
                 // Same prerequisite as n: genuine confirmation of exact taskID ONLY.
-                if taskField.problem == .notConfirmed {
+                if taskField?.problem == .notConfirmed {
                     ToolCallReviewStore.shared.confirm(id: request.id, field: "taskID")
                 }
                 guard let review = gate.pendingReview, let sameRequest = gate.pending,
@@ -211,13 +225,14 @@ enum TaskACPPostGateSelfTest {
                 // E01
                 check(sameRequest == request && confirmedRequestBytes == requestBytes
                     && review.arguments == initialArguments && review.fields.count == initialFieldValues.count
-                    && sameFieldValues && request.arguments["taskID"] == submitted.id,
+                    && sameFieldValues && request.taskID == submitted.id
+                    && operation == expectedOperation && request.detail == operationText,
                     "ACP post-Gate: exact task-only confirmation changed request/arguments/field values (\(mode))")
                 let reviewToolID = AgentToolRegistry.shared.tool(named: request.toolID)?.id ?? "mcp." + request.toolID
                 let requested = try sql.journal(taskID: submitted.id)
                 // C09
                 check(gate.askCount == askBefore + 1 && gate.queuedCount == 0
-                    && request.toolID == "mcp.acp_nested_tool" && request.arguments["taskID"] == submitted.id
+                    && request.toolID == "mcp.acp_nested_tool" && request.taskID == submitted.id
                     && review.id == request.id && review.toolID == reviewToolID && review.isReadyToRun,
                     "ACP post-Gate: actual Session/Broker/Gate request/review control failed (\(mode))")
                 // C10

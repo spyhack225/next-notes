@@ -1,0 +1,5 @@
+--- original/ACPSession.swift
++++ fixed/ACPSession.swift
+@@
+-            let arguments = ["taskID": taskID, "toolCall": detail]
++            let arguments = ["toolCall": detail]

@@ -570,6 +570,19 @@ Broker standing-grant allow, SQL-to-wire handoff, client/close epochs, edited pa
 physical latency, recovery/retry/IM-16 and parent/aggregate gates remain open.
 See [post-Gate proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-post-gate-review/verification.md).
 
+Bounded P6-06p repairs ACP review metadata at Session's argument producer:
+keep typed Request.taskID/Broker routing/context, remove its redundant editable
+operation argument, preserve exact toolCall/detail. Actual original82 RED4 becomes
+identical fixed83 worker1092/all20 focused flags PASS. The known UUID originally
+made the real review unready and refused first approval; fixed has only the operation
+field and first approval succeeds. n160/o57 common contract amendments preserve
+exact typed header/context/receipt/SQL/approval/cancel/held checks and add exact
+operation dictionary checks; actual7 bound reviews now need no ID confirmation.
+No new store/query/save/await/queue/timer/model pass. Generic inspector behavior and
+historical77 exact cause are not rewritten; physical UI/latency, standing grants,
+client/close/after-probe authority, recovery/retry/IM-16 and parent gates stay open.
+See [metadata producer proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-review-metadata-review/verification.md).
+
 ACP now checks the exact established session ID before accumulating reply text,
 publishing activity or relaying a permission (installed app53). Actual original52
 fails20 of68 origin checks; the unchanged fixture passes68 in fixed53 and five

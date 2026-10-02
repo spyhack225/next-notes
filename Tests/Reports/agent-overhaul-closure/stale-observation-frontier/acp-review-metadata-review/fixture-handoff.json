@@ -1,0 +1,38 @@
+{
+  "status": "off-source proposal + regression frozen for independent review; uncompiled/unexecuted",
+  "tentativeRoadmapID": "P6-06p",
+  "sourceApplicationOwner": "root",
+  "sourceChangesByWorker": false,
+  "ownerPayloadDecodedOrSeededByWorker": false,
+  "compiledByWorker": false,
+  "nativeVerdict": null,
+  "nCountUnchanged": 160,
+  "oCountUnchanged": 57,
+  "proposedProducer": "ACPSession.handleIncoming operation arguments remove redundant taskID, preserve typed Broker taskID/context and exact toolCall/detail",
+  "actualOriginalRequirement": "Run same standalone real Session/Gate/peer before one-line producer repair; expect S05/S06 field exposure and S07/S08 readiness/first-press failures only actual native can establish",
+  "commonBeforeBoth": [
+    "apply copied n/o contract amendments before both versions",
+    "metadata fixture/peer and registration unchanged before both",
+    "post-Gate root verified baseline retained in both"
+  ],
+  "noBroaderReadinessClaim": [
+    "n deterministic builder calibration unchanged",
+    "app77 raw UUID cause unconfirmed",
+    "general phone/UUID inspector remains unchanged",
+    "no downstream scrub/model retry/new store"
+  ],
+  "sha256": {
+    "ACPSessionReviewMetadataSelfTest.swift.txt": "42566a560f72159df8bcff3011121b6ddde87ad478187f0beaa78d232c97b033",
+    "owned-review-metadata-peer.py.txt": "9d4431e7269d177626a95940584d7c455e15f3f69a281ef9016e49ca6e35db13",
+    "Session-producer-one-line.patch.txt": "45f5dc78b6cb473977be964cb928e77c3f9293cac574420d8a36dd3b0719b6e2",
+    "common-amended-TaskACPGateAdmissionSelfTest.swift.txt": "f6310cfb7bcdd7d6bc26f3c287acd45db49013c715afa43c387edfa1e3572738",
+    "common-amended-TaskACPPostGateSelfTest.swift.txt": "ba415c13a5ffede74418b914546d5443ad7609d6d615fe2a6a72dafa06f99bf8",
+    "n-o-common-contract-amendments.patch.txt": "3104d8d8b9517d50a23a841410e3dcccc3d9c10a071f15c73190f2540904c304",
+    "registration.json": "8e0efcbdca8edf560e01f6939c30364f1fe3896674f57820376e57a693a7cd2c",
+    "preparation-source-pins.json": "12db5e60fd04ab4ddd909d308eaccb5ab118b685abd4073f4c395a889f715fed",
+    "README.md": "cf3fc88b64974debebce3de0251a8626c75c9be7b319d7938b68d11915f1a383"
+  },
+  "additionalWorkerChecks": 18,
+  "predictedWorkerTotalIfAllExecute": 1092,
+  "registryOwnerChoice": "TaskWorkerAttemptSelfTest after post-Gate; no NextNotesApp/ACP registry edit; class Agent/Tasks/Durable"
+}

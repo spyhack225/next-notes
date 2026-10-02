@@ -1,0 +1,18 @@
+{
+  "scope": "P6-06p only; five exact Source paths, own AGENTS paragraph and this report directory",
+  "sourcePaths": [
+    "Sources/NextNotes/Agent/Backend/ACPSession.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskACPGateAdmissionSelfTest.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPostGateSelfTest.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/ACPSessionReviewMetadataSelfTest.swift"
+  ],
+  "scopedWhitespace": "PASS",
+  "sourceChanges": "one-line production producer plus common n/o contracts and dedicated 18-case worker regression",
+  "verification": "original82 RED4; fixed83 worker1092 and all20 focused flags PASS; 1033 compiler entries differ only Session",
+  "foreignWork": "Whole AGENTS and NextNotesApp not staged; all other foreign Source/index changes excluded",
+  "roadmaps": "Ignored; updated in place, never staged",
+  "rawArtifacts": "Original logs and source copies retained verbatim",
+  "compilationLimit": "Pins bind coordinated dirty workspace, not clean-checkout compilation",
+  "independentReviewSHA256": "f441b9679d042a64022aa1e1b5c89cde341d3af066ca349a5158f1914d025184"
+}

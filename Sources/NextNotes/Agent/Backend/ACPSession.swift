@@ -174,7 +174,7 @@ actor ACPSession {
                 title: "ACP: \(String(title.prefix(120)))",
                 preview: { _ in detail }
             )
-            let arguments = ["taskID": taskID, "toolCall": detail]
+            let arguments = ["toolCall": detail]
             let policy: PermissionPolicy
             if let boundPolicy { policy = boundPolicy }
             else { policy = await MainActor.run { PermissionPolicy.fromSettings() } }
