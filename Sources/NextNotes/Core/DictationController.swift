@@ -354,6 +354,29 @@ final class DictationController {
     }
 
     private(set) var state: State = .idle
+    /// The actual injector's latest successful outcome. Memory only: the usage row
+    /// deliberately carries no words, and the history row is written before insertion.
+    struct Delivery: Equatable {
+        enum Kind: Equatable { case inserted, copied }
+        let id: UUID
+        let text: String
+        let kind: Kind
+    }
+    private(set) var latestDelivery: Delivery?
+
+    /// One mounted practice surface may observe accepted holds synchronously. Sampling
+    /// focus here avoids inferring key-down focus from a later SwiftUI state update.
+    @ObservationIgnored private var holdPresentationObserver:
+        (owner: UUID, receive: (UUID) -> Void)?
+
+    func observeHoldBeginnings(owner: UUID, receive: @escaping (UUID) -> Void) {
+        holdPresentationObserver = (owner, receive)
+    }
+
+    func stopObservingHoldBeginnings(owner: UUID) {
+        guard holdPresentationObserver?.owner == owner else { return }
+        holdPresentationObserver = nil
+    }
     /// Whether the global event tap is actually armed. Accessibility can appear enabled in
     /// System Settings while a rebuilt/ad-hoc-signed binary is no longer trusted.
     private(set) var hotkeyReady = false
@@ -1085,6 +1108,8 @@ final class DictationController {
         // A replay is its own hold for the outcome row too (D-01b): its own id, and a
         // held time measured over the audio it actually plays rather than the click.
         holdID = UUID()
+        latestDelivery = nil
+        holdPresentationObserver?.receive(holdID)
         outcomeReported = false
         holdKeyUpAt = releasedAt
         holdMsAtKeyUp = Int((keptSeconds * 1_000).rounded())
@@ -1312,6 +1337,8 @@ final class DictationController {
         // One fresh hold identity for the outcome row (D-01b): minted at key-down,
         // reported exactly once, joined to the tail's run id below.
         holdID = UUID()
+        latestDelivery = nil
+        if case .dictation = intent { holdPresentationObserver?.receive(holdID) }
         outcomeReported = false
         holdKeyUpAt = nil
         holdMsAtKeyUp = nil
@@ -1900,6 +1927,18 @@ final class DictationController {
         // while that await is suspended. The old tail must leave the new hold untouched.
         guard self.session == session else { return }
         let injectSeconds = Date().timeIntervalSince(injectBegan)
+        // Publish the actual outcome while this tail still owns the session, before
+        // the existing asynchronous metrics read. No destination is guessed later.
+        if !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            switch outcome {
+            case .inserted:
+                latestDelivery = Delivery(id: holdID, text: output, kind: .inserted)
+            case .copiedByChoice:
+                latestDelivery = Delivery(id: holdID, text: output, kind: .copied)
+            case .superseded, .couldNotReturn:
+                break
+            }
+        }
         LatencyTrace.record(.dictationCleanupToInjection, seconds: injectSeconds)
         if let releasedAt {
             LatencyTrace.record(
