@@ -7,7 +7,7 @@ def drift(): return [f for f,h in m.items() if not (root/f).is_file() or hashlib
 assert not drift(),drift()
 binary=Path('/Applications/Next Notes.app/Contents/MacOS/NextNotes');h=hashlib.sha256(binary.read_bytes()).hexdigest()
 cache=Path.home()/'Library/Caches/NextNotesBuild/agent-closure-app51-NextNotes';shutil.copy2(binary,cache)
-meta={'build':47,'sha256':h,'cache':str(cache),'sourceStability':drift()}
+meta={'build':51,'sha256':h,'cache':str(cache),'sourceStability':drift()}
 (r/'app51-binary.json').write_text(json.dumps(meta,indent=2)+'\n')
 Path('/tmp/nextnotes-agent-closure-app51-binary.json').write_text(json.dumps(meta,indent=2)+'\n')
 shutil.copy2('/tmp/nextnotes-agent-closure-build51.log',r/'build51.log')

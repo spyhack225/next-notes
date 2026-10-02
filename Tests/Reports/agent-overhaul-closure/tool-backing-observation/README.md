@@ -69,3 +69,8 @@ open. No model/default was promoted and the quick/full/owner/latency gates remai
 unchanged; historical app13 quickFAILED3/10 is not an app51 model verdict.
 Full workspace manifests pin separately owned dirty UI/model foundations; they
 are not a clean-checkout or physical UI acceptance claim.
+
+Artifact correction: the copied runner initially retained numeric47 in its app51
+metadata object. The generator and metadata now identify51; cached/installed SHA
+were independently rechecked equal. Historical mistaken label is retained separately.
+No Source/binary/native verdict changed and no functional test was repeated.

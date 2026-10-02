@@ -1,0 +1,9 @@
+{
+  "before": 47,
+  "after": 51,
+  "confirmedCause": "reused native runner retained numeric47 while file/cache/source-manifest labels correctly changed to51",
+  "producerChanged": "run-fixed-native-checks.py metadata writer",
+  "existingCurrentAndCachedBinarySHA256Match": true,
+  "sourceOrNativeBehaviorChanged": false,
+  "nativeGatesRepeated": false
+}
