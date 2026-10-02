@@ -1,0 +1,5 @@
+compile_exit=0
+TASK_HISTORY_FAILED: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_HISTORY_FAILED: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_HISTORY_REPAIR_OK: 41 cases
+run_exit=0

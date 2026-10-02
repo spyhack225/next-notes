@@ -17,7 +17,9 @@ enum TaskRestorationSelfTest {
         guard PermissionGate.shared.pending == nil else {
             return "TASK_RESTORATION_FAILED: fixture refused to replace an existing card"
         }
-        defer { PermissionGate.shared.cancelPending() }
+        // Teardown simulates loss of ephemeral state; it must not leave a card live
+        // merely because the fixture deliberately rejected its durable decision.
+        defer { PermissionGate.shared.resetForRestartTesting() }
         let date = Date(timeIntervalSince1970: 1_700_000_000)
         func running(_ id: String, backend: String = "local", source: String = "text") -> AgentTask {
             AgentTask(id: id, objective: "Write the approved fixture note", source: source,
@@ -80,24 +82,31 @@ enum TaskRestorationSelfTest {
 
             let (inputStore, inputSQL, inputManager) = try fixture("input")
             defer { inputSQL.close() }
-            let inputTask = running("input-original")
+            let inputTask = AgentTask(id: "input-original", objective: "Read the original fixture file",
+                source: "text", createdAt: date, status: .running, tool: "filesystem.read")
             inputManager.beginScheduledRun(inputTask)
-            check(inputManager.requestInput(taskID: inputTask.id, question: "Which original fixture folder should I use?"),
+            check(inputManager.requestInput(taskID: inputTask.id, parameter: "path", toolID: "filesystem.read"),
                 "input producer did not commit the original question")
             let inputRestart = AgentTaskManager(store: AgentTaskStore(fileURL: inputStore.storageURL, mirror: inputSQL))
             let question = inputRestart.pendingInputs.first
-            check(question?.taskID == inputTask.id && question?.question == "Which original fixture folder should I use?"
+            check(question?.taskID == inputTask.id && question?.question == "Which file?"
+                && question?.toolID == "filesystem.read" && question?.argumentName == "path"
                 && inputRestart.pendingInputs.count == 1 && inputRestart.backendStartsForTesting == 0,
                 "restart lost or fabricated the original input question")
             check(try inputSQL.load() == inputRestart.tasks, "original question did not reach primary history")
             cases += 1
             if let question {
                 let retained = inputRestart.tasks
-                check(!inputRestart.respondInput(taskID: inputTask.id, text: "Fixture answer", requestID: "stale"),
+                let answerFile = root.appendingPathComponent("input-answer.txt")
+                try "Original fixture answer".write(to: answerFile, atomically: true, encoding: .utf8)
+                check(inputRestart.inputAnswerProblem(taskID: inputTask.id, requestID: question.id, text: answerFile.path) == nil,
+                    "rejected-save fixture answer was invalid before SQL admission")
+                check(!inputRestart.respondInput(taskID: inputTask.id, text: answerFile.path, requestID: "stale"),
                     "stale input card changed task state")
                 try inputSQL.withConnection { try TaskStore.exec($0,
                     "CREATE TRIGGER reject_input BEFORE UPDATE ON task BEGIN SELECT RAISE(ABORT,'fixture'); END") }
-                check(!inputRestart.respondInput(taskID: inputTask.id, text: "Fixture answer", requestID: question.id),
+                check(!inputRestart.respondInput(taskID: inputTask.id, text: answerFile.path, requestID: question.id)
+                    && inputRestart.lastPersistenceResult == .sqlFailed,
                     "input callback accepted an uncommitted answer")
                 check(try inputRestart.tasks == retained && inputSQL.load() == retained && inputRestart.pendingInputs == [question]
                     && inputRestart.backendStartsForTesting == 0, "failed input save hid the exact question or dispatched")

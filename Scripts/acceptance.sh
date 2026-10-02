@@ -155,6 +155,7 @@ INTEGRATION_ENTRIES=(
   "selftest-task-recovery|300"
   "selftest-task-authority|300"
   "selftest-task-restoration|300"
+  "selftest-task-history-repair|300"
   "selftest-agent-presentation|300"
   "selftest-digest|300"
   "selftest-podcast|300"
@@ -265,6 +266,8 @@ INTEGRATION_ENTRIES=(
 )
 
 EXPERIMENTAL_ENTRIES=(
+  # P2-01 remains experimental until the real warm-run latency exit is verified.
+  "selftest-voice-latency|600"
   "selftest-acoustic-live|600|via-open"
   "selftest-acoustic-tail|300"
   "selftest-acp-confirm|300"

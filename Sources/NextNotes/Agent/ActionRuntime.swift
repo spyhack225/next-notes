@@ -553,12 +553,18 @@ final class ActionOrchestrator {
                 throw AgentError.backendUnavailable("Could not save the prepared action; it was not run.")
             }
 
+            let restoredRequest = TaskEventJournal.current.flatMap { context -> PermissionRequest? in
+                guard permissionAlreadyGranted, context.taskID == routing.taskID,
+                      context.restoredPermission?.taskID == routing.taskID,
+                      context.restoredPermission?.toolID == tool.id else { return nil }
+                return context.restoredPermission
+            }
             let decision = await PermissionBroker.shared.authorize(
                 tool, arguments: intent.arguments, policy: policy,
                 scope: await PermissionScopeResolver.inferredAsync(tool: tool, arguments: intent.arguments),
                 meetingID: routing.meetingID, taskID: routing.taskID,
                 authority: intent.authority,
-                trigger: Self.trigger(for: intent),
+                trigger: restoredRequest?.trigger ?? Self.trigger(for: intent),
                 origin: origin
             )
             switch decision {

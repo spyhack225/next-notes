@@ -231,6 +231,12 @@ struct AgentView: View {
                         Text("I couldn’t open your saved work. Your history has been kept, and new work is paused.")
                             .font(DS.Font.callout)
                             .foregroundStyle(DS.Color.textSecondary)
+                        if tasks.canRepairTaskHistory {
+                            Button("Restore saved work") {
+                                if tasks.repairTaskHistory() { tasks.restorePendingInteractions() }
+                            }
+                            .buttonStyle(.bordered)
+                        }
                     } else if let warning = tasks.lastPersistenceResult?.diagnostic {
                         Text(warning)
                             .font(DS.Font.callout)
@@ -633,24 +639,65 @@ struct AgentView: View {
     }
 
     private func inputCard(_ request: TaskInputRequest) -> some View {
-        VStack(alignment: .leading, spacing: DS.Space.s) {
+        let answer = inputAnswers[request.id] ?? ""
+        let field = tasks.inputField(taskID: request.taskID, requestID: request.id)
+        let canContinue = field != nil
+        let choosesFile = field?.kind == .file
+        let problem = tasks.inputAnswerProblem(taskID: request.taskID, requestID: request.id, text: answer)
+        return VStack(alignment: .leading, spacing: DS.Space.s) {
             Text(request.question).font(DS.Font.callout)
-            TextField("Your answer", text: Binding(
-                get: { inputAnswers[request.id] ?? "" },
-                set: { inputAnswers[request.id] = $0 }), axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .accessibilityLabel(request.question)
+            if choosesFile {
+                if !answer.isEmpty {
+                    Text(URL(fileURLWithPath: answer).lastPathComponent).font(DS.Font.callout)
+                    Text("Your choice couldn’t be saved. Try again.")
+                        .font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
+                }
+            } else if canContinue {
+                TextField("Your answer", text: Binding(
+                    get: { inputAnswers[request.id] ?? "" },
+                    set: { inputAnswers[request.id] = $0 }), axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .accessibilityLabel(request.question)
+            }
+            if !canContinue || !answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, let problem {
+                Text(problem).font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
+            }
             HStack {
                 Button("Cancel") { tasks.cancel(request.taskID) }
-                Button("Continue") {
-                    if tasks.respondInput(taskID: request.taskID,
-                                          text: inputAnswers[request.id] ?? "", requestID: request.id) {
-                        inputAnswers.removeValue(forKey: request.id)
+                if choosesFile {
+                    Button(answer.isEmpty ? "Choose file" : "Choose another file") { chooseInputFile(request) }
+                        .buttonStyle(.borderedProminent)
+                    if !answer.isEmpty {
+                        Button("Try again") { submitInputAnswer(request, text: answer) }
+                            .disabled(problem != nil)
                     }
+                } else if canContinue {
+                    Button("Continue") { submitInputAnswer(request, text: answer) }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(problem != nil)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled((inputAnswers[request.id] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
+        }
+    }
+
+    private func submitInputAnswer(_ request: TaskInputRequest, text: String) {
+        if tasks.respondInput(taskID: request.taskID, text: text, requestID: request.id) {
+            inputAnswers.removeValue(forKey: request.id)
+        }
+    }
+
+    private func chooseInputFile(_ request: TaskInputRequest) {
+        guard tasks.inputField(taskID: request.taskID, requestID: request.id)?.kind == .file else { return }
+        let panel = NSOpenPanel()
+        panel.message = request.question
+        panel.prompt = "Read"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            inputAnswers[request.id] = url.path
+            submitInputAnswer(request, text: url.path)
         }
     }
 

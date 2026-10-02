@@ -157,6 +157,9 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-task-durability
 --selftest-task-recovery
 --selftest-task-authority
+--selftest-task-restoration
+--selftest-task-history-repair
+--selftest-agent-presentation
 --selftest-persona   --selftest-memory     --selftest-schedule
 --selftest-routine-authority
 --selftest-index     --selftest-search [query] [--gold <path>]
@@ -288,6 +291,19 @@ migration was run by these isolated tests. Full-history latency and independent
 mutation sensitivity of the native file-binding branch remain unproven. Parent
 P6-04a, pending cards, attempts/leases/receipts and IM-16 remain open. See the
 [authority report](Tests/Reports/durable-tasks/2026-10-01-p6-04a-authority-migration.md).
+
+P6-04a-3's bounded foundation adds `--selftest-task-restoration` and
+`--selftest-task-history-repair`. Installed checks pass durability37, recovery56,
+authority58, restoration70 and repair58. Actual manager/gate/review/backend/runtime
+consumers preserve the exact approved payload and origin; a rejected primary save
+keeps the pending card and supplies no token or dispatch. Prepared-history repair
+revalidates identity and retained canonical history in the same ledger; its UI
+eligibility is cached. The actual typed local `filesystem.read` producer retains
+its missing `path` question, and an exact explicit answer commits before one
+restricted temporary-file read. Directory/text/remote questions remain open.
+Native picker/card interaction is unverified: Computer Use did not allow access
+to Next Notes. These checks establish neither broader recovery nor leases,
+receipt reconciliation, retry, owner migration or IM-16 hosting.
 
 `--selftest-voice-session-reducer` verifies ten pure traces (the original nine
 plus speech-ended identity/hold guards), then actual capture, approval and streamed

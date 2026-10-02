@@ -1,0 +1,37 @@
+{
+  "scope": "Root serial copied actual producer drivers. Broad34 historical evidence is superseded by bounded current42. Not installed binary, rendered card, native chooser or runtime receipt proof.",
+  "logs": [
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-input-original-2.log",
+      "file": "original-red.log",
+      "sha256": "ca89d2d6b826242008855f70d8fefce4f7a4c79a6ed9ef1f312805353170ce61",
+      "compile_exit": 0,
+      "run_exit": 1,
+      "marker": "TASK_INPUT_CLARIFICATION_FAILED: 2 assertions"
+    },
+    {
+      "source": "/private/tmp/nextnotes-input-current-3.log",
+      "file": "current-green.log",
+      "sha256": "9823d464185df234d08482821771e793371f1b1d4745733d5e45352e133b4012",
+      "compile_exit": 0,
+      "run_exit": 0,
+      "marker": "TASK_INPUT_CLARIFICATION_OK: 34 cases"
+    },
+    {
+      "source": "/private/tmp/nextnotes-input-scope-original.log",
+      "file": "scope-original-red.log",
+      "sha256": "cc03e4628d75b9612d067bb733282854e5ef30d72642c36d0464bcac2f080762",
+      "compile_exit": 0,
+      "run_exit": 1,
+      "marker": "TASK_INPUT_CLARIFICATION_FAILED: 4 assertions"
+    },
+    {
+      "source": "/private/tmp/nextnotes-input-current-4.log",
+      "file": "current-narrow-green.log",
+      "sha256": "0b01126e092f8446a4c1ada57e7a54a73074d98251ff7106f2f9379d081cdfb6",
+      "compile_exit": 0,
+      "run_exit": 0,
+      "marker": "TASK_INPUT_CLARIFICATION_OK: 42 cases"
+    }
+  ]
+}

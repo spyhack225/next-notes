@@ -1,0 +1,191 @@
+import Foundation
+import OSLog
+enum Log { static let agent = Logger(subsystem: "fixture.task-input", category: "executor"); static let app = Logger(subsystem: "fixture.task-durability", category: "test") }
+enum AppIdentity {
+    static let applicationSupportDirectory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("NextNotesDurabilityOwnerFixture-\(UUID().uuidString)")
+}
+enum ModelSpec { static var directory: URL { AppIdentity.applicationSupportDirectory.appendingPathComponent("Models") } }
+enum SelfTest {
+    static let isRunning = true
+    static let allowsSavedModelSelection = false
+    static func diagnostic(_ text: String) { print(text) }
+}
+@MainActor enum ACPCompatibilityCLIBackend {
+    static func request(for task: AgentTask) -> ACPCompatibilityRequest? { fatalError("fixture must not request backend") }
+    static func commandLine(cli: String, objective: String) -> String { fatalError("compile-only CLI collaborator") }
+    static func submit(_ task: AgentTask, explicitApproval: Bool) async throws -> AgentTaskOutcome { fatalError("fixture must not execute backend") }
+}
+@MainActor final class AgentActivityStore {
+    enum Kind { case waiting, tool }
+    static let shared = AgentActivityStore()
+    func update(taskID:String,kind:Kind,title:String,avatar:String) { fatalError("final backing override must run first") }
+    func presentationBinding(taskID:String?)->String? { fatalError("final backing override must run first") }
+    func begin(task: AgentTask, title: String) { fatalError("fixture must not begin activity") }
+    func finish(taskID: String, title: String) { fatalError("fixture must not finish activity") }
+    func update(taskID: String, kind: Kind, title: String, detail: String) { fatalError("fixture must not update activity") }
+}
+struct IslandProposal { let id: String; let title: String; let detail: String; let meetingID: UUID? }
+@MainActor final class IslandState {
+    static let shared = IslandState()
+    func showAgentWork(title:String) { fatalError("final backing override must run first") }
+    func showBackgroundAgentWork(title: String) { fatalError("fixture must not show work") }
+    func showBackgroundAgentReply(_ text: String) { fatalError("fixture must not show reply") }
+    func propose(_ proposal: IslandProposal) { fatalError("fixture must not propose") }
+}
+struct VoiceJob { let id: UUID; let status: String }
+@MainActor final class VoiceConversationCoordinator {
+    static let shared = VoiceConversationCoordinator()
+    var jobs: [VoiceJob] = []
+    func cancel(_ id: UUID) { fatalError("fixture must not cancel") }
+}
+@MainActor final class AgentSession {
+    static let shared = AgentSession()
+    static let backgroundTaskContextKind = "fixture-background"
+    func recordAssistant(_ text: String, contextKind: String) { fatalError("fixture must not record conversation") }
+}
+@MainActor final class AgentAuditLog {
+    enum Kind: Equatable { case reply, task, tool }
+    struct Entry { let kind: Kind }
+    var entries: [Entry] = []
+    static let shared = AgentAuditLog()
+    func record(kind:Kind,title:String,detail:String,toolID:String,taskID:String?,meetingID:UUID?) { fatalError("final backing override must run first") }
+    func record(kind: Kind, title: String) { fatalError("fixture must not audit") }
+}
+@MainActor final class VoiceAnnouncementQueue {
+    static let shared = VoiceAnnouncementQueue()
+    func enqueue(_ text: String) { fatalError("fixture must not speak") }
+}
+enum AgentUtteranceSource { case text }
+struct AgentTurn { let reply: String; let delegated: Bool }
+@MainActor final class RealtimeAgent {
+    static let shared = RealtimeAgent()
+    var taskManagerForTesting: AgentTaskManager?
+    func handle(_ text: String, source: AgentUtteranceSource) async -> AgentTurn {
+        fatalError("standalone wrapper compilation does not prove real Agent routing")
+    }
+}
+@MainActor final class AgentHarnessRouter {
+    static let shared = AgentHarnessRouter()
+    var availabilityProbe: ((String) -> Bool)?
+}
+@MainActor enum TaskPermissionJournalSelfTest {
+    static func run() async -> (cases: Int, failures: [String]) {
+        fatalError("standalone fixture must not claim actual permission-boundary execution")
+    }
+}
+
+import Foundation
+import OSLog
+enum ScheduleToolCatalogue { static let all:[AgentTool]=[]
+    static var confirmableIDs:Set<String> { fatalError("probe has no schedule tool") }
+}
+enum ActionAuthority: Equatable, Sendable { case user, systemDerived, memoryReview, scheduled
+    var isScheduled: Bool { self == .scheduled } }
+enum ActionSource: Sendable { case agent, meeting, scheduled }
+struct ActionIntent: Sendable {
+    let source:ActionSource; let authority:ActionAuthority; let verb:String; let target:String?
+    let arguments:[String:String]; let evidence:[String]; let risk:AgentRisk; let confidence:Double
+}
+struct PreparedContent { let title:String; let visiblePlan:String? }
+struct ActionRouting { let resource:String?; let taskID:String?; let meetingID:UUID? }
+struct ActionExecutionPlan { let arguments:[String:String] }
+struct PreparedAction { let executionPlan:ActionExecutionPlan }
+struct RemoteIdentity: Codable, Hashable, Sendable {}
+enum PermissionScopeResolver {
+    static func inferredAsync(tool:AgentTool,arguments:[String:String]) async->PermissionScope {
+        if let path=arguments["path"] { return PermissionScope(kind:.path,value:path) }
+        return .any
+    }
+}
+enum BrowserCDPClient {
+    static func isReachable() async->Bool { fatalError("no browser fixture in this producer probe") }
+    static func targetID(for tool:AgentTool,arguments:[String:String]) async->String? { fatalError() }
+    static func targetURL(for tool:AgentTool,arguments:[String:String]) async->String? { fatalError() }
+}
+enum BrowserToolExecutor { static func currentURL()->String? { fatalError() } }
+enum MemoryWriteError: Error { case provenance(String) }
+struct MemoryProvenanceValue { let requiredAuthority:ActionAuthority }
+enum MemoryProvenance { static var current:MemoryProvenanceValue? { nil } }
+enum ScheduleConfirmation { static func problem(toolID:String,arguments:[String:String],provenance:MemoryProvenanceValue?)->String? { fatalError() } }
+enum AgentActivityProjector {
+    static func title(for tool:AgentTool,arguments:[String:String])->String { "Isolated fixture" }
+    static func kind(for tool:AgentTool)->AgentActivityStore.Kind { .tool }
+}
+enum AgentAvatarState { static func forTool(namespace:AgentToolNamespace,name:String,risk:AgentRisk)->String { "fixture" } }
+struct ToolExecutionTimer { static var current:ToolExecutionTimer? { nil }; func begin() {}; func end() {} }
+enum AgentWorkPresentationScope { @TaskLocal static var binding:String? }
+@MainActor final class ActionOrchestrator {
+    static let shared=ActionOrchestrator()
+    func execute(intent:ActionIntent,tool:AgentTool,title:String,preparedContent:PreparedContent?,
+        routing:ActionRouting,steps:[String],policy:PermissionPolicy,promptIfNeeded:Bool,
+        permissionAlreadyGranted:Bool,allowUnverifiedResult:Bool,
+        isStillValid:(@MainActor @Sendable () async->Bool)?,origin:ActionOriginContext?=nil,
+        fire:@escaping @MainActor (PreparedAction) async throws->AgentToolResult) async throws->AgentToolResult {
+        let decision=await PermissionBroker.shared.authorize(tool,arguments:intent.arguments,policy:policy,
+            taskID:routing.taskID,authority:intent.authority,origin:origin)
+        switch decision {
+        case .allow: break
+        case .deny(let reason): throw AgentError.permissionDenied(reason)
+        case .ask(let request), .askLocal(let request): throw AgentError.needsPermission(request.title)
+        }
+        return try await fire(PreparedAction(executionPlan:ActionExecutionPlan(arguments:intent.arguments)))
+    }
+}
+
+@MainActor enum Settings {
+    struct Values {
+        let agentAutoRunReadTools=true; let agentAutoSearchFiles=true; let agentAllowComputerControl=false
+        let agentBackend=AgentBackendKind.local
+    }
+    static let shared=Values()
+}
+@MainActor final class PermissionGate {
+    static let shared=PermissionGate()
+    var pending:PermissionRequest?
+    var pendingReview:ToolCallReview?
+    var queuedCount:Int { 0 }
+    func hasRestoredRequest(taskID:String)->Bool { false }
+    func cancelPending(taskID:String) {}
+    func cancelPending() { pending=nil; pendingReview=nil }
+    func resetForRestartTesting() { cancelPending() }
+    @discardableResult
+    func restore(_ request:PermissionRequest,review:ToolCallReview?=nil,
+        onReviewChange:((ToolCallReview)->Bool)?=nil,onDecision:@escaping (Bool,[String:String])->Bool)->Bool {
+        fatalError("read clarification must never restore a permission card")
+    }
+    @discardableResult
+    func respond(id:String,approved:Bool,duration:PermissionDuration = .once)->Bool { fatalError("no permission decision in read fixture") }
+}
+struct ACPAgentBackend:AgentBackend {
+    func describe() async->AgentBackendDescription { fatalError("no ACP in local input fixture") }
+    func start() async throws { fatalError() }
+    func health() async->String { fatalError() }
+    func submit(_ task:AgentTask) async throws->AgentTaskOutcome { fatalError() }
+    func status(taskID:String) async->AgentTaskStatus? { fatalError() }
+    func cancel(taskID:String) async { fatalError() }
+    func respondPermission(taskID:String,approved:Bool) async { fatalError() }
+    func respondInput(taskID:String,text:String) async { fatalError() }
+}
+enum MeetingToolCatalogue { static let all:[AgentTool]=[] }
+enum ComputerToolCatalogue { static let all:[AgentTool]=[] }
+enum FileToolCatalogue { static let all:[AgentTool]=[]; static let findName="find"; static let treeName="tree" }
+enum FileToolExecutor { static func run(_ tool:AgentTool,arguments:[String:String]) throws->AgentToolResult { fatalError("no indexed file backing") } }
+enum ShellToolCatalogue { static let all:[AgentTool]=[] }
+enum BrowserToolCatalogue { static let all:[AgentTool]=[] }
+enum MemoryToolCatalogue { static let all:[AgentTool]=[] }
+enum KnowledgeToolCatalogue { static let all:[AgentTool]=[] }
+enum AssemblerToolCatalogue { static let all:[AgentTool]=[] }
+enum SkillToolCatalogue { static let all:[AgentTool]=[] }
+enum BrowserPurchase { static func problem(arguments:[String:String])->String? { fatalError("no purchase fixture") } }
+struct ACPCompatibilityRequest: Equatable, Sendable {
+    let cli: String
+    let objective: String
+    let directory: String?
+    let command: String
+
+    var failureMessage: String {
+        "ACP unavailable. \(command) has not been run. Choose “Run once in compatibility CLI mode” to continue; compatibility mode has weaker progress and permission guarantees."
+    }
+}
+

@@ -1,0 +1,130 @@
+{
+  "Collaborators.swift": {
+    "copied_sha256": "0b19a7aaf60d626f8f0785a95e5b9ef438e0916edce068b4dc8ef822b3926921"
+  },
+  "ModelTypes.swift": {
+    "copied_sha256": "2a4e98c249e1c20b66d7dbc158c41189ef34b2cddc1b315c49cd546beaf24303"
+  },
+  "AgentToolExecutor.swift": {
+    "copied_sha256": "6c9ae667716a82238c19b1fa87cd7c91d419ca87778877e08faf20d3b83cb017"
+  },
+  "InputFixture.swift": {
+    "copied_sha256": "6cbe6b7d332f734d267f40cba785048ff57b40727555edb863828e055bdf04e0"
+  },
+  "BackendEvent.swift": {
+    "copied_sha256": "cb53470bad6f211255b80de245cf3a3d374174c0e814ed1f5fb641943e6e150d"
+  },
+  "Support/SelfTestStoreGuard.swift": {
+    "full_sha256": "355c6e6fcf0a5e7cae02735532b5ceaf5a845c700146752295ac43257701db87",
+    "copied_sha256": "355c6e6fcf0a5e7cae02735532b5ceaf5a845c700146752295ac43257701db87"
+  },
+  "Agent/Tasks/AgentTask.swift": {
+    "full_sha256": "e4f84014066d7b6179e0e4bc497293b8a7b64d0bd92c232b56c9ad84e05cc6b2",
+    "copied_sha256": "e4f84014066d7b6179e0e4bc497293b8a7b64d0bd92c232b56c9ad84e05cc6b2"
+  },
+  "Agent/Tasks/AgentTaskStore.swift": {
+    "full_sha256": "4a6bb75f8e263721e74ec15f126f872b553a62d8b5856443ab6c40b9167fe245",
+    "copied_sha256": "4a6bb75f8e263721e74ec15f126f872b553a62d8b5856443ab6c40b9167fe245"
+  },
+  "Agent/Tasks/Durable/TaskDurability.swift": {
+    "full_sha256": "a73195a3ea016122cbe58abfd976578f3b6c495b822d5b2377debd0e4d48e30b",
+    "copied_sha256": "a73195a3ea016122cbe58abfd976578f3b6c495b822d5b2377debd0e4d48e30b"
+  },
+  "Agent/Tasks/Durable/TaskStoreSchema.swift": {
+    "full_sha256": "6447b03e5c4875701d3b182ce8705f618fc2cdc701d8239cddfb5e580202e247",
+    "copied_sha256": "6447b03e5c4875701d3b182ce8705f618fc2cdc701d8239cddfb5e580202e247"
+  },
+  "Agent/Tasks/Durable/TaskEventJournal.swift": {
+    "full_sha256": "4f4199112443423a0424ef916b96d01f421765102938cde5b8dc29977ffddbd3",
+    "copied_sha256": "4f4199112443423a0424ef916b96d01f421765102938cde5b8dc29977ffddbd3"
+  },
+  "Agent/Tasks/Durable/TaskRecoveryPlanner.swift": {
+    "full_sha256": "6f29af04e8b47586d5d38667d6de990507906dc5bb570ff78537a101e65b9c53",
+    "copied_sha256": "6f29af04e8b47586d5d38667d6de990507906dc5bb570ff78537a101e65b9c53"
+  },
+  "Agent/Tasks/Durable/TaskStore.swift": {
+    "full_sha256": "f06b561e3b63d05902fb97cd55e53cf2c8fc0fd8186980e2acb02f0298f77b23",
+    "copied_sha256": "f06b561e3b63d05902fb97cd55e53cf2c8fc0fd8186980e2acb02f0298f77b23"
+  },
+  "Agent/Tasks/AgentTaskManager.swift": {
+    "full_sha256": "e1e7566fb603b0d2c398d0646b46fcd73aafcdb1219a30c326a1e05e85e7186f",
+    "copied_sha256": "e1e7566fb603b0d2c398d0646b46fcd73aafcdb1219a30c326a1e05e85e7186f"
+  },
+  "Agent/Tasks/AgentArtifactLedger.swift": {
+    "full_sha256": "b9b8143508453032fee75f632172ac669c6ce5281723243a410c5d4df0ede15c",
+    "copied_sha256": "b9b8143508453032fee75f632172ac669c6ce5281723243a410c5d4df0ede15c"
+  },
+  "Agent/Backend/AgentBackend.swift": {
+    "full_sha256": "38929c53dd3b73b69e2ab06f331936c56ff781c28183892224786b135e75258f",
+    "copied_sha256": "38929c53dd3b73b69e2ab06f331936c56ff781c28183892224786b135e75258f"
+  },
+  "Agent/Backend/LocalAgentBackend.swift": {
+    "full_sha256": "03ab569742752c8caaaf4fbe52068c8acae9f4d8983f7891868c099ce4295103",
+    "copied_sha256": "03ab569742752c8caaaf4fbe52068c8acae9f4d8983f7891868c099ce4295103"
+  },
+  "Agent/WorkspaceTools.swift": {
+    "full_sha256": "54f4f31df313cf1d1efa56810953302bae225cddb299a68c6d63de364094d6c0",
+    "copied_sha256": "54f4f31df313cf1d1efa56810953302bae225cddb299a68c6d63de364094d6c0"
+  },
+  "Agent/Tools/AgentTool.swift": {
+    "full_sha256": "3bad1fecbfb17cf45737eb0c51f6fe8ebf4589b79084e5a102f94849b3eae51f",
+    "copied_sha256": "3bad1fecbfb17cf45737eb0c51f6fe8ebf4589b79084e5a102f94849b3eae51f"
+  },
+  "Agent/Tools/AgentToolRegistry.swift": {
+    "full_sha256": "b6dd38e9a0c9585a0c83c2ca87d71c180f5ff54f67a6ab1a3f354442071f643e",
+    "copied_sha256": "b6dd38e9a0c9585a0c83c2ca87d71c180f5ff54f67a6ab1a3f354442071f643e"
+  },
+  "Agent/Tools/FilesystemTools.swift": {
+    "full_sha256": "82554749242e30faba996a38bdf780cbd614d4ac836d0206d3defda3335278db",
+    "copied_sha256": "82554749242e30faba996a38bdf780cbd614d4ac836d0206d3defda3335278db"
+  },
+  "Shell/FilesystemExecutor.swift": {
+    "full_sha256": "ebc37c2812aae9ec0a8480c46bd1adf776a9e837dfdeb66df826f0555db56564",
+    "copied_sha256": "ebc37c2812aae9ec0a8480c46bd1adf776a9e837dfdeb66df826f0555db56564"
+  },
+  "Agent/Permissions/ToolCallReview.swift": {
+    "full_sha256": "20ea9939b3c3c6d4942e5cab17446b34636840386c41073892824d142b416689",
+    "copied_sha256": "20ea9939b3c3c6d4942e5cab17446b34636840386c41073892824d142b416689"
+  },
+  "Agent/Permissions/ToolCallReviewBuilder.swift": {
+    "full_sha256": "55cbd25db7bde6ad19415ecd9e9f3b0cc5dbe36022513bdfe2a177cb84842a2a",
+    "copied_sha256": "55cbd25db7bde6ad19415ecd9e9f3b0cc5dbe36022513bdfe2a177cb84842a2a"
+  },
+  "Agent/Permissions/ToolCallInspector.swift": {
+    "full_sha256": "d60bf7e73ffa35a0046d7d5dbecb645b39c216932e975ccd86feb932a52431eb",
+    "copied_sha256": "d60bf7e73ffa35a0046d7d5dbecb645b39c216932e975ccd86feb932a52431eb"
+  },
+  "Agent/Permissions/ToolCallContext.swift": {
+    "full_sha256": "ab9b292a2cc095bdb0ad22ddccaee1d3c5c86ac75f69942762a5fb22b21a09ce",
+    "copied_sha256": "ab9b292a2cc095bdb0ad22ddccaee1d3c5c86ac75f69942762a5fb22b21a09ce"
+  },
+  "Agent/Permissions/ToolCallValidation.swift": {
+    "full_sha256": "900dbfe254e8012bb291f821ec20cd948897648a9acf31f41cfd239bdbda27ec",
+    "copied_sha256": "900dbfe254e8012bb291f821ec20cd948897648a9acf31f41cfd239bdbda27ec"
+  },
+  "Agent/Permissions/PermissionRequest.swift": {
+    "full_sha256": "9da20d0367fa774ad23e57170ec979d75a77be9882b36b7942757f6558476408",
+    "copied_sha256": "9da20d0367fa774ad23e57170ec979d75a77be9882b36b7942757f6558476408"
+  },
+  "Agent/Permissions/PermissionPolicy.swift": {
+    "full_sha256": "58e78e1392ad6ccc0f621a099269bb31f3e7a6d3a7d230c36c438aa4ea5c1c80",
+    "copied_sha256": "58e78e1392ad6ccc0f621a099269bb31f3e7a6d3a7d230c36c438aa4ea5c1c80"
+  },
+  "Agent/Permissions/PermissionBroker.swift": {
+    "full_sha256": "9c24e94b2f3f81a1e7a0c047950cf1df8ca7ea2f66dc103a129ad5b30b8a08e3",
+    "copied_sha256": "9c24e94b2f3f81a1e7a0c047950cf1df8ca7ea2f66dc103a129ad5b30b8a08e3"
+  },
+  "Agent/Permissions/PermissionScope.swift": {
+    "full_sha256": "101afbf72e724cf732946b55ea98f5effcead943dea815eb32ea1143cba0a01e",
+    "copied_sha256": "e1021fdc2328b85819d67c90d4e2f601cba01859ca954ffacc0b05dd88d33d44"
+  },
+  "Agent/Permissions/RemoteAccessPolicy.swift": {
+    "full_sha256": "9bcd6ab2d3dc3ccb738b019f3f75e2f212e9380b78e54ba8acf5aac3291e55de",
+    "copied_sha256": "9bcd6ab2d3dc3ccb738b019f3f75e2f212e9380b78e54ba8acf5aac3291e55de"
+  },
+  "actual-full-FileIndexTools": "ece4d0a8667f8635b639f02c4ca3f53da8f93b41a728594dca020b91e7e47155",
+  "actual-full-Executor": "46d05129644780e2a9d09080c47b1699d3f8440d786df2624273f74e7a21a678",
+  "actual-full-Models": "e62bc2a7db301cbe1222ea43c4b64e22ffed7a2df1886d321ca7a7d4c94a4e2a",
+  "actual-full-RestorationProductionSelfTest": "ff1e64326ed21b410802c3a1eb6ef227f48bd516707bc704ad1b5680e71f44f4",
+  "actual-full-ACPCompatibilityCLIBackend": "d8d44e346f8045ae700ba6ebb3cf520b0b111be0a816fffdf740a77ff20e259b"
+}

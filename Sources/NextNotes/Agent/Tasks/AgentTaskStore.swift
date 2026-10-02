@@ -168,21 +168,39 @@ final class AgentTaskStore {
         }
     }
 
-    /// Explicit fixture repair is separate from ordinary startup. A production repair
-    /// action/card is still open; matching prepared UUID alone never triggers this path.
-    func reconcilePreparedForTesting() throws {
-        guard SelfTest.isRunning, allowsHarnessPersistence,
-              let data = try compatibilityData() else { throw TaskStoreError.authorityConflict }
+    private func preparedHistory() throws -> (Data, TaskHistoryExport) {
+        guard !SelfTest.isRunning || allowsHarnessPersistence,
+              expectedAuthority == nil, let data = try compatibilityData() else {
+            throw TaskStoreError.authorityConflict
+        }
         let envelope = try Self.decoder().decode(TaskHistoryExport.self, from: data)
         try TaskStore.validate(envelope.tasks)
         guard envelope.formatVersion == 1, envelope.preparedAuthority.generation == 1,
-              let probe = try mirror.probeAuthority(), probe.authority == nil,
-              probe.identity == envelope.fileIdentity else { throw TaskStoreError.authorityConflict }
-        try mirror.preflightImport(envelope.tasks, probe: probe)
-        try mirror.reconcile(envelope.tasks, probe: probe, authority: envelope.preparedAuthority)
+              envelope.fileIdentity.inode > 0 else { throw TaskStoreError.authorityConflict }
+        _ = try mirror.probePreparedImport(envelope.tasks, identity: envelope.fileIdentity)
+        return (data, envelope)
+    }
+
+    /// A read-only affordance. A damaged, missing, marked, replaced or conflicting
+    /// history never earns a repair button. The action revalidates instead of trusting it.
+    var canRepairPreparedHistory: Bool { (try? preparedHistory()) != nil }
+
+    /// Explicit user action repairs only a retained generation-one preparation into
+    /// its exact existing ledger. It does not discard history or dispatch any task.
+    func repairPreparedHistory() throws {
+        let (data, envelope) = try preparedHistory()
+        try mirror.repairPreparedImport(envelope.tasks, identity: envelope.fileIdentity,
+                                       authority: envelope.preparedAuthority) {
+            guard try self.compatibilityData() == data else { throw TaskStoreError.authorityConflict }
+        }
         expectedAuthority = envelope.preparedAuthority
-        expectedIdentity = probe.identity
+        expectedIdentity = envelope.fileIdentity
         failedLoad = false
+    }
+
+    func reconcilePreparedForTesting() throws {
+        guard SelfTest.isRunning, allowsHarnessPersistence else { throw TaskStoreError.authorityConflict }
+        try repairPreparedHistory()
     }
 
     @discardableResult

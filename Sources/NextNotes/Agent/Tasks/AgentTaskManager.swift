@@ -21,6 +21,7 @@ final class AgentTaskManager {
     @ObservationIgnored private var approvedCompatibilityTaskIDs: Set<String> = []
     @ObservationIgnored private(set) var backendStartsForTesting = 0
     @ObservationIgnored var backendEntryForTesting: (@MainActor () throws -> Void)?
+    private var preparedRepairAvailable = false
     @ObservationIgnored private let store: AgentTaskStore
     private var projectsActivity: Bool { !SelfTest.isRunning || !store.allowsHarnessPersistence }
 
@@ -30,12 +31,43 @@ final class AgentTaskManager {
         catch {
             historyReadFailure = AgentTaskPersistenceResult.loadFailed.diagnostic
             lastPersistenceResult = .loadFailed
+            preparedRepairAvailable = store.canRepairPreparedHistory
             if let diagnostic = historyReadFailure {
-                if SelfTest.isRunning { SelfTest.diagnostic("TASK_HISTORY_FAILED: \(diagnostic)") }
+                if SelfTest.isRunning { SelfTest.diagnostic("TASK_HISTORY_DIAGNOSTIC: \(diagnostic)") }
                 else { Log.app.error("\(diagnostic, privacy: .public)") }
             }
             return
         }
+        holdInterruptedTasks()
+    }
+
+    /// Repair reuses the same startup hold transition; no backend or dispatch occurs.
+    var canRepairTaskHistory: Bool {
+        historyReadFailure != nil && running.isEmpty && preparedRepairAvailable
+    }
+
+    @discardableResult
+    func repairTaskHistory() -> Bool {
+        guard canRepairTaskHistory else { return false }
+        do {
+            try store.repairPreparedHistory()
+            tasks = try store.load()
+            approvedTaskIDs.removeAll()
+            approvedCompatibilityTaskIDs.removeAll()
+            historyReadFailure = nil
+            preparedRepairAvailable = false
+            lastPersistenceResult = nil
+            holdInterruptedTasks()
+            return historyReadFailure == nil
+        } catch {
+            historyReadFailure = AgentTaskPersistenceResult.loadFailed.diagnostic
+            lastPersistenceResult = .loadFailed
+            preparedRepairAvailable = store.canRepairPreparedHistory
+            return false
+        }
+    }
+
+    private func holdInterruptedTasks() {
         let loadedTasks = tasks
         let now = Date()
         var events: [TaskJournalEventDraft] = []
@@ -216,12 +248,14 @@ final class AgentTaskManager {
               task.status == .waitingForCompatibilityCLI,
               ACPCompatibilityCLIBackend.request(for: task) != nil
         else { return }
-        approvedCompatibilityTaskIDs.insert(taskID)
         let admitted = update(taskID, kinds: [.permissionApproved]) { item in
             item.status = .queued
             item.progress = "Starting compatibility CLI once · weaker progress and permissions than ACP"
         }
-        guard admitted.primaryCommitted else { rejectStart(taskID, result: admitted); return }
+        // A rejected save rolls back to the exact reviewable waiting row. Keep that
+        // card available, and mint the one-shot token only after primary admission.
+        guard admitted.primaryCommitted else { return }
+        approvedCompatibilityTaskIDs.insert(taskID)
         running[taskID]?.cancel()
         running[taskID] = Task { @MainActor [weak self] in
             await self?.execute(taskID)
@@ -274,18 +308,54 @@ final class AgentTaskManager {
         }.primaryCommitted
     }
 
-    /// An actual worker question, retained as a question rather than invented from
-    /// the objective after a restart. A saved request does not start a replacement worker.
+    /// Retains a question-only payload without guessing what an answer would change.
+    /// The bound local-read producer below supplies the schema field for live continuation.
     @discardableResult
     func requestInput(taskID: String, question: String) -> Bool {
         guard historyReadFailure == nil, let task = task(id: taskID), task.status == .running,
               isTypedOwner(task), !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         let request = TaskInputRequest(taskID: taskID, question: question)
-        return update(taskID) { item in
+        return parkInput(request).primaryCommitted
+    }
+
+    /// An incomplete local file read asks its existing review question.
+    /// Mutations, approved replays and independent owners keep their original refusal/review.
+    @discardableResult
+    func requestInput(taskID: String, parameter: String, toolID: String) -> Bool {
+        guard let request = missingInputRequest(taskID: taskID, parameter: parameter, toolID: toolID) else { return false }
+        return parkInput(request).primaryCommitted
+    }
+
+    private func missingInputRequest(taskID: String, parameter: String, toolID: String) -> TaskInputRequest? {
+        guard toolID == "filesystem.read", parameter == "path",
+              historyReadFailure == nil, let task = task(id: taskID), task.status == .running,
+              isTypedOwner(task), task.backend == AgentBackendKind.local.rawValue,
+              task.pendingInteraction == nil, let name = task.tool,
+              let tool = AgentToolRegistry.shared.tool(named: name), tool.id == toolID,
+              tool.source == .native, tool.risk <= .read,
+              tool.parameters.contains(where: { $0.name == parameter && $0.isRequired }),
+              (task.arguments[parameter] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return nil }
+        guard let field = missingInputField(tool: tool, arguments: task.arguments, parameter: parameter),
+              !field.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return TaskInputRequest(taskID: taskID, question: field.prompt, toolID: tool.id, argumentName: parameter)
+    }
+
+    /// One answer can continue only when that exact gap is the sole blocking issue.
+    /// Other missing fields or placeholders need their existing complete review flow.
+    private func missingInputField(tool: AgentTool, arguments: [String: String], parameter: String) -> ToolCallField? {
+        let review = ToolCallReviewBuilder.review(id: tool.id, tool: tool, arguments: arguments)
+        guard review.blockers.count == 1, let field = review.blockers.first,
+              field.name == parameter, field.isRequired, field.problem == .missing else { return nil }
+        return field
+    }
+
+    private func parkInput(_ request: TaskInputRequest) -> AgentTaskPersistenceResult {
+        update(request.taskID) { item in
             item.pendingInteraction = .input(request)
             item.status = .waitingForInput
-            item.progress = question
-        }.primaryCommitted
+            item.progress = request.question
+        }
     }
 
     /// Existing UI consumers can draw these exact requests and send the matching id
@@ -367,14 +437,54 @@ final class AgentTaskManager {
         approvedTaskIDs.remove(taskID) != nil
     }
 
+    /// Read-only eligibility for the existing input card. It never supplies a binding
+    /// for legacy questions or turns another owner's work into a local retry.
+    func canRespondInput(taskID: String, requestID: String) -> Bool {
+        inputField(taskID: taskID, requestID: requestID) != nil
+    }
+
+    func inputField(taskID: String, requestID: String) -> ToolCallField? {
+        guard historyReadFailure == nil, let task = task(id: taskID),
+              task.status == .waitingForInput,
+              case .input(let request) = task.pendingInteraction,
+              request.id == requestID, let tool = inputTool(task: task, request: request),
+              let key = request.argumentName else { return nil }
+        return missingInputField(tool: tool, arguments: task.arguments, parameter: key)
+    }
+
+    func inputAnswerProblem(taskID: String, requestID: String, text: String) -> String? {
+        guard historyReadFailure == nil, let task = task(id: taskID),
+              task.status == .waitingForInput, case .input(let request) = task.pendingInteraction,
+              request.id == requestID, let tool = inputTool(task: task, request: request),
+              let key = request.argumentName else { return "This saved question can’t safely continue. You can stop this task." }
+        var arguments = task.arguments
+        arguments[key] = text
+        return ToolCallValidation.problem(tool: tool, arguments: arguments)
+    }
+
+    private func inputTool(task: AgentTask, request: TaskInputRequest) -> AgentTool? {
+        guard request.toolID == "filesystem.read", request.argumentName == "path",
+              isTypedOwner(task), task.backend == AgentBackendKind.local.rawValue,
+              request.taskID == task.id, let name = task.tool,
+              let boundTool = request.toolID, let key = request.argumentName,
+              let tool = AgentToolRegistry.shared.tool(named: name), tool.id == boundTool,
+              tool.source == .native, tool.risk <= .read,
+              tool.parameters.contains(where: { $0.name == key && $0.isRequired }),
+              (task.arguments[key] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              missingInputField(tool: tool, arguments: task.arguments, parameter: key) != nil
+        else { return nil }
+        return tool
+    }
+
     @discardableResult
     func respondInput(taskID: String, text: String, requestID: String? = nil) -> Bool {
         guard historyReadFailure == nil,
               var task = task(id: taskID), task.status == .waitingForInput,
-              isTypedOwner(task), task.backend == AgentBackendKind.local.rawValue,
               case .input(let request) = task.pendingInteraction,
-              request.taskID == taskID, requestID == nil || requestID == request.id else { return false }
-        task.arguments["input"] = text
+              requestID == request.id, let tool = inputTool(task: task, request: request),
+              let key = request.argumentName else { return false }
+        task.arguments[key] = text
+        guard ToolCallValidation.problem(tool: tool, arguments: task.arguments) == nil else { return false }
         task.status = .queued
         task.pendingInteraction = nil
         let admitted = updateRecord(task, kinds: [.inputProvided])
@@ -434,6 +544,22 @@ final class AgentTaskManager {
             update(id) { $0.status = .cancelled }
             announce("Cancelled.")
         } catch let error as AgentError {
+            if case .missingArgument(let parameter, let toolID) = error,
+               let request = missingInputRequest(taskID: id, parameter: parameter, toolID: toolID) {
+                let admitted = parkInput(request)
+                if admitted.primaryCommitted {
+                    if projectsActivity { AgentActivityStore.shared.update(
+                        taskID: id, kind: .waiting, title: "Waiting for your answer", detail: request.question
+                    ) }
+                } else {
+                    let failure = admitted.diagnostic ?? "Your question couldn’t be saved. Nothing was run."
+                    update(id) { item in item.status = .failed; item.failure = failure }
+                    if projectsActivity { AgentActivityStore.shared.finish(taskID: id, title: failure) }
+                    announce(failure)
+                }
+                running[id] = nil
+                return
+            }
             if case .acpHandshakeUnavailable(let request) = error {
                 update(id) { item in
                     item.status = .waitingForCompatibilityCLI
@@ -544,8 +670,17 @@ final class AgentTaskManager {
     func journalContext(taskID: String) -> TaskJournalContext? {
         guard let task = task(id: taskID) else { return nil }
         let origin: ActionOriginContext?
-        if case .permission(_, let savedOrigin, _) = task.pendingInteraction { origin = savedOrigin }
-        else { origin = nil }
+        let restoredPermission: PermissionRequest?
+        let restoredArguments: [String: String]?
+        if case .permission(let request, let savedOrigin, let review) = task.pendingInteraction {
+            origin = savedOrigin
+            restoredPermission = request
+            restoredArguments = review?.executionArguments(mergedOver: request.arguments) ?? request.arguments
+        } else {
+            origin = nil
+            restoredPermission = nil
+            restoredArguments = nil
+        }
         let capture: (@MainActor @Sendable (PermissionRequest, ActionOriginContext?, ToolCallReview?) -> Bool)?
         if isTypedOwner(task), task.backend == AgentBackendKind.local.rawValue, task.tool != nil {
             capture = { [weak self] request, origin, review in
@@ -561,7 +696,7 @@ final class AgentTaskManager {
             self?.persist(events: [event])
         }, capturePermission: capture, consumePermissionApproval: { [weak self] in
             self?.consumePermissionApproval(taskID: taskID) ?? false
-        }, restoredOrigin: origin)
+        }, restoredOrigin: origin, restoredPermission: restoredPermission, restoredArguments: restoredArguments)
     }
 
     @discardableResult
@@ -573,7 +708,7 @@ final class AgentTaskManager {
         let result = store.save(tasks, events: events)
         lastPersistenceResult = result
         if let diagnostic = result.diagnostic {
-            if SelfTest.isRunning { SelfTest.diagnostic("TASK_PERSISTENCE_FAILED: \(diagnostic)") }
+            if SelfTest.isRunning { SelfTest.diagnostic("TASK_PERSISTENCE_DIAGNOSTIC: \(diagnostic)") }
             else { Log.app.error("\(diagnostic, privacy: .public)") }
         }
         return result

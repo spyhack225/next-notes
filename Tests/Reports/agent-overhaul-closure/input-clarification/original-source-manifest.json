@@ -1,0 +1,26 @@
+{
+  "Agent/Tasks/AgentTaskManager.swift": {
+    "archive": "original-AgentTaskManager.swift.txt",
+    "sha256": "2926c3c3d4c178de8cac0e5b2a9aa3d76ddf36c03046c5f87546c84c29147ba2"
+  },
+  "Agent/Tasks/AgentTask.swift": {
+    "archive": "original-AgentTask.swift.txt",
+    "sha256": "1f1903a5db9e754d320f87d141c8703b2da4e861457db6964ecc4d2c5da004f1"
+  },
+  "Agent/Tasks/Durable/TaskRestorationSelfTest.swift": {
+    "archive": "original-TaskRestorationSelfTest.swift.txt",
+    "sha256": "4fa70653cd9238a39ac34e8730703075d5c57d2451b105e7a068169fdf5c36ba"
+  },
+  "Agent/Tasks/Durable/TaskStoreSelfTest.swift": {
+    "archive": "original-TaskStoreSelfTest.swift.txt",
+    "sha256": "1e001137c4aebe28fcfa8dee35608d796146104df2b2ba813b006fdde531c0b5"
+  },
+  "UI/Agent/AgentView.swift": {
+    "archive": "original-AgentView.swift.txt",
+    "sha256": "745337e0183d31cb4ab1cf27f3e4db34816d628687f691a3a6c79103c8504848"
+  },
+  "Agent/Tasks/Durable/TaskRestorationProductionSelfTest.swift": {
+    "archive": "original-TaskRestorationProductionSelfTest.swift.txt",
+    "sha256": "b1f560cabb0d1e9d1d478742002f229011d4c89756969daf39ea2f37faed9dee"
+  }
+}

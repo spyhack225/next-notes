@@ -184,11 +184,18 @@ struct TaskInputRequest: Identifiable, Codable, Equatable, Sendable {
     let taskID: String
     let question: String
     let createdAt: Date
+    /// An unanswered field is bound to its original tool/schema key. Older question-only
+    /// payloads decode with nil bindings and remain visible without authorizing a retry.
+    let toolID: String?
+    let argumentName: String?
 
-    init(id: String = UUID().uuidString, taskID: String, question: String, createdAt: Date = Date()) {
+    init(id: String = UUID().uuidString, taskID: String, question: String, createdAt: Date = Date(),
+         toolID: String? = nil, argumentName: String? = nil) {
         self.id = id
         self.taskID = taskID
         self.question = question
         self.createdAt = createdAt
+        self.toolID = toolID
+        self.argumentName = argumentName
     }
 }

@@ -84,6 +84,16 @@ enum AgentToolExecutor {
         }
 
         var authorizedArguments = arguments
+        let restoredContext = TaskEventJournal.current.flatMap {
+            permissionAlreadyGranted && $0.taskID == taskID && $0.restoredPermission != nil ? $0 : nil
+        }
+        if let restoredContext {
+            guard restoredContext.restoredPermission?.taskID == taskID,
+                  restoredContext.restoredPermission?.toolID == tool.id,
+                  restoredContext.restoredArguments == arguments else {
+                throw AgentError.permissionDenied("The action changed since you reviewed it. Please review it again.")
+            }
+        }
         authorizedArguments.removeValue(forKey: "_browserBackend")
         authorizedArguments.removeValue(forKey: "_authorizedPageURL")
         if tool.namespace == .browser {
@@ -118,6 +128,17 @@ enum AgentToolExecutor {
                     }
                     authorizedArguments["_authorizedPageURL"] = pageURL
                 }
+            }
+        }
+        if let restoredContext, tool.namespace == .browser {
+            // Browser discovery must confirm the approved binding. It cannot replace
+            // it with a newly focused page when a durable approval is consumed.
+            guard let approved = restoredContext.restoredArguments,
+                  approved["_browserBackend"] != nil,
+                  approved["_browserBackend"] == authorizedArguments["_browserBackend"],
+                  approved["_authorizedPageURL"] == authorizedArguments["_authorizedPageURL"],
+                  approved["targetId"] == authorizedArguments["targetId"] else {
+                throw AgentError.permissionDenied("The browser page changed. Please review this action again.")
             }
         }
         let scope = await PermissionScopeResolver.inferredAsync(tool: tool, arguments: authorizedArguments)
@@ -189,6 +210,7 @@ enum AgentToolExecutor {
                                     || tool.namespace == .workspace)
                 && tool.risk > .read,
             isStillValid: isStillValid,
+            origin: TaskEventJournal.current?.taskID == taskID ? TaskEventJournal.current?.restoredOrigin : nil,
             fire: { prepared in
                 // The last word on a fabricated or absent argument. Everything above may
                 // have been a question; this is the set that would actually run — the

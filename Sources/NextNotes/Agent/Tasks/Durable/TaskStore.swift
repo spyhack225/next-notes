@@ -271,6 +271,89 @@ final class TaskStore: @unchecked Sendable {
         }
     }
 
+    /// A retained preparation may bind a genuinely empty file created before schema
+    /// installation. Ordinary authority reads still reject schema zero. This probe
+    /// never creates, upgrades or marks a ledger, including when repair is unavailable.
+    func probePreparedImport(_ tasks: [AgentTask], identity: TaskStoreFileIdentity) throws -> TaskStoreAuthorityProbe {
+        try Self.validate(tasks)
+        guard lock.try() else { throw TaskStoreError.sqlite(SQLITE_BUSY) }
+        defer { lock.unlock() }
+        try boundary("preparedImportProbe", db: nil)
+        return try existing(identity: identity, writable: false) { db in
+            try Self.exec(db, "BEGIN")
+            do {
+                let current = try Self.validatePreparedImport(tasks, in: db)
+                let probe = TaskStoreAuthorityProbe(identity: identity, authority: nil, tasks: current)
+                try Self.exec(db, "COMMIT")
+                return probe
+            } catch { try? Self.exec(db, "ROLLBACK"); throw error }
+        }
+    }
+
+    private static func validateEmptyPreparation(in db: OpaquePointer) throws {
+        guard try integer(db, "PRAGMA user_version") == 0,
+              try integer(db, "PRAGMA application_id") == 0,
+              try integer(db, "SELECT count(*) FROM sqlite_master") == 0,
+              try stringColumn(db, "PRAGMA integrity_check") == ["ok"] else {
+            throw TaskStoreError.authorityConflict
+        }
+    }
+
+    private static func validatePreparedImport(_ tasks: [AgentTask], in db: OpaquePointer) throws -> [AgentTask] {
+        if try integer(db, "PRAGMA user_version") == 0 {
+            try validateEmptyPreparation(in: db)
+            return []
+        }
+        try TaskStoreSchema.validateKnown(on: db)
+        guard try authority(in: db) == nil,
+              try stringColumn(db, "PRAGMA integrity_check") == ["ok"],
+              try stringColumn(db, "PRAGMA foreign_key_check").isEmpty,
+              try integer(db, "SELECT count(*) FROM sqlite_master WHERE name NOT IN ('task','task_event','task_artifact','task_dependency','task_authority','sqlite_sequence','task_state','task_created','task_event_task','sqlite_autoindex_task_1','sqlite_autoindex_task_artifact_1','sqlite_autoindex_task_dependency_1')") == 0 else {
+            throw TaskStoreError.authorityConflict
+        }
+        let current = try readRows(from: db)
+        for task in current { _ = try TaskEventJournal.load(from: db, taskID: task.id) }
+        let existingIDs = Set(current.map(\.id))
+        guard current == tasks.filter({ existingIDs.contains($0.id) }) else {
+            throw TaskStoreError.authorityConflict
+        }
+        return current
+    }
+
+    /// Explicit preparation repair, not automatic startup reconciliation. The bound
+    /// file and every relevant predicate are checked again while holding its write
+    /// transaction. Existing task children and receipts are never replaced or deleted.
+    func repairPreparedImport(_ tasks: [AgentTask], identity: TaskStoreFileIdentity,
+                              authority: TaskStoreAuthority, checkWitness: () throws -> Void) throws {
+        try Self.validate(tasks)
+        guard authority.generation == 1 else { throw TaskStoreError.authorityConflict }
+        guard lock.try() else { throw TaskStoreError.sqlite(SQLITE_BUSY) }
+        defer { lock.unlock() }
+        try existing(identity: identity, writable: true) { db in
+            _ = try Self.validatePreparedImport(tasks, in: db)
+            try Self.exec(db, "PRAGMA synchronous=NORMAL")
+            try Self.transaction(db) {
+                try Self.validateOpenedFile(db)
+                guard try fileIdentity() == identity else { throw TaskStoreError.authorityConflict }
+                try checkWitness()
+                try boundary("preparedRepairLocked", db: db)
+                _ = try Self.validatePreparedImport(tasks, in: db)
+                if try Self.integer(db, "PRAGMA user_version") == 0 {
+                    try Self.exec(db, TaskStoreSchema.sql)
+                    try Self.exec(db, TaskStoreSchema.authoritySQL)
+                    try Self.exec(db, "PRAGMA user_version=\(TaskStoreSchema.version)")
+                } else { try TaskStoreSchema.installAuthority(on: db) }
+                try Self.writeRows(tasks, to: db, preservingChildren: true)
+                try Self.run(db, "INSERT INTO task_authority(singleton,database_id,generation) VALUES(1,?,?)",
+                    [.text(authority.databaseID.uuidString), .integer(authority.generation)])
+                try boundary("beforeAuthorityCommit", db: db)
+                try checkWitness()
+                try Self.validateOpenedFile(db)
+                guard try fileIdentity() == identity else { throw TaskStoreError.authorityConflict }
+            }
+        }
+    }
+
     func reconcile(_ tasks: [AgentTask], probe: TaskStoreAuthorityProbe,
                    authority: TaskStoreAuthority, freshlyCreated: Bool = false) throws {
         try Self.validate(tasks)
@@ -418,8 +501,16 @@ final class TaskStore: @unchecked Sendable {
     }
 
     private static func readRows(from db: OpaquePointer) throws -> [AgentTask] {
-            let pendingColumn = try TaskStore.integer(db, "PRAGMA user_version") >= 3
-                ? "pending_interaction" : "NULL"
+            let version = try Self.integer(db, "PRAGMA user_version")
+            // A diagnostic v1 snapshot may already carry the recognized optional
+            // column without an authority marker. Read it when present; a genuine
+            // old schema still projects nil. Reading never upgrades or marks it.
+            let pendingColumn: String
+            if version >= 3 { pendingColumn = "pending_interaction" }
+            else {
+                pendingColumn = try Self.stringColumn(db, "PRAGMA table_info(task)", column: 1)
+                    .contains("pending_interaction") ? "pending_interaction" : "NULL"
+            }
             let statement = try Self.prepare(db, "SELECT \(Self.columns),\(pendingColumn) FROM task ORDER BY sort_order,id")
             defer { sqlite3_finalize(statement) }
             var tasks: [AgentTask] = []

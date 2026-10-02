@@ -2,6 +2,8 @@
 """Compile copied actual task history producers; all stores are injected temp fixtures."""
 import ast
 import pathlib
+import hashlib
+import json
 import subprocess
 import sys
 import tempfile
@@ -14,10 +16,6 @@ prefix = ast.Module(body=module.body[:next(i for i,n in enumerate(module.body)
 context = {'__file__': str(ROOT/'Tests/Reports/agent-overhaul-closure/restoration/run-restoration-driver.py')}
 exec(compile(prefix,'restoration-collaborators','exec'),context)
 collaborators = context['collaborators']
-collaborators = collaborators.replace('    func cancelPending() {', '''    func hasRestoredRequest(taskID: String) -> Bool { false }
-    func cancelPending(taskID: String) {}
-    @discardableResult func respond(id: String, approved: Bool, duration: PermissionDuration) -> Bool { false }
-    func cancelPending() {''')
 collaborators += '''
 @main struct HistoryFixture {
  @MainActor static func main() {
@@ -38,9 +36,20 @@ with tempfile.TemporaryDirectory(prefix='NextNotesHistoryRepairCopied-') as temp
  stub=folder/'Collaborators.swift'; stub.write_text(collaborators)
  copies=[]
  for rel in paths:
-  target=folder/pathlib.Path(rel).name; target.write_text((SOURCE/rel).read_text()); copies.append(str(target))
+  target=folder/pathlib.Path(rel).name
+  original_source=ROOT/'Tests/Reports/agent-overhaul-closure/history-repair'/('original-'+target.name+'.txt')
+  if '--v1-original' in sys.argv and target.name == 'TaskStore.swift':
+   original_source=ROOT/'Tests/Reports/agent-overhaul-closure/history-repair/original-v1-TaskStore.swift.txt'
+  if '--cache-original' in sys.argv and target.name == 'AgentTaskManager.swift':
+   original_source=ROOT/'Tests/Reports/agent-overhaul-closure/history-repair/original-cache-Manager.swift.txt'
+  text=original_source.read_text() if ('--original' in sys.argv or '--v1-original' in sys.argv and target.name == 'TaskStore.swift' or '--cache-original' in sys.argv and target.name == 'AgentTaskManager.swift') and original_source.exists() else (SOURCE/rel).read_text()
+  target.write_text(text); copies.append(str(target))
+  print('HISTORY_REPAIR_SOURCE: '+rel+' sha256='+hashlib.sha256(target.read_bytes()).hexdigest(),flush=True)
+ inputs={pathlib.Path(p).name: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in [str(stub),*copies]}
+ manifest_name='cache-original-input-manifest.json' if '--cache-original' in sys.argv else 'v1-original-input-manifest.json' if '--v1-original' in sys.argv else 'original-input-manifest.json' if '--original' in sys.argv else 'final-input-manifest.json'
+ (ROOT/'Tests/Reports/agent-overhaul-closure/history-repair'/manifest_name).write_text(json.dumps(inputs,indent=2)+'\n')
  binary=folder/'driver'
- definitions=['-D','TASK_HISTORY_REPAIR_ORIGINAL'] if '--original' in sys.argv else []
+ definitions=['-D','TASK_REPAIR_CACHE_ORIGINAL'] if '--cache-original' in sys.argv else ['-D','TASK_PENDING_V1_ORIGINAL'] if '--v1-original' in sys.argv else ['-D','TASK_HISTORY_REPAIR_ORIGINAL'] if '--original' in sys.argv else []
  command=['xcrun','swiftc','-swift-version','6','-parse-as-library',*definitions,
    '-module-cache-path',str(folder/'modules'),str(stub),*copies,'-o',str(binary)]
  compiled=subprocess.run(command,capture_output=True,text=True)

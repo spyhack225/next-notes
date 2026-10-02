@@ -1,0 +1,41 @@
+INPUT_SOURCE: Support/SelfTestStoreGuard.swift sha256=355c6e6fcf0a5e7cae02735532b5ceaf5a845c700146752295ac43257701db87
+INPUT_SOURCE: Agent/Tasks/AgentTask.swift sha256=e4f84014066d7b6179e0e4bc497293b8a7b64d0bd92c232b56c9ad84e05cc6b2
+INPUT_SOURCE: Agent/Tasks/AgentTaskStore.swift sha256=4a6bb75f8e263721e74ec15f126f872b553a62d8b5856443ab6c40b9167fe245
+INPUT_SOURCE: Agent/Tasks/Durable/TaskDurability.swift sha256=a73195a3ea016122cbe58abfd976578f3b6c495b822d5b2377debd0e4d48e30b
+INPUT_SOURCE: Agent/Tasks/Durable/TaskStoreSchema.swift sha256=6447b03e5c4875701d3b182ce8705f618fc2cdc701d8239cddfb5e580202e247
+INPUT_SOURCE: Agent/Tasks/Durable/TaskEventJournal.swift sha256=4f4199112443423a0424ef916b96d01f421765102938cde5b8dc29977ffddbd3
+INPUT_SOURCE: Agent/Tasks/Durable/TaskRecoveryPlanner.swift sha256=6f29af04e8b47586d5d38667d6de990507906dc5bb570ff78537a101e65b9c53
+INPUT_SOURCE: Agent/Tasks/Durable/TaskStore.swift sha256=f06b561e3b63d05902fb97cd55e53cf2c8fc0fd8186980e2acb02f0298f77b23
+INPUT_SOURCE: Agent/Tasks/AgentTaskManager.swift sha256=2926c3c3d4c178de8cac0e5b2a9aa3d76ddf36c03046c5f87546c84c29147ba2
+INPUT_SOURCE: Agent/Tasks/AgentArtifactLedger.swift sha256=b9b8143508453032fee75f632172ac669c6ce5281723243a410c5d4df0ede15c
+INPUT_SOURCE: Agent/Backend/AgentBackend.swift sha256=38929c53dd3b73b69e2ab06f331936c56ff781c28183892224786b135e75258f
+INPUT_SOURCE: Agent/Backend/LocalAgentBackend.swift sha256=03ab569742752c8caaaf4fbe52068c8acae9f4d8983f7891868c099ce4295103
+INPUT_SOURCE: Agent/WorkspaceTools.swift sha256=54f4f31df313cf1d1efa56810953302bae225cddb299a68c6d63de364094d6c0
+INPUT_SOURCE: Agent/Tools/AgentTool.swift sha256=3bad1fecbfb17cf45737eb0c51f6fe8ebf4589b79084e5a102f94849b3eae51f
+INPUT_SOURCE: Agent/Tools/AgentToolRegistry.swift sha256=b6dd38e9a0c9585a0c83c2ca87d71c180f5ff54f67a6ab1a3f354442071f643e
+INPUT_SOURCE: Agent/Tools/FilesystemTools.swift sha256=82554749242e30faba996a38bdf780cbd614d4ac836d0206d3defda3335278db
+INPUT_SOURCE: Shell/FilesystemExecutor.swift sha256=ebc37c2812aae9ec0a8480c46bd1adf776a9e837dfdeb66df826f0555db56564
+INPUT_SOURCE: Agent/Permissions/ToolCallReview.swift sha256=20ea9939b3c3c6d4942e5cab17446b34636840386c41073892824d142b416689
+INPUT_SOURCE: Agent/Permissions/ToolCallReviewBuilder.swift sha256=55cbd25db7bde6ad19415ecd9e9f3b0cc5dbe36022513bdfe2a177cb84842a2a
+INPUT_SOURCE: Agent/Permissions/ToolCallInspector.swift sha256=d60bf7e73ffa35a0046d7d5dbecb645b39c216932e975ccd86feb932a52431eb
+INPUT_SOURCE: Agent/Permissions/ToolCallContext.swift sha256=ab9b292a2cc095bdb0ad22ddccaee1d3c5c86ac75f69942762a5fb22b21a09ce
+INPUT_SOURCE: Agent/Permissions/ToolCallValidation.swift sha256=900dbfe254e8012bb291f821ec20cd948897648a9acf31f41cfd239bdbda27ec
+INPUT_SOURCE: Agent/Permissions/PermissionRequest.swift sha256=9da20d0367fa774ad23e57170ec979d75a77be9882b36b7942757f6558476408
+INPUT_SOURCE: Agent/Permissions/PermissionPolicy.swift sha256=58e78e1392ad6ccc0f621a099269bb31f3e7a6d3a7d230c36c438aa4ea5c1c80
+INPUT_SOURCE: Agent/Permissions/PermissionBroker.swift sha256=9c24e94b2f3f81a1e7a0c047950cf1df8ca7ea2f66dc103a129ad5b30b8a08e3
+INPUT_SOURCE: Agent/Permissions/PermissionScope.swift sha256=e1021fdc2328b85819d67c90d4e2f601cba01859ca954ffacc0b05dd88d33d44
+INPUT_SOURCE: Agent/Permissions/RemoteAccessPolicy.swift sha256=9bcd6ab2d3dc3ccb738b019f3f75e2f212e9380b78e54ba8acf5aac3291e55de
+/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesTaskInputCopied-tjohq351/LocalAgentBackend.swift:58:25: warning: result of call to 'run(resultType:body:)' is unused [#NoUsage]
+56 | 
+57 |     func respondInput(taskID: String, text: String) async {
+58 |         await MainActor.run { AgentTaskManager.shared.respondInput(taskID: taskID, text: text) }
+   |                         `- warning: result of call to 'run(resultType:body:)' is unused [#NoUsage]
+59 |     }
+60 | }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+compile_exit=0
+TASK_INPUT_CLARIFICATION_WRONG: actual original missing-path producer ended failed rather than waiting for its answer
+TASK_INPUT_CLARIFICATION_WRONG: original producer retained no bound review question
+TASK_INPUT_CLARIFICATION_FAILED: 2 assertions
+run_exit=1

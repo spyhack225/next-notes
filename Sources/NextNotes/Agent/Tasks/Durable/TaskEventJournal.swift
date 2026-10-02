@@ -34,6 +34,8 @@ struct TaskJournalContext: Sendable {
     var capturePermission: (@MainActor @Sendable (PermissionRequest, ActionOriginContext?, ToolCallReview?) -> Bool)? = nil
     var consumePermissionApproval: (@MainActor @Sendable () -> Bool)? = nil
     var restoredOrigin: ActionOriginContext? = nil
+    var restoredPermission: PermissionRequest? = nil
+    var restoredArguments: [String: String]? = nil
 }
 
 enum TaskEventJournal {

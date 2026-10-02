@@ -1,0 +1,12 @@
+{
+  "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift": "4a6bb75f8e263721e74ec15f126f872b553a62d8b5856443ab6c40b9167fe245",
+  "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "b3f48fd6feba71a673bd464453f3df8638476c7a5c90fa7bc4ce9546c9e687dd",
+  "Sources/NextNotes/Agent/Tasks/Durable/TaskStore.swift": "f06b561e3b63d05902fb97cd55e53cf2c8fc0fd8186980e2acb02f0298f77b23",
+  "Sources/NextNotes/Agent/Tasks/Durable/TaskHistoryRepairSelfTest.swift": "4cb5a8e7b26820d16b0ba08794a3e75d370ad2be59d6d3e28674eedf499e854c",
+  "Tests/Reports/agent-overhaul-closure/history-repair/original-v1-TaskStore.swift.txt": "1fd599d7df7af3ef84035b41a7c15edd8e63c5f73f337bd076b20406fe014931",
+  "Tests/Reports/agent-overhaul-closure/history-repair/original-cache-Manager.swift.txt": "e42569bd3b4aad0d78a27ac0ce92f9d7893d5bd3c9e779c55de878d62abb3a1f",
+  "Tests/Reports/agent-overhaul-closure/history-repair/original-AgentTaskManager.swift.txt": "5c0a61b8364f3fba9577993902875f3240cdea6c2fb42d47c7ff21356dcdd003",
+  "Tests/Reports/agent-overhaul-closure/history-repair/original-AgentTaskStore.swift.txt": "a90f9d1eb0bc5dddbdf1d6342c4ad3410b564a403a51b6edd77d3026a606d6e5",
+  "Tests/Reports/agent-overhaul-closure/history-repair/original-TaskStore.swift.txt": "b90e3fa226be845c98f971b978a7565a21ae0dff3ae8621462832f3fe4cea925",
+  "Tests/Reports/agent-overhaul-closure/history-repair/run-history-repair-driver.py": "fada07a63b51bf060d18d4dc52244332d4f513b847c7f87de9b13c931a0f3193"
+}

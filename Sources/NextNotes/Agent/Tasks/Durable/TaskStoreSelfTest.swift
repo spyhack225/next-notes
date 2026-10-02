@@ -469,16 +469,21 @@ enum TaskStoreSelfTest {
             "SELECT kind FROM task_event WHERE task_id='journal-real-manager' ORDER BY seq") }
         check(afterFailureKinds == kinds, "failed state transaction partially changed the journal")
         try mirror.withConnection { try TaskStore.exec($0, "DROP TRIGGER fixture_journal_failure") }
-        let input = AgentTask(id: "journal-input", objective: "Fixture input", status: .running)
+        let input = AgentTask(id: "journal-input", objective: "Fixture input", status: .running, tool: "filesystem.read")
         manager.beginScheduledRun(input)
-        manager.finishScheduledRun(id: input.id, status: .waitingForInput, result: nil, failure: nil)
-        manager.respondInput(taskID: input.id, text: "Private entered text")
+        check(manager.requestInput(taskID: input.id, parameter: "path", toolID: "filesystem.read"),
+            "actual input request producer could not park its identified question")
+        manager.respondInput(taskID: input.id, text: "Private entered text",
+            requestID: manager.pendingInputs.first(where: { $0.taskID == input.id })?.id)
         check(try mirror.journal(taskID: input.id).map(\.draft.kind) == [.jobCreated, .workerStarted, .inputRequested, .inputProvided],
             "actual input-wait/input-response producer journal changed")
-        check(try json.load().first?.arguments["input"] == "Private entered text", "existing input execution payload changed")
+        check(try json.load().first?.arguments["path"] == "Private entered text"
+            && json.load().first?.arguments["input"] == nil, "input answer was not bound to its original field")
         let permission = AgentTask(id: "journal-permission", objective: "Fixture permission", status: .running, tool: "filesystem.read")
         manager.beginScheduledRun(permission)
-        manager.finishScheduledRun(id: permission.id, status: .waitingForPermission, result: nil, failure: nil)
+        let request = PermissionRequest(toolID: "filesystem.read", title: "Read fixture",
+            detail: "Fixture permission", risk: .read, arguments: [:], taskID: permission.id)
+        check(manager.parkPermission(request), "actual permission request producer could not park its request")
         manager.respondPermission(taskID: permission.id, approved: false)
         check(try mirror.journal(taskID: permission.id).map(\.draft.kind) ==
             [.jobCreated, .workerStarted, .permissionRequested, .permissionDenied, .jobCancelled],

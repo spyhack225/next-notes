@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Copied actual manager/store regressions. Card collaborator is not installed UI proof."""
 import ast
+import hashlib
 import pathlib
 import subprocess
 import sys
@@ -65,6 +66,18 @@ struct ActionOriginContext: Codable, Equatable, Sendable {
         return true
     }
     func cancelPending() { pending = nil; pendingReview = nil; queued = [] }
+    func resetForRestartTesting() { cancelPending() }
+    func cancelPending(taskID: String) {
+        if pending?.taskID == taskID { pending = nil; pendingReview = nil }
+        queued.removeAll { $0.taskID == taskID }
+    }
+    func hasRestoredRequest(taskID: String) -> Bool {
+        pending?.taskID == taskID || queued.contains { $0.taskID == taskID }
+    }
+    @discardableResult
+    func respond(id: String, approved: Bool, duration: PermissionDuration = .once) -> Bool {
+        fatalError("copied-source fixture must not claim actual gate decision proof")
+    }
 }
 '''
 original = '--original' in sys.argv
@@ -124,17 +137,16 @@ with tempfile.TemporaryDirectory(prefix='nextnotes-restoration-copied-') as temp
     sources = []
     for relative in paths:
         path = SOURCE/relative
-        if original and path.name in {'TaskStore.swift','TaskStoreSchema.swift','TaskEventJournal.swift'}:
-            path = pathlib.Path('/tmp/nextnotes-restoration-original')/path.name
-        elif original and path.name == 'AgentTaskManager.swift':
-            target = folder/'OriginalAgentTaskManager.swift'
-            target.write_text(subprocess.check_output(['git','show','5de382a:Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift'],cwd=ROOT,text=True))
-            path = target
         target = folder/path.name
-        if path != target:
+        if original and path.name in {'AgentTaskStore.swift','TaskStore.swift','TaskStoreSchema.swift','TaskEventJournal.swift','AgentTaskManager.swift'}:
+            target.write_text(subprocess.check_output(['git', 'show', f'5de382a:Sources/NextNotes/{relative}'],
+                cwd=ROOT, text=True))
+        else:
             target.write_text(path.read_text())
+        print(f"TASK_RESTORATION_SOURCE: {relative} sha256={hashlib.sha256(target.read_bytes()).hexdigest()}", flush=True)
         sources.append(str(target))
     binary = folder/'restoration-driver'
-    subprocess.run(['xcrun','swiftc','-swift-version','6','-parse-as-library', str(folder/'Collaborators.swift'),
+    subprocess.run(['xcrun','swiftc','-swift-version','6','-module-cache-path',str(folder/'module-cache'),
+                    '-parse-as-library', str(folder/'Collaborators.swift'),
                     *sources,'-o',str(binary)],check=True,cwd=ROOT)
     sys.exit(subprocess.run([str(binary)],cwd=ROOT).returncode)

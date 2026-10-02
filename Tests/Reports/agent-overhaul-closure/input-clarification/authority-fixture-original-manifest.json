@@ -1,0 +1,6 @@
+{
+  "source": "Sources/NextNotes/Agent/Tasks/Durable/TaskAuthoritySelfTest.swift",
+  "archive": "pre-bound-callback-TaskAuthoritySelfTest.swift.txt",
+  "sha256": "415605c8e3b174d04f6a2746464f6ab57b8eb4d479c4982cd892ff3c4012c37a",
+  "failure": "Installed app8 actual callback fixture refusal occurred before SQL because its question was unbound and callback had no identity; original expectation of sqlFailed was invalid."
+}

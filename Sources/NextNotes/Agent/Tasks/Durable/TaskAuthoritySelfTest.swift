@@ -111,6 +111,50 @@ enum TaskAuthoritySelfTest {
             try require(try f.sql.withConnection { try TaskStore.integer($0, "PRAGMA user_version") } == 3, "schema not upgraded transactionally")
             try require(try f.sql.integrityProblems().isEmpty, "import integrity failed")
         }
+        test("schema2-read-is-not-upgrade") { f in
+            let original = row()
+            try f.marked([original])
+            try f.sql.withConnection { try TaskStore.exec($0,
+                "ALTER TABLE task DROP COLUMN pending_interaction; PRAGMA user_version=2") }
+            let children = try rawChildren(f.sql)
+            let authority = try f.sql.probeAuthority()?.authority
+            let witness = try Data(contentsOf: f.file)
+            try require(try f.store.load() == [original], "real schema2 reader lost legacy task fields")
+            try require(try f.sql.withConnection { try TaskStore.integer($0, "PRAGMA user_version") } == 2
+                && !f.sql.withConnection { try TaskStore.stringColumn($0, "PRAGMA table_info(task)", column: 1) }.contains("pending_interaction"),
+                "read-only schema2 probe installed the pending column")
+            try require(try f.sql.probeAuthority()?.authority == authority && rawChildren(f.sql) == children
+                && Data(contentsOf: f.file) == witness, "schema2 read changed authority, children or witness")
+        }
+        test("schema2-pending-upgrade-rollback") { f in
+            var original = row(); original.scheduleID = nil; original.backend = "local"
+            try f.marked([original])
+            try f.sql.withConnection { try TaskStore.exec($0,
+                "ALTER TABLE task DROP COLUMN pending_interaction; PRAGMA user_version=2") }
+            let children = try rawChildren(f.sql)
+            let authority = try f.sql.probeAuthority()?.authority
+            let witness = try Data(contentsOf: f.file)
+            var pending = original
+            pending.status = .waitingForPermission
+            pending.pendingInteraction = .permission(request: PermissionRequest(id: "schema2-original-request",
+                toolID: pending.tool!, title: "Approve fixture", detail: "Original retained permission",
+                risk: .read, arguments: pending.arguments, taskID: pending.id, createdAt: pending.createdAt), origin: nil)
+            try f.sql.withConnection { try TaskStore.exec($0,
+                "CREATE TRIGGER reject_pending_upgrade BEFORE UPDATE ON task BEGIN SELECT RAISE(ABORT,'fixture'); END") }
+            try require(f.store.save([pending]) == .sqlFailed, "schema2 failure fixture unexpectedly committed")
+            try require(try f.sql.withConnection { try TaskStore.integer($0, "PRAGMA user_version") } == 2
+                && !f.sql.withConnection { try TaskStore.stringColumn($0, "PRAGMA table_info(task)", column: 1) }.contains("pending_interaction"),
+                "failed snapshot left a schema3 version or pending column behind")
+            try require(try f.sql.load() == [original] && f.sql.probeAuthority()?.authority == authority
+                && rawChildren(f.sql) == children && Data(contentsOf: f.file) == witness,
+                "failed pending upgrade changed canonical history, children, identity or witness")
+            try f.sql.withConnection { try TaskStore.exec($0, "DROP TRIGGER reject_pending_upgrade") }
+            try require(f.store.save([pending]).primaryCommitted, "schema2 pending snapshot did not commit")
+            try require(try f.sql.withConnection { try TaskStore.integer($0, "PRAGMA user_version") } == TaskStoreSchema.version
+                && f.sql.load() == [pending], "committed pending upgrade lost the exact original request")
+            try require(try AgentTaskStore(fileURL: f.file).load() == [pending],
+                "fresh primary reader did not consume the upgraded pending payload")
+        }
         test("artifact-suffix-preservation") { f in
             var old = row(); old.artifacts = ["fixture://same"]
             var current = row(); current.artifacts += ["fixture://new"]
@@ -407,27 +451,121 @@ enum TaskAuthoritySelfTest {
         for status in [AgentTaskStatus.waitingForInput, .waitingForPermission] {
             test("callback-rejected-\(status.rawValue)") { f in
                 var pending = row(); pending.scheduleID = nil; pending.status = status; pending.backend = "local"
+                let answerFile = f.root.appendingPathComponent("callback-answer.txt")
                 if status == .waitingForInput {
+                    try "Original bound callback answer".write(to: answerFile, atomically: true, encoding: .utf8)
+                    pending.tool = "filesystem.read"
+                    pending.arguments = [:]
                     pending.pendingInteraction = .input(TaskInputRequest(id: "original-input", taskID: pending.id,
-                        question: "Which fixture value should I use?", createdAt: pending.createdAt))
+                        question: "Which file?", createdAt: pending.createdAt,
+                        toolID: "filesystem.read", argumentName: "path"))
                 } else {
                     pending.pendingInteraction = .permission(request: PermissionRequest(id: "original-permission",
                         toolID: pending.tool!, title: "Approve original fixture", detail: "Original fixture payload",
                         risk: .read, arguments: pending.arguments, taskID: pending.id, createdAt: pending.createdAt), origin: nil)
                 }
                 try f.marked([pending]); let manager = AgentTaskManager(store: f.store)
+                if status == .waitingForInput {
+                    try require(manager.canRespondInput(taskID: pending.id, requestID: "original-input")
+                        && manager.inputAnswerProblem(taskID: pending.id, requestID: "original-input", text: answerFile.path) == nil,
+                        "bound input callback was rejected before primary admission")
+                }
                 try f.sql.withConnection { try TaskStore.exec($0, "CREATE TRIGGER reject_callback BEFORE UPDATE ON task BEGIN SELECT RAISE(ABORT,'fixture'); END") }
-                if status == .waitingForInput { manager.respondInput(taskID: pending.id, text: "Fixture input") }
+                if status == .waitingForInput {
+                    try require(!manager.respondInput(taskID: pending.id, text: answerFile.path, requestID: "original-input"),
+                        "rejected primary accepted the bound input callback")
+                }
                 else { _ = manager.respondRestoredPermission(taskID: pending.id, requestID: "original-permission",
                     approved: true, arguments: pending.arguments) }
                 try require(manager.task(id: pending.id) == pending && manager.lastPersistenceResult == .sqlFailed
-                    && !manager.consumePermissionApproval(taskID: pending.id), "failed callback changed pending state or retained token")
+                    && !manager.consumePermissionApproval(taskID: pending.id) && manager.backendStartsForTesting == 0,
+                    "failed callback changed pending state, retained token or dispatched")
                 try require(try f.sql.load() == [pending], "failed callback changed durable pending row")
             }
+        }
+        test("legacy-unbound-input-refused-before-sql") { f in
+            var pending = row(); pending.scheduleID = nil; pending.status = .waitingForInput; pending.backend = "local"
+            let original = TaskInputRequest(id: "original-input", taskID: pending.id,
+                question: "Which fixture value should I use?", createdAt: pending.createdAt)
+            pending.pendingInteraction = .input(original)
+            try f.marked([pending]); let manager = AgentTaskManager(store: f.store)
+            let beforeResult = manager.lastPersistenceResult
+            try f.sql.withConnection { try TaskStore.exec($0,
+                "CREATE TRIGGER reject_legacy_callback BEFORE UPDATE ON task BEGIN SELECT RAISE(ABORT,'fixture'); END") }
+            try require(!manager.canRespondInput(taskID: pending.id, requestID: original.id)
+                && !manager.respondInput(taskID: pending.id, text: "Fixture input")
+                && !manager.respondInput(taskID: pending.id, text: "Fixture input", requestID: original.id),
+                "legacy question guessed a tool argument or dispatched")
+            try require(try manager.tasks == [pending] && f.sql.load() == [pending]
+                && manager.pendingInputs == [original] && manager.lastPersistenceResult == beforeResult
+                && manager.backendStartsForTesting == 0 && !manager.consumePermissionApproval(taskID: pending.id),
+                "legacy refusal changed the question or attempted SQL admission")
         }
         failures += SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).map { "owner changed: \($0)" }
         for failure in failures { SelfTest.diagnostic("TASK_AUTHORITY_WRONG: \(failure)") }
         return failures.isEmpty ? "TASK_AUTHORITY_OK: \(count) cases" : "TASK_AUTHORITY_FAILED: \(failures.count) assertions"
+    }
+
+
+    /// Real compatibility request validation and primary admission. The harness
+    /// throws at the existing backend-entry seam before any CLI can execute.
+    static func runCompatibilityAdmission() async -> String {
+        guard SelfTest.isRunning else { return "TASK_COMPATIBILITY_ADMISSION_FAILED: harness required" }
+        let before = SelfTestStoreGuard.take()
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("NextNotesCompatibilityAdmission-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        var failures: [String] = []
+        var count = 0
+        func check(_ value: Bool, _ label: String) {
+            count += 1
+            if !value { failures.append(label) }
+        }
+        do {
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+            let fixture = try Fixture(root, "retained-card")
+            defer { fixture.sql.close() }
+            var parked = AgentTask(id: "compatibility-retained", objective: "Review this fixture without launching it",
+                source: "text", createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+                contextReferences: ["project://" + fixture.root.path], status: .waitingForCompatibilityCLI,
+                backend: "acp", acpCLI: "/usr/bin/true")
+            parked.compatibilityCLI = "/usr/bin/true"
+            parked.compatibilityDirectory = fixture.root.path
+            parked.compatibilityCommand = ACPCompatibilityCLIBackend.commandLine(cli: "/usr/bin/true", objective: parked.objective)
+            check(ACPCompatibilityCLIBackend.request(for: parked) != nil, "actual frozen request was not valid")
+            try fixture.marked([parked])
+            let manager = AgentTaskManager(store: fixture.store)
+            manager.backendEntryForTesting = { throw FixtureError.interrupted }
+            let witness = try Data(contentsOf: fixture.file)
+            try fixture.sql.withConnection { try TaskStore.exec($0,
+                "CREATE TRIGGER reject_compatibility_admission BEFORE UPDATE ON task BEGIN SELECT RAISE(ABORT,'fixture'); END") }
+            manager.approveCompatibilityCLI(taskID: parked.id)
+            check(manager.task(id: parked.id) == parked && manager.lastPersistenceResult == .sqlFailed,
+                "rejected commit removed the original compatibility card")
+            check(!manager.hasCompatibilityApprovalForTesting(taskID: parked.id) && manager.backendStartsForTesting == 0,
+                "rejected commit retained a token or dispatched a worker")
+            check(try fixture.sql.load() == [parked] && Data(contentsOf: fixture.file) == witness,
+                "rejected commit changed retained history")
+            let fresh = AgentTaskManager(store: AgentTaskStore(fileURL: fixture.file, mirror: fixture.sql))
+            check(fresh.task(id: parked.id) == parked && ACPCompatibilityCLIBackend.request(for: parked) != nil &&
+                !fresh.hasCompatibilityApprovalForTesting(taskID: parked.id), "fresh restart lost the card or reused approval")
+            try fixture.sql.withConnection { try TaskStore.exec($0, "DROP TRIGGER reject_compatibility_admission") }
+            fresh.backendEntryForTesting = { throw FixtureError.interrupted }
+            fresh.approveCompatibilityCLI(taskID: parked.id)
+            let committedStatus = try fixture.sql.load().first?.status
+            check(fresh.task(id: parked.id)?.status == .queued && fresh.hasCompatibilityApprovalForTesting(taskID: parked.id)
+                && committedStatus == .queued, "accepted approval was not committed before dispatch")
+            fresh.approveCompatibilityCLI(taskID: parked.id)
+            let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+            while fresh.backendStartsForTesting == 0 && ContinuousClock.now < deadline { await Task.yield() }
+            check(fresh.backendStartsForTesting == 1, "accepted or duplicate approval did not dispatch exactly once")
+            while fresh.task(id: parked.id)?.status == .running && ContinuousClock.now < deadline { await Task.yield() }
+            check(fresh.task(id: parked.id)?.status == .failed && fresh.backendStartsForTesting == 1,
+                "backend-entry trap did not stop before the CLI")
+        } catch { failures.append("compatibility fixture failed: \(error)") }
+        failures += SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).map { "owner changed: \($0)" }
+        for failure in failures { SelfTest.diagnostic("TASK_COMPATIBILITY_ADMISSION_WRONG: \(failure)") }
+        return failures.isEmpty ? "TASK_COMPATIBILITY_ADMISSION_OK: \(count) cases"
+            : "TASK_COMPATIBILITY_ADMISSION_FAILED: \(failures.count) assertions"
     }
 
 #if TASK_DURABILITY_STANDALONE
@@ -473,6 +611,10 @@ enum TaskAuthoritySelfTest {
         let pure = run()
         guard pure.hasPrefix("TASK_AUTHORITY_OK:") else { return pure }
         let baseCount = Int(pure.split(separator: " ")[1]) ?? 0
+        let compatibility = await runCompatibilityAdmission()
+        guard compatibility.hasPrefix("TASK_COMPATIBILITY_ADMISSION_OK:") else {
+            return "TASK_AUTHORITY_FAILED: compatibility admission fixture"
+        }
         let before = SelfTestStoreGuard.take()
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("NextNotesTaskAuthorityAsync-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root) }
@@ -555,8 +697,9 @@ enum TaskAuthoritySelfTest {
             try compatibility.sql.withConnection { try TaskStore.exec($0,
                 "CREATE TRIGGER reject_compat BEFORE UPDATE ON task BEGIN SELECT RAISE(ABORT,'fixture'); END") }
             cli.approveCompatibilityCLI(taskID: parked.id)
-            try require(cli.task(id: parked.id)?.status == .failed && !cli.hasCompatibilityApprovalForTesting(taskID: parked.id),
-                "failed compatibility transition kept approval/queued state")
+            try require(cli.task(id: parked.id) == parked && !cli.hasCompatibilityApprovalForTesting(taskID: parked.id),
+                "failed compatibility transition removed the retained card or kept approval")
+            try require(try compatibility.sql.load() == [parked], "failed compatibility transition changed primary card")
             await Task.yield()
             try require(cli.backendStartsForTesting == 0, "failed compatibility approval dispatched CLI")
 
@@ -608,7 +751,7 @@ enum TaskAuthoritySelfTest {
         } catch { failures.append("actual submission fixture: \(error)") }
         failures += SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).map { "owner changed: \($0)" }
         for failure in failures { SelfTest.diagnostic("TASK_AUTHORITY_WRONG: \(failure)") }
-        return failures.isEmpty ? "TASK_AUTHORITY_OK: \(baseCount + count) cases" : "TASK_AUTHORITY_FAILED: \(failures.count) assertions"
+        return failures.isEmpty ? "TASK_AUTHORITY_OK: \(baseCount + count + 1) cases" : "TASK_AUTHORITY_FAILED: \(failures.count) assertions"
     }
 #endif
 }
