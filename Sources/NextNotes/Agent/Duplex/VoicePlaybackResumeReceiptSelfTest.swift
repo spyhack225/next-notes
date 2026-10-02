@@ -160,6 +160,8 @@ enum VoicePlaybackResumeReceiptSelfTest {
             check(shadow.state.phase == .closed && shadow.state.output == nil && !speech.isSpeaking,
                   "CONTROL: cleanup retained output or active playback")
         }
+        // COMMON positive control: same reducer events before both producer versions.
+        VoicePlaybackRepeatResumeSelfTest.originalCases { label, value in check(value, label) }
         check(unexpectedTurns == 0, "CONTROL: capture dispatched an unexpected model turn")
         check(SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).isEmpty,
               "CONTROL: owner stores/defaults changed")

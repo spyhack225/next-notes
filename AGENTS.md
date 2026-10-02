@@ -683,14 +683,23 @@ approvalResolved, live Island ownership and physical/latency gates remain open.
 The original latency WAV is missing; instrumentation passing is not latency proof.
 See the [playback report](Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/verification.md).
 
-`--selftest-voice-playback-resume-receipt` is an unresolved original regression,
-not a passing feature: installed94 reaches28 checks with4 target failures using
-real Apple playback and the actual capture backchannel endpoint. A nil/default,
-SelfTest-only synchronous observer sees SAME capture/generation immediately after
-actual resume, before the existing producer yields. It proves historical heard
-and a delayed pre-pause onset cannot authorize new speaking; current code still
-accepts them. Native fresh-frame/provenance proof and producer repair remain open.
-See the [original resume report](Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/original94-verification.md).
+`--selftest-voice-playback-resume-receipt` verifies the bounded negative resume
+contract: original100 has4 target failures; identical fixed101 passes48 checks
+(original native28 plus common repeat20). Real Apple onset, capture pause,
+backchannel discard and same-token physical resume remain exercised. Reducer
+inputDiscarded now awaits fresh proof instead of promoting historical heard;
+accepted speech pause metadata reaches the existing actual-owner snapshot.
+A retained old native onset cannot promote paused/awaiting output. All23 focused
+flags pass, including reducer10/actual121events/zero divergences, worker1352,
+physical suspend/drain/restart, duplex and owner isolation21files32defaults.
+This is shadow-only: pending can persist throughout resumed audio; no qualified
+positive backend receipt is implemented and live presentation must not adopt it.
+No new physical playback gate, store, queue, timer or foreground await was added.
+The common metrics guard diagnostic uses already-captured signature booleans only,
+adds no owner read and keeps grading intact; app99's initial mutation remains
+unattributed/open despite passing100/101 workers. Final101 quick remains3/10
+against9/10 and core21/22 with unchanged wake failure; no gate promotion. See the
+[negative resume proof](Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/negative-contract-verification/verification.md).
 
 `--selftest-apple-playback-timeline` is a bounded native diagnostic: corrected
 original97 RED3 → fixed98 same22 PASS, repeated99. It observes the same Apple
@@ -698,7 +707,8 @@ player’s actual callbacks and post-resume cursor, rejects held old/stopped pac
 and joins every buffer. Invalid96 recorder overflow is retained; corrected common
 recording is identical before both. Future native clock stamps, partial-frame
 candidates and untested repeated/backend phases prevent any acoustic/live-speaking
-authority claim. The separate resume-receipt flag still fails4 on99.
+authority claim. The separate resume-receipt flag failed4 on99; the bounded negative repair above
+does not supply positive resumed playback authority.
 The actual98 native suspend hang also exposed an engine graph/tap lock cycle;
 VoicePlaybackReference99 moves its lookup to the existing processing lane and
 rechecks epoch before feed. The same suspend flow passes four times, with no new

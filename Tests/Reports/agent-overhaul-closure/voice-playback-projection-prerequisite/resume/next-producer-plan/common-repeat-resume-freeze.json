@@ -1,0 +1,14 @@
+{
+  "status": "off-source-uncompiled-unrun",
+  "fixtureSHA": "1e82152f8823098b280b35e784ea02b334469aa4bf826cc591375ba58f1d96f3",
+  "cases": 20,
+  "commonBeforeBoth": true,
+  "expectedOriginalFailures": 0,
+  "expectedFixedFailures": 0,
+  "existingPure10Unchanged": true,
+  "actualResume28Unchanged": true,
+  "producerConditionRevision": false,
+  "sourceGuard": "output.status != .paused already includes pending resume",
+  "noSourceEdits": true,
+  "noNativeRuns": true
+}

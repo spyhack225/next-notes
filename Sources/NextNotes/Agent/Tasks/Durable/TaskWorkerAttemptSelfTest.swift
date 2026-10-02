@@ -142,7 +142,10 @@ enum TaskWorkerAttemptSelfTest {
             TaskHeartbeatSelfTest.cases(check: check)
             try await TaskReceiptObservationSelfTest.originalCases(root: root, input: input, text: text, check: check)
         } catch { failures.append("actual worker fixture: \(error)") }
-        failures += SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).map { "owner changed: \($0)" }
+        let after = SelfTestStoreGuard.take()
+        SelfTest.diagnostic(SelfTestStoreGuard.cachedMetricsChangeDiagnostic(
+            before, after, scope: "workerAttempt"))
+        failures += SelfTestStoreGuard.diff(before, after).map { "owner changed: \($0)" }
         for failure in failures { SelfTest.diagnostic("TASK_WORKER_ATTEMPT_WRONG: \(failure)") }
         return failures.isEmpty ? "TASK_WORKER_ATTEMPT_OK: \(cases) cases"
             : "TASK_WORKER_ATTEMPT_FAILED: \(failures.count) assertions"

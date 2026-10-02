@@ -1,0 +1,2 @@
+        // COMMON positive control: same reducer events before both producer versions.
+        VoicePlaybackRepeatResumeSelfTest.originalCases { label, value in check(value, label) }

@@ -1,0 +1,45 @@
+{
+  "status": "metadata-only-read-no-owner-content-or-digest-read",
+  "observedAt": "2026-10-02T21:16:38.171Z",
+  "ownerMetrics": {
+    "bytes": 349413,
+    "modified": 1790975417.9580045,
+    "inode": 170609023,
+    "symlink": false
+  },
+  "matchingTimeWindow": {
+    "start": 1790975320,
+    "end": 1790975470
+  },
+  "temporaryMetricCandidates": [
+    {
+      "processID": 85498,
+      "directorySymlink": false,
+      "metricsSymlink": false,
+      "directoryCreated": 1790975334.3917112,
+      "metricsModified": 1790975334.5069,
+      "bytes": 1145,
+      "canonicalIsTemporary": true
+    },
+    {
+      "processID": 85538,
+      "directorySymlink": false,
+      "metricsSymlink": false,
+      "directoryCreated": 1790975335.47231,
+      "metricsModified": 1790975335.5376353,
+      "bytes": 2376,
+      "canonicalIsTemporary": true
+    },
+    {
+      "processID": 85658,
+      "directorySymlink": false,
+      "metricsSymlink": false,
+      "directoryCreated": 1790975338.9255407,
+      "metricsModified": 1790975373.1822166,
+      "bytes": 51283,
+      "canonicalIsTemporary": true
+    }
+  ],
+  "limits": "PID/time-correlated temp file does not by itself prove failed harness PID or causal external writer; past owner before/after signatures unavailable in raw summary",
+  "temporaryPrefixWasCanonicalized": true
+}

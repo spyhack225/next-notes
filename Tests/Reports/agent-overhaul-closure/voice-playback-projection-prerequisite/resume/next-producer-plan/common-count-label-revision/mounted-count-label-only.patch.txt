@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/Agent/Duplex/VoicePlaybackRepeatResumeSelfTest.swift
++++ b/Sources/NextNotes/Agent/Duplex/VoicePlaybackRepeatResumeSelfTest.swift
+@@ -22,1 +22,1 @@
+-            _ = apply(.task(.deliveryQueued(1)), at: 120)
++            _ = apply(.task(.deliveryQueued(count: 1)), at: 120)

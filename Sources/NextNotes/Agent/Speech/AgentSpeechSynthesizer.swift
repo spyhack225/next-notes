@@ -93,6 +93,9 @@ final class AgentSpeechSynthesizer {
     /// Set by `stop()`. The interrupt self-test fails unless this path ran.
     private(set) var didStop = false
     private(set) var isPausedForListening = false
+    /// Current output needs fresh playback proof after its accepted pause.
+    /// Historical clauseRendered remains intact; no physical playback gate.
+    private var voiceResumePending = false
     /// Applied to each utterance. Duplex ducking lowers this while speaking.
     var utteranceVolume: Float = 1.0
     /// Forces the output backend for one run without writing the user's preference
@@ -119,10 +122,12 @@ final class AgentSpeechSynthesizer {
         let hasClause: Bool
         let rendered: Bool
         let paused: Bool
+        let resumePending: Bool
     }
     var voiceLifecycleSnapshot: VoiceLifecycleSnapshot {
         .init(generation: outputGeneration, hasClause: currentClause != nil,
-              rendered: currentClauseRendered, paused: isPausedForListening)
+              rendered: currentClauseRendered, paused: isPausedForListening,
+              resumePending: voiceResumePending)
     }
     /// Observes only after clearing/advancing a clause; never controls playback.
     var onVoiceLifecycleSettled: (() -> Void)?
@@ -213,6 +218,7 @@ final class AgentSpeechSynthesizer {
     /// Clear prior playback so a streamed reply can enqueue clauses one by one.
     /// Called by `StreamingSpeechBuffer.begin` — does not set `didStop`.
     func prepareForStream() {
+        voiceResumePending = false
         usingSystemFallbackForReply = false
         deferredFallbackClause = false
         isPausedForListening = false
@@ -277,6 +283,7 @@ final class AgentSpeechSynthesizer {
     /// pending clause so mid-reply cut-off does not keep speaking the rest.
     /// Target <100 ms.
     func stop() {
+        voiceResumePending = false
         isPausedForListening = false
         deferredFallbackClause = false
         interruptCurrentClause()
@@ -297,6 +304,7 @@ final class AgentSpeechSynthesizer {
     func pauseForListening() {
         guard !didStop, currentClause != nil, !isPausedForListening else { return }
         isPausedForListening = true
+        voiceResumePending = true
         backing.pauseForListening()
     }
 
@@ -370,6 +378,7 @@ final class AgentSpeechSynthesizer {
     }
 
     func restoreSystemBacking() {
+        voiceResumePending = false
         if testingBacking { backing.stop() }
         usingSystemFallbackForReply = false
         deferredFallbackClause = false

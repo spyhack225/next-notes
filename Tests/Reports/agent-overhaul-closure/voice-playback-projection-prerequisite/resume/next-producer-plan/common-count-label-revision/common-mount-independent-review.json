@@ -1,0 +1,87 @@
+{
+  "status": "READ-ONLY review, corrected fixture freeze before native comparison; no native verdict claimed",
+  "confirmedMountedAtReview": {
+    "metricsGuardSHA256": "dc2733998fbb09ce1128d2f5dfeb9ce782e821ec2ef752330dab5c5a2de63eed",
+    "postGateSHA256": "de86e23bbc8a66f734fb8f598f1feb56792bfe9fd3154ac515133fd5cca05d63",
+    "workerSHA256": "a0dcd05553c479e59a30f8a1ad9e99acf8c4639c5fea2ac5b552b8846c13e76e",
+    "mountedResumeSHA256": "65be1a55b06ff8eea8616def040ac92b463bfafec77261aca13c6bc64b5acef4",
+    "pure10SHA256": "56fa3ed9f64230fc61e074565eb1e1d92517c652ba57bf813229c9775590bc5f"
+  },
+  "historicalCommonCompile": {
+    "fixture": "1e82152f...",
+    "cause": "Missing count: enum argument label",
+    "nativeRan": false,
+    "productionChanges": false,
+    "preservation": "Original prepared files unchanged; root archives compiler attempt"
+  },
+  "correctedFixtureSHA256": "5c04f0ab1f12be809f99e3b2ddb96e4132c2530a5a4fcbaf39676263e27ec35b",
+  "correctedFixtureOnlyLabelChanged": true,
+  "counts": {
+    "native": 28,
+    "positive": 20,
+    "combinedDeclaredIfAllInputsReach": 48,
+    "pureTraces": 10,
+    "workerCasesUnchanged": 1352
+  },
+  "expectedOriginal": {
+    "exit": 1,
+    "marker": "VOICE_PLAYBACK_RESUME_RECEIPT_FAILED: 4 assertions",
+    "failureLabelsMultiset": [
+      "TARGET R01: inputDiscarded promoted historical evidence before a fresh resume receipt",
+      "TARGET R02: actual owner snapshot promoted historical heard/rendered after resume",
+      "TARGET R02: actual owner snapshot promoted historical heard/rendered after resume",
+      "TARGET R03: old native onset crossed resume and manufactured speaking"
+    ],
+    "requiredModeTraces": [
+      "heldOld=false",
+      "heldOld=true"
+    ],
+    "requiredBothModeControls": [
+      "nativeOnsets=1",
+      "deliveredOnsets=1",
+      "discarded=true",
+      "observedResumes=1"
+    ],
+    "forbiddenFailurePrefixes": [
+      "INPUT:",
+      "CONTROL:",
+      "repeat resume:"
+    ],
+    "countClaim": "FAILED marker reports failures, not48. Combined48 is source-derived only once both native scenarios and common call reach."
+  },
+  "expectedBoundedFixed": {
+    "exit": 0,
+    "marker": "VOICE_PLAYBACK_RESUME_RECEIPT_OK: 48 checks",
+    "failures": 0,
+    "claimLimit": "Conservative shadow pending-resume projection only; no fresh positive native receipt or live ownership/UI switch"
+  },
+  "expectedWorker": {
+    "exit": 0,
+    "marker": "TASK_WORKER_ATTEMPT_OK: 1352 cases",
+    "ownerMetricsTraceScopes": [
+      "acpPostGate",
+      "workerAttempt"
+    ],
+    "metadataNeverChangesGrading": true
+  },
+  "expectedReducer": {
+    "exit": 0,
+    "marker": "VOICE_SESSION_REDUCER_OK: 10 traces and actual capture/output producers",
+    "expectationsChanged": false
+  },
+  "runnerRecommendations": [
+    "Serial direct Scripts/run-selftest.sh launches with unique temporary --out for each exact flag; no live model/account/owner modifier",
+    "Archive initial compile failure separately; pin corrected COMMON identical before both producer builds",
+    "Compare sorted exact original failure labels and both actual native traces, never accept arbitrary FAILED or allowlist control failure",
+    "After every flag verify current source pins, exact installed binary and entire bundle map unchanged",
+    "Existing generic run-native-checks.py only accepts original RED for96/97 and needs separate original-resume flag handling; no global allow-FAILED",
+    "Metadata lines are supplementary cached diagnosis only. Owner diff remains exact hard failure; unknown/unreadable data is not zero/no-change evidence",
+    "Fixed comparison changes only explicitly reviewed pending-resume producers, preserving all common fixtures and current tap/timeline patches"
+  ],
+  "noReviewerSourceNativeOrIndexWrites": true,
+  "open": [
+    "Original app99 owner-metrics anomaly unattributed; repeatPASS notresolution",
+    "Positive fresh post-resume receipt producer, stale epoch discrimination beyond conservative suppression",
+    "Live UI/owner activation and full Agent readiness/aggregatequality"
+  ]
+}

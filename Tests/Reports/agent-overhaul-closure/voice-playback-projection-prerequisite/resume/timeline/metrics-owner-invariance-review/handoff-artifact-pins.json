@@ -1,0 +1,42 @@
+[
+  {
+    "file": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/timeline/metrics-owner-invariance-review/common-metadata-diagnostic.patch.txt",
+    "sha256": "25da004d051f8501d99e215108f489e53168b7e7307eb0abe51f146be8d7697f"
+  },
+  {
+    "file": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/timeline/metrics-owner-invariance-review/common-metadata-diagnostic-freeze.json",
+    "sha256": "c39b42cba1ac65dc9931b7f163b9c8e0638b044221e8df5dc9aff9306578678e"
+  },
+  {
+    "file": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/timeline/metrics-owner-invariance-review/COMMON-METADATA-DIAGNOSTIC.md",
+    "sha256": "cedf631e5f9f4dae48c38ebbbf9aad6850b6dd272d66670f91c6213dfd484e1d"
+  },
+  {
+    "file": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/timeline/metrics-owner-invariance-review/source-and-owner-signature-review.json",
+    "sha256": "106f12a4c83c3b44b0bf998db7236826f03721dd94e13cc1acf46b35012766f9"
+  },
+  {
+    "file": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/next-producer-plan/common-resume-source-mount.patch.txt",
+    "sha256": "616aa835c0aebf28fc0e0a59be201757c3ff873b1ddab3b19191dbef4c3286f1"
+  },
+  {
+    "file": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/next-producer-plan/common-resume-mount-bundle-freeze.json",
+    "sha256": "4ab462be8782f71e9308b984349414fbba8db901b407c8ab5bafa88879d7f505"
+  },
+  {
+    "file": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/next-producer-plan/COMMON-RESUME-MOUNT-HANDOFF.md",
+    "sha256": "fde08dea1194a3ca69b677ee26233ac942b3fb5c98c6dd0914da7a0b8f2a2bc1"
+  },
+  {
+    "file": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/next-producer-plan/common-VoicePlaybackRepeatResumeSelfTest.swift.txt",
+    "sha256": "1e82152f8823098b280b35e784ea02b334469aa4bf826cc591375ba58f1d96f3"
+  },
+  {
+    "file": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/next-producer-plan/common-current-native28-VoicePlaybackResumeReceiptSelfTest.swift.txt",
+    "sha256": "ccf4aa71ba8af427edbb120e67a13ea0d6c4989746da1f38ef893e139ebb3bfb"
+  },
+  {
+    "file": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/next-producer-plan/common-current-pure10-VoiceSessionReducerSelfTest.swift.txt",
+    "sha256": "56fa3ed9f64230fc61e074565eb1e1d92517c652ba57bf813229c9775590bc5f"
+  }
+]

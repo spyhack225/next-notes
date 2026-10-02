@@ -100,7 +100,7 @@ struct VoiceSessionState: Sendable, Equatable, Codable {
     enum Floor: Sendable, Equatable, Codable { case free, userProvisional(TurnID) }
     struct Response: Sendable, Equatable, Codable { var turn: TurnID; var decided: Bool; var output: OutputID? }
     struct Output: Sendable, Equatable, Codable {
-        enum Status: String, Sendable, Codable { case queued, playing, paused }
+        enum Status: String, Sendable, Codable { case queued, playing, paused, awaitingResume }
         var id: OutputID; var kind: OutputKind; var status: Status; var heard: Bool
     }
     var phase: Phase = .closed
@@ -210,7 +210,9 @@ enum VoiceSessionReducer {
                 next.floor = .free
                 next.unclassified.remove(turn)
                 if var output = next.output, output.status == .paused {
-                    output.status = output.heard ? .playing : .queued
+                    // A discarded input permits physical resume; prior heard evidence
+                    // does not acknowledge audio after that pause.
+                    output.status = .awaitingResume
                     next.output = output
                     commands.append(.resumeOutput(output.id))
                 }
@@ -297,10 +299,13 @@ enum VoiceSessionReducer {
                     output.heard = true
                     // The receipt may have been queued before the confirmed pause.
                     // Retain that played fact without undoing physical pause ownership.
-                    if output.status != .paused { output.status = .playing }
+                    if output.status != .paused && output.status != .awaitingResume {
+                        output.status = .playing
+                    }
                     next.output = output
                     if let request = next.pendingApproval { project(.proposal(request)) }
-                    else if next.floor != .free || output.status == .paused { project(.listening) }
+                    else if next.floor != .free || output.status == .paused
+                        || output.status == .awaitingResume { project(.listening) }
                     else { project(.speaking) }
                 case .finished:
                     next.output = nil; next.lastOutputEndAt = now

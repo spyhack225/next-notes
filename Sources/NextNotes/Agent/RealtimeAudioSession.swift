@@ -87,7 +87,8 @@ final class RealtimeAudioSession {
         guard let output = voiceShadowOutput, actual.generation == output.generation,
               actual.hasClause || (voiceShadowStreamOpen && voiceShadowOutputAnnounced) else { return nil }
         return .init(id: output.id, kind: output.kind,
-            status: actual.paused ? .paused : (voiceShadowHeard || actual.rendered ? .playing : .queued),
+            status: actual.paused ? .paused : (actual.resumePending ? .awaitingResume
+                : (voiceShadowHeard || actual.rendered ? .playing : .queued)),
             heard: voiceShadowHeard || actual.rendered)
     }
     private static let listeningQuietRelease: TimeInterval = 0.25

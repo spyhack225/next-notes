@@ -1,0 +1,366 @@
+swift build -c debug --scratch-path "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch"
+warning: 'speechify': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for debugging...
+[1 / 1]
+[2 / 7] NextNotes-product
+[8 / 19]
+[14 / 19] NextNotes-product
+[14 / 20] NextNotes-product
+[18 / 27] NextNotes-product
+[20 / 27] NextNotes-product
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:79:22: warning: result of call to function returning 'Bool' is unused [#NoUsage]
+ 77 |             let terminal = try sql.load()
+ 78 |             let events = try sql.journal(taskID: task.id)
+ 79 |             captured.record(TaskJournalEventDraft(taskID: task.id, kind: .toolStarted,
+    |                      `- warning: result of call to function returning 'Bool' is unused [#NoUsage]
+ 80 |                 detail: "filesystem.read", attempt: captured.attempt))
+ 81 |             let after = try sql.journal(taskID: task.id)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:315:22: warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+313 |             else { suspended.resume(throwing: AgentError.backendUnavailable("Late cancellation-ignoring backing")) }
+314 |             check(await reached { ended }, "late error did not causally unwind through Manager")
+315 |             context?.record(TaskJournalEventDraft(taskID: task.id, kind: .toolStarted,
+    |                      `- warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+316 |                 detail: "filesystem.read", attempt: context?.attempt ?? 0))
+317 |             check(try sql.load() == cancelled
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:404:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+402 |                 "owner variant fresh manager did not hold actual saved work")
+403 |             guard let context = fresh.journalContext(taskID: saved.id) else { throw OwnerFixtureError() }
+404 |             let valid = await context.isStillValid?() ?? true
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+405 |             check(context.isStillValid != nil && !valid,
+406 |                 "recognized local attempt downgraded to unbound or gained live validity (\(name))")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/IMessage/Sending/OutboundLedgerSelfTest.swift:872:13: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 870 |             // 7. A live command through the same wiring performs exactly once, as
+ 871 |             // `.iMessage` with the sender's words.
+ 872 |             try await check("a command through bridge and adapter performs once") {
+     |             `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 873 |                 await echoBridge.handle(delivery: MessagesWatcherDelivery(
+ 874 |                     envelope: IMessageEnvelope(
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Duplex/VoicePlaybackProjectionSelfTest.swift:58:23: warning: value 'captureID' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 56 |         for lateWhilePaused in [false, true] {
+ 57 |             await capture.beginSession(captureAudio: false)
+ 58 |             guard let captureID = capture.sessionID else {
+    |                       `- warning: value 'captureID' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 59 |                 failures.append("native: capture session did not open")
+ 60 |                 await capture.endSession(source: .done)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[22 / 27] NextNotes-product
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskRestorationProductionSelfTest.swift:123:25: warning: 'allowedPath' mutated after capture by sendable closure
+ 48 |         var fires = 0
+ 49 |         var firedArguments: [[String: String]] = []
+ 50 |         var allowedPath: String?
+    |             `- note: variable defined here
+ 51 |         var allowedText: String?
+ 52 |         var permissionEffectProbe: (() throws -> Void)?
+ 53 |         AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+    |                                                    `- note: variable captured by sendable closure
+ 54 |             guard tool.id == "filesystem.write", let path = allowedPath, let text = allowedText,
+    |             `- note: capturing use
+ 55 |                   arguments["path"] == path, arguments["text"] == text,
+ 56 |                   URL(fileURLWithPath: path).resolvingSymlinksInPath().path.hasPrefix(root.resolvingSymlinksInPath().path + "/") else {
+    :
+121 |                 "second restart dropped user-entered values or their confirmed provenance")
+122 |             let expected = savedReview.executionArguments(mergedOver: request.arguments)
+123 |             allowedPath = output.path
+    |                         `- warning: 'allowedPath' mutated after capture by sendable closure
+124 |             allowedText = edited
+125 |             guard let restoredContext = secondRestart.journalContext(taskID: submitted.id) else {
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskRestorationProductionSelfTest.swift:124:25: warning: 'allowedText' mutated after capture by sendable closure
+ 49 |         var firedArguments: [[String: String]] = []
+ 50 |         var allowedPath: String?
+ 51 |         var allowedText: String?
+    |             `- note: variable defined here
+ 52 |         var permissionEffectProbe: (() throws -> Void)?
+ 53 |         AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+    |                                                    `- note: variable captured by sendable closure
+ 54 |             guard tool.id == "filesystem.write", let path = allowedPath, let text = allowedText,
+    |             `- note: capturing use
+ 55 |                   arguments["path"] == path, arguments["text"] == text,
+ 56 |                   URL(fileURLWithPath: path).resolvingSymlinksInPath().path.hasPrefix(root.resolvingSymlinksInPath().path + "/") else {
+    :
+122 |             let expected = savedReview.executionArguments(mergedOver: request.arguments)
+123 |             allowedPath = output.path
+124 |             allowedText = edited
+    |                         `- warning: 'allowedText' mutated after capture by sendable closure
+125 |             guard let restoredContext = secondRestart.journalContext(taskID: submitted.id) else {
+126 |                 throw FixtureError.absentRequest
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/ExperiencePreview.swift:27:22: warning: call to main actor-isolated initializer 'init(contentRect:styleMask:backing:defer:)' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 25 | 
+ 26 |         override init() {
+ 27 |             window = NSWindow(
+    |                      `- warning: call to main actor-isolated initializer 'init(contentRect:styleMask:backing:defer:)' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 28 |                 contentRect: NSRect(x: 0, y: 0, width: DS.Size.windowMin.width, height: DS.Size.windowMin.height),
+ 29 |                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:293:1: note: calls to initializer 'init(contentRect:styleMask:backing:defer:)' from outside of its actor context are implicitly asynchronous
+ 291 | - (NSRect)contentRectForFrameRect:(NSRect)frameRect;
+ 292 | 
+ 293 | - (instancetype)initWithContentRect:(NSRect)contentRect styleMask:(NSWindowStyleMask)style backing:(NSBackingStoreType)backingStoreType defer:(BOOL)flag NS_DESIGNATED_INITIALIZER;
+     | |- note: calls to initializer 'init(contentRect:styleMask:backing:defer:)' from outside of its actor context are implicitly asynchronous
+     | `- note: main actor isolation inferred from inheritance from class 'NSResponder'
+ 294 | - (instancetype)initWithContentRect:(NSRect)contentRect styleMask:(NSWindowStyleMask)style backing:(NSBackingStoreType)backingStoreType defer:(BOOL)flag screen:(nullable NSScreen *)screen;
+ 295 | - (instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE; // Use initWithContentRect:. This method will throw an exception for coders that support allowsKeyedCoding, and is only available for compatibility with non keyed coding.
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/ExperiencePreview.swift:33:20: warning: main actor-isolated property 'title' can not be mutated from a nonisolated context
+ 31 |             )
+ 32 |             super.init()
+ 33 |             window.title = "Next Notes — isolated interaction preview"
+    |                    `- warning: main actor-isolated property 'title' can not be mutated from a nonisolated context
+ 34 |             window.contentMinSize = DS.Size.windowMin
+ 35 |             window.isReleasedWhenClosed = false
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:297:28: note: mutation of this property is only permitted within the actor
+ 295 | - (instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE; // Use initWithContentRect:. This method will throw an exception for coders that support allowsKeyedCoding, and is only available for compatibility with non keyed coding.
+ 296 | 
+ 297 | @property (copy) NSString *title;
+     |                            `- note: mutation of this property is only permitted within the actor
+ 298 | 
+ 299 | /*!
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/ExperiencePreview.swift:34:20: warning: main actor-isolated property 'contentMinSize' can not be mutated from a nonisolated context
+ 32 |             super.init()
+ 33 |             window.title = "Next Notes — isolated interaction preview"
+ 34 |             window.contentMinSize = DS.Size.windowMin
+    |                    `- warning: main actor-isolated property 'contentMinSize' can not be mutated from a nonisolated context
+ 35 |             window.isReleasedWhenClosed = false
+ 36 |             window.contentView = NSHostingView(rootView: Content())
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:564:18: note: mutation of this property is only permitted within the actor
+ 562 | @property NSSize minSize;
+ 563 | @property NSSize maxSize;
+ 564 | @property NSSize contentMinSize;
+     |                  `- note: mutation of this property is only permitted within the actor
+ 565 | @property NSSize contentMaxSize;
+ 566 | 
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/ExperiencePreview.swift:35:20: warning: main actor-isolated property 'isReleasedWhenClosed' can not be mutated from a nonisolated context
+ 33 |             window.title = "Next Notes — isolated interaction preview"
+ 34 |             window.contentMinSize = DS.Size.windowMin
+ 35 |             window.isReleasedWhenClosed = false
+    |                    `- warning: main actor-isolated property 'isReleasedWhenClosed' can not be mutated from a nonisolated context
+ 36 |             window.contentView = NSHostingView(rootView: Content())
+ 37 |             window.delegate = self
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:393:46: note: mutation of this property is only permitted within the actor
+ 391 | @property (readonly) NSEventModifierFlags resizeFlags;
+ 392 | - (void)close;
+ 393 | @property (getter=isReleasedWhenClosed) BOOL releasedWhenClosed;
+     |                                              `- note: mutation of this property is only permitted within the actor
+ 394 | - (void)miniaturize:(nullable id)sender;
+ 395 | - (void)deminiaturize:(nullable id)sender;
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/ExperiencePreview.swift:36:20: warning: main actor-isolated property 'contentView' can not be mutated from a nonisolated context
+ 34 |             window.contentMinSize = DS.Size.windowMin
+ 35 |             window.isReleasedWhenClosed = false
+ 36 |             window.contentView = NSHostingView(rootView: Content())
+    |                    `- warning: main actor-isolated property 'contentView' can not be mutated from a nonisolated context
+ 37 |             window.delegate = self
+ 38 |         }
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:337:47: note: mutation of this property is only permitted within the actor
+ 335 | - (void)setTitleWithRepresentedFilename:(NSString *)filename;
+ 336 | @property (getter=isExcludedFromWindowsMenu) BOOL excludedFromWindowsMenu;
+ 337 | @property (nullable, strong) __kindof NSView *contentView;
+     |                                               `- note: mutation of this property is only permitted within the actor
+ 338 | @property (nullable, weak) id<NSWindowDelegate> delegate;
+ 339 | @property (readonly) NSInteger windowNumber;
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/ExperiencePreview.swift:36:34: warning: call to main actor-isolated initializer 'init(rootView:)' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 34 |             window.contentMinSize = DS.Size.windowMin
+ 35 |             window.isReleasedWhenClosed = false
+ 36 |             window.contentView = NSHostingView(rootView: Content())
+    |                                  `- warning: call to main actor-isolated initializer 'init(rootView:)' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 37 |             window.delegate = self
+ 38 |         }
+
+SwiftUI.NSHostingView.init:2:44: note: calls to initializer 'init(rootView:)' from outside of its actor context are implicitly asynchronous
+1 | generic class NSHostingView {
+2 | @MainActor @preconcurrency required public init(rootView: Content)}
+  |                                            `- note: calls to initializer 'init(rootView:)' from outside of its actor context are implicitly asynchronous
+3 | 
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/ExperiencePreview.swift:36:58: warning: call to main actor-isolated initializer 'init()' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 34 |             window.contentMinSize = DS.Size.windowMin
+ 35 |             window.isReleasedWhenClosed = false
+ 36 |             window.contentView = NSHostingView(rootView: Content())
+    |                                                          `- warning: call to main actor-isolated initializer 'init()' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 37 |             window.delegate = self
+ 38 |         }
+    :
+ 61 |     }
+ 62 | 
+ 63 |     private struct Content: View {
+    |                    |- note: calls to initializer 'init()' from outside of its actor context are implicitly asynchronous
+    |                    `- note: main actor isolation inferred from conformance to protocol 'View'
+ 64 |         static let readyID = "experience-preview-ready"
+ 65 |         static let missingID = "experience-preview-missing"
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/ExperiencePreview.swift:37:20: warning: main actor-isolated property 'delegate' can not be mutated from a nonisolated context
+ 35 |             window.isReleasedWhenClosed = false
+ 36 |             window.contentView = NSHostingView(rootView: Content())
+ 37 |             window.delegate = self
+    |                    `- warning: main actor-isolated property 'delegate' can not be mutated from a nonisolated context
+ 38 |         }
+ 39 | 
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:338:49: note: mutation of this property is only permitted within the actor
+ 336 | @property (getter=isExcludedFromWindowsMenu) BOOL excludedFromWindowsMenu;
+ 337 | @property (nullable, strong) __kindof NSView *contentView;
+ 338 | @property (nullable, weak) id<NSWindowDelegate> delegate;
+     |                                                 `- note: mutation of this property is only permitted within the actor
+ 339 | @property (readonly) NSInteger windowNumber;
+ 340 | 
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/ExperiencePreview.swift:41:20: warning: call to main actor-isolated instance method 'center()' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 38 |         }
+ 39 | 
+ 40 |         func show() {
+    |              `- note: add '@MainActor' to make instance method 'show()' part of global actor 'MainActor'
+ 41 |             window.center()
+    |                    `- warning: call to main actor-isolated instance method 'center()' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 42 |             window.makeKeyAndOrderFront(nil)
+ 43 |             NSApp.activate(ignoringOtherApps: true)
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:421:1: note: calls to instance method 'center()' from outside of its actor context are implicitly asynchronous
+ 419 | @property BOOL canHide;
+ 420 | 
+ 421 | - (void)center;
+     | |- note: calls to instance method 'center()' from outside of its actor context are implicitly asynchronous
+     | `- note: main actor isolation inferred from inheritance from class 'NSResponder'
+ 422 | - (void)makeKeyAndOrderFront:(nullable id)sender;
+ 423 | - (void)orderFront:(nullable id)sender;
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/ExperiencePreview.swift:42:20: warning: call to main actor-isolated instance method 'makeKeyAndOrderFront' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 38 |         }
+ 39 | 
+ 40 |         func show() {
+    |              `- note: add '@MainActor' to make instance method 'show()' part of global actor 'MainActor'
+ 41 |             window.center()
+ 42 |             window.makeKeyAndOrderFront(nil)
+    |                    `- warning: call to main actor-isolated instance method 'makeKeyAndOrderFront' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 43 |             NSApp.activate(ignoringOtherApps: true)
+ 44 |         }
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:422:1: note: calls to instance method 'makeKeyAndOrderFront' from outside of its actor context are implicitly asynchronous
+ 420 | 
+ 421 | - (void)center;
+ 422 | - (void)makeKeyAndOrderFront:(nullable id)sender;
+     | |- note: calls to instance method 'makeKeyAndOrderFront' from outside of its actor context are implicitly asynchronous
+     | `- note: main actor isolation inferred from inheritance from class 'NSResponder'
+ 423 | - (void)orderFront:(nullable id)sender;
+ 424 | - (void)orderBack:(nullable id)sender;
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/ExperiencePreview.swift:43:19: warning: call to main actor-isolated instance method 'activate(ignoringOtherApps:)' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 38 |         }
+ 39 | 
+ 40 |         func show() {
+    |              `- note: add '@MainActor' to make instance method 'show()' part of global actor 'MainActor'
+ 41 |             window.center()
+ 42 |             window.makeKeyAndOrderFront(nil)
+ 43 |             NSApp.activate(ignoringOtherApps: true)
+    |                   `- warning: call to main actor-isolated instance method 'activate(ignoringOtherApps:)' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 44 |         }
+ 45 | 
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSApplication.h:222:1: note: calls to instance method 'activate(ignoringOtherApps:)' from outside of its actor context are implicitly asynchronous
+220 | /// Makes the receiver the active app.
+221 | /// - Parameter ignoreOtherApps: If `NO`, the app is activated only if no other app is currently active. If `YES`, the app activates regardless.
+222 | - (void)activateIgnoringOtherApps:(BOOL)ignoreOtherApps API_DEPRECATED("This method will be deprecated in a future release. Use NSApp.activate instead.", macos(10.0, API_TO_BE_DEPRECATED));
+    | |- note: calls to instance method 'activate(ignoringOtherApps:)' from outside of its actor context are implicitly asynchronous
+    | `- note: main actor isolation inferred from inheritance from class 'NSResponder'
+223 | 
+224 | /// Makes the receiver the active app, if possible.
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/ExperiencePreview.swift:43:13: warning: main actor-isolated var 'NSApp' can not be referenced from a nonisolated context
+ 38 |         }
+ 39 | 
+ 40 |         func show() {
+    |              `- note: add '@MainActor' to make instance method 'show()' part of global actor 'MainActor'
+ 41 |             window.center()
+ 42 |             window.makeKeyAndOrderFront(nil)
+ 43 |             NSApp.activate(ignoringOtherApps: true)
+    |             `- warning: main actor-isolated var 'NSApp' can not be referenced from a nonisolated context
+ 44 |         }
+ 45 | 
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSApplication.h:196:58: note: var declared here
+194 | @interface NSApplication : NSResponder <NSUserInterfaceValidations, NSMenuItemValidation, NSAccessibilityElement, NSAccessibility>
+195 | 
+196 | APPKIT_EXTERN __kindof NSApplication * _Null_unspecified NSApp NS_SWIFT_UI_ACTOR;
+    |                                                          `- note: var declared here
+197 | 
+198 | @property (class, readonly, strong) __kindof NSApplication *sharedApplication;
+
+[#ActorIsolatedCall]: <https://docs.swift.org/compiler/documentation/diagnostics/actor-isolated-call>
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/NextNotesApp.swift:8133:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+8131 |                 check("the audit lost rows while a near miss was written",
+8132 |                       AgentAuditLog.shared.entries.count >= before)
+8133 |             } catch {
+     |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+8134 |                 failures.append("p1-29 near miss: \(error.localizedDescription)")
+8135 |             }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/NextNotesApp.swift:8851:21: warning: initialization of immutable value 'before' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+8849 |                 // 3. Clear leaves a row, with counts and no words. "New conversation" and
+8850 |                 //    "Forget all conversations" were indistinguishable in every log.
+8851 |                 let before = AgentAuditLog.shared.entries.count
+     |                     `- warning: initialization of immutable value 'before' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+8852 |                 AgentSession.shared.recordUser("p1-29 text that must not be logged")
+8853 |                 AgentSession.shared.recordAssistant("p1-29 answer that must not be logged")
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/NextNotesApp.swift:8898:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+8896 |                     AgentAuditLog.memoryRows == 400
+8897 |                 )
+8898 |             } catch {
+     |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+8899 |                 failures.append("p1-29: \(error.localizedDescription)")
+8900 |             }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:315:22: warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+313 |             else { suspended.resume(throwing: AgentError.backendUnavailable("Late cancellation-ignoring backing")) }
+314 |             check(await reached { ended }, "late error did not causally unwind through Manager")
+315 |             context?.record(TaskJournalEventDraft(taskID: task.id, kind: .toolStarted,
+    |                      `- warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+316 |                 detail: "filesystem.read", attempt: context?.attempt ?? 0))
+317 |             check(try sql.load() == cancelled
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:404:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+402 |                 "owner variant fresh manager did not hold actual saved work")
+403 |             guard let context = fresh.journalContext(taskID: saved.id) else { throw OwnerFixtureError() }
+404 |             let valid = await context.isStillValid?() ?? true
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+405 |             check(context.isStillValid != nil && !valid,
+406 |                 "recognized local attempt downgraded to unbound or gained live validity (\(name))")
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/AppleModelWarmth.swift:40:13: warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 38 |     /// timeout closure without hopping to the main actor (D-07): the per-call ceiling
+ 39 |     /// is computed per chunked call, on whatever task asked for it.
+ 40 |     private nonisolated(unsafe) static let warmthLock = NSLock()
+    |             `- warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 41 |     private nonisolated(unsafe) static var warmWindowStorage: Duration = .seconds(600)
+ 42 |     private nonisolated(unsafe) static var lastActivityStorage: Date?
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[24 / 27] NextNotes-product
+[25 / 27] NextNotes-product
+[26 / 27] NextNotes-product
+Build complete! (26.60 sec)
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/sergekadjo/Library/Caches/NextNotesBuild/install-7520/Next Notes.app/Contents/MacOS/NextNotes
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-7520/Next Notes.app/Contents/Frameworks/llama.framework: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-7520/Next Notes.app/Contents/Frameworks/libwebrtc-audio-processing-2.1.dylib: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-7520/Next Notes.app/Contents/Frameworks/libNextNotesAEC.dylib: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-7520/Next Notes.app: replacing existing signature
+built /Users/sergekadjo/Library/Caches/NextNotesBuild/install-7520/Next Notes.app  [signed: Next Notes Local Signing]
+installed to /Applications/Next Notes.app

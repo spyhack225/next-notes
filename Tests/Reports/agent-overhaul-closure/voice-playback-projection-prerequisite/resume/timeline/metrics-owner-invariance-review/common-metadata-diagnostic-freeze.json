@@ -1,0 +1,42 @@
+{
+  "status": "OFF-SOURCE uncompiled/unrun diagnostic only",
+  "nativeStatus": "Parent reports unchanged app99 worker recheck PASS1352; original 2 owner guard failures retained OPEN, no writer attributed",
+  "sources": [
+    {
+      "file": "Sources/NextNotes/Support/SelfTestStoreGuard.swift",
+      "originalSHA256": "355c6e6fcf0a5e7cae02735532b5ceaf5a845c700146752295ac43257701db87",
+      "proposedSHA256": "dc2733998fbb09ce1128d2f5dfeb9ce782e821ec2ef752330dab5c5a2de63eed",
+      "ownerSnapshotsBefore": 0,
+      "ownerSnapshotsAfter": 0
+    },
+    {
+      "file": "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPostGateSelfTest.swift",
+      "originalSHA256": "ba415c13a5ffede74418b914546d5443ad7609d6d615fe2a6a72dafa06f99bf8",
+      "proposedSHA256": "de86e23bbc8a66f734fb8f598f1feb56792bfe9fd3154ac515133fd5cca05d63",
+      "ownerSnapshotsBefore": 2,
+      "ownerSnapshotsAfter": 2
+    },
+    {
+      "file": "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+      "originalSHA256": "f93ceb58d7e18f54b4802c3916a1c897e9251502c39dc11263e33d5091cd2555",
+      "proposedSHA256": "a0dcd05553c479e59a30f8a1ad9e99acf8c4639c5fea2ac5b552b8846c13e76e",
+      "ownerSnapshotsBefore": 2,
+      "ownerSnapshotsAfter": 2
+    }
+  ],
+  "fixtureCasesUnchanged": 1352,
+  "assertionPredicatesUnchanged": true,
+  "ownerBytesReadsAdded": 0,
+  "ownerDataReadByThisReview": false,
+  "rawOwnerHashesOrPathsEmitted": false,
+  "newStoreOrQueueOrTimerOrAwait": false,
+  "addedSharedMetricsInitialization": false,
+  "meaning": [
+    "readableSignature states are historical cached guard data, not a current observation",
+    "unreadableOrAbsent does not prove file absence",
+    "digestChanged means already cached hashes differ, not writer attribution",
+    "mtime-only difference can be distinguished, never ignored by grading",
+    "rerun pass does not resolve initial anomaly"
+  ],
+  "safeCommonBeforeBoth": true
+}

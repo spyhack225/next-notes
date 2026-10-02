@@ -412,8 +412,11 @@ enum TaskACPPostGateSelfTest {
                 throw error
             }
         }
+        let ownerAfter = SelfTestStoreGuard.take()
+        SelfTest.diagnostic(SelfTestStoreGuard.cachedMetricsChangeDiagnostic(
+            ownerBefore, ownerAfter, scope: "acpPostGate"))
         // O01
-        check(SelfTestStoreGuard.diff(ownerBefore, SelfTestStoreGuard.take()).isEmpty
+        check(SelfTestStoreGuard.diff(ownerBefore, ownerAfter).isEmpty
             && PermissionGrantStore.shared.grants == grantsBefore,
             "ACP post-Gate: owned fixture changed owner stores/defaults/grants")
     }

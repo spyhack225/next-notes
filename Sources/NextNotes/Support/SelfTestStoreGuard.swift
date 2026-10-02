@@ -113,6 +113,34 @@ enum SelfTestStoreGuard {
         return changes
     }
 
+    /// Metadata from the two ALREADY captured guard signatures. No file read,
+    /// path/hash/payload emission, producer initialization or grading change.
+    /// "absent" means the guard could not read data, not proven file absence.
+    /// Callers supply only fixed harness scope labels.
+    static func cachedMetricsChangeDiagnostic(_ before: StoreSnapshot, _ after: StoreSnapshot,
+                                              scope: String) -> String {
+        func parts(_ value: String?) -> (state: String, fields: [Substring]?) {
+            guard let value else { return ("untracked", nil) }
+            guard value != "absent" else { return ("unreadableOrAbsent", nil) }
+            let fields = value.split(separator: "|", omittingEmptySubsequences: false)
+            guard fields.count == 3, let size = Int64(fields[0]), size >= 0,
+                  let modified = Double(fields[1]), modified.isFinite,
+                  fields[2].count == 64,
+                  fields[2].allSatisfy({ "0123456789abcdef".contains($0) }) else {
+                return ("invalidCachedSignature", nil)
+            }
+            return ("readableSignature", fields)
+        }
+        let old = before.files["metrics.jsonl"]
+        let new = after.files["metrics.jsonl"]
+        let lhs = parts(old), rhs = parts(new)
+        func changed(_ index: Int) -> String {
+            guard let left = lhs.fields, let right = rhs.fields else { return "unknown" }
+            return String(left[index] != right[index])
+        }
+        return "OWNER_METRICS_GUARD_TRACE: scope=\(scope) before=\(lhs.state) after=\(rhs.state) cachedSignatureChanged=\(old != new) sizeChanged=\(changed(0)) mtimeChanged=\(changed(1)) digestChanged=\(changed(2))"
+    }
+
     /// `"size|mtime|sha256"`, or `"absent"`. Read through `FileManager` for the
     /// attributes, like `ModelDownloader.fileSize`, so a `URL` instance's cached
     /// `resourceValues` cannot serve a stale answer.

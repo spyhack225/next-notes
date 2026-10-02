@@ -1,0 +1,17 @@
+# Next resume producer: truthful pending phase, then qualified receipts
+
+**Off-source proposal only.** Root owns Source/build/native/index. No new native verdict is inferred here. Original94's unchanged actual resume fixture reproduced four target failures. Current timeline original/fixed native results and corrective recorder-capacity reruns are separate root evidence, not assumed green by this plan.
+
+The smallest independently testable fix is the three-owner pending-phase correction in the accompanying full snapshots/patches:
+
+- VoiceContracts inputDiscarded requests physical resume and preserves historical heard, but sets awaitingResume; firstAudio cannot clear paused or awaitingResume.
+- AgentSpeechSynthesizer records current-output resumePending at accepted pause, exposes it in the existing lifecycle snapshot, and clears it only on a new output/stop/testing restoration. It performs no physical hold or extra wait. This first correction deliberately has no unverified positive-resume clearing path.
+- RealtimeAudioSession's legacy shadow projection uses the same awaiting phase after physical resume. Historical voiceShadowHeard/rendered still describe past playback and do not establish current playing.
+
+Root can review/apply these exact narrow deltas after preserving the current common native timeline source scaffold. **Apply patches to current Source, not full snapshots**, if root updates the common diagnostic capacity or checkpoint body: the pending proposal was pinned from the mounted diagnostic scaffold and is disjoint from those current root corrections. The per-file original/proposed hashes are retained in preparation-manifest.json. Source leases: Agent/Duplex/VoiceContracts.swift, Agent/Speech/AgentSpeechSynthesizer.swift, Agent/RealtimeAudioSession.swift. No Capture, native backing algorithm, PCM channel, UI, store, queued audio, renderer/default choice, task or model change.
+
+Use the SAME common `VoicePlaybackResumeReceiptSelfTest` inputs/support from original94. Expected fixed behavior: R01 ordinary becomes awaiting; R02 both owner snapshots become awaiting; held R03 keeps historical heard and awaiting/listening. Wrong-owner, token, generation, actual pause/resume/backchannel, physical playback and cleanup controls remain unchanged. Required related reducer traces must preserve event inputs; only the formerly unsupported status expectation may change before both old/new reruns. The existing publish/resume/stop commands and shadow-only ownership remain intact. No universal speaking restoration is introduced; approvalResolved retains its current listening behavior.
+
+This bounded patch removes the reproduced false-positive phase. **It does not complete resume implementation:** after a pause, shadow stays awaiting for the rest of that output unless a subsequent separately verified receipt contract is implemented. Physical playback still resumes immediately and legacy live UI/work/mic behavior is unchanged. That truthful unknown is acceptable only as a stated shadow prerequisite; do not ship a live UI that shows indefinite waiting or mark fresh-resume authority complete.
+
+`BACKEND-CONTRACT.md` provides the exact next positive receipt/epoch contract and backend-specific prerequisites. It keeps raw callback capture, played coordinate units, process ownership, frame advancement and presentation evidence distinct. The future live UI switch remains blocked until positive resumed playback and its consumer acceptance are actually verified.

@@ -1,0 +1,18 @@
+{
+  "entries": 1046,
+  "exactChangedFiles": {
+    "Sources/NextNotes/Agent/RealtimeAudioSession.swift": {
+      "original": "3296c831483ccdb93eb052b2f70084cbc54511e7cd7d4a24ec4ee0b353adc1f9",
+      "fixed": "c48ad2560f3a6bed453c7ecec9fcaa490b21ffb02187e8bfda8dd2f8dc74c07a"
+    },
+    "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift": {
+      "original": "574f296c7ea4b7da0b1ce21198ec595116a913a2ec3d165b527dce4f0b26286d",
+      "fixed": "9ddda9c19c4c528b1fceb8752a7047a5405b645545b289dab936b81a8547ded5"
+    },
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": {
+      "original": "4513d4358e1d10acb76a8fedce90f91f6b08d60a83412c5ae240391e578899c2",
+      "fixed": "7e2ed84c8ebb6844a02549d193d553c8a659631b20922be6dd55122bcf45d365"
+    }
+  },
+  "commonNativeAndControlsIdentical": true
+}

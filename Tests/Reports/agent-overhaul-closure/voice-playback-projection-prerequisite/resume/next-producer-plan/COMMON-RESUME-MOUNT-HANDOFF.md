@@ -1,0 +1,9 @@
+# COMMON resume mount handoff
+
+Mount the new common-VoicePlaybackRepeatResumeSelfTest.swift.txt as Sources/NextNotes/Agent/Duplex/VoicePlaybackRepeatResumeSelfTest.swift and apply common-resume-source-mount.patch.txt’s two-line existing-run registration (the patch also contains the new file). Keep NextNotesApp’s existing --selftest-voice-playback-resume-receipt dispatcher unchanged. Do this before BOTH producer variants are pinned.
+
+The existing native 28-check fixture remains byte-identical apart from that additive call. Its original94 RED4 scenario still uses real Apple onset events, the real capture backchannel endpoint and the synchronous post-resume observer. The new common20 uses only the actual pure reducer and is expected green before and after; it exercises two pause/discard-resume cycles without a fresh playback receipt, stale turn discard, exact single commands, finish/quiet-window eligibility and close. If both native modes execute fully, the combined flag has 48 checks and retains the original four negative targets. Native acceptance must establish actual counts.
+
+The existing --selftest-voice-session-reducer pure ten traces and actual consumer integration remain unchanged and must be run as related behavior. The copied pure10 source is a pin, not a replacement or altered expectation. No new flag, native playback hook, owner read, model pass, audio queue or runtime wait is added. The new common20 is uncompiled and unrun.
+
+Apply only small reviewed pending producer patches onto CURRENT Sources after root verification; historical full synth proposals predate root timeline/tap changes. This bounded shadow projection supplies no positive fresh post-resume receipt and must not enable a live UI/owner switch, promise responsiveness or claim fresh audio was heard. The reviewed existing pause condition status != paused already includes awaiting resume, so the outdated omission hypothesis requires no producer repair.
