@@ -1,0 +1,2 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-receipt-persistence --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-acp-origin-62-q1j_uo8g/receipt-persistence.log
+RECEIPT_RUNTIME_OK: 5 cases

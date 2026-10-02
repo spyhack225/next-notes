@@ -469,6 +469,18 @@ No new store/schema/query/save/timer/queue/model pass; aggregate gates unchanged
 See [ACP admission](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-primary-admission-review/verification.md)
 and [released-context proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/released-context-review/verification.md).
 
+`--selftest-task-worker-attempt` now checks bounded P6-06i through the actual
+Manager/ACPBackend/ActionOrchestrator/Session and an owned temporary peer. Original
+app61 fails three assertions: a refused terminal receipt save still delivers the
+reply and completes the task. The same fixture passes app62 worker701 and all20
+focused flags. Guarding the existing unverified-result receipt save prevents that
+success delivery, reports the exact action-ran/result-not-saved failure and retains
+fired evidence; the accepted reply/warning/artifact remains unchanged. No additional
+save/query/await/store/timer/retry was added. ACP receipt-ID joins/activity, effect
+reconciliation, nested permission/client ownership, crash durability, recovery and
+IM-16 remain open. See the
+[terminal receipt proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-unverified-receipt-review/verification.md).
+
 ACP now checks the exact established session ID before accumulating reply text,
 publishing activity or relaying a permission (installed app53). Actual original52
 fails20 of68 origin checks; the unchanged fixture passes68 in fixed53 and five

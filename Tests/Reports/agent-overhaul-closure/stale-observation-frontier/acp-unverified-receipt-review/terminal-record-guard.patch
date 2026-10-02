@@ -1,0 +1,15 @@
+diff --git a/Sources/NextNotes/Agent/ActionRuntime.swift b/Sources/NextNotes/Agent/ActionRuntime.swift
+--- a/Sources/NextNotes/Agent/ActionRuntime.swift
++++ b/Sources/NextNotes/Agent/ActionRuntime.swift
+@@ -740,7 +740,10 @@ final class ActionOrchestrator {
+                     if let link = result.link?.absoluteString { receipt.artifacts.append(link) }
+                     receipt.verification = "Unverified; inspect the target before retrying"
+                     receipt.completedAt = Date()
+-                    _ = receiptStore.record(receipt)
++                    guard receiptStore.record(receipt) else {
++                        throw AgentError.backendUnavailable(
++                            "The action ran, but its result could not be saved. Check it before trying again.")
++                    }
+                     return AgentToolResult(
+                         summary: result.summary + "\nNext Notes could not independently verify the effect. Inspect the target before retrying.",
+                         reference: result.reference,
