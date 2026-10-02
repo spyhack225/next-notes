@@ -1184,6 +1184,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+// Proposed additive NextNotesApp dispatcher branch; root owns registration.
+if arguments.contains("--selftest-voice-playback-resume-receipt") {
+    Task { @MainActor in
+        let result = await VoicePlaybackResumeReceiptSelfTest.run()
+        if !result.hasPrefix("VOICE_PLAYBACK_RESUME_RECEIPT_OK:") { SelfTest.failed = true }
+        writeSelfTest(result)
+        NSApp.terminate(nil)
+    }
+    return true
+}
         if arguments.contains("--selftest-voice-playback-projection") {
             Task { @MainActor in
                 let result = await VoicePlaybackProjectionSelfTest.run()

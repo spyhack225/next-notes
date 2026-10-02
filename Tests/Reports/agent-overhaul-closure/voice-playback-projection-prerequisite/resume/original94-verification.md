@@ -1,0 +1,8 @@
+# Actual original94 resume ownership characterization — unresolved
+
+Installed94 real Apple cases reach28 assertions; exactly4 target failures:
+normal R01 historical heard becomesplaying; BOTH R02 actual owner snapshots reuse rendered/played history; held R03 forwards an exact pre-pause native onset AFTER actualresume and makes speaking. All actual onset/capture partial/backchannel endpoint/synchronous SAMEcapture+generation observer/currenttoken/output/cleanup/model/owner controls pass. Both observedResumes=1 and discarded=true; no model/microphone or fabricated callback.
+
+This commits the neutral SelfTest-only nil synchronous observation seam and original regression, NOT a producer repair. No normal runtime behavior changes. The gap already existed in app93; this does not promote Phase3/liveUI. RealtimeAudioSession optional observer runs only SelfTest after actual synthresume and before producerDidSettle/firstawait; defaultnil. A later actual fresh receipt cannot race the synchronous negative assertions. Callback receipt origin retained at the existing listener; same exact event forwarded once.
+
+Original94 binary c7dba29432dfc5a4b88ff9c475f6d5ccea9aa9841f7c6a47031c19911e69d2d5 (exact fullidentity in app94-binary.json),1043 Source manifest and fullbundle invariant. ASK_FAILED in that build is a separate recorded original fitting bug; its fixed95 proof is in p4-08-knowledge-fitting. Current resumed receipt contract remains RED4 and open. Timeline candidate/native-provenance experiment is separately prepared/reviewed but unexecuted; no caller/body restore based on historicalheard.

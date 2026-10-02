@@ -198,6 +198,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-voice-duplex-work
 --selftest-voice-session-reducer
 --selftest-voice-playback-projection
+--selftest-voice-playback-resume-receipt
 --selftest-playback-ledger --selftest-voice-scheduling
 --selftest-concurrent-voice --selftest-voice-frontend --selftest-voice-eou <wav>
 --selftest-acoustic-replay --selftest-acoustic-speech <far-wav> <near-wav>
@@ -680,6 +681,15 @@ historical heard cannot authorize resumed speaking, and late-after-resume,
 approvalResolved, live Island ownership and physical/latency gates remain open.
 The original latency WAV is missing; instrumentation passing is not latency proof.
 See the [playback report](Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/verification.md).
+
+`--selftest-voice-playback-resume-receipt` is an unresolved original regression,
+not a passing feature: installed94 reaches28 checks with4 target failures using
+real Apple playback and the actual capture backchannel endpoint. A nil/default,
+SelfTest-only synchronous observer sees SAME capture/generation immediately after
+actual resume, before the existing producer yields. It proves historical heard
+and a delayed pre-pause onset cannot authorize new speaking; current code still
+accepts them. Native fresh-frame/provenance proof and producer repair remain open.
+See the [original resume report](Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/original94-verification.md).
 
 `usage.jsonl` is the one local record of which model or engine ran each pass — Agent,
 Meetings and Dictation — with its provider, model, locality, timing, counts, tools and

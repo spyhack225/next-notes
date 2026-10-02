@@ -75,6 +75,8 @@ final class RealtimeAudioSession {
         var lastNearAt: Date
     }
     private var listeningHold: ListeningHold?
+    /// SelfTest-only synchronous observation; never controls playback or awaits.
+    var voiceResumeObserverForTesting: (@MainActor (UUID, UInt64) -> Void)?
     private var voiceShadowOutput: (id: OutputID, kind: OutputKind, generation: UInt64)?
     private var voiceShadowOutputAnnounced = false
     private var voiceShadowHeard = false
@@ -529,6 +531,9 @@ final class RealtimeAudioSession {
         guard synth.outputGeneration == hold.outputGeneration,
               synth.isPausedForListening else { return false }
         synth.resumeAfterListening()
+        if SelfTest.isRunning {
+            voiceResumeObserverForTesting?(captureID, hold.outputGeneration)
+        }
         VoiceSession.shared.producerDidSettle()
         return !synth.isPausedForListening
     }
