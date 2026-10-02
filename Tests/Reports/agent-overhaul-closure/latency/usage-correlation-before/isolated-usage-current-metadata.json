@@ -1,0 +1,353 @@
+{
+  "source": "synthetic NextNotesSelfTest-48453 usage.jsonl",
+  "source_sha256": "3b39fc3d7c5bd6297da737dcf1f3f3b2c435fbfafb175a108aa8e8223102d710",
+  "scope": "metadata only; no owner history opened",
+  "total_rows": 34,
+  "agent_voice_rows": 34,
+  "model_pass_rows": 18,
+  "model_pass_rows_missing_turnID": 0,
+  "measured_joins": [
+    {
+      "run": 1,
+      "turnID": "920B792E-7B58-4689-8BC7-5BC1403679EF",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "summary_count": 1,
+      "model_pass_count": 2,
+      "model_pass_names": [
+        "frontend-answer",
+        "frontend-route"
+      ],
+      "matching_conversation_count": 2
+    },
+    {
+      "run": 2,
+      "turnID": "029E425F-861B-4F3B-B473-62489FFD38DE",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "summary_count": 1,
+      "model_pass_count": 4,
+      "model_pass_names": [
+        "frontend-route",
+        "frontend-route",
+        "frontend-answer",
+        "frontend-route"
+      ],
+      "matching_conversation_count": 4
+    },
+    {
+      "run": 3,
+      "turnID": "1BDC5C46-DDB4-4B18-8A10-6E3A97E6DEC9",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "summary_count": 1,
+      "model_pass_count": 4,
+      "model_pass_names": [
+        "frontend-route",
+        "frontend-route",
+        "frontend-answer",
+        "frontend-route"
+      ],
+      "matching_conversation_count": 4
+    },
+    {
+      "run": 4,
+      "turnID": "EB5CB61B-E83B-4F4F-94CC-AEF055FA0DFB",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "summary_count": 1,
+      "model_pass_count": 4,
+      "model_pass_names": [
+        "frontend-route",
+        "frontend-route",
+        "frontend-answer",
+        "frontend-route"
+      ],
+      "matching_conversation_count": 4
+    },
+    {
+      "run": 5,
+      "turnID": "2CE086B2-2126-4650-84E4-A373788A7C71",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "summary_count": 1,
+      "model_pass_count": 4,
+      "model_pass_names": [
+        "frontend-route",
+        "frontend-route",
+        "frontend-answer",
+        "frontend-route"
+      ],
+      "matching_conversation_count": 4
+    }
+  ],
+  "raw_metadata_rows": [
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "1287FDB7-C86C-4DA2-BADE-75DF17278D5F",
+      "conversationID": "6DA0C7AE-2761-492D-B070-8C5961CE9AD1",
+      "provider": "rules",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "141F4226-5EA2-4F66-B849-1071C5AEADB8",
+      "conversationID": "0523B859-AA66-4CB4-B54A-F11559EFB72E",
+      "provider": "rules",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "FECD6D33-6E71-4C17-9E9D-3AFC5251D9D1",
+      "conversationID": "26028FF8-6D31-4EB6-9124-03A2F0E0610C",
+      "provider": "rules",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "44CC158B-5110-4E3E-9650-8A4943A66803",
+      "conversationID": "E0EA0B74-53B5-4492-90CA-0F1CA93A6D56",
+      "provider": "rules",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "BB241118-30CD-4472-9201-B9A95298A749",
+      "conversationID": "2B6C02C2-0133-4C0A-9F9B-B62270DA92E8",
+      "provider": "rules",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "526CA755-111C-45AE-AA61-3733FD6605AA",
+      "conversationID": "E73C6972-4F50-4023-829B-36D4843A8477",
+      "provider": "rules",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "5BD6AE09-68F7-48D6-B3D3-60C81E3438E5",
+      "conversationID": "2923B071-F884-458D-BB8B-0C13F06788BA",
+      "provider": "rules",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "D79693D9-92F4-4796-87E6-5C294592C42E",
+      "conversationID": "01359E83-D77B-42BF-B1C7-C26A49D236D6",
+      "provider": "rules",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "161E3E45-89AA-4682-B591-B52DCA44192A",
+      "conversationID": "4FDCA5C9-24B2-433B-8A90-A3C34F507F87",
+      "provider": "rules",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "25889046-8896-4A37-B77F-2C195F5EF595",
+      "conversationID": "819706C1-5E73-406D-9973-C84B83160D7C",
+      "provider": "rules",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "BA722DBF-68F2-489A-BA94-42DF5D51547A",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-answer",
+      "turnID": "920B792E-7B58-4689-8BC7-5BC1403679EF",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-route",
+      "turnID": "920B792E-7B58-4689-8BC7-5BC1403679EF",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "920B792E-7B58-4689-8BC7-5BC1403679EF",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-route",
+      "turnID": "029E425F-861B-4F3B-B473-62489FFD38DE",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-route",
+      "turnID": "029E425F-861B-4F3B-B473-62489FFD38DE",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-answer",
+      "turnID": "029E425F-861B-4F3B-B473-62489FFD38DE",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-route",
+      "turnID": "029E425F-861B-4F3B-B473-62489FFD38DE",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "029E425F-861B-4F3B-B473-62489FFD38DE",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-route",
+      "turnID": "1BDC5C46-DDB4-4B18-8A10-6E3A97E6DEC9",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-route",
+      "turnID": "1BDC5C46-DDB4-4B18-8A10-6E3A97E6DEC9",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-answer",
+      "turnID": "1BDC5C46-DDB4-4B18-8A10-6E3A97E6DEC9",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-route",
+      "turnID": "1BDC5C46-DDB4-4B18-8A10-6E3A97E6DEC9",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "1BDC5C46-DDB4-4B18-8A10-6E3A97E6DEC9",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-route",
+      "turnID": "EB5CB61B-E83B-4F4F-94CC-AEF055FA0DFB",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-route",
+      "turnID": "EB5CB61B-E83B-4F4F-94CC-AEF055FA0DFB",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-answer",
+      "turnID": "EB5CB61B-E83B-4F4F-94CC-AEF055FA0DFB",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-route",
+      "turnID": "EB5CB61B-E83B-4F4F-94CC-AEF055FA0DFB",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "EB5CB61B-E83B-4F4F-94CC-AEF055FA0DFB",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-route",
+      "turnID": "2CE086B2-2126-4650-84E4-A373788A7C71",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-route",
+      "turnID": "2CE086B2-2126-4650-84E4-A373788A7C71",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-answer",
+      "turnID": "2CE086B2-2126-4650-84E4-A373788A7C71",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "frontend-route",
+      "turnID": "2CE086B2-2126-4650-84E4-A373788A7C71",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    },
+    {
+      "feature": "agent.voice",
+      "pass": "turn",
+      "turnID": "2CE086B2-2126-4650-84E4-A373788A7C71",
+      "conversationID": "50C478D7-07DB-43F6-9C38-5FA65C69A6F6",
+      "provider": "appleFM",
+      "locality": "local"
+    }
+  ]
+}

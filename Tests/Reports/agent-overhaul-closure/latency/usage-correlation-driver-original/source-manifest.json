@@ -1,0 +1,39 @@
+{
+  "mode": "original",
+  "driver_sha256": "cfe834b30ec4cd6824eda5ea83c232afd6c16bc34a86895c86b78d5ef11967b8",
+  "sources": {
+    "Tests/Reports/agent-overhaul-closure/latency/usage-correlation-before/LocalVoiceFrontend.swift.txt": "13103d639422abe8f626cc85e7fb19753792bbdde8e5adb7f819850b3cbb489b",
+    "Tests/Reports/agent-overhaul-closure/latency/usage-correlation-before/VoiceConversationCoordinator.swift.txt": "99e15c91573d2a47dc9e91501b642cab518181ae09fd89267a0983952c73a4d9",
+    "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontendSpeculationSelfTest.swift": "d37e0634f28181e682d879d1784c36f4af80783df6de4bd7d4cc4a48a39c466f"
+  },
+  "support_sources": {
+    "Support/Usage/UsageLog.swift": "9f67266e50f9cf29a8b64795ba76d1f6d95edc2e975515ea663e3f9c3baaf2a6",
+    "Support/Usage/UsageRecord.swift": "c5f85686e9af6a28859c76a9d2c651f4b833c6de538df2f6c6dddf3b760f9d3a",
+    "Support/Usage/ModelPassRecorder.swift": "a87a1292b0c82a5b817b9c91cef3a467165d4a46853c44d16b7adbe9c94afdfc",
+    "Core/DictationController.swift": "87efda730e7f97615e8c315392f729d6284615aa16bf8dbe171c69143d3a358f",
+    "Formatting/LLM/LLMProvider.swift": "40fddb0c8fd56ac5595c18786e54bb4fe80e9994499469b187b0a334101539f8",
+    "Formatting/LLM/OpenRouterReasoning.swift": "693d75006af8e4af14fee0f20fec50a436383410a6574c7384e85688e44df95a",
+    "Agent/Voice/VoiceLatencySelfTest.swift": "7dff6c628a667ebb4dc9bfbe5059ecaceb0152e43dece224b0e724fabfbfc938"
+  },
+  "scope": "actual coordinator preparation and commit correlation expressions; actual frontend speculation/cancel/barrier/stream/buffer methods; actual recorder/log; unchanged installed usage-join validator and current speculation self-test",
+  "boundaries": [
+    "scripted generation at existing generationForTesting seam; native fallback fatal",
+    "fixture capture prospective TurnID and active session; fixture frontend context",
+    "provider identity fixture, no model generation",
+    "unrelated error classifier replaced with .other; never called by cases",
+    "minimal stage/turn projection for the strict join, no latency timing claim",
+    "coordinator preparation is full method; commit is exact source expressions, not full handle/respond/capture pipeline"
+  ],
+  "generated_sha256": {
+    "Frontend.swift": "afc3db99cfc3227b3c4a3208532d93571745523b2e0118ab4a4a1b379dd301c8",
+    "Coordinator.swift": "c71a0e4421d9c44f0cd1940410e0148484dcec550de7fee5b740c9882da67771",
+    "Stubs.swift": "77c9f7d636e88b28a3f0608ca63411f5b4e7d19187ea4b6e2d50720f32985f82",
+    "BoundedWait.swift": "e7f3601ee5f4af3f233cd0984cf13780c7e03cd93e257b89377d0851c7b0269d",
+    "UsageLog.swift": "9f67266e50f9cf29a8b64795ba76d1f6d95edc2e975515ea663e3f9c3baaf2a6",
+    "UsageRecord.swift": "09e7b77a173ed127583bc81b7fcd74f9f572675ab9a67f76ff2a673e4672828d",
+    "ModelPassRecorder.swift": "a87a1292b0c82a5b817b9c91cef3a467165d4a46853c44d16b7adbe9c94afdfc",
+    "ExistingSpeculationSelfTest.swift": "d37e0634f28181e682d879d1784c36f4af80783df6de4bd7d4cc4a48a39c466f",
+    "StrictUsageConsumer.swift": "b49edb1647f8a15dcab76edcc6b00ac7144b68a4461db45144e365f477f7c29f",
+    "Driver.swift": "fc6bcb301d3a57536f4fb697cb50806da45ef337807bb1111f4751892d2fbb3a"
+  }
+}

@@ -32,6 +32,9 @@ final class VoiceConversationCoordinator {
     private var responseID = UUID()
     private var inputEpoch: UInt64 = 0
     private var voiceShadowTurns: [UInt64: TurnID] = [:]
+    /// Reserve the usage UUID before speculative inference starts. All partial
+    /// revisions of the same prospective voice turn keep it until commit/discard.
+    private var prospectiveUsageTurn: (voiceTurn: TurnID, turnID: UUID, conversationID: UUID)?
     private var voiceShadowResponse: (id: UUID, turn: TurnID)?
     var voiceShadowResponseTurn: TurnID? {
         guard let response = voiceShadowResponse, response.id == responseID else { return nil }
@@ -198,12 +201,28 @@ final class VoiceConversationCoordinator {
             guard epoch == self.preparationEpoch, !Task.isCancelled,
                   AgentCaptureController.shared.isSessionActive else { return }
             let request = self.frontendRequest(text)
-            await LocalVoiceFrontend.shared.speculate(system: Self.systemPrompt,
-                messages: request.messages, maxTokens: Self.responseTokenLimit, revision: epoch)
+            let voiceTurn = AgentCaptureController.shared.voiceShadowCurrentTurn
+                ?? VoiceSession.shared.beginTurnIfNeeded()
+            let ids = UsageCorrelation(turnID: self.reserveUsageTurn(for: voiceTurn),
+                conversationID: AgentSession.shared.sessionID)
+            await ModelPassRecorder.$correlation.withValue(ids) {
+                await LocalVoiceFrontend.shared.speculate(system: Self.systemPrompt,
+                    messages: request.messages, maxTokens: Self.responseTokenLimit, revision: epoch)
+            }
         }
     }
 
+    private func reserveUsageTurn(for voiceTurn: TurnID) -> UUID {
+        let conversationID = AgentSession.shared.sessionID
+        if let reserved = prospectiveUsageTurn, reserved.voiceTurn == voiceTurn,
+           reserved.conversationID == conversationID { return reserved.turnID }
+        let id = UUID()
+        prospectiveUsageTurn = (voiceTurn, id, conversationID)
+        return id
+    }
+
     private func cancelResponsePreparation() {
+        prospectiveUsageTurn = nil
         preparationEpoch &+= 1
         let epoch = preparationEpoch
         preparationTask?.cancel()
@@ -413,6 +432,8 @@ final class VoiceConversationCoordinator {
         inputEpoch &+= 1
         let epoch = inputEpoch
         let identity = shadowTurn ?? VoiceSession.shared.beginTurnIfNeeded()
+        let usageTurnID = reserveUsageTurn(for: identity)
+        prospectiveUsageTurn = nil
         voiceShadowTurns[epoch] = identity
         if voiceShadowTurns.count > 256 {
             for old in voiceShadowTurns.keys.sorted().prefix(128) { voiceShadowTurns.removeValue(forKey: old) }
@@ -423,7 +444,8 @@ final class VoiceConversationCoordinator {
         // a provisional is a card about words the user did not finish saying.
         FunctionCallWatcher.shared.noteUserTurn(text)
         let task = Task { @MainActor in
-            await self.respond(text, id: id, inputEpoch: epoch, commitRevision: commitRevision)
+            await self.respond(text, id: id, inputEpoch: epoch, commitRevision: commitRevision,
+                               usageTurnID: usageTurnID)
         }
         responseTask = task
         return await withTaskCancellationHandler {
@@ -431,7 +453,8 @@ final class VoiceConversationCoordinator {
         } onCancel: { task.cancel() }
     }
 
-    private func respond(_ text: String, id: UUID, inputEpoch: UInt64, commitRevision: UInt64) async -> AgentTurn {
+    private func respond(_ text: String, id: UUID, inputEpoch: UInt64, commitRevision: UInt64,
+                         usageTurnID: UUID) async -> AgentTurn {
         let agent = RealtimeAgent.shared
         let identity = voiceShadowTurns[inputEpoch]
         let turn = agent.beginVoiceFrontend(voiceTurn: identity)
@@ -443,9 +466,8 @@ final class VoiceConversationCoordinator {
                 VoiceSession.shared.send(.responseEnded(identity, outcome))
             }
         }
-        // One id per voice turn (P0-20a). Installed as a task-local around the frontend
-        // stream, so its route and answer passes write their rows with it.
-        let usageTurnID = UUID()
+        // P0-20a: commit keeps the UUID reserved before speculative inference.
+        // A fresh request and an adopted speculative request share the same ids.
         // Assembled before the user row is recorded, so the current turn reaches
         // the model exactly once: in the final message's `Latest user speech:`
         // marker, never as a transcript entry as well. With both, the answer

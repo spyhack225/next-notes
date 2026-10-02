@@ -1,0 +1,5 @@
+USAGE_PRODUCER_BEFORE_COMMIT rows=1 withTurnID=1
+USAGE_PRODUCER_JOIN summary=1 passes=1
+VOICE_SPECULATION_USAGE_OK: 5 cases, 9 actual recorder rows; scripted generation
+VOICE_SPECULATION_OK
+USAGE_CORRELATION_OK

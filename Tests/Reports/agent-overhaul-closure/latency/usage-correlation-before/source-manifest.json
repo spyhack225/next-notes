@@ -1,0 +1,5 @@
+{
+  "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "99e15c91573d2a47dc9e91501b642cab518181ae09fd89267a0983952c73a4d9",
+  "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift": "13103d639422abe8f626cc85e7fb19753792bbdde8e5adb7f819850b3cbb489b",
+  "Sources/NextNotes/Support/Usage/ModelPassRecorder.swift": "a87a1292b0c82a5b817b9c91cef3a467165d4a46853c44d16b7adbe9c94afdfc"
+}

@@ -67,6 +67,7 @@ actor LocalVoiceFrontend {
         let timing: GenerationTiming
         let buffer: SpeculativeVoiceBuffer
         let producer: Task<Void, Never>
+        let correlation: UsageCorrelation?
     }
     /// Monotonic timing context shared by the actor and its native producer.
     /// It carries only identifiers and durations; prompts and generated text
@@ -162,12 +163,14 @@ actor LocalVoiceFrontend {
         guard revision > sealedThroughEpoch else { return }
         if let speculation, speculation.epoch > revision { return }
         let key = RequestKey(system: system, messages: messages, maxTokens: maxTokens)
-        if speculation?.key == key, speculation?.epoch == revision { return }
+        if speculation?.key == key, speculation?.epoch == revision,
+           speculation?.correlation == ModelPassRecorder.correlation { return }
         cancelSpeculation()
         let prior = serialBarrier()
         nextGenerationTimingID &+= 1
         let timing = GenerationTiming(id: nextGenerationTimingID, revision: revision)
         let buffer = SpeculativeVoiceBuffer()
+        let correlation = ModelPassRecorder.correlation
         let producer = Task {
             let barrierStarted = ContinuousClock.now
             guard await Self.waitForPriorInference(prior) else {
@@ -190,7 +193,7 @@ actor LocalVoiceFrontend {
             }
         }
         speculation = Speculation(key: key, epoch: revision, startedAt: Date(), timing: timing,
-                                  buffer: buffer, producer: producer)
+                                  buffer: buffer, producer: producer, correlation: correlation)
         Self.emitTiming(timing, "speculation_started")
         traceSpeculation("started revision=\(revision)")
     }
@@ -293,7 +296,8 @@ actor LocalVoiceFrontend {
     ) async -> AsyncThrowingStream<String, Error> {
         if let commitRevision { sealSpeculation(through: commitRevision) }
         let key = RequestKey(system: system, messages: messages, maxTokens: maxTokens)
-        if let speculation, speculation.key == key {
+        if let speculation, speculation.key == key,
+           speculation.correlation == ModelPassRecorder.correlation {
             self.speculation = nil
             let previous = drainBarrier
             drainBarrier = Task {
@@ -308,9 +312,10 @@ actor LocalVoiceFrontend {
                 String(format: "hit headstart=%.3f", lead))
             return await speculation.buffer.stream(cancelProducer: speculation.producer)
         }
-        if speculation != nil {
-            traceSpeculation("miss exact-request mismatch")
-            VoiceLatencyTimeline.shared.note("speculation", "miss reason=mismatch")
+        if let speculation {
+            let reason = speculation.key == key ? "correlation" : "mismatch"
+            traceSpeculation("miss request/identity \(reason)")
+            VoiceLatencyTimeline.shared.note("speculation", "miss reason=\(reason)")
         } else {
             traceSpeculation("miss no-slot")
             VoiceLatencyTimeline.shared.note("speculation", "miss reason=no-slot")

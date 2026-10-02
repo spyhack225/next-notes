@@ -1,0 +1,5 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-speculation --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-voice-related/selftest-voice-speculation.out
+2026-10-01 20:55:53.299 NextNotes[48388:652615] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_SPECULATION_OK
+VOICE_SPECULATION_USAGE_OK: 5 cases, 9 actual recorder rows; scripted generation
+VOICE_SPECULATION_OK

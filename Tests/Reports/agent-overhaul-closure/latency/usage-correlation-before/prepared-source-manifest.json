@@ -1,0 +1,40 @@
+{
+  "status": "installed focused flag and native warm-plus-five rerun passed; isolated driver prepared but not compiled",
+  "files": {
+    "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "6e7c3839f535732374121ee5108270fdd576964872b80ef513fcd551da91d6b8",
+    "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift": "61e42da686cb130d13c8136bd00d8ce0848e5b6587fc51469fb6c008fd92d1c1",
+    "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontendSpeculationSelfTest.swift": "d37e0634f28181e682d879d1784c36f4af80783df6de4bd7d4cc4a48a39c466f"
+  },
+  "regression_scope": "actual frontend speculative slot/task-local inheritance and real ModelPassRecorder with scripted generation; installed native/coordinator five-turn rerun remains required",
+  "cases": [
+    "completed speculative record before commit reused once",
+    "changed partial retains ids",
+    "same exact request changed turn starts fresh",
+    "same exact request changed conversation starts fresh",
+    "same request and same revision changed correlation replaces producer"
+  ],
+  "installed": {
+    "focused_speculation": "VOICE_SPECULATION_OK; VOICE_SPECULATION_USAGE_OK: 5 cases, 9 actual recorder rows; scripted generation",
+    "native_baseline": "VOICE_LATENCY_OK; warmup excluded from five measured turns",
+    "measured_turns": 5,
+    "measured_joined_passes": [
+      2,
+      4,
+      4,
+      4,
+      4
+    ],
+    "measured_commits_per_run": 1,
+    "endpoint": "localEOU",
+    "first_audio_acknowledged": true,
+    "speech_end_to_first_audio_median_s": 2.894,
+    "speech_end_to_first_audio_p90_s": 3.729,
+    "max_measured_main_actor_stall_s": 0.035,
+    "limits": [
+      "baseline only; no 0.9s budget supplied and no phase exit",
+      "first original run extra cold duplicate commit not independently fixed/proven by this warm rerun",
+      "voice-frontend related flag failed; parent investigating",
+      "no physical microphone/room-loop latency proof"
+    ]
+  }
+}
