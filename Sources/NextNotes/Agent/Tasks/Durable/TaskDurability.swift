@@ -8,7 +8,9 @@ enum TaskRuntimeClass: String, Codable, Sendable {
     case localDeterministic, cloudModel, browserOrMCP, acpWorker, scheduledResearch, waitingOnPerson
 }
 
-/// Optional metadata only. P6-02a does not consume it to start, recover or retry work.
+/// Persisted optional execution metadata. Typed-local producers bind positive attempts
+/// and admitted worker/tool progress; other owners remain explicitly unbound.
+/// These fields alone authorize no recovery, retry or remote worker.
 struct TaskDurability: Codable, Sendable, Equatable {
     var heartbeatAt: Date? = nil
     var attempt = 0

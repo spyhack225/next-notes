@@ -1,0 +1,93 @@
+--- a/Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift
++++ b/Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift
+@@ -556,7 +556,10 @@
+                 leaseOwner: durability.leaseOwner, status: .queued)
+             durability.attempt += 1
+             durability.leaseOwner = String(ProcessInfo.processInfo.processIdentifier)
+-            durability.attemptStartedAt = Date()
++            let began = progressDate()
++            durability.attemptStartedAt = began
++            durability.heartbeatAt = began
++            durability.lastProgressAt = began
+             durability.runtimeClass = .localDeterministic
+             durability.resumePolicy = .neverAuto
+             task.durability = durability
+@@ -701,7 +704,7 @@
+     }
+ 
+     @discardableResult
+-    private func update(_ id: String, kinds: [TaskEventKind] = [],
++    private func update(_ id: String, kinds: [TaskEventKind] = [], events: [TaskJournalEventDraft] = [],
+                         worker: TaskWorkerWriteCondition? = nil, mutate: (inout AgentTask) -> Void) -> AgentTaskPersistenceResult {
+         guard historyReadFailure == nil else { return .loadFailed }
+         guard let index = tasks.firstIndex(where: { $0.id == id }) else { return .loadFailed }
+@@ -710,7 +713,8 @@
+             ? TaskWorkerWriteCondition(taskID: before.id, attempt: before.durability!.attempt,
+                 leaseOwner: before.durability!.leaseOwner, status: before.status) : nil)
+         mutate(&tasks[index])
+-        let result = persist(events: transitionEvents(from: before, to: tasks[index], kinds: kinds), worker: expected)
++        let result = persist(events: transitionEvents(from: before, to: tasks[index], kinds: kinds) + events,
++                             worker: expected)
+         if !result.primaryCommitted { tasks[index] = before }
+         return result
+     }
+@@ -759,7 +763,13 @@
+             }
+         }
+         let attempt = task.durability?.attempt ?? 0
+-        var events = result.map { TaskJournalEventDraft(taskID: task.id, kind: $0, attempt: attempt) }
++        var events = result.map { kind in
++            var event = TaskJournalEventDraft(taskID: task.id, kind: kind, attempt: attempt)
++            if kind == .workerStarted, hasLocalAttemptRecord(task), let began = task.durability?.attemptStartedAt {
++                event.at = began
++            }
++            return event
++        }
+         let added = task.artifacts.filter { !before.artifacts.contains($0) }
+         if !added.isEmpty {
+             events.append(TaskJournalEventDraft(taskID: task.id, kind: .artifactCaptured,
+@@ -819,6 +829,17 @@
+                 }
+                 guard event.attempt == task.durability?.attempt,
+                       let expected = self.workerCondition(task, states: states) else { return false }
++                if event.kind == .toolStarted || event.kind == .toolCompleted {
++                    let prior = self.task(id: taskID)?.durability
++                    let now = max(self.progressDate(), max(prior?.heartbeatAt ?? .distantPast,
++                                                          prior?.lastProgressAt ?? .distantPast))
++                    var stamped = event
++                    stamped.at = now
++                    return self.update(taskID, events: [stamped], worker: expected) { item in
++                        item.durability?.heartbeatAt = now
++                        item.durability?.lastProgressAt = now
++                    }.primaryCommitted
++                }
+                 return self.persist(events: [event], worker: expected).primaryCommitted
+             }
+             return self.persist(events: [event]).primaryCommitted
+@@ -828,6 +849,13 @@
+                self.workerCondition(task, states: [.running]) == nil { return false }
+             return self.consumePermissionApproval(taskID: taskID)
+         }, restoredOrigin: origin, restoredPermission: restoredPermission, restoredArguments: restoredArguments)
++    }
++
++    private func progressDate() -> Date {
++        if SelfTest.isRunning, let clock = progressDateForTesting, store.allowsHarnessPersistence {
++            return clock()
++        }
++        return Date()
+     }
+ 
+     @discardableResult
+--- a/Sources/NextNotes/Agent/Tasks/Durable/TaskDurability.swift
++++ b/Sources/NextNotes/Agent/Tasks/Durable/TaskDurability.swift
+@@ -8,7 +8,9 @@
+     case localDeterministic, cloudModel, browserOrMCP, acpWorker, scheduledResearch, waitingOnPerson
+ }
+ 
+-/// Optional metadata only. P6-02a does not consume it to start, recover or retry work.
++/// Persisted optional execution metadata. Typed-local producers bind positive attempts
++/// and admitted worker/tool progress; other owners remain explicitly unbound.
++/// These fields alone authorize no recovery, retry or remote worker.
+ struct TaskDurability: Codable, Sendable, Equatable {
+     var heartbeatAt: Date? = nil
+     var attempt = 0

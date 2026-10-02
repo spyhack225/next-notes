@@ -1,0 +1,8 @@
+[
+  {
+    "flag": "task-worker-attempt",
+    "exit": 1,
+    "verdict": "FAIL",
+    "marker": "TASK_WORKER_ATTEMPT_FAILED: 20 assertions"
+  }
+]

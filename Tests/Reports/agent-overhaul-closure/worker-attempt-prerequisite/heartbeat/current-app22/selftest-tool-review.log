@@ -1,0 +1,2 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-tool-review --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-checks-22/selftest-tool-review.out
+TOOL_REVIEW_OK

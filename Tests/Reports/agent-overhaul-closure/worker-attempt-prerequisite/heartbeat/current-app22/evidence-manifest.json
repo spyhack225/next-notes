@@ -1,0 +1,132 @@
+{
+  "installedBinarySHA256": "dc264d8dfbc0dcba8485595106beff9b365b11f81dbaa6b8df8186933793ff83",
+  "workerVerdict": "TASK_WORKER_ATTEMPT_OK: 93 cases",
+  "exit": 0,
+  "fixtureSHA256": "bfd4de1569324062fab0d1fd33d0791fb8b9a9dc75806ed00051f3679cbef5ec",
+  "checks": [
+    {
+      "flag": "task-worker-attempt",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TASK_WORKER_ATTEMPT_OK: 93 cases"
+    },
+    {
+      "flag": "task-durability",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TASK_DURABILITY_OK: 37 cases"
+    },
+    {
+      "flag": "task-recovery",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TASK_RECOVERY_OK: 56 cases"
+    },
+    {
+      "flag": "task-authority",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TASK_AUTHORITY_OK: 58 cases"
+    },
+    {
+      "flag": "task-restoration",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TASK_RESTORATION_OK: 82 cases"
+    },
+    {
+      "flag": "task-history-repair",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TASK_HISTORY_REPAIR_OK: 58 cases"
+    },
+    {
+      "flag": "tool-review",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TOOL_REVIEW_OK"
+    },
+    {
+      "flag": "toolloop-production",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TOOLLOOP_PRODUCTION_OK"
+    },
+    {
+      "flag": "routine-authority",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "ROUTINE_AUTHORITY_OK"
+    },
+    {
+      "flag": "schedule",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "SCHEDULE_OK"
+    },
+    {
+      "flag": "usage-log",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "USAGE_LOG_OK: 26 cases"
+    },
+    {
+      "flag": "store-isolation",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged"
+    },
+    {
+      "flag": "toolloop-live-grader",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TOOLLOOP_LIVE_GRADER_OK"
+    },
+    {
+      "flag": "voice-scheduling",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "VOICE_SCHEDULING_OK"
+    }
+  ],
+  "files": {
+    "nextnotes-agent-closure-build22-source-manifest.json": "3a0ca155045189c563d05981fa2489f49b37e2974aa766a5d89094ba537618a6",
+    "nextnotes-agent-closure-install-22.log": "98a40dd4d2129e76f9a09f2b4734812df28945f422edefcdf8fab05aa4a24834",
+    "nextnotes-agent-closure-checks22.py": "da59965b4f39a2f245ce5602a5366c52730bdacbd12bb991b3aa2ed8f4c593ae",
+    "selftest-toolloop-production.log": "57394146249f4ce4fd72273080ebdfe4e6107a238b2fcb78e314eac65f2e8065",
+    "summary.json": "39c0e96077e0a0fe83b39a31a92e0b17f13a08f1bacaeac31fb5abc1a5b148d1",
+    "selftest-task-durability.out": "34e4c3b887ddbf3e464e6237977026bbe6a9578eabfd193d5233d584d4b8b45b",
+    "selftest-task-recovery.log": "243aeada9db6ad75d32b56230a879deed1e356aba7a8832285102252bd204a59",
+    "selftest-task-history-repair.log": "a602a564c78e106a1e10fe5007c7af2d3681468da0c978d1fa2f659b14aec645",
+    "selftest-routine-authority.log": "d356e956cc7fbe3280d5ee27811dc83babdf6b028d1a3b29f8707245a23c77fe",
+    "selftest-toolloop-live-grader.out": "158ea2d072de62a6db5e7acaaa3e66d32d0515ea3e81079b60475570c9ea9ae3",
+    "selftest-task-worker-attempt.log": "31257f7b2e3202918ca4df480c50c9605543f875fedfdfc7be8c18ebbd08f504",
+    "selftest-store-isolation.out": "1bee49f059632deb93fa52593e07514bc4dcef28902e2ce2813ccb6f2a9112f7",
+    "selftest-task-authority.log": "3f52b1a6caa09b34e85cde6546c8e9766a59f9e86e105c01b45494f0989a8002",
+    "selftest-schedule.log": "21fb478a3c43b5c13a2b0b370cfbfb5417415cdc682cd1a48d6f9611e3cb1880",
+    "selftest-task-restoration.out": "c123f43c6d7d5d5fc418be86a16ff1f2d611b16294f82dca3483882e014155b1",
+    "selftest-voice-scheduling.log": "52fb1b6816fa4e8d48977f0883171fb3e2269aaf57162b5afdc3071c0138321e",
+    "selftest-toolloop-production.out": "f7405a5292ebb2c7d7c975176de0c15f9f4cf07b174107c4866a26c2c0a73433",
+    "selftest-task-durability.log": "8a0aa53680310b5a84d8791510a25f2df3aab773a2c1a6b5c27281a75439745f",
+    "selftest-task-history-repair.out": "938483e9539b55a323808ba7cb76c464d9879535737c1b3e72f1818c33c8087e",
+    "selftest-task-recovery.out": "4c5825f3e5b688c57c88e95545baf6890175e09247d91eb163876d358943a4bd",
+    "selftest-toolloop-live-grader.log": "c74dfd73cfcb484c3fd1168e7fd03de157a79cf3779b7675ab1d1249850c55cb",
+    "selftest-task-worker-attempt.out": "af2cec8b3c8d47a7154b2b25e81ea41f421c48018565bc974156a9fee736bc58",
+    "selftest-store-isolation.log": "96b8faff1e1c29171dd7d5f5134853084a71e4efa880125a7a477215c013fdaf",
+    "selftest-tool-review.log": "7cdd8a3672b38f164918d098599dd08381c07a14bec69c2d55082a796cf4a718",
+    "selftest-task-authority.out": "a4e84cb75b032e12086d4ec9f871e44ad1b9dc214361a129a1b3c47402a96ec3",
+    "selftest-voice-scheduling.out": "10b748c6b3d2a325140411c1c2a5e2067b790fc659bc0ff2ef053391512ade9d",
+    "selftest-task-restoration.log": "83da78fcff8f4b0993cd0c34c6cc780acdc1e0329fed6ed276e7633ad3219a86",
+    "selftest-usage-log.log": "6dfaa41a3726feacd346e25255749567fa629408da2e4e19ffa38df126f14bd7",
+    "AgentTaskManager.swift.txt": "7656e05886041e12b903f91831d8e4eb4f1f14a35c0378304a94b398140bd7e0",
+    "TaskWorkerAttemptSelfTest.swift.txt": "bfd4de1569324062fab0d1fd33d0791fb8b9a9dc75806ed00051f3679cbef5ec",
+    "TaskDurability.swift.txt": "1826c8a5acb8a0a93307fa645448e6647631ac239b3dcad6741ebb667dad02df"
+  },
+  "absentOutputCompanions": [
+    "selftest-tool-review.out",
+    "selftest-routine-authority.out",
+    "selftest-schedule.out",
+    "selftest-usage-log.out"
+  ],
+  "scope": "P6-05a bounded admitted typed-local worker/tool progress fields; scripted safe-temp clock; no stale consumer/classification/timer/retry/IM16"
+}

@@ -333,6 +333,19 @@ live PermissionGate standing-grant repair, ACP/voice/scheduled/remote authority,
 automatic retry or IM-16 host. Parent Phase 6 tasks remain open. See the
 [worker report](Tests/Reports/agent-overhaul-closure/worker-attempt-prerequisite/README.md).
 
+`--selftest-task-worker-attempt` now verifies P6-05a's admitted typed-local
+activity fields through the actual manager/backend/tool path: original app21 failed
+20 assertions; current app22 passes 93 checks (the original 61 plus 32 progress cases).
+WorkerStarted/toolStarted/toolCompleted stamp heartbeatAt and lastProgressAt in the
+same existing primary transaction; rejected writes roll back fields in memory and
+SQL, and export failure does not revoke SQL admission. The deterministic test clock
+is nil by default and requires SelfTest plus explicit safe temp persistence. No
+extra save, heartbeat row, await, timer or store was added. All 14 focused flags pass,
+including restoration 82 and isolation: 21 files and 32 defaults unchanged. These activity
+facts do not prove health, runtime-class windows, stale detection, lease/session
+liveness, receipt joins, retry or IM-16. Parent P6-05 remains open. See the
+[original/current progress report](Tests/Reports/agent-overhaul-closure/worker-attempt-prerequisite/heartbeat/README.md).
+
 `--selftest-voice-session-reducer` verifies ten pure traces (the original nine
 plus speech-ended identity/hold guards), then actual capture, approval and streamed
 playback with scripted models and a recording backing. `VoiceSession` remains a

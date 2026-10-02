@@ -1,0 +1,37 @@
+{
+  "status": "bounded P6-05a done under \u00a74.1: actual original21 exit1/20 assertions, identical fixture current22 worker93 and all14 flags PASS",
+  "scope": "P6-05a actual admitted positive typed-local worker/tool progress fields only; no stale detector/classification/timer/retry",
+  "expected_worker_cases": 93,
+  "unchanged_original_cases": 61,
+  "added_case_paths": 32,
+  "clock_scaffold": "unused nil-default property only on original Manager; production behavior unchanged",
+  "clock_candidate": "SelfTest plus explicit safe temp-store only; same scripted time feeds eligible fact date and fields; real product uses Date",
+  "files": {
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": {
+      "original": "original-AgentTaskManager.swift.txt",
+      "original_sha256": "ccbb36ecdd6a2c3ec847ff9d6253836ff21af06d13d0a2ee0951cc9d2d267d45",
+      "proposed": "proposed-AgentTaskManager.swift.txt",
+      "proposed_sha256": "7656e05886041e12b903f91831d8e4eb4f1f14a35c0378304a94b398140bd7e0"
+    },
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift": {
+      "original": "original-TaskWorkerAttemptSelfTest.swift.txt",
+      "original_sha256": "be71247a424ebedbe25b7db56a57c25959645634a674f4c52d8eb5f0789928f3",
+      "proposed": "proposed-TaskWorkerAttemptSelfTest.swift.txt",
+      "proposed_sha256": "bfd4de1569324062fab0d1fd33d0791fb8b9a9dc75806ed00051f3679cbef5ec"
+    },
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskDurability.swift": {
+      "original": "original-TaskDurability.swift.txt",
+      "original_sha256": "a73195a3ea016122cbe58abfd976578f3b6c495b822d5b2377debd0e4d48e30b",
+      "proposed": "proposed-TaskDurability.swift.txt",
+      "proposed_sha256": "1826c8a5acb8a0a93307fa645448e6647631ac239b3dcad6741ebb667dad02df"
+    }
+  },
+  "original_scaffold_sha256": "25fb9529b409058bd9be06eb16f87fc01d59813ef6bc3b0144a3f5260317bed9",
+  "original_evidence": "original-app21/evidence-manifest.json",
+  "original_failed_assertions": 20,
+  "original_actual_case_marker": null,
+  "current_evidence": "current-app22/evidence-manifest.json",
+  "actual_current_worker_cases": 93,
+  "actual_current_isolation": "21 files and 32 defaults unchanged",
+  "current_binary_sha256": "dc264d8dfbc0dcba8485595106beff9b365b11f81dbaa6b8df8186933793ff83"
+}

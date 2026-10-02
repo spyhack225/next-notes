@@ -1,0 +1,9 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-recovery --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-checks-22/selftest-task-recovery.out
+TASK_RECOVERY_OK: 56 cases
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.

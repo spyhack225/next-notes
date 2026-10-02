@@ -23,6 +23,7 @@ final class AgentTaskManager {
     @ObservationIgnored var backendEntryForTesting: (@MainActor () throws -> Void)?
     @ObservationIgnored var backendExitForTesting: (@MainActor () -> Void)?
     @ObservationIgnored var announcementForTesting: (@MainActor (String) -> Void)?
+    @ObservationIgnored var progressDateForTesting: (@MainActor () -> Date)?
     private var preparedRepairAvailable = false
     @ObservationIgnored private let store: AgentTaskStore
     private var projectsActivity: Bool { !SelfTest.isRunning || !store.allowsHarnessPersistence }
@@ -555,7 +556,10 @@ final class AgentTaskManager {
                 leaseOwner: durability.leaseOwner, status: .queued)
             durability.attempt += 1
             durability.leaseOwner = String(ProcessInfo.processInfo.processIdentifier)
-            durability.attemptStartedAt = Date()
+            let began = progressDate()
+            durability.attemptStartedAt = began
+            durability.heartbeatAt = began
+            durability.lastProgressAt = began
             durability.runtimeClass = .localDeterministic
             durability.resumePolicy = .neverAuto
             task.durability = durability
@@ -700,7 +704,7 @@ final class AgentTaskManager {
     }
 
     @discardableResult
-    private func update(_ id: String, kinds: [TaskEventKind] = [],
+    private func update(_ id: String, kinds: [TaskEventKind] = [], events: [TaskJournalEventDraft] = [],
                         worker: TaskWorkerWriteCondition? = nil, mutate: (inout AgentTask) -> Void) -> AgentTaskPersistenceResult {
         guard historyReadFailure == nil else { return .loadFailed }
         guard let index = tasks.firstIndex(where: { $0.id == id }) else { return .loadFailed }
@@ -709,7 +713,8 @@ final class AgentTaskManager {
             ? TaskWorkerWriteCondition(taskID: before.id, attempt: before.durability!.attempt,
                 leaseOwner: before.durability!.leaseOwner, status: before.status) : nil)
         mutate(&tasks[index])
-        let result = persist(events: transitionEvents(from: before, to: tasks[index], kinds: kinds), worker: expected)
+        let result = persist(events: transitionEvents(from: before, to: tasks[index], kinds: kinds) + events,
+                             worker: expected)
         if !result.primaryCommitted { tasks[index] = before }
         return result
     }
@@ -758,7 +763,13 @@ final class AgentTaskManager {
             }
         }
         let attempt = task.durability?.attempt ?? 0
-        var events = result.map { TaskJournalEventDraft(taskID: task.id, kind: $0, attempt: attempt) }
+        var events = result.map { kind in
+            var event = TaskJournalEventDraft(taskID: task.id, kind: kind, attempt: attempt)
+            if kind == .workerStarted, hasLocalAttemptRecord(task), let began = task.durability?.attemptStartedAt {
+                event.at = began
+            }
+            return event
+        }
         let added = task.artifacts.filter { !before.artifacts.contains($0) }
         if !added.isEmpty {
             events.append(TaskJournalEventDraft(taskID: task.id, kind: .artifactCaptured,
@@ -818,6 +829,17 @@ final class AgentTaskManager {
                 }
                 guard event.attempt == task.durability?.attempt,
                       let expected = self.workerCondition(task, states: states) else { return false }
+                if event.kind == .toolStarted || event.kind == .toolCompleted {
+                    let prior = self.task(id: taskID)?.durability
+                    let now = max(self.progressDate(), max(prior?.heartbeatAt ?? .distantPast,
+                                                          prior?.lastProgressAt ?? .distantPast))
+                    var stamped = event
+                    stamped.at = now
+                    return self.update(taskID, events: [stamped], worker: expected) { item in
+                        item.durability?.heartbeatAt = now
+                        item.durability?.lastProgressAt = now
+                    }.primaryCommitted
+                }
                 return self.persist(events: [event], worker: expected).primaryCommitted
             }
             return self.persist(events: [event]).primaryCommitted
@@ -827,6 +849,13 @@ final class AgentTaskManager {
                self.workerCondition(task, states: [.running]) == nil { return false }
             return self.consumePermissionApproval(taskID: taskID)
         }, restoredOrigin: origin, restoredPermission: restoredPermission, restoredArguments: restoredArguments)
+    }
+
+    private func progressDate() -> Date {
+        if SelfTest.isRunning, let clock = progressDateForTesting, store.allowsHarnessPersistence {
+            return clock()
+        }
+        return Date()
     }
 
     @discardableResult

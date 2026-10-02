@@ -1,0 +1,17 @@
+{
+  "installedBinarySHA256": "073558b41face49f7913e897e22b47aefcd1f652efbf5f22779140313ceca830",
+  "verdict": "TASK_WORKER_ATTEMPT_FAILED: 20 assertions",
+  "exit": 1,
+  "scope": "Original actual installed producer with unused nil clock scaffold; identical fixture retained for current run",
+  "files": {
+    "nextnotes-agent-closure-build21-source-manifest.json": "f9ae3d28a26caab8d274856dae9027fe0ad811998e13c1bc529df59764679872",
+    "nextnotes-agent-closure-install-21.log": "90798ab594b31f848c899d828090a496d345b5babc4974d0aa09b82eee89a0cf",
+    "nextnotes-agent-closure-checks21.py": "888407ca0d4f2f3c37e3dc2642d6c411b91042c9abcbcdfa84fe0bec1b1858a2",
+    "summary.json": "86228a0a0dbd4095c0e7007a1b41a093d0d8feb60e4fce408f179afa243f9061",
+    "selftest-task-worker-attempt.log": "a298eee11c20f53ed2be0cd7a01731a0f6c0de9a920566913e6cb72e526aaf47",
+    "selftest-task-worker-attempt.out": "2037348ba1947340f1dcf53adb422356904653b54ace2b953e4c8a9163c2bd0f",
+    "AgentTaskManager.swift.txt": "25fb9529b409058bd9be06eb16f87fc01d59813ef6bc3b0144a3f5260317bed9",
+    "TaskWorkerAttemptSelfTest.swift.txt": "bfd4de1569324062fab0d1fd33d0791fb8b9a9dc75806ed00051f3679cbef5ec",
+    "TaskDurability.swift.txt": "a73195a3ea016122cbe58abfd976578f3b6c495b822d5b2377debd0e4d48e30b"
+  }
+}
