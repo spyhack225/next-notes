@@ -43,8 +43,8 @@ struct TaskWorkerToolBackingObservation: Equatable, Sendable {
 }
 
 /// Persisted optional execution metadata. Typed local and normal typed ACP producers
-/// bind positive attempts and admitted start fields. Typed-local tool progress has
-/// its own receipt contract; other owners remain explicitly unbound.
+/// bind positive attempts and admitted start fields. Typed-local tool progress and
+/// normal typed ACP startup join their existing receipts; other owners stay unbound.
 /// These fields alone authorize no recovery, retry or remote worker.
 struct TaskDurability: Codable, Sendable, Equatable {
     var heartbeatAt: Date? = nil

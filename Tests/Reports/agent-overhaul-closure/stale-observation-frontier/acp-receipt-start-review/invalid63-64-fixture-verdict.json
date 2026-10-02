@@ -1,0 +1,12 @@
+{
+  "verdict": "Not accepted as authoritative startup original/fixed comparison",
+  "cause": "Fixture compared nonoptional ActionReceipt.result String to nil, constant false; actual constructor initializes empty String. Original63 compiler warned at fixture line195. Fixed64 resolved observed startup failures but constant-false fixture assertion remained. Root missed warning.",
+  "change": "Use exact result.isEmpty expected schema contract, plus scalar trace; same protocol/SQL/mode/input and30 checks. Repeat both original65/fixed66 with identical corrected fixture.",
+  "oldFixtureSHA256": "84098166f399ad1d399c5c24fd2e66fa34871100b0a659ce05fdc5528ae8e166",
+  "correctedFixtureSHA256": "f0240f4d9ea7f3554949d7be9f8cd6ecb31e3ceec1fd6f475ba567d6df45bbd3",
+  "original63FailureCount": 9,
+  "fixed64FailureCount": 1,
+  "fixed64RelatedChecks": "not run; worker guard stopped suite",
+  "fixed64SourceDrift": [],
+  "fixed64BundleUnchanged": true
+}

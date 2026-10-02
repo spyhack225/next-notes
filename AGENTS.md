@@ -481,6 +481,18 @@ reconciliation, nested permission/client ownership, crash durability, recovery a
 IM-16 remain open. See the
 [terminal receipt proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-unverified-receipt-review/verification.md).
 
+Installed app66 extends the worker flag to731 checks with bounded P6-06j. Original65
+fails nine actual startup/receipt assertions; unchanged fixed66 and all20 focused
+flags pass. Normal typed ACP now joins the exact saved prepared receipt UUID through
+the existing primary tool-start transaction before process work. Rejection launches
+no owned peer, reports the exact not-run failure and retains failed receipt/fired-stage
+evidence. One ACP primary start transaction is added; no new store/await/timer/queue.
+Full-history latency, ACP completion admission, post-Session-await epoch fencing,
+compatibility, effect reconciliation, recovery/retry and IM-16 stay open. Historical
+63/64 contain a documented fixture String-vs-nil error; both producer versions were
+repeated after the fixture correction. See the
+[startup proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-receipt-start-review/verification.md).
+
 ACP now checks the exact established session ID before accumulating reply text,
 publishing activity or relaying a permission (installed app53). Actual original52
 fails20 of68 origin checks; the unchanged fixture passes68 in fixed53 and five

@@ -1,0 +1,16 @@
+{
+  "changed": [
+    "Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskDurability.swift"
+  ],
+  "runtime": [
+    "Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift"
+  ],
+  "commentOnly": [
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskDurability.swift"
+  ],
+  "fixtureUnchangedSHA256": "c1fb9a61796906c4fd4e3b9152e1704c1388cfc5f19e5da01e2ac0ddc2feeb9f",
+  "priorUpgradedFixtureUnchangedSHA256": "a60fe229d2a7f3256ee945cf21fed91b57b824211a870db6bf309fe4c42e44d7"
+}

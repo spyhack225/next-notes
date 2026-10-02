@@ -1,0 +1,11 @@
+{
+  "childDraftSHA256": "f6c26001aa1850253a421c568586b75e8f586c99a30c85c358677b53467b2f92",
+  "rootFrozenSHA256": "c1fb9a61796906c4fd4e3b9152e1704c1388cfc5f19e5da01e2ac0ddc2feeb9f",
+  "onlyEditsBeforeOriginal63": [
+    "trim whitespace-only raw-string separators",
+    "fixture header now describes actual path"
+  ],
+  "peerUnchanged": true,
+  "pythonAST": "pass",
+  "swift": "not built yet"
+}

@@ -1,0 +1,5 @@
+{
+  "original61Fixed62FixtureSHA": "a2f2b3a02f563da86d0c2c62ec96a73434dc62ad9312819703c5f1865e675d5f",
+  "upgradedBeforeOriginal63SHA": "a60fe229d2a7f3256ee945cf21fed91b57b824211a870db6bf309fe4c42e44d7",
+  "scope": "Only replace missing-feature empty ACP receipt join expectation with exact actual fired action UUID in both existing modes; all delivery/terminal/receipt-byte assertions retained. Original61/62 proof remains archived unchanged. This desired new contract is frozen before original63, not changed after observing red. Also pins in-memory join equal to primary in the same existing assertion before original63."
+}

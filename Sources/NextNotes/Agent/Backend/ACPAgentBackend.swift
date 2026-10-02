@@ -505,6 +505,8 @@ struct ACPAgentBackend: AgentBackend {
                     ? (TaskEventJournal.current?.receiptStore ?? .shared) : .shared,
                 fire: { [self] prepared in
                     try Task.checkCancellation()
+                    _ = try TaskEventJournal.toolStarted(taskID: task.id, tool: tool.id,
+                        receiptID: prepared.id)
                     let before = directory.flatMap(ACPWorkspaceVerification.capture)
                     let outcome: AgentTaskOutcome
                     do {

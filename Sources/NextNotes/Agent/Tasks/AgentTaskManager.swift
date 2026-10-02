@@ -947,12 +947,7 @@ final class AgentTaskManager {
         } else { validity = nil }
         return TaskJournalContext(taskID: taskID, attempt: task.durability?.attempt ?? 0, record: { [weak self] event in
             guard event.taskID == taskID, let self, self.task(id: taskID) != nil else { return false }
-            if self.ownsTypedACPAttempt(task), self.hasWorkerAttemptRecord(task) {
-                guard event.attempt == task.durability?.attempt,
-                      let expected = self.workerCondition(task, states: [.running, .waitingForPermission]) else { return false }
-                return self.persist(events: [event], worker: expected).primaryCommitted
-            }
-            if self.hasLocalAttemptRecord(task) {
+            if self.hasWorkerAttemptRecord(task) {
                 let states: [AgentTaskStatus]
                 switch event.kind {
                 case .permissionRequested, .permissionApproved, .permissionDenied:
