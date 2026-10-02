@@ -77,21 +77,39 @@ enum RoutineAuthoritySelfTest {
         func expect(_ name: String, _ route: RoutineModelRoute, _ wanted: RoutineModelRoute) {
             if route != wanted { failures.append("router: \(name) gave \(route), wanted \(wanted)") }
         }
-        let route = RoutineModelRouter.route
+        let route: (AgentSchedule.ModelChoice, Bool, MemoryReviewLocalState, Bool) -> RoutineModelRoute = {
+            RoutineModelRouter.route(choice: $0, isRecording: $1, local: $2, cloudConfigured: $3,
+                                     appleAvailable: false)
+        }
+        let autoUnavailable = ", OpenRouter isn't set up and Apple Intelligence isn't available"
+        let localUnavailable = " and Apple Intelligence isn't available"
         expect("auto, local model idle", route(.auto, false, .idle(seconds: 5), true), .local)
         expect("auto, local model loadable", route(.auto, false, .notLoaded, false), .local)
         expect("auto, local model busy, cloud", route(.auto, false, .busy, true), .cloud)
-        expect("auto, local model busy, no cloud", route(.auto, false, .busy, false), .skip("local model busy"))
-        expect("auto, no local model, no cloud", route(.auto, false, .unavailable, false), .skip("Local model isn't downloaded"))
-        expect("local, busy", route(.local, false, .busy, true), .skip("local model busy"))
+        expect("auto, local model busy, no cloud", route(.auto, false, .busy, false), .skip("local model busy" + autoUnavailable))
+        expect("auto, no local model, no cloud", route(.auto, false, .unavailable, false), .skip("Local model isn't downloaded" + autoUnavailable))
+        expect("local, busy", route(.local, false, .busy, true), .skip("local model busy" + localUnavailable))
         expect("cloud, not set up", route(.cloud, false, .idle(seconds: 99), false), .skip("OpenRouter isn't set up"))
         expect("cloud", route(.cloud, false, .busy, true), .cloud)
         // Recording rules out only the local model; OpenRouter still runs (a call trigger fires mid-call).
         let recording = "a meeting or dictation is recording"
         expect("auto, recording, cloud", route(.auto, true, .idle(seconds: 99), true), .cloud)
-        expect("auto, recording, no cloud", route(.auto, true, .idle(seconds: 99), false), .skip(recording))
-        expect("local, recording", route(.local, true, .notLoaded, true), .skip(recording))
+        expect("auto, recording, no cloud", route(.auto, true, .idle(seconds: 99), false), .skip(recording + autoUnavailable))
+        expect("local, recording", route(.local, true, .notLoaded, true), .skip(recording + localUnavailable))
         expect("cloud, recording", route(.cloud, true, .idle(seconds: 99), true), .cloud)
+        let appleRows: [(String, AgentSchedule.ModelChoice, Bool, MemoryReviewLocalState, Bool, RoutineModelRoute)] = [
+            ("auto, no local or cloud, Apple", .auto, false, .unavailable, false, .appleFoundation),
+            ("auto, busy local, cloud and Apple", .auto, false, .busy, true, .appleFoundation),
+            ("auto, recording, cloud and Apple", .auto, true, .idle(seconds: 99), true, .cloud),
+            ("auto, recording, no cloud, Apple", .auto, true, .idle(seconds: 99), false, .appleFoundation),
+            ("local, busy, Apple", .local, false, .busy, true, .appleFoundation),
+            ("local, recording, Apple", .local, true, .notLoaded, true, .appleFoundation),
+            ("cloud, not set up, Apple", .cloud, false, .idle(seconds: 99), false, .skip("OpenRouter isn't set up")),
+        ]
+        for (name, choice, recording, local, cloud, wanted) in appleRows {
+            expect(name, RoutineModelRouter.route(choice: choice, isRecording: recording, local: local,
+                                                  cloudConfigured: cloud, appleAvailable: true), wanted)
+        }
         return failures
     }
 
@@ -192,7 +210,7 @@ enum RoutineAuthoritySelfTest {
         environment.cloud = false
         let busy = await runner.run(schedule, now: Date())
         check("busy local model with no cloud not skipped as local model busy",
-              busy.status == .skipped && busy.text == "local model busy")
+              busy.status == .skipped && busy.text == "local model busy, OpenRouter isn't set up and Apple Intelligence isn't available")
         environment.local = .idle(seconds: 120)
         return failures
     }
@@ -582,6 +600,9 @@ enum RoutineAuthoritySelfTest {
         var recording = false
         var local: MemoryReviewLocalState = .idle(seconds: 120)
         var cloud = true
+        var apple = false
+        var budgetRequests: [(RoutineModelRoute, Int)] = []
+        var readers: [LLMProviderID?] = []
         var model: ScriptedMemoryReviewModel = ScriptedMemoryReviewModel { _, _ in "NOTHING_TO_REPORT" }
         var systemSink: ((String) -> Void)?
         var completions = 0
@@ -589,6 +610,12 @@ enum RoutineAuthoritySelfTest {
         var isRecording: Bool { recording }
         func localModelState() async -> MemoryReviewLocalState { local }
         func isCloudConfigured() async -> Bool { cloud }
+        func isAppleFoundationAvailable() async -> Bool { apple }
+
+        func model(for route: RoutineModelRoute, maxOutputTokens: Int) async -> (any MemoryReviewModel)? {
+            budgetRequests.append((route, maxOutputTokens))
+            return await model(for: route)
+        }
 
         func model(for route: RoutineModelRoute) async -> (any MemoryReviewModel)? {
             if case .skip = route { return nil }
@@ -597,6 +624,7 @@ enum RoutineAuthoritySelfTest {
 
         func recordCompletion(system: String) {
             completions += 1
+            readers.append(KnowledgeGraphScope.reader)
             systemSink?(system)
         }
     }

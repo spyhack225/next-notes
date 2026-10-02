@@ -1,0 +1,45 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-digest --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-targeted/selftest-digest.out
+DIGEST_FIXTURE (1244 chars):
+Morning digest
+Edition: Tuesday, 22 September 2026 · New York
+
+Today
+- 09:00 Design review (Kim)
+- 09:30 1:1 with Ana (Ana)
+- 19:00 Dinner (Ana) at Carbone
+Overlap: Design review and 1:1 with Ana overlap from 09:30 to 10:00.
+
+The Week Ahead
+- Tue 22: Design review; 1:1 with Ana; Dinner.
+- Wed 23: Dentist.
+- Thu 24: nothing.
+- Fri 25: Acme renewal call.
+- Sat 26: nothing.
+- Sun 27: Flight to Lisbon.
+- Mon 28: Sprint planning.
+
+For Sam
+- Acme renewal Friday — the contract draft is in your notes.
+
+For Ana
+- 1:1 moved to 09:30 Tuesday.
+
+Watch these
+- Acme contract draft due Thursday 24 Sep.
+- Dentist form to fill before Wednesday.
+
+Around Town
+- Dinner at Carbone, Tuesday 19:00 — reservation for two.
+
+From your mail and notes
+- Re: renewal — Can we move Friday's call 30 minutes later? [mail · sam@acme.com · 2026-09-21]
+- 1:1 notes — Moved our 1:1 to 9:30. [mail · ana · 2026-09-20]
+- Acme renewal prep — Acme wants SSO before renewing 120 seats. [notes · Acme renewal prep · 2026-09-18]
+- Lisbon flights — Outbound Sunday 08:00, return Friday. [notes · Lisbon flights · 2026-09-15]
+
+Talk at the Table
+- Should Friday's Acme call move 30 minutes later?
+- What is the one thing the Design review must decide?
+- Is the dentist form filled?
+DIGEST_RUN -> reported (3 calls)
+DIGEST_OK

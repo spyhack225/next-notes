@@ -1,0 +1,3 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-podcast --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-targeted/selftest-podcast.out
+PODCAST_RUN -> reported (0 calls) Ready — 7 seconds, saved in your Library.
+PODCAST_OK

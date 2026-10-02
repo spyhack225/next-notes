@@ -203,6 +203,7 @@ enum ScheduleToolExecutor {
                 createdAt: now,
                 createdInSession: sessionID
             )
+            schedule.budget.maxOutputTokens = schedule.effectiveMaxOutputTokens
             if kind == .trigger {
                 schedule.plainEnglish = triggerSentence(for: schedule)
             } else {

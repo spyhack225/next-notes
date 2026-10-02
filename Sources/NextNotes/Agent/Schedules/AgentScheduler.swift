@@ -141,12 +141,13 @@ struct ScheduleEdit: Sendable {
 /// - **Every skipped slot is logged with a reason** in `agent-schedule-runs.jsonl`.
 /// - **`endsAt` is enforced here**, not by a job meant to clean up other jobs.
 /// - **Quiet hours defer delivery**, and a deferred delivery goes out when they end. A
-///   reminder whose own time is inside quiet hours was set for then on purpose and is not held.
+///   reminder or routine whose own time is inside quiet hours was set for then on purpose and is not held.
 /// - **Failures escalate.** Retry after 1, 5, 15, then 60 minutes; one notification at 3
 ///   consecutive failures; at 10 the schedule turns itself off and says so.
 ///
 /// Routines (R2) run here too, one at a time — there is one Metal GPU — through
-/// `ScheduledRunner`: quiet hours hold a routine's *result*, not its run; a skipped slot
+/// `ScheduledRunner`: quiet hours hold a late result whose slot was outside them, not the run;
+/// a routine deliberately set inside quiet hours delivers then. A skipped slot
 /// ("local model busy") is retried a minute later while still within grace; a failed run
 /// escalates exactly like a failed reminder.
 ///
@@ -656,7 +657,8 @@ final class AgentScheduler {
         note: String = ""
     ) async {
         let zone = zoneProvider()
-        if !ignoreQuiet, settings.isQuiet(now, zone: zone) {
+        if !ignoreQuiet, settings.isQuiet(now, zone: zone),
+           !(schedule.kind == .routine && slot.map { settings.isQuiet($0, zone: zone) } == true) {
             let resume = settings.quietEnd(after: now, zone: zone)
             let held = SchedulePendingDelivery(slot: slot, notBefore: resume, missed: false, reason: "quiet hours", text: text)
             if schedule.kind == .trigger {

@@ -1,0 +1,2 @@
+command: xcrun swiftc -swift-version 6 -module-cache-path /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotes-p412-lzulqbwp/modules /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotes-p412-lzulqbwp/Schedule.swift /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotes-p412-lzulqbwp/Support.swift /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotes-p412-lzulqbwp/Driver.swift -o /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotes-p412-lzulqbwp/driver
+P412_PRODUCERS_OK: 16 cases

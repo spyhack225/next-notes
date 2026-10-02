@@ -20,7 +20,9 @@ import Foundation
 ///   announcement, never the script and never the file.
 /// - Setup is the existing R2 flow through `schedule.create`, in consumer words.
 ///
-/// Known tension, documented not patched: the render happens inside the scheduler's
+/// Output uses the podcast's 4,096-token budget, clamped to its provider window
+/// (Apple Intelligence currently permits about 1,365 tokens).
+/// Known scheduling and sentence-limit tension: the render happens inside the scheduler's
 /// serial pass, so a five-minute briefing occupies the pass chain for as long as the
 /// voice takes. The 4–8 minute script cap bounds it. Moving renders off the pass chain
 /// belongs to the scheduler, not this template. The runner's system prompt also caps a

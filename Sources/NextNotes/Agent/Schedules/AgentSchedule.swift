@@ -36,7 +36,10 @@ struct AgentSchedule: Codable, Identifiable, Equatable, Sendable {
     struct Budget: Codable, Equatable, Sendable {
         var maxSeconds: Int
         var maxToolCalls: Int
+        /// Nil preserves stored schedules from before template-sized output budgets.
+        var maxOutputTokens: Int? = nil
 
+        static let defaultMaxOutputTokens = 384
         static let standard = Budget(maxSeconds: 180, maxToolCalls: 8)
     }
 
@@ -127,6 +130,12 @@ struct AgentSchedule: Codable, Identifiable, Equatable, Sendable {
             pendingDelivery = newValue.first
             queuedDeliveries = newValue.count > 1 ? Array(newValue.dropFirst()) : nil
         }
+    }
+
+    /// Template defaults also apply to schedules created before this field existed.
+    var effectiveMaxOutputTokens: Int {
+        budget.maxOutputTokens ?? (title == DigestTemplate.title ? 1_536
+            : title == PodcastTemplate.title ? 4_096 : 384)
     }
 
     /// The short id the tools accept and `schedule.list` prints.

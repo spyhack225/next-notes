@@ -21,15 +21,16 @@ import Foundation
 ///   prompt is the schedule's `prompt`, its ceiling is `allowedTools` below.
 /// - Quiet hours, the presence rule and delivery are the scheduler's
 ///   (`AgentScheduler`): the default `delivery` is `.notifyAndSpeak`, so a
-///   06:00 result waits for quiet hours to end and is spoken only when the
-///   user is present.
+///   deliberately scheduled 06:00 result is shown then. It speaks only outside
+///   quiet hours when the user is present.
 /// - Silence is `ScheduledRunner.silenceToken`: an empty morning answers
 ///   exactly that, and the scheduler delivers nothing.
 /// - Setup is the existing R2 flow through `schedule.create`
 ///   (`ScheduleToolExecutor`): restate in consumer words, wait for a yes,
 ///   create (which test-runs once, visibly, before saving).
 ///
-/// Known tension, documented not patched: `ScheduledRunner`'s system prompt
+/// Output uses the digest's 1,536-token budget, clamped to its provider window.
+/// Known sentence-limit tension (P4-06): `ScheduledRunner`'s system prompt
 /// caps a final answer at three sentences, which a sectioned digest cannot
 /// meet. The digest prompt below tells the model its final answer *is* the
 /// digest in the sections given; changing the runner belongs to another epic,

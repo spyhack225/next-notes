@@ -6,9 +6,9 @@ import Foundation
 //   schedule's id, executed by the same bounded multi-round tool loop the Agent uses
 //   (`AgentToolLoop`). No conversation: persona, the core memory snapshot, fixed rules, the
 //   schedule's self-contained prompt, today's date and time zone.
-// - **Model.** `auto` probes the on-device model first (loaded or loadable, nothing recording,
-//   not busy), then OpenRouter; if neither, the slot is skipped with a reason, never crashed.
-//   Recording rules out only the on-device model: a cloud routine still runs while a meeting records.
+// - **Model.** `auto` first uses the runnable library model, then Apple Intelligence, then
+//   OpenRouter. While recording, a configured cloud model precedes Apple, and the library
+//   model is never loaded. An unavailable model produces a visible skip reason.
 // - **Budget.** `maxSeconds` and `maxToolCalls` are loop parameters, not prompt text; the
 //   run stops cleanly at either.
 // - **Silence.** A final answer of exactly `NOTHING_TO_REPORT` delivers nothing.
@@ -21,6 +21,7 @@ import Foundation
 /// Where a routine run executes, or why it is skipped. Pure, so the self-test covers every row.
 enum RoutineModelRoute: Equatable, Sendable {
     case local
+    case appleFoundation
     case cloud
     case skip(String)
 }
@@ -30,7 +31,7 @@ enum RoutineModelRouter {
     /// Unlike the memory review, a routine may load the on-device model: it was scheduled for this minute.
     static func route(
         choice: AgentSchedule.ModelChoice, isRecording: Bool,
-        local: MemoryReviewLocalState, cloudConfigured: Bool
+        local: MemoryReviewLocalState, cloudConfigured: Bool, appleAvailable: Bool = false
     ) -> RoutineModelRoute {
         // Recording rules out only the on-device model (it shares the machine with the live transcription);
         // `auto` then falls back to OpenRouter, and a cloud routine runs as usual. A trigger on
@@ -46,10 +47,14 @@ enum RoutineModelRouter {
         switch choice {
         case .auto:
             if localRunnable { return .local }
+            if isRecording && cloudConfigured { return .cloud }
+            if appleAvailable { return .appleFoundation }
             if cloudConfigured { return .cloud }
-            return .skip(localReason)
+            return .skip(localReason + ", OpenRouter isn't set up and Apple Intelligence isn't available")
         case .local:
-            return localRunnable ? .local : .skip(localReason)
+            if localRunnable { return .local }
+            if appleAvailable { return .appleFoundation }
+            return .skip(localReason + " and Apple Intelligence isn't available")
         case .cloud:
             return cloudConfigured ? .cloud : .skip("OpenRouter isn't set up")
         }
@@ -177,6 +182,15 @@ protocol ScheduledRunEnvironment: AnyObject {
     func localModelState() async -> MemoryReviewLocalState
     func isCloudConfigured() async -> Bool
     func model(for route: RoutineModelRoute) async -> (any MemoryReviewModel)?
+    func isAppleFoundationAvailable() async -> Bool
+    func model(for route: RoutineModelRoute, maxOutputTokens: Int) async -> (any MemoryReviewModel)?
+}
+
+extension ScheduledRunEnvironment {
+    func isAppleFoundationAvailable() async -> Bool { false }
+    func model(for route: RoutineModelRoute, maxOutputTokens: Int) async -> (any MemoryReviewModel)? {
+        await model(for: route)
+    }
 }
 
 /// Runs a read inside the ceiling. The production one goes through `AgentToolExecutor` — the
@@ -250,16 +264,31 @@ final class ScheduledRunner: ScheduledRunning {
         let route = RoutineModelRouter.route(
             choice: schedule.model, isRecording: environment.isRecording,
             local: await environment.localModelState(),
-            cloudConfigured: await environment.isCloudConfigured())
+            cloudConfigured: await environment.isCloudConfigured(),
+            appleAvailable: await environment.isAppleFoundationAvailable())
         if case .skip(let reason) = route { return .skipped(reason) }
-        guard let model = await environment.model(for: route) else {
-            return .skipped(route == .cloud ? "OpenRouter isn't set up" : "local model busy")
+        guard let model = await environment.model(for: route, maxOutputTokens: schedule.effectiveMaxOutputTokens) else {
+            let reason = switch route {
+            case .local: "local model busy"
+            case .appleFoundation: "Apple Intelligence isn't available"
+            case .cloud: "OpenRouter isn't set up"
+            case .skip(let reason): reason
+            }
+            return .skipped(reason)
+        }
+        let backend: String
+        let reader: LLMProviderID
+        switch route {
+        case .local: backend = "local"; reader = .appLLM
+        case .appleFoundation: backend = "apple"; reader = .appleFoundation
+        case .cloud: backend = "openrouter"; reader = .openRouter
+        case .skip: return .skipped("No model is available")
         }
 
         let task = AgentTask(
             objective: schedule.title, source: AgentTask.scheduledSource, createdAt: now,
             status: .running, progress: "Running on a schedule",
-            backend: route == .local ? "local" : "openrouter", scheduleID: schedule.id)
+            backend: backend, scheduleID: schedule.id)
         recorder.begin(task)
         recorder.audit(kind: .task, title: "Routine started: \(schedule.title)",
                        detail: "schedule \(schedule.id.uuidString) · \(model.label)",
@@ -271,7 +300,7 @@ final class ScheduledRunner: ScheduledRunning {
         let loop: AgentToolLoop.Outcome
         do {
             // The graph answers a cloud route only with its own consent (`KnowledgeGraphScope`).
-            loop = try await KnowledgeGraphScope.$reader.withValue(route == .local ? .appLLM : .openRouter) {
+            loop = try await KnowledgeGraphScope.$reader.withValue(reader) {
                 try await AgentToolLoop.run(
                 user: schedule.prompt,
                 maxRounds: AgentToolLoop.maxRoundsBound,
@@ -555,20 +584,42 @@ final class LiveScheduledRunEnvironment: ScheduledRunEnvironment {
         await review.isCloudConfigured()
     }
 
+    func isAppleFoundationAvailable() async -> Bool {
+        await review.isAppleFoundationAvailable()
+    }
+
     func model(for route: RoutineModelRoute) async -> (any MemoryReviewModel)? {
+        await model(for: route, maxOutputTokens: AgentSchedule.Budget.defaultMaxOutputTokens)
+    }
+
+    /// The provider owns the context limit; no model choice can exceed it.
+    static func outputBudget(requested: Int, contextTokens: Int) -> Int {
+        min(max(1, requested), max(384, contextTokens / 3))
+    }
+
+    func model(for route: RoutineModelRoute, maxOutputTokens: Int) async -> (any MemoryReviewModel)? {
+        let provider: any LLMProvider
         switch route {
         case .local:
-            return ProviderMemoryReviewModel(
-                provider: LlamaLLMProvider(), maxTokens: 384, usageFeature: .agentRoutine)
+            if let selected = await ModelRoleStore.shared.provider(for: .agent), selected.id == .appLLM {
+                provider = selected
+            } else {
+                provider = LLMProviders.make(.appLLM)
+            }
+        case .appleFoundation:
+            provider = LLMProviders.make(.appleFoundation)
+            guard await provider.unavailableReason == nil else { return nil }
         case .cloud:
-            return ProviderMemoryReviewModel(
-                provider: LLMProviders.make(
-                    .openRouter, modelID: Settings.shared.openRouterAgentModelID,
-                    contextTokens: Settings.shared.openRouterAgentContextTokens),
-                maxTokens: 384, usageFeature: .agentRoutine)
+            provider = LLMProviders.make(
+                .openRouter, modelID: Settings.shared.openRouterAgentModelID,
+                contextTokens: Settings.shared.openRouterAgentContextTokens)
         case .skip:
             return nil
         }
+        return ProviderMemoryReviewModel(
+            provider: provider,
+            maxTokens: Self.outputBudget(requested: maxOutputTokens, contextTokens: provider.contextTokens),
+            usageFeature: .agentRoutine)
     }
 }
 

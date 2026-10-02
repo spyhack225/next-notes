@@ -40,6 +40,7 @@ enum ScheduleSelfTest {
         failures += await schedulerFailures(root: root)
         failures += await toolFailures(root: root)
         failures += await routineFailures(root: root)
+        failures += await p412Failures(root: root)
         failures += await triggerFailures(root: root)
         failures += await GoalSelfTest.failures(root: root.appendingPathComponent("goals"))
         failures += policyFailures()
@@ -881,12 +882,12 @@ enum ScheduleSelfTest {
             check("a delivered routine not recorded completed",
                   scheduler.store.schedule(id: saved.id)?.lastRun?.outcome == .completed)
 
-            // Quiet hours hold the result, not the run.
-            settings.quietStart = ScheduleLocalTime(hour: 7, minute: 0)
+            // The 08:00 slot was outside quiet hours; its late result is held.
+            settings.quietStart = ScheduleLocalTime(hour: 8, minute: 1)
             settings.quietEnd = ScheduleLocalTime(hour: 9, minute: 0)
             runner.queue = [ScheduledRunOutcome(status: .reported, text: "Summary ready.")]
             let runsBefore = runner.runs
-            await scheduler.runOnce(now: date(2026, 9, 18, 8, 0, 5))
+            await scheduler.runOnce(now: date(2026, 9, 18, 8, 2, 5))
             check("quiet hours held the run itself", runner.runs == runsBefore + 1)
             check("quiet hours did not hold the result",
                   deliverer.deliveries.count == 1
@@ -1007,6 +1008,7 @@ enum ScheduleSelfTest {
                 let stored = scheduler.store.schedules.first
                 check("a tested routine was not saved enabled with its ceiling",
                       stored?.kind == .routine && stored?.enabled == true && stored?.allowedTools == ["meeting.search"])
+                check("created routine did not retain its output budget", stored?.budget.maxOutputTokens == 384)
                 check("the test run was not visible", deliverer.deliveries.last?.body == "Three meetings last week."
                       && stored?.lastRun?.outcome == .ranNow)
                 check("the sentence does not name the tools and approval",
@@ -1025,8 +1027,116 @@ enum ScheduleSelfTest {
 
     // MARK: - Triggers under a fake clock
 
-    /// Triggers with synthetic events: notes ready, a meeting starting with its lead time, and
-    /// a call starting. Exactly once per event, the filter, routine rules, the publishers.
+    /// Real ScheduledRunner and AgentScheduler, with model and notification effects recorded.
+    /// No provider, owner store or macOS notification is touched.
+    private static func p412Failures(root: URL) async -> [String] {
+        var failures: [String] = []
+        func check(_ name: String, _ passed: Bool) {
+            if !passed { failures.append("P4-12: " + name) }
+        }
+        do {
+            // A literal legacy row, not a newly encoded schedule with its new field removed.
+            let legacy = #"{"id":"1D58A8D2-7C73-42AE-9607-34CEE28280E7","kind":"routine","title":"Inbox check","plainEnglish":"Check my inbox.","prompt":"Check my inbox.","allowedTools":[],"model":"auto","delivery":"notify","budget":{"maxSeconds":180,"maxToolCalls":8},"enabled":true,"createdAt":"2026-09-16T12:00:00Z","consecutiveFailures":0}"#
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            var decoded = try decoder.decode(AgentSchedule.self, from: Data(legacy.utf8))
+            check("legacy schedule did not retain its budget", decoded.effectiveMaxOutputTokens == 384
+                && decoded.budget.maxOutputTokens == nil && decoded.budget.maxSeconds == 180
+                && decoded.budget.maxToolCalls == 8)
+            decoded.title = DigestTemplate.title
+            check("legacy digest budget was not 1536", decoded.effectiveMaxOutputTokens == 1_536)
+            decoded.title = PodcastTemplate.title
+            check("legacy podcast budget was not 4096", decoded.effectiveMaxOutputTokens == 4_096)
+            decoded.budget.maxOutputTokens = 700
+            check("stored explicit output budget was replaced", decoded.effectiveMaxOutputTokens == 700)
+
+            check("Apple context did not clamp podcast output", LiveScheduledRunEnvironment.outputBudget(
+                requested: 4_096, contextTokens: 4_096) == 1_365)
+            check("large provider context did not preserve podcast output", LiveScheduledRunEnvironment.outputBudget(
+                requested: 4_096, contextTokens: 32_768) == 4_096)
+            check("invalid output budget was not bounded", LiveScheduledRunEnvironment.outputBudget(
+                requested: -1, contextTokens: 4_096) == 1)
+
+            let store = ScheduleStore(directory: root.appendingPathComponent("p412-budget"))
+            let runEnvironment = RoutineAuthoritySelfTest.FakeRunEnvironment()
+            runEnvironment.local = .unavailable
+            runEnvironment.cloud = false
+            runEnvironment.apple = true
+            runEnvironment.model = ScriptedMemoryReviewModel { _, _ in "Digest." }
+            let recorder = RoutineAuthoritySelfTest.FakeRecorder()
+            let runner = RoutineAuthoritySelfTest.makeRunner(store: store, environment: runEnvironment,
+                tools: RoutineAuthoritySelfTest.FakeToolRunner(), recorder: recorder)
+            let deliveries = FakeDeliverer()
+            let scheduler = AgentScheduler(store: store, system: FakeSystem(), deliverer: deliveries,
+                environment: FakeEnvironment(),
+                settings: { ScheduleSettingsSnapshot(enabled: true, quietStart: nil, quietEnd: nil, speech: .whenPresent) },
+                timeZone: { newYork }, runner: runner)
+            let createTool = ScheduleToolCatalogue.all.first { $0.name == "create" }!
+            let creationTime = date(2026, 9, 16, 5, 0)
+            _ = try await ScheduleToolExecutor.run(createTool,
+                arguments: ["kind": "routine", "title": DigestTemplate.title, "text": "Prepare a digest.",
+                    "repeat": "daily", "time": "06:00", "speak": "no"],
+                scheduler: scheduler, now: creationTime, timeZone: newYork, availableTools: [])
+            let createdDigest = store.schedules.first { $0.title == DigestTemplate.title }
+            check("create did not persist the digest output budget", createdDigest?.budget.maxOutputTokens == 1_536
+                && ScheduleStore(directory: store.directory).schedule(id: createdDigest?.id ?? UUID())?.budget.maxOutputTokens == 1_536)
+            check("digest budget never reached the actual runner model", runEnvironment.budgetRequests.count == 1
+                && runEnvironment.budgetRequests.first?.0 == .appleFoundation
+                && runEnvironment.budgetRequests.first?.1 == 1_536
+                && createdDigest?.lastRun?.outcome == .ranNow)
+            check("Apple run was recorded as cloud", recorder.begun.first?.backend == "apple")
+            check("Apple graph reader was classified as cloud", runEnvironment.readers.count == 1
+                && runEnvironment.readers.first! == .appleFoundation)
+            _ = try await ScheduleToolExecutor.run(createTool,
+                arguments: ["kind": "routine", "title": PodcastTemplate.title, "text": "Prepare a podcast.",
+                    "repeat": "daily", "time": "06:01", "speak": "no"],
+                scheduler: scheduler, now: creationTime, timeZone: newYork, availableTools: [])
+            check("create did not persist and forward the podcast output budget",
+                store.schedules.first { $0.title == PodcastTemplate.title }?.budget.maxOutputTokens == 4_096
+                && runEnvironment.budgetRequests.last?.1 == 4_096)
+
+            // Explicit slots inside quiet hours deliver. Late results and event results wait.
+            var quiet = ScheduleSettingsSnapshot(enabled: true,
+                quietStart: ScheduleLocalTime(hour: 21, minute: 0),
+                quietEnd: ScheduleLocalTime(hour: 8, minute: 0), speech: .whenPresent)
+            let quietDeliveries = FakeDeliverer()
+            let quietRunner = ScriptedRunner()
+            quietRunner.fallback = ScheduledRunOutcome(status: .reported, text: "Digest.")
+            let quietScheduler = AgentScheduler(store: ScheduleStore(directory: root.appendingPathComponent("p412-quiet")),
+                system: FakeSystem(), deliverer: quietDeliveries, environment: FakeEnvironment(),
+                settings: { quiet }, timeZone: { newYork }, runner: quietRunner)
+            let created = date(2026, 9, 16, 6, 0)
+            var early = RoutineAuthoritySelfTest.routine(tools: [])
+            early.when = ScheduleWhen(repeatRule: .daily, time: ScheduleLocalTime(hour: 7, minute: 0), timeZone: newYork.identifier)
+            let earlySaved = try await quietScheduler.add(early, now: created)
+            await quietScheduler.runOnce(now: date(2026, 9, 16, 7, 0, 5))
+            check("deliberately scheduled 07:00 routine was held", quietDeliveries.deliveries.count == 1
+                && quietScheduler.store.schedule(id: earlySaved.id)?.pendingDelivery == nil
+                && quietScheduler.store.schedule(id: earlySaved.id)?.lastRun?.outcome == .completed)
+            check("quiet-hours result spoke aloud", quietDeliveries.deliveries.first?.speak == false)
+            var late = RoutineAuthoritySelfTest.routine(tools: [], id: UUID())
+            late.when = ScheduleWhen(repeatRule: .daily, time: ScheduleLocalTime(hour: 20, minute: 0), timeZone: newYork.identifier)
+            let lateSaved = try await quietScheduler.add(late, now: date(2026, 9, 16, 19, 0))
+            await quietScheduler.runOnce(now: date(2026, 9, 16, 21, 30))
+            check("late 20:00 routine result escaped quiet hours", quietDeliveries.deliveries.count == 1
+                && quietScheduler.store.schedule(id: lateSaved.id)?.pendingDelivery?.text == "Digest.")
+            let trigger = AgentSchedule(kind: .trigger, title: "Call recap", plainEnglish: "After calls",
+                prompt: "Recap.", trigger: .callStarted, createdAt: date(2026, 9, 16, 21, 31))
+            let triggerSaved = try await quietScheduler.add(trigger, now: date(2026, 9, 16, 21, 31))
+            let eventTime = date(2026, 9, 16, 22, 0)
+            await quietScheduler.handleTriggerEvents([ScheduleTriggerOccurrence(event: .callStarted, key: "p412-call", title: "Fixture call",
+                start: eventTime, observedAt: eventTime)], now: eventTime)
+            check("22:00 trigger result escaped quiet hours", quietDeliveries.deliveries.count == 1
+                && quietScheduler.store.schedule(id: triggerSaved.id)?.pendingDelivery?.text == "Digest.")
+            quiet.quietStart = nil
+            quiet.quietEnd = nil
+        } catch {
+            failures.append("P4-12 fixture threw " + error.localizedDescription)
+        }
+        return failures
+    }
+
+    /// Triggers with synthetic events: exactly once per event, filter, routine rules and publishers.
     private static func triggerFailures(root: URL) async -> [String] {
         var failures: [String] = []
         func check(_ name: String, _ condition: Bool) {

@@ -1,0 +1,15 @@
+{
+  "stage": "current",
+  "baseline": null,
+  "sources": {
+    "Sources/NextNotes/Agent/Schedules/AgentSchedule.swift": "bc427f726200e348920c173fd9a6e1244eb41a972ccd9b73c6e9542ea4a07394",
+    "Sources/NextNotes/Agent/Schedules/AgentScheduler.swift": "46c92fc3014f0a1931832dd80b6e7938fd04c3e1b2082221733e9a0c8cecf151",
+    "Sources/NextNotes/Agent/Schedules/ScheduledRunner.swift": "c662efed55a3beed754eea74df1890dffa675d32238f3a2a7a48adf7edcf3d19"
+  },
+  "generated": {
+    "Schedule.swift": "bc427f726200e348920c173fd9a6e1244eb41a972ccd9b73c6e9542ea4a07394",
+    "Support.swift": "572d73a18f20126c8089019c9be1e01cdc15d2839cf3bb0f3a681be3c35ab6f2",
+    "Driver.swift": "d1a3605cbf7dd02a7fe33adc70e086ff2f5b1dfd356456fb09a806b4b6a6847b"
+  },
+  "scope": "actual copied router/deliverRoutineResult/makeDelivery/quiet predicates; recording shell, not installed scheduler"
+}
